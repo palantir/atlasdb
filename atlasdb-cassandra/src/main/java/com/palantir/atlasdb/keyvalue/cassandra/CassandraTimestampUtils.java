@@ -178,7 +178,7 @@ public final class CassandraTimestampUtils {
     }
 
     private static CqlQuery constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
-        Preconditions.checkState(target != null, "Should not CAS to a null target!");
+        com.palantir.logsafe.Preconditions.checkState(target != null, "Should not CAS to a null target!");
         if (expected == null) {
             return constructInsertIfNotExistsQuery(columnName, target);
         }

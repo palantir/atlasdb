@@ -15,16 +15,9 @@
  */
 package com.palantir.atlasdb.logging;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.immutables.value.Value;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -36,6 +29,12 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
 
 /**
  * Includes utilities for generating logging args that may be safe or unsafe, depending on table metadata.
@@ -95,7 +94,7 @@ public final class LoggingArgs {
 
     public static Iterable<TableReference> safeTablesOrPlaceholder(Collection<TableReference> tables) {
         //noinspection StaticPseudoFunctionalStyleMethod - Use lazy iterator.
-        return Iterables.transform(tables, LoggingArgs::safeTableOrPlaceholder);
+        return Collections2.transform(tables, LoggingArgs::safeTableOrPlaceholder);
     }
 
     /**

@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.health;
 
-import java.util.Map;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Map;
 
 public class MetricsBasedTimelockHealthCheck implements TimelockHealthCheck{
     private final MetricRegistry metricRegistry;
@@ -29,11 +29,11 @@ public class MetricsBasedTimelockHealthCheck implements TimelockHealthCheck{
         this.metricRegistry = metricRegistry;
     }
 
-    public TimelockServiceStatus getStatus() {
+    @Override public TimelockServiceStatus getStatus() {
         Map<String, Meter> meters = metricRegistry.getMeters();
         if (!meters.containsKey(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST)
                 || !meters.containsKey(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST)) {
-            throw new IllegalStateException("Timelock client metrics is not properly set");
+            throw new SafeIllegalStateException("Timelock client metrics is not properly set");
         }
 
         double successfulRequestRate = meters.get(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST).getFiveMinuteRate();

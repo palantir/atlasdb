@@ -72,7 +72,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
         for (KeyValueService delegate : delegates) {
             map.put(delegate, null);
         }
-        Preconditions.checkArgument(map.keySet().containsAll(delegateByTable.values()),
+        com.palantir.logsafe.Preconditions.checkArgument(map.keySet().containsAll(delegateByTable.values()),
                 "delegateByTable must only have delegates from the delegate list");
         return new TableSplittingKeyValueService(delegates, delegateByTable, delegateByNamespace);
     }

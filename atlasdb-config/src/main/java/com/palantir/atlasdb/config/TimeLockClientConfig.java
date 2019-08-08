@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableTimeLockClientConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
@@ -39,7 +38,7 @@ public abstract class TimeLockClientConfig {
     @JsonIgnore
     @Value.Lazy
     public String getClientOrThrow() {
-        return client().orElseThrow(() -> new IllegalStateException(
+        return client().orElseThrow(() -> new SafeIllegalStateException(
                 "Tried to read a client from a TimeLockClientConfig, but it hadn't been initialised."));
     }
 
@@ -59,7 +58,7 @@ public abstract class TimeLockClientConfig {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkArgument(!client().isPresent() || !client().get().isEmpty(),
+        com.palantir.logsafe.Preconditions.checkArgument(!client().isPresent() || !client().get().isEmpty(),
                 "Timelock client string cannot be empty");
     }
 }

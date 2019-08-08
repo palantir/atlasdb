@@ -84,7 +84,7 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
 
     @Override
     public byte[] getLastToken(List<Map.Entry<Cell, Value>> batch) {
-        Preconditions.checkArgument(!batch.isEmpty());
+        com.palantir.logsafe.Preconditions.checkArgument(!batch.isEmpty());
         return batch.get(batch.size() - 1).getKey().getColumnName();
     }
 }

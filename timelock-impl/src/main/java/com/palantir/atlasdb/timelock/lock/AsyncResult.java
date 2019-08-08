@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import com.google.common.base.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-import com.google.common.base.Preconditions;
-
 import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
@@ -50,7 +49,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if this result is already completed.
      */
     public void complete(T value) {
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 future.complete(value),
                 "This result is already completed");
     }
@@ -62,7 +61,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if this result is already completed.
      */
     public void fail(Throwable error) {
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 future.completeExceptionally(error),
                 "This result is already completed");
     }
@@ -80,7 +79,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if this result is already completed.
      */
     public void timeout() {
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 future.completeExceptionally(new TimeoutException()),
                 "This result is already completed");
     }
@@ -115,7 +114,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if not completed successfully.
      **/
     public T get() {
-        Preconditions.checkState(isCompletedSuccessfully());
+        com.palantir.logsafe.Preconditions.checkState(isCompletedSuccessfully());
         return future.join();
     }
 
@@ -125,7 +124,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if not failed.
      **/
     public Throwable getError() {
-        Preconditions.checkState(isFailed());
+        com.palantir.logsafe.Preconditions.checkState(isFailed());
         return getExceptionInternal();
     }
 
@@ -194,7 +193,7 @@ public class AsyncResult<T> {
     private Throwable getExceptionInternal() {
         try {
             future.join();
-            throw new IllegalStateException("This result is not failed.");
+            throw new SafeIllegalStateException("This result is not failed.");
         } catch (CompletionException e) {
             return e.getCause();
         }

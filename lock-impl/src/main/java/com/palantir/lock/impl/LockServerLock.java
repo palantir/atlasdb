@@ -34,7 +34,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
     public LockServerLock(LockDescriptor descriptor,
                           LockClientIndices clients) {
-        this.descriptor = Preconditions.checkNotNull(descriptor);
+        this.descriptor = com.palantir.logsafe.Preconditions.checkNotNull(descriptor);
         this.sync = new LockServerSync(clients);
     }
 
@@ -45,7 +45,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
     @Override
     public KnownClientLock get(LockClient client, LockMode mode) {
-        Preconditions.checkNotNull(client);
+        com.palantir.logsafe.Preconditions.checkNotNull(client);
         switch (mode) {
         case READ: return new ReadLock(sync, client);
         case WRITE: return new WriteLock(sync, client);

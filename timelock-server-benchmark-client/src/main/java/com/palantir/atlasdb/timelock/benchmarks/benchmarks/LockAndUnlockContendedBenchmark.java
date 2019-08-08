@@ -61,7 +61,7 @@ public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
     protected void performOneCall() {
         LockToken token = timelock.lock(nextRequest()).getToken();
         boolean wasUnlocked = timelock.unlock(ImmutableSet.of(token)).contains(token);
-        Preconditions.checkState(wasUnlocked, "unlock returned false");
+        com.palantir.logsafe.Preconditions.checkState(wasUnlocked, "unlock returned false");
     }
 
     @Override

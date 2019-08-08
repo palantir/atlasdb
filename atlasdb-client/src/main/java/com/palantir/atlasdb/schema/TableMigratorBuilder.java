@@ -53,64 +53,64 @@ public class TableMigratorBuilder {
     }
 
     public TableMigratorBuilder srcTable(TableReference table) {
-        Preconditions.checkNotNull(table);
+        com.palantir.logsafe.Preconditions.checkNotNull(table);
         this.srcTable = table;
         return this;
     }
 
     public TableMigratorBuilder partitions(int p) {
-        Preconditions.checkArgument(p > 0);
+        com.palantir.logsafe.Preconditions.checkArgument(p > 0);
         this.partitions = p;
         return this;
     }
 
     public TableMigratorBuilder partitioners(List<RowNamePartitioner> ps) {
-        Preconditions.checkNotNull(ps);
+        com.palantir.logsafe.Preconditions.checkNotNull(ps);
         this.partitioners = ps;
         return this;
     }
 
     public TableMigratorBuilder readBatchSize(int batchSize) {
-        Preconditions.checkArgument(readBatchSize > 0);
+        com.palantir.logsafe.Preconditions.checkArgument(readBatchSize > 0);
         this.readBatchSize = batchSize;
         return this;
     }
 
     public TableMigratorBuilder executor(ExecutorService exec) {
-        Preconditions.checkNotNull(exec);
+        com.palantir.logsafe.Preconditions.checkNotNull(exec);
         this.executor = exec;
         return this;
     }
 
     public TableMigratorBuilder checkpointer(AbstractTaskCheckpointer c) {
-        Preconditions.checkNotNull(c);
+        com.palantir.logsafe.Preconditions.checkNotNull(c);
         this.checkpointer = c;
         return this;
     }
 
     public TableMigratorBuilder progress(TaskProgress p) {
-        Preconditions.checkNotNull(p);
+        com.palantir.logsafe.Preconditions.checkNotNull(p);
         this.progress = p;
         return this;
     }
 
     public TableMigratorBuilder columnSelection(ColumnSelection cs) {
-        Preconditions.checkNotNull(cs);
+        com.palantir.logsafe.Preconditions.checkNotNull(cs);
         this.columnSelection = cs;
         return this;
     }
 
     public TableMigratorBuilder rangeMigrator(RangeMigrator rm) {
-        Preconditions.checkNotNull(rm);
+        com.palantir.logsafe.Preconditions.checkNotNull(rm);
         this.rangeMigrator = rm;
         return this;
     }
 
     public TableMigrator build() {
-        Preconditions.checkNotNull(srcTable);
-        Preconditions.checkNotNull(executor);
-        Preconditions.checkNotNull(checkpointer);
-        Preconditions.checkNotNull(rangeMigrator);
+        com.palantir.logsafe.Preconditions.checkNotNull(srcTable);
+        com.palantir.logsafe.Preconditions.checkNotNull(executor);
+        com.palantir.logsafe.Preconditions.checkNotNull(checkpointer);
+        com.palantir.logsafe.Preconditions.checkNotNull(rangeMigrator);
 
         return new TableMigrator(
                 srcTable,

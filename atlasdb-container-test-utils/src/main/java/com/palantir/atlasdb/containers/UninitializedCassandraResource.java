@@ -42,7 +42,7 @@ public class UninitializedCassandraResource extends ExternalResource {
     }
 
     public void initialize() {
-        Preconditions.checkState(initialized.compareAndSet(false, true), "Cassandra was already initialized");
+        com.palantir.logsafe.Preconditions.checkState(initialized.compareAndSet(false, true), "Cassandra was already initialized");
         try {
             containers.before();
         } catch (Throwable th) {

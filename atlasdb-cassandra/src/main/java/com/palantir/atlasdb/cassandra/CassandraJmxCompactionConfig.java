@@ -70,9 +70,9 @@ public abstract class CassandraJmxCompactionConfig {
             return;
         }
 
-        Preconditions.checkState(!Strings.isNullOrEmpty(keystore()), "keystore must be specified");
-        Preconditions.checkState(!Strings.isNullOrEmpty(keystorePassword()), "keystorePassword must be specified");
-        Preconditions.checkState(!Strings.isNullOrEmpty(truststore()), "truststore must be specified");
-        Preconditions.checkState(!Strings.isNullOrEmpty(truststorePassword()), "truststorePassword must be specified");
+        com.palantir.logsafe.Preconditions.checkState(!Strings.isNullOrEmpty(keystore()), "keystore must be specified");
+        com.palantir.logsafe.Preconditions.checkState(!Strings.isNullOrEmpty(keystorePassword()), "keystorePassword must be specified");
+        com.palantir.logsafe.Preconditions.checkState(!Strings.isNullOrEmpty(truststore()), "truststore must be specified");
+        com.palantir.logsafe.Preconditions.checkState(!Strings.isNullOrEmpty(truststorePassword()), "truststorePassword must be specified");
     }
 }

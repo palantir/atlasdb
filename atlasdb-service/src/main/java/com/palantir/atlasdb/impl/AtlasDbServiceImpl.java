@@ -167,7 +167,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             return txManager.runTaskWithRetry(task);
         } else {
             Transaction tx = transactions.getIfPresent(token).transaction();
-            Preconditions.checkNotNull(tx, "The given transaction does not exist.");
+            com.palantir.logsafe.Preconditions.checkNotNull(tx, "The given transaction does not exist.");
             return task.execute(tx);
         }
     }
@@ -177,7 +177,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             return txManager.runTaskWithRetry(task);
         } else {
             Transaction tx = transactions.getIfPresent(token).transaction();
-            Preconditions.checkNotNull(tx, "The given transaction does not exist.");
+            com.palantir.logsafe.Preconditions.checkNotNull(tx, "The given transaction does not exist.");
             return task.execute(tx);
         }
     }

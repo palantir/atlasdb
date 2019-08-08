@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.batch;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.palantir.common.collect.Maps2;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.collect.Iterables;
-import com.palantir.common.collect.Maps2;
 
 public final class BatchingStrategies {
 
@@ -52,7 +52,7 @@ public final class BatchingStrategies {
     private static class ListBatchingStrategy<T> implements BatchingTaskRunner.BatchingStrategy<List<T>> {
         @Override
         public Iterable<List<T>> partitionIntoBatches(List<T> collection, int batchSizeHint) {
-            return Iterables.partition(collection, batchSizeHint);
+            return Lists.partition(collection, batchSizeHint);
         }
     }
 

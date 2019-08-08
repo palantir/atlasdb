@@ -94,13 +94,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
             return EncodingUtils.encodeUnsignedVarLong((Long)value);
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
             return EncodingUtils.sizeOfUnsignedVarLong((Long)value);
         }
 
@@ -175,13 +175,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
             return EncodingUtils.encodeSignedVarLong((Long)value);
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
             return EncodingUtils.sizeOfSignedVarLong((Long)value);
         }
 
@@ -255,13 +255,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
             return PtBytes.toBytes(Long.MIN_VALUE ^ (Long)value);
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
             return 8;
         }
 
@@ -336,13 +336,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
             return EncodingUtils.encodeLittleEndian((Long)value);
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
             return 8;
         }
 
@@ -404,13 +404,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof Sha256Hash);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Sha256Hash);
             return ((Sha256Hash) value).getBytes();
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof Sha256Hash);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof Sha256Hash);
             return 32;
         }
 
@@ -496,13 +496,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof String);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof String);
             return EncodingUtils.encodeVarString((String) value);
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof String);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof String);
             return EncodingUtils.sizeOfVarString((String)value);
         }
 
@@ -566,13 +566,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof String);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof String);
             return PtBytes.toBytes((String)value);
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof String);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof String);
             // This value doesn't matter because string is always the last thing
             return 0;
         }
@@ -618,13 +618,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof byte[]);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof byte[]);
             return (byte[]) value;
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof byte[]);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof byte[]);
             // This value doesn't matter because blob is always the last thing
             return 0;
         }
@@ -690,13 +690,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value instanceof byte[]);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof byte[]);
             return EncodingUtils.encodeSizedBytes((byte[]) value);
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value instanceof byte[]);
+            com.palantir.logsafe.Preconditions.checkArgument(value instanceof byte[]);
             return EncodingUtils.sizeOfSizedBytes((byte[]) value);
         }
 
@@ -787,13 +787,13 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value == null || value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value == null || value instanceof Long);
             return EncodingUtils.encodeNullableFixedLong((Long) value);
         }
 
         @Override
         public int sizeOf(Object value) {
-            Preconditions.checkArgument(value == null || value instanceof Long);
+            com.palantir.logsafe.Preconditions.checkArgument(value == null || value instanceof Long);
             return 9;
         }
 
@@ -806,13 +806,13 @@ public enum ValueType {
     UUID {
         @Override
         public UUID convertToJava(byte[] value, int offset) {
-            Preconditions.checkArgument(offset + 16 <= value.length, "Field does not contain enough remaining bytes to hold a UUID");
+            com.palantir.logsafe.Preconditions.checkArgument(offset + 16 <= value.length, "Field does not contain enough remaining bytes to hold a UUID");
             return EncodingUtils.decodeUUID(value, offset);
         }
 
         @Override
         public byte[] convertFromJava(Object value) {
-            Preconditions.checkArgument(value == null || value instanceof UUID);
+            com.palantir.logsafe.Preconditions.checkArgument(value == null || value instanceof UUID);
             return EncodingUtils.encodeUUID((UUID) value);
         }
 

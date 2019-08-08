@@ -28,7 +28,7 @@ public class Prefix {
     private final byte[] bytes;
 
     public Prefix(byte[] bytes) {
-        this.bytes = Preconditions.checkNotNull(bytes, "bytes cannot be null").clone();
+        this.bytes = com.palantir.logsafe.Preconditions.checkNotNull(bytes, "bytes cannot be null").clone();
     }
 
     @Nonnull

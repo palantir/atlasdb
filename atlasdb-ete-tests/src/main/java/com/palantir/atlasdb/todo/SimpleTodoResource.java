@@ -52,7 +52,7 @@ public class SimpleTodoResource implements TodoResource {
 
     @Override
     public void isHealthy() {
-        Preconditions.checkState(atlas.getTodoList() != null);
+        com.palantir.logsafe.Preconditions.checkState(atlas.getTodoList() != null);
     }
 
     @Override

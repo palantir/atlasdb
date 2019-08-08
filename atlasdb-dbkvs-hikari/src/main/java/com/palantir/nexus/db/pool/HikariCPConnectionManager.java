@@ -15,6 +15,15 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.nexus.db.DBType;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.nexus.db.sql.ExceptionCheck;
+import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
+import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -23,25 +32,14 @@ import java.sql.Statement;
 import java.util.TimeZone;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
-import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.pool.config.ConnectionConfig;
-import com.palantir.nexus.db.sql.ExceptionCheck;
-import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.HikariPoolMXBean;
-import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 
 /**
  * HikariCP Connection Manager.
@@ -82,7 +80,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     private volatile State state = new State(StateType.ZERO, null, null, null);
 
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
-        this.connConfig = Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
+        this.connConfig = com.palantir.logsafe.Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
     }
 
     @Override
@@ -234,7 +232,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                         log.debug(
                                 "Closing connection pool: {}",
                                 connConfig,
-                                new RuntimeException("Closing connection pool"));
+                                new SafeRuntimeException("Closing connection pool"));
                     }
 
                     state.dataSourcePool.close();
@@ -279,7 +277,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         // Print a stack trace whenever we initialize a pool
         if (log.isDebugEnabled()) {
             log.debug("Initializing connection pool: {}", connConfig,
-                    new RuntimeException("Initializing connection pool"));
+                    new SafeRuntimeException("Initializing connection pool"));
         }
 
         HikariDataSource dataSourcePool;

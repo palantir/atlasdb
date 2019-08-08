@@ -91,7 +91,7 @@ public class ProfileStore {
 
     public void updateImage(UUID userId, Sha256Hash hash, InputStream imageData) {
         UserProfile userData = getUserData(userId);
-        Preconditions.checkNotNull(userData, "userData cannot be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(userData, "userData cannot be null");
 
         UserPhotosStreamStore streamStore = UserPhotosStreamStore.of(txnMgr, tables);
         Long oldStreamId = getPhotoStreamId(userId);

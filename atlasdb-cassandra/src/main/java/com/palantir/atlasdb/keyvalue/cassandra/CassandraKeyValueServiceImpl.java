@@ -620,7 +620,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                        final Iterable<byte[]> rows,
                                                        ColumnSelection selection,
                                                        final long startTs) {
-        Preconditions.checkArgument(!selection.allColumnsSelected(), "Must select specific columns");
+        com.palantir.logsafe.Preconditions.checkArgument(!selection.allColumnsSelected(), "Must select specific columns");
 
         Collection<byte[]> selectedColumns = selection.getSelectedColumns();
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(selectedColumns.size() * Iterables.size(rows));

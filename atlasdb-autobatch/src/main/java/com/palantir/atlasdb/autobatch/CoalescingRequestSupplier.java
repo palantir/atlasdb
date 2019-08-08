@@ -32,7 +32,7 @@ public final class CoalescingRequestSupplier<T> implements CoalescingRequestFunc
 
     @Override
     public Map<Autobatchers.SupplierKey, T> apply(Set<Autobatchers.SupplierKey> request) {
-        Preconditions.checkArgument(request.size() == 1, "invalid request");
+        com.palantir.logsafe.Preconditions.checkArgument(request.size() == 1, "invalid request");
         return Autobatchers.SupplierKey.wrap(supplier.get());
     }
 }

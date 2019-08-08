@@ -35,8 +35,8 @@ public class TimingProxy implements DelegatingInvocationHandler {
     final private OperationTimer timer;
 
     private TimingProxy(Object delegate, OperationTimer timer) {
-        Preconditions.checkNotNull(delegate);
-        Preconditions.checkNotNull(timer);
+        com.palantir.logsafe.Preconditions.checkNotNull(delegate);
+        com.palantir.logsafe.Preconditions.checkNotNull(timer);
         this.delegate = delegate;
         this.timer = timer;
     }

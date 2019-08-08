@@ -97,7 +97,7 @@ public final class RetriableTransactions {
 
         // May only be called if the result is SUCCESSFUL.
         public @Nullable T getResultValue() {
-            Preconditions.checkState(status.equals(TransactionStatus.SUCCESSFUL), "Trying to get result from a transaction which never succeeded");
+            com.palantir.logsafe.Preconditions.checkState(status.equals(TransactionStatus.SUCCESSFUL), "Trying to get result from a transaction which never succeeded");
             return resultValue;
         }
 

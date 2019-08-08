@@ -40,7 +40,7 @@ public abstract class Renderer {
     protected abstract void run();
 
     protected String render() {
-        Preconditions.checkState(builder.length() == 0);
+        com.palantir.logsafe.Preconditions.checkState(builder.length() == 0);
         run();
         return builder.toString();
     }

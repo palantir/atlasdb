@@ -547,7 +547,7 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     private void executeCheckAndSet(CheckAndSetRequest request) {
-        Preconditions.checkArgument(request.oldValue().isPresent());
+        com.palantir.logsafe.Preconditions.checkArgument(request.oldValue().isPresent());
 
         runWrite(request.table(), table -> {
             //noinspection OptionalGetWithoutIsPresent
@@ -910,7 +910,7 @@ public final class DbKvs extends AbstractKeyValueService {
                     if (isFullyLoadedRow) {
                         rowsColumnRangeBatch.addRowsToLoadFully(row);
                     } else {
-                        Preconditions.checkArgument(!entries.hasNext(), "Only the last row should be partial.");
+                        com.palantir.logsafe.Preconditions.checkArgument(!entries.hasNext(), "Only the last row should be partial.");
                         BatchColumnRangeSelection columnRange =
                                 BatchColumnRangeSelection.create(columnRangeSelection, entry.getValue());
                         rowsColumnRangeBatch.partialLastRow(Maps.immutableEntry(row, columnRange));

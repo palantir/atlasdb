@@ -287,7 +287,7 @@ public final class TableTasks {
                         tx.getRange(minusTable, request), lessThan(lastRow)).immutableCopy();
             } else {
                 toRemove = tx.getRows(minusTable,
-                        Iterables.transform(batch, RowResult.getRowNameFun()),
+                        Lists.transform(batch, RowResult.getRowNameFun()),
                         ColumnSelection.all()).values();
             }
             visitor.visit(tx, diffInternal(asCells(batch), asCells(toRemove), partialStats));
@@ -400,7 +400,7 @@ public final class TableTasks {
     private static Iterable<MutableRange> getRanges(int givenThreadCount, int batchSize) {
         int threadCount = Math.min(givenThreadCount, 256);
 
-        Preconditions.checkState(threadCount > 0, "threadCount must be positive");
+        com.palantir.logsafe.Preconditions.checkState(threadCount > 0, "threadCount must be positive");
         if (threadCount == 1) {
             return ImmutableList.of(new MutableRange(new byte[0], new byte[0], batchSize));
         }

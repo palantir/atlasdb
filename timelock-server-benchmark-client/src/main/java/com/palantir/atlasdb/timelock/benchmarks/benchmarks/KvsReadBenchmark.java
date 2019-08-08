@@ -53,6 +53,6 @@ public final class KvsReadBenchmark extends AbstractBenchmark {
     protected void performOneCall() {
         byte[] result = keyValueService.get(TABLE, ImmutableMap.of(cell, 200L))
                 .get(cell).getContents();
-        Preconditions.checkState(result.length == data.length);
+        com.palantir.logsafe.Preconditions.checkState(result.length == data.length);
     }
 }

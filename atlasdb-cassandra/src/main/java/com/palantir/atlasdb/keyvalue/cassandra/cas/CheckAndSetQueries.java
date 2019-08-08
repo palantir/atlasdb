@@ -37,7 +37,7 @@ final class CheckAndSetQueries {
     }
 
     private static CqlQuery insertIfNotExists(CheckAndSetRequest request) {
-        Preconditions.checkState(!request.oldValue().isPresent(),
+        com.palantir.logsafe.Preconditions.checkState(!request.oldValue().isPresent(),
                 "insertIfNotExists queries should only be made if we don't have an old value");
         return ImmutableCqlQuery.builder()
                 .safeQueryFormat("INSERT INTO \"%s\" (key, column1, column2, value)"
@@ -52,7 +52,7 @@ final class CheckAndSetQueries {
     }
 
     private static CqlQuery updateIfMatching(CheckAndSetRequest request) {
-        Preconditions.checkState(request.oldValue().isPresent(),
+        com.palantir.logsafe.Preconditions.checkState(request.oldValue().isPresent(),
                 "updateIfMatching queries should only be made if we do have an old value");
         return ImmutableCqlQuery.builder()
                 .safeQueryFormat("UPDATE \"%s\" SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;")

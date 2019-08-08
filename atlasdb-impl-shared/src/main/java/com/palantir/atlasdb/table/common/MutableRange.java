@@ -26,8 +26,8 @@ public class MutableRange {
     private final int batchSize;
 
     public MutableRange(byte[] startRow, byte[] endRow, int batchSize) {
-        this.startRow = Preconditions.checkNotNull(startRow, "startRow cannot be null");
-        this.endRow = Preconditions.checkNotNull(endRow, "endRow cannot be null");
+        this.startRow = com.palantir.logsafe.Preconditions.checkNotNull(startRow, "startRow cannot be null");
+        this.endRow = com.palantir.logsafe.Preconditions.checkNotNull(endRow, "endRow cannot be null");
         this.batchSize = batchSize;
     }
 

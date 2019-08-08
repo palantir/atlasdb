@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
-
-import org.apache.commons.lang3.Validate;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -29,6 +23,10 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePrior
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import javax.annotation.Nullable;
+import org.apache.commons.lang3.Validate;
 
 public class IndexMetadata {
     final String name;
@@ -62,7 +60,7 @@ public class IndexMetadata {
             boolean appendHeavyAndReadLight,
             int numberOfComponentsHashed,
             TableMetadataPersistence.LogSafety logSafety) {
-        Validate.isTrue(!Iterables.isEmpty(rowComponents));
+        Preconditions.checkArgument(!Iterables.isEmpty(rowComponents));
         Iterable<IndexComponent> colComponents = ImmutableList.<IndexComponent>of();
         return new IndexMetadata(
                 name,
@@ -98,8 +96,8 @@ public class IndexMetadata {
             boolean appendHeavyAndReadLight,
             int numberOfComponentsHashed,
             TableMetadataPersistence.LogSafety logSafety) {
-        Validate.isTrue(!Iterables.isEmpty(rowComponents));
-        Validate.isTrue(!Iterables.isEmpty(colComponents));
+        Preconditions.checkArgument(!Iterables.isEmpty(rowComponents));
+        Preconditions.checkArgument(!Iterables.isEmpty(colComponents));
         return new IndexMetadata(
                 name,
                 javaName,

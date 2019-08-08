@@ -15,6 +15,7 @@
  */
 package com.palantir.nexus.db;
 
+import com.palantir.logsafe.Preconditions;
 import org.apache.commons.lang3.Validate;
 
 public class SqlClause {
@@ -23,8 +24,8 @@ public class SqlClause {
     private final String clause;
 
     public SqlClause(String key, String clause) {
-        Validate.notNull(key, "key should not be null");
-        Validate.notNull(clause, "clause should not be null");
+        Preconditions.checkNotNull(key, "key should not be null");
+        Preconditions.checkNotNull(clause, "clause should not be null");
         this.key = key;
         this.clause = clause;
     }

@@ -64,7 +64,7 @@ import com.google.common.collect.Iterables;
      * These grants should not be constructed by users.  Only the lock service should hand them out.
      */
     public HeldLocksGrant(BigInteger grantId) {
-        this.grantId = Preconditions.checkNotNull(grantId, "grantId should not be null");
+        this.grantId = com.palantir.logsafe.Preconditions.checkNotNull(grantId, "grantId should not be null");
         creationDateMs = System.currentTimeMillis();
         expirationDateMs = -1;
         lockMap = LockCollections.of();
@@ -78,13 +78,13 @@ import com.google.common.collect.Iterables;
     public HeldLocksGrant(BigInteger grantId, long creationDateMs, long expirationDateMs,
             SortedLockCollection<LockDescriptor> lockMap, TimeDuration lockTimeout,
             @Nullable Long versionId) {
-        this.grantId = Preconditions.checkNotNull(grantId, "grantId should not be null");
+        this.grantId = com.palantir.logsafe.Preconditions.checkNotNull(grantId, "grantId should not be null");
         this.creationDateMs = creationDateMs;
         this.expirationDateMs = expirationDateMs;
         this.lockMap = lockMap;
         this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
         this.versionId = versionId;
-        Preconditions.checkArgument(!this.lockMap.isEmpty());
+        com.palantir.logsafe.Preconditions.checkArgument(!this.lockMap.isEmpty());
     }
 
     /** Returns the grant ID. */
@@ -120,7 +120,7 @@ import com.google.common.collect.Iterables;
      */
     @Override
     public long getExpirationDateMs() {
-        Preconditions.checkState(expirationDateMs != -1);
+        com.palantir.logsafe.Preconditions.checkState(expirationDateMs != -1);
         return expirationDateMs;
     }
 
@@ -130,7 +130,7 @@ import com.google.common.collect.Iterables;
      */
     @JsonIgnore
     public SortedLockCollection<LockDescriptor> getLocks() {
-        Preconditions.checkState(!lockMap.isEmpty());
+        com.palantir.logsafe.Preconditions.checkState(!lockMap.isEmpty());
         return lockMap;
     }
 
@@ -144,7 +144,7 @@ import com.google.common.collect.Iterables;
      */
     @Override
     public TimeDuration getLockTimeout() {
-        Preconditions.checkState(lockTimeout != null);
+        com.palantir.logsafe.Preconditions.checkState(lockTimeout != null);
         return lockTimeout;
     }
 

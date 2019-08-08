@@ -36,8 +36,8 @@ public class TableRowSelection {
     private final ColumnSelection columnSelection;
 
     public TableRowSelection(String tableName, Iterable<byte[]> rows, ColumnSelection columnSelection) {
-        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
-        this.rows = Preconditions.checkNotNull(rows, "rows must not be null!");
+        this.tableName = com.palantir.logsafe.Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.rows = com.palantir.logsafe.Preconditions.checkNotNull(rows, "rows must not be null!");
         this.columnSelection = columnSelection;
     }
 

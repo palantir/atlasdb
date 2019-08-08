@@ -33,7 +33,7 @@ public class RangeToken {
 
     public RangeToken(TableRowResult results,
                       @Nullable TableRange nextRange) {
-        this.results = Preconditions.checkNotNull(results, "results must not be null!");
+        this.results = com.palantir.logsafe.Preconditions.checkNotNull(results, "results must not be null!");
         this.nextRange = nextRange;
     }
 

@@ -100,7 +100,7 @@ public final class PaxosQuorumChecker {
             int quorumSize,
             Map<? extends SERVICE, ExecutorService> executors,
             Duration remoteRequestTimeout) {
-        Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
+        com.palantir.logsafe.Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
                 "Each remote should have an executor.");
         return collectResponses(
                 remotes,

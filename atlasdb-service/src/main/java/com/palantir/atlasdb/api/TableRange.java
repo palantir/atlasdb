@@ -54,7 +54,7 @@ public class TableRange {
                       byte[] endRow,
                       Iterable<byte[]> columns,
                       int batchSize) {
-        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.tableName = com.palantir.logsafe.Preconditions.checkNotNull(tableName, "tableName must not be null!");
         this.startRow = startRow;
         this.endRow = endRow;
         this.columns = columns;

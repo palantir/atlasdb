@@ -42,7 +42,7 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     public PaxosProposalId(@JsonProperty("number") long number,
                            @JsonProperty("proposerUUID") String proposerUuid) {
         this.number = number;
-        this.proposerUuid = Preconditions.checkNotNull(proposerUuid, "proposerUUID cannot be null");
+        this.proposerUuid = com.palantir.logsafe.Preconditions.checkNotNull(proposerUuid, "proposerUUID cannot be null");
     }
 
     @Override

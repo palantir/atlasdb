@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.SortedMap;
-
-import org.apache.commons.lang3.Validate;
-
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -34,6 +28,11 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.SortedMap;
+import org.apache.commons.lang3.Validate;
 
 public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     final KeyValueService delegate;
@@ -73,13 +72,13 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
                             .lockAsManyAsPossible()
                             .build();
                     LockRefreshToken lock = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
-                    Validate.isTrue(lock == null, "these should already be held");
+                    Preconditions.checkArgument(lock == null, "these should already be held");
                 }
 
                 if (!mapToAssertLockNotHeld.isEmpty()) {
                     LockRequest request = LockRequest.builder(mapToAssertLockNotHeld).doNotBlock().build();
                     LockRefreshToken lock = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
-                    Validate.isTrue(lock != null, "these should already be waited for");
+                    Preconditions.checkArgument(lock != null, "these should already be waited for");
                 }
             } catch (InterruptedException e) {
                 throw Throwables.throwUncheckedException(e);

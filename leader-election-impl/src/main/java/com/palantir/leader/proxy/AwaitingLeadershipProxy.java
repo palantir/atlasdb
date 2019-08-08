@@ -15,6 +15,17 @@
  */
 package com.palantir.leader.proxy;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.LeaderElectionService.LeadershipToken;
+import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
+import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -26,22 +37,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-
 import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.LeaderElectionService.LeadershipToken;
-import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
-import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.logsafe.SafeArg;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
@@ -82,7 +80,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             Supplier<T> delegateSupplier,
             LeaderElectionService leaderElectionService,
             Class<T> interfaceClass) {
-        Preconditions.checkNotNull(delegateSupplier,
+        com.palantir.logsafe.Preconditions.checkNotNull(delegateSupplier,
                 "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
@@ -107,7 +105,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             executor.execute(this::gainLeadershipWithRetry);
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
-                throw new IllegalStateException("failed to submit task but proxy not closed", e);
+                throw new SafeIllegalStateException("failed to submit task but proxy not closed", e);
             }
         }
     }

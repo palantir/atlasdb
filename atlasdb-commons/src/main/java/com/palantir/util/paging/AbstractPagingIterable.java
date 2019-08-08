@@ -82,7 +82,7 @@ public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> i
         }
 
         private void setNextPage(P page) {
-            Preconditions.checkNotNull(page);
+            com.palantir.logsafe.Preconditions.checkNotNull(page);
             currentPage = page;
             currentIterator = page.getResults().iterator();
         }

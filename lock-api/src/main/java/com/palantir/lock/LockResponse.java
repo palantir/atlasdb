@@ -62,7 +62,7 @@ import com.google.common.collect.ImmutableSortedMap;
         this.token = token;
         this.lockHolders = ImmutableSortedMap.copyOf(lockHolders);
         isBlockAndRelease = false;
-        Preconditions.checkArgument(token != null || !this.lockHolders.isEmpty());
+        com.palantir.logsafe.Preconditions.checkArgument(token != null || !this.lockHolders.isEmpty());
     }
 
     /**
@@ -82,7 +82,7 @@ import com.google.common.collect.ImmutableSortedMap;
      * with an empty lock holders map.
      */
     public static LockResponse createSuccessful(HeldLocksToken token) {
-        return new LockResponse(Preconditions.checkNotNull(token),
+        return new LockResponse(com.palantir.logsafe.Preconditions.checkNotNull(token),
                 ImmutableSortedMap.<LockDescriptor, LockClient>of());
     }
 

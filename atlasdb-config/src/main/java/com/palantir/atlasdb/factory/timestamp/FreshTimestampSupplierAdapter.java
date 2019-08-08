@@ -25,7 +25,7 @@ public class FreshTimestampSupplierAdapter implements LongSupplier {
     private volatile TimestampService timestampService;
 
     public void setTimestampService(TimestampService timestampService) {
-        Preconditions.checkNotNull(timestampService, "Should not re-set timestamp service in a"
+        com.palantir.logsafe.Preconditions.checkNotNull(timestampService, "Should not re-set timestamp service in a"
                 + " FreshTimestampSupplierAdapter to null");
         this.timestampService = timestampService;
     }

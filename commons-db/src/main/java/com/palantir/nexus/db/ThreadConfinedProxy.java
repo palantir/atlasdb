@@ -15,22 +15,20 @@
  */
 package com.palantir.nexus.db;
 
+import com.google.common.base.Throwables;
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.common.proxy.DelegatingInvocationHandler;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.util.AssertUtils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.Callable;
-
 import javax.annotation.concurrent.GuardedBy;
-
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Throwables;
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.common.proxy.DelegatingInvocationHandler;
-import com.palantir.util.AssertUtils;
 
 /**
  *  Dynamic Proxy for confining an object to a particular thread, but allowing explicit handoff.
@@ -77,7 +75,7 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
      *
      */
     public static void changeThread(Object proxy, Thread oldThread, Thread newThread) {
-        Validate.notNull(proxy, "Proxy argument must not be null");
+        Preconditions.checkNotNull(proxy, "Proxy argument must not be null");
         if (Proxy.isProxyClass(proxy.getClass())) {
             InvocationHandler handler = Proxy.getInvocationHandler(proxy);
             changeHandlerThread(handler, oldThread, newThread);

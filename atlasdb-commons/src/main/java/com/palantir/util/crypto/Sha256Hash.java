@@ -15,6 +15,13 @@
  */
 package com.palantir.util.crypto;
 
+import com.google.common.base.Preconditions;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hasher;
+import com.google.common.io.BaseEncoding;
+import com.google.common.io.ByteStreams;
+import com.google.common.primitives.UnsignedBytes;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -22,13 +29,6 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-
-import com.google.common.base.Preconditions;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hasher;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.ByteStreams;
-import com.google.common.primitives.UnsignedBytes;
 
 /**
  * A SHA-256 hash. This class provides type-safety and equals/hashCode
@@ -50,7 +50,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      */
     public Sha256Hash(byte[] bytes) {
         if (bytes.length != 32) {
-            throw new IllegalArgumentException("Incorrect SHA-256 hash size."); //$NON-NLS-1$
+            throw new SafeIllegalArgumentException("Incorrect SHA-256 hash size."); //$NON-NLS-1$
         }
         this.bytes = bytes.clone();
     }
@@ -58,7 +58,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
     public Sha256Hash(HashCode hashCode) {
         this.bytes = hashCode.asBytes();
         if (this.bytes.length != 32) {
-            throw new IllegalArgumentException("Incorrect SHA-256 hash size."); //$NON-NLS-1$
+            throw new SafeIllegalArgumentException("Incorrect SHA-256 hash size."); //$NON-NLS-1$
         }
     }
 
@@ -168,7 +168,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
         private final boolean supportsClone;
 
         MessageDigestPrototype(String algorithm) {
-            this.algorithm = Preconditions.checkNotNull(algorithm);
+            this.algorithm = com.palantir.logsafe.Preconditions.checkNotNull(algorithm);
             this.prototype = createDigest(algorithm);
             this.supportsClone = supportsClone(prototype);
         }

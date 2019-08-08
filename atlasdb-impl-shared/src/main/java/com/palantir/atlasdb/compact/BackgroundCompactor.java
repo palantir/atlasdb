@@ -116,7 +116,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     private synchronized void runInBackground() {
-        Preconditions.checkState(daemon == null);
+        com.palantir.logsafe.Preconditions.checkState(daemon == null);
         daemon = new Thread(this::run);
         daemon.setDaemon(true);
         daemon.setName("BackgroundCompactor");

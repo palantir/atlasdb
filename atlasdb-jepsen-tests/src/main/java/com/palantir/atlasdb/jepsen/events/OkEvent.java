@@ -45,7 +45,7 @@ public abstract class OkEvent implements Event {
     @Override
     public abstract long time();
 
-    public abstract int process();
+    @Override public abstract int process();
 
     @Nullable
     public abstract String value();

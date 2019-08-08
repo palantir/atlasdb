@@ -15,16 +15,15 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The SimpleCleaner simply delegates to the various specialized objects that do the real work.
@@ -73,7 +72,7 @@ public class SimpleCleaner implements Cleaner {
             // QA-85267 We cannot propagate the exception because the client doesn't have the exception type
             // that cassandra throws thrift.UnavailableException.
             // Instead we log so we won't lose the error and throw a generic exception back to the user.
-            throw new RuntimeException(message);
+            throw new SafeRuntimeException(message);
         }
     }
 

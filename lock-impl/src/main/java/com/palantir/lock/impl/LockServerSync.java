@@ -39,7 +39,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     private @GuardedBy("this") TIntIntMap readLockHolders;
 
     public LockServerSync(LockClientIndices clients) {
-        this.clients = Preconditions.checkNotNull(clients);
+        this.clients = com.palantir.logsafe.Preconditions.checkNotNull(clients);
     }
 
     private boolean isAnonymous(int clientIndex) {
@@ -51,7 +51,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     }
 
     private synchronized boolean holdsWriteLock(int clientIndex) {
-        Preconditions.checkState(getState() > 0);
+        com.palantir.logsafe.Preconditions.checkState(getState() > 0);
         return clientIndex == writeLockHolder && !isAnonymous(clientIndex);
     }
 
@@ -206,7 +206,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
             return null;
         }
         TIntIntIterator iter = readLockHolders.iterator();
-        Preconditions.checkState(iter.hasNext());
+        com.palantir.logsafe.Preconditions.checkState(iter.hasNext());
         iter.advance();
         return clients.fromIndex(iter.key());
     }

@@ -17,6 +17,13 @@ package com.palantir.atlasdb.containers;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.palantir.docker.compose.connection.ContainerName;
+import com.palantir.docker.compose.execution.DockerCompose;
+import com.palantir.docker.compose.logging.FileLogCollector;
+import com.palantir.docker.compose.logging.LogCollector;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -24,17 +31,9 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.docker.compose.connection.ContainerName;
-import com.palantir.docker.compose.execution.DockerCompose;
-import com.palantir.docker.compose.logging.FileLogCollector;
-import com.palantir.docker.compose.logging.LogCollector;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public class InterruptibleFileLogCollector implements LogCollector {
@@ -47,7 +46,7 @@ public class InterruptibleFileLogCollector implements LogCollector {
     private ExecutorService executor = null;
 
     public InterruptibleFileLogCollector(File logDirectory) {
-        checkArgument(!logDirectory.isFile(), "Log directory cannot be a file");
+        Preconditions.checkArgument(!logDirectory.isFile(), "Log directory cannot be a file");
         if (!logDirectory.exists()) {
             Validate.isTrue(logDirectory.mkdirs(), "Error making log directory: " + logDirectory.getAbsolutePath());
         }
@@ -61,7 +60,7 @@ public class InterruptibleFileLogCollector implements LogCollector {
     @Override
     public synchronized void startCollecting(DockerCompose dockerCompose) throws IOException, InterruptedException {
         if (executor != null) {
-            throw new RuntimeException("Cannot start collecting the same logs twice");
+            throw new SafeRuntimeException("Cannot start collecting the same logs twice");
         }
         List<ContainerName> containerNames = dockerCompose.ps();
         if (containerNames.isEmpty()) {
@@ -80,7 +79,7 @@ public class InterruptibleFileLogCollector implements LogCollector {
             try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
                 dockerCompose.writeLogs(container, outputStream);
             } catch (IOException e) {
-                throw new RuntimeException("Error reading log", e);
+                throw new SafeRuntimeException("Error reading log", e);
             }
         });
     }

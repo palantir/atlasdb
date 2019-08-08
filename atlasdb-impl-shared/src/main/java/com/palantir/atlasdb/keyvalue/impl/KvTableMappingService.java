@@ -69,8 +69,8 @@ public class KvTableMappingService implements TableMappingService {
     private final Set<TableReference> unmappedTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     protected KvTableMappingService(KeyValueService kvs, LongSupplier uniqueLongSupplier) {
-        this.kvs = Preconditions.checkNotNull(kvs, "kvs must not be null");
-        this.uniqueLongSupplier = Preconditions.checkNotNull(uniqueLongSupplier, "uniqueLongSupplier must not be null");
+        this.kvs = com.palantir.logsafe.Preconditions.checkNotNull(kvs, "kvs must not be null");
+        this.uniqueLongSupplier = com.palantir.logsafe.Preconditions.checkNotNull(uniqueLongSupplier, "uniqueLongSupplier must not be null");
     }
 
     public static KvTableMappingService create(KeyValueService kvs, LongSupplier uniqueLongSupplier) {

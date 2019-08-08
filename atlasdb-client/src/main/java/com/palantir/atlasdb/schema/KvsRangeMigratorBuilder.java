@@ -65,55 +65,55 @@ public class KvsRangeMigratorBuilder {
     }
 
     public KvsRangeMigratorBuilder srcTable(TableReference table) {
-        Preconditions.checkNotNull(table);
+        com.palantir.logsafe.Preconditions.checkNotNull(table);
         this.srcTable = table;
         return this;
     }
 
     public KvsRangeMigratorBuilder destTable(TableReference table) {
-        Preconditions.checkNotNull(table);
+        com.palantir.logsafe.Preconditions.checkNotNull(table);
         this.destTable = table;
         return this;
     }
 
     public KvsRangeMigratorBuilder readBatchSize(int batchSize) {
-        Preconditions.checkArgument(readBatchSize > 0);
+        com.palantir.logsafe.Preconditions.checkArgument(readBatchSize > 0);
         this.readBatchSize = batchSize;
         return this;
     }
 
     public KvsRangeMigratorBuilder readTxManager(TransactionManager txm) {
-        Preconditions.checkNotNull(txm);
+        com.palantir.logsafe.Preconditions.checkNotNull(txm);
         this.readTxManager = txm;
         return this;
     }
 
     public KvsRangeMigratorBuilder txManager(TransactionManager txMgr) {
-        Preconditions.checkNotNull(txMgr);
+        com.palantir.logsafe.Preconditions.checkNotNull(txMgr);
         this.txManager = txMgr;
         return this;
     }
 
     public KvsRangeMigratorBuilder writeKvs(KeyValueService kvs) {
-        Preconditions.checkNotNull(kvs);
+        com.palantir.logsafe.Preconditions.checkNotNull(kvs);
         this.writeKvs = kvs;
         return this;
     }
 
     public KvsRangeMigratorBuilder migrationTimestamp(long ts) {
-        Preconditions.checkArgument(ts > 0);
+        com.palantir.logsafe.Preconditions.checkArgument(ts > 0);
         this.migrationTimestamp = ts;
         return this;
     }
 
     public KvsRangeMigratorBuilder checkpointer(AbstractTaskCheckpointer cp) {
-        Preconditions.checkNotNull(cp);
+        com.palantir.logsafe.Preconditions.checkNotNull(cp);
         this.checkpointer = cp;
         return this;
     }
 
     public KvsRangeMigratorBuilder rowTransformer(Function<RowResult<byte[]>, Map<Cell, byte[]>> function) {
-        Preconditions.checkNotNull(function);
+        com.palantir.logsafe.Preconditions.checkNotNull(function);
         this.rowTransform = function;
         return this;
     }
@@ -126,10 +126,10 @@ public class KvsRangeMigratorBuilder {
             readTxManager = txManager;
         }
 
-        Preconditions.checkNotNull(srcTable);
-        Preconditions.checkNotNull(txManager);
-        Preconditions.checkNotNull(writeKvs);
-        Preconditions.checkNotNull(checkpointer);
+        com.palantir.logsafe.Preconditions.checkNotNull(srcTable);
+        com.palantir.logsafe.Preconditions.checkNotNull(txManager);
+        com.palantir.logsafe.Preconditions.checkNotNull(writeKvs);
+        com.palantir.logsafe.Preconditions.checkNotNull(checkpointer);
 
         return new KvsRangeMigrator(
                 srcTable,

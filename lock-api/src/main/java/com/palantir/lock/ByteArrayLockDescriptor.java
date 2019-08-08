@@ -33,7 +33,7 @@ public final class ByteArrayLockDescriptor {
 
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
     public static LockDescriptor of(byte[] bytes) {
-        Preconditions.checkNotNull(bytes, "bytes cannot be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(bytes, "bytes cannot be null");
         return new LockDescriptor(bytes.clone());
     }
 }

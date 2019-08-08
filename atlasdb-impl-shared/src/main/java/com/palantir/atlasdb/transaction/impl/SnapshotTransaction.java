@@ -15,38 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.Nullable;
-
-import org.apache.commons.lang3.Validate;
-import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
@@ -139,9 +107,42 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
+import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -209,7 +210,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TimestampCache timestampValidationReadCache;
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
-    private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
+    private final Set<TableReference> involvedTables = ConcurrentHashMap.newKeySet();
     protected final ExecutorService deleteExecutor;
     private final Timer.Context transactionTimerContext;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
@@ -293,7 +294,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 && System.currentTimeMillis() - timeCreated > transactionReadTimeoutMillis) {
             throw new TransactionFailedRetriableException("Transaction timed out.");
         }
-        Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
+        com.palantir.logsafe.Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
         if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
             throw new CommittedTransactionException();
@@ -835,7 +836,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 int requestSize = range.getBatchHint() != null ? range.getBatchHint() : userRequestedSize;
                 int preFilterBatchSize = getRequestHintToKvStore(requestSize);
 
-                Validate.isTrue(!range.isReverse(), "we currently do not support reverse ranges");
+                com.palantir.logsafe.Preconditions.checkArgument(!range.isReverse(), "we currently do not support reverse ranges");
                 getBatchingVisitableFromIterator(
                         tableRef,
                         range,
@@ -1075,7 +1076,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (log.isDebugEnabled()) {
                 log.debug("The first 10 results of your request were {}.",
                         UnsafeArg.of("results", Iterables.limit(rawResults.entrySet(), 10)),
-                        new RuntimeException("This exception and stack trace are provided for debugging purposes."));
+                        new SafeRuntimeException("This exception and stack trace are provided for debugging purposes."));
             }
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ, tableRef).update(bytes);
         }
@@ -1083,7 +1084,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
 
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
-            Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
+            com.palantir.logsafe.Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
@@ -1219,7 +1220,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This is protected to allow for different post filter behavior.
      */
     protected boolean shouldDeleteAndRollback() {
-        Validate.notNull(timelockService, "if we don't have a valid lock server we can't roll back transactions");
+        com.palantir.logsafe.Preconditions.checkNotNull(timelockService, "if we don't have a valid lock server we can't roll back transactions");
         return true;
     }
 
@@ -1235,7 +1236,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
-        Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
+        com.palantir.logsafe.Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         markTableAsInvolvedInThisTransaction(tableRef);
 
         if (values.isEmpty()) {
@@ -1258,7 +1259,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void ensureNoEmptyValues(Map<Cell, byte[]> values) {
         for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
             if ((cellEntry.getValue() == null) || (cellEntry.getValue().length == 0)) {
-                throw new IllegalArgumentException(
+                throw new SafeIllegalArgumentException(
                         "AtlasDB does not currently support inserting null or empty (zero-byte) values.");
             }
         }
@@ -1333,7 +1334,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
         if (state.get() == State.FAILED) {
-            throw new IllegalStateException("this transaction has already failed");
+            throw new SafeIllegalStateException("this transaction has already failed");
         }
         while (true) {
             ensureUncommitted();
@@ -1354,7 +1355,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         try {
             if (numWriters.get() > 0) {
                 // After we set state to committing we need to make sure no one is still writing.
-                throw new IllegalStateException("Cannot commit while other threads are still calling put.");
+                throw new SafeIllegalStateException("Cannot commit while other threads are still calling put.");
             }
 
             checkConstraints();
@@ -1743,7 +1744,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     return false;
                 }
             } else {
-                Validate.isTrue(commitTimestamps.get(startTs) == TransactionConstants.FAILED_COMMIT_TS);
+                com.palantir.logsafe.Preconditions.checkArgument(commitTimestamps.get(startTs) == TransactionConstants.FAILED_COMMIT_TS);
             }
         }
 
@@ -2002,7 +2003,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             LockToken locksToken,
             TransactionService transactionService)
             throws TransactionFailedException {
-        Validate.isTrue(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
+        com.palantir.logsafe.Preconditions.checkArgument(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
         try {
             transactionService.putUnlessExists(getStartTimestamp(), commitTimestamp);
         } catch (KeyAlreadyExistsException e) {

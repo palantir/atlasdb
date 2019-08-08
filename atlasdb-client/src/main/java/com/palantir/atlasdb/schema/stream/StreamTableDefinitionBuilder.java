@@ -25,6 +25,7 @@ import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamTableDefinitionBuilder {
@@ -57,7 +58,7 @@ public class StreamTableDefinitionBuilder {
     }
 
     public StreamTableDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
-        Preconditions.checkArgument(numberOfComponentsHashed <= 2,
+        com.palantir.logsafe.Preconditions.checkArgument(numberOfComponentsHashed <= 2,
                 "The number of components specified must be less than two as " +
                         "StreamStore internal tables use at most two row components.");
         this.numberOfComponentsHashed = numberOfComponentsHashed;
@@ -183,7 +184,7 @@ public class StreamTableDefinitionBuilder {
             }};
 
         default:
-            throw new IllegalStateException("Incorrectly supplied stream table type");
+            throw new SafeIllegalStateException("Incorrectly supplied stream table type");
         }
     }
 

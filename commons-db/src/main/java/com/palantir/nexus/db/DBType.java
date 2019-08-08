@@ -15,12 +15,11 @@
  */
 package com.palantir.nexus.db;
 
-import java.sql.Connection;
-
-import javax.annotation.Nullable;
-
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.sql.Connections;
+import java.sql.Connection;
+import javax.annotation.Nullable;
 
 /**
  * Extensibility point for adding more type of databases.
@@ -81,6 +80,6 @@ public enum DBType {
             return POSTGRESQL;
         if (url.startsWith("jdbc:h2:mem:"))
             return H2_MEMORY;
-        throw new RuntimeException("Unable to parse JDBC URL");
+        throw new SafeRuntimeException("Unable to parse JDBC URL");
     }
 }

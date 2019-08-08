@@ -34,9 +34,9 @@ public final class AtlasCellLockDescriptor {
 
     /** Returns a {@code LockDescriptor} instance for the given table, row, and column. */
     public static LockDescriptor of(String tableName, byte[] rowName, byte[] colName) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName));
-        Preconditions.checkNotNull(rowName, "rowName should not be null");
-        Preconditions.checkNotNull(colName, "colName should not be null");
+        com.palantir.logsafe.Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName));
+        com.palantir.logsafe.Preconditions.checkNotNull(rowName, "rowName should not be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(colName, "colName should not be null");
         byte[] tableBytes = tableName.getBytes();
         byte[] bytes = new byte[tableBytes.length + 1 + rowName.length + 1 + colName.length];
         System.arraycopy(tableBytes, 0, bytes, 0, tableBytes.length);

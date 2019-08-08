@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -34,7 +26,14 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.processors.AutoDelegate;
+import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -131,7 +130,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     @Value.Lazy
     default String getKeyspaceOrThrow() {
-        return keyspace().orElseThrow(() -> new IllegalStateException(
+        return keyspace().orElseThrow(() -> new SafeIllegalStateException(
                 "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
     }
 
@@ -308,12 +307,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
+        com.palantir.logsafe.Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
         for (InetSocketAddress addr : servers()) {
-            Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
+            com.palantir.logsafe.Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
-        Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
+        com.palantir.logsafe.Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
     }
 }

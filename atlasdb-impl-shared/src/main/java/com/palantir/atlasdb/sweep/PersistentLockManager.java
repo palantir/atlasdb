@@ -104,7 +104,7 @@ public class PersistentLockManager implements AutoCloseable {
 
     @VisibleForTesting
     synchronized boolean tryAcquirePersistentLock() {
-        Preconditions.checkState(!isShutDown,
+        com.palantir.logsafe.Preconditions.checkState(!isShutDown,
                 "This PersistentLockManager is shut down, and cannot be used to acquire locks.");
 
         try {

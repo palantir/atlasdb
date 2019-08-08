@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -33,8 +23,16 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/{namespace: [a-zA-Z0-9_-]+}")
 public class TimeLockResource {
@@ -110,7 +108,7 @@ public class TimeLockResource {
                             + "increased via the maximum-number-of-clients runtime config property.",
                     SafeArg.of("client", namespace),
                     SafeArg.of("maxNumberOfClients", getMaxNumberOfClients()));
-            throw new IllegalStateException("Maximum number of clients exceeded");
+            throw new SafeIllegalStateException("Maximum number of clients exceeded");
         }
 
         TimeLockServices services = clientServicesFactory.apply(namespace);

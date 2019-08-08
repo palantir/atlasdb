@@ -38,6 +38,6 @@ public final class TimestampBenchmark extends AbstractBenchmark {
     @Override
     protected void performOneCall() {
         long timestamp = timestampService.getFreshTimestamp();
-        Preconditions.checkState(timestamp > 0);
+        com.palantir.logsafe.Preconditions.checkState(timestamp > 0);
     }
 }

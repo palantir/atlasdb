@@ -46,7 +46,7 @@ public abstract class RowsColumnRangeBatchRequest {
 
     @Value.Check
     protected void check() {
-        Preconditions.checkState(getColumnRangeSelection() != null || getRowsToLoadFully().isEmpty(),
+        com.palantir.logsafe.Preconditions.checkState(getColumnRangeSelection() != null || getRowsToLoadFully().isEmpty(),
                 "Must specify a column range selection when loading full rows.");
     }
 }

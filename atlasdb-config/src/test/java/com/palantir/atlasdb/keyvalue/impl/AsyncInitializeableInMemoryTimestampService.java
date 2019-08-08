@@ -54,7 +54,7 @@ public final class AsyncInitializeableInMemoryTimestampService extends AsyncInit
 
     @Override
     protected void tryInitialize() {
-        Preconditions.checkState(kvs.isInitialized());
+        com.palantir.logsafe.Preconditions.checkState(kvs.isInitialized());
     }
 
     @Override

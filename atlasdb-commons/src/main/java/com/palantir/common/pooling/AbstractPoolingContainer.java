@@ -129,7 +129,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
         T resource = pool.poll();
         if (resource == null) {
             resource = createNewPooledResource();
-            Preconditions.checkNotNull(resource, "resource should be non-null");
+            com.palantir.logsafe.Preconditions.checkNotNull(resource, "resource should be non-null");
             allocatedResources.incrementAndGet();
         }
         logPoolStats();
@@ -140,7 +140,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
      * This method should only be called in the finally block of a try/finally
      */
     protected final void returnResource(T resource) {
-        Preconditions.checkNotNull(resource);
+        com.palantir.logsafe.Preconditions.checkNotNull(resource);
         try {
             cleanupForReturnToPool(resource);
         } catch (RuntimeException e) {

@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.containers;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,10 +42,10 @@ public final class CassandraCliParser {
             }
         } catch (Exception e) {
             log.error("Failed parsing system_auth keyspace RF", e);
-            throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
+            throw new SafeIllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
         }
 
-        throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
+        throw new SafeIllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
     }
 
     public int parseNumberOfUpNodesFromNodetoolStatus(String output) {

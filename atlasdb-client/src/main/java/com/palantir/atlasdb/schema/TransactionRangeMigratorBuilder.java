@@ -60,43 +60,43 @@ public class TransactionRangeMigratorBuilder {
     }
 
     public TransactionRangeMigratorBuilder srcTable(TableReference table) {
-        Preconditions.checkNotNull(table);
+        com.palantir.logsafe.Preconditions.checkNotNull(table);
         this.srcTable = table;
         return this;
     }
 
     public TransactionRangeMigratorBuilder destTable(TableReference table) {
-        Preconditions.checkNotNull(table);
+        com.palantir.logsafe.Preconditions.checkNotNull(table);
         this.destTable = table;
         return this;
     }
 
     public TransactionRangeMigratorBuilder readBatchSize(int batchSize) {
-        Preconditions.checkArgument(readBatchSize > 0);
+        com.palantir.logsafe.Preconditions.checkArgument(readBatchSize > 0);
         this.readBatchSize = batchSize;
         return this;
     }
 
     public TransactionRangeMigratorBuilder readTxManager(TransactionManager txm) {
-        Preconditions.checkNotNull(txm);
+        com.palantir.logsafe.Preconditions.checkNotNull(txm);
         this.readTxManager = txm;
         return this;
     }
 
     public TransactionRangeMigratorBuilder txManager(TransactionManager txMgr) {
-        Preconditions.checkNotNull(txMgr);
+        com.palantir.logsafe.Preconditions.checkNotNull(txMgr);
         this.txManager = txMgr;
         return this;
     }
 
     public TransactionRangeMigratorBuilder checkpointer(AbstractTaskCheckpointer c) {
-        Preconditions.checkNotNull(c);
+        com.palantir.logsafe.Preconditions.checkNotNull(c);
         this.checkpointer = c;
         return this;
     }
 
     public TransactionRangeMigratorBuilder rowTransformer(Function<RowResult<byte[]>, Map<Cell, byte[]>> f) {
-        Preconditions.checkNotNull(f);
+        com.palantir.logsafe.Preconditions.checkNotNull(f);
         this.rowTransform = f;
         return this;
     }
@@ -109,9 +109,9 @@ public class TransactionRangeMigratorBuilder {
             readTxManager = txManager;
         }
 
-        Preconditions.checkNotNull(srcTable);
-        Preconditions.checkNotNull(txManager);
-        Preconditions.checkNotNull(checkpointer);
+        com.palantir.logsafe.Preconditions.checkNotNull(srcTable);
+        com.palantir.logsafe.Preconditions.checkNotNull(txManager);
+        com.palantir.logsafe.Preconditions.checkNotNull(checkpointer);
 
         return new TransactionRangeMigrator(
                 srcTable,

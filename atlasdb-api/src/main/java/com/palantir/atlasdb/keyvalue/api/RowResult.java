@@ -15,15 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -32,6 +27,11 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.collect.Maps2;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
 
 public final class RowResult<T> implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -50,11 +50,11 @@ public final class RowResult<T> implements Serializable {
     }
 
     private RowResult(byte[] row, SortedMap<byte[], T> columns) {
-        Preconditions.checkArgument(Cell.isNameValid(row));
-        Preconditions.checkArgument(UnsignedBytes.lexicographicalComparator().equals(columns.comparator()),
+        com.palantir.logsafe.Preconditions.checkArgument(Cell.isNameValid(row));
+        com.palantir.logsafe.Preconditions.checkArgument(UnsignedBytes.lexicographicalComparator().equals(columns.comparator()),
                 "comparator for the map must be the bytes comparator");
         for (byte[] colName : columns.keySet()) {
-            Preconditions.checkArgument(Cell.isNameValid(colName));
+            com.palantir.logsafe.Preconditions.checkArgument(Cell.isNameValid(colName));
         }
         this.row = row.clone();
         this.columns = ImmutableSortedMap.copyOf(columns, UnsignedBytes.lexicographicalComparator());
@@ -93,13 +93,13 @@ public final class RowResult<T> implements Serializable {
     }
 
     public T getOnlyColumnValue() {
-        Preconditions.checkState(columns.size() == 1,
+        com.palantir.logsafe.Preconditions.checkState(columns.size() == 1,
                 "Works only when the row result has a single column value.");
         return Iterables.getOnlyElement(columns.values());
     }
 
     public Iterable<Map.Entry<Cell, T>> getCells() {
-        return Iterables.transform(columns.entrySet(),
+        return Collections2.transform(columns.entrySet(),
                 from -> Maps.immutableEntry(Cell.create(row, from.getKey()), from.getValue()));
     }
 

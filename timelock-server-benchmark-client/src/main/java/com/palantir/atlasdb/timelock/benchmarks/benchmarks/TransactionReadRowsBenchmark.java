@@ -77,7 +77,7 @@ public final class TransactionReadRowsBenchmark extends AbstractBenchmark {
                     .collect(Collectors.toList());
         });
 
-        Preconditions.checkState(result.size() == keys.size());
+        com.palantir.logsafe.Preconditions.checkState(result.size() == keys.size());
     }
 
 }

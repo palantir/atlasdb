@@ -65,7 +65,7 @@ import com.google.common.base.Strings;
         if (Strings.isNullOrEmpty(clientId)) {
             return ANONYMOUS;
         }
-        Preconditions.checkArgument(!clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID));
+        com.palantir.logsafe.Preconditions.checkArgument(!clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID));
         return new LockClient(clientId);
     }
 

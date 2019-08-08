@@ -54,7 +54,7 @@ public class LockClientIndices {
     }
 
     LockClient fromIndex(int index) {
-        return Preconditions.checkNotNull(clientByIndex.get(index));
+        return com.palantir.logsafe.Preconditions.checkNotNull(clientByIndex.get(index));
     }
 
     Iterable<LockClient> fromIndices(Iterable<Integer> indices) {

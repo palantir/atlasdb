@@ -49,7 +49,7 @@ public abstract class CellTsPairToken {
     }
 
     public static CellTsPairToken continueRow(CellTsPairInfo lastResult) {
-        Preconditions.checkState(lastResult.ts != Long.MAX_VALUE, "Illegal timestamp MAX_VALUE");
+        com.palantir.logsafe.Preconditions.checkState(lastResult.ts != Long.MAX_VALUE, "Illegal timestamp MAX_VALUE");
 
         return ImmutableCellTsPairToken.builder()
                 .startRowInclusive(lastResult.rowName)

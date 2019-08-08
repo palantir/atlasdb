@@ -41,7 +41,7 @@ public final class AtlasDbInterceptors {
         private final String userAgent;
 
         public UserAgentAddingInterceptor(String userAgent) {
-            Preconditions.checkNotNull(userAgent, "User Agent should never be null.");
+            com.palantir.logsafe.Preconditions.checkNotNull(userAgent, "User Agent should never be null.");
             this.userAgent = userAgent;
         }
 

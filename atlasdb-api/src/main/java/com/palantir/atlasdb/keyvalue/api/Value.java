@@ -74,7 +74,7 @@ public final class Value implements Serializable {
     private final long timestamp;
 
     private Value(byte[] contents, long timestamp) {
-        Preconditions.checkArgument(
+        com.palantir.logsafe.Preconditions.checkArgument(
                 (timestamp >= 0 && timestamp < Long.MAX_VALUE) || (timestamp == INVALID_VALUE_TIMESTAMP),
                 "timestamp out of bounds");
         this.contents = contents;

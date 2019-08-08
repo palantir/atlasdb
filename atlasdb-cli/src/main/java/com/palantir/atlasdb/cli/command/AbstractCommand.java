@@ -15,16 +15,16 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.Callable;
-
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Callable;
 
 public abstract class AbstractCommand implements Callable<Integer> {
 
@@ -79,7 +79,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
                 } else if (inlineConfig != null) {
                     config = AtlasDbConfigs.loadFromString(inlineConfig, "", AtlasDbConfig.class);
                 } else {
-                    throw new IllegalArgumentException("Required option '-c' for install config is missing");
+                    throw new SafeIllegalArgumentException("Required option '-c' for install config is missing");
                 }
                 if (offline) {
                     config = config.toOfflineConfig();
@@ -111,7 +111,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             try {
                 return AtlasDbConfigs.load(confFile, ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH, clazz);
             } catch (Exception ex) {
-                throw new RuntimeException("Failed to load the atlasdb config. One possibility"
+                throw new SafeRuntimeException("Failed to load the atlasdb config. One possibility"
                         + " is that the AtlasDB block root in the config is not '/atlasdb' nor '/atlas'."
                         + " You can specify a different config root by specifying the --config-root "
                         + " and the --runtime-config-root options before the command (i.e. sweep, migrate).",

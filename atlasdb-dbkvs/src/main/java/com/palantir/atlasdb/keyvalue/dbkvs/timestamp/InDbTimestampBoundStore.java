@@ -15,23 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-
-import org.apache.commons.dbutils.QueryRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
@@ -39,6 +28,15 @@ import com.palantir.nexus.db.pool.RetriableTransactions.TransactionResult;
 import com.palantir.nexus.db.pool.RetriableWriteTransaction;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
+import org.apache.commons.dbutils.QueryRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // TODO(hsaraogi): switch to using ptdatabase sql running, which more gracefully supports multiple db types.
 public class InDbTimestampBoundStore implements TimestampBoundStore {
@@ -82,8 +80,8 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable, String tablePrefix) {
-        this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
-        this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
+        this.connManager = com.palantir.logsafe.Preconditions.checkNotNull(connManager, "connectionManager is required");
+        this.timestampTable = com.palantir.logsafe.Preconditions.checkNotNull(timestampTable, "timestampTable is required");
         this.tablePrefix = tablePrefix;
     }
 
@@ -121,7 +119,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
                         }
                     } else {
                         // disappearance
-                        throw new IllegalStateException(
+                        throw new SafeIllegalStateException(
                                 "Unable to retrieve a timestamp when expected. "
                                         + "This service is in a dangerous state and should be taken down "
                                         + "until a new safe timestamp value can be established in the KVS. "

@@ -15,15 +15,26 @@
  */
 package com.palantir.atlasdb.performance.cli;
 
+import com.palantir.atlasdb.performance.BenchmarkParam;
+import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
+import com.palantir.atlasdb.performance.PerformanceResults;
+import com.palantir.atlasdb.performance.backend.DatabasesContainer;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
+import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import io.airlift.airline.Arguments;
+import io.airlift.airline.Command;
+import io.airlift.airline.HelpOption;
+import io.airlift.airline.Option;
+import io.airlift.airline.SingleCommand;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import javax.inject.Inject;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
@@ -35,20 +46,6 @@ import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.performance.BenchmarkParam;
-import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
-import com.palantir.atlasdb.performance.PerformanceResults;
-import com.palantir.atlasdb.performance.backend.DatabasesContainer;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
-import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
-
-import io.airlift.airline.Arguments;
-import io.airlift.airline.Command;
-import io.airlift.airline.HelpOption;
-import io.airlift.airline.Option;
-import io.airlift.airline.SingleCommand;
 
 /**
  * The Atlas Perf(ormance) CLI is a tool for making and running AtlasDB performance tests.
@@ -185,7 +182,7 @@ public class AtlasDbPerfCli {
 
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
         if (cli.backends != null && cli.dbUris != null) {
-            throw new RuntimeException("Cannot specify both --backends and --db-uris");
+            throw new SafeRuntimeException("Cannot specify both --backends and --db-uris");
         }
         if (cli.backends != null) {
             cli.backends.forEach(backend -> {
@@ -199,7 +196,7 @@ public class AtlasDbPerfCli {
             try {
                 getDockerUris(cli);
             } catch (Exception e) {
-                throw new RuntimeException("Invalid dockerized database uri. Must be of the form [dbtype]@[host:port]");
+                throw new SafeRuntimeException("Invalid dockerized database uri. Must be of the form [dbtype]@[host:port]");
             }
         }
         return true;

@@ -48,7 +48,7 @@ import com.google.common.primitives.Longs;
     }
 
     public static SimpleTimeDuration of(TimeDuration duration) {
-        Preconditions.checkNotNull(duration, "duration should not be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(duration, "duration should not be null");
         if (duration instanceof SimpleTimeDuration) {
             return (SimpleTimeDuration) duration;
         }
@@ -57,7 +57,7 @@ import com.google.common.primitives.Longs;
 
     private SimpleTimeDuration(long time, TimeUnit unit) {
         this.time = time;
-        this.unit = Preconditions.checkNotNull(unit, "unit should not be null");
+        this.unit = com.palantir.logsafe.Preconditions.checkNotNull(unit, "unit should not be null");
     }
 
     @Override

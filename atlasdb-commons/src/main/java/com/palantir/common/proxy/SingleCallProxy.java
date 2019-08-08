@@ -15,6 +15,7 @@
  */
 package com.palantir.common.proxy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -41,7 +42,7 @@ public class SingleCallProxy implements DelegatingInvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (!hasBeenCalled.compareAndSet(false, true)) {
-            throw new IllegalStateException("This class has already been called once before");
+            throw new SafeIllegalStateException("This class has already been called once before");
         }
 
         try {

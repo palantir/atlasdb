@@ -40,7 +40,7 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     private int bufferSize;
 
     public BufferedDelegateInputStream(InputStream delegate, int bufferLength) {
-        Preconditions.checkArgument(bufferLength >= 0, "buffer size must be greater than or equal to zero");
+        com.palantir.logsafe.Preconditions.checkArgument(bufferLength >= 0, "buffer size must be greater than or equal to zero");
         this.delegate = delegate;
         this.position = 0;
         this.bufferSize = 0;
@@ -83,7 +83,7 @@ public abstract class BufferedDelegateInputStream extends InputStream {
      */
     @Override
     public final int read(byte[] b, int off, int len) throws IOException {
-        Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
+        com.palantir.logsafe.Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
         if (off < 0 || len < 0 || len > b.length - off) {
             throw new IndexOutOfBoundsException();
         } else if (len == 0) {

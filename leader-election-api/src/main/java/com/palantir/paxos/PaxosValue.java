@@ -53,7 +53,7 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     public PaxosValue(@JsonProperty("leaderUUID") String leaderUuid,
                       @JsonProperty("round") long round,
                       @JsonProperty("data") @Nullable byte[] data) {
-        this.leaderUuid = Preconditions.checkNotNull(leaderUuid, "leaderUUID should never be null");
+        this.leaderUuid = com.palantir.logsafe.Preconditions.checkNotNull(leaderUuid, "leaderUUID should never be null");
         this.seq = round;
         this.data = data;
     }

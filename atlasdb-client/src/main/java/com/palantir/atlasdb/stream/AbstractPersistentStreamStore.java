@@ -59,7 +59,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     protected final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata) {
-        Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
         txnMgr.runTaskThrowOnConflict((TxTask) tx -> {
             putMetadataAndHashIndexTask(tx, streamId, metadata);
             return null;
@@ -106,7 +106,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     protected long storeEmptyMetadata() {
-        Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
         return txnMgr.runTaskThrowOnConflict(tx -> {
             putMetadataAndHashIndexTask(tx, tx.getTimestamp(), getEmptyMetadata());
             return tx.getTimestamp();
@@ -219,7 +219,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         if (tx != null) {
             storeBlock(tx, id, blockNumber, bytesToStore);
         } else {
-            Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
+            com.palantir.logsafe.Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
             txnMgr.runTaskThrowOnConflict(
                     (TransactionTask<Void, RuntimeException>) t1 -> {
                         storeBlock(t1, id, blockNumber, bytesToStore);

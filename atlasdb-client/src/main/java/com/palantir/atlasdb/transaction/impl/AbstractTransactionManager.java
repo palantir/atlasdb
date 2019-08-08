@@ -84,7 +84,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     protected void checkOpen() {
-        Preconditions.checkState(!this.closed, "Operations cannot be performed on closed TransactionManager.");
+        com.palantir.logsafe.Preconditions.checkState(!this.closed, "Operations cannot be performed on closed TransactionManager.");
     }
 
     @Override

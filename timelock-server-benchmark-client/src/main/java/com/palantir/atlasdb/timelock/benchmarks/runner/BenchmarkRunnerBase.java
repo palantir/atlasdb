@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.runner;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-
-import org.apache.commons.lang3.StringUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -32,6 +22,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
 
 public class BenchmarkRunnerBase {
 
@@ -84,7 +83,7 @@ public class BenchmarkRunnerBase {
                 }
             }
 
-            throw new IllegalStateException("CLIENT declaration not found in servers.txt");
+            throw new SafeIllegalStateException("CLIENT declaration not found in servers.txt");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

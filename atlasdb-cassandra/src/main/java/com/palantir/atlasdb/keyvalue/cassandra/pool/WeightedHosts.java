@@ -37,7 +37,7 @@ public final class WeightedHosts {
     }
 
     public static WeightedHosts create(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
-        Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
+        com.palantir.logsafe.Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
         return new WeightedHosts(buildHostsWeightedByActiveConnections(pools));
     }
 

@@ -65,7 +65,7 @@ public class ShardProgress {
      * @return the latest known persisted number of shards, which may be greater than newNumber
      */
     public int updateNumberOfShards(int newNumber) {
-        Preconditions.checkArgument(newNumber <= AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS);
+        com.palantir.logsafe.Preconditions.checkArgument(newNumber <= AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS);
         return (int) increaseValueFromToAtLeast(SHARD_COUNT_SAS, getNumberOfShards(), newNumber);
     }
 

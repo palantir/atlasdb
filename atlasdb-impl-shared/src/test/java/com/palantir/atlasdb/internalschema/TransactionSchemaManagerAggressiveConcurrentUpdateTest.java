@@ -18,20 +18,6 @@ package com.palantir.atlasdb.internalschema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.junit.Test;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
@@ -44,6 +30,19 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.junit.Test;
 
 public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
     private static final int NUM_THREADS = 8;
@@ -69,7 +68,7 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
                 .collect(Collectors.toList());
 
         List<Future> futures = Lists.newArrayList();
-        Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots = Sets.newConcurrentHashSet();
+        Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots = ConcurrentHashMap.newKeySet();
 
         for (int i = 0; i < numRequests; i++) {
             futures.add(service.submit(() -> writeBetweenTwoSnapshots(getRandomManager(managers), snapshots)));

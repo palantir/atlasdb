@@ -15,12 +15,12 @@
  */
 package com.palantir.common.base;
 
-import java.util.Collections;
-import java.util.List;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * This abstract class will implement the required methods in {@link BatchingVisitable}
@@ -30,12 +30,12 @@ import com.google.common.collect.Lists;
 public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<T> {
     @Override
     final public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v) throws K {
-        Preconditions.checkArgument(batchSize > 0);
+        com.palantir.logsafe.Preconditions.checkArgument(batchSize > 0);
         if (v instanceof ConsistentVisitor) {
             @SuppressWarnings("unchecked")
             AbortingVisitor<List<T>, K> v2 = (AbortingVisitor<List<T>, K>) v;
             ConsistentVisitor<T, K> consistentVisitor = (ConsistentVisitor<T, K>) v2;
-            Preconditions.checkState(consistentVisitor.visitorAlwaysReturnedTrue,
+            com.palantir.logsafe.Preconditions.checkState(consistentVisitor.visitorAlwaysReturnedTrue,
                     "passed a visitor that has already said stop");
             batchAcceptSizeHint(batchSize, consistentVisitor);
             return consistentVisitor.visitorAlwaysReturnedTrue;
@@ -43,7 +43,7 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
         AbstractBatchingVisitable.ConsistentVisitor<T, K> consistentVisitor = AbstractBatchingVisitable.ConsistentVisitor.create(batchSize, v);
         batchAcceptSizeHint(batchSize, consistentVisitor);
         if (consistentVisitor.visitorAlwaysReturnedTrue && !consistentVisitor.buffer.isEmpty()) {
-            Preconditions.checkState(consistentVisitor.buffer.size() < batchSize);
+            com.palantir.logsafe.Preconditions.checkState(consistentVisitor.buffer.size() < batchSize);
             return v.visit(Collections.unmodifiableList(consistentVisitor.buffer));
         } else {
             return consistentVisitor.visitorAlwaysReturnedTrue;
@@ -66,9 +66,9 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
         boolean visitorAlwaysReturnedTrue = true;
 
         private ConsistentVisitor(int batchSize, AbortingVisitor<? super List<T>, K> av) {
-            Preconditions.checkArgument(batchSize > 0);
+            com.palantir.logsafe.Preconditions.checkArgument(batchSize > 0);
             this.batchSize = batchSize;
-            this.v = Preconditions.checkNotNull(av);
+            this.v = com.palantir.logsafe.Preconditions.checkNotNull(av);
         }
 
         static <T, K extends Exception> ConsistentVisitor<T, K> create(int batchSize,
@@ -83,7 +83,7 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
         @Override
         public boolean visit(List<T> list) throws K {
             if (!visitorAlwaysReturnedTrue) {
-                throw new IllegalStateException("Cannot keep visiting if visitor returns false.");
+                throw new SafeIllegalStateException("Cannot keep visiting if visitor returns false.");
             }
 
             if (buffer.isEmpty() && list.size() == batchSize) {

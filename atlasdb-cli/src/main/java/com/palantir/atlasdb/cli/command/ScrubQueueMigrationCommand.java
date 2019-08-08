@@ -62,7 +62,7 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
 
     @Override
     public int execute(AtlasDbServices services) {
-        Preconditions.checkArgument(!truncateOldQueue || batchSize == null,
+        com.palantir.logsafe.Preconditions.checkArgument(!truncateOldQueue || batchSize == null,
                 "Truncating the old scrub queue and specifying a batch size are mutually exclusive options.");
         PrintWriter output = new PrintWriter(System.out, true);
         if (truncateOldQueue) {

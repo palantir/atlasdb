@@ -15,6 +15,17 @@
  */
 package com.palantir.atlasdb.stream;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
+import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.util.ByteArrayIOStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,22 +37,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import javax.annotation.CheckForNull;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
-import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
-import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.common.base.Throwables;
-import com.palantir.util.ByteArrayIOStream;
 
 public abstract class AbstractGenericStreamStore<T> implements GenericStreamStore<T> {
     protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
@@ -175,7 +173,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             throw new IllegalArgumentException("Unable to load stream " + id + " because it was never stored.");
         } else if (metadata.getStatus() != Status.STORED) {
             log.error("Error loading stream {} because it has status {}", id, metadata.getStatus());
-            throw new IllegalArgumentException("Could not get stream because it was not fully stored.");
+            throw new SafeIllegalArgumentException("Could not get stream because it was not fully stored.");
         }
     }
 

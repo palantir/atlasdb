@@ -53,7 +53,7 @@ public class DbBoundTimestampCreator implements TimestampCreator {
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
 
         TimestampService timestampService = atlasFactory.getManagedTimestampService();
-        Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
+        com.palantir.logsafe.Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
                 "The timestamp service is not a managed timestamp service.");
 
         return () -> new DelegatingManagedTimestampService(timestampService,

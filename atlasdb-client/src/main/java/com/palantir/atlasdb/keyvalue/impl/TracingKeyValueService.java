@@ -59,7 +59,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     private final KeyValueService delegate;
 
     private TracingKeyValueService(KeyValueService delegate) {
-        this.delegate = Preconditions.checkNotNull(delegate, "delegate");
+        this.delegate = com.palantir.logsafe.Preconditions.checkNotNull(delegate, "delegate");
     }
 
     public static KeyValueService create(KeyValueService keyValueService) {
@@ -118,7 +118,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+    @Override public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("compactInternally({})", tableRef)) {
             delegate().compactInternally(tableRef, inMaintenanceMode);

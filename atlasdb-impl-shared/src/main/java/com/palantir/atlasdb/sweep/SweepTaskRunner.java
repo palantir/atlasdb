@@ -133,8 +133,8 @@ public class SweepTaskRunner {
             byte[] startRow,
             RunType runType) {
 
-        Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
-        Preconditions.checkState(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
+        com.palantir.logsafe.Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
+        com.palantir.logsafe.Preconditions.checkState(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
         if (tableRef.getQualifiedName().startsWith(AtlasDbConstants.NAMESPACE_PREFIX)) {
             // this happens sometimes; I think it's because some places in the code can

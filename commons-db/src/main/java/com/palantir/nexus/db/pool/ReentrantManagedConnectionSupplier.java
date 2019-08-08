@@ -31,7 +31,7 @@ public class ReentrantManagedConnectionSupplier implements ReentrantConnectionSu
     private final ThreadLocal<ResourceSharer<Connection, SQLException>> threadLocal;
 
     public ReentrantManagedConnectionSupplier(final ConnectionManager delegate) {
-        this.delegate = Preconditions.checkNotNull(delegate);
+        this.delegate = com.palantir.logsafe.Preconditions.checkNotNull(delegate);
         this.threadLocal = ThreadLocal.withInitial(() ->
                 new ResourceSharer<Connection, SQLException>(ResourceTypes.CONNECTION) {
                     @Override

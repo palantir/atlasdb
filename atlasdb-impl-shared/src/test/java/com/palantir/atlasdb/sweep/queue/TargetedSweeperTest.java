@@ -126,7 +126,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         this.readBatchSize = readBatchSize;
     }
 
-    @Before
+    @Override @Before
     public void setup() {
         super.setup();
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
@@ -147,7 +147,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         puncherStore = KeyValueServicePuncherStore.create(spiedKvs, false);
     }
 
-    @After
+    @Override @After
     public void tearDown() {
         // This is required because of JUnit memory issues
         sweepQueue = null;

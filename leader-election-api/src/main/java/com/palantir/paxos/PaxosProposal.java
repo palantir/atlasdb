@@ -42,7 +42,7 @@ public class PaxosProposal implements Serializable {
     public PaxosProposal(@JsonProperty("id") PaxosProposalId id,
                          @JsonProperty("value") PaxosValue val) {
         this.id = id;
-        this.val = Preconditions.checkNotNull(val, "value cannot be null");
+        this.val = com.palantir.logsafe.Preconditions.checkNotNull(val, "value cannot be null");
     }
 
     public PaxosProposalId getId() {

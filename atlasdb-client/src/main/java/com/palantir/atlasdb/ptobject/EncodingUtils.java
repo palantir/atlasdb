@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.ptobject;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
-import org.apache.commons.lang3.ArrayUtils;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
@@ -32,6 +24,13 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import org.apache.commons.lang3.ArrayUtils;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class EncodingUtils {
@@ -47,7 +46,7 @@ public class EncodingUtils {
 
     public static long decodeFixedLongAfterVarLong(long realmId, byte[] k) {
         int size = sizeOfVarLong(realmId);
-        Preconditions.checkArgument(k.length == size + PtBytes.SIZEOF_LONG);
+        com.palantir.logsafe.Preconditions.checkArgument(k.length == size + PtBytes.SIZEOF_LONG);
         return PtBytes.toLong(k, size);
     }
 
@@ -135,7 +134,7 @@ public class EncodingUtils {
         if (bitsBeforeZero == 8 && (encoded[offset+1] ^ flipByte) < 0) {
             bitsBeforeZero++;
             if (((encoded[offset+1] ^ flipByte) & 0x40) != 0) {
-                throw new IllegalArgumentException("bad varlong, too big");
+                throw new SafeIllegalArgumentException("bad varlong, too big");
             }
         }
         int size = bitsBeforeZero+1;
@@ -189,7 +188,7 @@ public class EncodingUtils {
             if (((encoded[offset+1] ^ flipByte) & 0x40) != 0) {
                 bitsBeforeZero++;
                 if (((encoded[offset+1] ^ flipByte) & 0x20) != 0) {
-                    throw new IllegalArgumentException("bad varlong, too big");
+                    throw new SafeIllegalArgumentException("bad varlong, too big");
                 }
             }
         }
@@ -407,7 +406,7 @@ public class EncodingUtils {
     }
 
     public static byte[] toBytes(List<EncodingType> types, List<Object> components) {
-        Preconditions.checkArgument(types.size() == components.size());
+        com.palantir.logsafe.Preconditions.checkArgument(types.size() == components.size());
 
         byte[][] bytes = new byte[types.size()][];
         for (int i = 0; i < types.size(); i++) {

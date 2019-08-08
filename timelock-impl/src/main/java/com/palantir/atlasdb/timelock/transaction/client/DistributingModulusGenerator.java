@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.timelock.transaction.client;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Comparator;
 import java.util.SortedSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.immutables.value.Value;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 
 /**
  * Distributes residues of a given modulus in a balanced fashion (though we don't automatically rebalance between
@@ -39,7 +38,7 @@ public class DistributingModulusGenerator {
     private final SortedSet<ReferenceCountedResidue> referenceCounts;
 
     public DistributingModulusGenerator(int modulus) {
-        Preconditions.checkArgument(modulus > 0, "Modulus must be positive");
+        com.palantir.logsafe.Preconditions.checkArgument(modulus > 0, "Modulus must be positive");
         this.referenceCounts = IntStream.range(0, modulus)
                 .mapToObj(value -> ImmutableReferenceCountedResidue.of(0, value))
                 .collect(Collectors.toCollection(() -> Sets.newTreeSet(ReferenceCountedResidue.RESIDUE_COMPARATOR)));
@@ -76,7 +75,7 @@ public class DistributingModulusGenerator {
                 .skip(elementIndex)
                 .findFirst()
                 .orElseThrow(() ->
-                        new IllegalStateException("Attempted to select a random element from an empty collection!"));
+                        new SafeIllegalStateException("Attempted to select a random element from an empty collection!"));
     }
 
     private SortedSet<ReferenceCountedResidue> getAllLeastReferencedResidues() {
@@ -101,7 +100,7 @@ public class DistributingModulusGenerator {
 
         @Value.Check
         default void check() {
-            Preconditions.checkState(references() >= 0, "Reference counts must not be negative");
+            com.palantir.logsafe.Preconditions.checkState(references() >= 0, "Reference counts must not be negative");
         }
 
         default ReferenceCountedResidue mark() {

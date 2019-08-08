@@ -95,18 +95,18 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Check
     protected final void checkOracleConfig() {
-        Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
-        Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
-        Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
-        Preconditions.checkState(tablePrefix().endsWith("_"), "Oracle 'tablePrefix' must end with an underscore.");
+        com.palantir.logsafe.Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
+        com.palantir.logsafe.Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
+        com.palantir.logsafe.Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
+        com.palantir.logsafe.Preconditions.checkState(tablePrefix().endsWith("_"), "Oracle 'tablePrefix' must end with an underscore.");
         Preconditions.checkState(
                 tablePrefix().length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
                 "Oracle 'tablePrefix' cannot be more than %s characters long.",
                 AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 !overflowTablePrefix().startsWith("_"),
                 "Oracle 'overflowTablePrefix' cannot begin with underscore.");
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 overflowTablePrefix().endsWith("_"),
                 "Oracle 'overflowTablePrefix' must end with an underscore.");
         Preconditions.checkState(

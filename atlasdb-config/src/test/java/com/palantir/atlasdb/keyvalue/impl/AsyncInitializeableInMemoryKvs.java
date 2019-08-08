@@ -46,7 +46,7 @@ public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer imple
 
     @Override
     protected void tryInitialize() {
-        Preconditions.checkState(initializationShouldSucceed);
+        com.palantir.logsafe.Preconditions.checkState(initializationShouldSucceed);
     }
 
     @Override

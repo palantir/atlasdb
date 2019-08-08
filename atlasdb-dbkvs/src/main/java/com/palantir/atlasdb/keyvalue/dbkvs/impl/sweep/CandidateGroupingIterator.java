@@ -57,7 +57,7 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
 
     @Override
     public List<CandidateCellForSweeping> next() {
-        Preconditions.checkState(hasNext());
+        com.palantir.logsafe.Preconditions.checkState(hasNext());
         List<CellTsPairInfo> cellTsBatch = cellTsIterator.next();
         List<CandidateCellForSweeping> candidates = new ArrayList<>();
         for (CellTsPairInfo cellTs : cellTsBatch) {
@@ -66,7 +66,7 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
                 // We expect the timestamps in ascending order. This check costs us a few CPU cycles
                 // but it's worth it for paranoia reasons - mistaking a cell with data for an empty one
                 // can cause data corruption.
-                Preconditions.checkArgument(cellTs.ts > currentCellTimestamps.get(currentCellTimestamps.size() - 1),
+                com.palantir.logsafe.Preconditions.checkArgument(cellTs.ts > currentCellTimestamps.get(currentCellTimestamps.size() - 1),
                         "Timestamps for each cell must be fed in strictly increasing order");
             }
             updateStateAfterSingleCellTsPairProcessed(cellTs);

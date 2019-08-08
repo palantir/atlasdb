@@ -40,8 +40,8 @@ public interface SweepBatchConfig {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(maxCellTsPairsToExamine() > 0, "Number of cells to examine must be greater than zero");
-        Preconditions.checkState(candidateBatchSize() > 0, "Candidate batch size must be greater than zero");
-        Preconditions.checkState(deleteBatchSize() > 0, "Delete batch size must be greater than zero");
+        com.palantir.logsafe.Preconditions.checkState(maxCellTsPairsToExamine() > 0, "Number of cells to examine must be greater than zero");
+        com.palantir.logsafe.Preconditions.checkState(candidateBatchSize() > 0, "Candidate batch size must be greater than zero");
+        com.palantir.logsafe.Preconditions.checkState(deleteBatchSize() > 0, "Delete batch size must be greater than zero");
     }
 }

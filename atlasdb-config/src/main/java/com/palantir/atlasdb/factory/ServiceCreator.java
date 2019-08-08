@@ -15,17 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.ProxySelector;
-import java.net.SocketAddress;
-import java.net.URI;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
@@ -37,6 +26,17 @@ import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
+import java.net.URI;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
@@ -119,7 +119,7 @@ public final class ServiceCreator {
                 return fixedProxySelectorFor(Proxy.NO_PROXY);
             case HTTP:
                 HostAndPort hostAndPort = HostAndPort.fromString(proxyConfig.hostAndPort()
-                        .orElseThrow(() -> new IllegalArgumentException(
+                        .orElseThrow(() -> new SafeIllegalArgumentException(
                                 "Expected to find proxy hostAndPort configuration for HTTP proxy")));
                 InetSocketAddress addr = new InetSocketAddress(hostAndPort.getHost(), hostAndPort.getPort());
                 return fixedProxySelectorFor(new Proxy(Proxy.Type.HTTP, addr));

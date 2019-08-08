@@ -95,7 +95,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         DebugLogger.logger.info(
                 "Creating CassandraTimestampBoundStore object on thread {}. This should only happen once.",
                 Thread.currentThread().getName());
-        this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
+        this.clientPool = com.palantir.logsafe.Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
         this.kvs = kvs;
     }
 

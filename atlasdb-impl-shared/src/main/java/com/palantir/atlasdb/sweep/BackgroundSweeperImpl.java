@@ -105,7 +105,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     @Override
     public synchronized void runInBackground() {
-        Preconditions.checkState(daemons == null);
+        com.palantir.logsafe.Preconditions.checkState(daemons == null);
         int numThreads = sweepThreads.get();
         daemons = Sets.newHashSetWithExpectedSize(numThreads);
 

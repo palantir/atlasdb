@@ -33,7 +33,7 @@ public abstract class FailEvent implements Event {
     @Override
     public abstract long time();
 
-    public abstract int process();
+    @Override public abstract int process();
 
     public abstract String error();
 

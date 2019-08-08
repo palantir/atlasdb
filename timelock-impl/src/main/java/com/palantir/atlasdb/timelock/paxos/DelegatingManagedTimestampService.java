@@ -30,8 +30,8 @@ public class DelegatingManagedTimestampService implements ManagedTimestampServic
     public DelegatingManagedTimestampService(
             TimestampService timestampService,
             TimestampManagementService timestampManagementService) {
-        Preconditions.checkNotNull(timestampService, "Timestamp service should not be null");
-        Preconditions.checkNotNull(timestampManagementService, "Timestamp management service should not be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(timestampService, "Timestamp service should not be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(timestampManagementService, "Timestamp management service should not be null");
         this.timestampService = timestampService;
         this.timestampManagementService = timestampManagementService;
     }

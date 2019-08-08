@@ -63,8 +63,8 @@ import com.google.common.collect.Iterables;
      * Builder#timeoutAfter}.
      */
     public static void setDefaultLockTimeout(TimeDuration timeout) {
-        Preconditions.checkNotNull(timeout, "timeout cannot be null");
-        Preconditions.checkArgument(timeout.getTime() > 0, "timeout must be > 0");
+        com.palantir.logsafe.Preconditions.checkNotNull(timeout, "timeout cannot be null");
+        com.palantir.logsafe.Preconditions.checkArgument(timeout.getTime() > 0, "timeout must be > 0");
 
         DEFAULT_LOCK_TIMEOUT.set(timeout);
     }
@@ -249,7 +249,7 @@ import com.google.common.collect.Iterables;
 
         private Builder(SortedLockCollection<LockDescriptor> lockMap) {
             this.lockMap = lockMap;
-            Preconditions.checkArgument(!this.lockMap.isEmpty());
+            com.palantir.logsafe.Preconditions.checkArgument(!this.lockMap.isEmpty());
         }
 
         /**
@@ -260,7 +260,7 @@ import com.google.common.collect.Iterables;
          * You may not call this method multiple times.
          */
         public Builder timeoutAfter(TimeDuration newLockTimeout) {
-            Preconditions.checkArgument(newLockTimeout.toMillis() > 0);
+            com.palantir.logsafe.Preconditions.checkArgument(newLockTimeout.toMillis() > 0);
             if ((lockMap == null) || (this.lockTimeout != null)) {
                 throw new IllegalStateException();
             }
@@ -275,9 +275,9 @@ import com.google.common.collect.Iterables;
          * may not call both {@link #doNotBlock()} and this method.
          */
         public Builder blockForAtMost(TimeDuration newBlockingDuration) {
-            Preconditions.checkNotNull(newBlockingDuration, "newBlockingDuration should not be null");
+            com.palantir.logsafe.Preconditions.checkNotNull(newBlockingDuration, "newBlockingDuration should not be null");
             TimeDuration realBlockingDuration = SimpleTimeDuration.of(newBlockingDuration);
-            Preconditions.checkArgument(realBlockingDuration.toNanos() >= 0);
+            com.palantir.logsafe.Preconditions.checkArgument(realBlockingDuration.toNanos() >= 0);
             if (realBlockingDuration.toNanos() == 0) {
                 return doNotBlock();
             }
@@ -315,7 +315,7 @@ import com.google.common.collect.Iterables;
             if ((lockMap == null) || (lockGroupBehavior != null)) {
                 throw new IllegalStateException();
             }
-            Preconditions.checkState(blockingMode != BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE);
+            com.palantir.logsafe.Preconditions.checkState(blockingMode != BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE);
             lockGroupBehavior = LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
             return this;
         }
@@ -337,7 +337,7 @@ import com.google.common.collect.Iterables;
             if ((lockMap == null) || (blockingMode != null)) {
                 throw new IllegalStateException();
             }
-            Preconditions.checkState(lockGroupBehavior != LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE);
+            com.palantir.logsafe.Preconditions.checkState(lockGroupBehavior != LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE);
             blockingMode = BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE;
             return this;
         }

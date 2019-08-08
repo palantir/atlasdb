@@ -15,15 +15,6 @@
  */
 package com.palantir.paxos;
 
-import java.io.File;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.commons.io.FileUtils;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -35,6 +26,15 @@ import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.io.File;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.commons.io.FileUtils;
 
 public final class PaxosConsensusTestUtils {
 
@@ -54,7 +54,7 @@ public final class PaxosConsensusTestUtils {
         List<AtomicBoolean> failureToggles = Lists.newArrayList();
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-        RuntimeException exception = new RuntimeException("mock server failure");
+        RuntimeException exception = new SafeRuntimeException("mock server failure");
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 
@@ -108,7 +108,7 @@ public final class PaxosConsensusTestUtils {
             executor.shutdownNow();
             boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
             if (!terminated) {
-                throw new IllegalStateException("Some threads are still hanging around!"
+                throw new SafeIllegalStateException("Some threads are still hanging around!"
                         + " Can't proceed or they might corrupt future tests.");
             }
         } finally {

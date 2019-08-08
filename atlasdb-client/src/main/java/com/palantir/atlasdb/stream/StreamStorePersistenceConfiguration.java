@@ -57,9 +57,9 @@ public interface StreamStorePersistenceConfiguration {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(numBlocksToWriteBeforePause() > 0,
+        com.palantir.logsafe.Preconditions.checkState(numBlocksToWriteBeforePause() > 0,
                 "Number of blocks to write before pausing must be positive");
-        Preconditions.checkState(writePauseDurationMillis() >= 0,
+        com.palantir.logsafe.Preconditions.checkState(writePauseDurationMillis() >= 0,
                 "Pause duration between batches of writes must be non-negative");
     }
 }

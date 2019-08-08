@@ -53,8 +53,8 @@ public class TableCell {
     private final Iterable<Cell> cells;
 
     public TableCell(String tableName, Iterable<Cell> cells) {
-        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
-        this.cells = Preconditions.checkNotNull(cells, "cells must not be null!");
+        this.tableName = com.palantir.logsafe.Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.cells = com.palantir.logsafe.Preconditions.checkNotNull(cells, "cells must not be null!");
     }
 
     public String getTableName() {

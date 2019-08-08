@@ -34,7 +34,7 @@ public final class LockRefreshToken implements Serializable {
     @JsonCreator
     public LockRefreshToken(@JsonProperty("tokenId") BigInteger tokenId,
                             @JsonProperty("expirationDateMs") long expirationDateMs) {
-        this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
+        this.tokenId = com.palantir.logsafe.Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.expirationDateMs = expirationDateMs;
     }
 
@@ -47,7 +47,7 @@ public final class LockRefreshToken implements Serializable {
     }
 
     public HeldLocksToken refreshTokenWithExpriationDate(HeldLocksToken token) {
-        Preconditions.checkArgument(token.getTokenId().equals(tokenId), "token ids must match");
+        com.palantir.logsafe.Preconditions.checkArgument(token.getTokenId().equals(tokenId), "token ids must match");
         return token.refresh(expirationDateMs);
     }
 

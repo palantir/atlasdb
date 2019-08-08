@@ -20,14 +20,15 @@ import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.logsafe.Preconditions;
 
 public class TableRendererV2 {
     private final String packageName;
     private final Namespace namespace;
 
     public TableRendererV2(String packageName, Namespace namespace) {
-        this.packageName = checkNotNull(packageName);
-        this.namespace = checkNotNull(namespace);
+        this.packageName = Preconditions.checkNotNull(packageName);
+        this.namespace = Preconditions.checkNotNull(namespace);
     }
 
     public String getClassName(String rawTableName, TableDefinition table) {

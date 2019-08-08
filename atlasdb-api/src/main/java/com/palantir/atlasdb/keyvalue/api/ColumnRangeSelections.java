@@ -28,7 +28,7 @@ public final class ColumnRangeSelections implements Serializable {
     }
 
     public static BatchColumnRangeSelection createPrefixRange(byte[] prefix, int batchSize) {
-        byte[] startCol = Preconditions.checkNotNull(prefix, "prefix cannot be null").clone();
+        byte[] startCol = com.palantir.logsafe.Preconditions.checkNotNull(prefix, "prefix cannot be null").clone();
         byte[] endCol = RangeRequests.createEndNameForPrefixScan(prefix);
         return BatchColumnRangeSelection.create(startCol, endCol, batchSize);
     }

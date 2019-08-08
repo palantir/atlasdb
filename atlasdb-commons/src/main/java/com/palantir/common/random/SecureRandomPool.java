@@ -16,12 +16,12 @@
 package com.palantir.common.random;
 
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +48,7 @@ public class SecureRandomPool {
      */
     public SecureRandomPool(String algorithm, int poolSize, SecureRandom seed) {
         if (algorithm == null) {
-            throw new IllegalArgumentException("algorithm is null");
+            throw new SafeIllegalArgumentException("algorithm is null");
         }
 
         pool = new ArrayList<SecureRandom>(poolSize);

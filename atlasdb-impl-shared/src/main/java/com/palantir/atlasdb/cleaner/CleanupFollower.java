@@ -59,7 +59,7 @@ public final class CleanupFollower implements Follower {
             final Collection<OnCleanupTask> cleanupTasks = nextTasks;
             nextTasks = txManager.runTaskWithRetry(tx -> {
                 Collection<OnCleanupTask> toRetry = Lists.newArrayList();
-                Preconditions.checkArgument(transactionType == TransactionType.HARD_DELETE
+                com.palantir.logsafe.Preconditions.checkArgument(transactionType == TransactionType.HARD_DELETE
                         || transactionType == TransactionType.AGGRESSIVE_HARD_DELETE);
                 tx.setTransactionType(transactionType);
                 for (OnCleanupTask task : cleanupTasks) {

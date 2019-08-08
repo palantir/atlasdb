@@ -45,12 +45,12 @@ public class IterableUtils {
     }
 
     public static <T> Iterable<T> append(Iterable<? extends T> a, T b) {
-        Preconditions.checkNotNull(a);
+        com.palantir.logsafe.Preconditions.checkNotNull(a);
         return Iterables.concat(a, Collections.singleton(b));
     }
 
     public static <T> Collection<T> append(Collection<? extends T> a, T b) {
-        Preconditions.checkNotNull(a);
+        com.palantir.logsafe.Preconditions.checkNotNull(a);
         return toCollection(append((Iterable<? extends T>)a, b));
     }
 
@@ -156,8 +156,8 @@ public class IterableUtils {
          * it is not yet supported, see
          * https://code.google.com/p/guava-libraries/issues/detail?id=1413
          */
-        Preconditions.checkNotNull(fromIterable);
-        Preconditions.checkNotNull(function);
+        com.palantir.logsafe.Preconditions.checkNotNull(fromIterable);
+        com.palantir.logsafe.Preconditions.checkNotNull(function);
         if (fromIterable instanceof List) {
             return Lists.transform((List<F>) fromIterable, function);
         } else if (fromIterable instanceof Collection) {

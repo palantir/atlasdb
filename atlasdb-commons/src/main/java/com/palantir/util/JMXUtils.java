@@ -15,6 +15,9 @@
  */
 package com.palantir.util;
 
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.ReferenceQueue;
@@ -26,7 +29,6 @@ import java.net.Socket;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.RMISocketFactory;
-
 import javax.management.Attribute;
 import javax.management.AttributeList;
 import javax.management.AttributeNotFoundException;
@@ -47,11 +49,8 @@ import javax.management.StringValueExp;
 import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 /**
  */
@@ -191,7 +190,7 @@ public final class JMXUtils {
         public DynamicMBean delegate() {
             final DynamicMBean delegate = delegateRef.get();
             if (delegate == null) {
-                throw new IllegalStateException("mbean is no longer valid");
+                throw new SafeIllegalStateException("mbean is no longer valid");
             }
             return delegate;
         }
@@ -283,7 +282,7 @@ public final class JMXUtils {
      * @return proxy interfaces to all beans registered to the server implementing the class mbeanClazz.
      */
     public static <T> Iterable<T> getInstanceBeanProxies(final Class<T> mbeanClazz){
-        return Iterables.transform(
+        return Collections2.transform(
                 ManagementFactory.getPlatformMBeanServer().queryNames(ObjectName.WILDCARD, Query.isInstanceOf(new StringValueExp(mbeanClazz.getName())))
                 , obj -> JMXUtils.newMBeanProxy(ManagementFactory.getPlatformMBeanServer(), obj, mbeanClazz));
     }

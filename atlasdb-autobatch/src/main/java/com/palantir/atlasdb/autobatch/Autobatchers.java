@@ -99,7 +99,7 @@ public final class Autobatchers {
         }
 
         public DisruptorAutobatcher<I, O> build() {
-            Preconditions.checkArgument(purpose != null, "purpose must be provided");
+            com.palantir.logsafe.Preconditions.checkArgument(purpose != null, "purpose must be provided");
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> profiledHandler =

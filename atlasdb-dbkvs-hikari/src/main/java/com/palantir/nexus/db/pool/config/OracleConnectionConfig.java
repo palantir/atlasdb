@@ -144,8 +144,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
             // Enable client SSL certificate support. "two-way" SSL in Oracle parlance.
             if (getTwoWaySsl()) {
-                Preconditions.checkArgument(getKeystorePath().isPresent());
-                Preconditions.checkArgument(getKeystorePassword().isPresent());
+                com.palantir.logsafe.Preconditions.checkArgument(getKeystorePath().isPresent());
+                com.palantir.logsafe.Preconditions.checkArgument(getKeystorePassword().isPresent());
                 props.setProperty("javax.net.ssl.keyStore", getKeystorePath().get());
                 props.setProperty("javax.net.ssl.keyStorePassword", getKeystorePassword().get());
             }
@@ -168,34 +168,34 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Value.Check
     protected final void check() {
         if (getProtocol() == ConnectionProtocol.TCPS) {
-            Preconditions.checkArgument(getTruststorePath().isPresent(),
+            com.palantir.logsafe.Preconditions.checkArgument(getTruststorePath().isPresent(),
                     "ConnectionProtocol.TCPS requires a truststore");
             Preconditions.checkArgument(new File(getTruststorePath().get()).exists(),
                     "truststore file not found at %s", getTruststorePath().get());
-            Preconditions.checkArgument(getTruststorePassword().isPresent(),
+            com.palantir.logsafe.Preconditions.checkArgument(getTruststorePassword().isPresent(),
                     "ConnectionProtocol.TCPS requires a truststore password");
             if (getTwoWaySsl()) {
-                Preconditions.checkArgument(getKeystorePath().isPresent(), "two way ssl requires a keystore");
+                com.palantir.logsafe.Preconditions.checkArgument(getKeystorePath().isPresent(), "two way ssl requires a keystore");
                 Preconditions.checkArgument(new File(getKeystorePath().get()).exists(),
                         "keystore file not found at %s", getKeystorePath().get());
-                Preconditions.checkArgument(getKeystorePassword().isPresent(),
+                com.palantir.logsafe.Preconditions.checkArgument(getKeystorePassword().isPresent(),
                         "two way ssl requires a keystore password");
             }
             if (!getServerDn().isPresent()) {
-                Preconditions.checkArgument(!getMatchServerDn(), "cannot force match server dn without a server dn");
+                com.palantir.logsafe.Preconditions.checkArgument(!getMatchServerDn(), "cannot force match server dn without a server dn");
             }
         } else {
-            Preconditions.checkArgument(!getTwoWaySsl(),
+            com.palantir.logsafe.Preconditions.checkArgument(!getTwoWaySsl(),
                     "two way ssl cannot be enabled without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getServerDn().isPresent(),
+            com.palantir.logsafe.Preconditions.checkArgument(!getServerDn().isPresent(),
                     "a server dn cannot be given without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getTruststorePath().isPresent(),
+            com.palantir.logsafe.Preconditions.checkArgument(!getTruststorePath().isPresent(),
                     "a truststore path cannot be given without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getTruststorePassword().isPresent(),
+            com.palantir.logsafe.Preconditions.checkArgument(!getTruststorePassword().isPresent(),
                     "a truststore password cannot be given without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getKeystorePath().isPresent(),
+            com.palantir.logsafe.Preconditions.checkArgument(!getKeystorePath().isPresent(),
                     "a keystore file cannot be given without enabling ConnectionProtocol.TCPS");
-            Preconditions.checkArgument(!getKeystorePassword().isPresent(),
+            com.palantir.logsafe.Preconditions.checkArgument(!getKeystorePassword().isPresent(),
                     "a keystore password without enabling ConnectionProtocol.TCPS");
         }
     }

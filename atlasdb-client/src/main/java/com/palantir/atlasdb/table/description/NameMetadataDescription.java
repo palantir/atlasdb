@@ -49,7 +49,7 @@ public class NameMetadataDescription {
     }
 
     private NameMetadataDescription(List<NameComponentDescription> components, int numberOfComponentsHashed) {
-        Preconditions.checkArgument(!components.isEmpty());
+        com.palantir.logsafe.Preconditions.checkArgument(!components.isEmpty());
         this.rowParts = ImmutableList.copyOf(components);
         for (NameComponentDescription nameComponent : rowParts.subList(0, rowParts.size() - 1)) {
             if (nameComponent.type == ValueType.BLOB || nameComponent.type == ValueType.STRING) {
@@ -71,7 +71,7 @@ public class NameMetadataDescription {
     }
 
     public static NameMetadataDescription create(List<NameComponentDescription> components, int numberOfComponentsHashed) {
-        Preconditions.checkArgument(numberOfComponentsHashed <= components.size(),
+        com.palantir.logsafe.Preconditions.checkArgument(numberOfComponentsHashed <= components.size(),
                 "Number of hashed components can't exceed total number of row components.");
         if (numberOfComponentsHashed == 0) {
             return new NameMetadataDescription(components, numberOfComponentsHashed);
@@ -119,7 +119,7 @@ public class NameMetadataDescription {
         NameComponentDescription firstPart = rowParts.get(0);
         List<RowNamePartitioner> partitioners = Lists.newArrayList();
         if (firstPart.hasUniformPartitioner()) {
-            Preconditions.checkArgument(UniformRowNamePartitioner.allowsUniformPartitioner(firstPart.getType()));
+            com.palantir.logsafe.Preconditions.checkArgument(UniformRowNamePartitioner.allowsUniformPartitioner(firstPart.getType()));
             partitioners.add(new UniformRowNamePartitioner(firstPart.getType()));
         }
         if (firstPart.getExplicitPartitioner() != null) {

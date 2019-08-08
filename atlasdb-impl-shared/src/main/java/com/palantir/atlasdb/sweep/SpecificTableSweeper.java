@@ -191,7 +191,7 @@ public class SpecificTableSweeper {
     }
 
     private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {
-        Preconditions.checkArgument(results.getNextStartRow().isPresent(),
+        com.palantir.logsafe.Preconditions.checkArgument(results.getNextStartRow().isPresent(),
                 "Next start row should be present when saving intermediate results!");
         txManager.runTaskWithRetry((TxTask) tx -> {
             if (!tableToSweep.hasPreviousProgress()) {

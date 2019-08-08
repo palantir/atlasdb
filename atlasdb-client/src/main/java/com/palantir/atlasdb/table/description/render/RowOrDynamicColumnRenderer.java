@@ -44,7 +44,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
         super(parent);
         this.Name = Name;
         this.desc = desc;
-        Preconditions.checkArgument(!rangeScanAllowed || !isDynamicColumn, "Cannot have row range scans allowed on a dynamic column renderer.");
+        com.palantir.logsafe.Preconditions.checkArgument(!rangeScanAllowed || !isDynamicColumn, "Cannot have row range scans allowed on a dynamic column renderer.");
         this.rangeScanAllowed = rangeScanAllowed;
         this.isDynamicColumn = isDynamicColumn;
     }

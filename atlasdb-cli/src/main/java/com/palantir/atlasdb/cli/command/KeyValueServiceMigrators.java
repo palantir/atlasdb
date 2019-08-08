@@ -112,8 +112,8 @@ public final class KeyValueServiceMigrators {
 
         @Value.Check
         void check() {
-            Preconditions.checkArgument(threads() > 0, "Threads used for migration should be positive.");
-            Preconditions.checkArgument(batchSize() > 0, "Batch size used for migration should be positive.");
+            com.palantir.logsafe.Preconditions.checkArgument(threads() > 0, "Threads used for migration should be positive.");
+            com.palantir.logsafe.Preconditions.checkArgument(batchSize() > 0, "Batch size used for migration should be positive.");
         }
     }
 }

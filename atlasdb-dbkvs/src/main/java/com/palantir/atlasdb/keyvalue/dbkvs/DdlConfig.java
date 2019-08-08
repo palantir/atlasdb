@@ -59,7 +59,7 @@ public abstract class DdlConfig {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 metadataTable().getNamespace().isEmptyNamespace(),
                 "'metadataTable' should have empty namespace'");
     }

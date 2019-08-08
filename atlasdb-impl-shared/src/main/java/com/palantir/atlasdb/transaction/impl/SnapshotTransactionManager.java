@@ -15,19 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-
-import javax.validation.constraints.NotNull;
-
 import com.codahale.metrics.Timer;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -57,8 +44,20 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import javax.validation.constraints.NotNull;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final int NUM_RETRIES = 10;
@@ -289,7 +288,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public void registerClosingCallback(Runnable closingCallback) {
-        Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
+        com.palantir.logsafe.Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
         closingCallbacks.add(closingCallback);
     }
 
@@ -319,7 +318,7 @@ import com.palantir.timestamp.TimestampService;
             metricsManager.deregisterMetrics();
 
             if (!suppressedExceptions.isEmpty()) {
-                RuntimeException closeFailed = new RuntimeException(
+                RuntimeException closeFailed = new SafeRuntimeException(
                         "Close failed. Please inspect the code and fix wherever shutdown hooks throw exceptions");
                 suppressedExceptions.forEach(closeFailed::addSuppressed);
                 throw closeFailed;

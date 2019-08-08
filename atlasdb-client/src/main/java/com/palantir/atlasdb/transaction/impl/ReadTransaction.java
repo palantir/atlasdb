@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
-
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -32,6 +25,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 public class ReadTransaction extends ForwardingTransaction {
 
@@ -125,19 +126,19 @@ public class ReadTransaction extends ForwardingTransaction {
     private void checkTableName(TableReference tableRef) {
         SweepStrategy sweepStrategy = sweepStrategies.get().get(tableRef);
         if (sweepStrategy == SweepStrategy.THOROUGH) {
-            throw new IllegalStateException(
+            throw new SafeIllegalStateException(
                     "Cannot read from a table with a thorough sweep strategy in a read only transaction.");
         }
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        throw new IllegalArgumentException("This is a read only transaction.");
+        throw new SafeIllegalArgumentException("This is a read only transaction.");
     }
 
     @Override
     public void delete(TableReference tableRef, Set<Cell> keys) {
-        throw new IllegalArgumentException("This is a read only transaction.");
+        throw new SafeIllegalArgumentException("This is a read only transaction.");
     }
 
 }

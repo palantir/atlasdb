@@ -15,6 +15,15 @@
  */
 package com.palantir.util;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -24,14 +33,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantLock;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 
 /**
@@ -181,18 +182,18 @@ public class MutuallyExclusiveSetLock<T> {
 
     private ImmutableSet<T> validateLockInput(Iterable<T> lockObjects) {
         if (lockObjects == null) {
-            throw new IllegalArgumentException("lockObjects is null");
+            throw new SafeIllegalArgumentException("lockObjects is null");
         }
 
         if (threadSet.contains(Thread.currentThread())) {
-            throw new IllegalStateException("You must not synchronize twice in the same thread");
+            throw new SafeIllegalStateException("You must not synchronize twice in the same thread");
         }
 
         ImmutableSet<T> hashSet = ImmutableSet.copyOf(lockObjects);
         if (comparator == null) {
             for (T t : hashSet) {
                 if (!(t instanceof Comparable)) {
-                    throw new IllegalArgumentException("you must either specify a comparator or pass in comparable objects");
+                    throw new SafeIllegalArgumentException("you must either specify a comparator or pass in comparable objects");
                 }
             }
         }
@@ -201,7 +202,7 @@ public class MutuallyExclusiveSetLock<T> {
         SortedSet<T> treeSet = new TreeSet<T>(comparator);
         treeSet.addAll(hashSet);
         if (treeSet.size() != hashSet.size()) {
-            throw new IllegalArgumentException(
+            throw new SafeIllegalArgumentException(
                     "The number of elements using .equals and compareTo differ. "
                             + "This means that compareTo and equals are not consistent "
                             + "which will cause some objects to not be locked");
@@ -221,15 +222,15 @@ public class MutuallyExclusiveSetLock<T> {
     @Deprecated
     public void unlock(LockState<T> lockState) {
         if (lockState == null) {
-            throw new IllegalArgumentException("lockState is null");
+            throw new SafeIllegalArgumentException("lockState is null");
         }
 
         if (lockState.setLock != this) {
-            throw new IllegalArgumentException("The lockState passed was not from this instance");
+            throw new SafeIllegalArgumentException("The lockState passed was not from this instance");
         }
 
         if (lockState.thread != Thread.currentThread()) {
-            throw new IllegalArgumentException("The thread that created this lockState is not the same as the one unlocking it");
+            throw new SafeIllegalArgumentException("The thread that created this lockState is not the same as the one unlocking it");
         }
 
         threadSet.remove(Thread.currentThread());

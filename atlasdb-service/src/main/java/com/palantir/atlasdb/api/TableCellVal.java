@@ -55,8 +55,8 @@ public class TableCellVal {
     private final Map<Cell, byte[]> results;
 
     public TableCellVal(String tableName, Map<Cell, byte[]> results) {
-        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
-        this.results = Preconditions.checkNotNull(results, "results must not be null!");
+        this.tableName = com.palantir.logsafe.Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.results = com.palantir.logsafe.Preconditions.checkNotNull(results, "results must not be null!");
     }
 
     public String getTableName() {

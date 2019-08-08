@@ -33,7 +33,7 @@ public abstract class SimpleTokenInfo {
                 .expiresIn(token.getExpirationDateMs() - System.currentTimeMillis())
                 .createdAtTs(token.getCreationDateMs())
                 .tokenId(token.getTokenId().toString())
-                .clientId(Preconditions.checkNotNull(token.getClient()).getClientId())
+                .clientId(com.palantir.logsafe.Preconditions.checkNotNull(token.getClient()).getClientId())
                 .requestThread(token.getRequestingThread())
                 .createAt(new Date(token.getCreationDateMs()).toString())
                 .versionId(token.getVersionId())

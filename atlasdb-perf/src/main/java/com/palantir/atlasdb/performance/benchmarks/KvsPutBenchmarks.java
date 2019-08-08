@@ -84,7 +84,7 @@ public class KvsPutBenchmarks {
         tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
         try {
             tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
-            Preconditions.checkArgument(false, "putUnlessExists should have failed");
+            com.palantir.logsafe.Preconditions.checkArgument(false, "putUnlessExists should have failed");
         } catch (KeyAlreadyExistsException e) {
             // success
         }

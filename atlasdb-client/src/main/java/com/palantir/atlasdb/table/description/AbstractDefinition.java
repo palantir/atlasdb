@@ -84,7 +84,7 @@ abstract class AbstractDefinition {
     }
 
     public void explicitCompressionBlockSizeKB(int blockSizeKB) {
-        Preconditions.checkArgument(IntMath.isPowerOfTwo(blockSizeKB),
+        com.palantir.logsafe.Preconditions.checkArgument(IntMath.isPowerOfTwo(blockSizeKB),
                 "explicitCompressionBlockSizeKB must be a power of 2");
         explicitCompressionBlockSizeKb = blockSizeKB;
     }

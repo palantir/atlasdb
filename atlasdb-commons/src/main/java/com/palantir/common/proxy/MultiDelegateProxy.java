@@ -71,7 +71,7 @@ public class MultiDelegateProxy<T> extends AbstractInvocationHandler {
     final Supplier<? extends Iterable<? extends T>> othersToCall;
 
     private MultiDelegateProxy(T delegate, Supplier<? extends Iterable<? extends T>> toCall) {
-        this.delegate = Preconditions.checkNotNull(delegate);
+        this.delegate = com.palantir.logsafe.Preconditions.checkNotNull(delegate);
         this.othersToCall = toCall;
     }
 

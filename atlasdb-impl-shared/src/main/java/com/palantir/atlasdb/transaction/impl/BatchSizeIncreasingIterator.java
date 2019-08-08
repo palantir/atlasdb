@@ -46,7 +46,7 @@ public class BatchSizeIncreasingIterator<T> {
     public BatchSizeIncreasingIterator(BatchProvider<T> batchProvider,
                                        int originalBatchSize,
                                        @Nullable ClosableIterator<T> currentResults) {
-        Preconditions.checkArgument(originalBatchSize > 0);
+        com.palantir.logsafe.Preconditions.checkArgument(originalBatchSize > 0);
         this.batchProvider = batchProvider;
         this.originalBatchSize = originalBatchSize;
         this.currentResults = currentResults;
@@ -107,7 +107,7 @@ public class BatchSizeIncreasingIterator<T> {
 
     public List<T> getBatch() {
         updateResultsIfNeeded();
-        Preconditions.checkState(lastBatchSize > 0);
+        com.palantir.logsafe.Preconditions.checkState(lastBatchSize > 0);
         ImmutableList<T> list = ImmutableList.copyOf(Iterators.limit(currentResults, lastBatchSize));
         numReturned += list.size();
         if (!list.isEmpty()) {

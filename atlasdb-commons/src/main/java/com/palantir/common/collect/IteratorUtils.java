@@ -59,7 +59,7 @@ public class IteratorUtils {
     }
 
     public static <T> Collection<T> chooseRandomElements(Iterator<? extends T> it, final int k) {
-        Preconditions.checkArgument(k >= 0);
+        com.palantir.logsafe.Preconditions.checkArgument(k >= 0);
         List<T> ret = Lists.newArrayList();
 
         int i = 0; // i is the element number
@@ -87,8 +87,8 @@ public class IteratorUtils {
     public static <T> UnmodifiableIterator<T> filterAndVisit(final Iterator<? extends T> unfiltered,
             final Predicate<? super T> predicate, @Nullable Visitor<? super T> passVisitor,
             @Nullable Visitor<? super T> failVisitor) {
-        checkNotNull(unfiltered);
-        checkNotNull(predicate);
+        com.palantir.logsafe.Preconditions.checkNotNull(unfiltered);
+        com.palantir.logsafe.Preconditions.checkNotNull(predicate);
         final Visitor<? super T> actualPassVisitor;
         if (passVisitor != null) {
             actualPassVisitor = passVisitor;
@@ -143,8 +143,8 @@ public class IteratorUtils {
      */
     public static <T> Iterator<T> mergeIterators(Iterator<? extends T> one, Iterator<? extends T> two,
             final Comparator<? super T> ordering, final Function<? super Pair<T, T>, ? extends T> mergeFunction) {
-        Preconditions.checkNotNull(mergeFunction);
-        Preconditions.checkNotNull(ordering);
+        com.palantir.logsafe.Preconditions.checkNotNull(mergeFunction);
+        com.palantir.logsafe.Preconditions.checkNotNull(ordering);
         final PeekingIterator<T> a = Iterators.peekingIterator(one);
         final PeekingIterator<T> b = Iterators.peekingIterator(two);
         return new AbstractIterator<T>() {

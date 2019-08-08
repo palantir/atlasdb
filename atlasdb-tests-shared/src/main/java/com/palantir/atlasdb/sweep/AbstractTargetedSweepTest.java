@@ -56,7 +56,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         super(kvsManager, tmManager);
     }
 
-    @Before
+    @Override @Before
     public void setup() {
         super.setup();
 

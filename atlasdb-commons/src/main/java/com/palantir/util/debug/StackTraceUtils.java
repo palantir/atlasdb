@@ -15,6 +15,7 @@
  */
 package com.palantir.util.debug;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
@@ -32,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.management.JMException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
@@ -57,12 +57,12 @@ public final class StackTraceUtils {
         try {
             THREAD_MXBEAN = new ObjectName(ManagementFactory.THREAD_MXBEAN_NAME);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize thread MXBean name.");
+            throw new SafeIllegalStateException("Failed to initialize thread MXBean name.");
         }
         try {
             MEMORY_MXBEAN = new ObjectName(ManagementFactory.MEMORY_MXBEAN_NAME);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize memory MXBean name.");
+            throw new SafeIllegalStateException("Failed to initialize memory MXBean name.");
         }
 
     }

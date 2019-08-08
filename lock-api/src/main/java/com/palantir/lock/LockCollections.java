@@ -34,7 +34,7 @@ public final class LockCollections {
     }
 
     public static <T extends Comparable<T>> SortedLockCollection<T> of(SortedMap<T, LockMode> locks) {
-        Preconditions.checkArgument(locks.comparator() == null
+        com.palantir.logsafe.Preconditions.checkArgument(locks.comparator() == null
                 || locks.comparator() == Ordering.natural()
                 || locks.comparator() == Comparator.naturalOrder(),
                 "sorted lock collections must use naturally comparable keys");

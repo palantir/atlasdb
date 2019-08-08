@@ -34,7 +34,7 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
 
     public CellsToSweepPartitioningIterator(Iterator<BatchOfCellsToSweep> cellsToSweep, int deleteBatchSize,
             ExaminedCellLimit limit) {
-        Preconditions.checkArgument(deleteBatchSize > 0, "Iterator batch size must be positive");
+        com.palantir.logsafe.Preconditions.checkArgument(deleteBatchSize > 0, "Iterator batch size must be positive");
         this.cellsToSweep = cellsToSweep;
         this.deleteBatchSize = deleteBatchSize;
         this.limit = limit;

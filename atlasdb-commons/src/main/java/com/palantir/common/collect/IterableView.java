@@ -63,8 +63,8 @@ public abstract class IterableView<T> extends ForwardingObject implements Iterab
     }
 
     public IterableView<T> concat(Iterable<? extends T> b, Iterable<? extends T> c) {
-        Preconditions.checkNotNull(b);
-        Preconditions.checkNotNull(c);
+        com.palantir.logsafe.Preconditions.checkNotNull(b);
+        com.palantir.logsafe.Preconditions.checkNotNull(c);
         return of(Iterables.concat(ImmutableList.of(delegate(), b, c)));
     }
 

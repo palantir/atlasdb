@@ -97,7 +97,7 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     }
 
     private void write(byte b[], int off, int len) throws IOException {
-        Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
+        com.palantir.logsafe.Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
         if ((off < 0) || (len < 0) || (off + len > b.length)) {
             throw new IndexOutOfBoundsException();
         }
@@ -112,7 +112,7 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     // Since the internal buffer size doesn't change, we throw if
     // someone tries to write past the end of the buffer.
     private void ensureCapacity(int size) {
-        Preconditions.checkState(buffer.length >= size, "Internal buffer overflow");
+        com.palantir.logsafe.Preconditions.checkState(buffer.length >= size, "Internal buffer overflow");
     }
 
     @Override

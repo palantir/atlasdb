@@ -32,7 +32,7 @@ public abstract class SingleBackendCommand extends AbstractCommand {
 
     @Override
     public Integer call() {
-        Preconditions.checkState(isOnlineRunSupported() || isOffline(), "This CLI can only be run offline");
+        com.palantir.logsafe.Preconditions.checkState(isOnlineRunSupported() || isOffline(), "This CLI can only be run offline");
 
         try (AtlasDbServices services = connect()) {
             return execute(services);

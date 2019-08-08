@@ -130,9 +130,9 @@ public class CassandraTimestampBackupRunner {
     private BoundReadability checkReadability(BoundData boundData) {
         BoundReadability boundReadability = getReadability(boundData);
 
-        Preconditions.checkState(boundReadability != BoundReadability.BOTH,
+        com.palantir.logsafe.Preconditions.checkState(boundReadability != BoundReadability.BOTH,
                 "We had both backup and active timestamp bounds readable! This is unexpected. Please contact support.");
-        Preconditions.checkState(boundReadability != BoundReadability.NEITHER,
+        com.palantir.logsafe.Preconditions.checkState(boundReadability != BoundReadability.NEITHER,
                 "We had an unreadable active timestamp bound with no backup! This is unexpected. Please contact "
                         + "support.");
         return boundReadability;
@@ -164,7 +164,7 @@ public class CassandraTimestampBackupRunner {
 
     private void checkTimestampTableExists() {
         CassandraTables cassandraTables = cassandraKeyValueService.getCassandraTables();
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 cassandraTables.getExisting().contains(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
                 "[BACKUP/RESTORE] Tried to get timestamp bound data when the timestamp table didn't exist!");
     }

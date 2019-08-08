@@ -40,8 +40,8 @@ public class SerializingProxy implements DelegatingInvocationHandler {
     final ObjectInputStreamFactory factory;
 
     private SerializingProxy(Object delegate, ObjectInputStreamFactory factory) {
-        Preconditions.checkNotNull(factory);
-        Preconditions.checkNotNull(delegate);
+        com.palantir.logsafe.Preconditions.checkNotNull(factory);
+        com.palantir.logsafe.Preconditions.checkNotNull(delegate);
         this.delegate = delegate;
         this.factory = factory;
     }

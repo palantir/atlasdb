@@ -91,7 +91,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
         // However, we can just filter out empty pages later.
         @Override
         public List<CellTsPairInfo> next() {
-            Preconditions.checkState(hasNext());
+            com.palantir.logsafe.Preconditions.checkState(hasNext());
             List<CellTsPairInfo> cellTsPairs = loadNextPage();
             token = computeNextStartPosition(cellTsPairs);
             return cellTsPairs;

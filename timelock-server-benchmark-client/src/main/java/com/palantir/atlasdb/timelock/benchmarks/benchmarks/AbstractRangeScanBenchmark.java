@@ -110,9 +110,9 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
     protected final void performOneCall() {
         List<byte[]> results = txnManager.runTaskReadOnly(txn -> getRange(txn, 0L, numRows));
 
-        Preconditions.checkState(results.size() == numRows);
+        com.palantir.logsafe.Preconditions.checkState(results.size() == numRows);
         for (byte[] resultData : results) {
-            Preconditions.checkState(resultData.length == dataSize);
+            com.palantir.logsafe.Preconditions.checkState(resultData.length == dataSize);
         }
     }
 

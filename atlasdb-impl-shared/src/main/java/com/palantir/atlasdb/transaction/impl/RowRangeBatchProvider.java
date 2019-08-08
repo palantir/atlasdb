@@ -68,7 +68,7 @@ public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
 
     @Override
     public byte[] getLastToken(List<RowResult<Value>> batch) {
-        Preconditions.checkArgument(!batch.isEmpty());
+        com.palantir.logsafe.Preconditions.checkArgument(!batch.isEmpty());
         return batch.get(batch.size() - 1).getRowName();
     }
 }

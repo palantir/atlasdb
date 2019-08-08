@@ -101,7 +101,7 @@ public abstract class SweepConfig {
 
     @Value.Check
     public void check() {
-        Preconditions.checkState(sweepThreads() > 0, "Must have a positive number of threads! "
+        com.palantir.logsafe.Preconditions.checkState(sweepThreads() > 0, "Must have a positive number of threads! "
                         + "If your intention was to disable sweep, please set enabled to false.");
     }
 

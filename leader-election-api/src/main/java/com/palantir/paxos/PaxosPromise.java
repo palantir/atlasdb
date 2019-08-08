@@ -66,7 +66,7 @@ public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosRespon
 
     private PaxosPromise(PaxosProposalId promisedId) {
         ack = false;
-        this.promisedId = Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
+        this.promisedId = com.palantir.logsafe.Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
         lastAcceptedId = null;
         lastAcceptedValue = null;
     }
@@ -75,7 +75,7 @@ public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosRespon
             PaxosProposalId lastAcceptedId,
             PaxosValue val) {
         ack = true;
-        this.promisedId = Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
+        this.promisedId = com.palantir.logsafe.Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
         this.lastAcceptedId = lastAcceptedId;
         this.lastAcceptedValue = val;
     }

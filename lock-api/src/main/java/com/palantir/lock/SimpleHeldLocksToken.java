@@ -28,7 +28,7 @@ public class SimpleHeldLocksToken implements Serializable {
 
     public SimpleHeldLocksToken(@JsonProperty("tokenId") BigInteger tokenId,
                                 @JsonProperty("creationDateMs") long creationDateMs) {
-        this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
+        this.tokenId = com.palantir.logsafe.Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.creationDateMs = creationDateMs;
     }
 

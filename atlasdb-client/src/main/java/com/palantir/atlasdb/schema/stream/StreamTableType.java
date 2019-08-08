@@ -46,7 +46,7 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
     }
 
     public static TableReference getIndexTableFromValueTable(TableReference tableReference) {
-        Preconditions.checkArgument(isStreamStoreValueTable(tableReference),
+        com.palantir.logsafe.Preconditions.checkArgument(isStreamStoreValueTable(tableReference),
                 "tableReference should be a StreamStore value table");
 
         int tableNameLastIndex = tableReference.getQualifiedName().lastIndexOf(StreamTableType.VALUE.tableSuffix);

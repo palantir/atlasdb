@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -60,14 +51,21 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
 import io.dropwizard.configuration.SubstitutingSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbEteServer.class);
@@ -167,7 +165,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
             }
         }
-        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
+        throw new SafeIllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

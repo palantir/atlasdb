@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Set;
-import java.util.function.Supplier;
-
-import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
@@ -29,6 +22,12 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.Preconditions;
+import java.util.Set;
+import java.util.function.Supplier;
+import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AdvisoryLockConditionSuppliers {
 
@@ -48,7 +47,7 @@ public final class AdvisoryLockConditionSuppliers {
 
             LockRequest lockRequest = lockSupplier.get();
             if (lockRequest != null) {
-                Validate.isTrue(lockRequest.getVersionId() == null, "Using a version id is not allowed");
+                Preconditions.checkArgument(lockRequest.getVersionId() == null, "Using a version id is not allowed");
                 HeldLocksToken newToken = acquireLock(lockService, lockRequest);
                 TransactionLocksCondition transactionCondition = new TransactionLocksCondition(lockService, newToken);
 

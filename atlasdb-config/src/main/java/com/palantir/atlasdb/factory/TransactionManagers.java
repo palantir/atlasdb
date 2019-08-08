@@ -15,22 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.ClientErrorException;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
@@ -150,6 +134,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -157,6 +142,19 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
+import javax.ws.rs.ClientErrorException;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Value.Immutable
 @Value.Style(stagedBuilder = true)
@@ -861,7 +859,7 @@ public abstract class TransactionManagers {
         // Note: The other direction (timelock install config without a runtime block) should be maintained for
         // backwards compatibility.
         if (remoteTimestampAndLockOrLeaderBlocksPresent(config) && initialRuntimeConfig.timelockRuntime().isPresent()) {
-            throw new IllegalStateException("Found a service configured not to use timelock, with a timelock"
+            throw new SafeIllegalStateException("Found a service configured not to use timelock, with a timelock"
                     + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
                     + " please remove the timelock block from the runtime config; if you wish to use timelock,"
                     + " please remove the leader, remote timestamp or remote lock configuration blocks.");
@@ -897,7 +895,7 @@ public abstract class TransactionManagers {
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
+        com.palantir.logsafe.Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
                 "Cannot create raw services from timelock with another source of timestamps/locks configured!");
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());

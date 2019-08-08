@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen.lock;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
@@ -32,6 +25,13 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This checker verifies that the sequence of events is correct for each process in isolation. Since we know that no
@@ -95,7 +95,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                     verifyRefreshAllowed(event, currentProcess);
                     refreshAllowed.remove(currentProcess);
                     break;
-                default: throw new IllegalStateException("Not an OkEvent type supported by this checker!");
+                default: throw new SafeIllegalStateException("Not an OkEvent type supported by this checker!");
             }
             lastOkEvent.put(currentProcess, event);
         }

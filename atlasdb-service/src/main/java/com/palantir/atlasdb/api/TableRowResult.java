@@ -61,8 +61,8 @@ public class TableRowResult {
     private final Iterable<RowResult<byte[]>> results;
 
     public TableRowResult(String tableName, Collection<RowResult<byte[]>> results) {
-        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
-        this.results = Preconditions.checkNotNull(results, "results must not be null!");
+        this.tableName = com.palantir.logsafe.Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.results = com.palantir.logsafe.Preconditions.checkNotNull(results, "results must not be null!");
     }
 
     public String getTableName() {

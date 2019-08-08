@@ -218,7 +218,7 @@ public class PostgresGetRange implements DbKvsGetRange {
                         numSqlRows += 1;
                         AgnosticLightResultRow sqlRow = iter.next();
                         byte[] rowName = sqlRow.getBytes("row_name");
-                        colName = Preconditions.checkNotNull(sqlRow.getBytes("col_name"),
+                        colName = com.palantir.logsafe.Preconditions.checkNotNull(sqlRow.getBytes("col_name"),
                                 "received a null col_name from the database");
                         if (!Arrays.equals(currentRowName, rowName)) {
                             flushCurrentRow(results);

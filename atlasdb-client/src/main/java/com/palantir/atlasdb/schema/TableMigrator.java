@@ -74,7 +74,7 @@ public class TableMigrator {
     }
 
     private int setPartitions(int minNumPartitions) {
-        Preconditions.checkArgument(minNumPartitions >= 1);
+        com.palantir.logsafe.Preconditions.checkArgument(minNumPartitions >= 1);
 
         // round partitions up to a power of 2
         int highestOne = Integer.highestOneBit(minNumPartitions);

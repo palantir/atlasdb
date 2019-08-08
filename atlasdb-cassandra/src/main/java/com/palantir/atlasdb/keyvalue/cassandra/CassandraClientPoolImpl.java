@@ -15,21 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.TokenRange;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -51,6 +36,20 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.TokenRange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Feature breakdown:
@@ -486,7 +485,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return;
         }
 
-        RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
+        RuntimeException ex = new SafeIllegalStateException("Hosts have differing ring descriptions."
                 + " This can lead to inconsistent reads and lost data. ");
         log.error("Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
                         + " lose writes. The mapping of token ranges to hosts is:\n{}",

@@ -15,16 +15,15 @@
  */
 package com.palantir.leader.proxy;
 
+import com.palantir.common.base.Throwables;
+import com.palantir.common.proxy.DelegatingInvocationHandler;
+import com.palantir.logsafe.Preconditions;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.commons.lang3.Validate;
-
-import com.palantir.common.base.Throwables;
-import com.palantir.common.proxy.DelegatingInvocationHandler;
 
 public final class ToggleableExceptionProxy implements DelegatingInvocationHandler {
 
@@ -46,9 +45,9 @@ public final class ToggleableExceptionProxy implements DelegatingInvocationHandl
     private ToggleableExceptionProxy(Object delegate,
                                      AtomicBoolean throwException,
                                      Exception exception) {
-        Validate.notNull(delegate, "delegate should not be null.");
-        Validate.notNull(throwException, "thrownException should not be null.");
-        Validate.notNull(exception, "exception should not be null.");
+        Preconditions.checkNotNull(delegate, "delegate should not be null.");
+        Preconditions.checkNotNull(throwException, "thrownException should not be null.");
+        Preconditions.checkNotNull(exception, "exception should not be null.");
         this.delegate = delegate;
         this.throwException = throwException;
         this.exception = exception;

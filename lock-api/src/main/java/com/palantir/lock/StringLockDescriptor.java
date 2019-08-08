@@ -36,8 +36,8 @@ public final class StringLockDescriptor {
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
     @SuppressWarnings("checkstyle:jdkStandardCharsets") // StandardCharsets only in JDK 1.7+
     public static LockDescriptor of(String lockId) {
-        Preconditions.checkNotNull(lockId, "lockId should not be null");
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(lockId));
+        com.palantir.logsafe.Preconditions.checkNotNull(lockId, "lockId should not be null");
+        com.palantir.logsafe.Preconditions.checkArgument(!Strings.isNullOrEmpty(lockId));
         return new LockDescriptor(lockId.getBytes(Charsets.UTF_8));
     }
 }

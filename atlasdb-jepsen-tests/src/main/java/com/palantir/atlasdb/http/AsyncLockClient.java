@@ -47,7 +47,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
                 Long.MAX_VALUE,
                 client);
         LockResponse lockResponse = timelockService.lock(lockRequest);
-        Preconditions.checkState(lockResponse.wasSuccessful(),
+        com.palantir.logsafe.Preconditions.checkState(lockResponse.wasSuccessful(),
                 "Jepsen failed to lock a lock, but it would wait for Long.MAX_VALUE, so this is unexpected.");
         return lockResponse.getToken();
     }
