@@ -17,8 +17,6 @@ package com.palantir.atlasdb.api;
 
 import java.util.Arrays;
 
-import com.google.common.base.Preconditions;
-
 /**
  * <pre>
  * {

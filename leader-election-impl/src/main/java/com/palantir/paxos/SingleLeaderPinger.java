@@ -16,13 +16,6 @@
 
 package com.palantir.paxos;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.MultiplexingCompletionService;
-import com.palantir.leader.PaxosLeaderElectionEventRecorder;
-import com.palantir.leader.PingableLeader;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -32,9 +25,19 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.MultiplexingCompletionService;
+import com.palantir.leader.PaxosLeaderElectionEventRecorder;
+import com.palantir.leader.PingableLeader;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class SingleLeaderPinger implements LeaderPinger {
 

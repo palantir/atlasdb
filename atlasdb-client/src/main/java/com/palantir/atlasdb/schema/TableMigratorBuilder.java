@@ -18,7 +18,6 @@ package com.palantir.atlasdb.schema;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;

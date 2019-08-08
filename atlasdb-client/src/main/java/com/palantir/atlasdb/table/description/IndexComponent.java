@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.table.description.render.Renderers;
 
 public final class IndexComponent {

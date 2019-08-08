@@ -15,7 +15,14 @@
  */
 package com.palantir.atlasdb.ptobject;
 
-import com.google.common.base.Preconditions;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.commons.lang3.ArrayUtils;
+
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
@@ -25,12 +32,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import org.apache.commons.lang3.ArrayUtils;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class EncodingUtils {

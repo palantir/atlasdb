@@ -16,7 +16,14 @@
 
 package com.palantir.atlasdb.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.lang.reflect.Method;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
@@ -25,12 +32,6 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
 import com.palantir.tritium.event.InvocationContext;
-import java.lang.reflect.Method;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A modified version of {@link com.palantir.tritium.event.metrics.MetricsInvocationEventHandler} that uses a

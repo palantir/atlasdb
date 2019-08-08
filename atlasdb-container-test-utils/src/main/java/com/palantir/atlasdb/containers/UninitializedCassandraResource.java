@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.rules.ExternalResource;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;

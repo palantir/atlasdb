@@ -17,8 +17,6 @@ package com.palantir.atlasdb.api;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
-
 /*
  * <pre>
  * {

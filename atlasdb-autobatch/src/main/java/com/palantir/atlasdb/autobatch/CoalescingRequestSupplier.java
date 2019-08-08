@@ -20,8 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import com.google.common.base.Preconditions;
-
 public final class CoalescingRequestSupplier<T> implements CoalescingRequestFunction<Autobatchers.SupplierKey, T> {
 
     private final Supplier<T> supplier;

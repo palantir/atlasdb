@@ -15,12 +15,19 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import org.immutables.value.Value;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
@@ -28,12 +35,6 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.processors.AutoDelegate;
-import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import org.immutables.value.Value;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)

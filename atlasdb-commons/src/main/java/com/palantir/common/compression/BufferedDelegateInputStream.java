@@ -18,8 +18,6 @@ package com.palantir.common.compression;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.google.common.base.Preconditions;
-
 /**
  * {@link InputStream} that wraps a delegate InputStream, buffering reads
  * to the delegate. Allows a customized strategy for refilling the internal

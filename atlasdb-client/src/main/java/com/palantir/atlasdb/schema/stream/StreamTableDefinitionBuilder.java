@@ -17,7 +17,6 @@ package com.palantir.atlasdb.schema.stream;
 
 import static java.lang.Math.min;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;

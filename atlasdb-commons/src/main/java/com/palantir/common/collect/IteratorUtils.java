@@ -15,8 +15,6 @@
  */
 package com.palantir.common.collect;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -26,7 +24,6 @@ import java.util.Random;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ForwardingIterator;

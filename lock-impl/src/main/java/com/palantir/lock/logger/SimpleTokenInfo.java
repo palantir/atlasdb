@@ -21,7 +21,6 @@ import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Preconditions;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockMode;
 

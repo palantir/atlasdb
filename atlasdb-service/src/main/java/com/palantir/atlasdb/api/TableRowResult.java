@@ -17,7 +17,6 @@ package com.palantir.atlasdb.api;
 
 import java.util.Collection;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 
 /**

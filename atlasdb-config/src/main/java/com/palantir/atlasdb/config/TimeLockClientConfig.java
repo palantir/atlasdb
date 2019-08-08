@@ -15,13 +15,14 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
+
+import org.immutables.value.Value;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.Optional;
-import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableTimeLockClientConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)

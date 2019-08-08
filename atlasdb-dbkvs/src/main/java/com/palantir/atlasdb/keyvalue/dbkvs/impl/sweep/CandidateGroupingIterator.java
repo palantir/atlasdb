@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;

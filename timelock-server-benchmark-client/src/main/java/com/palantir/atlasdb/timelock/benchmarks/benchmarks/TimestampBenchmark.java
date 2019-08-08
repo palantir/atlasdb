@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.timestamp.TimestampService;
 

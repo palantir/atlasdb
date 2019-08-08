@@ -15,9 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -27,11 +32,6 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.collect.Maps2;
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
 
 public final class RowResult<T> implements Serializable {
     private static final long serialVersionUID = 1L;

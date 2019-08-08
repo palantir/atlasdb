@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.render.Renderers;
 

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.schema;
 import java.util.Map;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.table.description.render;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
-import org.apache.commons.lang3.Validate;
 
 public class TypeAndName {
     public final String type;

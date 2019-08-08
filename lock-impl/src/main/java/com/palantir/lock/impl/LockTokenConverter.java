@@ -19,7 +19,6 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import com.google.common.base.Preconditions;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockToken;
 

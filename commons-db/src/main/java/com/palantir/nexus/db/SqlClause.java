@@ -16,7 +16,6 @@
 package com.palantir.nexus.db;
 
 import com.palantir.logsafe.Preconditions;
-import org.apache.commons.lang3.Validate;
 
 public class SqlClause {
 

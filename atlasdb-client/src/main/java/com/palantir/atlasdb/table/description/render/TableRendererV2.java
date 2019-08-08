@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;

@@ -15,15 +15,16 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import java.util.Set;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.logsafe.Preconditions;
-import java.util.Set;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-import org.apache.commons.lang3.Validate;
 
 @Immutable
 public final class NameComponentDescription {

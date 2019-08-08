@@ -21,7 +21,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;

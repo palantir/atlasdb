@@ -15,11 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.batch;
 
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.common.collect.Maps2;
-import java.util.List;
-import java.util.Map;
 
 public final class BatchingStrategies {
 

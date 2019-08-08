@@ -17,8 +17,6 @@ package com.palantir.atlasdb.sweep;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Preconditions;
-
 @Value.Immutable
 public interface SweepBatchConfig {
 

@@ -15,9 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedMap;
+
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterators;
@@ -25,15 +30,8 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.collect.IterableView;
 import com.palantir.logsafe.Preconditions;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedMap;
-import org.apache.commons.lang3.Validate;
 
 public class RowResults {
     private RowResults() { /* */ }

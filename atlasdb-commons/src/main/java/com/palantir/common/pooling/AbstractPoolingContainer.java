@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.EmptyQueue;
 

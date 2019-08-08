@@ -15,6 +15,16 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -26,13 +36,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Path("/{namespace: [a-zA-Z0-9_-]+}")
 public class TimeLockResource {

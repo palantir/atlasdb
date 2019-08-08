@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.timestamp.TimestampStoreInvalidator;

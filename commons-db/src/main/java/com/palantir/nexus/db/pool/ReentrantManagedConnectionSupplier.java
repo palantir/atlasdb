@@ -20,7 +20,6 @@ import java.sql.SQLException;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import com.google.common.base.Preconditions;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.ReentrantConnectionSupplier;
 

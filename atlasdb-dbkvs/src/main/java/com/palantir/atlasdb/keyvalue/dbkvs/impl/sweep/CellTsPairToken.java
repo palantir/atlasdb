@@ -19,7 +19,6 @@ import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
 
 @Value.Immutable

@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
-import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;

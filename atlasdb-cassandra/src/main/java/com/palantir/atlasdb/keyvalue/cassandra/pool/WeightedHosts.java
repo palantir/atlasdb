@@ -22,7 +22,6 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 
 /**

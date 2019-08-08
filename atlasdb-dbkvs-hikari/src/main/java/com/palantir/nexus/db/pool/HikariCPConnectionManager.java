@@ -15,15 +15,6 @@
  */
 package com.palantir.nexus.db.pool;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.pool.config.ConnectionConfig;
-import com.palantir.nexus.db.sql.ExceptionCheck;
-import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.HikariPoolMXBean;
-import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -32,14 +23,25 @@ import java.sql.Statement;
 import java.util.TimeZone;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.nexus.db.DBType;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.nexus.db.sql.ExceptionCheck;
+import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
+import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 
 /**
  * HikariCP Connection Manager.

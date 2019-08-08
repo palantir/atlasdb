@@ -17,7 +17,6 @@ package com.palantir.lock;
 
 import java.util.concurrent.locks.ReadWriteLock;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
 /**

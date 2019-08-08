@@ -15,12 +15,12 @@
  */
 package com.palantir.common.base;
 
-import com.google.common.base.Preconditions;
+import java.util.Collections;
+import java.util.List;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * This abstract class will implement the required methods in {@link BatchingVisitable}

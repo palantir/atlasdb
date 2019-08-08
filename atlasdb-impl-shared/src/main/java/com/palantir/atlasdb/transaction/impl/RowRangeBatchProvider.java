@@ -20,7 +20,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;

@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
-import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;

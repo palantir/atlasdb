@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -24,9 +28,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.Preconditions;
-import java.util.List;
-import javax.annotation.Nullable;
-import org.apache.commons.lang3.Validate;
 
 public class IndexMetadata {
     final String name;

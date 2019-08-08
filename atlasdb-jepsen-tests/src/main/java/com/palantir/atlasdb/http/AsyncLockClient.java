@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;

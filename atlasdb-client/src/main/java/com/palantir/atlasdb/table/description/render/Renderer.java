@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.google.common.base.Preconditions;
 import com.google.common.hash.Hashing;
 
 @NotThreadSafe

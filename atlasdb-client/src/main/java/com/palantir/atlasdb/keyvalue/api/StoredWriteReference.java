@@ -15,10 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.palantir.common.persist.Persistable;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Parameter;
+
+import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @Immutable
 public interface StoredWriteReference extends Persistable {

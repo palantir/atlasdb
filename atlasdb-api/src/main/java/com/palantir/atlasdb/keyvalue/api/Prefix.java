@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Preconditions;
 import com.palantir.common.annotation.Immutable;
 
 /**

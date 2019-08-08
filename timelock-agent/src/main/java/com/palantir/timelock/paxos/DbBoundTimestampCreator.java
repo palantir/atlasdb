@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;

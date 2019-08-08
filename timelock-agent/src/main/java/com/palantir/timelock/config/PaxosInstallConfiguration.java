@@ -15,12 +15,14 @@
  */
 package com.palantir.timelock.config;
 
+import java.io.File;
+
+import org.immutables.value.Value;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import java.io.File;
-import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
