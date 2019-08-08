@@ -704,7 +704,7 @@ entries in the transactions table that committed after our backup timestamp.
 
 The addition of the transactions2 table doesn't really cause issues; the bigger challenge here is working with the
 coordination service, which needs to be consistent with the usage of the transaction tables. These tables need special
-treatment - otherwise, there can be unexpected situations, ike the following:
+treatment - otherwise, there can be unexpected situations like the following:
 
 1. We get a backup timestamp at time 1000.
 2. At timestamp 1100, we switch to use transactions2.
@@ -719,6 +719,15 @@ treatment - otherwise, there can be unexpected situations, ike the following:
    written by T will still remain visible in this case, when they shouldn't be (because they were after the
    backup timestamp; clean-transactions-range is designed to catch this case, but it cleaned the wrong transactions
    table here).
+
+One possible approach is to perform clean-transactions-range on both transactions1 and transactions2. However, we
+prefer not to do this as clean-transactions-range can be time-consuming (requiring a range scan of all transactions
+started after the immutable timestamp at backup time), and we didn't want to have overly specific rules for backing up
+the coordination service as it was written to be general and abstract.
+
+We thus read the state of the coordination service before commencing our backup, and read it again after, verifying
+that the state hasn't changed. We find this acceptable in practice, as coordination service changes are typically rare
+(these involve use cases like enabling transactions2 or various database migrations).
 
 #### Cassandra and TimeLock Dependencies
 
