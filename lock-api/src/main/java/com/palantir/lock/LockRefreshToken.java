@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
 
 @Immutable
 public final class LockRefreshToken implements Serializable {

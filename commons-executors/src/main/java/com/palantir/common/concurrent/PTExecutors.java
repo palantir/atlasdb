@@ -45,7 +45,7 @@ import com.palantir.tracing.Tracers;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
- * java.util.concurrent.Executors}, because the executors returned by these methods will propagate
+ * Executors}, because the executors returned by these methods will propagate
  * {@link ExecutorInheritableThreadLocal} variables.
  *
  * @author jtamer
@@ -77,7 +77,7 @@ public final class PTExecutors {
      * not been used for sixty seconds are terminated and removed from the cache. Thus, a pool that
      * remains idle for long enough will not consume any resources. Note that pools with similar
      * properties but different details (for example, timeout parameters) may be created using
-     * {@link java.util.concurrent.ThreadPoolExecutor} constructors.
+     * {@link ThreadPoolExecutor} constructors.
      *
      * @return the newly created thread pool
      */
@@ -139,7 +139,7 @@ public final class PTExecutors {
      * a thread is available.  If any thread terminates due to a failure during execution prior to
      * shutdown, a new one will take its place if needed to execute subsequent tasks.  The threads
      * in the pool will exist until it is explicitly {@link
-     * java.util.concurrent.ExecutorService#shutdown shutdown}.
+     * ExecutorService#shutdown shutdown}.
      *
      * @param numThreads the number of threads in the pool
      * @return the newly created thread pool
@@ -158,7 +158,7 @@ public final class PTExecutors {
      * submitted when all threads are active, they will wait in the queue until a thread is
      * available.  If any thread terminates due to a failure during execution prior to shutdown, a
      * new one will take its place if needed to execute subsequent tasks.  The threads in the pool
-     * will exist until it is explicitly {@link java.util.concurrent.ExecutorService#shutdown}.
+     * will exist until it is explicitly {@link ExecutorService#shutdown}.
      *
      * @param numThreads the number of threads in the pool
      * @param threadFactory the factory to use when creating new threads
@@ -278,7 +278,7 @@ public final class PTExecutors {
     /**
      * Creates a new <tt>ThreadPoolExecutor</tt> with the given initial parameters and default
      * thread factory and rejected execution handler.  It may be more convenient to use one of the
-     * {@link java.util.concurrent.Executors} factory methods instead of this general purpose
+     * {@link Executors} factory methods instead of this general purpose
      * constructor.
      *
      * @param corePoolSize the number of threads to keep in the pool, even if they are idle.
@@ -478,7 +478,7 @@ public final class PTExecutors {
 
     /**
      * Wraps the given {@code Runnable} so that {@link ExecutorInheritableThreadLocal} variables are
-     * propagated through.  If {@code runnable} implements the {@link java.util.concurrent.Future}
+     * propagated through.  If {@code runnable} implements the {@link Future}
      * interface, then the returned {@code Runnable} will also implement {@code Future}.
      */
     public static Runnable wrap(final Runnable runnable) {

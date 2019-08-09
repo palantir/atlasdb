@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class BenchmarkRunnerBase {
 
@@ -84,7 +85,7 @@ public class BenchmarkRunnerBase {
                 }
             }
 
-            throw new IllegalStateException("CLIENT declaration not found in servers.txt");
+            throw new SafeIllegalStateException("CLIENT declaration not found in servers.txt");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

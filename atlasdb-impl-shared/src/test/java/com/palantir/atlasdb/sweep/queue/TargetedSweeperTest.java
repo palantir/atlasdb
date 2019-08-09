@@ -127,6 +127,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Before
+    @Override
     public void setup() {
         super.setup();
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
@@ -148,6 +149,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @After
+    @Override
     public void tearDown() {
         // This is required because of JUnit memory issues
         sweepQueue = null;

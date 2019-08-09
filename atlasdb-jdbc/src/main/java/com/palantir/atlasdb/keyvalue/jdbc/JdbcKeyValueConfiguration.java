@@ -28,6 +28,7 @@ import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableJdbcKeyValueConfiguration.class)
@@ -93,13 +94,13 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
     @Value.Check
     void check() {
         if (getTablePrefix().length() > MAX_TABLE_PREFIX_LENGTH) {
-            throw new IllegalArgumentException("The table prefix can be at most " + MAX_TABLE_PREFIX_LENGTH + " characters.");
+            throw new SafeIllegalArgumentException("The table prefix can be at most " + MAX_TABLE_PREFIX_LENGTH + " characters.");
         }
         if (!getTablePrefix().matches("[A-Za-z0-9_]*")) {
-            throw new IllegalArgumentException("The table prefix can only contain letters, numbers, and underscores.");
+            throw new SafeIllegalArgumentException("The table prefix can only contain letters, numbers, and underscores.");
         }
         if (getBatchSizeForReads() <= 0 || getBatchSizeForReads() > 20_000) {
-            throw new IllegalArgumentException("The batchSizeForReads should be an integer greater than 0 and less than 20,000.");
+            throw new SafeIllegalArgumentException("The batchSizeForReads should be an integer greater than 0 and less than 20,000.");
         }
     }
 }

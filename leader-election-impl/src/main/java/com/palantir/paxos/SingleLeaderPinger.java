@@ -37,6 +37,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.leader.PaxosLeaderElectionEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class SingleLeaderPinger implements LeaderPinger {
 
@@ -157,7 +158,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             return;
         }
 
-        IllegalStateException exception = new IllegalStateException(
+        IllegalStateException exception = new SafeIllegalStateException(
                 "There is a fatal problem with the leadership election configuration! "
                         + "This is probably caused by invalid pref files setting up the cluster "
                         + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."

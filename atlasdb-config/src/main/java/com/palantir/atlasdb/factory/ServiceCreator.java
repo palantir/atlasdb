@@ -37,6 +37,7 @@ import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
@@ -119,7 +120,7 @@ public final class ServiceCreator {
                 return fixedProxySelectorFor(Proxy.NO_PROXY);
             case HTTP:
                 HostAndPort hostAndPort = HostAndPort.fromString(proxyConfig.hostAndPort()
-                        .orElseThrow(() -> new IllegalArgumentException(
+                        .orElseThrow(() -> new SafeIllegalArgumentException(
                                 "Expected to find proxy hostAndPort configuration for HTTP proxy")));
                 InetSocketAddress addr = new InetSocketAddress(hostAndPort.getHost(), hostAndPort.getPort());
                 return fixedProxySelectorFor(new Proxy(Proxy.Type.HTTP, addr));

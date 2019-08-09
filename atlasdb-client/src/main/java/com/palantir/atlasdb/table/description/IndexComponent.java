@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.table.description.render.Renderers;
+import com.palantir.logsafe.Preconditions;
 
 public final class IndexComponent {
     final NameComponentDescription rowKeyDesc;

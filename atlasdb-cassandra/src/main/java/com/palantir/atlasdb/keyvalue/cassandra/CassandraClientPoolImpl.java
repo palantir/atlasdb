@@ -51,6 +51,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Feature breakdown:
@@ -486,7 +487,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return;
         }
 
-        RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
+        RuntimeException ex = new SafeIllegalStateException("Hosts have differing ring descriptions."
                 + " This can lead to inconsistent reads and lost data. ");
         log.error("Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
                         + " lose writes. The mapping of token ranges to hosts is:\n{}",

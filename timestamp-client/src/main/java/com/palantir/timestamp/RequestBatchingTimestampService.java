@@ -16,8 +16,6 @@
 
 package com.palantir.timestamp;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -32,6 +30,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.proxy.TimingProxy;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.jmx.OperationTimer;
 import com.palantir.util.timer.LoggingOperationTimer;
 
@@ -69,7 +68,7 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        checkArgument(numTimestampsRequested > 0, "Must not request zero or negative timestamps");
+        Preconditions.checkArgument(numTimestampsRequested > 0, "Must not request zero or negative timestamps");
         ListenableFuture<TimestampRange> range = batcher.apply(numTimestampsRequested);
         try {
             return range.get();
@@ -127,7 +126,7 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
     }
 
     private static TimestampRange createExclusiveRange(long start, long end) {
-        checkArgument(end > start,
+        Preconditions.checkArgument(end > start,
                 "End is not ahead of start so cannot create an exclusive range");
         return TimestampRange.createInclusiveRange(start, end - 1);
     }

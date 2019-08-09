@@ -19,7 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 /**
- * Utilities for translating between AtlasDB {@link com.palantir.atlasdb.table.description.TableMetadata}-level
+ * Utilities for translating between AtlasDB {@link TableMetadata}-level
  * abstractions and corresponding Cassandra table options.
  */
 final class CassandraTableOptions {

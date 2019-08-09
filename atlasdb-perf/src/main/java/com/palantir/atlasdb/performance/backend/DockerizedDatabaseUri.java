@@ -44,7 +44,7 @@ public class DockerizedDatabaseUri {
         return addr;
     }
 
-    public String toString() {
+    @Override public String toString() {
         return type.getClassName() + DELIMITER + addr.toString();
     }
 

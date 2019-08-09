@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -57,6 +58,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -69,7 +71,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultiset;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -103,6 +104,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 
@@ -145,7 +147,7 @@ public final class LockServiceImpl
         }
 
         HeldLocks(T token, LockCollection<? extends ClientAwareReadWriteLock> locks) {
-            this.realToken = Preconditions.checkNotNull(token);
+            this.realToken = com.palantir.logsafe.Preconditions.checkNotNull(token);
             this.locks = locks;
         }
 
@@ -211,7 +213,7 @@ public final class LockServiceImpl
         Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, LockRequest>create());
 
     private final Set<Thread> indefinitelyBlockingThreads =
-            Sets.newConcurrentHashSet();
+            ConcurrentHashMap.newKeySet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
             Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), TreeMultiset::create));
@@ -227,14 +229,14 @@ public final class LockServiceImpl
 
     /** Creates a new lock server instance with the given options. */
     public static LockServiceImpl create(LockServerOptions options) {
-        Preconditions.checkNotNull(options);
+        com.palantir.logsafe.Preconditions.checkNotNull(options);
         ExecutorService newExecutor = PTExecutors
                 .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
         return create(options, Ownable.owned(newExecutor));
     }
 
     public static LockServiceImpl create(LockServerOptions options, ExecutorService injectedExecutor) {
-        Preconditions.checkNotNull(options);
+        com.palantir.logsafe.Preconditions.checkNotNull(options);
         return create(options, Ownable.notOwned(injectedExecutor));
     }
 
@@ -309,7 +311,7 @@ public final class LockServiceImpl
 
     @Override
     public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
-        Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
+        com.palantir.logsafe.Preconditions.checkArgument(request.getLockGroupBehavior() == LockGroupBehavior.LOCK_ALL_OR_NONE,
                 "lock() only supports LockGroupBehavior.LOCK_ALL_OR_NONE. Consider using lockAndGetHeldLocks().");
         LockResponse result = lockWithFullLockResponse(LockClient.of(client), request);
         return result.success() ? result.getLockRefreshToken() : null;
@@ -324,8 +326,8 @@ public final class LockServiceImpl
     @Override
     // We're concerned about sanitizing logs at the info level and above. This method just logs at debug and info.
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
-        Preconditions.checkNotNull(client);
-        Preconditions.checkArgument(!client.equals(INTERNAL_LOCK_GRANT_CLIENT));
+        com.palantir.logsafe.Preconditions.checkNotNull(client);
+        com.palantir.logsafe.Preconditions.checkArgument(!client.equals(INTERNAL_LOCK_GRANT_CLIENT));
         Preconditions.checkArgument(request.getLockTimeout().compareTo(maxAllowedLockTimeout) <= 0,
                 "Requested lock timeout (%s) is greater than maximum allowed lock timeout (%s)",
                 request.getLockTimeout(), maxAllowedLockTimeout);
@@ -553,7 +555,7 @@ public final class LockServiceImpl
 
     @Override
     public boolean unlock(HeldLocksToken token) {
-        Preconditions.checkNotNull(token);
+        com.palantir.logsafe.Preconditions.checkNotNull(token);
         boolean success = unlockInternal(token, heldLocksTokenMap);
         if (log.isTraceEnabled()) {
             log.trace(".unlock({}) returns {}", token, success);
@@ -563,7 +565,7 @@ public final class LockServiceImpl
 
     @Override
     public boolean unlockSimple(SimpleHeldLocksToken token) {
-        Preconditions.checkNotNull(token);
+        com.palantir.logsafe.Preconditions.checkNotNull(token);
         LockDescriptor fakeLockDesc = StringLockDescriptor.of("unlockSimple");
         SortedLockCollection<LockDescriptor> fakeLockSet = LockCollections.of(ImmutableSortedMap.of(fakeLockDesc, LockMode.READ));
         return unlock(new HeldLocksToken(
@@ -579,7 +581,7 @@ public final class LockServiceImpl
 
     @Override
     public boolean unlockAndFreeze(HeldLocksToken token) {
-        Preconditions.checkNotNull(token);
+        com.palantir.logsafe.Preconditions.checkNotNull(token);
         @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.remove(token);
         if (heldLocks == null) {
             if (log.isTraceEnabled()) {
@@ -645,11 +647,11 @@ public final class LockServiceImpl
 
     @Override
     public Set<HeldLocksToken> getTokens(LockClient client) {
-        Preconditions.checkNotNull(client);
+        com.palantir.logsafe.Preconditions.checkNotNull(client);
         if (client.isAnonymous()) {
-            throw new IllegalArgumentException("client must not be anonymous");
+            throw new SafeIllegalArgumentException("client must not be anonymous");
         } else if (client.equals(INTERNAL_LOCK_GRANT_CLIENT)) {
-            throw new IllegalArgumentException("Illegal client!");
+            throw new SafeIllegalArgumentException("Illegal client!");
         }
         ImmutableSet.Builder<HeldLocksToken> tokens = ImmutableSet.builder();
         synchronized (lockClientMultimap) {
@@ -662,14 +664,14 @@ public final class LockServiceImpl
         }
         ImmutableSet<HeldLocksToken> tokenSet = tokens.build();
         if (log.isTraceEnabled()) {
-            log.trace(".getTokens({}) returns {}", client, Iterables.transform(tokenSet, TOKEN_TO_ID));
+            log.trace(".getTokens({}) returns {}", client, Collections2.transform(tokenSet, TOKEN_TO_ID));
         }
         return tokenSet;
     }
 
     @Override
     public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
-        Preconditions.checkNotNull(tokens);
+        com.palantir.logsafe.Preconditions.checkNotNull(tokens);
         ImmutableSet.Builder<HeldLocksToken> refreshedTokens = ImmutableSet.builder();
         for (HeldLocksToken token : tokens) {
             @Nullable HeldLocksToken refreshedToken = refreshToken(token);
@@ -680,7 +682,7 @@ public final class LockServiceImpl
         Set<HeldLocksToken> refreshedTokenSet = refreshedTokens.build();
         if (log.isTraceEnabled()) {
             log.trace(".refreshTokens({}) returns {}",
-                    Iterables.transform(tokens, TOKEN_TO_ID), Iterables.transform(refreshedTokenSet, TOKEN_TO_ID));
+                    Iterables.transform(tokens, TOKEN_TO_ID), Collections2.transform(refreshedTokenSet, TOKEN_TO_ID));
         }
         return refreshedTokenSet;
     }
@@ -701,11 +703,11 @@ public final class LockServiceImpl
                     0L,
                     "UnknownThread-refreshLockRefreshTokens"));
         }
-        return ImmutableSet.copyOf(Iterables.transform(refreshTokens(fakeTokens), HeldLocksTokens.getRefreshTokenFun()));
+        return ImmutableSet.copyOf(Collections2.transform(refreshTokens(fakeTokens), HeldLocksTokens.getRefreshTokenFun()));
     }
 
     @Nullable private HeldLocksToken refreshToken(HeldLocksToken token) {
-        Preconditions.checkNotNull(token);
+        com.palantir.logsafe.Preconditions.checkNotNull(token);
         @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.get(token);
         if ((heldLocks == null) || isFrozen(heldLocks.locks.getKeys())) {
             return null;
@@ -735,7 +737,7 @@ public final class LockServiceImpl
 
     @Override
     @Nullable public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
-        Preconditions.checkNotNull(grant);
+        com.palantir.logsafe.Preconditions.checkNotNull(grant);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.get(grant);
         if (heldLocks == null) {
             if (log.isTraceEnabled()) {
@@ -784,12 +786,12 @@ public final class LockServiceImpl
 
     @Override
     @Nullable public HeldLocksGrant refreshGrant(BigInteger grantId) {
-        return refreshGrant(new HeldLocksGrant(Preconditions.checkNotNull(grantId)));
+        return refreshGrant(new HeldLocksGrant(com.palantir.logsafe.Preconditions.checkNotNull(grantId)));
     }
 
     @Override
     public HeldLocksGrant convertToGrant(HeldLocksToken token) {
-        Preconditions.checkNotNull(token);
+        com.palantir.logsafe.Preconditions.checkNotNull(token);
         @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.remove(token);
         if (heldLocks == null) {
             log.warn("Cannot convert to grant; invalid token: {} (token ID {})",
@@ -833,9 +835,9 @@ public final class LockServiceImpl
 
     @Override
     public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
-        Preconditions.checkNotNull(client);
-        Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
-        Preconditions.checkNotNull(grant);
+        com.palantir.logsafe.Preconditions.checkNotNull(client);
+        com.palantir.logsafe.Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
+        com.palantir.logsafe.Preconditions.checkNotNull(grant);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
         if (heldLocks == null) {
             log.warn("Tried to use invalid grant: {} (grant ID {})",
@@ -861,9 +863,9 @@ public final class LockServiceImpl
 
     @Override
     public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
-        Preconditions.checkNotNull(client);
-        Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
-        Preconditions.checkNotNull(grantId);
+        com.palantir.logsafe.Preconditions.checkNotNull(client);
+        com.palantir.logsafe.Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
+        com.palantir.logsafe.Preconditions.checkNotNull(grantId);
         HeldLocksGrant grant = new HeldLocksGrant(grantId);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
         if (heldLocks == null) {
@@ -885,7 +887,7 @@ public final class LockServiceImpl
 
     private void changeOwner(LockCollection<? extends ClientAwareReadWriteLock> locks, LockClient oldClient,
             LockClient newClient) {
-        Preconditions.checkArgument((oldClient == INTERNAL_LOCK_GRANT_CLIENT)
+        com.palantir.logsafe.Preconditions.checkArgument((oldClient == INTERNAL_LOCK_GRANT_CLIENT)
                 != (newClient == INTERNAL_LOCK_GRANT_CLIENT));
         Collection<KnownClientLock> locksToRollback = Lists.newLinkedList();
         try {

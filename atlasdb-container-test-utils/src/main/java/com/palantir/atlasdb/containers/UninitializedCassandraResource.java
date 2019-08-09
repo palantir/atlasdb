@@ -21,13 +21,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.rules.ExternalResource;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 
 public class UninitializedCassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = CassandraContainer.throwawayContainer();

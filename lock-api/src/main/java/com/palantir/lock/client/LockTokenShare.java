@@ -22,8 +22,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.google.common.base.Preconditions;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.Preconditions;
 
 final class LockTokenShare implements LockToken {
     private final UUID requestId;

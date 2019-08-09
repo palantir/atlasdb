@@ -22,12 +22,13 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.Preconditions;
 
 public final class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -63,7 +64,7 @@ public final class ColumnSelection implements Serializable {
         if (selectedColumns == null) {
             return "";
         }
-        return Joiner.on(',').join(Iterables.transform(selectedColumns, PtBytes::encodeBase64String));
+        return Joiner.on(',').join(Collections2.transform(selectedColumns, PtBytes::encodeBase64String));
     }
 
     // Factory methods.

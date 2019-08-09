@@ -47,7 +47,7 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
         this.supplier = supplier;
     }
 
-    public Statement apply(Statement base, Description description) {
+    @Override public Statement apply(Statement base, Description description) {
         containers = new Containers(description.getTestClass()).with(containerInstance);
         testResourceManager = new TestResourceManager(supplier);
         return super.apply(base, description);

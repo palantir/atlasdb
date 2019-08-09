@@ -72,6 +72,7 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Scrubs individuals cells on-demand.
@@ -188,7 +189,7 @@ public class Scrubber {
      */
     private synchronized void launchBackgroundScrubTask(final TransactionManager txManager) {
         if (scrubTaskLaunched) {
-            throw new IllegalStateException("Background scrub task has already been launched");
+            throw new SafeIllegalStateException("Background scrub task has already been launched");
         }
         Runnable scrubTask = () -> {
             int numberOfAttempts = 0;

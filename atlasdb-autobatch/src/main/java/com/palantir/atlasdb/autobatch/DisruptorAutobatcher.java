@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.Closeable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
@@ -31,6 +29,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * While this class is public, it shouldn't be used as API outside of AtlasDB because we
@@ -70,7 +69,7 @@ public final class DisruptorAutobatcher<T, R>
 
     @Override
     public ListenableFuture<R> apply(T argument) {
-        checkState(!closed, "Autobatcher is already shut down");
+        Preconditions.checkState(!closed, "Autobatcher is already shut down");
         SettableFuture<R> result = SettableFuture.create();
         buffer.publishEvent((refresh, sequence) -> {
             refresh.result = result;

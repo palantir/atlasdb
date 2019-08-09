@@ -19,9 +19,9 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.SortedMap;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import com.palantir.logsafe.Preconditions;
 
 public final class LockCollections {
 

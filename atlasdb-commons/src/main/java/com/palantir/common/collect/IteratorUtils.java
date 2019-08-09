@@ -15,8 +15,6 @@
  */
 package com.palantir.common.collect;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -26,7 +24,6 @@ import java.util.Random;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ForwardingIterator;
@@ -37,6 +34,7 @@ import com.google.common.collect.UnmodifiableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.base.Visitors;
 import com.palantir.common.visitor.Visitor;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
 
 public class IteratorUtils {
@@ -87,8 +85,8 @@ public class IteratorUtils {
     public static <T> UnmodifiableIterator<T> filterAndVisit(final Iterator<? extends T> unfiltered,
             final Predicate<? super T> predicate, @Nullable Visitor<? super T> passVisitor,
             @Nullable Visitor<? super T> failVisitor) {
-        checkNotNull(unfiltered);
-        checkNotNull(predicate);
+        Preconditions.checkNotNull(unfiltered);
+        Preconditions.checkNotNull(predicate);
         final Visitor<? super T> actualPassVisitor;
         if (passVisitor != null) {
             actualPassVisitor = passVisitor;

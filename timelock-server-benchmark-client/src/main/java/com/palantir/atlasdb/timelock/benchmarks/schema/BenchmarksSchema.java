@@ -33,11 +33,11 @@ public final class BenchmarksSchema implements AtlasSchema {
 
     public static final TableReference BLOBS_TABLE_REF = TableReference.create(NAMESPACE, "Blobs");
 
-    public Namespace getNamespace() {
+    @Override public Namespace getNamespace() {
         return NAMESPACE;
     }
 
-    public Schema getLatestSchema() {
+    @Override public Schema getLatestSchema() {
         return generateSchema();
     }
 

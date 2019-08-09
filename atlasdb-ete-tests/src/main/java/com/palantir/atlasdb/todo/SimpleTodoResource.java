@@ -19,9 +19,9 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Preconditions;
 
 public class SimpleTodoResource implements TodoResource {
     private TodoClient atlas;

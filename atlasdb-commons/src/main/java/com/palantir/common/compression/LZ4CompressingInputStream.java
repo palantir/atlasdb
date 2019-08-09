@@ -20,8 +20,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.zip.Checksum;
 
-import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
+import com.palantir.logsafe.Preconditions;
 
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4Compressor;

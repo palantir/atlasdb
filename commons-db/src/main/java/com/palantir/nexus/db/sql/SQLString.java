@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SqlClause;
 
@@ -114,7 +115,7 @@ public class SQLString extends BasicSQLString {
     public static void registerQuery(String key, String sql, DBType... dbTypes) {
         Validate.notEmpty(dbTypes, "DbType list may not be empty"); //$NON-NLS-1$
         for (DBType type : dbTypes) {
-            Validate.notNull(type, "dbType must not be null"); //$NON-NLS-1$
+            Preconditions.checkNotNull(type, "dbType must not be null"); //$NON-NLS-1$
             registerQuery(key, sql, type);
         }
     }

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 

@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -231,10 +230,10 @@ public final class CassandraKeyValueServices {
         composite.get(colName);
 
         short shouldBeZero = composite.getShort();
-        Validate.isTrue(shouldBeZero == 0);
+        com.palantir.logsafe.Preconditions.checkArgument(shouldBeZero == 0);
 
         byte shouldBe8 = composite.get();
-        Validate.isTrue(shouldBe8 == 8);
+        com.palantir.logsafe.Preconditions.checkArgument(shouldBe8 == 8);
         long ts = composite.getLong();
 
         return Pair.create(colName, ~ts);

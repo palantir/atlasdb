@@ -17,6 +17,7 @@ package com.palantir.lock.client;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +37,7 @@ public class LockRefresher implements AutoCloseable {
 
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;
-    private final Set<LockToken> tokensToRefresh = Sets.newConcurrentHashSet();
+    private final Set<LockToken> tokensToRefresh = ConcurrentHashMap.newKeySet();
 
     public LockRefresher(
             ScheduledExecutorService executor,

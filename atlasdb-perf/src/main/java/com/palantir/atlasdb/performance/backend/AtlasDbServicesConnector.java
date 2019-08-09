@@ -27,6 +27,7 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @State(Scope.Benchmark)
 public class AtlasDbServicesConnector implements Closeable {
@@ -41,7 +42,7 @@ public class AtlasDbServicesConnector implements Closeable {
 
     public AtlasDbServices connect() {
         if (services != null) {
-            throw new IllegalStateException("connect() has already been called");
+            throw new SafeIllegalStateException("connect() has already been called");
         }
 
         DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
@@ -58,7 +59,7 @@ public class AtlasDbServicesConnector implements Closeable {
         return services;
     }
 
-    public void close() {
+    @Override public void close() {
         if (services != null) {
             services.close();
         }

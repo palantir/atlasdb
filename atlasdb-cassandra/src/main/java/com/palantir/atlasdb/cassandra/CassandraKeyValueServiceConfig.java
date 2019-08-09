@@ -28,12 +28,13 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.processors.AutoDelegate;
 
 @AutoService(KeyValueServiceConfig.class)
@@ -131,7 +132,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     @Value.Lazy
     default String getKeyspaceOrThrow() {
-        return keyspace().orElseThrow(() -> new IllegalStateException(
+        return keyspace().orElseThrow(() -> new SafeIllegalStateException(
                 "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
     }
 

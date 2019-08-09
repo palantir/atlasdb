@@ -56,6 +56,7 @@ import org.apache.thrift.transport.TTransportException;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
@@ -348,7 +349,7 @@ public class CassandraClientImpl implements CassandraClient {
     private void checkIfValidClient() {
         Throwable localInvalidated = invalidated.get();
         if (localInvalidated != null) {
-            throw new IllegalStateException("Method execution on invalid client", localInvalidated);
+            throw new SafeIllegalStateException("Method execution on invalid client", localInvalidated);
         }
     }
 }

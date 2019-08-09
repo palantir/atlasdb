@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.containers;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,6 +31,8 @@ import com.palantir.docker.compose.connection.ContainerName;
 import com.palantir.docker.compose.execution.DockerCompose;
 import com.palantir.docker.compose.logging.FileLogCollector;
 import com.palantir.docker.compose.logging.LogCollector;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -47,7 +47,7 @@ public class InterruptibleFileLogCollector implements LogCollector {
     private ExecutorService executor = null;
 
     public InterruptibleFileLogCollector(File logDirectory) {
-        checkArgument(!logDirectory.isFile(), "Log directory cannot be a file");
+        Preconditions.checkArgument(!logDirectory.isFile(), "Log directory cannot be a file");
         if (!logDirectory.exists()) {
             Validate.isTrue(logDirectory.mkdirs(), "Error making log directory: " + logDirectory.getAbsolutePath());
         }
@@ -61,10 +61,10 @@ public class InterruptibleFileLogCollector implements LogCollector {
     @Override
     public synchronized void startCollecting(DockerCompose dockerCompose) throws IOException, InterruptedException {
         if (executor != null) {
-            throw new RuntimeException("Cannot start collecting the same logs twice");
+            throw new SafeRuntimeException("Cannot start collecting the same logs twice");
         }
         List<ContainerName> containerNames = dockerCompose.ps();
-        if (containerNames.size() == 0) {
+        if (containerNames.isEmpty()) {
             return;
         }
         executor = Executors.newFixedThreadPool(containerNames.size());
@@ -74,13 +74,13 @@ public class InterruptibleFileLogCollector implements LogCollector {
     }
 
     private void collectLogs(String container, DockerCompose dockerCompose)  {
-        executor.submit(() -> {
+        executor.execute(() -> {
             File outputFile = new File(logDirectory, container + ".log");
             log.info("Writing logs for container '{}' to '{}'", container, outputFile.getAbsolutePath());
             try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
                 dockerCompose.writeLogs(container, outputStream);
             } catch (IOException e) {
-                throw new RuntimeException("Error reading log", e);
+                throw new SafeRuntimeException("Error reading log", e);
             }
         });
     }

@@ -52,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
@@ -190,7 +191,7 @@ public class CassandraService implements AutoCloseable {
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
         return getRandomGoodHostForPredicate(address -> true).orElseThrow(
-                () -> new IllegalStateException("No hosts available."));
+                () -> new SafeIllegalStateException("No hosts available."));
     }
 
     private String getRingViewDescription() {

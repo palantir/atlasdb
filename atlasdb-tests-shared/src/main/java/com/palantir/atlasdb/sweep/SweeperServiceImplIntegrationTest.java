@@ -25,8 +25,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     private SweeperService sweeperService;
 
-    @Override
     @Before
+    @Override
     public void setup() {
         super.setup();
         sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);

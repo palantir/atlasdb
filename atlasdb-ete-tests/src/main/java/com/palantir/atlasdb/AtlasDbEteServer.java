@@ -60,6 +60,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -167,7 +168,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
             }
         }
-        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
+        throw new SafeIllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

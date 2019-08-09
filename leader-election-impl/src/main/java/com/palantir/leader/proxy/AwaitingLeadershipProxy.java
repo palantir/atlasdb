@@ -42,6 +42,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
@@ -82,7 +83,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             Supplier<T> delegateSupplier,
             LeaderElectionService leaderElectionService,
             Class<T> interfaceClass) {
-        Preconditions.checkNotNull(delegateSupplier,
+        com.palantir.logsafe.Preconditions.checkNotNull(delegateSupplier,
                 "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
@@ -104,10 +105,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private void tryToGainLeadershipAsync() {
         try {
-            executor.submit(this::gainLeadershipWithRetry);
+            executor.execute(this::gainLeadershipWithRetry);
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
-                throw new IllegalStateException("failed to submit task but proxy not closed", e);
+                throw new SafeIllegalStateException("failed to submit task but proxy not closed", e);
             }
         }
     }

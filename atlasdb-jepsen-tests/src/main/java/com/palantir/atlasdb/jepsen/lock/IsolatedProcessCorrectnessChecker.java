@@ -32,6 +32,7 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * This checker verifies that the sequence of events is correct for each process in isolation. Since we know that no
@@ -95,7 +96,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                     verifyRefreshAllowed(event, currentProcess);
                     refreshAllowed.remove(currentProcess);
                     break;
-                default: throw new IllegalStateException("Not an OkEvent type supported by this checker!");
+                default: throw new SafeIllegalStateException("Not an OkEvent type supported by this checker!");
             }
             lastOkEvent.put(currentProcess, event);
         }

@@ -19,8 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.google.common.base.Preconditions;
 import com.google.common.hash.Hashing;
+import com.palantir.logsafe.Preconditions;
 
 @NotThreadSafe
 public abstract class Renderer {

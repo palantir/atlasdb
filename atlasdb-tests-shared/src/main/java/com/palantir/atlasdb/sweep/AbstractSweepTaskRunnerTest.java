@@ -68,6 +68,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     }
 
     @Before
+    @Override
     public void setup() {
         super.setup();
         tsSupplier = sweepTimestamp::get;
@@ -352,11 +353,11 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         return new Pair(sweptCells, sweepResults);
     }
 
-    protected Optional<SweepResults> completeSweep(long ts) {
+    @Override protected Optional<SweepResults> completeSweep(long ts) {
         return completeSweep(TABLE_NAME, ts);
     }
 
-    protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
+    @Override protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
         return completeSweep(tableReference, ts, DEFAULT_BATCH_SIZE);
     }
 

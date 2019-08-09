@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
@@ -46,8 +45,8 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
 
     public SlidingWindowMetricsInvocationHandler(MetricRegistry metricRegistry, String serviceName) {
         super(InstrumentationUtils.getEnabledSupplier(serviceName));
-        this.metricRegistry = checkNotNull(metricRegistry, "metricRegistry");
-        this.serviceName = checkNotNull(serviceName, "serviceName");
+        this.metricRegistry = Preconditions.checkNotNull(metricRegistry, "metricRegistry");
+        this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName");
     }
 
     @Override

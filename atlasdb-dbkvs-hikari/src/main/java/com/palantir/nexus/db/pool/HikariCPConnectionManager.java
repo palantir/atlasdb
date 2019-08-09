@@ -34,8 +34,9 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -234,7 +235,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                         log.debug(
                                 "Closing connection pool: {}",
                                 connConfig,
-                                new RuntimeException("Closing connection pool"));
+                                new SafeRuntimeException("Closing connection pool"));
                     }
 
                     state.dataSourcePool.close();
@@ -279,7 +280,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         // Print a stack trace whenever we initialize a pool
         if (log.isDebugEnabled()) {
             log.debug("Initializing connection pool: {}", connConfig,
-                    new RuntimeException("Initializing connection pool"));
+                    new SafeRuntimeException("Initializing connection pool"));
         }
 
         HikariDataSource dataSourcePool;
