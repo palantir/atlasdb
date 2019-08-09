@@ -470,6 +470,12 @@ dynamic column key ``13007`` is the value currently agreed on, and may be used t
 ``5013007``. The dynamic column value stored at dynamic column key ``10001`` is not active (also note that it may never
 actually have been agreed on, if its write was concurrent with that of the value at ``13007``).
 
+Notice that objects in the coordination service aren't inherently timestamp aware (as we wanted to maintain some level
+of abstraction for the coordination service). Where needed (and, for example, this *is* needed for transactions2),
+it is up to the implementation of coordination service clients to partition the timestamp space on their own.
+Generally, in these cases, it is good practice to introduce a layer of abstraction so that clients don't have to
+manipulate such mappings directly.
+
 The main reason for this scheme is that while the validity bound itself changes frequently (approximately every
 ``ADVANCEMENT_QUANTUM`` timestamps, which is ``5,000,000`` at time of writing), the value itself changes much less
 often. For example, with transactions2, in the absence of rollbacks, the value is expected to change just once in the
@@ -508,8 +514,9 @@ from transactions1) with one that delegates between multiple TransactionServices
 time) depending on the specific timestamps involved in calls.
 
 The mechanism for determining which ``TransactionService`` to use goes through the aforementioned
-``CoordinationService``. We agree on a ``TimestampPartitioningMap``, which is a mapping of timestamps to transaction
-schema versions. This is a range map, as we want to support rollbacks easily. The map also is guaranteed to span the
+``CoordinationService``. Nodes agree on a ``TimestampPartitioningMap``, a mapping of timestamps to transaction schema
+versions, using the coordination service; this map is always the current value of the coordination store.
+This is a range map, as we want to support rollbacks easily. The map also is guaranteed to span the
 ranges ``[1, +∞)`` and be connected; note that this does not mean future behaviour is fixed, since in practice this map
 is read together with a validity bound. Thus, even though the map will contain as a key some range ``[C, +∞)`` for a
 constant ``C``, it should be valid up to some point ``V > C`` - and behaviour at timestamps after ``V`` may subsequently
