@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
@@ -36,6 +37,7 @@ import com.palantir.exception.NotInitializedException;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
+@JsonIgnoreProperties("enableSweep")
 @Value.Immutable
 public abstract class AtlasDbConfig {
 
@@ -175,20 +177,6 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public TargetedSweepInstallConfig targetedSweep() {
         return TargetedSweepInstallConfig.defaultTargetedSweepConfig();
-    }
-
-    /**
-     * If true, a background thread will periodically delete cells that
-     * have been overwritten or deleted. This differs from scrubbing
-     * because it is an untargeted cleaning process that scans all data
-     * looking for cells to delete.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#enableSweep} to make this value
-     * live-reloadable.
-     */
-    @Deprecated
-    @Value.Default
-    public boolean enableSweep() {
-        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
     }
 
     /**

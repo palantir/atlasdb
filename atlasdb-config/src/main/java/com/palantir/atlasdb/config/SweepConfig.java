@@ -32,11 +32,11 @@ public abstract class SweepConfig {
     /**
      * If true, a background thread will periodically delete cells that have been overwritten or deleted. This differs
      * from scrubbing because it is an untargeted cleaning process that scans all data looking for cells to delete.
+     *
+     * If unspecified, AtlasDB will decide whether to run the background sweeper or not. This may depend on factors
+     * elsewhere in configuration.
      */
-    @Value.Default
-    public Boolean enabled() {
-        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
-    }
+    public abstract Optional<Boolean> enabled();
 
     // TODO handle live reload
     /**
