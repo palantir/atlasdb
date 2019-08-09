@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static com.palantir.logsafe.Preconditions.checkState;
-
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -31,6 +29,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.db.oracle.JdbcHandler;
+import com.palantir.logsafe.Preconditions;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
 @JsonSerialize(as = ImmutableOracleDdlConfig.class)
@@ -96,18 +95,18 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Check
     protected final void checkOracleConfig() {
-        checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
-        checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
-        checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
-        checkState(tablePrefix().endsWith("_"), "Oracle 'tablePrefix' must end with an underscore.");
+        Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
+        Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
+        Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
+        Preconditions.checkState(tablePrefix().endsWith("_"), "Oracle 'tablePrefix' must end with an underscore.");
         com.google.common.base.Preconditions.checkState(
                 tablePrefix().length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
                 "Oracle 'tablePrefix' cannot be more than %s characters long.",
                 AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
-        checkState(
+        Preconditions.checkState(
                 !overflowTablePrefix().startsWith("_"),
                 "Oracle 'overflowTablePrefix' cannot begin with underscore.");
-        checkState(
+        Preconditions.checkState(
                 overflowTablePrefix().endsWith("_"),
                 "Oracle 'overflowTablePrefix' must end with an underscore.");
         com.google.common.base.Preconditions.checkState(

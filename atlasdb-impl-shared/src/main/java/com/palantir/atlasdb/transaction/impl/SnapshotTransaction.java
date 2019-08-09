@@ -1079,7 +1079,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (log.isDebugEnabled()) {
                 log.debug("The first 10 results of your request were {}.",
                         UnsafeArg.of("results", Iterables.limit(rawResults.entrySet(), 10)),
-                        new SafeRuntimeException("This exception and stack trace are provided for debugging purposes."));
+                        new SafeRuntimeException("This exception and stack trace are provided for debugging purposes"));
             }
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ, tableRef).update(bytes);
         }
@@ -1223,7 +1223,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This is protected to allow for different post filter behavior.
      */
     protected boolean shouldDeleteAndRollback() {
-        Preconditions.checkNotNull(timelockService, "if we don't have a valid lock server we can't roll back transactions");
+        Preconditions.checkNotNull(timelockService,
+                "if we don't have a valid lock server we can't roll back transactions");
         return true;
     }
 

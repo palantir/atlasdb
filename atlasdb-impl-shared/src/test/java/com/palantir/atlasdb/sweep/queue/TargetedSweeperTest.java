@@ -126,7 +126,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         this.readBatchSize = readBatchSize;
     }
 
-    @Override @Before
+    @Before
+    @Override
     public void setup() {
         super.setup();
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
