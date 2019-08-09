@@ -200,7 +200,8 @@ public class AtlasDbPerfCli {
             try {
                 getDockerUris(cli);
             } catch (Exception e) {
-                throw new SafeRuntimeException("Invalid dockerized database uri. Must be of the form [dbtype]@[host:port]");
+                throw new SafeRuntimeException(
+                        "Invalid dockerized database uri. Must be of the form [dbtype]@[host:port]");
             }
         }
         return true;

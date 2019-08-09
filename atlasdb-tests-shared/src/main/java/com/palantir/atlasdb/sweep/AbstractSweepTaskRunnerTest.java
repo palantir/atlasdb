@@ -67,7 +67,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         super(kvsManager, tmManager);
     }
 
-    @Override @Before
+    @Before
+    @Override
     public void setup() {
         super.setup();
         tsSupplier = sweepTimestamp::get;

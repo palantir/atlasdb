@@ -52,7 +52,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
@@ -124,6 +123,7 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -547,7 +547,7 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     private void executeCheckAndSet(CheckAndSetRequest request) {
-        com.palantir.logsafe.Preconditions.checkArgument(request.oldValue().isPresent());
+        Preconditions.checkArgument(request.oldValue().isPresent());
 
         runWrite(request.table(), table -> {
             //noinspection OptionalGetWithoutIsPresent
@@ -741,7 +741,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 }
             }
             if (rows.isEmpty()) {
-                return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Set<Long>>>of(), false);
+                return SimpleTokenBackedResultsPage.create(null, ImmutableList.of(), false);
             }
         }
 
@@ -910,7 +910,7 @@ public final class DbKvs extends AbstractKeyValueService {
                     if (isFullyLoadedRow) {
                         rowsColumnRangeBatch.addRowsToLoadFully(row);
                     } else {
-                        com.palantir.logsafe.Preconditions.checkArgument(!entries.hasNext(), "Only the last row should be partial.");
+                        Preconditions.checkArgument(!entries.hasNext(), "Only the last row should be partial.");
                         BatchColumnRangeSelection columnRange =
                                 BatchColumnRangeSelection.create(columnRangeSelection, entry.getValue());
                         rowsColumnRangeBatch.partialLastRow(Maps.immutableEntry(row, columnRange));
@@ -950,7 +950,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 List<Map.Entry<Cell, Value>> nextPage = Iterables.getOnlyElement(
                         extractRowColumnRangePage(tableRef, range, timestamp, rowList).values());
                 if (nextPage.isEmpty()) {
-                    return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
+                    return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
                 }
                 byte[] lastCol = nextPage.get(nextPage.size() - 1).getKey().getColumnName();
                 if (isEndOfColumnRange(lastCol, batchColumnRangeSelection.getEndCol())) {
@@ -1096,7 +1096,11 @@ public final class DbKvs extends AbstractKeyValueService {
             Cell cell = entry.getKey();
             OverflowValue ov = entry.getValue();
             byte[] val = resolvedOverflowValues.get(ov.id());
-            Preconditions.checkNotNull(val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id());
+            com.google.common.base.Preconditions.checkNotNull(
+                    val,
+                    "Failed to load overflow data: cell=%s, overflowId=%s",
+                    cell,
+                    ov.id());
             values.put(cell, Value.create(val, ov.ts()));
         }
     }

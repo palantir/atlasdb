@@ -63,7 +63,8 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     private TargetedSweepMetrics metrics;
     private SweepableCells sweepableCells;
 
-    @Override @Before
+    @Before
+    @Override
     public void setup() {
         super.setup();
         metrics = TargetedSweepMetrics.create(metricsManager, mock(TimelockService.class), spiedKvs, 1);

@@ -147,7 +147,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         puncherStore = KeyValueServicePuncherStore.create(spiedKvs, false);
     }
 
-    @Override @After
+    @After
+    @Override
     public void tearDown() {
         // This is required because of JUnit memory issues
         sweepQueue = null;

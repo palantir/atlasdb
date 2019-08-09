@@ -353,7 +353,8 @@ public abstract class AtlasDbConfig {
                 // (C* keyspace / Postgres dbName / Oracle sid). But changing the name of the TimeLock client
                 // will return the timestamp bound store to 0, so we also need to fast forward the new client bound
                 // to a value above of the original bound.
-                com.palantir.logsafe.Preconditions.checkState(timeLockConfig.client().equals(Optional.of(keyValueServiceNamespace)),
+                com.palantir.logsafe.Preconditions.checkState(timeLockConfig.client().equals(
+                        Optional.of(keyValueServiceNamespace)),
                         "AtlasDB refused to start, in order to avoid potential data corruption."
                                 + " Please contact AtlasDB support to remediate this. Specific steps are required;"
                                 + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
@@ -364,9 +365,8 @@ public abstract class AtlasDbConfig {
                     "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
                     keyValueService().getClass());
             if (timelock().isPresent()) {
-                return timelock().get().client()
-                        .orElseThrow(() ->
-                                new SafeIllegalStateException("For InMemoryKVS, the TimeLock client should not be empty"));
+                return timelock().get().client().orElseThrow(() -> new SafeIllegalStateException(
+                        "For InMemoryKVS, the TimeLock client should not be empty"));
             }
             return UNSPECIFIED_NAMESPACE;
         }

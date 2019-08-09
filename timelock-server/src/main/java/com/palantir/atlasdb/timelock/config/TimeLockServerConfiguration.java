@@ -23,8 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
@@ -53,7 +53,7 @@ public class TimeLockServerConfiguration extends Configuration {
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit) {
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
-            com.palantir.logsafe.Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
+            Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
                     "Configuration enables clientRequestLimit but specifies non-positive number of available threads.");
         }
 
@@ -76,11 +76,12 @@ public class TimeLockServerConfiguration extends Configuration {
     }
 
     private static void checkClientNames(Set<String> clientNames) {
-        clientNames.forEach(client -> Preconditions.checkState(
+        clientNames.forEach(client -> com.google.common.base.Preconditions.checkState(
                 client.matches(CLIENT_NAME_REGEX),
                 String.format("Client names must consist of alphanumeric characters, underscores or dashes only; "
                         + "'%s' does not.", client)));
-        Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
+        com.google.common.base.Preconditions.checkState(
+                !clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
                         + " name.", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
     }
@@ -116,21 +117,22 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public int availableThreads() {
         if (!useClientRequestLimit()) {
-            throw new SafeIllegalStateException("Should not call availableThreads() if useClientRequestLimit is disabled");
+            throw new SafeIllegalStateException(
+                    "Should not call availableThreads() if useClientRequestLimit is disabled");
         }
 
         return computeNumberOfAvailableThreads();
     }
 
     private int computeNumberOfAvailableThreads() {
-        com.palantir.logsafe.Preconditions.checkState(getServerFactory() instanceof DefaultServerFactory,
+        Preconditions.checkState(getServerFactory() instanceof DefaultServerFactory,
                 "Unexpected serverFactory instance on TimeLockServerConfiguration.");
         DefaultServerFactory serverFactory = (DefaultServerFactory) getServerFactory();
         int maxServerThreads = serverFactory.getMaxThreads();
 
-        com.palantir.logsafe.Preconditions.checkNotNull(serverFactory.getApplicationConnectors(),
+        Preconditions.checkNotNull(serverFactory.getApplicationConnectors(),
                 "applicationConnectors of TimeLockServerConfiguration must not be null.");
-        com.palantir.logsafe.Preconditions.checkState(serverFactory.getApplicationConnectors().get(0) instanceof HttpConnectorFactory,
+        Preconditions.checkState(serverFactory.getApplicationConnectors().get(0) instanceof HttpConnectorFactory,
                 "applicationConnectors of TimeLockServerConfiguration must have a HttpConnectorFactory instance.");
         HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
         int selectorThreads = connectorFactory.getSelectorThreads().orElse(1);

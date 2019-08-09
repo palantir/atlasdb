@@ -54,7 +54,6 @@ import com.codahale.metrics.Timer;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.AbstractIterator;
@@ -138,6 +137,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -297,7 +297,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 && System.currentTimeMillis() - timeCreated > transactionReadTimeoutMillis) {
             throw new TransactionFailedRetriableException("Transaction timed out.");
         }
-        com.palantir.logsafe.Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
+        Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
         if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
             throw new CommittedTransactionException();
@@ -839,7 +839,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 int requestSize = range.getBatchHint() != null ? range.getBatchHint() : userRequestedSize;
                 int preFilterBatchSize = getRequestHintToKvStore(requestSize);
 
-                com.palantir.logsafe.Preconditions.checkArgument(!range.isReverse(), "we currently do not support reverse ranges");
+                Preconditions.checkArgument(!range.isReverse(), "we currently do not support reverse ranges");
                 getBatchingVisitableFromIterator(
                         tableRef,
                         range,
@@ -1087,7 +1087,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
 
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
-            com.palantir.logsafe.Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
+            Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
@@ -1223,7 +1223,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This is protected to allow for different post filter behavior.
      */
     protected boolean shouldDeleteAndRollback() {
-        com.palantir.logsafe.Preconditions.checkNotNull(timelockService, "if we don't have a valid lock server we can't roll back transactions");
+        Preconditions.checkNotNull(timelockService, "if we don't have a valid lock server we can't roll back transactions");
         return true;
     }
 
@@ -1239,7 +1239,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
-        com.palantir.logsafe.Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
+        Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         markTableAsInvolvedInThisTransaction(tableRef);
 
         if (values.isEmpty()) {
@@ -1502,7 +1502,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
-        return Preconditions.checkNotNull(conflictDetectionManager.get(tableRef),
+        return com.google.common.base.Preconditions.checkNotNull(conflictDetectionManager.get(tableRef),
             "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
             tableRef);
     }
@@ -1747,7 +1747,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     return false;
                 }
             } else {
-                com.palantir.logsafe.Preconditions.checkArgument(commitTimestamps.get(startTs) == TransactionConstants.FAILED_COMMIT_TS);
+                Preconditions.checkArgument(commitTimestamps.get(startTs) == TransactionConstants.FAILED_COMMIT_TS);
             }
         }
 
@@ -2006,7 +2006,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             LockToken locksToken,
             TransactionService transactionService)
             throws TransactionFailedException {
-        com.palantir.logsafe.Preconditions.checkArgument(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
+        Preconditions.checkArgument(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
         try {
             transactionService.putUnlessExists(getStartTimestamp(), commitTimestamp);
         } catch (KeyAlreadyExistsException e) {

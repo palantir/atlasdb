@@ -1259,8 +1259,8 @@ public final class ForkedJsonFormat {
                         appendEscapedUnicode(builder, c);
                         char next = iter.next();
                         if (next == CharacterIterator.DONE) {
-                            throw new SafeIllegalArgumentException("invalid unicode string: unexpected high surrogate pair "
-                                    + "value without corresponding low value.");
+                            throw new SafeIllegalArgumentException("invalid unicode string: unexpected high surrogate "
+                                    + "pair value without corresponding low value.");
                         }
                         appendEscapedUnicode(builder, next);
                     } else {
