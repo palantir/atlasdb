@@ -60,7 +60,7 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithoutRetrying(
                 new MetricRegistry(),
-                Optional.of(TRUST_CONTEXT),
+                TRUST_CONTEXT,
                 uri,
                 serviceInterface,
                 UserAgents.DEFAULT_USER_AGENT

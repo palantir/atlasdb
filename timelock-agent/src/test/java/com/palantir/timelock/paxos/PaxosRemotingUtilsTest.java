@@ -16,11 +16,13 @@
 package com.palantir.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -122,30 +124,19 @@ public class PaxosRemotingUtilsTest {
 
     @Test
     public void canGetSslConfiguration() {
-        assertThat(PaxosRemotingUtils.getSslConfigurationOptional(SSL_TIMELOCK))
-                .isEqualTo(Optional.of(SSL_CONFIGURATION));
-        assertThat(PaxosRemotingUtils.getSslConfigurationOptional(NO_SSL_TIMELOCK)).isEqualTo(Optional.empty());
-    }
-
-    @Test
-    public void addProtocolAddsHttpIfSslNotPresent() {
-        assertThat(PaxosRemotingUtils.addProtocol(NO_SSL_TIMELOCK, "atlasdb:1234")).isEqualTo("http://atlasdb:1234");
+        assertThat(PaxosRemotingUtils.getSslConfiguration(SSL_TIMELOCK)).isEqualTo(SSL_CONFIGURATION);
+        assertThatThrownBy(() -> PaxosRemotingUtils.getSslConfiguration(NO_SSL_TIMELOCK))
+                .isInstanceOf(NoSuchElementException.class);
     }
 
     @Test
     public void addProtocolAddsHttpsIfSslPresent() {
-        assertThat(PaxosRemotingUtils.addProtocol(SSL_TIMELOCK, "atlasdb:1234")).isEqualTo("https://atlasdb:1234");
+        assertThat(PaxosRemotingUtils.addProtocol("atlasdb:1234")).isEqualTo("https://atlasdb:1234");
     }
 
     @Test
-    public void addProtocolsAddsHttpIfSslNotPresent() {
-        assertThat(PaxosRemotingUtils.addProtocols(NO_SSL_TIMELOCK, ImmutableSet.of("foo:1", "bar:2")))
-                .containsExactlyInAnyOrder("http://foo:1", "http://bar:2");
-    }
-
-    @Test
-    public void addProtocolsAddsHttpsIfSslPresent() {
-        assertThat(PaxosRemotingUtils.addProtocols(SSL_TIMELOCK, ImmutableSet.of("foo:1", "bar:2")))
+    public void addProtocolsAddsHttps() {
+        assertThat(PaxosRemotingUtils.addProtocols(ImmutableSet.of("foo:1", "bar:2")))
                 .containsExactlyInAnyOrder("https://foo:1", "https://bar:2");
     }
 

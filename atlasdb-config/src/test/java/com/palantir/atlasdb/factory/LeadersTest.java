@@ -54,7 +54,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.of(TestSslUtils.TRUST_CONTEXT),
+                TestSslUtils.TRUST_CONTEXT,
                 PaxosLearner.class,
                 UserAgents.DEFAULT_USER_AGENT);
 
@@ -74,7 +74,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.of(TestSslUtils.TRUST_CONTEXT),
+                TestSslUtils.TRUST_CONTEXT,
                 PaxosAcceptor.class,
                 UserAgents.DEFAULT_USER_AGENT);
 
@@ -95,7 +95,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localAcceptor,
                 ImmutableSet.of(),
-                Optional.of(TestSslUtils.TRUST_CONTEXT),
+                TestSslUtils.TRUST_CONTEXT,
                 PaxosAcceptor.class,
                 UserAgents.DEFAULT_USER_AGENT);
 
@@ -114,7 +114,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.of(TestSslUtils.TRUST_CONTEXT),
+                TestSslUtils.TRUST_CONTEXT,
                 BigInteger.class,
                 UserAgents.DEFAULT_USER_AGENT);
     }
@@ -127,7 +127,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.of(TestSslUtils.TRUST_CONTEXT),
+                TestSslUtils.TRUST_CONTEXT,
                 null,
                 UserAgents.DEFAULT_USER_AGENT);
     }

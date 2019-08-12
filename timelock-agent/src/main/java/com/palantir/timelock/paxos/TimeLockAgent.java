@@ -16,7 +16,6 @@
 package com.palantir.timelock.paxos;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -152,8 +151,8 @@ public class TimeLockAgent {
 
     private <T> List<T> createProxies(Class<T> clazz, String userAgent) {
         Set<String> remoteUris = PaxosRemotingUtils.getRemoteServerPaths(install);
-        Optional<TrustContext> trustContext = PaxosRemotingUtils.getSslConfigurationOptional(install)
-                .map(SslSocketFactories::createTrustContext);
+        TrustContext trustContext = SslSocketFactories
+                .createTrustContext(PaxosRemotingUtils.getSslConfiguration(install));
         return remoteUris.stream()
                 .map(uri -> AtlasDbHttpClients.createProxy(
                         metricsManager.getRegistry(),
@@ -232,7 +231,7 @@ public class TimeLockAgent {
         ImmutableLeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
                 .addLeaders(uris.toArray(new String[0]))
                 .localServer(install.cluster().localServer())
-                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
+                .sslConfiguration(PaxosRemotingUtils.getSslConfiguration(install))
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
                 .build();
 

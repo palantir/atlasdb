@@ -22,7 +22,6 @@ import java.net.ProxySelector;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
@@ -33,9 +32,6 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-import com.palantir.conjure.java.config.ssl.SslSocketFactories;
-import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
@@ -59,13 +55,6 @@ public final class ServiceCreator {
                 serviceClass,
                 userAgent
         );
-    }
-
-    /**
-     * Utility method for transforming an {@link SslConfiguration} into a {@link TrustContext}.
-     */
-    public static TrustContext createTrustContext(SslConfiguration sslConfiguration) {
-        return sslConfiguration.map(SslSocketFactories::createTrustContext);
     }
 
     private static <T> T create(
