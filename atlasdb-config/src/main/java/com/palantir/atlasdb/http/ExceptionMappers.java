@@ -34,7 +34,7 @@ public final class ExceptionMappers {
     public static Response encodeAsUnavailable(Exception exception, Optional<Duration> retryAfter) {
         Response.ResponseBuilder builder = Response.status(503);
         retryAfter.ifPresent(backoff ->
-                builder.header(com.google.common.net.HttpHeaders.RETRY_AFTER, Long.toString(backoff.toNanos())));
+                builder.header(com.google.common.net.HttpHeaders.RETRY_AFTER, Long.toString(backoff.toMillis())));
         builder.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
         builder.entity(createSerializableError(exception));
         return builder.build();

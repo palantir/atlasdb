@@ -24,7 +24,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.conjure.java.api.errors.QosException;
 
 public class ThreadPooledWrapper<F> {
-    private static final Logger log = LoggerFactory.getLogger(ThreadPooledWrapper.class);
     private final Semaphore localThreadPool;
     private final Semaphore sharedThreadPool;
     private final F delegate;
@@ -41,11 +40,9 @@ public class ThreadPooledWrapper<F> {
 
     public <T, K extends Exception> T applyWithPermit(FunctionCheckedException<F, T, K> function) throws K {
         if (localThreadPool.tryAcquire()) {
-            log.info("Permits {}", localThreadPool.availablePermits());
             return applyAndRelease(localThreadPool, function);
         }
         if (sharedThreadPool.tryAcquire()) {
-            log.info("Permits shared {}", sharedThreadPool.availablePermits());
             return applyAndRelease(sharedThreadPool, function);
         }
         throw QosException.throttle();

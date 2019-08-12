@@ -128,6 +128,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.time.Clock;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -903,7 +904,7 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
             String userAgent) {
-        ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
+        ServiceCreator creator = ServiceCreator.creator(metricsManager, userAgent, timelockServerListConfig);
         LockRpcClient lockClient = creator.createService(LockRpcClient.class);
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(timelockClient);
@@ -960,7 +961,7 @@ public abstract class TransactionManagers {
                 .servers(leaderConfig.leaders())
                 .sslConfiguration(leaderConfig.sslConfiguration())
                 .build();
-        ServiceCreator creator = ServiceCreator.noPayloadLimiter(metricsManager, userAgent, () -> serverListConfig);
+        ServiceCreator creator = ServiceCreator.creator(metricsManager, userAgent, () -> serverListConfig);
         LockRpcClient remoteLockClient = creator.createService(LockRpcClient.class);
         LockService remoteLock = new LockServiceAdapter(remoteLockClient);
         TimestampService remoteTime = creator.createService(TimestampService.class);
@@ -977,7 +978,7 @@ public abstract class TransactionManagers {
             String localServerId = localPingableLeader.getUUID();
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createProxy(
                     ImmutableList.of(Iterables.getOnlyElement(leaderConfig.leaders())),
-                    ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()).get(),
+                    SslSocketFactories.createTrustContext(leaderConfig.sslConfiguration()),
                     ClientOptions.DEFAULT_NO_RETRYING, Optional.empty(),
                     PingableLeader.class,
                     userAgent);
@@ -1038,7 +1039,7 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices createRawRemoteServices(
             MetricsManager metricsManager, AtlasDbConfig config, String userAgent) {
-        ServiceCreator creator = ServiceCreator.noPayloadLimiter(metricsManager, userAgent, () -> config.lock().get());
+        ServiceCreator creator = ServiceCreator.creator(metricsManager, userAgent, () -> config.lock().get());
         LockService lockService = new LockServiceAdapter(creator.createService(LockRpcClient.class));
         TimestampService timeService = creator.createService(TimestampService.class);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);

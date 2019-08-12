@@ -38,26 +38,25 @@ public final class AtlasDbHttpClients {
      */
     public static <T> T createProxy(
             MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
+            TrustContext trustContext,
             String uri,
             Class<T> type) {
-        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT, false);
+        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static <T> T createProxy(
             MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
+            TrustContext trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
+            String userAgent) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory.createProxy(
                         ImmutableList.of(uri),
-                        trustContext.get(),
-                        ClientOptions.FAST_RETRYING_FOR_TEST,
+                        trustContext,
+                        ClientOptions.DEFAULT_RETRYING,
                         Optional.empty(),
                         type,
                         userAgent),
@@ -66,17 +65,16 @@ public final class AtlasDbHttpClients {
 
     public static <T> T createProxyWithoutRetrying(
             MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
+            TrustContext trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
+            String userAgent) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory.createProxy(
                         ImmutableList.of(uri),
-                        trustContext.get(),
+                        trustContext,
                         ClientOptions.DEFAULT_NO_RETRYING,
                         Optional.empty(),
                         type,
@@ -115,8 +113,7 @@ public final class AtlasDbHttpClients {
             MetricRegistry metricRegistry,
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
+            String userAgent) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
@@ -148,7 +145,7 @@ public final class AtlasDbHttpClients {
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
             MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
+            TrustContext trustContext,
             Collection<String> endpointUris,
             Class<T> type) {
         return AtlasDbMetrics.instrument(
@@ -156,7 +153,7 @@ public final class AtlasDbHttpClients {
                 type,
                 AtlasDbFeignTargetFactory.createProxy(
                         endpointUris,
-                        trustContext.get(),
+                        trustContext,
                         ClientOptions.FAST_RETRYING_FOR_TEST,
                         Optional.empty(),
                         type,

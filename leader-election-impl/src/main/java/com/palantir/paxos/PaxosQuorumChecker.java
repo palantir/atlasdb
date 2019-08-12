@@ -252,7 +252,7 @@ public final class PaxosQuorumChecker {
         }, OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
         if (log.isDebugEnabled() && shouldLogDiagnosticInformation()) {
-            log.debug("Quorum checker canceled pending requests"
+            log.info("Quorum checker canceled pending requests"
                     + ". Rate of successful cancellations: {}, rate of no-op cancellations: {}",
                     SafeArg.of("rateCancelled", cancelOutstandingRequestSuccess.getOneMinuteRate()),
                     SafeArg.of("rateNoOpCancellation", cancelOutstandingRequestNoOp.getOneMinuteRate()));

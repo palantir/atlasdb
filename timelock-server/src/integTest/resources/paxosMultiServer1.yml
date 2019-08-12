@@ -21,6 +21,9 @@ runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000
 
+logging:
+  level: WARN
+
 server:
   applicationConnectors:
   - type: h2

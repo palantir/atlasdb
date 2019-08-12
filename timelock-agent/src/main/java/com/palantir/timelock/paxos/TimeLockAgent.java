@@ -160,8 +160,8 @@ public class TimeLockAgent {
                         trustContext,
                         uri,
                         clazz,
-                        userAgent,
-                        false))
+                        userAgent
+                ))
                 .collect(Collectors.toList());
     }
 

@@ -51,7 +51,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
-import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -69,6 +68,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
+import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -206,8 +206,8 @@ public class PaxosTimeLockServerIntegrationTest {
                 assertThat(future.get()).isNull();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
-                assertThat(cause.getClass().getName()).contains("RetryableException");
-                assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
+                assertThat(cause).isInstanceOf(RetryableException.class)
+                        .hasMessageContaining("Failed to complete the request due to QosException.Throttle");
                 exceptionCounter.getAndIncrement();
             } catch (InterruptedException e) {
                 throw Throwables.propagate(e);
@@ -485,20 +485,12 @@ public class PaxosTimeLockServerIntegrationTest {
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
                 clazz,
-                client,
-                true);
+                client
+        );
     }
 
     private static String getRootUriForClient(String client) {
         return String.format("https://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
-    }
-
-    private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
-        // // TODO(gmaretic): fix
-        assertThat(throwable).isInstanceOf(RemoteException.class);
-
-        RemoteException remoteException = (RemoteException) throwable;
-        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
     }
 
     private LockRequest newLockV2Request(LockDescriptor lock) {

@@ -63,8 +63,8 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                UserAgents.DEFAULT_USER_AGENT,
-                false));
+                UserAgents.DEFAULT_USER_AGENT
+        ));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {

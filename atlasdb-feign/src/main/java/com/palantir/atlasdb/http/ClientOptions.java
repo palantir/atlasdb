@@ -36,13 +36,13 @@ public abstract class ClientOptions {
             .readTimeout(Duration.ofSeconds(65))
             .backoffSlotSize(Duration.ofMillis(100))
             .failedUrlCooldown(Duration.ofMillis(100))
-            .maxNumRetries(5)
+            .maxNumRetries(10)
             .build();
 
     public static final ClientOptions DEFAULT_NO_RETRYING = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofSeconds(10))
             .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(1))
+            .backoffSlotSize(Duration.ofMillis(1000))
             .failedUrlCooldown(Duration.ofMillis(1))
             .maxNumRetries(0)
             .build();
@@ -50,7 +50,7 @@ public abstract class ClientOptions {
     public static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofMillis(100))
             .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(1))
+            .backoffSlotSize(Duration.ofMillis(100))
             .failedUrlCooldown(Duration.ofMillis(1))
             .maxNumRetries(10)
             .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
@@ -64,6 +64,10 @@ public abstract class ClientOptions {
     @Value.Default
     public ClientConfiguration.ClientQoS clientQoS() {
         return ClientConfiguration.ClientQoS.ENABLED;
+    }
+    @Value.Default
+    public ClientConfiguration.ServerQoS serverQoS() {
+        return ClientConfiguration.ServerQoS.AUTOMATIC_RETRY;
     }
 
     public ClientConfiguration serverListToClient(ServerListConfig serverConfig) {
@@ -96,7 +100,8 @@ public abstract class ClientOptions {
                 .maxNumRetries(maxNumRetries())
                 .enableGcmCipherSuites(true)
                 .fallbackToCommonNameVerification(true)
-                .clientQoS(clientQoS());
+                .clientQoS(clientQoS())
+                .serverQoS(serverQoS());
 
         proxy.ifPresent(builder::proxy);
         return builder.build();

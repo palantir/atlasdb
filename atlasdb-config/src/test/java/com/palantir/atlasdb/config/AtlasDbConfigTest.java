@@ -51,7 +51,7 @@ public class AtlasDbConfigTest {
             .client("client")
             .serversList(SINGLETON_SERVER_LIST)
             .build();
-    private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
+    private static final SslConfiguration SSL_CONFIG = mock(SslConfiguration.class);
     private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> NO_SSL_CONFIG = Optional.empty();
 

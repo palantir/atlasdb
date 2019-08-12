@@ -15,11 +15,13 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
@@ -41,7 +43,7 @@ public final class TimelockUtils {
     private static <T> T createFromUris(MetricRegistry metricRegistry, List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 metricRegistry,
-                Optional.empty(),
+                SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks"))),
                 endpointUris,
                 type);
     }

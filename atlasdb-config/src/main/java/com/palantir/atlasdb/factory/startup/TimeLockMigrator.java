@@ -73,14 +73,6 @@ public class TimeLockMigrator extends AsyncInitializer {
         initialize(initializeAsync);
     }
 
-    private static TimestampManagementService createRemoteManagementService(
-            MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfig,
-            String userAgent) {
-        return ServiceCreator.noPayloadLimiter(metricsManager, userAgent, serverListConfig)
-                .createService(TimestampManagementService.class);
-    }
-
     @Override
     @SuppressWarnings({"CheckReturnValue", "ResultOfMethodCallIgnored"}) // errorprone doesn't pick up "when=NEVER"
     protected synchronized void tryInitialize() {

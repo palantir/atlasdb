@@ -54,7 +54,6 @@ import com.palantir.docker.proxy.DockerProxyRule;
 public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle TIMELOCK_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
-    private static final Optional<TrustContext> NO_SSL = Optional.empty();
     public static final TrustContext TRUST_CONTEXT =
             SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
 

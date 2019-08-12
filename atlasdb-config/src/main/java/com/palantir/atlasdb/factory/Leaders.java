@@ -48,6 +48,7 @@ import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.BatchingLeaderElectionService;
@@ -131,8 +132,7 @@ public final class Leaders {
                 PaxosLearner.class,
                 PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath(), leadershipEventRecorder));
 
-        Optional<TrustContext> trustContext =
-                ServiceCreator.createTrustContext(config.sslConfiguration());
+        TrustContext trustContext = SslSocketFactories.createTrustContext(config.sslConfiguration());
 
         List<PaxosLearner> learners = createProxyAndLocalList(
                 metricsManager.getRegistry(), ourLearner, remotePaxosServerSpec.remoteLearnerUris(),
@@ -210,12 +210,12 @@ public final class Leaders {
             MetricRegistry metrics,
             T localObject,
             Set<String> remoteUris,
-            Optional<TrustContext> trustContext,
+            TrustContext trustContext,
             Class<T> clazz,
             String userAgent) {
 
         List<T> remotes = remoteUris.stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(metrics, trustContext, uri, clazz, userAgent, false))
+                .map(uri -> AtlasDbHttpClients.createProxy(metrics, trustContext, uri, clazz, userAgent))
                 .collect(Collectors.toList());
 
         return ImmutableList.copyOf(Iterables.concat(
@@ -226,7 +226,7 @@ public final class Leaders {
     public static Map<PingableLeader, HostAndPort> generatePingables(
             MetricsManager metricsManager,
             Collection<String> remoteEndpoints,
-            Optional<TrustContext> trustContext,
+            TrustContext trustContext,
             String userAgent) {
         /* The interface used as a key here may be a proxy, which may have strange .equals() behavior.
          * This is circumvented by using an IdentityHashMap which will just use native == for equality.
@@ -234,7 +234,7 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
             PingableLeader remoteInterface = AtlasDbHttpClients.createProxyWithoutRetrying(metricsManager.getRegistry(),
-                    trustContext, endpoint, PingableLeader.class, userAgent, false);
+                    trustContext, endpoint, PingableLeader.class, userAgent);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }

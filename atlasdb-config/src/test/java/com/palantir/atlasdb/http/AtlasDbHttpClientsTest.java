@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThat;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
@@ -32,9 +31,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -61,12 +58,8 @@ import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import feign.RetryableException;
 
 public class AtlasDbHttpClientsTest {
-    private static final int MAX_PAYLOAD_SIZE = 50_000_000;
-
     private static final String GET_ENDPOINT = "/number";
-    private static final String POST_ENDPOINT = "/post";
     private static final MappingBuilder GET_MAPPING = get(urlEqualTo(GET_ENDPOINT));
-    private static final MappingBuilder POST_MAPPING = post(urlEqualTo(POST_ENDPOINT));
     private static final int TEST_NUMBER = 12;
     public static final String USER_AGENT = "User-Agent";
     public static final ValueMatchingStrategy UNKNOWN = WireMock.containing("unknown");
@@ -90,19 +83,12 @@ public class AtlasDbHttpClientsTest {
         @Path(GET_ENDPOINT)
         @Produces(MediaType.APPLICATION_JSON)
         int getTestNumber();
-
-        @POST
-        @Path(POST_ENDPOINT)
-        @Produces(MediaType.APPLICATION_JSON)
-        @Consumes(MediaType.APPLICATION_JSON)
-        boolean postRequest(byte[] content);
     }
 
     @Before
     public void setup() {
         String testNumberAsString = Integer.toString(TEST_NUMBER);
         availableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
-        availableServer.stubFor(POST_MAPPING.willReturn(aResponse().withStatus(200).withBody(Boolean.toString(true))));
         proxyServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
 
         availablePort = availableServer.port();
@@ -195,7 +181,7 @@ public class AtlasDbHttpClientsTest {
     public void httpProxyThrowsRetryableExceptionIfConfiguredWithZeroNodes() {
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
                 new MetricRegistry(),
-                () -> serverListConfig(),
+                this::serverListConfig,
                 TestResource.class,
                 UserAgents.DEFAULT_VALUE);
 

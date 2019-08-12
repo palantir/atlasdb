@@ -25,7 +25,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -54,6 +57,8 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockService;
+
+import okhttp3.OkHttpClient;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_2 = "test2";
@@ -114,7 +119,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() {
+    public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock()
+            throws ExecutionException, InterruptedException {
         CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         TestableTimelockServer leader = CLUSTER.currentLeader();
@@ -125,9 +131,10 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
+        long time = System.currentTimeMillis();
         assertThatThrownBy(() -> leader.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-
+        System.out.println(System.currentTimeMillis() - time + "PIODGJIOS{DEGHJILSDHJBILSDFH ");
         assertThat(catchThrowable(token2::get).getCause())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
@@ -214,7 +221,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void locksAreInvalidatedAcrossFailures() {
+    public void locksAreInvalidatedAcrossFailures() throws InterruptedException {
+        Logger.getLogger(OkHttpClient.class.getName()).setLevel(Level.FINE);
         LockToken token = CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         for (int i = 0; i < 3; i++) {

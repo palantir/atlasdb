@@ -41,32 +41,15 @@ public final class ServiceCreator {
     private final MetricsManager metricsManager;
     private final String userAgent;
     private final Supplier<ServerListConfig> servers;
-    private final boolean limitPayload;
 
-    private ServiceCreator(MetricsManager metricsManager, String userAgent, Supplier<ServerListConfig> servers,
-            boolean limitPayload) {
+    private ServiceCreator(MetricsManager metricsManager, String userAgent, Supplier<ServerListConfig> servers) {
         this.metricsManager = metricsManager;
         this.userAgent = userAgent;
         this.servers = servers;
-        this.limitPayload = limitPayload;
     }
 
-    /**
-     * Creates clients without client-side restrictions on payload size.
-     */
-    public static ServiceCreator noPayloadLimiter(MetricsManager metrics, String agent,
-            Supplier<ServerListConfig> serverList) {
-        return new ServiceCreator(metrics, agent, serverList, false);
-    }
-
-    /**
-     * Creates clients that intercept requests with payload greater than
-     * {@link com.palantir.atlasdb.http.AtlasDbInterceptors#MAX_PAYLOAD_SIZE} bytes. This ServiceCreator should be used
-     * for clients to servers that impose payload limits.
-     */
-    public static ServiceCreator withPayloadLimiter(MetricsManager metrics, String agent,
-            Supplier<ServerListConfig> serverList) {
-        return new ServiceCreator(metrics, agent, serverList, true);
+    public static ServiceCreator creator(MetricsManager metrics, String agent, Supplier<ServerListConfig> serverList) {
+        return new ServiceCreator(metrics, agent, serverList);
     }
 
     public <T> T createService(Class<T> serviceClass) {
@@ -74,15 +57,14 @@ public final class ServiceCreator {
                 metricsManager,
                 servers,
                 serviceClass,
-                userAgent,
-                limitPayload);
+                userAgent
+        );
     }
 
     /**
-     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link TrustContext}.
+     * Utility method for transforming an {@link SslConfiguration} into a {@link TrustContext}.
      */
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Just mapping
-    public static Optional<TrustContext> createTrustContext(Optional<SslConfiguration> sslConfiguration) {
+    public static TrustContext createTrustContext(SslConfiguration sslConfiguration) {
         return sslConfiguration.map(SslSocketFactories::createTrustContext);
     }
 
@@ -90,11 +72,10 @@ public final class ServiceCreator {
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
+            String userAgent) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 metricsManager.getRegistry(),
-                serverListConfigSupplier, type, userAgent, limitPayload);
+                serverListConfigSupplier, type, userAgent);
     }
 
     public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {

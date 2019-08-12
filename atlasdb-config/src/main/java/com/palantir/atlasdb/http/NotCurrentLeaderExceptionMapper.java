@@ -35,6 +35,6 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
      */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        return ExceptionMappers.encodeAsUnavailable(exception, Optional.of(Duration.ZERO));
+        return ExceptionMappers.encodeAsUnavailable(exception, Optional.of(Duration.ofMillis(50)));
     }
 }

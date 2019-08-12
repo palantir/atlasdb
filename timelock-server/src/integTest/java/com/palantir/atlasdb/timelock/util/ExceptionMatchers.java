@@ -28,16 +28,8 @@ public final class ExceptionMatchers {
     private ExceptionMatchers() { }
 
     public static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
-        // TODO(gmaretic): fix
         assertThat(throwable).isInstanceOf(RetryableException.class);
         assertThat(throwable.getCause()).isInstanceOf(IOException.class);
         assertThat(throwable.getCause().getCause()).isInstanceOf(QosException.Unavailable.class);
-
-
-        //                .hasMessageContaining("method invoked on a non-leader");
-
-//        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
-//        assertThat(throwable.getClass().getName())
-//                .contains("RetryableException");
     }
 }
