@@ -47,7 +47,7 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
     private final AcceptorCache acceptorCache;
     private final PaxosComponents paxosComponents;
 
-    public BatchPaxosAcceptorResource(PaxosComponents paxosComponents, AcceptorCache acceptorCache) {
+    BatchPaxosAcceptorResource(PaxosComponents paxosComponents, AcceptorCache acceptorCache) {
         this.paxosComponents = paxosComponents;
         this.acceptorCache = acceptorCache;
     }

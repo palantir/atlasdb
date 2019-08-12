@@ -34,7 +34,8 @@ import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 
-@Path("/batch/acceptor")
+@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
+        + "/acceptor")
 public interface BatchPaxosAcceptor {
 
     long NO_LOG_ENTRY = PaxosAcceptor.NO_LOG_ENTRY;

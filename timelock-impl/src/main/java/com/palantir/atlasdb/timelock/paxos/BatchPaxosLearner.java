@@ -29,7 +29,8 @@ import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
-@Path("/batch/learner")
+@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
+        + "/learner")
 public interface BatchPaxosLearner {
 
     /**

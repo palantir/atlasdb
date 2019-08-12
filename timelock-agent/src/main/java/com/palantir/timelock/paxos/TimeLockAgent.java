@@ -37,7 +37,8 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.lock.LockLog;
-import com.palantir.atlasdb.timelock.paxos.PaxosResource;
+import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory;
+import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.ClientResources;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
@@ -61,7 +62,7 @@ public class TimeLockAgent {
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
 
-    private final PaxosResource paxosResource;
+    private final ClientResources clientPaxosResources;
     private final PaxosLeadershipCreator leadershipCreator;
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
@@ -97,7 +98,7 @@ public class TimeLockAgent {
         this.runtime = runtime;
         this.registrar = registrar;
         this.sharedExecutor = sharedExecutor;
-        this.paxosResource = PaxosResource.create(
+        this.clientPaxosResources = ClientPaxosResourceFactory.create(
                 metricsManager.getTaggedRegistry(),
                 install.paxos().dataDirectory().toPath());
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
@@ -143,7 +144,7 @@ public class TimeLockAgent {
                 "timestamp-bound-store.learner");
         return new PaxosTimestampCreator(
                 metrics,
-                paxosResource,
+                clientPaxosResources.nonBatchedResource(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
                 ClientAwarePaxosAcceptorAdapter.wrap(paxosAcceptors),
                 ClientAwarePaxosLearnerAdapter.wrap(paxosLearners),
@@ -212,7 +213,8 @@ public class TimeLockAgent {
 
     // No runtime configuration at the moment.
     private void registerPaxosResource() {
-        registrar.accept(paxosResource);
+        registrar.accept(clientPaxosResources.nonBatchedResource());
+        registrar.accept(clientPaxosResources.batchedResource());
     }
 
     private void registerExceptionMappers() {
