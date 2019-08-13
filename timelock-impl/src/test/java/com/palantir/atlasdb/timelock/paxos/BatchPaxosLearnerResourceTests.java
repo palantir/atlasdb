@@ -76,6 +76,7 @@ public class BatchPaxosLearnerResourceTests {
         PaxosValue paxosValue1 = paxosValue(1);
         PaxosValue paxosValue2 = paxosValue(2);
         when(paxosComponents.learner(CLIENT_1).getLearnedValue(1)).thenReturn(paxosValue1);
+        when(paxosComponents.learner(CLIENT_1).getLearnedValue(2)).thenReturn(null);
         when(paxosComponents.learner(CLIENT_2).getLearnedValue(1)).thenReturn(paxosValue1);
         when(paxosComponents.learner(CLIENT_2).getLearnedValue(2)).thenReturn(paxosValue2);
 
@@ -86,6 +87,7 @@ public class BatchPaxosLearnerResourceTests {
 
         Set<WithSeq<Client>> request = ImmutableSet.of(
                 WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_1, 2),
                 WithSeq.of(CLIENT_2, 1),
                 WithSeq.of(CLIENT_2, 2));
 
