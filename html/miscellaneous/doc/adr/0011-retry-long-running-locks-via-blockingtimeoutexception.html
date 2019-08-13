@@ -198,6 +198,9 @@
 <div class="section" id="status">
 <h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
+<p>Note that this decision applies only to locks that were taken out via the legacy (V1) lock service. We have since
+implemented an asynchronous lock service which is used for all transactional locks; blocking timeouts are not relevant
+there.</p>
 </div>
 <div class="section" id="context">
 <h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
