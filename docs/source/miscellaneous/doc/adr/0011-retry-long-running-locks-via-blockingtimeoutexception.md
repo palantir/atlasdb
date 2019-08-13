@@ -6,6 +6,10 @@ Date: 08/05/2017
 
 Accepted
 
+Note that this decision applies only to locks that were taken out via the legacy (V1) lock service. We have since
+implemented an asynchronous lock service which is used for all transactional locks; blocking timeouts are not relevant
+there.
+
 ## Context
 
 Our implementation of AtlasDB clients and the TimeLock server were interacting in ways that were causing the TimeLock

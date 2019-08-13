@@ -4,7 +4,8 @@ Date: 28/06/2018
 
 ## Status
 
-Accepted
+Functionally, this decision remains accepted. 
+The implementation has been superseded; we now use Disruptor Autobatchers.
 
 ## Context
 
