@@ -44,7 +44,7 @@ final class LearnedValuesCoalescingFunction implements
 
         Map<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> resultMap = KeyedStream.stream(learnedValues)
                 .mapKeys((client, paxosValue) -> WithSeq.of(client, paxosValue.getRound()))
-                .map(Optional::ofNullable)
+                .map(Optional::of)
                 .map(PaxosContainer::of)
                 .collectToMap();
 
