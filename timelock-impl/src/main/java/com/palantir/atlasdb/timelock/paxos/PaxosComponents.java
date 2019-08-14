@@ -30,7 +30,7 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-class PaxosComponents {
+public class PaxosComponents {
 
     private final TaggedMetricRegistry metrics;
     private final String useCase;
@@ -43,11 +43,11 @@ class PaxosComponents {
         this.logDirectory = logDirectory;
     }
 
-    PaxosAcceptor acceptor(Client client) {
+    public PaxosAcceptor acceptor(Client client) {
         return getOrCreateComponents(client).acceptor();
     }
 
-    PaxosLearner learner(Client client) {
+    public PaxosLearner learner(Client client) {
         return getOrCreateComponents(client).learner();
     }
 

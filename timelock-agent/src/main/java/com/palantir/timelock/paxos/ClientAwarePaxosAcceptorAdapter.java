@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
@@ -27,12 +28,12 @@ import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 
 
-final class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {
+public final class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {
     private final String client;
     private final ClientAwarePaxosAcceptor clientAwarePaxosAcceptor;
 
-    private ClientAwarePaxosAcceptorAdapter(String client, ClientAwarePaxosAcceptor clientAwarePaxosAcceptor) {
-        this.client = client;
+    private ClientAwarePaxosAcceptorAdapter(Client client, ClientAwarePaxosAcceptor clientAwarePaxosAcceptor) {
+        this.client = client.value();
         this.clientAwarePaxosAcceptor = clientAwarePaxosAcceptor;
     }
 
@@ -54,7 +55,7 @@ final class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {
     /**
      * Given a list of {@link ClientAwarePaxosAcceptor}s, returns a function allowing for injection of the client name.
      */
-    static Function<String, List<PaxosAcceptor>> wrap(List<ClientAwarePaxosAcceptor> acceptors) {
+    public static Function<Client, List<PaxosAcceptor>> wrap(List<ClientAwarePaxosAcceptor> acceptors) {
         return client -> acceptors.stream()
                 .map(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
                 .collect(Collectors.toList());
