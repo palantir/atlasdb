@@ -50,10 +50,12 @@ public interface BatchPaxosLearner {
      * ({@link WithSeq}), it returns the learnt value. Values where nothing has been learnt are excluded. If for a given
      * {@link Client} nothing has been learnt, the {@link Client} is also excluded.
      * <p>
+     * In addition to the above, if a {@link PaxosValue} <em>is</em> returned, it is guaranteed to be non-null.
+     * <p>
      * @param clientAndSeqs each {@link Client} with a given paxos instance ({@link WithSeq}) to retrieve the learnt
      * values for
      * @return for each {@link Client} the different {@link PaxosValue}s learnt for different
-     * {@link PaxosValue#getRound}s
+     * {@link PaxosValue#getRound}s. Any {@link PaxosValue}s are guaranteed to be non-null
      */
     @POST
     @Path("learned-values")

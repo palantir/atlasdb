@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
@@ -40,6 +41,7 @@ public class LearnedValuesCoalescingFunctionTests {
 
     private static final Client CLIENT_1 = Client.of("client-1");
     private static final Client CLIENT_2 = Client.of("client-2");
+    private static final PaxosContainer<Optional<PaxosValue>> EMPTY_RESULT = PaxosContainer.of(Optional.empty());
 
     @Mock
     private BatchPaxosLearner remote;
@@ -49,7 +51,9 @@ public class LearnedValuesCoalescingFunctionTests {
         Set<WithSeq<Client>> remoteRequest = ImmutableSet.of(
                 WithSeq.of(CLIENT_1, 10),
                 WithSeq.of(CLIENT_1, 12),
-                WithSeq.of(CLIENT_2, 10));
+                WithSeq.of(CLIENT_1, 15),
+                WithSeq.of(CLIENT_2, 10),
+                WithSeq.of(CLIENT_2, 15));
 
         PaxosValue paxosValue1 = paxosValue(10);
         PaxosValue paxosValue2 = paxosValue(12);
@@ -65,10 +69,12 @@ public class LearnedValuesCoalescingFunctionTests {
         LearnedValuesCoalescingFunction function = new LearnedValuesCoalescingFunction(remote);
         Map<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> results = function.apply(remoteRequest);
 
-        assertThat(results)
-                .containsEntry(WithSeq.of(CLIENT_1, 10), asResult(paxosValue1))
-                .containsEntry(WithSeq.of(CLIENT_1, 12), asResult(paxosValue2))
-                .containsEntry(WithSeq.of(CLIENT_2, 10), asResult(paxosValue1));
+        assertThat(results).containsOnly(
+                entry(WithSeq.of(CLIENT_2, 10), asResult(paxosValue1)),
+                entry(WithSeq.of(CLIENT_1, 12), asResult(paxosValue2)),
+                entry(WithSeq.of(CLIENT_1, 10), asResult(paxosValue1)),
+                entry(WithSeq.of(CLIENT_1, 15), EMPTY_RESULT),
+                entry(WithSeq.of(CLIENT_2, 15), EMPTY_RESULT));
     }
 
     private static PaxosValue paxosValue(long round) {

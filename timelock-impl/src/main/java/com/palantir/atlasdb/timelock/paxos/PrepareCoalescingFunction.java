@@ -43,8 +43,8 @@ final class PrepareCoalescingFunction implements
 
         SetMultimap<Client, WithSeq<PaxosPromise>> prepareResult = delegate.prepare(requests);
         Map<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> responsesMap = KeyedStream.stream(prepareResult)
-                .mapKeys((client, paxosPromiseWithSeq) -> Maps.immutableEntry(client,
-                        WithSeq.of(paxosPromiseWithSeq.value().getPromisedId(), paxosPromiseWithSeq.seq())))
+                .mapKeys((client, paxosPromiseWithSeq) ->
+                        Maps.immutableEntry(client, paxosPromiseWithSeq.map(PaxosPromise::getPromisedId)))
                 .map(WithSeq::value)
                 .collectToMap();
 

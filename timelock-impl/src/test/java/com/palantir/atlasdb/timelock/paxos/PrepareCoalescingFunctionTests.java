@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-import java.util.function.Function;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,10 +80,7 @@ public class PrepareCoalescingFunctionTests {
     }
 
     private static WithSeq<PaxosPromise> promiseFor(WithSeq<PaxosProposalId> proposalIdWithSeq) {
-        return map(proposalIdWithSeq, proposalId -> PaxosPromise.accept(proposalId, null, null));
+        return proposalIdWithSeq.map(proposalId -> PaxosPromise.accept(proposalId, null, null));
     }
 
-    private static <T, U> WithSeq<U> map(WithSeq<T> container, Function<T, U> mapper) {
-        return WithSeq.of(mapper.apply(container.value()), container.seq());
-    }
 }
