@@ -58,6 +58,14 @@ allprojects {
     apply plugin: 'nebula.dependency-recommender'
     apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
 
+    // temporary until this is merged/fixed inside gradle-processors
+    configurations.allProcessors {
+        canBeConsumed = false
+        attributes {
+            attribute Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_API)
+        }
+    }
+
     dependencyRecommendations {
         strategy OverrideTransitives
         propertiesFile file: project.rootProject.file('versions.props')
