@@ -221,9 +221,9 @@ public class SchemaTest {
             assertThat(expectedFile.length()).isEqualTo(actualFile.length());
 
             try (Stream<String> expectedFileStream = java.nio.file.Files
-                        .lines(Paths.get(EXPECTED_FILES_FOLDER_PATH, generatedFilePath));
+                        .lines(expectedFile.toPath());
                 Stream<String> actualFileStream = java.nio.file.Files
-                        .lines(Paths.get(testFolder.getRoot().getPath(), generatedFilePath));
+                        .lines(actualFile.toPath());
                 Stream<Boolean> zipped = correspondingLinesMatchOrAreHashes(expectedFileStream, actualFileStream)) {
 
                 assertThat(zipped).allMatch(elem -> elem);
