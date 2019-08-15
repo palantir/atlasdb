@@ -52,6 +52,7 @@ public class SchemaTest {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
+    private static final String CLASS_HASH = "__CLASS_HASH";
     private static final String TEST_PACKAGE = "package";
     private static final String TEST_TABLE_NAME = "TestTable";
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
@@ -223,23 +224,25 @@ public class SchemaTest {
                         .lines(Paths.get(EXPECTED_FILES_FOLDER_PATH, generatedFilePath));
                 Stream<String> actualFileStream = java.nio.file.Files
                         .lines(Paths.get(testFolder.getRoot().getPath(), generatedFilePath));
-                Stream<Boolean> zipped = Streams.zip(
-                        expectedFileStream,
-                        actualFileStream,
-                        (first, second) -> {
-                            if (first.equals(second))
-                                return true;
-                            return first.contains("__CLASS_HASH") && second.contains("__CLASS_HASH");
-                        })) {
+                Stream<Boolean> zipped = correspondingLinesMatchOrAreHashes(expectedFileStream, actualFileStream)) {
 
-                assertThat(zipped
-                        .anyMatch(elem -> !elem))
-                        .isFalse();
+                assertThat(zipped).allMatch(elem -> elem);
             } catch (IOException e) {
                 Assertions.fail("Exception on stream creation", e);
             }
 
         });
+    }
+
+    private static Stream<Boolean> correspondingLinesMatchOrAreHashes(
+            Stream<String> expectedFileStream,
+            Stream<String> actualFileStream) {
+        return Streams.zip(
+                expectedFileStream,
+                actualFileStream,
+                (first, second) ->
+                    first.equals(second) || (first.contains(CLASS_HASH) && second.contains(CLASS_HASH))
+                );
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
