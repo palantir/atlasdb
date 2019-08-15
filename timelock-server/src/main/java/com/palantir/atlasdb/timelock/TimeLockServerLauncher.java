@@ -78,7 +78,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
     }
 
     @Provider
-    private final static class EmptyOptionalTo204ExceptionMapper implements ExceptionMapper<EmptyOptionalException> {
+    private static final class EmptyOptionalTo204ExceptionMapper implements ExceptionMapper<EmptyOptionalException> {
         @Override
         public Response toResponse(EmptyOptionalException exception) {
             return Response.noContent().build();
