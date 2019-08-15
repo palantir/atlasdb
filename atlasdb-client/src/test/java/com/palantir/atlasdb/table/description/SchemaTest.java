@@ -21,23 +21,28 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.api.Assertions;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.Streams;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -209,10 +214,31 @@ public class SchemaTest {
         generatedTestTables.forEach(tableName -> {
             String generatedFilePath =
                     String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);
-
             File expectedFile = new File(EXPECTED_FILES_FOLDER_PATH, generatedFilePath);
             File actualFile = new File(testFolder.getRoot(), generatedFilePath);
-            assertThat(actualFile).hasSameContentAs(expectedFile);
+
+            assertThat(expectedFile.length()).isEqualTo(actualFile.length());
+
+            try {
+                Stream<String> expectedFileStream = java.nio.file.Files
+                        .lines(Paths.get(EXPECTED_FILES_FOLDER_PATH, generatedFilePath));
+                Stream<String> actualFileStream = java.nio.file.Files
+                        .lines(Paths.get(testFolder.getRoot().getPath(), generatedFilePath));
+
+                assertThat(Streams.zip(
+                        expectedFileStream,
+                        actualFileStream,
+                        (first, second) -> {
+                            if (first.equals(second))
+                                return true;
+                            return first.contains("__CLASS_HASH") && second.contains("__CLASS_HASH");
+                        }
+                ).anyMatch(elem -> !elem))
+                        .isFalse();
+            } catch (IOException e) {
+                Assertions.fail("Exception on stream creation", e);
+            }
+
         });
     }
 
