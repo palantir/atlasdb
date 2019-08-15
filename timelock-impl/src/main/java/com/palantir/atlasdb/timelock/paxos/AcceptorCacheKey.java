@@ -27,14 +27,22 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @Value.Immutable
 @JsonDeserialize(as = ImmutableAcceptorCacheKey.class)
 @JsonSerialize(as = ImmutableAcceptorCacheKey.class)
-public interface AcceptorCacheKey {
+public abstract class AcceptorCacheKey {
 
     @JsonValue
     @Value.Parameter
-    UUID value();
+    public abstract UUID value();
 
-    static AcceptorCacheKey newCacheKey() {
+    public static AcceptorCacheKey valueOf(String key) {
+        return ImmutableAcceptorCacheKey.of(UUID.fromString(key));
+    }
+
+    public static AcceptorCacheKey newCacheKey() {
         return ImmutableAcceptorCacheKey.of(UUID.randomUUID());
     }
 
+    @Override
+    public String toString() {
+        return value().toString();
+    }
 }

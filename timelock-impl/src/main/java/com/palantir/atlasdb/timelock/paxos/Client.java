@@ -20,6 +20,7 @@ import java.util.BitSet;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -69,6 +70,7 @@ public abstract class Client {
 
     }
 
+    @JsonCreator
     public static Client of(String value) {
         return ImmutableClient.of(value);
     }
