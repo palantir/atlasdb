@@ -219,21 +219,21 @@ public class SchemaTest {
 
             assertThat(expectedFile.length()).isEqualTo(actualFile.length());
 
-            try {
-                Stream<String> expectedFileStream = java.nio.file.Files
+            try (Stream<String> expectedFileStream = java.nio.file.Files
                         .lines(Paths.get(EXPECTED_FILES_FOLDER_PATH, generatedFilePath));
                 Stream<String> actualFileStream = java.nio.file.Files
                         .lines(Paths.get(testFolder.getRoot().getPath(), generatedFilePath));
-
-                assertThat(Streams.zip(
+                Stream<Boolean> zipped = Streams.zip(
                         expectedFileStream,
                         actualFileStream,
                         (first, second) -> {
                             if (first.equals(second))
                                 return true;
                             return first.contains("__CLASS_HASH") && second.contains("__CLASS_HASH");
-                        }
-                ).anyMatch(elem -> !elem))
+                        })) {
+
+                assertThat(zipped
+                        .anyMatch(elem -> !elem))
                         .isFalse();
             } catch (IOException e) {
                 Assertions.fail("Exception on stream creation", e);
