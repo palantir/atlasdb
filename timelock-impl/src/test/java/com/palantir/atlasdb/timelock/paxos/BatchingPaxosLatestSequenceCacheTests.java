@@ -34,7 +34,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.conjure.java.api.errors.SerializableError;
 import com.palantir.conjure.java.api.errors.ServiceException;
@@ -158,9 +157,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
     }
 
     private static RemoteException invalidCacheKeyException() {
-        ServiceException serviceException = new ServiceException(
-                ErrorType.create(ErrorType.Code.NOT_FOUND, BatchingPaxosLatestSequenceCache.ERROR_NAME));
-
+        ServiceException serviceException = new ServiceException(BatchPaxosAcceptor.CACHE_KEY_NOT_FOUND);
         return new RemoteException(SerializableError.forException(serviceException), 404);
     }
 
