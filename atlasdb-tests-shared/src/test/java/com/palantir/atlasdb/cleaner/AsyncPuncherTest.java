@@ -18,6 +18,8 @@ package com.palantir.atlasdb.cleaner;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,7 +48,7 @@ public class AsyncPuncherTest {
         Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
         timestampService = new InMemoryTimestampService();
-        asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, timestampService.getFreshTimestamp());
+        asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, AsyncPuncher.INVALID_TIMESTAMP);
     }
 
     @After
@@ -57,7 +59,10 @@ public class AsyncPuncherTest {
     @Test
     public void delegatesInitializationCheck() {
         Puncher delegate = mock(Puncher.class);
-        Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL, timestampService.getFreshTimestamp());
+
+        // using invalid timestamp to prevent puncher from punching before the test ends, breaking the test
+        // can not stub punch method as its parameter is not a reference type
+        Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL, AsyncPuncher.INVALID_TIMESTAMP);
 
         when(delegate.isInitialized())
                 .thenReturn(false)
