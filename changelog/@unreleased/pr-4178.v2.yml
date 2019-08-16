@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: atlasdb-config no longer depends on jackson-datatype-jdk7
+  links:
+  - https://github.com/palantir/atlasdb/pull/4178
