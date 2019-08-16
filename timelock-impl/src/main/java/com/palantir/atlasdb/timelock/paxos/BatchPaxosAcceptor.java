@@ -28,6 +28,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.SetMultimap;
+import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
@@ -37,6 +38,8 @@ import com.palantir.paxos.PaxosProposalId;
 @Path("/batch/acceptor")
 public interface BatchPaxosAcceptor {
 
+    ErrorType CACHE_KEY_NOT_FOUND =
+            ErrorType.create(ErrorType.Code.NOT_FOUND, "TimelockBatchPaxosAcceptor:CacheKeyNotFound");
     long NO_LOG_ENTRY = PaxosAcceptor.NO_LOG_ENTRY;
 
     /**
