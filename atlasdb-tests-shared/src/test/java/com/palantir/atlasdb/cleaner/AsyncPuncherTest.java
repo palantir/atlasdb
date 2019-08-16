@@ -46,7 +46,7 @@ public class AsyncPuncherTest {
         Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
         timestampService = new InMemoryTimestampService();
-        asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL);
+        asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, timestampService.getFreshTimestamp());
     }
 
     @After
@@ -57,7 +57,7 @@ public class AsyncPuncherTest {
     @Test
     public void delegatesInitializationCheck() {
         Puncher delegate = mock(Puncher.class);
-        Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL);
+        Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL, timestampService.getFreshTimestamp());
 
         when(delegate.isInitialized())
                 .thenReturn(false)
