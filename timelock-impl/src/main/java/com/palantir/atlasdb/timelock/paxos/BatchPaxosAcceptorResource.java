@@ -21,6 +21,14 @@ import static java.util.stream.Collectors.toSet;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +44,8 @@ import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 
+@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
+        + "/acceptor")
 public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
 
     private static final Logger log = LoggerFactory.getLogger(BatchPaxosAcceptorResource.class);
@@ -47,12 +57,16 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
     private final AcceptorCache acceptorCache;
     private final PaxosComponents paxosComponents;
 
-    public BatchPaxosAcceptorResource(PaxosComponents paxosComponents, AcceptorCache acceptorCache) {
+    BatchPaxosAcceptorResource(PaxosComponents paxosComponents, AcceptorCache acceptorCache) {
         this.paxosComponents = paxosComponents;
         this.acceptorCache = acceptorCache;
     }
 
     @Override
+    @POST
+    @Path("prepare")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     public SetMultimap<Client, WithSeq<PaxosPromise>> prepare(
             SetMultimap<Client, WithSeq<PaxosProposalId>> promiseWithSeqRequestsByClient) {
         SetMultimap<Client, WithSeq<PaxosPromise>> results = KeyedStream.stream(
@@ -68,6 +82,10 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
     }
 
     @Override
+    @POST
+    @Path("accept")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     public SetMultimap<Client, WithSeq<BooleanPaxosResponse>> accept(
             SetMultimap<Client, PaxosProposal> proposalRequestsByClient) {
         SetMultimap<Client, WithSeq<BooleanPaxosResponse>> results = KeyedStream.stream(proposalRequestsByClient)
@@ -83,8 +101,12 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
     }
 
     @Override
+    @POST
+    @Path("latest-sequences-prepared-or-accepted")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     public AcceptorCacheDigest latestSequencesPreparedOrAccepted(
-            Optional<AcceptorCacheKey> maybeCacheKey,
+            @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> maybeCacheKey,
             Set<Client> clients) {
         primeCache(clients);
         if (!maybeCacheKey.isPresent()) {
@@ -97,7 +119,14 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
     }
 
     @Override
-    public Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(AcceptorCacheKey cacheKey) {
+    @POST
+    @Path("latest-sequences-prepared-or-accepted/cached")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(
+            @QueryParam(HttpHeaders.IF_MATCH) AcceptorCacheKey cacheKey) {
+        if (cacheKey == null) {
+            throw Errors.invalidCacheKeyException(cacheKey);
+        }
         try {
             return acceptorCache.updatesSinceCacheKey(cacheKey);
         } catch (InvalidAcceptorCacheKeyException e) {
