@@ -26,7 +26,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -41,9 +40,6 @@ import com.palantir.paxos.PaxosLong;
  */
 @NotThreadSafe
 final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunction<Client, PaxosLong> {
-
-    @VisibleForTesting
-    static final String ERROR_NAME = "TimelockPartitioning:InvalidCacheKey";
 
     private static final Logger log = LoggerFactory.getLogger(BatchingPaxosLatestSequenceCache.class);
     private static final PaxosLong DEFAULT_VALUE = PaxosLong.of(BatchPaxosAcceptor.NO_LOG_ENTRY);
@@ -62,19 +58,33 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         try {
             return unsafeGetLatest(clients);
         } catch (RemoteException e) {
-            if (e.getError().errorName().equals(ERROR_NAME)) {
+            if (e.getError().errorName().equals(BatchPaxosAcceptor.CACHE_KEY_NOT_FOUND.name())) {
                 log.info("Cache key is invalid, invalidating cache");
-                cacheKey = null;
-                Set<Client> allClients = ImmutableSet.<Client>builder()
-                        .addAll(clients)
-                        .addAll(cachedEntries.keySet())
-                        .build();
-                cachedEntries.clear();
-                return unsafeGetLatest(allClients);
+                return handleCacheMiss(clients);
             }
 
+            log.warn("received remote exception that is not a cache key miss", e);
+            throw e;
+        } catch (RuntimeException e) {
+            // TODO(fdesouza): Remove this once we've moved to CJR properly and the above works.
+            if (e.getMessage().contains(BatchPaxosAcceptor.CACHE_KEY_NOT_FOUND.name())) {
+                log.info("Cache key is invalid, invalidating cache - using deprecated detection method");
+                return handleCacheMiss(clients);
+            }
+
+            log.warn("received unexpected runtime exception", e);
             throw e;
         }
+    }
+
+    private Map<Client, PaxosLong> handleCacheMiss(Set<Client> requestedClients) {
+        cacheKey = null;
+        Set<Client> allClients = ImmutableSet.<Client>builder()
+                .addAll(requestedClients)
+                .addAll(cachedEntries.keySet())
+                .build();
+        cachedEntries.clear();
+        return unsafeGetLatest(allClients);
     }
 
     private Map<Client, PaxosLong> unsafeGetLatest(Set<Client> clients) {

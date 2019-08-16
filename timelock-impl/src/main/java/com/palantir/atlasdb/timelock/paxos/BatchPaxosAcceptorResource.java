@@ -24,10 +24,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.SetMultimap;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.conjure.java.api.errors.ServiceException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.BooleanPaxosResponse;
@@ -39,10 +37,6 @@ import com.palantir.paxos.PaxosProposalId;
 public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
 
     private static final Logger log = LoggerFactory.getLogger(BatchPaxosAcceptorResource.class);
-
-    @VisibleForTesting
-    static final ErrorType CACHE_KEY_NOT_FOUND =
-            ErrorType.create(ErrorType.Code.NOT_FOUND, "TimelockBatchPaxosAcceptor:CacheKeyNotFound");
 
     private final AcceptorCache acceptorCache;
     private final PaxosComponents paxosComponents;
