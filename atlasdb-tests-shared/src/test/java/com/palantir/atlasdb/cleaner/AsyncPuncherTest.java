@@ -21,6 +21,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,7 +48,7 @@ public class AsyncPuncherTest {
         Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
         timestampService = new InMemoryTimestampService();
-        asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, AsyncPuncher.INVALID_TIMESTAMP);
+        asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, Optional.empty());
     }
 
     @After
@@ -60,7 +62,7 @@ public class AsyncPuncherTest {
 
         // using invalid timestamp to prevent puncher from punching before the test ends, breaking the test
         // can not stub punch method as its parameter is not a reference type
-        Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL, AsyncPuncher.INVALID_TIMESTAMP);
+        Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL, Optional.empty());
 
         when(delegate.isInitialized())
                 .thenReturn(false)

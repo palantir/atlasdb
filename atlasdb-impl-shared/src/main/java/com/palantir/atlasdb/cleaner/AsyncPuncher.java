@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,8 +39,8 @@ public final class AsyncPuncher implements Puncher {
     private static final Logger log = LoggerFactory.getLogger(AsyncPuncher.class);
     public static final long INVALID_TIMESTAMP = -1L;
 
-    public static AsyncPuncher create(Puncher delegate, long interval, long creationTimestamp) {
-        AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval, creationTimestamp);
+    public static AsyncPuncher create(Puncher delegate, long interval, Optional<Long> creationTimestamp) {
+        AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval, creationTimestamp.orElse(INVALID_TIMESTAMP));
         asyncPuncher.start();
         return asyncPuncher;
     }

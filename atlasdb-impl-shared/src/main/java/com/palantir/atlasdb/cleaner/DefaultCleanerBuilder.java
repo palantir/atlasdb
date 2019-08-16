@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import static java.util.Optional.empty;
+
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
@@ -106,7 +109,7 @@ public class DefaultCleanerBuilder {
         return this;
     }
 
-    private Puncher buildPuncher(long buildTimestamp) {
+    private Puncher buildPuncher(Optional<Long> maybeTimestampSeed) {
         PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService, initalizeAsync);
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
@@ -116,7 +119,7 @@ public class DefaultCleanerBuilder {
                 cachingPuncherStore,
                 clock,
                 Suppliers.ofInstance(transactionReadTimeout));
-        return AsyncPuncher.create(simplePuncher, punchIntervalMillis, buildTimestamp);
+        return AsyncPuncher.create(simplePuncher, punchIntervalMillis, maybeTimestampSeed);
     }
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
@@ -138,7 +141,7 @@ public class DefaultCleanerBuilder {
     }
 
     public Cleaner buildCleaner() {
-        Puncher puncher = buildPuncher(timelockService.getFreshTimestamp());
+        Puncher puncher = buildPuncher(timestampSeed(timelockService));
         Supplier<Long> immutableTs = ImmutableTimestampSupplier
                 .createMemoizedWithExpiration(timelockService);
         Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTs);
@@ -146,5 +149,13 @@ public class DefaultCleanerBuilder {
                 scrubber,
                 puncher,
                 Suppliers.ofInstance(transactionReadTimeout));
+    }
+
+    private static Optional<Long> timestampSeed(TimelockService timelockService) {
+        try {
+            return Optional.of(timelockService.getFreshTimestamp());
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 }
