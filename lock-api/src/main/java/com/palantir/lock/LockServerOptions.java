@@ -108,6 +108,14 @@ public class LockServerOptions implements Serializable {
     }
 
     /**
+     * This setting should equal or exceed the Atlas transaction timeout
+     */
+    @Value.Default
+    public TimeDuration getStuckTransactionTimeout() {
+        return SimpleTimeDuration.of(1, TimeUnit.DAYS);
+    }
+
+    /**
      * Warn level logging for any lock request that receives a response after given time.
      * If the duration is zero or negative, slow lock logging will be disabled.
      */

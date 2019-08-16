@@ -38,8 +38,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimplifyingLockService;
 
-@SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
-public class LockRefreshingLockService extends SimplifyingLockService {
+public final class LockRefreshingLockService extends SimplifyingLockService {
     public static final int REFRESH_BATCH_SIZE = 500_000;
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
 

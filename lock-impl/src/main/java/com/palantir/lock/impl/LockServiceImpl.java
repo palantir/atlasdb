@@ -125,6 +125,7 @@ public final class LockServiceImpl
     private static final String UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT = "Received .unlockAndFreeze()"
             + " call for anonymous client with token {}";
     private static final String UNLOCK_AND_FREEZE = "Received .unlockAndFreeze() call for read locks: {}";
+    private static final String ATLAS_LOCK_PREFIX = "ATLASDB";
     // LegacyTimelockServiceAdapter relies on token ids being convertible to UUIDs; thus this should
     // never be > 127
     public static final int RANDOM_BIT_COUNT = 127;
@@ -174,6 +175,7 @@ public final class LockServiceImpl
     private final SimpleTimeDuration maxAllowedLockTimeout;
     private final SimpleTimeDuration maxAllowedClockDrift;
     private final SimpleTimeDuration maxNormalLockAge;
+    private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
 
@@ -258,9 +260,9 @@ public final class LockServiceImpl
         this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
         this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
+        this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.lockStateLoggerDir = options.getLockStateLoggerDir();
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
-
     }
 
     private HeldLocksToken createHeldLocksToken(LockClient client,
@@ -777,11 +779,23 @@ public final class LockServiceImpl
         if (log.isInfoEnabled()) {
             long age = now - token.getCreationDateMs();
             if (age > maxNormalLockAge.toMillis()) {
-                log.debug("Token refreshed which is {} ms old: {}",
-                        SafeArg.of("ageMillis", age),
-                        UnsafeArg.of("description", description.get()));
+                if (isFromAtlasTransactionWithLockedImmutable(token)) {
+                    log.warn("Token refreshed from a very long lived atlas transaction which is {} ms old: {}",
+                            SafeArg.of("ageMillis", age),
+                            UnsafeArg.of("description", description.get()));
+                } else {
+                    log.debug("Token refreshed which is {} ms old: {}",
+                            SafeArg.of("ageMillis", age),
+                            UnsafeArg.of("description", description.get()));
+                }
             }
         }
+    }
+
+    private boolean isFromAtlasTransactionWithLockedImmutable(ExpiringToken token) {
+        return token.getClient() != null
+                && token.getClient().getClientId().startsWith(ATLAS_LOCK_PREFIX)
+                && token.getVersionId() != null;
     }
 
     @Override
@@ -988,6 +1002,14 @@ public final class LockServiceImpl
                 }
                 T realToken = heldLocks.realToken;
                 if (realToken.getExpirationDateMs() > currentTimeMillis() - maxAllowedClockDrift.toMillis()) {
+                    if (realToken.getVersionId() != null
+                            && isFromAtlasTransactionWithLockedImmutable(realToken)
+                            && (currentTimeMillis() - realToken.getCreationDateMs()) > stuckTransactionTimeout.toMillis()) {
+                        log.warn("Reaped an actively refreshed lock from a transaction suppressing"
+                                        + " the immutable timestamp that couldn't possibly still be valid.",
+                                SafeArg.of("immutableTimestamp", realToken.getVersionId()),
+                                UnsafeArg.of("token", realToken));
+                    }
                     queue.add(realToken);
                 } else {
                     // TODO (jkong): Make both types of lock tokens identifiable.
