@@ -63,7 +63,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                 return handleCacheMiss(clients);
             }
 
-            log.error("received remote exception that is not a cache key miss", e);
+            log.warn("received remote exception that is not a cache key miss", e);
             throw e;
         } catch (RuntimeException e) {
             // TODO(fdesouza): Remove this once we've moved to CJR properly and the above works.
@@ -72,7 +72,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                 return handleCacheMiss(clients);
             }
 
-            log.error("received unexpected runtime exception", e);
+            log.warn("received unexpected runtime exception", e);
             throw e;
         }
     }
