@@ -106,7 +106,7 @@ public class DefaultCleanerBuilder {
         return this;
     }
 
-    private Puncher buildPuncher() {
+    private Puncher buildPuncher(long buildTimestamp) {
         PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService, initalizeAsync);
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
@@ -116,7 +116,7 @@ public class DefaultCleanerBuilder {
                 cachingPuncherStore,
                 clock,
                 Suppliers.ofInstance(transactionReadTimeout));
-        return AsyncPuncher.create(simplePuncher, punchIntervalMillis);
+        return AsyncPuncher.create(simplePuncher, punchIntervalMillis, buildTimestamp);
     }
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
@@ -138,7 +138,7 @@ public class DefaultCleanerBuilder {
     }
 
     public Cleaner buildCleaner() {
-        Puncher puncher = buildPuncher();
+        Puncher puncher = buildPuncher(timelockService.getFreshTimestamp());
         Supplier<Long> immutableTs = ImmutableTimestampSupplier
                 .createMemoizedWithExpiration(timelockService);
         Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTs);
