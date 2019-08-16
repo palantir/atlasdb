@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import static java.util.Optional.empty;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;

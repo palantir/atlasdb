@@ -37,7 +37,7 @@ import com.palantir.logsafe.SafeArg;
  */
 public final class AsyncPuncher implements Puncher {
     private static final Logger log = LoggerFactory.getLogger(AsyncPuncher.class);
-    public static final long INVALID_TIMESTAMP = -1L;
+    private static final long INVALID_TIMESTAMP = -1L;
 
     public static AsyncPuncher create(Puncher delegate, long interval, Optional<Long> creationTimestamp) {
         AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval, creationTimestamp.orElse(INVALID_TIMESTAMP));
