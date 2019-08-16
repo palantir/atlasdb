@@ -1,16 +1,7 @@
 type: improvement
 improvement:
   description: |-
-    add logging and reaping of leaked atlas locks
+    Add logging and reaping of leaked atlas locks
 
-    **Goals (and why)**:
-    There's at least three different cases I've found in prod where locks are leaked and constantly refreshed by the LockRefreshingLockService ad infinitum despite their original threads being long-dead.
-    This is bad, but is critically bad when the locks are from old transactions and are suppressing the immutable timestamp.
-
-    I'm proposing this as a band-aid fix while we're track down every case of locks being leaked. This is essentially automating the action that an FDE is currently doing manually to get his stack unblocked, using a dashboard that I wrote that tracks the immutable timestamp getting stuck along with a CLI that dumps lock state and another CLI that allows manual unlocking.
-
-    PDS-94791
-    PG-127836
-    PG-128400
   links:
   - https://github.com/palantir/atlasdb/pull/4181
