@@ -53,17 +53,14 @@ public class AsyncPuncherTest {
         setupSeeded();
     }
 
-    // two methods annotated, do not rely on ordering of the two
-    @Before
-    public void setupNonSeeded() {
+    private void setupNonSeeded() {
         PuncherStore puncherStore = InMemoryPuncherStore.create();
         Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
         asyncPuncherNonSeeded = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, Optional.empty());
     }
 
-    @Before
-    public void setupSeeded() {
+    private void setupSeeded() {
         PuncherStore puncherStore = InMemoryPuncherStore.create();
         Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
