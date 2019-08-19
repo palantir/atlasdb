@@ -113,7 +113,7 @@ public class AsyncPuncherTest {
     }
 
     @Test
-    public void testPuncherStartUpSeed() throws Exception{
+    public void testPuncherStartUpSeed() throws Exception {
         checkExpectedValue(asyncPuncherSeeded, PUNCHER_SEED);
     }
 
