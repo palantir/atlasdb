@@ -38,22 +38,41 @@ public class AsyncPuncherTest {
     private static final long TRANSACTION_TIMEOUT = 10;
     private static final long ASYNC_PUNCHER_INTERVAL = 1;
     private static final long MAX_INTERVALS_TO_WAIT = 100;
+    private static final long PUNCHER_SEED = 100;
+    private static final long PUNCHER_UPDATE_TIMESTAMP = 120;
 
-    AsyncPuncher asyncPuncher;
+    AsyncPuncher asyncPuncherNonSeeded;
+    AsyncPuncher asyncPuncherSeeded;
     TimestampService timestampService;
 
     @Before
     public void setup() {
+        assertTrue(PUNCHER_UPDATE_TIMESTAMP > PUNCHER_SEED);
+        timestampService = new InMemoryTimestampService();
+        setupNonSeeded();
+        setupSeeded();
+    }
+
+    // two methods annotated, do not rely on ordering of the two
+    @Before
+    public void setupNonSeeded() {
         PuncherStore puncherStore = InMemoryPuncherStore.create();
         Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
-        timestampService = new InMemoryTimestampService();
-        asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, Optional.empty());
+        asyncPuncherNonSeeded = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, Optional.empty());
+    }
+
+    @Before
+    public void setupSeeded() {
+        PuncherStore puncherStore = InMemoryPuncherStore.create();
+        Clock clock = new SystemClock();
+        Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
+        asyncPuncherSeeded = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, Optional.of(PUNCHER_SEED));
     }
 
     @After
     public void tearDown() {
-        asyncPuncher.shutdown();
+        asyncPuncherNonSeeded.shutdown();
     }
 
     @Test
@@ -74,27 +93,43 @@ public class AsyncPuncherTest {
 
     @Test
     public void testPuncherDurability() throws Exception {
-        Long stored = timestampService.getFreshTimestamp();
-        asyncPuncher.punch(stored);
-        Long retrieved = Long.MIN_VALUE;
-        for (int i = 0; i < MAX_INTERVALS_TO_WAIT && retrieved < stored; i++) {
-            Thread.sleep(ASYNC_PUNCHER_INTERVAL);
-            retrieved = asyncPuncher.getTimestampSupplier().get();
-        }
-        assertEquals(stored, retrieved);
+        long stored = timestampService.getFreshTimestamp();
+        asyncPuncherNonSeeded.punch(stored);
+        checkExpectedValue(asyncPuncherNonSeeded, stored);
     }
+
 
     @Test
     public void testPuncherTimestampLessThanFreshTimestamp() throws Exception {
         Long stored = timestampService.getFreshTimestamp();
-        asyncPuncher.punch(stored);
+        asyncPuncherNonSeeded.punch(stored);
         Long retrieved = Long.MIN_VALUE;
         for (int i = 0; i < MAX_INTERVALS_TO_WAIT && retrieved < stored; i++) {
             Thread.sleep(ASYNC_PUNCHER_INTERVAL);
-            retrieved = asyncPuncher.getTimestampSupplier().get();
+            retrieved = asyncPuncherNonSeeded.getTimestampSupplier().get();
         }
         long freshTimestamp = timestampService.getFreshTimestamp();
         assertTrue(retrieved < freshTimestamp);
+    }
+
+    @Test
+    public void testPuncherStartUpSeed() throws Exception{
+        checkExpectedValue(asyncPuncherSeeded, PUNCHER_SEED);
+    }
+
+    @Test
+    public void testSeededPuncherUpdate() throws Exception {
+        asyncPuncherSeeded.punch(PUNCHER_UPDATE_TIMESTAMP);
+        checkExpectedValue(asyncPuncherSeeded, PUNCHER_UPDATE_TIMESTAMP);
+    }
+
+    private void checkExpectedValue(Puncher puncher, Long expected) throws InterruptedException {
+        Long retrieved = Long.MIN_VALUE;
+        for (int i = 0; i < MAX_INTERVALS_TO_WAIT && retrieved < expected; i++) {
+            Thread.sleep(ASYNC_PUNCHER_INTERVAL);
+            retrieved = puncher.getTimestampSupplier().get();
+        }
+        assertEquals(expected, retrieved);
     }
 
 }
