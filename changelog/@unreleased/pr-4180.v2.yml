@@ -1,6 +1,7 @@
-type: improvement
-improvement:
-  description: AsnycPuncher is now intilized with a seed timestamp if a quorum is present. Public factory method for
-  AsyncPuncher is changed, projects depending on it have to be updated.
+type: break
+break:
+  description: AsnycPuncher is now intilized with a seed timestamp if a quorum is present. As a result metrics related
+  to unreadable timestamps on individual with low volume become more accurate. Public factory method for AsyncPuncher
+  is changed, projects depending on it have to be updated.
   links:
   - https://github.com/palantir/atlasdb/pull/4180

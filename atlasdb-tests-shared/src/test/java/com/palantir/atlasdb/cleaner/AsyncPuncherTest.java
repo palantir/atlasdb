@@ -98,9 +98,9 @@ public class AsyncPuncherTest {
 
     @Test
     public void testPuncherTimestampLessThanFreshTimestamp() throws Exception {
-        Long stored = timestampService.getFreshTimestamp();
+        long stored = timestampService.getFreshTimestamp();
         asyncPuncherNonSeeded.punch(stored);
-        Long retrieved = Long.MIN_VALUE;
+        long retrieved = Long.MIN_VALUE;
         for (int i = 0; i < MAX_INTERVALS_TO_WAIT && retrieved < stored; i++) {
             Thread.sleep(ASYNC_PUNCHER_INTERVAL);
             retrieved = asyncPuncherNonSeeded.getTimestampSupplier().get();
@@ -120,8 +120,8 @@ public class AsyncPuncherTest {
         checkExpectedValue(asyncPuncherSeeded, PUNCHER_UPDATE_TIMESTAMP);
     }
 
-    private void checkExpectedValue(Puncher puncher, Long expected) throws InterruptedException {
-        Long retrieved = Long.MIN_VALUE;
+    private void checkExpectedValue(Puncher puncher, long expected) throws InterruptedException {
+        long retrieved = Long.MIN_VALUE;
         for (int i = 0; i < MAX_INTERVALS_TO_WAIT && retrieved < expected; i++) {
             Thread.sleep(ASYNC_PUNCHER_INTERVAL);
             retrieved = puncher.getTimestampSupplier().get();
