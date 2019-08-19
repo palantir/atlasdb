@@ -39,7 +39,7 @@ public enum PaxosUseCase {
             case PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE:
                 return TIMESTAMP;
             default:
-                throw new SafeIllegalArgumentException("unrecognized used case");
+                throw new SafeIllegalArgumentException("unrecognized use case");
         }
     }
 

@@ -45,7 +45,7 @@ public interface BatchPaxosAcceptor {
 
     /**
      * Batch counterpart to {@link PaxosAcceptor#accept}. For a given {@link Client} on paxos instance {@code seq}, the
-     * acceptor decides whether to accept or reject a given proposal ({@link PaxosProposal}.
+     * acceptor decides whether to accept or reject a given proposal ({@link PaxosProposal}).
      * <p>
      * @param proposalRequestsByClientAndSeq for each {@link Client}, the set of paxos instances tied to a particular
      * {@link PaxosProposal} to respond to; {@link PaxosProposal} the proposal in question for the above {@link Client}
@@ -65,10 +65,11 @@ public interface BatchPaxosAcceptor {
      * acceptor has received multiple proposals at multiple sequence numbers for the same client past {@code cacheKey},
      * it will return the sequence number for the latest proposal.
      * <p>
-     * If a provided {@code cacheKey} has expired/invalid, a {@code 404 Not Found} is thrown and this request
+     * If a provided {@code cacheKey} has expired/is invalid, a {@code 404 Not Found} is thrown and this request
      * should be retried without a {@code cacheKey} and also with a full set of clients to ensure a correct response.
      * <p>
-     * If an acceptor has received multiple proposals at multiple sequence numbers for a given client, only the la
+     * If an acceptor has received multiple proposals at multiple sequence numbers for a given client, only the latest
+     * sequence number is returned for that client.
      *
      * @param clients clients to force getting latest sequences for
      * @return digest containing next cacheKey and updates since provided {@code cacheKey}

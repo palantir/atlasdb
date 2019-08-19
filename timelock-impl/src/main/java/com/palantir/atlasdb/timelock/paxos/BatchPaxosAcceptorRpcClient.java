@@ -42,13 +42,12 @@ import com.palantir.paxos.PaxosProposalId;
         + "/acceptor")
 public interface BatchPaxosAcceptorRpcClient {
 
-    long NO_LOG_ENTRY = PaxosAcceptor.NO_LOG_ENTRY;
-
     /**
      * Batch counterpart to {@link PaxosAcceptor#prepare}. For a given {@link Client} on paxos instance {@code seq},
      * the acceptor prepares for a given proposal ({@link PaxosProposalId}) by either promising not to accept future
      * proposals or rejecting the proposal.
      * <p>
+     * @param paxosUseCase whether this is a timestamp paxos or leader paxos batch call
      * @param promiseWithSeqRequestsByClient for each {@link Client}, the set of paxos instances with the
      * {@link PaxosProposalId} to prepare for; {@link PaxosProposalId} is the id to prepare for
      * @return for each {@link Client} and each {@code seq}, a promise not to accept lower numbered proposals
@@ -64,8 +63,9 @@ public interface BatchPaxosAcceptorRpcClient {
 
     /**
      * Batch counterpart to {@link PaxosAcceptor#accept}. For a given {@link Client} on paxos instance {@code seq}, the
-     * acceptor decides whether to accept or reject a given proposal ({@link PaxosProposal}.
+     * acceptor decides whether to accept or reject a given proposal ({@link PaxosProposal}).
      * <p>
+     * @param paxosUseCase whether this is a timestamp paxos or leader paxos batch call
      * @param proposalRequestsByClientAndSeq for each {@link Client}, the set of paxos instances tied to a particular
      * {@link PaxosProposal} to respond to; {@link PaxosProposal} the proposal in question for the above {@link Client}
      * and {@code seq}
@@ -89,11 +89,13 @@ public interface BatchPaxosAcceptorRpcClient {
      * acceptor has received multiple proposals at multiple sequence numbers for the same client past {@code cacheKey},
      * it will return the sequence number for the latest proposal.
      * <p>
-     * If a provided {@code cacheKey} has expired/invalid, a {@code 404 Not Found} is thrown and this request
+     * If a provided {@code cacheKey} has expired/is invalid, a {@code 404 Not Found} is thrown and this request
      * should be retried without a {@code cacheKey} and also with a full set of clients to ensure a correct response.
      * <p>
-     * If an acceptor has received multiple proposals at multiple sequence numbers for a given client, only the la
+     * If an acceptor has received multiple proposals at multiple sequence numbers for a given client, only the latest
+     * sequence number is returned for that client.
      *
+     * @param paxosUseCase whether this is a timestamp paxos or leader paxos batch call
      * @param clients clients to force getting latest sequences for
      * @return digest containing next cacheKey and updates since provided {@code cacheKey}
      */
@@ -122,7 +124,7 @@ public interface BatchPaxosAcceptorRpcClient {
      * In addition to the updates, a new {@code cacheKey} is provided to use on the next invocation of this method to
      * minimise on payload size as this method is on the hot path.
      *
-     * @param cacheKey
+     * @param paxosUseCase whether this is a timestamp paxos or leader paxos batch call
      * @return {@code 204 No Content} if there is no update, a digest containing updates plus a new cache key, or a
      * {@code 412 Precondition Failed} if the cache key is not valid.
      */
