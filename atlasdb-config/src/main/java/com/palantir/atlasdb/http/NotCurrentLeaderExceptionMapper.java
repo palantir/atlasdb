@@ -15,16 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
-<<<<<<< HEAD
-import java.time.Duration;
-import java.util.Optional;
-
-=======
-import java.util.Optional;
-
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
->>>>>>> ee06686... Parse headers if needed
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
@@ -53,7 +45,10 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
      */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        AtlasDbHttpProtocolVersion protocolVersion = parseProtocolVersion(httpHeaders);
+        // Legacy clients will not supply this header; it's safe to assume they're also using Feign.
+        AtlasDbHttpProtocolVersion protocolVersion = ExceptionMappers.tryParseProtocolVersion(httpHeaders)
+                .orElse(AtlasDbHttpProtocolVersion.LEGACY_ATLASDB_FEIGN);
+
         switch (protocolVersion) {
             case LEGACY_ATLASDB_FEIGN:
                 return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
@@ -67,12 +62,5 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
                 throw new SafeIllegalStateException("Unrecognized protocol version in NotCurrentLeaderExceptionMapper",
                         SafeArg.of("protocolVersion", protocolVersion));
         }
-    }
-
-    private static AtlasDbHttpProtocolVersion parseProtocolVersion(HttpHeaders headers) {
-        String httpProtocolVersion = headers.getHeaderString(AtlasDbHttpProtocolVersion.VERSION_HEADER);
-        return Optional.ofNullable(httpProtocolVersion)
-                .flatMap(AtlasDbHttpProtocolVersion::fromStringRepresentation)
-                .orElse(AtlasDbHttpProtocolVersion.LEGACY_ATLASDB_FEIGN);
     }
 }
