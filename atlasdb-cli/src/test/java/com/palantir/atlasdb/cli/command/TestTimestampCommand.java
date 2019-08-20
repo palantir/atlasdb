@@ -124,7 +124,7 @@ public class TestTimestampCommand {
 
     private interface Verifier {
         void verify(SingleBackendCliTestRunner runner, TimestampService tss, long immutableTs, long prePunch,
-                long postPunch, long lastFreshTs, boolean shouldTestImmutable) throws Exception;
+                long lastFreshTs, boolean shouldTestImmutable) throws Exception;
     }
 
     /*
@@ -148,7 +148,7 @@ public class TestTimestampCommand {
         }
         cliArgs.add("-d");
 
-        runAndVerifyCli((runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, shouldTestImmutable) -> {
+        runAndVerifyCli((runner, tss, immutableTs, prePunch, lastFreshTs, shouldTestImmutable) -> {
             String output = runner.run(true, false);
             try {
                 Scanner scanner = new Scanner(output);
@@ -159,10 +159,10 @@ public class TestTimestampCommand {
                 long wallClockTimestamp = getWallClockTimestamp(scanner);
                 scanner.close();
                 if (shouldTestImmutable && isImmutable) {
-                    verifyImmutableTs(timestamp, immutableTs, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                    verifyImmutableTs(timestamp, immutableTs, prePunch, lastFreshTs, tss.getFreshTimestamp(),
                             wallClockTimestamp);
                 } else {
-                    verifyFreshTs(timestamp, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                    verifyFreshTs(timestamp, prePunch, lastFreshTs, tss.getFreshTimestamp(),
                             wallClockTimestamp);
                 }
             } catch (RuntimeException e) {
@@ -210,7 +210,7 @@ public class TestTimestampCommand {
             cliArgs.add("-i");
         }
         cliArgs.add("-d");
-        runAndVerifyCli((runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, shouldTestImmutable) -> {
+        runAndVerifyCli((runner, tss, immutableTs, prePunch, lastFreshTs, shouldTestImmutable) -> {
             String output = runner.run(true, false);
             try {
                 Scanner scanner = new Scanner(output);
@@ -221,10 +221,10 @@ public class TestTimestampCommand {
                 long wallClockTimestamp = getWallClockTimestamp(scanner);
                 scanner.close();
                 if (shouldTestImmutable && isImmutable) {
-                    verifyImmutableTs(timestamp, immutableTs, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                    verifyImmutableTs(timestamp, immutableTs, prePunch, lastFreshTs, tss.getFreshTimestamp(),
                             wallClockTimestamp);
                 } else {
-                    verifyFreshTs(timestamp, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                    verifyFreshTs(timestamp, prePunch, lastFreshTs, tss.getFreshTimestamp(),
                             wallClockTimestamp);
                 }
             } catch (RuntimeException e) {
@@ -243,7 +243,6 @@ public class TestTimestampCommand {
             Clock clock = GlobalClock.create(lockService);
             long prePunch = clock.getTimeMillis();
             punch(services, tss, clock);
-            long postPunch = clock.getTimeMillis();
 
             long immutableTs = tss.getFreshTimestamp();
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE))
@@ -253,14 +252,14 @@ public class TestTimestampCommand {
             LockRefreshToken token = lockService.lock(client.getClientId(), request);
             long lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
 
-            verifier.verify(runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, true);
+            verifier.verify(runner, tss, immutableTs, prePunch, lastFreshTs, true);
 
             lockService.unlock(token);
             lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
 
             // there are no locks so we now expect immutable to just be a fresh
             runner.freshCommand();
-            verifier.verify(runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, false);
+            verifier.verify(runner, tss, immutableTs, prePunch, lastFreshTs, false);
         }
     }
 
@@ -294,18 +293,16 @@ public class TestTimestampCommand {
         return Long.parseLong(lines.get(0));
     }
 
-    private void verifyFreshTs(long timestamp, long prePunch, long postPunch, long lastFreshTs, long newFreshTs,
+    private void verifyFreshTs(long timestamp, long prePunch, long lastFreshTs, long newFreshTs,
             long wallClockTimestamp) {
         assertThat(wallClockTimestamp).isGreaterThan(prePunch);
-        assertThat(wallClockTimestamp).isLessThan(postPunch);
         assertThat(timestamp).isGreaterThan(lastFreshTs);
         assertThat(timestamp).isLessThan(newFreshTs);
     }
 
-    private void verifyImmutableTs(long timestamp, long immutableTs, long prePunch, long postPunch, long lastFreshTs,
+    private void verifyImmutableTs(long timestamp, long immutableTs, long prePunch, long lastFreshTs,
             long newFreshTs, long wallClockTimestamp) {
         assertThat(wallClockTimestamp).isGreaterThan(prePunch);
-        assertThat(wallClockTimestamp).isLessThan(postPunch);
         assertThat(timestamp).isEqualTo(immutableTs);
         assertThat(timestamp).isLessThan(lastFreshTs);
         assertThat(timestamp).isLessThan(newFreshTs);
