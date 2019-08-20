@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -29,18 +28,19 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.ImmutablePaxosLong;
 import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosLearnerNetworkClient;
+import com.palantir.paxos.PaxosLong;
 import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosQuorumChecker;
-import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
@@ -51,35 +51,31 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(PaxosTimestampBoundStore.class);
 
-    private static final int QUORUM_OF_ONE = 1;
-
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
 
-    private final ImmutableList<PaxosAcceptor> acceptors;
-    private final ImmutableList<PaxosLearner> learners;
+    private final PaxosAcceptorNetworkClient acceptorNetworkClient;
+    private final PaxosLearnerNetworkClient learnerClient;
     private final long maximumWaitBeforeProposalMs;
-    private final ExecutorService executor;
 
     @GuardedBy("this")
     private SequenceAndBound agreedState;
 
-    public PaxosTimestampBoundStore(PaxosProposer proposer,
+    public PaxosTimestampBoundStore(
+            PaxosProposer proposer,
             PaxosLearner knowledge,
-            ImmutableList<PaxosAcceptor> acceptors,
-            ImmutableList<PaxosLearner> learners,
-            long maximumWaitBeforeProposalMs,
-            ExecutorService executor) {
+            PaxosAcceptorNetworkClient acceptorNetworkClient,
+            PaxosLearnerNetworkClient learnerClient,
+            long maximumWaitBeforeProposalMs) {
+        this.acceptorNetworkClient = acceptorNetworkClient;
+        this.learnerClient = learnerClient;
         DebugLogger.logger.info("Creating PaxosTimestampBoundStore. The UUID of my proposer is {}. "
                 + "Currently, I believe the timestamp bound is {}.",
                 SafeArg.of("proposerUuid", proposer.getUuid()),
                 SafeArg.of("timestampBound", knowledge.getGreatestLearnedValue()));
         this.proposer = proposer;
         this.knowledge = knowledge;
-        this.acceptors = acceptors;
-        this.learners = learners;
         this.maximumWaitBeforeProposalMs = maximumWaitBeforeProposalMs;
-        this.executor = executor;
     }
 
     /**
@@ -106,12 +102,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @throws ServiceNotAvailableException if we couldn't contact a quorum
      */
     private List<PaxosLong> getLatestSequenceNumbersFromAcceptors() {
-        PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosLong>collectQuorumResponses(
-                acceptors,
-                acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
-                proposer.getQuorumSize(),
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
+        PaxosResponses<PaxosLong> responses = acceptorNetworkClient.getLatestSequencePreparedOrAccepted();
         if (!responses.hasQuorum()) {
             throw new ServiceNotAvailableException("could not get a quorum");
         }
@@ -207,15 +198,20 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
             return Optional.of(ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L));
         }
-        PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
-                learners,
-                learner -> getLearnedValue(seq, learner),
-                QUORUM_OF_ONE,
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
-        return Optional.ofNullable(Iterables.getFirst(responses.get(), null))
+
+        PaxosResponses<PaxosContainer<Optional<PaxosLong>>> responses =
+                learnerClient.getLearnedValue(seq, maybeValue -> PaxosContainer.of(maybeValue
+                        .map(PaxosValue::getData)
+                        .map(PtBytes::toLong)
+                        .map(ImmutablePaxosLong::of)));
+
+        return responses.stream()
+                .map(PaxosContainer::get)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .map(PaxosLong::getValue)
-                .map(value -> ImmutableSequenceAndBound.of(seq, value));
+                .<SequenceAndBound>map(value -> ImmutableSequenceAndBound.of(seq, value))
+                .findFirst();
     }
 
     /**
@@ -341,17 +337,6 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private long getRandomBackoffTime() {
         return (long) (maximumWaitBeforeProposalMs * Math.random() + 1);
-    }
-
-    @Value.Immutable
-    interface PaxosLong extends PaxosResponse {
-        @Override
-        default boolean isSuccessful() {
-            return true;
-        }
-
-        @Value.Parameter
-        long getValue();
     }
 
     @Value.Immutable

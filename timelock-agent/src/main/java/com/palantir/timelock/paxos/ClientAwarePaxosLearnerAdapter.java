@@ -24,15 +24,16 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
-final class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
+public final class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
     private final String client;
     private final ClientAwarePaxosLearner clientAwarePaxosLearner;
 
-    private ClientAwarePaxosLearnerAdapter(String client, ClientAwarePaxosLearner clientAwarePaxosLearner) {
-        this.client = client;
+    private ClientAwarePaxosLearnerAdapter(Client client, ClientAwarePaxosLearner clientAwarePaxosLearner) {
+        this.client = client.value();
         this.clientAwarePaxosLearner = clientAwarePaxosLearner;
     }
 
@@ -62,7 +63,7 @@ final class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
     /**
      * Given a list of {@link ClientAwarePaxosLearner}s, returns a function allowing for injection of the client name.
      */
-    static Function<String, List<PaxosLearner>> wrap(List<ClientAwarePaxosLearner> learners) {
+    public static Function<Client, List<PaxosLearner>> wrap(List<ClientAwarePaxosLearner> learners) {
         return client -> learners.stream()
                 .map(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
                 .collect(Collectors.toList());
