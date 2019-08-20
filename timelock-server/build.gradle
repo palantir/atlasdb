@@ -53,4 +53,5 @@ dependencies {
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
+    integTestCompile group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
 }
