@@ -30,6 +30,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.SetMultimap;
+import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
@@ -41,6 +42,9 @@ import com.palantir.paxos.PaxosProposalId;
         + "/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
         + "/acceptor")
 public interface BatchPaxosAcceptorRpcClient {
+
+    ErrorType CACHE_KEY_NOT_FOUND =
+            ErrorType.create(ErrorType.Code.NOT_FOUND, "TimelockBatchPaxosAcceptor:CacheKeyNotFound");
 
     /**
      * Batch counterpart to {@link PaxosAcceptor#prepare}. For a given {@link Client} on paxos instance {@code seq},
@@ -89,8 +93,9 @@ public interface BatchPaxosAcceptorRpcClient {
      * acceptor has received multiple proposals at multiple sequence numbers for the same client past {@code cacheKey},
      * it will return the sequence number for the latest proposal.
      * <p>
-     * If a provided {@code cacheKey} has expired/is invalid, a {@code 404 Not Found} is thrown and this request
-     * should be retried without a {@code cacheKey} and also with a full set of clients to ensure a correct response.
+     * If a provided {@code cacheKey} has expired/is invalid, a {@code 404 Not Found} is returned with the above conjure
+     * error {@link BatchPaxosAcceptorRpcClient#CACHE_KEY_NOT_FOUND}. This request should be retried without a
+     * {@code cacheKey} and also with a full set of clients to ensure a correct response.
      * <p>
      * If an acceptor has received multiple proposals at multiple sequence numbers for a given client, only the latest
      * sequence number is returned for that client.
@@ -114,19 +119,19 @@ public interface BatchPaxosAcceptorRpcClient {
      * return the sequence number for the latest proposal.
      * <p>
      * If the {@code cacheKey} provided is invalid (expired or never issued) a {@code 404 Not Found} is
-     * returned. The caller should call {@link BatchPaxosAcceptor#latestSequencesPreparedOrAccepted} to get the desired
-     * sequences.
+     * returned with the above conjure error {@link BatchPaxosAcceptorRpcClient#CACHE_KEY_NOT_FOUND}. The caller should
+     * call {@link BatchPaxosAcceptor#latestSequencesPreparedOrAccepted} to get the desired sequences.
      * <p>
      * If a valid {@code cacheKey} is provided, it will return all unseen sequences from when that {@code cacheKey} was
      * issued. If the server has not prepared or accepted any sequences past that point, it will return
-     * {@code 204 No Content}.
+     * {@code 204 No Content} which translates to {@link Optional#empty}.
      * <p>
      * In addition to the updates, a new {@code cacheKey} is provided to use on the next invocation of this method to
      * minimise on payload size as this method is on the hot path.
      *
      * @param paxosUseCase whether this is a timestamp paxos or leader paxos batch call
      * @return {@code 204 No Content} if there is no update, a digest containing updates plus a new cache key, or a
-     * {@code 412 Precondition Failed} if the cache key is not valid.
+     * {@code 404 Precondition Failed} if the cache key is not valid.
      */
     @POST
     @Path("latest-sequences-prepared-or-accepted/cached")
