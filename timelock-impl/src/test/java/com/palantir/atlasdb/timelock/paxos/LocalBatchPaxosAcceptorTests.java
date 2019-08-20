@@ -125,17 +125,6 @@ public class LocalBatchPaxosAcceptorTests {
                 WithSeq.of(CLIENT_2, 2)));
     }
 
-//    @Test
-//    public void throwsConjureRuntime404WhenCacheKeyIsNotFound() throws InvalidAcceptorCacheKeyException {
-//        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
-//        when(cache.updatesSinceCacheKey(cacheKey))
-//                .thenThrow(new InvalidAcceptorCacheKeyException(cacheKey));
-//
-//        assertThatServiceExceptionThrownBy(() -> resource.latestSequencesPreparedOrAcceptedCached(cacheKey))
-//                .hasType(BatchPaxosAcceptorResource.CACHE_KEY_NOT_FOUND)
-//                .hasArgs(SafeArg.of("cacheKey", cacheKey));
-//    }
-
     @Test
     public void cachedEndpointDelegatesToCache() throws InvalidAcceptorCacheKeyException {
         AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
