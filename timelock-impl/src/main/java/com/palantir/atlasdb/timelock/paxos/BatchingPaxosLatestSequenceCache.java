@@ -57,7 +57,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         try {
             return unsafeGetLatest(clients);
         } catch (InvalidAcceptorCacheKeyException e) {
-            log.info("Cache key is invalid, invalidting cache - using deprecated detection method");
+            log.info("Cache key is invalid, invalidating cache - using deprecated detection method");
             return handleCacheMiss(clients);
         }
     }
@@ -72,7 +72,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         try {
             return unsafeGetLatest(allClients);
         } catch (InvalidAcceptorCacheKeyException e) {
-            log.warn("");
+            log.warn("Empty cache key is still invalid indicates product bug, failing request.");
             throw new RuntimeException(e);
         }
     }

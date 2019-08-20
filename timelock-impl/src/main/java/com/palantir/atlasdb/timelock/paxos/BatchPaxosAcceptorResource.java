@@ -46,10 +46,10 @@ public class BatchPaxosAcceptorResource {
 
     private static final Logger log = LoggerFactory.getLogger(BatchPaxosAcceptorResource.class);
 
-    private final BatchPaxosAcceptor localBatchPaxosAcceptor;
+    private final BatchPaxosAcceptor batchPaxosAcceptor;
 
-    BatchPaxosAcceptorResource(BatchPaxosAcceptor localBatchPaxosAcceptor) {
-        this.localBatchPaxosAcceptor = localBatchPaxosAcceptor;
+    BatchPaxosAcceptorResource(BatchPaxosAcceptor batchPaxosAcceptor) {
+        this.batchPaxosAcceptor = batchPaxosAcceptor;
     }
 
     @POST
@@ -58,7 +58,7 @@ public class BatchPaxosAcceptorResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public SetMultimap<Client, WithSeq<PaxosPromise>> prepare(
             SetMultimap<Client, WithSeq<PaxosProposalId>> promiseWithSeqRequestsByClient) {
-        return localBatchPaxosAcceptor.prepare(promiseWithSeqRequestsByClient);
+        return batchPaxosAcceptor.prepare(promiseWithSeqRequestsByClient);
     }
 
     @POST
@@ -67,7 +67,7 @@ public class BatchPaxosAcceptorResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public SetMultimap<Client, WithSeq<BooleanPaxosResponse>> accept(
             SetMultimap<Client, PaxosProposal> proposalRequestsByClient) {
-        return localBatchPaxosAcceptor.accept(proposalRequestsByClient);
+        return batchPaxosAcceptor.accept(proposalRequestsByClient);
     }
 
     @POST
@@ -78,7 +78,7 @@ public class BatchPaxosAcceptorResource {
             @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> maybeCacheKey,
             Set<Client> clients) {
         try {
-            return localBatchPaxosAcceptor.latestSequencesPreparedOrAccepted(maybeCacheKey, clients);
+            return batchPaxosAcceptor.latestSequencesPreparedOrAccepted(maybeCacheKey, clients);
         } catch (InvalidAcceptorCacheKeyException e) {
             log.info("Cache key is invalid", e);
             throw Errors.invalidCacheKeyException(e.cacheKey());
@@ -94,7 +94,7 @@ public class BatchPaxosAcceptorResource {
             throw Errors.invalidCacheKeyException(null);
         }
         try {
-            return localBatchPaxosAcceptor.latestSequencesPreparedOrAcceptedCached(cacheKey.get());
+            return batchPaxosAcceptor.latestSequencesPreparedOrAcceptedCached(cacheKey.get());
         } catch (InvalidAcceptorCacheKeyException e) {
             log.info("Cache key is invalid", e);
             throw Errors.invalidCacheKeyException(e.cacheKey());
