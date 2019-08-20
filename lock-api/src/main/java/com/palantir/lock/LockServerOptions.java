@@ -108,7 +108,7 @@ public class LockServerOptions implements Serializable {
     }
 
     /**
-     * This setting should equal or exceed the Atlas transaction timeout
+     * This setting should equal or exceed the Atlas transaction timeout.
      */
     @Value.Default
     public TimeDuration getStuckTransactionTimeout() {
@@ -140,6 +140,7 @@ public class LockServerOptions implements Serializable {
                 && Objects.equal(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
                 && Objects.equal(getMaxNormalLockAge(), other.getMaxNormalLockAge())
                 && Objects.equal(getRandomBitCount(), other.getRandomBitCount())
+                && Objects.equal(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
                 && Objects.equal(getLockStateLoggerDir(), other.getLockStateLoggerDir())
                 && Objects.equal(slowLogTriggerMillis(), other.slowLogTriggerMillis());
     }
@@ -152,6 +153,7 @@ public class LockServerOptions implements Serializable {
                 getMaxAllowedBlockingDuration(),
                 getMaxNormalLockAge(),
                 getRandomBitCount(),
+                getStuckTransactionTimeout(),
                 getLockStateLoggerDir(),
                 slowLogTriggerMillis());
     }
@@ -165,6 +167,7 @@ public class LockServerOptions implements Serializable {
                 .add("maxAllowedBlockingDuration", getMaxAllowedBlockingDuration())
                 .add("maxNormalLockAge", getMaxNormalLockAge())
                 .add("randomBitCount", getRandomBitCount())
+                .add("stuckTransactionTimeout", getStuckTransactionTimeout())
                 .add("lockStateLoggerDir", getLockStateLoggerDir())
                 .add("slowLogTriggerMillis", slowLogTriggerMillis())
                 .toString();
@@ -199,6 +202,7 @@ public class LockServerOptions implements Serializable {
         private final SimpleTimeDuration maxAllowedBlockingDuration;
         private final SimpleTimeDuration maxNormalLockAge;
         private final int randomBitCount;
+        private final SimpleTimeDuration stuckTransactionTimeout;
         private final String lockStateLoggerDir;
         private final long slowLogTriggerMillis;
 
@@ -213,6 +217,8 @@ public class LockServerOptions implements Serializable {
             maxNormalLockAge = SimpleTimeDuration.of(
                     lockServerOptions.getMaxNormalLockAge());
             randomBitCount = lockServerOptions.getRandomBitCount();
+            stuckTransactionTimeout = SimpleTimeDuration.of(
+                    lockServerOptions.getStuckTransactionTimeout());
             lockStateLoggerDir = lockServerOptions.getLockStateLoggerDir();
             slowLogTriggerMillis = lockServerOptions.slowLogTriggerMillis();
         }
@@ -223,6 +229,7 @@ public class LockServerOptions implements Serializable {
                 @JsonProperty("maxAllowedClockDrift") SimpleTimeDuration maxAllowedClockDrift,
                 @JsonProperty("maxAllowedBlockingDuration") SimpleTimeDuration maxAllowedBlockingDuration,
                 @JsonProperty("maxNormalLockAge") SimpleTimeDuration maxNormalLockAge,
+                @JsonProperty("stuckTransactionTimeout") SimpleTimeDuration stuckTransactionTimeout,
                 @JsonProperty("randomBitCount") int randomBitCount,
                 @JsonProperty("lockStateLoggerDir") String lockStateLoggerDir,
                 @JsonProperty("slowLogTriggerMillis") long slowLogTriggerMillis) {
@@ -232,6 +239,7 @@ public class LockServerOptions implements Serializable {
             this.maxAllowedBlockingDuration = maxAllowedBlockingDuration;
             this.maxNormalLockAge = maxNormalLockAge;
             this.randomBitCount = randomBitCount;
+            this.stuckTransactionTimeout = stuckTransactionTimeout;
             this.lockStateLoggerDir = lockStateLoggerDir;
             this.slowLogTriggerMillis = slowLogTriggerMillis;
         }
@@ -248,6 +256,7 @@ public class LockServerOptions implements Serializable {
                     .maxAllowedBlockingDuration(maxAllowedBlockingDuration)
                     .maxNormalLockAge(maxNormalLockAge)
                     .randomBitCount(randomBitCount)
+                    .stuckTransactionTimeout(stuckTransactionTimeout)
                     .lockStateLoggerDir(lockStateLoggerDir)
                     .slowLogTriggerMillis(slowLogTriggerMillis)
                     .build();
