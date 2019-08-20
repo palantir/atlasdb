@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.http.negotiation.AtlasDbHttpProtocolVersion;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Convert {@link NotCurrentLeaderException} into a 503 status response.
@@ -58,12 +59,13 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
                 return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
             case CONJURE_JAVA_RUNTIME:
                 // TODO (jkong): Implement this case. CJR is resilient to our old behaviour, just that it deals
-                // with it inefficiently.
+                // with it inefficiently, so this is acceptable for now.
                 return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
             default:
-                log.warn("Unexpectedly parsed the AtlasDbHttpProtocolVersion as {}, this is a product bug.",
+                log.warn("Couldn't determine what to do with protocol version {}. This is a product bug.",
                         SafeArg.of("protocolVersion", protocolVersion));
-                return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+                throw new SafeIllegalStateException("Unrecognized protocol version in NotCurrentLeaderExceptionMapper",
+                        SafeArg.of("protocolVersion", protocolVersion));
         }
     }
 
