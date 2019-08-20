@@ -31,6 +31,9 @@ import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -56,7 +59,7 @@ import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
 
-public class TestableTimelockCluster {
+public class TestableTimelockCluster implements TestRule {
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -263,4 +266,8 @@ public class TestableTimelockCluster {
         return new TemporaryConfigurationHolder(temporaryFolder, configTemplate);
     }
 
+    @Override
+    public Statement apply(Statement base, Description description) {
+        return getRuleChain().apply(base, description);
+    }
 }
