@@ -367,16 +367,16 @@ public final class CassandraKeyValueServices {
         return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
     }
 
-    public interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
+    interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
         // marker
     }
 
-    public static class StartTsResultsCollector implements ThreadSafeResultVisitor {
+    static class StartTsResultsCollector implements ThreadSafeResultVisitor {
         private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
         private final ValueExtractor extractor;
         private final long startTs;
 
-        public StartTsResultsCollector(MetricsManager metricsManager, long startTs) {
+        StartTsResultsCollector(MetricsManager metricsManager, long startTs) {
             this.extractor = new ValueExtractor(metricsManager, collectedResults);
             this.startTs = startTs;
         }

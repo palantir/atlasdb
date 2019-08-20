@@ -719,40 +719,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return cqlExecutor.get().get(tableRef, timestampByCell);
     }
 
-//    private final ListenableFuture<Map<Cell, Value>> getAsyncThrift(TableReference tableRef,
-//            Map<Cell, Long> timestampByCell) {
-//        try {
-//            Long firstTs = timestampByCell.values().iterator().next();
-//            if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
-//                return getAsync("get", tableRef, timestampByCell.keySet(), firstTs);
-//            }
-//
-//            SetMultimap<Long, Cell> cellsByTs = Multimaps.invertFrom(
-//                    Multimaps.forMap(timestampByCell), HashMultimap.create());
-//
-//            List<ListenableFuture<Map<Cell, Value>>> allResults = Lists.newArrayListWithCapacity(
-//                    cellsByTs.keySet().size());
-//            for (long ts : cellsByTs.keySet()) {
-//                allResults.add(getAsync("get", tableRef, cellsByTs.get(ts), ts));
-//            }
-//            return Futures.transform(Futures.allAsList(allResults), results -> {
-//                Builder<Cell, Value> builder = ImmutableMap.builder();
-//                results.forEach(builder::putAll);
-//                return builder.build();
-//            }, MoreExecutors.directExecutor());
-//        } catch (Exception e) {
-//            return Futures.immediateFailedFuture(Throwables.unwrapAndReturnAtlasDbDependencyException(e));
-//        }
-//    }
-//
-//    private ListenableFuture<Map<Cell, Value>> getAsync(String kvsMethodName, TableReference tableRef, Set<Cell> cells,
-//            long maxTimestampExclusive) {
-//        StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, maxTimestampExclusive);
-//        ListenableFuture<Void> get = cellLoader.loadWithTsAsync(kvsMethodName, tableRef, cells, maxTimestampExclusive,
-//                false, collector, readConsistency);
-//        return Futures.transform(get, $ -> collector.getCollectedResults(), MoreExecutors.directExecutor());
-//    }
-
     /**
      * Gets values from the key-value store for the specified rows and column range as separate iterators for each row.
      * Requires a quorum of Cassandra nodes to be reachable, otherwise, the returned iterators will throw an

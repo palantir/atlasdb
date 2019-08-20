@@ -46,7 +46,7 @@ public final class CassandraConstants {
     // this is only used to sanity check reads from a TFramedTransport;
     // writes are sanity checked with server side frame size limits and are user-configurable,
     // so I'm okay with just bypassing the check for reads and having this check only in one place, server side.
-    public static final int CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES = Integer.MAX_VALUE;
+    static final int CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES = Integer.MAX_VALUE;
 
     static final String CFDEF_COMPRESSION_TYPE_KEY = "sstable_compression";
     static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";

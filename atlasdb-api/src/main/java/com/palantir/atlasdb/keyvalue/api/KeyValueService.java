@@ -142,7 +142,6 @@ public interface KeyValueService extends AutoCloseable {
      * @throws IllegalArgumentException if any of the requests were invalid (e.g., attempting to retrieve values from a
      * non-existent table).
      */
-    // This is temporary, so I don't need to change all the impls, and can focus on Cass only
     @Idempotent
     ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
