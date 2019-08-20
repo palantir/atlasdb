@@ -131,7 +131,7 @@ public interface BatchPaxosAcceptorRpcClient {
      *
      * @param paxosUseCase whether this is a timestamp paxos or leader paxos batch call
      * @return {@code 204 No Content} if there is no update, a digest containing updates plus a new cache key, or a
-     * {@code 404 Precondition Failed} if the cache key is not valid.
+     * {@code 404 Not Found} if the cache key is not valid.
      */
     @POST
     @Path("latest-sequences-prepared-or-accepted/cached")
