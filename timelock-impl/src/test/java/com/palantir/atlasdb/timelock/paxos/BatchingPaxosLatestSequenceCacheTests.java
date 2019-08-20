@@ -34,9 +34,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.api.errors.RemoteException;
-import com.palantir.conjure.java.api.errors.SerializableError;
-import com.palantir.conjure.java.api.errors.ServiceException;
 import com.palantir.paxos.ImmutablePaxosLong;
 import com.palantir.paxos.PaxosLong;
 
@@ -56,7 +53,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
     private BatchPaxosAcceptor remote;
 
     @Test
-    public void withoutCacheKeyWeGetEverything() {
+    public void withoutCacheKeyWeGetEverything() throws InvalidAcceptorCacheKeyException {
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 5)
@@ -75,7 +72,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
     }
 
     @Test
-    public void returnsSameResultIfCached() {
+    public void returnsSameResultIfCached() throws InvalidAcceptorCacheKeyException {
         BatchingPaxosLatestSequenceCache cache = initialCache();
         when(remote.latestSequencesPreparedOrAcceptedCached(any(AcceptorCacheKey.class)))
                 .thenReturn(Optional.empty());
@@ -86,7 +83,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
     }
 
     @Test
-    public void ifThereAreUpdatesWithCacheKeyWeAddToOurCache() {
+    public void ifThereAreUpdatesWithCacheKeyWeAddToOurCache() throws InvalidAcceptorCacheKeyException {
         BatchingPaxosLatestSequenceCache cache = initialCache();
         AcceptorCacheDigest digest = digestWithUpdates(entry(CLIENT_3, 50L));
 
@@ -100,7 +97,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
     }
 
     @Test
-    public void ifThereAreUpdatesWithCacheKeyWeAddToOurCache_unseenClient() {
+    public void ifThereAreUpdatesWithCacheKeyWeAddToOurCache_unseenClient() throws InvalidAcceptorCacheKeyException {
         BatchingPaxosLatestSequenceCache cache = initialCache();
         Client client4 = Client.of("client-4");
         AcceptorCacheDigest digest = digestWithUpdates(entry(client4, 150L));
@@ -114,11 +111,11 @@ public class BatchingPaxosLatestSequenceCacheTests {
     }
 
     @Test
-    public void invalidCacheKeyRequestsEverything() {
+    public void invalidCacheKeyRequestsEverything() throws InvalidAcceptorCacheKeyException {
         BatchingPaxosLatestSequenceCache cache = initialCache();
 
         when(remote.latestSequencesPreparedOrAcceptedCached(any(AcceptorCacheKey.class)))
-                .thenThrow(invalidCacheKeyException());
+                .thenThrow(new InvalidAcceptorCacheKeyException(AcceptorCacheKey.newCacheKey()));
 
         Map<Client, Long> newMap = ImmutableMap.<Client, Long>builder()
                 .put(CLIENT_1, 52L)
@@ -139,7 +136,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
                 .isEqualTo(ImmutablePaxosLong.of(52));
     }
 
-    private BatchingPaxosLatestSequenceCache initialCache() {
+    private BatchingPaxosLatestSequenceCache initialCache() throws InvalidAcceptorCacheKeyException {
         Map<Client, Long> asLong = KeyedStream.stream(INITIAL_UPDATES)
                 .map(PaxosLong::getValue)
                 .collectToMap();
@@ -154,11 +151,6 @@ public class BatchingPaxosLatestSequenceCacheTests {
         BatchingPaxosLatestSequenceCache cache = new BatchingPaxosLatestSequenceCache(remote);
         cache.apply(ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3));
         return cache;
-    }
-
-    private static RemoteException invalidCacheKeyException() {
-        ServiceException serviceException = new ServiceException(BatchPaxosAcceptor.CACHE_KEY_NOT_FOUND);
-        return new RemoteException(SerializableError.forException(serviceException), 404);
     }
 
     private static AcceptorCacheDigest digestWithUpdates(Map.Entry<Client, Long>... entries) {
