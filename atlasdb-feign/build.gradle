@@ -26,6 +26,7 @@ configurations {
 
 dependencies {
   compile project(':lock-api')
+  compile group: 'com.palantir.common', name: 'streams'
 
   compile group: 'javax.validation', name: 'validation-api'
 

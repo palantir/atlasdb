@@ -16,11 +16,22 @@
 
 package com.palantir.atlasdb.http.negotiation;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+
+import com.palantir.common.streams.KeyedStream;
+
 public enum AtlasDbHttpProtocolVersion {
     LEGACY_ATLASDB_FEIGN ("1"),
     CONJURE_JAVA_RUNTIME ("2");
 
     public static final String VERSION_HEADER = "AtlasDb-Http-Protocol-Version";
+
+    private static final Map<String, AtlasDbHttpProtocolVersion> REPRESENTATION_LOOKUP_MAP =
+            KeyedStream.of(Arrays.stream(AtlasDbHttpProtocolVersion.values()))
+                    .mapKeys(AtlasDbHttpProtocolVersion::getRepresentation)
+                    .collectToMap();
 
     private final String representation;
 
@@ -30,5 +41,9 @@ public enum AtlasDbHttpProtocolVersion {
 
     public String getRepresentation() {
         return representation;
+    }
+
+    public static Optional<AtlasDbHttpProtocolVersion> fromString(String value) {
+        return Optional.ofNullable(REPRESENTATION_LOOKUP_MAP.get(value));
     }
 }
