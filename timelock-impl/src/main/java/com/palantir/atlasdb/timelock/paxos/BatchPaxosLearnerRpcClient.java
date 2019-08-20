@@ -19,11 +19,22 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.Map;
 import java.util.Set;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
-public interface BatchPaxosLearner {
+@Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+        + "/{useCase}"
+        + "/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
+        + "/learner")
+public interface BatchPaxosLearnerRpcClient {
 
     /**
      * Batch counterpart to {@link PaxosLearner#learn}. For a given {@link Client} on paxos instance {@code seq},
@@ -32,7 +43,11 @@ public interface BatchPaxosLearner {
      * @param paxosValuesByClient for each {@link Client} and the different {@link PaxosValue}s that are being taught;
      * {@link PaxosValue} is the value being taught for the sequence number in {@link PaxosValue#getRound}.
      */
-    void learn(SetMultimap<Client, PaxosValue> paxosValuesByClient);
+    @POST
+    @Path("learn")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    void learn(@PathParam("useCase") PaxosUseCase paxosUseCase, SetMultimap<Client, PaxosValue> paxosValuesByClient);
 
     /**
      * Batch counterpart to {@link PaxosLearner#getLearnedValue}. For a given {@link Client} on paxos instance
@@ -46,7 +61,13 @@ public interface BatchPaxosLearner {
      * @return for each {@link Client} the different {@link PaxosValue}s learnt for different
      * {@link PaxosValue#getRound}s. Any {@link PaxosValue}s are guaranteed to be non-null
      */
-    SetMultimap<Client, PaxosValue> getLearnedValues(Set<WithSeq<Client>> clientAndSeqs);
+    @POST
+    @Path("learned-values")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    SetMultimap<Client, PaxosValue> getLearnedValues(
+            @PathParam("useCase") PaxosUseCase paxosUseCase,
+            Set<WithSeq<Client>> clientAndSeqs);
 
     /**
      * Batch counterpart to {@link PaxosLearner#getLearnedValuesSince}. For a given {@link Client}, returns all learnt
@@ -56,6 +77,12 @@ public interface BatchPaxosLearner {
      * learnt paxos values since that paxos round.
      * @return for each {@link Client}, all learnt {@link PaxosValue}'s past the given lower bound for the round
      */
-    SetMultimap<Client, PaxosValue> getLearnedValuesSince(Map<Client, Long> seqLowerBoundsByClient);
+    @POST
+    @Path("learned-values-since")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    SetMultimap<Client, PaxosValue> getLearnedValuesSince(
+            @PathParam("useCase") PaxosUseCase paxosUseCase,
+            Map<Client, Long> seqLowerBoundsByClient);
 
 }
