@@ -20,8 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.conjure.java.api.testing.Assertions.assertThatServiceExceptionThrownBy;
-
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
@@ -36,7 +34,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
@@ -45,7 +42,7 @@ import com.palantir.paxos.PaxosValue;
 
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
-public class BatchPaxosAcceptorResourceTests {
+public class LocalBatchPaxosAcceptorTests {
 
     private static final Client CLIENT_1 = Client.of("client1");
     private static final Client CLIENT_2 = Client.of("client2");
@@ -58,11 +55,11 @@ public class BatchPaxosAcceptorResourceTests {
     @Mock
     private AcceptorCache cache;
 
-    private BatchPaxosAcceptorResource resource;
+    private LocalBatchPaxosAcceptor resource;
 
     @Before
     public void before() {
-        resource = new BatchPaxosAcceptorResource(components, cache);
+        resource = new LocalBatchPaxosAcceptor(components, cache);
     }
 
     @Test
@@ -128,16 +125,16 @@ public class BatchPaxosAcceptorResourceTests {
                 WithSeq.of(CLIENT_2, 2)));
     }
 
-    @Test
-    public void throwsConjureRuntime404WhenCacheKeyIsNotFound() throws InvalidAcceptorCacheKeyException {
-        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
-        when(cache.updatesSinceCacheKey(cacheKey))
-                .thenThrow(new InvalidAcceptorCacheKeyException(cacheKey));
-
-        assertThatServiceExceptionThrownBy(() -> resource.latestSequencesPreparedOrAcceptedCached(cacheKey))
-                .hasType(BatchPaxosAcceptorResource.CACHE_KEY_NOT_FOUND)
-                .hasArgs(SafeArg.of("cacheKey", cacheKey));
-    }
+//    @Test
+//    public void throwsConjureRuntime404WhenCacheKeyIsNotFound() throws InvalidAcceptorCacheKeyException {
+//        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
+//        when(cache.updatesSinceCacheKey(cacheKey))
+//                .thenThrow(new InvalidAcceptorCacheKeyException(cacheKey));
+//
+//        assertThatServiceExceptionThrownBy(() -> resource.latestSequencesPreparedOrAcceptedCached(cacheKey))
+//                .hasType(BatchPaxosAcceptorResource.CACHE_KEY_NOT_FOUND)
+//                .hasArgs(SafeArg.of("cacheKey", cacheKey));
+//    }
 
     @Test
     public void cachedEndpointDelegatesToCache() throws InvalidAcceptorCacheKeyException {
@@ -151,7 +148,7 @@ public class BatchPaxosAcceptorResourceTests {
     }
 
     @Test
-    public void returnsEverythingIfCacheKeyIsNotProvided() {
+    public void returnsEverythingIfCacheKeyIsNotProvided() throws InvalidAcceptorCacheKeyException {
         when(components.acceptor(CLIENT_1).getLatestSequencePreparedOrAccepted()).thenReturn(1L);
         when(components.acceptor(CLIENT_2).getLatestSequencePreparedOrAccepted()).thenReturn(2L);
 
