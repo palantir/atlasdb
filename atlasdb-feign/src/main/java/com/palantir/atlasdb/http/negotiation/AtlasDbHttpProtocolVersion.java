@@ -23,8 +23,8 @@ import java.util.Optional;
 import com.palantir.common.streams.KeyedStream;
 
 public enum AtlasDbHttpProtocolVersion {
-    LEGACY_ATLASDB_FEIGN ("1"),
-    CONJURE_JAVA_RUNTIME ("2");
+    LEGACY_ATLASDB_FEIGN("1"),
+    CONJURE_JAVA_RUNTIME("2");
 
     public static final String VERSION_HEADER = "AtlasDb-Http-Protocol-Version";
 
