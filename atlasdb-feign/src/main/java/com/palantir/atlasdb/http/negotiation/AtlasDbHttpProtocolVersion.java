@@ -43,7 +43,7 @@ public enum AtlasDbHttpProtocolVersion {
         return representation;
     }
 
-    public static Optional<AtlasDbHttpProtocolVersion> fromString(String value) {
+    public static Optional<AtlasDbHttpProtocolVersion> fromStringRepresentation(String value) {
         return Optional.ofNullable(REPRESENTATION_LOOKUP_MAP.get(value));
     }
 }

@@ -15,13 +15,25 @@
  */
 package com.palantir.atlasdb.http;
 
+<<<<<<< HEAD
 import java.time.Duration;
 import java.util.Optional;
 
+=======
+import java.util.Optional;
+
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+>>>>>>> ee06686... Parse headers if needed
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.palantir.atlasdb.http.negotiation.AtlasDbHttpProtocolVersion;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * Convert {@link NotCurrentLeaderException} into a 503 status response.
@@ -29,12 +41,36 @@ import com.palantir.leader.NotCurrentLeaderException;
  * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
+    private static final Logger log = LoggerFactory.getLogger(NotCurrentLeaderExceptionMapper.class);
+
+    @Context
+    private HttpHeaders httpHeaders;
+
     /**
      * Returns a response equal to a response when encountering a
      * {@link com.palantir.conjure.java.api.errors.QosException.Unavailable} exception.
      */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        return ExceptionMappers.encodeAsUnavailable(exception, Optional.of(Duration.ofMillis(50)));
+        AtlasDbHttpProtocolVersion protocolVersion = parseProtocolVersion(httpHeaders);
+        switch (protocolVersion) {
+            case LEGACY_ATLASDB_FEIGN:
+                return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+            case CONJURE_JAVA_RUNTIME:
+                // TODO (jkong): Implement this case. CJR is resilient to our old behaviour, just that it deals
+                // with it inefficiently.
+                return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+            default:
+                log.warn("Unexpectedly parsed the AtlasDbHttpProtocolVersion as {}, this is a product bug.",
+                        SafeArg.of("protocolVersion", protocolVersion));
+                return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+        }
+    }
+
+    private static AtlasDbHttpProtocolVersion parseProtocolVersion(HttpHeaders headers) {
+        String httpProtocolVersion = headers.getHeaderString(AtlasDbHttpProtocolVersion.VERSION_HEADER);
+        return Optional.ofNullable(httpProtocolVersion)
+                .flatMap(AtlasDbHttpProtocolVersion::fromStringRepresentation)
+                .orElse(AtlasDbHttpProtocolVersion.LEGACY_ATLASDB_FEIGN);
     }
 }
