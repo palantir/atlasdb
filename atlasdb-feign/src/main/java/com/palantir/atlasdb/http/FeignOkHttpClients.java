@@ -25,6 +25,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.http.negotiation.AtlasDbHttpProtocolVersionInterceptors;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 import feign.Client;
@@ -136,6 +137,7 @@ public final class FeignOkHttpClients {
             builder.interceptors().add(AtlasDbInterceptors.REQUEST_PAYLOAD_LIMITER);
         }
         builder.interceptors().add(new AtlasDbInterceptors.UserAgentAddingInterceptor(userAgent));
+        builder.interceptors().add(AtlasDbHttpProtocolVersionInterceptors.LEGACY_INTERCEPTOR);
 
         globalClientSettings.accept(builder);
         return builder.build();
