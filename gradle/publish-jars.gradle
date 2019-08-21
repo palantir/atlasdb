@@ -1,4 +1,4 @@
-import java.util.stream.Collectors;
+import java.util.stream.Collectors
 
 apply plugin: 'java-library'
 apply plugin: 'com.jfrog.artifactory'
@@ -13,7 +13,7 @@ task sourceJar(type: Jar) {
     classifier 'sources'
 }
 
-task testJar(type: Jar) {
+task myTestJar(type: Jar) {
     from project.sourceSets.test.output
     classifier 'tests'
 }
@@ -32,7 +32,7 @@ publishing {
             artifact(sourceJar) {
                 classifier 'sources'
             }
-            artifact(testJar) {
+            artifact(myTestJar) {
                 classifier 'tests'
             }
             pom.withXml {
@@ -81,7 +81,7 @@ private static Set<Tuple> getShadowDependencies(Project project) {
 
 // Returns true if and only if there exists some dependency in the provided list of dependencies.
 private static boolean hasMatchingDependency(Set<Tuple> dependencies, String groupId, String artifactId) {
-    return dependencies.contains(new Tuple(groupId, artifactId));
+    return dependencies.contains(new Tuple(groupId, artifactId))
 }
 
 // We assume that there is only one groupId tag, which has exactly one element in it.
@@ -96,7 +96,7 @@ private static String getArtifactIdFromNode(Node dependency) {
 
 private static String getOnlyValue(List<Node> nodeList) {
     if (nodeList.size() != 1 || nodeList[0].children().size() != 1) {
-        throw new IllegalArgumentException("getOnlyValue() called on a node list which didn't have an only value");
+        throw new IllegalArgumentException("getOnlyValue() called on a node list which didn't have an only value")
     }
     return nodeList[0].children()[0]
 }
@@ -134,7 +134,7 @@ bintrayUpload.onlyIf {
     System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ releaseVersionRegex
 }
 
-bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
+bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'myTestJar', 'build'
 
 // Artifactory publish
 artifactory {
@@ -156,7 +156,7 @@ artifactory {
 artifactoryPublish.onlyIf {
     System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_JAR_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
 }
-artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
+artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'myTestJar', 'build'
 
 ext {
     releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta|-rc)?(\d+)?/

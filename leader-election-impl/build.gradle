@@ -30,5 +30,5 @@ configurations {
 }
 
 artifacts {
-    testArtifacts testJar
+    testArtifacts myTestJar
 }
