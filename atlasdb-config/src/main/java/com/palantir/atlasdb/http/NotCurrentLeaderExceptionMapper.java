@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
+import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
@@ -23,6 +25,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -34,6 +37,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  */
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
     private static final Logger log = LoggerFactory.getLogger(NotCurrentLeaderExceptionMapper.class);
+
+    @Inject
+    private Provider<org.glassfish.jersey.spi.ExceptionMappers> exceptionMappersProvider;
 
     @Context
     private HttpHeaders httpHeaders;
@@ -50,14 +56,18 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
             case LEGACY_OR_UNKNOWN:
                 return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
             case CONJURE_JAVA_RUNTIME:
-                // TODO (jkong): Implement this case. CJR is resilient to our old behaviour, just that it deals
-                // with it inefficiently, so this is acceptable for now.
-                return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+                QosException qosException = translateToQosException(exception);
+                return exceptionMappersProvider.get().findMapping(qosException).toResponse(qosException);
             default:
                 log.warn("Couldn't determine what to do with protocol version {}. This is a product bug.",
                         SafeArg.of("protocolVersion", protocolVersion));
                 throw new SafeIllegalStateException("Unrecognized protocol version in NotCurrentLeaderExceptionMapper",
                         SafeArg.of("protocolVersion", protocolVersion));
         }
+    }
+
+    private QosException translateToQosException(NotCurrentLeaderException exception) {
+        // TODO (jkong): Implement support for service hints. This is not a regression, as we never used them.
+        return QosException.throttle();
     }
 }
