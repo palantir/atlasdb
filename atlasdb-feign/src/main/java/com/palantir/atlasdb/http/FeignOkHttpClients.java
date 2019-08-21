@@ -19,6 +19,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import com.google.common.collect.ImmutableList;
+<<<<<<< HEAD
+=======
+import com.palantir.conjure.java.config.ssl.TrustContext;
+>>>>>>> 36ed254... Switch to user-agents
 
 import okhttp3.CipherSuite;
 import okhttp3.ConnectionSpec;
@@ -77,5 +81,4 @@ public final class FeignOkHttpClients {
     private FeignOkHttpClients() {
         // factory
     }
-
 }
