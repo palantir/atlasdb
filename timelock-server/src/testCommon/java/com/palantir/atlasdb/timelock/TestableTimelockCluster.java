@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ public class TestableTimelockCluster implements TestRule {
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-    TestableTimelockCluster(String baseUri, String... configFileTemplates) {
+    public TestableTimelockCluster(String baseUri, String... configFileTemplates) {
         this.configs = Arrays.stream(configFileTemplates)
                 .map(this::getConfigHolder)
                 .collect(Collectors.toList());

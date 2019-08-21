@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.timelock.suite;
 
 import java.util.Collection;
 
@@ -25,18 +25,20 @@ import org.junit.runners.Suite;
 
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
+import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 
 @RunWith(ParameterizedSuite.class)
 @Suite.SuiteClasses({MultiNodePaxosTimeLockServerIntegrationTest.class})
 public class PaxosSuite {
 
-    static final TestableTimelockCluster NON_BATCHED_PAXOS = new TestableTimelockCluster(
+    public static final TestableTimelockCluster NON_BATCHED_PAXOS = new TestableTimelockCluster(
             "https://localhost",
             "paxosMultiServer0.yml",
             "paxosMultiServer1.yml",
             "paxosMultiServer2.yml");
 
-    static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
+    public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
             "https://localhost",
             "paxosMultiServerBatch0.yml",
             "paxosMultiServerBatch1.yml",
