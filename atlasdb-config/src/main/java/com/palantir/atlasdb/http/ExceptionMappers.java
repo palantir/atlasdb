@@ -17,14 +17,11 @@ package com.palantir.atlasdb.http;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.http.negotiation.AtlasDbHttpProtocolVersion;
 import com.palantir.remoting2.errors.SerializableError;
 
 public final class ExceptionMappers {
@@ -50,19 +47,6 @@ public final class ExceptionMappers {
                 .header(HttpHeaders.RETRY_AFTER, "0")
                 .build();
     }
-
-    /**
-     * Attempts to parse the {@link AtlasDbHttpProtocolVersion} indicated by {@link HttpHeaders}.
-     *
-     * Does not handle multiple values.
-     */
-    static Optional<AtlasDbHttpProtocolVersion> tryParseProtocolVersion(HttpHeaders headers) {
-        List<String> httpProtocolVersions = headers.getRequestHeader(AtlasDbHttpProtocolVersion.VERSION_HEADER);
-        String httpProtocolVersion = Iterables.getOnlyElement(httpProtocolVersions);
-        return Optional.ofNullable(httpProtocolVersion)
-                .flatMap(AtlasDbHttpProtocolVersion::fromStringRepresentation);
-    }
-
 
     private static Response.ResponseBuilder encode503ResponseInternal(Exception exception) {
         return encodeExceptionResponse(exception, 503);

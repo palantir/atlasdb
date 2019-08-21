@@ -23,7 +23,6 @@ import javax.ws.rs.ext.ExceptionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.http.negotiation.AtlasDbHttpProtocolVersion;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -44,12 +43,10 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
      */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        // Legacy clients will not supply this header; it's safe to assume they're also using Feign.
-        AtlasDbHttpProtocolVersion protocolVersion = ExceptionMappers.tryParseProtocolVersion(httpHeaders)
-                .orElse(AtlasDbHttpProtocolVersion.LEGACY_ATLASDB_FEIGN);
+        AtlasDbHttpProtocolVersion protocolVersion = AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders);
 
         switch (protocolVersion) {
-            case LEGACY_ATLASDB_FEIGN:
+            case LEGACY_OR_UNKNOWN:
                 return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
             case CONJURE_JAVA_RUNTIME:
                 // TODO (jkong): Implement this case. CJR is resilient to our old behaviour, just that it deals
