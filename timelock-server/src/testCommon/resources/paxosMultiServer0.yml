@@ -30,7 +30,7 @@ server:
   requestLog:
     appenders:
       - type: console
-        logFormat: 'server-0        [%t{ISO8601,UTC}] %s %r %b "%i{User-Agent}" %D'
+        logFormat: 'server-0       [%t{ISO8601,UTC}] %s %localPort %r %b "%i{User-Agent}" %D'
 
   applicationConnectors:
   - type: h2

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -29,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.awaitility.Awaitility;
+import org.immutables.value.Value;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -63,6 +65,8 @@ public class TestableTimelockCluster implements TestRule {
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private final Optional<String> clusterName;
+
     private final String client = UUID.randomUUID().toString();
     private final List<TemporaryConfigurationHolder> configs;
     private final List<TestableTimelockServer> servers;
@@ -73,6 +77,7 @@ public class TestableTimelockCluster implements TestRule {
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
     public TestableTimelockCluster(String baseUri, String... configFileTemplates) {
+        this.clusterName = Optional.empty();
         this.configs = Arrays.stream(configFileTemplates)
                 .map(this::getConfigHolder)
                 .collect(Collectors.toList());
@@ -83,6 +88,28 @@ public class TestableTimelockCluster implements TestRule {
         this.proxies = new TestProxies(baseUri, servers);
     }
 
+    public TestableTimelockCluster(ClusterName clusterName, String baseUri, String... configFileTemplates) {
+        this.clusterName = Optional.of(clusterName.get());
+        this.configs = Arrays.stream(configFileTemplates)
+                .map(this::getConfigHolder)
+                .collect(Collectors.toList());
+        this.servers = configs.stream()
+                .map(TestableTimelockCluster::getServerHolder)
+                .map(holder -> new TestableTimelockServer(baseUri, client, holder))
+                .collect(Collectors.toList());
+        this.proxies = new TestProxies(baseUri, servers);
+    }
+
+    @Value.Immutable
+    public abstract static class ClusterName {
+        @Value.Parameter
+        public abstract String get();
+
+        @Override
+        public String toString() {
+            return get();
+        }
+    }
     void waitUntilLeaderIsElected() {
         waitUntilLeaderIsElected(ImmutableList.of());
     }
@@ -269,5 +296,10 @@ public class TestableTimelockCluster implements TestRule {
     @Override
     public Statement apply(Statement base, Description description) {
         return getRuleChain().apply(base, description);
+    }
+
+    @Override
+    public String toString() {
+        return clusterName.orElseGet(super::toString);
     }
 }

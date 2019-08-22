@@ -25,6 +25,7 @@ import org.junit.runners.Suite;
 
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.ImmutableClusterName;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 
@@ -33,12 +34,14 @@ import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 public class PaxosSuite {
 
     public static final TestableTimelockCluster NON_BATCHED_PAXOS = new TestableTimelockCluster(
+            ImmutableClusterName.of("non-batched paxos"),
             "https://localhost",
             "paxosMultiServer0.yml",
             "paxosMultiServer1.yml",
             "paxosMultiServer2.yml");
 
     public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
+            ImmutableClusterName.of("batched paxos"),
             "https://localhost",
             "paxosMultiServerBatch0.yml",
             "paxosMultiServerBatch1.yml",
