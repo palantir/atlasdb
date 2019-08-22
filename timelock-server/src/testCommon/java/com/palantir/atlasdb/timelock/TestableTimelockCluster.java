@@ -110,6 +110,7 @@ public class TestableTimelockCluster implements TestRule {
             return get();
         }
     }
+
     void waitUntilLeaderIsElected() {
         waitUntilLeaderIsElected(ImmutableList.of());
     }

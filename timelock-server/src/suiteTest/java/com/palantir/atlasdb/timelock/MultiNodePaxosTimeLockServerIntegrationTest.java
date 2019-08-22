@@ -64,7 +64,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final List<String> ADDITIONAL_CLIENTS = ImmutableList.of(CLIENT_2, CLIENT_3);
 
     @ClassRule
-    public static ParameterInjector<TestableTimelockCluster> INJECTOR =
+    public static ParameterInjector<TestableTimelockCluster> injector =
             new ParameterInjector<>(() -> PaxosSuite.NON_BATCHED_PAXOS);
 
     @Parameterized.Parameter
@@ -72,7 +72,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<TestableTimelockCluster> params() {
-        return INJECTOR.getParameter();
+        return injector.getParameter();
     }
 
     private static final LockDescriptor LOCK = StringLockDescriptor.of("foo");

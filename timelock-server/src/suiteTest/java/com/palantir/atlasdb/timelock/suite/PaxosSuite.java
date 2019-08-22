@@ -30,7 +30,7 @@ import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 
 @RunWith(ParameterizedSuite.class)
-@Suite.SuiteClasses({MultiNodePaxosTimeLockServerIntegrationTest.class})
+@Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)
 public class PaxosSuite {
 
     public static final TestableTimelockCluster NON_BATCHED_PAXOS = new TestableTimelockCluster(
