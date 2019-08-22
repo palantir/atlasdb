@@ -50,7 +50,7 @@ import com.palantir.timelock.paxos.ClientAwarePaxosLearner;
 import com.palantir.timelock.paxos.ClientAwarePaxosLearnerAdapter;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 
-public class ClientPaxosResourceFactory {
+public final class ClientPaxosResourceFactory {
 
     private ClientPaxosResourceFactory() { }
 
