@@ -16,12 +16,39 @@
 
 package com.palantir.atlasdb.http;
 
+import java.util.function.Function;
+
 import javax.ws.rs.core.Response;
+
+import org.immutables.value.Value;
 
 import com.palantir.conjure.java.api.errors.QosException;
 
-public interface AtlasDbHttpProtocolHandler<E extends Exception> {
+interface AtlasDbHttpProtocolHandler<E extends Exception> {
     Response handleLegacyOrUnknownVersion(E underlyingException);
 
     QosException handleConjureJavaRuntime(E underlyingException);
+
+    @Value.Immutable
+    interface LambdaHandler<T extends Exception> extends AtlasDbHttpProtocolHandler<T> {
+        @Value.Parameter
+        Function<T, Response> legacyHandler();
+        @Value.Parameter
+        Function<T, QosException> conjureJavaRuntimeHandler();
+
+        @Override
+        default Response handleLegacyOrUnknownVersion(T underlyingException) {
+            return legacyHandler().apply(underlyingException);
+        }
+
+        @Override
+        default QosException handleConjureJavaRuntime(T underlyingException) {
+            return conjureJavaRuntimeHandler().apply(underlyingException);
+        }
+
+        static <T extends Exception> LambdaHandler<T> of(
+                Function<T, Response> legacyHandler, Function<T, QosException> conjureJavaRuntimeHandler) {
+            return ImmutableLambdaHandler.of(legacyHandler, conjureJavaRuntimeHandler);
+        }
+    }
 }

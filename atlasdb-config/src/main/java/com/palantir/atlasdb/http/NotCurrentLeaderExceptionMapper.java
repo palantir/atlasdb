@@ -34,18 +34,10 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
     private HttpHeaders httpHeaders;
 
     private static final HttpProtocolAwareExceptionTranslator<NotCurrentLeaderException> translator = new
-            HttpProtocolAwareExceptionTranslator<>(new AtlasDbHttpProtocolHandler<NotCurrentLeaderException>() {
-                @Override
-                public Response handleLegacyOrUnknownVersion(NotCurrentLeaderException underlyingException) {
-                    return ExceptionMappers.encode503ResponseWithRetryAfter(underlyingException);
-                }
-
-                @Override
-                public QosException handleConjureJavaRuntime(NotCurrentLeaderException underlyingException) {
-                    // TODO (jkong): Replace with 308s
-                    return QosException.unavailable();
-                }
-            });
+            HttpProtocolAwareExceptionTranslator<>(
+                    AtlasDbHttpProtocolHandler.LambdaHandler.of(
+                            ExceptionMappers::encode503ResponseWithRetryAfter,
+                            $ -> QosException.unavailable()));
 
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {

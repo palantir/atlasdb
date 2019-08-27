@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.http;
 
+import java.util.Optional;
+
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.ws.rs.core.HttpHeaders;
@@ -29,7 +31,7 @@ import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public class HttpProtocolAwareExceptionTranslator<E extends Exception> {
+class HttpProtocolAwareExceptionTranslator<E extends Exception> {
     private static final Logger log = LoggerFactory.getLogger(HttpProtocolAwareExceptionTranslator.class);
 
     private final AtlasDbHttpProtocolHandler<E> httpProtocolHandler;
@@ -37,11 +39,11 @@ public class HttpProtocolAwareExceptionTranslator<E extends Exception> {
     @Inject
     private Provider<ExceptionMappers> exceptionMappersProvider;
 
-    public HttpProtocolAwareExceptionTranslator(AtlasDbHttpProtocolHandler<E> httpProtocolHandler) {
+    HttpProtocolAwareExceptionTranslator(AtlasDbHttpProtocolHandler<E> httpProtocolHandler) {
         this.httpProtocolHandler = httpProtocolHandler;
     }
 
-    public Response translate(HttpHeaders httpHeaders, E exception) {
+    Response translate(HttpHeaders httpHeaders, E exception) {
         AtlasDbHttpProtocolVersion protocolVersion = AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders);
 
         switch (protocolVersion) {
@@ -49,7 +51,11 @@ public class HttpProtocolAwareExceptionTranslator<E extends Exception> {
                 return httpProtocolHandler.handleLegacyOrUnknownVersion(exception);
             case CONJURE_JAVA_RUNTIME:
                 QosException qosException = httpProtocolHandler.handleConjureJavaRuntime(exception);
-                return exceptionMappersProvider.get().findMapping(qosException).toResponse(qosException);
+                return Optional.ofNullable(exceptionMappersProvider.get())
+                        .flatMap(provider -> Optional.ofNullable(provider.findMapping(qosException)))
+                        .map(mapper -> mapper.toResponse(qosException))
+                        .orElseThrow(() -> new SafeIllegalStateException("Couldn't find QoS exception mapper."
+                                + " This is a product bug."));
             default:
                 log.warn("Couldn't determine what to do with protocol version {}. This is a product bug.",
                         SafeArg.of("protocolVersion", protocolVersion));
