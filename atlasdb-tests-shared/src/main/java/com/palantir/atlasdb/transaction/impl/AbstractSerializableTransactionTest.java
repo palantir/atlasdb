@@ -995,6 +995,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         transaction.commit();
     }
 
+    @Test
+    public void testDisableReadWriteConflictChecking() {
+
+    }
+
     private void writeColumns() {
         Transaction t1 = startTransaction();
         int totalPuts = 101;

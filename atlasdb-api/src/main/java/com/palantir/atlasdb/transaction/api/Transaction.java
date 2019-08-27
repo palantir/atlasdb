@@ -228,4 +228,14 @@ public interface Transaction {
      * Informs the transaction that a particular table has been written to.
      */
     void useTable(TableReference tableRef, ConstraintCheckable table);
+
+    /**
+     * Disables read-write conflict checking for this table for the duration of this transaction.
+     *
+     * This method should be called before any reads are done on this table.
+     */
+    @Idempotent
+    default void disableReadWriteConflictChecking(TableReference tableRef) {
+        throw new UnsupportedOperationException();
+    }
 }
