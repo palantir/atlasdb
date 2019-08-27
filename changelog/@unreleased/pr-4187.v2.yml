@@ -1,24 +1,6 @@
 type: improvement
 improvement:
-  description: |-
-    Cassandra driver and tracing lib version bump
-
-    **Goals (and why)**:
-    Updated Cassandra driver and tracing lib.
-    **Implementation Description (bullets)**:
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-
-    **Concerns (what feedback would you like?)**:
-    I'm not sure which type of changelog entry should this be.
-    **Where should we start reviewing?**:
-
-    **Priority (whenever / two weeks / yesterday)**:
-
-    <!---
-    Please remember to:
-    - Add any necessary release notes (including breaking changes)
-    - Make sure the documentation is up to date for your change
-    --->
+  description:
+    Updated versions of Cassandra driver and tracing lib.
   links:
   - https://github.com/palantir/atlasdb/pull/4187
