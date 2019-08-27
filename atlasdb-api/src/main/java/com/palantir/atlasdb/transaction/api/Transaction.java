@@ -230,7 +230,7 @@ public interface Transaction {
     void useTable(TableReference tableRef, ConstraintCheckable table);
 
     /**
-     * Disables read-write conflict checking for this table for the duration of this transaction.
+     * Disables read-write conflict checking for this table for the duration of this transaction only.
      *
      * This method should be called before any reads are done on this table.
      */
