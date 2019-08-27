@@ -45,7 +45,7 @@ public final class TransactionConflictDetectionManager {
                     getDisabledReadWriteConflictHandler(conflictHandler));
 
             Preconditions.checkState(nullableCurrentValue == null || nullableCurrentValue.equals(newValue),
-                    "Cannot overwrite conflict behaviour after transaction already started");
+                    "Cannot overwrite conflict behaviour after the table has already been used");
             return newValue;
         });
     }
