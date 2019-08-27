@@ -15,14 +15,33 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.time.Duration;
+
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
+import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 
+/**
+ * Converts {@link BlockingTimeoutException}s into appropriate status responses, depending on the user's
+ * {@link AtlasDbHttpProtocolVersion}. This is a 503 without a Retry-After header in
+ * {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
+ */
 public class BlockingTimeoutExceptionMapper implements ExceptionMapper<BlockingTimeoutException> {
+    @Context
+    private HttpHeaders httpHeaders;
+
+    private static final HttpProtocolAwareExceptionTranslator<BlockingTimeoutException> translator = new
+            HttpProtocolAwareExceptionTranslator<>(
+            AtlasDbHttpProtocolHandler.LambdaHandler.of(
+                    ExceptionMappers::encode503ResponseWithoutRetryAfter,
+                    $ -> QosException.throttle(Duration.ZERO)));
+
     @Override
     public Response toResponse(BlockingTimeoutException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+        return translator.translate(httpHeaders, exception);
     }
 }
