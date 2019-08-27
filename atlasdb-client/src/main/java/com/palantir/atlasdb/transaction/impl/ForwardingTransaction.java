@@ -170,4 +170,9 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     public TransactionType getTransactionType() {
         return delegate().getTransactionType();
     }
+
+    @Override
+    public void disableReadWriteConflictChecking(TableReference tableRef) {
+        delegate().disableReadWriteConflictChecking(tableRef);
+    }
 }

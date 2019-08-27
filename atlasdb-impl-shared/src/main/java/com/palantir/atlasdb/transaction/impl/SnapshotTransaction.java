@@ -196,7 +196,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
             Maps.newConcurrentMap();
-    protected final ConflictDetectionManager conflictDetectionManager;
+    protected final TransactionConflictDetectionManager conflictDetectionManager;
     private final AtomicLong byteCount = new AtomicLong();
 
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
@@ -257,7 +257,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.defaultTransactionService = transactionService;
         this.cleaner = cleaner;
         this.startTimestamp = startTimeStamp;
-        this.conflictDetectionManager = conflictDetectionManager;
+        this.conflictDetectionManager = new TransactionConflictDetectionManager(conflictDetectionManager);
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
         this.immutableTimestampLock = immutableTimestampLock;
@@ -302,6 +302,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
             throw new CommittedTransactionException();
         }
+    }
+
+    @Override
+    public void disableReadWriteConflictChecking(TableReference tableRef) {
+        conflictDetectionManager.disableReadWriteConflict(tableRef);
     }
 
     @Override

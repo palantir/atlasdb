@@ -44,4 +44,8 @@ public class InvalidAcceptorCacheKeyException extends Exception implements SafeL
         return ImmutableList.of(SafeArg.of("cacheKey", cacheKey));
     }
 
+    public AcceptorCacheKey cacheKey() {
+        return cacheKey;
+    }
+
 }

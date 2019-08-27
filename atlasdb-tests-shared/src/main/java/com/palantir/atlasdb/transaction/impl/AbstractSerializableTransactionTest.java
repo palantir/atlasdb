@@ -995,6 +995,30 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         transaction.commit();
     }
 
+    @Test
+    public void testDisableReadWriteConflictChecking() {
+        byte[] row = PtBytes.toBytes("row1");
+        Transaction t1 = startTransaction();
+        put(t1, "row1", "col", "v0");
+        t1.commit();
+
+        Transaction t2 = startTransaction();
+        t2.disableReadWriteConflictChecking(TEST_TABLE);
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t2.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        // Attempt to read all results which would normally cause conflicts with t3; but we disabled that
+        Iterators.getLast(Iterables.getOnlyElement(columnRange.values()));
+        // Write to avoid the read only path.
+        put(t2, "row1_1", "col0", "v0");
+
+        Transaction t3 = startTransaction();
+        put(t3, "row1", "col0", "v0");
+        t3.commit();
+
+        t2.commit();
+    }
+
     private void writeColumns() {
         Transaction t1 = startTransaction();
         int totalPuts = 101;

@@ -31,7 +31,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.paxos.PaxosLong;
 
 /*
@@ -57,23 +56,9 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     public Map<Client, PaxosLong> apply(Set<Client> clients) {
         try {
             return unsafeGetLatest(clients);
-        } catch (RemoteException e) {
-            if (e.getError().errorName().equals(BatchPaxosAcceptor.CACHE_KEY_NOT_FOUND.name())) {
-                log.info("Cache key is invalid, invalidating cache");
-                return handleCacheMiss(clients);
-            }
-
-            log.warn("received remote exception that is not a cache key miss", e);
-            throw e;
-        } catch (RuntimeException e) {
-            // TODO(fdesouza): Remove this once we've moved to CJR properly and the above works.
-            if (e.getMessage().contains(BatchPaxosAcceptor.CACHE_KEY_NOT_FOUND.name())) {
-                log.info("Cache key is invalid, invalidating cache - using deprecated detection method");
-                return handleCacheMiss(clients);
-            }
-
-            log.warn("received unexpected runtime exception", e);
-            throw e;
+        } catch (InvalidAcceptorCacheKeyException e) {
+            log.info("Cache key is invalid, invalidating cache - using deprecated detection method");
+            return handleCacheMiss(clients);
         }
     }
 
@@ -84,10 +69,15 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                 .addAll(cachedEntries.keySet())
                 .build();
         cachedEntries.clear();
-        return unsafeGetLatest(allClients);
+        try {
+            return unsafeGetLatest(allClients);
+        } catch (InvalidAcceptorCacheKeyException e) {
+            log.warn("Empty cache key is still invalid indicates product bug, failing request.");
+            throw new RuntimeException(e);
+        }
     }
 
-    private Map<Client, PaxosLong> unsafeGetLatest(Set<Client> clients) {
+    private Map<Client, PaxosLong> unsafeGetLatest(Set<Client> clients) throws InvalidAcceptorCacheKeyException {
         if (cacheKey == null) {
             processDigest(delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clients));
             return getResponseMap(clients);
