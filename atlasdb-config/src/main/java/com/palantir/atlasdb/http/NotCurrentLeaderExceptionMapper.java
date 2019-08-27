@@ -20,43 +20,35 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
- * Convert {@link NotCurrentLeaderException} into a 503 status response.
+ * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's
+ * {@link AtlasDbHttpProtocolVersion}. This is a 503 response in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  *
  * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
-    private static final Logger log = LoggerFactory.getLogger(NotCurrentLeaderExceptionMapper.class);
-
     @Context
     private HttpHeaders httpHeaders;
 
-    /**
-     * Returns a 503 response, with body corresponding to the serialized exception.
-     */
+    private static final HttpProtocolAwareExceptionTranslator<NotCurrentLeaderException> translator = new
+            HttpProtocolAwareExceptionTranslator<>(new AtlasDbHttpProtocolHandler<NotCurrentLeaderException>() {
+                @Override
+                public Response handleLegacyOrUnknownVersion(NotCurrentLeaderException underlyingException) {
+                    return ExceptionMappers.encode503ResponseWithRetryAfter(underlyingException);
+                }
+
+                @Override
+                public QosException handleConjureJavaRuntime(NotCurrentLeaderException underlyingException) {
+                    // TODO (jkong): Replace with 308s
+                    return QosException.unavailable();
+                }
+            });
+
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        AtlasDbHttpProtocolVersion protocolVersion = AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders);
-
-        switch (protocolVersion) {
-            case LEGACY_OR_UNKNOWN:
-                return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
-            case CONJURE_JAVA_RUNTIME:
-                // TODO (jkong): Implement this case. CJR is resilient to our old behaviour, just that it deals
-                // with it inefficiently, so this is acceptable for now.
-                return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
-            default:
-                log.warn("Couldn't determine what to do with protocol version {}. This is a product bug.",
-                        SafeArg.of("protocolVersion", protocolVersion));
-                throw new SafeIllegalStateException("Unrecognized protocol version in NotCurrentLeaderExceptionMapper",
-                        SafeArg.of("protocolVersion", protocolVersion));
-        }
+        return translator.translate(httpHeaders, exception);
     }
 }
