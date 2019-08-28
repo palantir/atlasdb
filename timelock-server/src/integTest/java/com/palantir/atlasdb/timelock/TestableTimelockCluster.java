@@ -99,6 +99,7 @@ public class TestableTimelockCluster {
                         clients.forEach(name -> timelockServiceForClient(name).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
+                        t.printStackTrace();
                         return false;
                     }
                 });

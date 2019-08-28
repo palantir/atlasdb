@@ -17,18 +17,28 @@
 package com.palantir.atlasdb.http.v2;
 
 import java.net.ProxySelector;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.http.AtlasDbAgents;
+import com.palantir.atlasdb.http.PollingRefreshable;
 import com.palantir.atlasdb.http.TargetFactory;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.client.config.ClientConfiguration;
+import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.conjure.java.ext.refresh.Refreshable;
 import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     private static final HostMetricsRegistry HOST_METRICS_REGISTRY = new HostMetricsRegistry();
@@ -40,29 +50,46 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     }
 
     @Override
-    public <T> T createProxyWithoutRetrying(Optional<TrustContext> trustContext, String uri, Class<T> type,
-            String userAgent, boolean limitPayloadSize) {
-        return null;
+    public <T> T createProxyWithoutRetrying(
+            Optional<TrustContext> trustContext,
+            Optional<ProxySelector> proxySelector,
+            String uri,
+            Class<T> type,
+            String userAgent,
+            boolean limitPayloadSize) {
+        ClientConfiguration clientConfiguration = ClientOptions.FAST_RETRYING_FOR_TEST
+                .create(ImmutableList.of(uri), proxySelector, trustContext.orElseThrow(
+                        () -> new IllegalStateException("CJR requires a trust context")));
+        return JaxRsClient.create(type, createAgent(userAgent), new HostMetricsRegistry(), clientConfiguration);
     }
 
     @Override
-    public <T> T createProxy(Optional<TrustContext> trustContext, String uri, Class<T> type, String userAgent,
+    public <T> T createProxy(
+            Optional<TrustContext> trustContext,
+            Optional<ProxySelector> proxySelector,
+            String uri,
+            Class<T> type,
+            String userAgent,
             boolean limitPayloadSize) {
-        return null;
+        ClientConfiguration clientConfiguration = ClientOptions.FAST_RETRYING_FOR_TEST
+                .create(ImmutableList.of(uri), proxySelector, trustContext.orElseThrow(
+                        () -> new IllegalStateException("CJR requires a trust context")));
+        return JaxRsClient.create(type, createAgent(userAgent), new HostMetricsRegistry(), clientConfiguration);
     }
 
     @Override
     public <T> T createProxyWithFailover(Optional<TrustContext> trustContext, Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris, Class<T> type, String userAgent, boolean limitPayloadSize) {
-        ServerListConfig serverListConfig = ImmutableServerListConfig.builder().addAllServers(endpointUris).build();
+        ClientConfiguration clientConfiguration = ClientOptions.FAST_RETRYING_FOR_TEST.create(
+                ImmutableList.copyOf(endpointUris),
+                proxySelector,
+                trustContext.orElseThrow(() -> new SafeIllegalStateException("CJR requires a trust context")));
 
-        return createLiveReloadingProxyWithFailover(
-                () -> serverListConfig,
-                $ -> trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")),
-                $ -> proxySelector.orElseThrow(() -> new IllegalStateException("CJR requires a proxy selector")),
+        return JaxRsClient.create(
                 type,
-                userAgent,
-                limitPayloadSize);
+                UserAgents.tryParse(userAgent).addAgent(AtlasDbAgents.ATLASDB_CONJURE_JAVA_RUNTIME_HTTP_AGENT),
+                HOST_METRICS_REGISTRY,
+                clientConfiguration);
     }
 
     @Override
@@ -73,12 +100,33 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             Class<T> type,
             String userAgent,
             boolean limitPayload) {
-//        return JaxRsClient.create(
-//                type,
-//                UserAgents.DEFAULT_USER_AGENT, // TODO (jkong): This is not the final one!
-//                HOST_METRICS_REGISTRY,
-//
-//        );
-        return null;
+        // TODO (jkong): Thread leak for days...
+        Supplier<ServerListConfig> nonEmptyServerList = () -> injectDummyServer(serverListConfigSupplier);
+        Refreshable<ClientConfiguration> refreshableConfig = PollingRefreshable
+                .createComposed(nonEmptyServerList,
+                        Duration.ofSeconds(5L),
+                        ClientOptions.FAST_RETRYING_FOR_TEST::serverListToClient)
+                .getRefreshable();
+        return JaxRsClient.create(
+                type,
+                UserAgents.tryParse(userAgent).addAgent(AtlasDbAgents.ATLASDB_CONJURE_JAVA_RUNTIME_HTTP_AGENT),
+                HOST_METRICS_REGISTRY,
+                refreshableConfig);
+    }
+
+    // TODO (gmaretic): This is a hack because CJR doesn't like configurations with 0 servers, yet we claim
+    // that we might encounter such configurations in k8s when the first node discovers other available remotes.
+    private static ServerListConfig injectDummyServer(Supplier<ServerListConfig> serverListConfigSupplier) {
+        ServerListConfig originalConfig = serverListConfigSupplier.get();
+        if (originalConfig.hasAtLeastOneServer()) {
+            return originalConfig;
+        }
+        return ImmutableServerListConfig.builder().from(serverListConfigSupplier.get())
+                .addServers("http://dummy")
+                .build();
+    }
+
+    private static UserAgent createAgent(String userProvidedAgent) {
+        return UserAgents.tryParse(userProvidedAgent).addAgent(AtlasDbAgents.ATLASDB_CONJURE_JAVA_RUNTIME_HTTP_AGENT);
     }
 }

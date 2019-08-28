@@ -30,6 +30,7 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 public interface TargetFactory {
     <T> T createProxyWithoutRetrying(
             Optional<TrustContext> trustContext,
+            Optional<ProxySelector> proxySelector,
             String uri,
             Class<T> type,
             String userAgent,
@@ -37,6 +38,7 @@ public interface TargetFactory {
 
     <T> T createProxy(
             Optional<TrustContext> trustContext,
+            Optional<ProxySelector> proxySelector,
             String uri,
             Class<T> type,
             String userAgent,

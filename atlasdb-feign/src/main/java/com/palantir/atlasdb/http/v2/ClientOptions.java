@@ -28,6 +28,8 @@ import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfigurations;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @Value.Immutable
 public abstract class ClientOptions {
@@ -72,7 +74,9 @@ public abstract class ClientOptions {
 
     public ClientConfiguration serverListToClient(ServerListConfig serverConfig) {
         ServiceConfiguration partialConfig = ServiceConfiguration.builder()
-                .security(serverConfig.sslConfiguration().get())
+                .security(serverConfig.sslConfiguration().orElseThrow(
+                        () -> new SafeIllegalStateException("CJR must be configured with SSL",
+                                SafeArg.of("serverConfig", serverConfig))))
                 .addAllUris(serverConfig.servers())
                 .proxy(serverConfig.proxyConfiguration())
                 .connectTimeout(connectTimeout())

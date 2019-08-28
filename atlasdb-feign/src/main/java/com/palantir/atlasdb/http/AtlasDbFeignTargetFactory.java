@@ -54,7 +54,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
     private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
 
-    static final TargetFactory DEFAULT = new AtlasDbFeignTargetFactory(
+    public static final TargetFactory DEFAULT = new AtlasDbFeignTargetFactory(
             DEFAULT_CONNECT_TIMEOUT_MILLIS,
             DEFAULT_READ_TIMEOUT_MILLIS,
             FailoverFeignTarget.DEFAULT_MAX_BACKOFF.toMillis());
@@ -86,6 +86,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     @Override
     public <T> T createProxyWithoutRetrying(
             Optional<TrustContext> trustContext,
+            Optional<ProxySelector> unusedProxySelector,
             String uri,
             Class<T> type,
             String userAgent,
@@ -103,6 +104,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     @Override
     public <T> T createProxy(
             Optional<TrustContext> trustContext,
+            Optional<ProxySelector> unusedProxySelector,
             String uri,
             Class<T> type,
             String userAgent,
@@ -148,7 +150,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Class<T> type,
             String userAgent,
             boolean limitPayload) {
-        PollingRefreshable<ServerListConfig> configPollingRefreshable =
+        PollingRefreshable<ServerListConfig, ServerListConfig> configPollingRefreshable =
                 PollingRefreshable.create(serverListConfigSupplier);
         return Reflection.newProxy(
                 type,
