@@ -54,11 +54,11 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
     private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
 
-    public static final TargetFactory STANDARD = new AtlasDbFeignTargetFactory(
+    static final TargetFactory DEFAULT = new AtlasDbFeignTargetFactory(
             DEFAULT_CONNECT_TIMEOUT_MILLIS,
             DEFAULT_READ_TIMEOUT_MILLIS,
             FailoverFeignTarget.DEFAULT_MAX_BACKOFF.toMillis());
-    public static final TargetFactory FAST_FAIL_FOR_TESTING = new AtlasDbFeignTargetFactory(
+    static final TargetFactory FAST_FAIL_FOR_TESTING = new AtlasDbFeignTargetFactory(
             QUICK_FEIGN_TIMEOUT_MILLIS,
             QUICK_FEIGN_TIMEOUT_MILLIS,
             QUICK_MAX_BACKOFF_MILLIS);
