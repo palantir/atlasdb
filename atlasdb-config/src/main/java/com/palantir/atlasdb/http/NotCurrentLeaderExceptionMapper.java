@@ -25,7 +25,10 @@ import com.palantir.leader.NotCurrentLeaderException;
 
 /**
  * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's
- * {@link AtlasDbHttpProtocolVersion}. This is a 503 response in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
+ * {@link AtlasDbHttpProtocolVersion}. The intention is that clients should failover to other nodes, and there
+ * is no need to wait before retrying as there is no indication that clients should do so.
+ *
+ * This is a 503 response in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  *
  * @author carrino
  */

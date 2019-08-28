@@ -27,8 +27,12 @@ import com.palantir.lock.remoting.BlockingTimeoutException;
 
 /**
  * Converts {@link BlockingTimeoutException}s into appropriate status responses, depending on the user's
- * {@link AtlasDbHttpProtocolVersion}. This is a 503 without a Retry-After header in
- * {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
+ * {@link AtlasDbHttpProtocolVersion}. The intention is that clients should retry on the same node (as in the absence
+ * of exceptional circumstances, it would still be the leader), and they may do so immediately (as an individual lock
+ * being locked does not imply that the server is struggling).
+ *
+ * This is a 503 without a Retry-After header and with a message body corresponding to {@link BlockingTimeoutException}
+ * in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  */
 public class BlockingTimeoutExceptionMapper implements ExceptionMapper<BlockingTimeoutException> {
     @Context
