@@ -13,7 +13,8 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'junit', name: 'junit'
 }

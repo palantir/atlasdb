@@ -21,7 +21,8 @@ dependencies {
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'com.ea.agentloader', name: 'ea-agent-loader'
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
 
     runtime project(":atlasdb-jdbc")
     runtime project(":atlasdb-hikari")
