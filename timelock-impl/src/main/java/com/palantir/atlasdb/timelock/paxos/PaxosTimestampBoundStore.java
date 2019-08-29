@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -67,14 +66,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             PaxosAcceptorNetworkClient acceptorNetworkClient,
             PaxosLearnerNetworkClient learnerClient,
             long maximumWaitBeforeProposalMs) {
-        this.acceptorNetworkClient = acceptorNetworkClient;
-        this.learnerClient = learnerClient;
         DebugLogger.logger.info("Creating PaxosTimestampBoundStore. The UUID of my proposer is {}. "
                 + "Currently, I believe the timestamp bound is {}.",
                 SafeArg.of("proposerUuid", proposer.getUuid()),
                 SafeArg.of("timestampBound", knowledge.getGreatestLearnedValue()));
         this.proposer = proposer;
         this.knowledge = knowledge;
+        this.acceptorNetworkClient = acceptorNetworkClient;
+        this.learnerClient = learnerClient;
         this.maximumWaitBeforeProposalMs = maximumWaitBeforeProposalMs;
     }
 
@@ -212,23 +211,6 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 .map(PaxosLong::getValue)
                 .<SequenceAndBound>map(value -> ImmutableSequenceAndBound.of(seq, value))
                 .findFirst();
-    }
-
-    /**
-     * Gets the value that has been learned from an individual PaxosLearner for a given sequence number.
-     *
-     * @param seq The sequence number to get a value for
-     * @param learner The Paxos learner to query for a value
-     * @return the value learned by the learner for seq
-     * @throws NoSuchElementException if the learner has not learned any value for seq
-     */
-    private static PaxosLong getLearnedValue(long seq, PaxosLearner learner) {
-        PaxosValue value = learner.getLearnedValue(seq);
-        if (value == null) {
-            throw new NoSuchElementException(
-                    String.format("Tried to get a learned value for sequence number '%d' which didn't exist", seq));
-        }
-        return ImmutablePaxosLong.of(PtBytes.toLong(value.getData()));
     }
 
     /**
