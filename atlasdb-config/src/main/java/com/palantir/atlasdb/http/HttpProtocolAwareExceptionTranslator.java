@@ -18,7 +18,6 @@ package com.palantir.atlasdb.http;
 
 import java.util.Optional;
 
-import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
@@ -36,14 +35,11 @@ class HttpProtocolAwareExceptionTranslator<E extends Exception> {
 
     private final AtlasDbHttpProtocolHandler<E> httpProtocolHandler;
 
-    @Inject
-    private Provider<ExceptionMappers> exceptionMappersProvider;
-
     HttpProtocolAwareExceptionTranslator(AtlasDbHttpProtocolHandler<E> httpProtocolHandler) {
         this.httpProtocolHandler = httpProtocolHandler;
     }
 
-    Response translate(HttpHeaders httpHeaders, E exception) {
+    Response translate(Provider<ExceptionMappers> mapProvider, HttpHeaders httpHeaders, E exception) {
         AtlasDbHttpProtocolVersion protocolVersion = AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders);
 
         switch (protocolVersion) {
@@ -51,7 +47,7 @@ class HttpProtocolAwareExceptionTranslator<E extends Exception> {
                 return httpProtocolHandler.handleLegacyOrUnknownVersion(exception);
             case CONJURE_JAVA_RUNTIME:
                 QosException qosException = httpProtocolHandler.handleConjureJavaRuntime(exception);
-                return Optional.ofNullable(exceptionMappersProvider.get())
+                return Optional.ofNullable(mapProvider.get())
                         .flatMap(provider -> Optional.ofNullable(provider.findMapping(qosException)))
                         .map(mapper -> mapper.toResponse(qosException))
                         .orElseThrow(() -> new SafeIllegalStateException("Couldn't find QoS exception mapper."

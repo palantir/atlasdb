@@ -21,7 +21,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 public final class AtlasDbAgents {
     public static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
     public static final AtlasDbHttpProtocolVersion CURRENT_CLIENT_PROTOCOL_VERSION
-            = AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN;
+            = AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME;
     public static final UserAgent.Agent ATLASDB_CONJURE_JAVA_RUNTIME_HTTP_AGENT
             = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, CURRENT_CLIENT_PROTOCOL_VERSION.getProtocolVersionString());
 

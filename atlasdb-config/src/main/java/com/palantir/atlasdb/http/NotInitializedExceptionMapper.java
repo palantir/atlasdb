@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
+import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
@@ -35,6 +37,9 @@ public class NotInitializedExceptionMapper implements ExceptionMapper<NotInitial
     @Context
     private HttpHeaders httpHeaders;
 
+    @Inject
+    private Provider<org.glassfish.jersey.spi.ExceptionMappers> exceptionMappersProvider;
+
     private static final HttpProtocolAwareExceptionTranslator<NotInitializedException> translator = new
             HttpProtocolAwareExceptionTranslator<>(
             AtlasDbHttpProtocolHandler.LambdaHandler.of(
@@ -43,6 +48,6 @@ public class NotInitializedExceptionMapper implements ExceptionMapper<NotInitial
 
     @Override
     public Response toResponse(NotInitializedException exception) {
-        return translator.translate(httpHeaders, exception);
+        return translator.translate(exceptionMappersProvider, httpHeaders, exception);
     }
 }

@@ -17,6 +17,8 @@ package com.palantir.atlasdb.http;
 
 import java.time.Duration;
 
+import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
@@ -38,6 +40,9 @@ public class BlockingTimeoutExceptionMapper implements ExceptionMapper<BlockingT
     @Context
     private HttpHeaders httpHeaders;
 
+    @Inject
+    private Provider<org.glassfish.jersey.spi.ExceptionMappers> exceptionMappersProvider;
+
     private static final HttpProtocolAwareExceptionTranslator<BlockingTimeoutException> translator = new
             HttpProtocolAwareExceptionTranslator<>(
             AtlasDbHttpProtocolHandler.LambdaHandler.of(
@@ -46,6 +51,6 @@ public class BlockingTimeoutExceptionMapper implements ExceptionMapper<BlockingT
 
     @Override
     public Response toResponse(BlockingTimeoutException exception) {
-        return translator.translate(httpHeaders, exception);
+        return translator.translate(exceptionMappersProvider, httpHeaders, exception);
     }
 }

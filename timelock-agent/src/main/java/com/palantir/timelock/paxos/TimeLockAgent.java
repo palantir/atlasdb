@@ -217,7 +217,9 @@ public class TimeLockAgent {
 
     private void registerExceptionMappers() {
         registrar.accept(new BlockingTimeoutExceptionMapper());
-        registrar.accept(new NotCurrentLeaderExceptionMapper());
+        registrar.accept(new NotCurrentLeaderExceptionMapper(
+                Optional.of(install.cluster().clusterMembers())
+        ));
         registrar.accept(new TooManyRequestsExceptionMapper());
     }
 

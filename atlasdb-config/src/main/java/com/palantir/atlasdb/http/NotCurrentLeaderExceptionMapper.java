@@ -15,6 +15,15 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
@@ -36,14 +45,43 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
     @Context
     private HttpHeaders httpHeaders;
 
-    private static final HttpProtocolAwareExceptionTranslator<NotCurrentLeaderException> translator = new
-            HttpProtocolAwareExceptionTranslator<>(
-                    AtlasDbHttpProtocolHandler.LambdaHandler.of(
-                            ExceptionMappers::encode503ResponseWithRetryAfter,
-                            $ -> QosException.unavailable()));
+    @Inject
+    private Provider<org.glassfish.jersey.spi.ExceptionMappers> exceptionMappersProvider;
+
+    private final Optional<List<URL>> servers;
+    private final HttpProtocolAwareExceptionTranslator<NotCurrentLeaderException> translator;
+
+    public NotCurrentLeaderExceptionMapper() {
+        this(Optional.empty());
+    }
+
+    public NotCurrentLeaderExceptionMapper(Optional<List<String>> serverNames) {
+        this.servers = serverNames.map(
+                presentServerStrings -> presentServerStrings.stream()
+                        .map(string -> {
+                            try {
+                                return new URL("https://" + string);
+                            } catch (MalformedURLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
+                        .collect(Collectors.toList()));
+        this.translator = new
+                HttpProtocolAwareExceptionTranslator<>(
+                AtlasDbHttpProtocolHandler.LambdaHandler.of(
+                        ExceptionMappers::encode503ResponseWithRetryAfter,
+                        $ -> {
+                            if (this.servers.isPresent()) {
+                                List<URL> snapshot = this.servers.get();
+                                return QosException.retryOther(
+                                        snapshot.get(ThreadLocalRandom.current().nextInt(snapshot.size())));
+                            }
+                            return QosException.unavailable();
+                        }));
+    }
 
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        return translator.translate(httpHeaders, exception);
+        return translator.translate(exceptionMappersProvider, httpHeaders, exception);
     }
 }
