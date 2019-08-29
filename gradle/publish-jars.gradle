@@ -13,7 +13,7 @@ task sourceJar(type: Jar) {
     classifier 'sources'
 }
 
-task myTestJar(type: Jar) {
+task testJarForPublishing(type: Jar) {
     from project.sourceSets.test.output
     classifier 'tests'
 }
@@ -32,7 +32,7 @@ publishing {
             artifact(sourceJar) {
                 classifier 'sources'
             }
-            artifact(myTestJar) {
+            artifact(testJarForPublishing) {
                 classifier 'tests'
             }
             pom.withXml {
@@ -134,7 +134,7 @@ bintrayUpload.onlyIf {
     System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ releaseVersionRegex
 }
 
-bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'myTestJar', 'build'
+bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJarForPublishing', 'build'
 
 // Artifactory publish
 artifactory {
@@ -156,7 +156,7 @@ artifactory {
 artifactoryPublish.onlyIf {
     System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_JAR_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
 }
-artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'myTestJar', 'build'
+artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJarForPublishing', 'build'
 
 ext {
     releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta|-rc)?(\d+)?/

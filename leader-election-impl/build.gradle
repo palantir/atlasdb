@@ -30,5 +30,5 @@ configurations {
 }
 
 artifacts {
-    testArtifacts myTestJar
+    testArtifacts testJarForPublishing
 }
