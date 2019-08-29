@@ -34,6 +34,8 @@ public final class AtlasDbHttpClients {
     private static final TargetFactory DEFAULT_TARGET_FACTORY = ConjureJavaRuntimeTargetFactory.DEFAULT;
     private static final TargetFactory TESTING_TARGET_FACTORY = ConjureJavaRuntimeTargetFactory.DEFAULT;
 
+    public static final AtlasDbHttpProtocolVersion CLIENT_VERSION = AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME;
+
     private AtlasDbHttpClients() {
         // Utility class
     }

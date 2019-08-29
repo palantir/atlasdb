@@ -51,19 +51,19 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     @Test
     public void cannotIssueTimestampsWithoutQuorum() {
         assertThatThrownBy(() -> SERVER.getFreshTimestamp())
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(ExceptionMatchers::assertIndicativeOfNotBeingCurrentLeader);
     }
 
     @Test
     public void cannotIssueLocksWithoutQuorum() {
         assertThatThrownBy(() -> SERVER.lockService().currentTimeMillis())
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(ExceptionMatchers::assertIndicativeOfNotBeingCurrentLeader);
     }
 
     @Test
     public void cannotPerformTimestampManagementWithoutQuorum() {
         assertThatThrownBy(() -> SERVER.timestampManagementService().fastForwardTimestamp(1000L))
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(ExceptionMatchers::assertIndicativeOfNotBeingCurrentLeader);
     }
 
     @Test

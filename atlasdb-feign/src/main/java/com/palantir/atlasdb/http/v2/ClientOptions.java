@@ -36,15 +36,15 @@ public abstract class ClientOptions {
     public static final ClientOptions DEFAULT_RETRYING = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofSeconds(10))
             .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(0))
+            .backoffSlotSize(Duration.ofMillis(100))
             .failedUrlCooldown(Duration.ofMillis(100))
-            .maxNumRetries(100)
+            .maxNumRetries(5)
             .build();
 
     public static final ClientOptions DEFAULT_NO_RETRYING = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofSeconds(10))
             .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(0))
+            .backoffSlotSize(Duration.ofMillis(100))
             .failedUrlCooldown(Duration.ofMillis(1))
             .maxNumRetries(0)
             .build();
@@ -52,9 +52,9 @@ public abstract class ClientOptions {
     public static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofMillis(100))
             .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(0))
+            .backoffSlotSize(Duration.ofMillis(5))
             .failedUrlCooldown(Duration.ofMillis(1))
-            .maxNumRetries(100)
+            .maxNumRetries(5)
             .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
             .build();
 

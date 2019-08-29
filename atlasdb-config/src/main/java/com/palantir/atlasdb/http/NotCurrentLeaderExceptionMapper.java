@@ -27,10 +27,12 @@ import javax.inject.Provider;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.ExceptionMapper;
 
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's
@@ -44,6 +46,9 @@ import com.palantir.leader.NotCurrentLeaderException;
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
     @Context
     private HttpHeaders httpHeaders;
+
+    @Context
+    private UriInfo uriInfo;
 
     @Inject
     private Provider<org.glassfish.jersey.spi.ExceptionMappers> exceptionMappersProvider;
@@ -73,8 +78,18 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
                         $ -> {
                             if (this.servers.isPresent()) {
                                 List<URL> snapshot = this.servers.get();
-                                return QosException.retryOther(
-                                        snapshot.get(ThreadLocalRandom.current().nextInt(snapshot.size())));
+                                URL randomServer = snapshot.get(ThreadLocalRandom.current().nextInt(snapshot.size()));
+                                try {
+                                    URL requestedUrl = uriInfo.getAbsolutePath().toURL();
+                                    return QosException.retryOther(
+                                            new URL(requestedUrl.getProtocol(),
+                                                    randomServer.getHost(),
+                                                    randomServer.getPort(),
+                                                    requestedUrl.getFile()));
+                                } catch (MalformedURLException e) {
+                                    throw new SafeIllegalStateException("Error in TimeLock's redirection handler",
+                                            e);
+                                }
                             }
                             return QosException.unavailable();
                         }));

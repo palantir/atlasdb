@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.http.v2;
 
 import java.net.ProxySelector;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
@@ -85,11 +86,12 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 proxySelector,
                 trustContext.orElseThrow(() -> new SafeIllegalStateException("CJR requires a trust context")));
 
-        return JaxRsClient.create(
+        return wrapInRetryingProxy(JaxRsClient.create(
                 type,
                 UserAgents.tryParse(userAgent).addAgent(AtlasDbAgents.ATLASDB_CONJURE_JAVA_RUNTIME_HTTP_AGENT),
                 HOST_METRICS_REGISTRY,
-                clientConfiguration);
+                clientConfiguration),
+                type);
     }
 
     @Override
@@ -107,11 +109,16 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                         Duration.ofSeconds(5L),
                         ClientOptions.FAST_RETRYING_FOR_TEST::serverListToClient)
                 .getRefreshable();
-        return JaxRsClient.create(
+        return wrapInRetryingProxy(JaxRsClient.create(
                 type,
                 UserAgents.tryParse(userAgent).addAgent(AtlasDbAgents.ATLASDB_CONJURE_JAVA_RUNTIME_HTTP_AGENT),
                 HOST_METRICS_REGISTRY,
-                refreshableConfig);
+                refreshableConfig),
+                type);
+    }
+
+    private <T> T wrapInRetryingProxy(T object, Class<T> clazz) {
+        return RetryOtherRetryingProxy.newProxyInstance(clazz, object, Clock.systemUTC());
     }
 
     // TODO (gmaretic): This is a hack because CJR doesn't like configurations with 0 servers, yet we claim

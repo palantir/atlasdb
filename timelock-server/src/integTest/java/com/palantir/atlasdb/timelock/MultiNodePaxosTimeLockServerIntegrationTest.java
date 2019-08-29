@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
@@ -107,10 +108,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
         assertThatThrownBy(() -> leader.remoteLock(CLIENT_3, BLOCKING_LOCK_REQUEST))
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                        ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
 
         assertThat(catchThrowable(lockRefreshTokenCompletableFuture::get).getCause())
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                        ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
     }
 
     @Test
@@ -120,25 +123,32 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         TestableTimelockServer leader = CLUSTER.currentLeader();
 
         CompletableFuture<LockResponse> token2 = CompletableFuture.supplyAsync(
-                () -> leader.lock(LockRequest.of(LOCKS, 60_000)));
+                () -> {
+                    LockResponse lockResponse = leader.lock(LockRequest.of(LOCKS, 60_000));
+                    return lockResponse;
+                });
 
         Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
         assertThatThrownBy(() -> leader.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                        ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
 
         assertThat(catchThrowable(token2::get).getCause())
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                        ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
     }
 
     @Test
     public void nonLeadersReturn503() {
         CLUSTER.nonLeaders().forEach(server -> {
             assertThatThrownBy(server::getFreshTimestamp)
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                    .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                            ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
             assertThatThrownBy(() -> server.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                    .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                            ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
         });
     }
 
@@ -163,7 +173,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
 
         assertThatThrownBy(leader::getFreshTimestamp)
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                        ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
     }
 
     @Test
@@ -242,7 +253,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         String client = UUID.randomUUID().toString();
         CLUSTER.nonLeaders().forEach(server -> {
             assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                    .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                            ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
         });
 
         CLUSTER.failoverToNewLeader();
@@ -264,7 +276,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         String client = UUID.randomUUID().toString();
         CLUSTER.nonLeaders().forEach(server -> {
             assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                    .satisfies(MultiNodePaxosTimeLockServerIntegrationTest
+                            ::assertThrowableIsReflectiveOfNotBeingTheCurrentLeader);
         });
 
         long ts1 = CLUSTER.timelockServiceForClient(client).getFreshTimestamp();
@@ -392,5 +405,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     private static long getStartTimestampFromIdentifiedAtlasDbTransaction(UUID requestorUuid) {
         return startIdentifiedAtlasDbTransaction(requestorUuid).startTimestampAndPartition().timestamp();
+    }
+
+    private static void assertThrowableIsReflectiveOfNotBeingTheCurrentLeader(Throwable throwable) {
+        ExceptionMatchers.assertIndicativeOfNotBeingCurrentLeader(AtlasDbHttpClients.CLIENT_VERSION, throwable);
     }
 }
