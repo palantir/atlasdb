@@ -25,7 +25,7 @@ import org.junit.runners.model.Statement;
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterContext;
 import com.google.common.collect.ImmutableSet;
 
-public class ParameterInjector<T extends TestRule> implements TestRule {
+public final class ParameterInjector<T extends TestRule> implements TestRule {
 
     private final Supplier<T> factory;
     private boolean outsideSuite;
