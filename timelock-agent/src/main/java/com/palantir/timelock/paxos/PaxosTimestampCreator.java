@@ -22,7 +22,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.ClientResources;
-import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.NetworkClientFactories;
+import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
