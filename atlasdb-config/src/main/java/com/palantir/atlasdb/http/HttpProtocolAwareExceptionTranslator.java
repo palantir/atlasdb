@@ -52,7 +52,7 @@ class HttpProtocolAwareExceptionTranslator<E extends Exception> {
             case CONJURE_JAVA_RUNTIME:
                 QosException qosException = httpProtocolHandler.handleConjureJavaRuntime(exception);
                 return Optional.ofNullable(exceptionMappersProvider.get())
-                        .flatMap(provider -> Optional.ofNullable(provider.findMapping(qosException)))
+                        .map(provider -> provider.findMapping(qosException))
                         .map(mapper -> mapper.toResponse(qosException))
                         .orElseThrow(() -> new SafeIllegalStateException("Couldn't find QoS exception mapper."
                                 + " This is a product bug."));
