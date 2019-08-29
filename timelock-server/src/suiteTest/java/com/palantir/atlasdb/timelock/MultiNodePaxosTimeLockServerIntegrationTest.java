@@ -180,7 +180,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         bringAllNodesOnline();
         for (TestableTimelockServer server : cluster.servers()) {
             server.kill();
-//            waitForClusterToStabilize();
+            cluster.waitUntilAllServersOnlineAndReadyToServeClients(ADDITIONAL_CLIENTS);
             cluster.getFreshTimestamp();
             server.start();
         }
