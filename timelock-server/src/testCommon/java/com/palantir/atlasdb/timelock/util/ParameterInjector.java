@@ -31,8 +31,12 @@ public class ParameterInjector<T extends TestRule> implements TestRule {
     private boolean outsideSuite;
     private T currentInstance = null;
 
-    public ParameterInjector(Supplier<T> factory) {
+    private ParameterInjector(Supplier<T> factory) {
         this.factory = factory;
+    }
+
+    public static <T extends TestRule> ParameterInjector<T> withFallBackConfiguration(Supplier<T> factory) {
+        return new ParameterInjector<>(factory);
     }
 
     public Iterable<T> getParameter() {
