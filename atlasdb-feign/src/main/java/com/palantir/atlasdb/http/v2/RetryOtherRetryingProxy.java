@@ -72,7 +72,6 @@ public class RetryOtherRetryingProxy<T> extends AbstractInvocationHandler {
     // TODO (jkong): Evil hackery
     private static boolean isRetryOtherException(Throwable t) {
         if (t instanceof RetryableException) {
-            System.out.println(t.getMessage());
             return t.getMessage().contains("Exceeded the maximum number of allowed redirects");
         }
         return false;
