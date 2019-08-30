@@ -85,6 +85,7 @@ public class LockRefresher implements AutoCloseable {
     }
 
     public void unregisterLocks(Collection<LockToken> tokens) {
+        log.error("DEREGISTERING {}", tokens);
         tokensToRefresh.removeAll(tokens);
     }
 

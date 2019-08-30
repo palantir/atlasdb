@@ -115,6 +115,8 @@ class LockLeaseService {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
+        log.error("UNLOCKING {}", leasedLockTokens);
+
         Set<LockToken> unlocked = delegate.unlock(serverTokens(leasedLockTokens));
         return leasedLockTokens.stream()
                 .filter(leasedLockToken -> unlocked.contains(leasedLockToken.serverToken()))
