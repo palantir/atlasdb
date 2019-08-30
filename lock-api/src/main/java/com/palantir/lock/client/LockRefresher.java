@@ -66,7 +66,7 @@ public class LockRefresher implements AutoCloseable {
             }
 
             Set<LockToken> successfullyRefreshedTokens = timelockService.refreshLockLeases(toRefresh);
-            log.error("RESPONSE = {}", toRefresh);
+            log.error("RESPONSE = {}", successfullyRefreshedTokens);
             Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
             tokensToRefresh.removeAll(refreshFailures);
             if (!refreshFailures.isEmpty()) {

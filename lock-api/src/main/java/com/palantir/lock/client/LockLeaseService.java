@@ -71,6 +71,7 @@ class LockLeaseService {
     StartTransactionResponseV4 startTransactions(int batchSize) {
         StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
         StartTransactionResponseV4 response = delegate.startTransactions(request);
+        log.error("STARTED TRANSACTIONS; RESPONSE = {}", response);
 
         Lease lease = response.lease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
@@ -84,6 +85,7 @@ class LockLeaseService {
 
     LockResponse lock(LockRequest request) {
         LockResponseV2 leasableResponse = delegate.lock(IdentifiedLockRequest.from(request));
+        log.error("LOCKED; LEASABLE RESPONSE = {}", leasableResponse);
 
         return leasableResponse.accept(LockResponseV2.Visitor.of(
                 successful -> LockResponse.successful(
