@@ -15,23 +15,32 @@
  */
 package com.palantir.atlasdb.http;
 
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
+import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 
 /**
- * Convert {@link NotCurrentLeaderException} into a 503 status response.
+ * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's
+ * {@link AtlasDbHttpProtocolVersion}. This is a 503 response in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  *
  * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
+    @Context
+    private HttpHeaders httpHeaders;
 
-    /**
-     * Returns a 503 response, with body corresponding to the serialized exception.
-     */
+    private static final HttpProtocolAwareExceptionTranslator<NotCurrentLeaderException> translator = new
+            HttpProtocolAwareExceptionTranslator<>(
+                    AtlasDbHttpProtocolHandler.LambdaHandler.of(
+                            ExceptionMappers::encode503ResponseWithRetryAfter,
+                            $ -> QosException.unavailable()));
+
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+        return translator.translate(httpHeaders, exception);
     }
 }
