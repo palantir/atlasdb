@@ -38,7 +38,8 @@ final class LeasedLockToken implements LockToken {
 
     @Override
     public String toString() {
-        return "LeasedLockToken{" +
+        return "LeasedLockToken@" + System.identityHashCode(this)
+                + "{" +
                 "serverToken=" + serverToken +
                 ", requestId=" + requestId +
                 ", lease=" + lease +

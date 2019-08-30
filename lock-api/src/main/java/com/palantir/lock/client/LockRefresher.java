@@ -46,7 +46,7 @@ public class LockRefresher implements AutoCloseable {
         this.executor = executor;
         this.timelockService = timelockService;
 
-        scheduleRefresh(refreshIntervalMillis);
+        scheduleRefresh(20);
     }
 
     private void scheduleRefresh(long refreshIntervalMillis) {

@@ -20,6 +20,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CoalescingSupplier;
@@ -40,6 +43,7 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
+    private static final Logger log = LoggerFactory.getLogger(LockLeaseService.class);
     private final TimelockRpcClient delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
@@ -129,6 +133,11 @@ class LockLeaseService {
                 .collect(Collectors.toSet());
 
         refreshedTokens.forEach(t -> t.updateLease(lease));
+        log.error("Leased tokens = {}, serverTokens = {}, response = {}, refreshedTokens = {}",
+                leasedTokens,
+                serverTokens(leasedTokens),
+                refreshLockResponse,
+                refreshedTokens);
         return refreshedTokens;
     }
 
