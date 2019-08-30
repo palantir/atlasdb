@@ -60,7 +60,7 @@ public abstract class EteSetup {
     private static Duration waitDuration;
 
     public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.FIVE_MINUTES);
     }
 
     public static RuleChain setupComposition(

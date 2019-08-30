@@ -60,11 +60,13 @@ public class LockRefresher implements AutoCloseable {
     private void refreshLocks() {
         try {
             Set<LockToken> toRefresh = ImmutableSet.copyOf(tokensToRefresh);
+            log.error("LOCKS = {}", toRefresh);
             if (toRefresh.isEmpty()) {
                 return;
             }
 
             Set<LockToken> successfullyRefreshedTokens = timelockService.refreshLockLeases(toRefresh);
+            log.error("RESPONSE = {}", toRefresh);
             Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
             tokensToRefresh.removeAll(refreshFailures);
             if (!refreshFailures.isEmpty()) {

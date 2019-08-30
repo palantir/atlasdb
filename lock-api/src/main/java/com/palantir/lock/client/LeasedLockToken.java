@@ -36,6 +36,16 @@ final class LeasedLockToken implements LockToken {
     @GuardedBy("this")
     private boolean invalidated = false;
 
+    @Override
+    public String toString() {
+        return "LeasedLockToken{" +
+                "serverToken=" + serverToken +
+                ", requestId=" + requestId +
+                ", lease=" + lease +
+                ", invalidated=" + invalidated +
+                '}';
+    }
+
     static LeasedLockToken of(LockToken serverToken, Lease lease) {
         return new LeasedLockToken(serverToken, UUID.randomUUID(), lease);
     }
