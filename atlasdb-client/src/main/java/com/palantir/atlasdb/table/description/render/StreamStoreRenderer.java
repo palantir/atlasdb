@@ -721,6 +721,10 @@ public class StreamStoreRenderer {
         final String StreamMetadataTable = name + "StreamMetadataTable";
         final String StreamMetadataRow = StreamMetadataTable + "." + name + "StreamMetadataRow";
 
+        final String StreamIndexTable = name + "StreamIdxTable";
+        final String StreamIndexRow = StreamIndexTable + "." + name + "StreamIdxRow";
+        final String StreamIndexColumnValue = StreamIndexTable + "." + name + "StreamIdxColumnValue";
+
         final String TableFactory = schemaName + "TableFactory";
         final String MetadataCleanupTask = getMetadataCleanupTaskClassName();
         final String StreamId = streamIdType.getJavaObjectClassName();
@@ -745,19 +749,22 @@ public class StreamStoreRenderer {
             private void packageAndImports() {
                 line("package ", packageName, ";");
                 line();
-                line("import java.util.Collection;");
+                line("import java.util.Iterator;");
                 line("import java.util.Map;");
                 line("import java.util.Set;");
+                line("import java.util.stream.Collectors;");
                 line();
-                line("import com.google.common.collect.Lists;");
                 line("import com.google.common.collect.Sets;");
                 line("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
+                line("import com.palantir.atlasdb.encoding.PtBytes;");
+                line("import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;");
                 line("import com.palantir.atlasdb.keyvalue.api.Cell;");
                 line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
                 line("import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;");
                 line("import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;");
                 line("import com.palantir.atlasdb.table.description.ValueType;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
+                line("import com.palantir.common.streams.KeyedStream;");
 
                 if (streamIdType == ValueType.SHA256HASH) {
                     line("import com.palantir.util.crypto.Sha256Hash;");
@@ -772,8 +779,26 @@ public class StreamStoreRenderer {
                     line("for (Cell cell : cells) {"); {
                         line("rows.add(", StreamMetadataRow, ".BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));");
                     } line("}");
-                    line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);");
-                    line("Set<", StreamId, "> toDelete = Sets.newHashSet();");
+                    line(StreamIndexTable, " indexTable = tables.get", StreamIndexTable, "(t);");
+                    line("Set<", StreamIndexRow, "> indexRows = rows.stream()");
+                    line("        .map(", StreamMetadataRow, "::getId)");
+                    line("        .map(", StreamIndexRow, "::of)");
+                    line("        .collect(Collectors.toSet());");
+                    line("Map<", StreamIndexRow, ", Iterator<", StreamIndexColumnValue, ">> indexIterator");
+                    line("        = indexTable.getRowsColumnRangeIterator(indexRows,");
+                    line("                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));");
+                    line("Set<", StreamMetadataRow, "> rowsWithNoIndexEntries");
+                    line("        = KeyedStream.stream(indexIterator)");
+                    line("        .filter(valueIterator -> !valueIterator.hasNext())");
+                    line("        .keys()");
+                    line("        .map(", StreamIndexRow, "::getId)");
+                    line("        .map(", StreamMetadataRow, "::of)");
+                    line("        .collect(Collectors.toSet());");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata = metaTable.getMetadatas(");
+                    line("        Sets.difference(rows, rowsWithNoIndexEntries));");
+                    line("Set<", StreamId, "> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()");
+                    line("        .map(", StreamMetadataRow, "::getId)");
+                    line("        .collect(Collectors.toSet());");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {"); {
                         line("if (e.getValue().getStatus() != Status.STORED) {"); {
                             line("toDelete.add(e.getKey().getId());");
