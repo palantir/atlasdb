@@ -775,7 +775,7 @@ public class StreamStoreRenderer {
                 line("@Override");
                 line("public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {"); {
                     line(StreamMetadataTable, " metaTable = tables.get", StreamMetadataTable, "(t);");
-                    line("Collection<", StreamMetadataRow, "> rows = Lists.newArrayListWithCapacity(cells.size());");
+                    line("Set<", StreamMetadataRow, "> rows = Sets.newHashSetWithExpectedSize(cells.size());");
                     line("for (Cell cell : cells) {"); {
                         line("rows.add(", StreamMetadataRow, ".BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));");
                     } line("}");
