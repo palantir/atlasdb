@@ -40,7 +40,7 @@ public class CassandraKeyValueServiceConfigTest {
 
     private static final ImmutableCassandraKeyValueServiceConfig CASSANDRA_CONFIG =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVER_ADDRESS))
+                    .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVER_ADDRESS))
                     .replicationFactor(1)
                     .keyspace("atlasdb")
                     .credentials(CREDENTIALS)

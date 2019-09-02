@@ -33,7 +33,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(addr))
+                .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(addr))
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()

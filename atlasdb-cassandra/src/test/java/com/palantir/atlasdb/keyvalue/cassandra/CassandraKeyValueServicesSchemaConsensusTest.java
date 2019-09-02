@@ -57,10 +57,11 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @BeforeClass
     public static void initializeMocks() {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
-        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(FIVE_SERVERS));
+        when(config.servers()).thenReturn(
+                new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(FIVE_SERVERS));
         when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
         when(waitingConfig.servers())
-                .thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(FIVE_SERVERS));
+                .thenReturn(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(FIVE_SERVERS));
     }
 
     @Test

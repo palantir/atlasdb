@@ -56,7 +56,7 @@ public class CassandraContainer extends Container {
     private CassandraContainer(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(forService(name)))
+                .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(forService(name)))
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username(USERNAME)

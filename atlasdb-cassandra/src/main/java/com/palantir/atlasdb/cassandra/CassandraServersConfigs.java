@@ -20,10 +20,14 @@ package com.palantir.atlasdb.cassandra;
 import java.net.InetSocketAddress;
 import java.util.Set;
 
+import org.immutables.value.Value;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableSet;
 
 public final class CassandraServersConfigs {
@@ -31,41 +35,51 @@ public final class CassandraServersConfigs {
 
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "servers",
-            defaultImpl = LegacyCassandraServersConfig.class)
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type",
+            defaultImpl = DefaultCassandraServersCqlDisabledConfig.class)
     public interface CassandraServersConfig {
         Set<InetSocketAddress> thrift();
+        Set<InetSocketAddress> cql();
+        String type();
     }
 
-    @JsonDeserialize(as = LegacyCassandraServersConfig.class)
-    @JsonTypeName(LegacyCassandraServersConfig.TYPE)
-    public static class LegacyCassandraServersConfig implements CassandraServersConfig {
-        public static final String TYPE = "deprecated";
+    @JsonDeserialize(as = DefaultCassandraServersCqlDisabledConfig.class)
+    @JsonTypeName(DefaultCassandraServersCqlDisabledConfig.TYPE)
+    public static class DefaultCassandraServersCqlDisabledConfig implements CassandraServersConfig {
+        public static final String TYPE = "default";
 
         private Set<InetSocketAddress> thriftServers;
 
-        public LegacyCassandraServersConfig(InetSocketAddress thriftAddress) {
-            this.thriftServers = ImmutableSet.of(thriftAddress);
-        }
-
-        public LegacyCassandraServersConfig(InetSocketAddress... thriftServers) {
+        @JsonCreator
+        public DefaultCassandraServersCqlDisabledConfig(InetSocketAddress... thriftServers) {
             this.thriftServers = ImmutableSet.copyOf(thriftServers);
         }
 
         @JsonCreator
-        public LegacyCassandraServersConfig(Iterable<InetSocketAddress> thriftServers) {
+        public DefaultCassandraServersCqlDisabledConfig(Iterable<InetSocketAddress> thriftServers) {
             this.thriftServers = ImmutableSet.copyOf(thriftServers);
         }
 
         @Override
+        @JsonValue
         public Set<InetSocketAddress> thrift() {
             return thriftServers;
         }
 
         @Override
+        public Set<InetSocketAddress> cql() {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        public String type() {
+            return TYPE;
+        }
+
+        @Override
         public boolean equals(Object obj) {
-            if (obj instanceof LegacyCassandraServersConfig) {
-                return thriftServers.equals(((LegacyCassandraServersConfig) obj).thriftServers);
+            if (obj instanceof DefaultCassandraServersCqlDisabledConfig) {
+                return thriftServers.equals(((DefaultCassandraServersCqlDisabledConfig) obj).thriftServers);
             }
             return false;
         }
@@ -73,6 +87,27 @@ public final class CassandraServersConfigs {
         @Override
         public int hashCode() {
             return super.hashCode();
+        }
+    }
+
+
+    @JsonDeserialize(as = ImmutableExplicitCassandraServersCqlDisabledConfig.class)
+    @JsonSerialize(as = ImmutableExplicitCassandraServersCqlDisabledConfig.class)
+    @JsonTypeName(ExplicitCassandraServersCqlDisabledConfig.TYPE)
+    @Value.Immutable
+    public abstract static class ExplicitCassandraServersCqlDisabledConfig implements CassandraServersConfig {
+        public static final String TYPE = "cqlDisabled";
+
+
+        @Override
+        public Set<InetSocketAddress> cql() {
+            return ImmutableSet.of();
+        }
+
+        @Value.Default
+        @Override
+        public String type() {
+            return TYPE;
         }
     }
 }

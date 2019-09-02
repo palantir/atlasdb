@@ -63,7 +63,8 @@ public class TimeLockServerConfigurationTest {
     public static final CassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
             .builder()
             .servers(
-                    new CassandraServersConfigs.LegacyCassandraServersConfig(new InetSocketAddress("cassandra", 9160)))
+                    new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(
+                            new InetSocketAddress("cassandra", 9160)))
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()

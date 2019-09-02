@@ -136,7 +136,7 @@ public class CassandraServiceTest {
                         .username("username")
                         .password("password")
                         .build())
-                .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(
+                .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(
                         servers.toArray(new InetSocketAddress[0])))
                 .build();
 

@@ -42,13 +42,13 @@ public class CassandraAtlasDbFactoryTest {
 
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVERS))
+                    .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVERS))
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVERS))
+                    .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVERS))
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
@@ -102,7 +102,8 @@ public class CassandraAtlasDbFactoryTest {
         CassandraKeyValueServiceConfig newConfig =
                 CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITHOUT_KEYSPACE, Optional::empty,
                         Optional.of(KEYSPACE));
-        assertThat(newConfig.servers()).isEqualTo(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVERS));
+        assertThat(newConfig.servers())
+                .isEqualTo(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVERS));
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
     }
 

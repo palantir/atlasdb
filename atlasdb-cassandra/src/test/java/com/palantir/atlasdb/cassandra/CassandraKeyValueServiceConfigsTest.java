@@ -41,13 +41,13 @@ public class CassandraKeyValueServiceConfigsTest {
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVERS))
+                    .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVERS))
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVERS))
+                    .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVERS))
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
@@ -56,7 +56,7 @@ public class CassandraKeyValueServiceConfigsTest {
     @Test
     public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVERS))
+                .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVERS))
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
@@ -81,7 +81,8 @@ public class CassandraKeyValueServiceConfigsTest {
         CassandraKeyValueServiceConfig newConfig = CassandraKeyValueServiceConfigs.copyWithKeyspace(
                 CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
-        assertThat(newConfig.servers()).isEqualTo(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVERS));
+        assertThat(newConfig.servers())
+                .isEqualTo(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVERS));
     }
 
     @Test
