@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -421,7 +422,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                new TimestampCache(metricsManager.getRegistry(), () -> 1000L),
+                new DefaultTimestampCache(metricsManager.getRegistry(), () -> 1000L),
                 false,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,

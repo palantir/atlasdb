@@ -85,6 +85,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -142,7 +143,7 @@ import com.palantir.timestamp.TimestampService;
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     private TransactionConfig transactionConfig;
 
-    protected final TimestampCache timestampCache = new TimestampCache(
+    protected final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     protected final int defaultGetRangesConcurrency = 2;

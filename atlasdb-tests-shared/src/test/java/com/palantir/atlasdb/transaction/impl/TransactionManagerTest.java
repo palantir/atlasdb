@@ -28,7 +28,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -181,7 +181,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                TimestampCache.createForTests(),
+                DefaultTimestampCache.createForTests(),
                 false,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

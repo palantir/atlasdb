@@ -22,7 +22,7 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -104,7 +104,7 @@ public class TransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                new TimestampCache(metricsManager.getRegistry(),
+                new DefaultTimestampCache(metricsManager.getRegistry(),
                         () -> config.atlasDbRuntimeConfig().getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),

@@ -39,12 +39,12 @@ public class TimestampCacheTest {
 
     @Test
     public void cacheExposesMetrics() throws Exception {
-        Cache<Long, Long> cache = TimestampCache.createCache(AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+        Cache<Long, Long> cache = DefaultTimestampCache.createCache(AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
         AtlasDbMetrics.registerCache(metrics, cache, TEST_CACHE_NAME);
 
-        TimestampCache timestampCache = new TimestampCache(cache);
+        TimestampCache timestampCache = new DefaultTimestampCache(cache);
 
-        SortedMap<String, Gauge> gauges = metrics.getGauges(startsWith(TimestampCache.class.getName()));
+        SortedMap<String, Gauge> gauges = metrics.getGauges(startsWith(DefaultTimestampCache.class.getName()));
         assertThat(gauges.keySet(), hasItems(cacheMetricName("hit.count"), cacheMetricName("miss.ratio")));
 
         assertThat(timestampCache.getCommitTimestampIfPresent(1L), is(nullValue()));
