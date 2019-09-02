@@ -231,6 +231,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void attemptsShouldBeCountedPerHost() {
+        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig());
         CassandraClientPoolImpl cassandraClientPool =
                 CassandraClientPoolImpl.createImplForTest(
                         MetricsManagers.of(metricRegistry, taggedMetricRegistry),
