@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
@@ -132,10 +133,11 @@ public class CassandraServiceTest {
         config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .replicationFactor(3)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
-                                .username("username")
-                                .password("password")
-                                .build())
-                .addServers(servers.toArray(new InetSocketAddress[0]))
+                        .username("username")
+                        .password("password")
+                        .build())
+                .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(
+                        servers.toArray(new InetSocketAddress[0])))
                 .build();
 
         blacklist = new Blacklist(config);

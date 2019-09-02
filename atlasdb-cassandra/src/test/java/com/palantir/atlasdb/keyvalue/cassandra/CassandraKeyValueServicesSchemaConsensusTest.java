@@ -59,7 +59,8 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
         when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(FIVE_SERVERS));
         when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
-        when(waitingConfig.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(FIVE_SERVERS));
+        when(waitingConfig.servers())
+                .thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(FIVE_SERVERS));
     }
 
     @Test

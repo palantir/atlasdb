@@ -251,7 +251,8 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnStartup() {
-        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2, HOST_3));
+        when(config.servers())
+                .thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2, HOST_3));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1);
@@ -262,7 +263,8 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnRefresh() {
-        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2, HOST_3));
+        when(config.servers())
+                .thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2, HOST_3));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1, HOST_2, HOST_3);
