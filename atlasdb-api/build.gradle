@@ -21,7 +21,7 @@ dependencies {
 
   processor group: 'org.immutables', name: 'value'
   compileOnly project(":atlasdb-processors")
-    annotationProcessor project(":atlasdb-processors")
+  annotationProcessor project(":atlasdb-processors")
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.assertj', name: 'assertj-core'
