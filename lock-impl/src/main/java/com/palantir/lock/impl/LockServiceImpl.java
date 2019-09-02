@@ -33,6 +33,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -122,6 +123,7 @@ public final class LockServiceImpl
     private static final String UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT = "Received .unlockAndFreeze()"
             + " call for anonymous client with token {}";
     private static final String UNLOCK_AND_FREEZE = "Received .unlockAndFreeze() call for read locks: {}";
+    private static final String ATLAS_LOCK_PREFIX = "ATLASDB";
     // LegacyTimelockServiceAdapter relies on token ids being convertible to UUIDs; thus this should
     // never be > 127
     public static final int RANDOM_BIT_COUNT = 127;
@@ -164,13 +166,14 @@ public final class LockServiceImpl
     public static final int SECURE_RANDOM_POOL_SIZE = 100;
     private final SecureRandomPool randomPool = new SecureRandomPool(SECURE_RANDOM_ALGORITHM, SECURE_RANDOM_POOL_SIZE);
 
-    private final Ownable<ExecutorService> executor;
+    private final LockReapRunner lockReapRunner;
     private final Runnable callOnClose;
     private final boolean isStandaloneServer;
     private final long slowLogTriggerMillis;
     private final SimpleTimeDuration maxAllowedLockTimeout;
     private final SimpleTimeDuration maxAllowedClockDrift;
     private final SimpleTimeDuration maxNormalLockAge;
+    private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
 
@@ -249,23 +252,15 @@ public final class LockServiceImpl
     }
 
     private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Ownable<ExecutorService> executor) {
-        this.executor = executor;
+        this.lockReapRunner = new LockReapRunner(executor);
         this.callOnClose = callOnClose;
         this.isStandaloneServer = options.isStandaloneServer();
         this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
         this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
+        this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.lockStateLoggerDir = options.getLockStateLoggerDir();
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
-
-        executor.resource().execute(() -> {
-            Thread.currentThread().setName("Held Locks Token Reaper");
-            reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
-        });
-        executor.resource().execute(() -> {
-            Thread.currentThread().setName("Held Locks Grant Reaper");
-            reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
-        });
     }
 
     private HeldLocksToken createHeldLocksToken(LockClient client,
@@ -782,11 +777,23 @@ public final class LockServiceImpl
         if (log.isInfoEnabled()) {
             long age = now - token.getCreationDateMs();
             if (age > maxNormalLockAge.toMillis()) {
-                log.debug("Token refreshed which is {} ms old: {}",
-                        SafeArg.of("ageMillis", age),
-                        UnsafeArg.of("description", description.get()));
+                if (isFromAtlasTransactionWithLockedImmutable(token)) {
+                    log.warn("Token refreshed from a very long lived atlas transaction which is {} ms old: {}",
+                            SafeArg.of("ageMillis", age),
+                            UnsafeArg.of("description", description.get()));
+                } else {
+                    log.debug("Token refreshed which is {} ms old: {}",
+                            SafeArg.of("ageMillis", age),
+                            UnsafeArg.of("description", description.get()));
+                }
             }
         }
+    }
+
+    private boolean isFromAtlasTransactionWithLockedImmutable(ExpiringToken token) {
+        return token.getClient() != null
+                && token.getClient().getClientId().startsWith(ATLAS_LOCK_PREFIX)
+                && token.getVersionId() != null;
     }
 
     @Override
@@ -992,8 +999,15 @@ public final class LockServiceImpl
                     continue;
                 }
                 T realToken = heldLocks.realToken;
-                if (realToken.getExpirationDateMs() > currentTimeMillis()
-                        - maxAllowedClockDrift.toMillis()) {
+                if (realToken.getExpirationDateMs() > currentTimeMillis() - maxAllowedClockDrift.toMillis()) {
+                    if (realToken.getVersionId() != null
+                            && isFromAtlasTransactionWithLockedImmutable(realToken)
+                            && (currentTimeMillis() - realToken.getCreationDateMs()) > stuckTransactionTimeout.toMillis()) {
+                        log.warn("Reaped an actively refreshed lock from a transaction suppressing"
+                                        + " the immutable timestamp that couldn't possibly still be valid.",
+                                SafeArg.of("immutableTimestamp", realToken.getVersionId()),
+                                UnsafeArg.of("token", realToken));
+                    }
                     queue.add(realToken);
                 } else {
                     // TODO (jkong): Make both types of lock tokens identifiable.
@@ -1069,9 +1083,7 @@ public final class LockServiceImpl
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            if (executor.isOwned()) {
-                executor.resource().shutdownNow();
-            }
+            lockReapRunner.close();
             indefinitelyBlockingThreads.forEach(Thread::interrupt);
             callOnClose.run();
         }
@@ -1106,4 +1118,36 @@ public final class LockServiceImpl
         }
     }
 
+    private class LockReapRunner implements AutoCloseable {
+        private final Ownable<ExecutorService> executor;
+        private final List<Future<?>> taskFutures;
+
+        private LockReapRunner(Ownable<ExecutorService> executor) {
+            this.executor = executor;
+
+            Future<Void> tokenReaperFuture = executor.resource().submit(() -> {
+                Thread.currentThread().setName("Held Locks Token Reaper");
+                reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
+                return null;
+            });
+            Future<Void> grantReaperFuture = executor.resource().submit(() -> {
+                Thread.currentThread().setName("Held Locks Grant Reaper");
+                reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
+                return null;
+            });
+            this.taskFutures = ImmutableList.of(tokenReaperFuture, grantReaperFuture);
+        }
+
+        @Override
+        public void close() {
+            if (executor.isOwned()) {
+                executor.resource().shutdownNow();
+            } else {
+                // Even if we don't own the executor, these ordinarily run infinitely, and so MUST be interrupted.
+                // It's not enough to simply guard each iteration, because there are calls to blocking methods that may
+                // block infinitely if no further requests come in.
+                taskFutures.forEach(future -> future.cancel(true));
+            }
+        }
+    }
 }
