@@ -23,7 +23,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
@@ -33,7 +33,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.logsafe.SafeArg;
 
-public class AbortingCommitTsLoader extends CacheLoader<Long, Long> {
+public class AbortingCommitTsLoader implements CacheLoader<Long, Long> {
     private static final Logger log = LoggerFactory.getLogger(AbortingCommitTsLoader.class);
     private final TransactionService transactionService;
 
