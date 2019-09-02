@@ -184,7 +184,7 @@ public final class CassandraVerifier {
     }
 
     private static boolean attemptToCreateKeyspace(CassandraKeyValueServiceConfig config) {
-        return config.servers().stream().anyMatch(host -> attemptToCreateIfNotExists(config, host));
+        return config.servers().thrift().stream().anyMatch(host -> attemptToCreateIfNotExists(config, host));
     }
 
     private static boolean attemptToCreateIfNotExists(CassandraKeyValueServiceConfig config, InetSocketAddress host) {

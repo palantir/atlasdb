@@ -105,7 +105,7 @@ public final class CassandraKeyValueServices {
 
         String configNodes = addNodeInformation(new StringBuilder(),
                 "Nodes specified in config file:",
-                config.servers().stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
+                config.servers().thrift().stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
                 .toString();
 
         String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions, %s. %s"
@@ -141,7 +141,7 @@ public final class CassandraKeyValueServices {
             return false;
         }
 
-        int numberOfServers = config.servers().size();
+        int numberOfServers = config.servers().thrift().size();
         int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
 
         return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);

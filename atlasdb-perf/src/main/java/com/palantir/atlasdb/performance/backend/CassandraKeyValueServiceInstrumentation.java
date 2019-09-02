@@ -18,6 +18,7 @@ package com.palantir.atlasdb.performance.backend;
 import java.net.InetSocketAddress;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -32,7 +33,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(addr)
+                .servers(new CassandraServersConfigs.LegacyCassandraServersConfig(addr))
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()

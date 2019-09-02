@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.immutables.value.Value;
 
@@ -47,7 +46,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
 
-    Set<InetSocketAddress> servers();
+    CassandraServersConfigs.CassandraServersConfig servers();
 
     @Value.Default
     default Map<String, InetSocketAddress> addressTranslation() {
@@ -298,7 +297,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Override
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().size();
+        return poolSize() * servers().thrift().size();
     }
 
     @JsonIgnore
@@ -309,8 +308,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
-        for (InetSocketAddress addr : servers()) {
+        Preconditions.checkState(!servers().thrift().isEmpty(), "'servers' must have at least one entry");
+        for (InetSocketAddress addr : servers().thrift()) {
             Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();

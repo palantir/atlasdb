@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
@@ -250,7 +251,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnStartup() {
-        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2, HOST_3));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1);
@@ -261,7 +262,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnRefresh() {
-        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2, HOST_3));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1, HOST_2, HOST_3);
@@ -276,7 +277,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnStartup() {
-        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1));
+        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1, HOST_2);
@@ -287,7 +288,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnRefresh() {
-        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2));
+        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1, HOST_2);
@@ -302,7 +303,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
-        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2));
+        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2));
         when(config.autoRefreshNodes()).thenReturn(false);
 
         setCassandraServersTo(HOST_1);
@@ -316,7 +317,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
-        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2));
+        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(HOST_1, HOST_2));
         when(config.autoRefreshNodes()).thenReturn(false);
 
         setCassandraServersTo(HOST_1);
@@ -418,7 +419,7 @@ public class CassandraClientPoolTest {
             ImmutableSet<InetSocketAddress> servers,
             ImmutableSet<InetSocketAddress> serversInPool,
             Optional<Exception> failureMode) {
-        when(config.servers()).thenReturn(servers);
+        when(config.servers()).thenReturn(new CassandraServersConfigs.LegacyCassandraServersConfig(servers));
 
         CassandraClientPoolImpl cassandraClientPool =
                 CassandraClientPoolImpl.createImplForTest(

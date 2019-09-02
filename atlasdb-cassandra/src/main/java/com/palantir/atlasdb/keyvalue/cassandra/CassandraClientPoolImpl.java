@@ -279,7 +279,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
-            setServersInPoolTo(config.servers());
+            setServersInPoolTo(config.servers().thrift());
         }
 
         cassandra.debugLogStateOfPool();
