@@ -1,5 +1,4 @@
 apply from: "../gradle/shared.gradle"
-apply plugin: 'org.inferred.processors'
 
 dependencies {
   compile project(":leader-election-api")

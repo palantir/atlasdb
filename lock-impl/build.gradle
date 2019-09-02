@@ -1,6 +1,4 @@
-apply plugin: 'org.inferred.processors'
 
-apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
 

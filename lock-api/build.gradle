@@ -1,4 +1,3 @@
-apply plugin: 'org.inferred.processors'
 apply plugin: 'com.palantir.sls-recommended-dependencies'
 
 apply from: "../gradle/shared.gradle"
