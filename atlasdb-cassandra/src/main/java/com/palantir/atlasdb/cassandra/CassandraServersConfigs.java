@@ -23,6 +23,8 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -37,6 +39,16 @@ public final class CassandraServersConfigs {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type",
             defaultImpl = DefaultCassandraServersCqlDisabledConfig.class)
+    @JsonSubTypes(
+            {
+                    @JsonSubTypes.Type(value = DefaultCassandraServersCqlDisabledConfig.class,
+                            name = DefaultCassandraServersCqlDisabledConfig.TYPE),
+                    @JsonSubTypes.Type(value = ImmutableExplicitCassandraServersCqlDisabledConfig.class,
+                            name = ExplicitCassandraServersCqlDisabledConfig.TYPE),
+                    @JsonSubTypes.Type(value = ImmutableCassandraServersCqlEnabledConfig.class,
+                            name = CassandraServersCqlEnabledConfig.TYPE)
+            }
+    )
     public interface CassandraServersConfig {
         Set<InetSocketAddress> thrift();
         Set<InetSocketAddress> cql();
@@ -103,7 +115,22 @@ public final class CassandraServersConfigs {
             return ImmutableSet.of();
         }
 
-        @Value.Default
+        @JsonProperty
+        @Override
+        public String type() {
+            return TYPE;
+        }
+    }
+
+    @JsonDeserialize(as = ImmutableCassandraServersCqlEnabledConfig.class)
+    @JsonSerialize(as = ImmutableCassandraServersCqlEnabledConfig.class)
+    @JsonTypeName(CassandraServersCqlEnabledConfig.TYPE)
+    @Value.Immutable
+    public abstract static class CassandraServersCqlEnabledConfig implements CassandraServersConfig {
+        public static final String TYPE = "cqlEnabled";
+
+
+        @JsonProperty
         @Override
         public String type() {
             return TYPE;

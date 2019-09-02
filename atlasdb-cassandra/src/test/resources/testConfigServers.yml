@@ -2,7 +2,7 @@ type: "cassandra"
 servers:
     type: "cqlDisabled"
     thrift:
-        - "foo:42"
+      - foo:42
 credentials:
     username: "username"
     password: "password"

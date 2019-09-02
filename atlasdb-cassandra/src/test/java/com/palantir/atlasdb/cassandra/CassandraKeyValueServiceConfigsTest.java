@@ -119,4 +119,40 @@ public class CassandraKeyValueServiceConfigsTest {
                 AtlasDbConfigs.OBJECT_MAPPER.readValue("type: CassandraKeyValueServiceRuntimeConfig",
                         CassandraKeyValueServiceRuntimeConfig.class);
     }
+
+    @Test
+    public void canDeserializeDefaultDisabled() throws IOException, URISyntaxException {
+        CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .servers(ImmutableExplicitCassandraServersCqlDisabledConfig.builder().addAllThrift(SERVERS).build())
+                .replicationFactor(1)
+                .credentials(CREDENTIALS)
+                .build();
+
+        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
+                .getResource("testConfigServers.yml");
+        CassandraKeyValueServiceConfig deserializedTestConfig = AtlasDbConfigs.OBJECT_MAPPER
+                .readValue(new File(configUrl.getPath()), CassandraKeyValueServiceConfig.class);
+
+        assertThat(deserializedTestConfig).isEqualTo(testConfig);
+    }
+
+    @Test
+    public void canDeserializeDefaultEnabled() throws IOException, URISyntaxException {
+        CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .servers(ImmutableCassandraServersCqlEnabledConfig.builder()
+                        .addAllThrift(SERVERS)
+                        .addAllCql(SERVERS)
+                        .build())
+                .replicationFactor(1)
+                .credentials(CREDENTIALS)
+                .build();
+
+        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
+                .getResource("testConfigCQL.yml");
+        CassandraKeyValueServiceConfig deserializedTestConfig = AtlasDbConfigs.OBJECT_MAPPER
+                .readValue(new File(configUrl.getPath()), CassandraKeyValueServiceConfig.class);
+
+        assertThat(deserializedTestConfig).isEqualTo(testConfig);
+    }
 }
+

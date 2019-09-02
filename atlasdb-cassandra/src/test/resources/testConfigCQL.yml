@@ -1,0 +1,11 @@
+type: "cassandra"
+servers:
+  type: "cqlEnabled"
+  thrift:
+    - foo:42
+  cql:
+    - foo:42
+credentials:
+  username: "username"
+  password: "password"
+replicationFactor: 1
