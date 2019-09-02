@@ -798,7 +798,7 @@ public class StreamStoreRenderer {
                     line("        Sets.difference(rows, rowsWithNoIndexEntries));");
                     line("Set<", StreamId, "> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()");
                     line("        .map(", StreamMetadataRow, "::getId)");
-                    line("        .collect(Collectors.toSet());");
+                    line("        .collect(Collectors.toSet()));");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {"); {
                         line("if (e.getValue().getStatus() != Status.STORED) {"); {
                             line("toDelete.add(e.getKey().getId());");
