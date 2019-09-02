@@ -1,18 +1,21 @@
 package com.palantir.atlasdb.blob.generated;
 
-import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.common.streams.KeyedStream;
 
 public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
 
@@ -25,12 +28,30 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
     @Override
     public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {
         HotspottyDataStreamMetadataTable metaTable = tables.getHotspottyDataStreamMetadataTable(t);
-        Collection<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rows = Lists.newArrayListWithCapacity(cells.size());
+        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rows = Sets.newHashSetWithExpectedSize(cells.size());
         for (Cell cell : cells) {
             rows.add(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
-        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
-        Set<Long> toDelete = Sets.newHashSet();
+        HotspottyDataStreamIdxTable indexTable = tables.getHotspottyDataStreamIdxTable(t);
+        Set<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow> indexRows = rows.stream()
+                .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::getId)
+                .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::of)
+                .collect(Collectors.toSet());
+        Map<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, Iterator<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue>> indexIterator
+                = indexTable.getRowsColumnRangeIterator(indexRows,
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rowsWithNoIndexEntries
+                = KeyedStream.stream(indexIterator)
+                .filter(valueIterator -> !valueIterator.hasNext())
+                .keys()
+                .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::getId)
+                .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::of)
+                .collect(Collectors.toSet());
+        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(
+                Sets.difference(rows, rowsWithNoIndexEntries));
+        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
+                .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::getId)
+                .collect(Collectors.toSet()));
         for (Map.Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED) {
                 toDelete.add(e.getKey().getId());
