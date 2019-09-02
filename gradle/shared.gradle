@@ -43,6 +43,15 @@ dependencies {
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
 
+jar {
+    manifest {
+        attributes(
+                "Implementation-Title": project.name,
+                "Implementation-Version": project.version,
+                "Implementation-Vendor": "Palantir Technologies, Inc.")
+    }
+}
+
 license {
     header rootProject.file('config/HEADER')
     skipExistingHeaders true

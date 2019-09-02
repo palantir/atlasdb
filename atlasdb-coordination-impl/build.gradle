@@ -1,4 +1,3 @@
-apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
@@ -12,9 +11,11 @@ dependencies {
 
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
-  processor project(":atlasdb-processors")
+  compileOnly project(":atlasdb-processors")
+    annotationProcessor project(":atlasdb-processors")
   processor group: 'org.immutables', name: 'value'
 
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
 }

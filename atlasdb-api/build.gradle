@@ -1,4 +1,3 @@
-apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
@@ -13,6 +12,7 @@ dependencies {
   compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'javax.validation', name: 'validation-api'
 
+  compile 'com.github.ben-manes.caffeine:caffeine'
   compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
   compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
@@ -21,7 +21,8 @@ dependencies {
   }
 
   processor group: 'org.immutables', name: 'value'
-  processor project(":atlasdb-processors")
+  compileOnly project(":atlasdb-processors")
+    annotationProcessor project(":atlasdb-processors")
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.assertj', name: 'assertj-core'
@@ -29,16 +30,3 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 }
-
-task versionInfo {
-  doLast {
-    def metaInf = new File("${sourceSets.main.output.classesDir}/META-INF")
-    if (metaInf.mkdir()) {
-      def versionfile = new File(metaInf, "atlasdb.version")
-      versionfile.text = project.version
-    } else {
-      println "Unable to create directory: ${metaInf}"
-    }
-  }
-}
-compileJava.finalizedBy versionInfo
