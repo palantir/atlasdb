@@ -97,7 +97,7 @@ public final class CassandraServersConfigs {
     @Value.Immutable
     public abstract static class ExplicitCassandraServersCqlDisabledConfig implements CassandraServersConfig {
         public static final String TYPE = "cqlDisabled";
-        
+
         @Override
         public Set<InetSocketAddress> cql() {
             return ImmutableSet.of();
