@@ -47,13 +47,10 @@ public class TestHashComponentsMetadataCleanupTask implements OnCleanupTask {
                 .map(TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow::getId)
                 .map(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow::of)
                 .collect(Collectors.toSet());
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(
-                Sets.difference(rows, rowsWithNoIndexEntries));
-        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
-                .map(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow::getId)
-                .collect(Collectors.toSet()));
+        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

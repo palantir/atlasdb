@@ -47,13 +47,10 @@ public class StreamTestWithHashMetadataCleanupTask implements OnCleanupTask {
                 .map(StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow::getId)
                 .map(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow::of)
                 .collect(Collectors.toSet());
-        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(
-                Sets.difference(rows, rowsWithNoIndexEntries));
-        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
-                .map(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow::getId)
-                .collect(Collectors.toSet()));
+        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

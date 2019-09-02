@@ -47,13 +47,10 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
                 .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::getId)
                 .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::of)
                 .collect(Collectors.toSet());
-        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(
-                Sets.difference(rows, rowsWithNoIndexEntries));
-        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
-                .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::getId)
-                .collect(Collectors.toSet()));
+        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

@@ -13,6 +13,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.streams.KeyedStream;
 
@@ -46,13 +47,10 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
                 .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::getId)
                 .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::of)
                 .collect(Collectors.toSet());
-        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(
-                Sets.difference(rows, rowsWithNoIndexEntries));
-        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
-                .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::getId)
-                .collect(Collectors.toSet()));
+        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

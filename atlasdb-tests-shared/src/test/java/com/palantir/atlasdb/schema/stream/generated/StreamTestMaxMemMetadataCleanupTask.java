@@ -47,13 +47,10 @@ public class StreamTestMaxMemMetadataCleanupTask implements OnCleanupTask {
                 .map(StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow::getId)
                 .map(StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow::of)
                 .collect(Collectors.toSet());
-        Map<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(
-                Sets.difference(rows, rowsWithNoIndexEntries));
-        Set<Long> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()
-                .map(StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow::getId)
-                .collect(Collectors.toSet()));
+        Map<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
+            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }
