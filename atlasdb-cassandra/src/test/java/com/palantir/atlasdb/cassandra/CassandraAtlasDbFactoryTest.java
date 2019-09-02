@@ -102,7 +102,7 @@ public class CassandraAtlasDbFactoryTest {
         CassandraKeyValueServiceConfig newConfig =
                 CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITHOUT_KEYSPACE, Optional::empty,
                         Optional.of(KEYSPACE));
-        assertThat(newConfig.servers()).isEqualTo(SERVERS);
+        assertThat(newConfig.servers()).isEqualTo(new CassandraServersConfigs.LegacyCassandraServersConfig(SERVERS));
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
     }
 
