@@ -794,13 +794,10 @@ public class StreamStoreRenderer {
                     line("        .map(", StreamIndexRow, "::getId)");
                     line("        .map(", StreamMetadataRow, "::of)");
                     line("        .collect(Collectors.toSet());");
-                    line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata = metaTable.getMetadatas(");
-                    line("        Sets.difference(rows, rowsWithNoIndexEntries));");
-                    line("Set<", StreamId, "> toDelete = Sets.newHashSet(rowsWithNoIndexEntries.stream()");
-                    line("        .map(", StreamMetadataRow, "::getId)");
-                    line("        .collect(Collectors.toSet()));");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);");
+                    line("Set<", StreamId, "> toDelete = Sets.newHashSet();");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {"); {
-                        line("if (e.getValue().getStatus() != Status.STORED) {"); {
+                        line("if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {"); {
                             line("toDelete.add(e.getKey().getId());");
                         } line("}");
                     } line("}");
