@@ -1,7 +1,5 @@
-apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
 
-apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
@@ -37,6 +35,7 @@ dependencies {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
 
+    testCompile group: 'com.palantir.conjure.java.runtime', name: 'client-config'
     testCompile project(":atlasdb-tests-shared")
     testCompile project(":atlasdb-dbkvs")
     testCompile (project(":atlasdb-cassandra")) {

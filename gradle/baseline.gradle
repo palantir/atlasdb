@@ -2,8 +2,7 @@ apply plugin: 'com.palantir.baseline-checkstyle'
 
 // ./gradlew compileJava compileTestJava -PenableErrorProne=true
 if (enableErrorProne.toBoolean()) {
-    apply plugin: 'org.inferred.processors'
-    // installs the "processor" configuration needed for baseline-error-prone
+        // installs the "processor" configuration needed for baseline-error-prone
     apply plugin: 'com.palantir.baseline-error-prone'
 
     plugins.withId('com.palantir.baseline-error-prone', {
