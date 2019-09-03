@@ -1,10 +1,10 @@
 type: "cassandra"
 servers:
   type: "cqlCapable"
-  thrift:
-    - foo:42
-  cql:
-    - foo:42
+  hosts:
+    - hostname: "foo"
+      thriftPort: 44
+      cqlPort: 45
 credentials:
   username: "username"
   password: "password"

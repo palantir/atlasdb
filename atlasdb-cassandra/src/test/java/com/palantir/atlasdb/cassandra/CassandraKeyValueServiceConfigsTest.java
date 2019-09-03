@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -138,10 +140,13 @@ public class CassandraKeyValueServiceConfigsTest {
 
     @Test
     public void canDeserializeDefaultEnabled() throws IOException, URISyntaxException {
+        List<CassandraServersConfigs.CqlCapableConfig.CqlCapableServer> hosts =
+                SERVERS.stream().map(server ->
+                        CassandraServersConfigs.cqlCapableServer(server.getHostName(), 44, 45))
+                        .collect(Collectors.toList());
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
-                        .addAllThrift(SERVERS)
-                        .addAllCql(SERVERS)
+                        .addAllHosts(hosts)
                         .build())
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)

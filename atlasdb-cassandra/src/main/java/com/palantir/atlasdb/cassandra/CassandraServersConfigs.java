@@ -18,9 +18,11 @@ package com.palantir.atlasdb.cassandra;
 
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -54,13 +56,24 @@ public final class CassandraServersConfigs {
         return ImmutableThriftOnlyConfig.builder().addThrift(thriftServers).build();
     }
 
-    // TODO (OStevan): update this
-    public static CqlCapableConfig cqlCapableConfig(Set<InetSocketAddress> thriftServers,
-            Set<InetSocketAddress> cqlServers) {
-        return ImmutableCqlCapableConfig.builder().addAllThrift(thriftServers).addAllCql(cqlServers).build();
+    public static CqlCapableConfig cqlCapableConfig(CqlCapableConfig.CqlCapableServer... servers) {
+        return ImmutableCqlCapableConfig.builder().addHosts(servers).build();
+    }
+
+    public static CqlCapableConfig cqlCapableConfig(Iterable<CqlCapableConfig.CqlCapableServer> servers) {
+        return ImmutableCqlCapableConfig.builder().addAllHosts(servers).build();
     }
 
 
+    public static CqlCapableConfig.CqlCapableServer cqlCapableServer(String hostname, int thriftPort, int cqlPort) {
+        Preconditions.checkState(thriftPort > 0, "Thrift port should be a positive number");
+        Preconditions.checkState(cqlPort > 0, "CQL port should be a positive number");
+        return ImmutableCqlCapableServer
+                .builder()
+                .hostname(hostname)
+                .thriftPort(thriftPort)
+                .cqlPort(cqlPort).build();
+    }
 
     public interface Visitor<T> extends BiFunction<Set<InetSocketAddress>, Optional<Set<InetSocketAddress>>, T> {
     }
@@ -158,29 +171,43 @@ public final class CassandraServersConfigs {
     public abstract static class CqlCapableConfig implements CassandraServersConfig {
         public static final String TYPE = "cqlCapable";
 
-        @Override
-        public final <T> T visit(Visitor<T> visitor) {
-            return visitor.apply(thrift(), Optional.of(cql()));
+        @Value.Immutable
+        @JsonDeserialize(as = ImmutableCqlCapableServer.class)
+        @JsonSerialize(as = ImmutableCqlCapableServer.class)
+        interface CqlCapableServer {
+
+            @JsonProperty
+            String hostname();
+            @JsonProperty
+            Integer thriftPort();
+
+            @JsonProperty
+            Integer cqlPort();
+
+            default InetSocketAddress thriftServer() {
+                return new InetSocketAddress(hostname(), thriftPort());
+            }
+
+            default InetSocketAddress cqlServer() {
+                return new InetSocketAddress(hostname(), thriftPort());
+            }
         }
 
-        // TODO (OStevan): this is a temp solution before implementing the full thing
+        @Override
+        public final <T> T visit(Visitor<T> visitor) {
+            return visitor.apply(hosts().stream().map(CqlCapableServer::thriftServer).collect(Collectors.toSet()),
+                    Optional.of(hosts().stream().map(CqlCapableServer::thriftServer).collect(Collectors.toSet())));
+        }
+
+
         @Override
         public final int numberOfHosts() {
-            return thrift().size();
+            return hosts().size();
         }
 
         @Override
         public final void check() {
-            // TODO (OStevan): still to bea updated with new format
-            Preconditions.checkState(!thrift().isEmpty(), "there should be at least one thrift capable entry");
-            Preconditions.checkState(thrift().size() == cql().size(),
-                    "there should be the same number of CQL and Thrift entries");
-            for (InetSocketAddress addr : thrift()) {
-                Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
-            }
-            for (InetSocketAddress addr : cql()) {
-                Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
-            }
+            Preconditions.checkState(!hosts().isEmpty(), "there should be at least one thrift capable entry");
         }
 
         @JsonProperty
@@ -190,9 +217,6 @@ public final class CassandraServersConfigs {
         }
 
         @JsonProperty
-        public abstract Set<InetSocketAddress> thrift();
-
-        @JsonProperty
-        public abstract Set<InetSocketAddress> cql();
+        public abstract List<CqlCapableServer> hosts();
     }
 }
