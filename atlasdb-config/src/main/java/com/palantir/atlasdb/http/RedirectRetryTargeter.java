@@ -17,42 +17,46 @@
 package com.palantir.atlasdb.http;
 
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 
+import javax.ws.rs.core.UriBuilder;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class RedirectRetryTargeter {
+class RedirectRetryTargeter {
     private final URL localServerBaseUrl;
     private final URL nextServerBaseUrl;
 
-    public RedirectRetryTargeter(URL localServerBaseUrl, URL nextServerBaseUrl) {
+    RedirectRetryTargeter(URL localServerBaseUrl, URL nextServerBaseUrl) {
         this.localServerBaseUrl = localServerBaseUrl;
         this.nextServerBaseUrl = nextServerBaseUrl;
     }
 
     // Precondition: requestUrl is a suffix of the local server's base URL.
-    public URL redirectRequest(URL requestUrl) {
-        String requestContextPath = getRequestContextPath(requestUrl);
+    URL redirectRequest(URL requestUrl) {
+        String requestContextPath = getRequestPath(requestUrl);
         try {
-            return new URL(
-                    nextServerBaseUrl.getProtocol(),
-                    nextServerBaseUrl.getHost(),
-                    nextServerBaseUrl.getPort(),
-                    nextServerBaseUrl.getFile() + requestContextPath);
-        } catch (MalformedURLException e) {
+            return UriBuilder.fromUri(nextServerBaseUrl.toURI())
+                    .path(requestContextPath)
+                    .build()
+                    .toURL();
+        } catch (MalformedURLException | URISyntaxException e) {
             throw new RuntimeException("Error when constructing a URL in RedirectRetryTargeter. This is"
                     + " a product bug. The path of this URL was " + nextServerBaseUrl.getFile() + requestContextPath);
         }
     }
 
-    private String getRequestContextPath(URL requestUrl) {
+    @VisibleForTesting
+    String getRequestPath(URL requestUrl) {
         String localServerContextPath = localServerBaseUrl.getPath();
         String requestPath = requestUrl.getPath();
         Preconditions.checkState(requestPath.startsWith(localServerContextPath),
                 "We attempted to process a request in an application-specific exception mapper that is not"
-                        + " in our context path. This is strange, and a product bug.",
+                        + " in our context path.",
                 SafeArg.of("localServerBaseUrl", localServerBaseUrl),
                 UnsafeArg.of("requestUrl", requestUrl)); // unsafe since this is user-provided
 
