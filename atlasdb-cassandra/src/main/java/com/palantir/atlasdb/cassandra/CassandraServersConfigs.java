@@ -77,12 +77,16 @@ public final class CassandraServersConfigs {
     }
 
 
+    @Value.Immutable
     @JsonDeserialize(as = ImmutableThriftOnlyCassandraServersConfig.class)
     @JsonSerialize(as = ImmutableThriftOnlyCassandraServersConfig.class)
     @JsonTypeName(ThriftOnlyCassandraServersConfig.TYPE)
-    @Value.Immutable
     public interface ThriftOnlyCassandraServersConfig extends CassandraServersConfig {
         String TYPE = "thriftOnly";
+
+        @JsonProperty
+        @Override
+        Set<InetSocketAddress> thrift();
 
         @Override
         default Set<InetSocketAddress> cql() {
@@ -102,6 +106,14 @@ public final class CassandraServersConfigs {
     @Value.Immutable
     public interface CqlCapableCassandraServersConfig extends CassandraServersConfig {
         String TYPE = "cqlCapable";
+
+        @JsonProperty
+        @Override
+        Set<InetSocketAddress> thrift();
+
+        @JsonProperty
+        @Override
+        Set<InetSocketAddress> cql();
 
         @JsonProperty
         @Override

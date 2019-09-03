@@ -1,6 +1,6 @@
 type: "cassandra"
 servers:
-    type: "cqlDisabled"
+    type: "thriftOnly"
     thrift:
       - foo:42
 credentials:

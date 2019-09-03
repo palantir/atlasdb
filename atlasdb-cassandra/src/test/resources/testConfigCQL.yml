@@ -1,6 +1,6 @@
 type: "cassandra"
 servers:
-  type: "cqlEnabled"
+  type: "cqlCapable"
   thrift:
     - foo:42
   cql:
