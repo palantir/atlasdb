@@ -65,9 +65,9 @@ public class RedirectRetryTargeter {
 
     @Override
     public String toString() {
-        return "RedirectRetryTargeter{" +
-                "localServerBaseUrl=" + localServerBaseUrl +
-                ", nextServerBaseUrl=" + nextServerBaseUrl +
-                '}';
+        return "RedirectRetryTargeter{"
+                + "localServerBaseUrl=" + localServerBaseUrl
+                + ", nextServerBaseUrl=" + nextServerBaseUrl
+                + '}';
     }
 }
