@@ -34,6 +34,7 @@ import okhttp3.ConnectionPool;
 import okhttp3.ConnectionSpec;
 import okhttp3.TlsVersion;
 
+@SuppressWarnings("OptionalOrElseMethodInvocation")
 public final class FeignOkHttpClients {
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);

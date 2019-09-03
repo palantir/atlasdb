@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.lock.SingleLockService;
 
+@SuppressWarnings("OptionalOrElseMethodInvocation")
 public final class TableToSweep {
     private final TableReference tableRef;
     private final SingleLockService sweepLock;
