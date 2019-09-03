@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
@@ -149,4 +151,15 @@ public class PaxosRemotingUtilsTest {
                 .containsExactlyInAnyOrder("https://foo:1", "https://bar:2");
     }
 
+    @Test
+    public void convertAddressToUrlCreatesComponentsCorrectly_NoSsl() throws MalformedURLException {
+        assertThat(PaxosRemotingUtils.convertAddressToUrl(NO_SSL_TIMELOCK, "foo:42/timelock/api/timelock"))
+                .isEqualTo(new URL("http", "foo", 42, "/timelock/api/timelock"));
+    }
+
+    @Test
+    public void convertAddressToUrlCreatesComponentsCorrectly_Ssl() throws MalformedURLException {
+        assertThat(PaxosRemotingUtils.convertAddressToUrl(SSL_TIMELOCK, "foo:42/api/bar/baz/bzzt"))
+                .isEqualTo(new URL("https", "foo", 42, "/api/bar/baz/bzzt"));
+    }
 }
