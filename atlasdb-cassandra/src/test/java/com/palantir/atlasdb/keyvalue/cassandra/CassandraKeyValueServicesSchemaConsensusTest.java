@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultCassandraServersCqlDisabledConfig;
 
 public class CassandraKeyValueServicesSchemaConsensusTest {
