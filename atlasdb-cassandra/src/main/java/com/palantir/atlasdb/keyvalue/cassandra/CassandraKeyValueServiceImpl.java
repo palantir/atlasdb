@@ -402,7 +402,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             MetricRegistry registry) {
         return new InstrumentedExecutorService(
                 createFixedThreadPool("Atlas Cassandra KVS",
-                        config.poolSize() * config.servers().thrift().size()),
+                        config.poolSize() * config.servers().numberOfHosts()),
                 registry,
                 MetricRegistry.name(CassandraKeyValueService.class, "executorService"));
     }

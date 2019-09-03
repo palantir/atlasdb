@@ -297,7 +297,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Override
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().thrift().size();
+        return poolSize() * servers().numberOfHosts();
     }
 
     @JsonIgnore
@@ -308,10 +308,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!servers().thrift().isEmpty(), "'servers' must have at least one entry");
-        for (InetSocketAddress addr : servers().thrift()) {
-            Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
-        }
+        servers().check();
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
