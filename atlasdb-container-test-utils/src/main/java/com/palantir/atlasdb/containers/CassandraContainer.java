@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableDefaultCassandraServersCqlDisabledConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -56,7 +56,7 @@ public class CassandraContainer extends Container {
     private CassandraContainer(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableDefaultCassandraServersCqlDisabledConfig
+                .servers(ImmutableDefaultConfig
                         .builder().addThrift(forService(name)).build())
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()

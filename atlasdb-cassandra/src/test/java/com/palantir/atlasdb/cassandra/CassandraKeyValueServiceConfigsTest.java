@@ -41,13 +41,13 @@ public class CassandraKeyValueServiceConfigsTest {
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultCassandraServersCqlDisabledConfig.builder().addAllThrift(SERVERS).build())
+                    .servers(ImmutableDefaultConfig.builder().addAllThrift(SERVERS).build())
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultCassandraServersCqlDisabledConfig.builder().addAllThrift(SERVERS).build())
+                    .servers(ImmutableDefaultConfig.builder().addAllThrift(SERVERS).build())
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
@@ -56,7 +56,7 @@ public class CassandraKeyValueServiceConfigsTest {
     @Test
     public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableDefaultCassandraServersCqlDisabledConfig.builder().addAllThrift(SERVERS).build())
+                .servers(ImmutableDefaultConfig.builder().addAllThrift(SERVERS).build())
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
@@ -82,7 +82,7 @@ public class CassandraKeyValueServiceConfigsTest {
                 CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
         assertThat(newConfig.servers())
-                .isEqualTo(ImmutableDefaultCassandraServersCqlDisabledConfig.builder().addAllThrift(SERVERS).build());
+                .isEqualTo(ImmutableDefaultConfig.builder().addAllThrift(SERVERS).build());
     }
 
     @Test
@@ -123,7 +123,7 @@ public class CassandraKeyValueServiceConfigsTest {
     @Test
     public void canDeserializeDefaultDisabled() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableThriftOnlyCassandraServersConfig.builder().addAllThrift(SERVERS).build())
+                .servers(ImmutableThriftOnlyConfig.builder().addAllThrift(SERVERS).build())
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
                 .build();
@@ -139,7 +139,7 @@ public class CassandraKeyValueServiceConfigsTest {
     @Test
     public void canDeserializeDefaultEnabled() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableCqlCapableCassandraServersConfig.builder()
+                .servers(ImmutableCqlCapableConfig.builder()
                         .addAllThrift(SERVERS)
                         .addAllCql(SERVERS)
                         .build())

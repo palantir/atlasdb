@@ -54,8 +54,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
-import com.palantir.atlasdb.cassandra.ImmutableDefaultCassandraServersCqlDisabledConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
@@ -232,7 +231,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void attemptsShouldBeCountedPerHost() {
-        when(config.servers()).thenReturn(ImmutableDefaultCassandraServersCqlDisabledConfig
+        when(config.servers()).thenReturn(ImmutableDefaultConfig
                 .builder().addThrift().build());
         CassandraClientPoolImpl cassandraClientPool =
                 CassandraClientPoolImpl.createImplForTest(
@@ -256,7 +255,7 @@ public class CassandraClientPoolTest {
     public void hostIsAutomaticallyRemovedOnStartup() {
         when(config.servers())
                 .thenReturn(
-                        ImmutableDefaultCassandraServersCqlDisabledConfig
+                        ImmutableDefaultConfig
                                 .builder().addThrift(HOST_1, HOST_2, HOST_3).build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -270,7 +269,7 @@ public class CassandraClientPoolTest {
     public void hostIsAutomaticallyRemovedOnRefresh() {
         when(config.servers())
                 .thenReturn(
-                        ImmutableDefaultCassandraServersCqlDisabledConfig
+                        ImmutableDefaultConfig
                                 .builder().addThrift(HOST_1, HOST_2, HOST_3).build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -286,7 +285,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnStartup() {
-        when(config.servers()).thenReturn(ImmutableDefaultCassandraServersCqlDisabledConfig
+        when(config.servers()).thenReturn(ImmutableDefaultConfig
                 .builder().addThrift(HOST_1).build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -299,7 +298,7 @@ public class CassandraClientPoolTest {
     @Test
     public void hostIsAutomaticallyAddedOnRefresh() {
         when(config.servers()).thenReturn(
-                ImmutableDefaultCassandraServersCqlDisabledConfig
+                ImmutableDefaultConfig
                         .builder().addThrift(HOST_1, HOST_2).build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -316,7 +315,7 @@ public class CassandraClientPoolTest {
     @Test
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
         when(config.servers()).thenReturn(
-                ImmutableDefaultCassandraServersCqlDisabledConfig
+                ImmutableDefaultConfig
                         .builder().addThrift(HOST_1, HOST_2).build());
         when(config.autoRefreshNodes()).thenReturn(false);
 
@@ -332,7 +331,7 @@ public class CassandraClientPoolTest {
     @Test
     public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
         when(config.servers()).thenReturn(
-                ImmutableDefaultCassandraServersCqlDisabledConfig
+                ImmutableDefaultConfig
                         .builder().addThrift(HOST_1, HOST_2).build());
         when(config.autoRefreshNodes()).thenReturn(false);
 
@@ -436,7 +435,7 @@ public class CassandraClientPoolTest {
             ImmutableSet<InetSocketAddress> serversInPool,
             Optional<Exception> failureMode) {
         when(config.servers()).thenReturn(
-                ImmutableDefaultCassandraServersCqlDisabledConfig
+                ImmutableDefaultConfig
                         .builder().addAllThrift(servers).build());
 
         CassandraClientPoolImpl cassandraClientPool =

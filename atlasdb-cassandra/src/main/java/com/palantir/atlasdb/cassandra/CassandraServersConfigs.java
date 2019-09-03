@@ -38,36 +38,44 @@ public final class CassandraServersConfigs {
 
     }
 
-    //    public static abstract class Visitor<T> {
-    //        protected Set<InetSocketAddress> thriftAddresses;
-    //        protected Set<InetSocketAddress> maybeCalAddresses;
-    //
-    //
-    //        public final void setThriftPorts(Set<InetSocketAddress> thriftAddresses) {
-    //            this.thriftAddresses = thriftAddresses;
-    //        }
-    //        public final void setCQLPorts(Set<InetSocketAddress> cqlPorts) {
-    //            maybeCalAddresses = cqlPorts;
-    //        }
-    //
-    //        public abstract T result();
-    //    }
+    public static DefaultConfig defaultConfig(Set<InetSocketAddress> thriftServers) {
+        return ImmutableDefaultConfig.builder().addAllThrift(thriftServers).build();
+    }
+
+    public static DefaultConfig defaultConfig(InetSocketAddress thriftServers) {
+        return ImmutableDefaultConfig.builder().addThrift(thriftServers).build();
+    }
+
+    public static ThriftOnlyConfig thriftOnlyConfig(Set<InetSocketAddress> thriftServers) {
+        return ImmutableThriftOnlyConfig.builder().addAllThrift(thriftServers).build();
+    }
+
+    public static ThriftOnlyConfig thriftOnlyConfig(InetSocketAddress thriftServers) {
+        return ImmutableThriftOnlyConfig.builder().addThrift(thriftServers).build();
+    }
+
+    // TODO (OStevan): update this
+    public static CqlCapableConfig cqlCapableConfig(Set<InetSocketAddress> thriftServers,
+            Set<InetSocketAddress> cqlServers) {
+        return ImmutableCqlCapableConfig.builder().addAllThrift(thriftServers).addAllCql(cqlServers).build();
+    }
+
+
 
     public interface Visitor<T> extends BiFunction<Set<InetSocketAddress>, Optional<Set<InetSocketAddress>>, T> {
-
     }
 
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type",
-            defaultImpl = ImmutableDefaultCassandraServersCqlDisabledConfig.class)
+            defaultImpl = ImmutableDefaultConfig.class)
     @JsonSubTypes(
             {
-                    @JsonSubTypes.Type(value = ImmutableDefaultCassandraServersCqlDisabledConfig.class,
-                            name = DefaultCassandraServersCqlDisabledConfig.TYPE),
-                    @JsonSubTypes.Type(value = ImmutableThriftOnlyCassandraServersConfig.class,
-                            name = ThriftOnlyCassandraServersConfig.TYPE),
-                    @JsonSubTypes.Type(value = ImmutableCqlCapableCassandraServersConfig.class,
-                            name = CqlCapableCassandraServersConfig.TYPE)
+                    @JsonSubTypes.Type(value = ImmutableDefaultConfig.class,
+                            name = DefaultConfig.TYPE),
+                    @JsonSubTypes.Type(value = ImmutableThriftOnlyConfig.class,
+                            name = ThriftOnlyConfig.TYPE),
+                    @JsonSubTypes.Type(value = ImmutableCqlCapableConfig.class,
+                            name = CqlCapableConfig.TYPE)
             }
     )
     public interface CassandraServersConfig {
@@ -79,10 +87,10 @@ public final class CassandraServersConfigs {
     }
 
     @Value.Immutable
-    @JsonDeserialize(as = ImmutableDefaultCassandraServersCqlDisabledConfig.class)
-    @JsonSerialize(as = ImmutableDefaultCassandraServersCqlDisabledConfig.class)
-    @JsonTypeName(DefaultCassandraServersCqlDisabledConfig.TYPE)
-    public abstract static class DefaultCassandraServersCqlDisabledConfig implements CassandraServersConfig {
+    @JsonDeserialize(as = ImmutableDefaultConfig.class)
+    @JsonSerialize(as = ImmutableDefaultConfig.class)
+    @JsonTypeName(DefaultConfig.TYPE)
+    public abstract static class DefaultConfig implements CassandraServersConfig {
         public static final String TYPE = "default";
 
         @Override
@@ -109,10 +117,10 @@ public final class CassandraServersConfigs {
 
 
     @Value.Immutable
-    @JsonDeserialize(as = ImmutableThriftOnlyCassandraServersConfig.class)
-    @JsonSerialize(as = ImmutableThriftOnlyCassandraServersConfig.class)
-    @JsonTypeName(ThriftOnlyCassandraServersConfig.TYPE)
-    public abstract static class ThriftOnlyCassandraServersConfig implements CassandraServersConfig {
+    @JsonDeserialize(as = ImmutableThriftOnlyConfig.class)
+    @JsonSerialize(as = ImmutableThriftOnlyConfig.class)
+    @JsonTypeName(ThriftOnlyConfig.TYPE)
+    public abstract static class ThriftOnlyConfig implements CassandraServersConfig {
         public static final String TYPE = "thriftOnly";
 
         @Override
@@ -121,12 +129,12 @@ public final class CassandraServersConfigs {
         }
 
         @Override
-        public int numberOfHosts() {
+        public final int numberOfHosts() {
             return thrift().size();
         }
 
         @Override
-        public void check() {
+        public final void check() {
             Preconditions.checkState(!thrift().isEmpty(), "'servers' must have at least one entry");
             for (InetSocketAddress addr : thrift()) {
                 Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
@@ -143,11 +151,11 @@ public final class CassandraServersConfigs {
         }
     }
 
-    @JsonDeserialize(as = ImmutableCqlCapableCassandraServersConfig.class)
-    @JsonSerialize(as = ImmutableCqlCapableCassandraServersConfig.class)
-    @JsonTypeName(CqlCapableCassandraServersConfig.TYPE)
+    @JsonDeserialize(as = ImmutableCqlCapableConfig.class)
+    @JsonSerialize(as = ImmutableCqlCapableConfig.class)
+    @JsonTypeName(CqlCapableConfig.TYPE)
     @Value.Immutable
-    public abstract static class CqlCapableCassandraServersConfig implements CassandraServersConfig {
+    public abstract static class CqlCapableConfig implements CassandraServersConfig {
         public static final String TYPE = "cqlCapable";
 
         @Override
@@ -157,12 +165,12 @@ public final class CassandraServersConfigs {
 
         // TODO (OStevan): this is a temp solution before implementing the full thing
         @Override
-        public int numberOfHosts() {
+        public final int numberOfHosts() {
             return thrift().size();
         }
 
         @Override
-        public void check() {
+        public final void check() {
             // TODO (OStevan): still to bea updated with new format
             Preconditions.checkState(!thrift().isEmpty(), "there should be at least one thrift capable entry");
             Preconditions.checkState(thrift().size() == cql().size(),

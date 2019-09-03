@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableDefaultCassandraServersCqlDisabledConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 
 public class CassandraKeyValueServicesSchemaConsensusTest {
     private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
@@ -58,11 +58,11 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     public static void initializeMocks() {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
         when(config.servers()).thenReturn(
-                ImmutableDefaultCassandraServersCqlDisabledConfig
+                ImmutableDefaultConfig
                         .builder().addAllThrift(FIVE_SERVERS).build());
         when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
         when(waitingConfig.servers())
-                .thenReturn(ImmutableDefaultCassandraServersCqlDisabledConfig
+                .thenReturn(ImmutableDefaultConfig
                         .builder().addAllThrift(FIVE_SERVERS).build());
     }
 

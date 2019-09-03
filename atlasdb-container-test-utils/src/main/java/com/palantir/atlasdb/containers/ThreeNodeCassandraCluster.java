@@ -25,7 +25,7 @@ import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableDefaultCassandraServersCqlDisabledConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -46,7 +46,7 @@ public class ThreeNodeCassandraCluster extends Container {
                     .build();
 
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .servers(ImmutableDefaultCassandraServersCqlDisabledConfig.builder().addThrift(
+            .servers(ImmutableDefaultConfig.builder().addThrift(
                     new InetSocketAddress(FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT),
                     new InetSocketAddress(SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT),
                     new InetSocketAddress(THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT)).build())
