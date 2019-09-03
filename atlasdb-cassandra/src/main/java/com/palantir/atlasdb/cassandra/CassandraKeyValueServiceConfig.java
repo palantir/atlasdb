@@ -42,6 +42,7 @@ import com.palantir.processors.AutoDelegate;
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
 @AutoDelegate
 @Value.Immutable
+@SuppressWarnings("OptionalOrElseMethodInvocation")
 public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";

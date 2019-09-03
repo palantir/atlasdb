@@ -33,6 +33,7 @@ import com.palantir.logsafe.SafeArg;
 @Value.Immutable
 @JsonSerialize(as = ImmutableInternalSchemaConfig.class)
 @JsonDeserialize(as = ImmutableInternalSchemaConfig.class)
+@SuppressWarnings("LogSafePreconditionsMessageFormat")
 public abstract class InternalSchemaConfig {
     /**
      * If specified, attempts to install the provided transactions schema version to this AtlasDB installation.
