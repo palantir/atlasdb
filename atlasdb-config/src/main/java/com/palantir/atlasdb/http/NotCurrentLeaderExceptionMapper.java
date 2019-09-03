@@ -66,7 +66,7 @@ public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMappe
                 return QosException.retryOther(targeter.redirectRequest(uriInfo.getRequestUri().toURL()));
             } catch (MalformedURLException e) {
                 log.warn("Unable to parse context information {} into a URL. Returning generic 503.",
-                        UnsafeArg.of("uri", uriInfo),
+                        UnsafeArg.of("uri", uriInfo.getRequestUri()), // may contain arbitrary query params
                         e);
                 return QosException.unavailable();
             }

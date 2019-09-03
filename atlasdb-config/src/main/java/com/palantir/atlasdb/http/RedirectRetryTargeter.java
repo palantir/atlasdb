@@ -27,11 +27,11 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-class RedirectRetryTargeter {
+public class RedirectRetryTargeter {
     private final URL localServerBaseUrl;
     private final URL nextServerBaseUrl;
 
-    RedirectRetryTargeter(URL localServerBaseUrl, URL nextServerBaseUrl) {
+    public RedirectRetryTargeter(URL localServerBaseUrl, URL nextServerBaseUrl) {
         this.localServerBaseUrl = localServerBaseUrl;
         this.nextServerBaseUrl = nextServerBaseUrl;
     }
@@ -61,5 +61,13 @@ class RedirectRetryTargeter {
                 UnsafeArg.of("requestUrl", requestUrl)); // unsafe since this is user-provided
 
         return requestPath.substring(localServerContextPath.length());
+    }
+
+    @Override
+    public String toString() {
+        return "RedirectRetryTargeter{" +
+                "localServerBaseUrl=" + localServerBaseUrl +
+                ", nextServerBaseUrl=" + nextServerBaseUrl +
+                '}';
     }
 }

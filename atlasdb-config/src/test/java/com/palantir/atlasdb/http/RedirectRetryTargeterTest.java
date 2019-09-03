@@ -35,7 +35,7 @@ public class RedirectRetryTargeterTest {
     private static final int PORT_2 = 4222;
 
     private static final String PATH_1 = "/api/masyu/";
-    private static final String PATH_2 = "/api/snake/";
+    private static final String PATH_2 = "/kpi/snake/";
     private static final String REQUEST_PATH_1 = "request/jewelled-branch-of-hourai";
     private static final String REQUEST_PATH_2 = "/request/swallows-cowrie-shell";
 
