@@ -17,83 +17,33 @@
 package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import javax.ws.rs.core.HttpHeaders;
+import java.util.Arrays;
+import java.util.Optional;
 
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.api.config.service.UserAgents;
-
 public class AtlasDbHttpProtocolVersionTest {
-    private static final UserAgent USER_AGENT_1 = createBaseUserAgent("Bond", "0.0.7");
-    private static final UserAgent USER_AGENT_2 = createBaseUserAgent("Smith", "1.2.3");
-
-    private static final UserAgent.Agent AGENT_1 = UserAgent.Agent.of("Shield", "24.7.0");
-    private static final UserAgent.Agent CONJURE_AGENT = UserAgent.Agent.of(UserAgents.CONJURE_AGENT_NAME, "6.6.6");
-
-    private final HttpHeaders httpHeaders = mock(HttpHeaders.class);
-
     @Test
-    public void detectsConjureJavaRuntimeAgent() {
-        when(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT)).thenReturn(
-                ImmutableList.of(UserAgents.format(USER_AGENT_1.addAgent(CONJURE_AGENT))));
-
-        assertThat(AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders))
-                .isEqualTo(AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME);
+    public void infersFromKnownVersionStrings() {
+        Arrays.stream(AtlasDbHttpProtocolVersion.values())
+                .forEach(value -> {
+                    Optional<String> protocolVersionString = Optional.of(value.getProtocolVersionString());
+                    assertThat(AtlasDbHttpProtocolVersion.inferFromString(protocolVersionString))
+                            .isEqualTo(value);
+                });
     }
 
     @Test
-    public void returnsLegacyIfConjureJavaRuntimeAgentNotPresent() {
-        when(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT)).thenReturn(
-                ImmutableList.of(UserAgents.format(USER_AGENT_1.addAgent(AGENT_1))));
-
-        assertThat(AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders))
+    public void infersLegacyIfNoVersionStringProvided() {
+        assertThat(AtlasDbHttpProtocolVersion.inferFromString(Optional.empty()))
                 .isEqualTo(AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN);
     }
 
     @Test
-    public void returnsLegacyIfNoUserAgentHeaderPresent() {
-        when(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT)).thenReturn(null);
-
-        assertThat(AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders))
+    public void infersLegacyIfVersionStringIsUnintelligible() {
+        assertThat(AtlasDbHttpProtocolVersion.inferFromString(Optional.of("this is a bad version string!111!!!")))
                 .isEqualTo(AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN);
-    }
 
-    @Test
-    public void returnsLegacyIfUserAgentHeaderUnparseable() {
-        when(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT)).thenReturn(
-                ImmutableList.of("I don't know what a user agent is"));
-
-        assertThat(AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders))
-                .isEqualTo(AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN);
-    }
-
-    @Test
-    public void detectsConjureJavaRuntimeAgentInPresenceOfUnparseableHeaders() {
-        when(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT)).thenReturn(
-                ImmutableList.of("Ich weiß nicht, was ein 'User-Agent' bedeutet",
-                        UserAgents.format(USER_AGENT_1.addAgent(CONJURE_AGENT))));
-
-        assertThat(AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders))
-                .isEqualTo(AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME);
-    }
-
-    @Test
-    public void detectsConjureJavaRuntimeAgentOnAnyPresentUserAgentHeader() {
-        when(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT)).thenReturn(
-                ImmutableList.of(
-                        UserAgents.format(USER_AGENT_1),
-                        UserAgents.format(USER_AGENT_2.addAgent(CONJURE_AGENT))));
-
-        assertThat(AtlasDbHttpProtocolVersion.inferFromHttpHeaders(httpHeaders))
-                .isEqualTo(AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME);
-    }
-
-    private static UserAgent createBaseUserAgent(String conjureAgentName, String version) {
-        return UserAgent.of(UserAgent.Agent.of(conjureAgentName, version));
     }
 }

@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.exception.NotInitializedException;
@@ -31,18 +28,14 @@ import com.palantir.exception.NotInitializedException;
  * This is a 503 without a Retry-After header and with a message body corresponding to {@link NotInitializedException}
  * in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  */
-public class NotInitializedExceptionMapper implements ExceptionMapper<NotInitializedException> {
-    @Context
-    private HttpHeaders httpHeaders;
-
-    private static final HttpProtocolAwareExceptionTranslator<NotInitializedException> translator = new
-            HttpProtocolAwareExceptionTranslator<>(
-            AtlasDbHttpProtocolHandler.LambdaHandler.of(
-                    ExceptionMappers::encode503ResponseWithoutRetryAfter,
-                    $ -> QosException.throttle()));
+public class NotInitializedExceptionMapper extends ProtocolAwareExceptionMapper<NotInitializedException> {
+    @Override
+    Response handleLegacyOrUnknownVersion(NotInitializedException exception) {
+        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+    }
 
     @Override
-    public Response toResponse(NotInitializedException exception) {
-        return translator.translate(httpHeaders, exception);
+    QosException handleConjureJavaRuntime(NotInitializedException exception) {
+        return QosException.throttle();
     }
 }

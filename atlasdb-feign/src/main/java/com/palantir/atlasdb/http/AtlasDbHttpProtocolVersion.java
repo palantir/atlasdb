@@ -17,14 +17,10 @@
 package com.palantir.atlasdb.http;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-
-import javax.ws.rs.core.HttpHeaders;
+import java.util.Optional;
 
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.api.config.service.UserAgents;
 
 public enum AtlasDbHttpProtocolVersion {
     LEGACY_OR_UNKNOWN("1.0"),
@@ -45,20 +41,7 @@ public enum AtlasDbHttpProtocolVersion {
         return protocolVersionString;
     }
 
-    public static AtlasDbHttpProtocolVersion inferFromHttpHeaders(HttpHeaders headers) {
-        List<String> userAgentHeader = headers.getRequestHeader(HttpHeaders.USER_AGENT);
-        if (userAgentHeader == null) {
-            return LEGACY_OR_UNKNOWN;
-        }
-        return userAgentHeader
-                .stream()
-                .map(UserAgents::tryParse)
-                .map(UserAgent::informational)
-                .flatMap(List::stream)
-                .filter(agent -> agent.name().equals(AtlasDbAgents.ATLASDB_HTTP_CLIENT))
-                .findFirst()
-                .map(UserAgent.Agent::version)
-                .map(KNOWN_VERSION_STRINGS::get)
-                .orElse(LEGACY_OR_UNKNOWN);
+    public static AtlasDbHttpProtocolVersion inferFromString(Optional<String> protocolVersion) {
+        return protocolVersion.map(KNOWN_VERSION_STRINGS::get).orElse(LEGACY_OR_UNKNOWN);
     }
 }

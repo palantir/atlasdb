@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -32,18 +29,15 @@ import com.palantir.leader.NotCurrentLeaderException;
  *
  * @author carrino
  */
-public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
-    @Context
-    private HttpHeaders httpHeaders;
-
-    private static final HttpProtocolAwareExceptionTranslator<NotCurrentLeaderException> translator = new
-            HttpProtocolAwareExceptionTranslator<>(
-                    AtlasDbHttpProtocolHandler.LambdaHandler.of(
-                            ExceptionMappers::encode503ResponseWithRetryAfter,
-                            $ -> QosException.unavailable()));
+public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMapper<NotCurrentLeaderException> {
+    @Override
+    Response handleLegacyOrUnknownVersion(NotCurrentLeaderException exception) {
+        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+    }
 
     @Override
-    public Response toResponse(NotCurrentLeaderException exception) {
-        return translator.translate(httpHeaders, exception);
+    QosException handleConjureJavaRuntime(NotCurrentLeaderException exception) {
+        // TODO (jkong): Change 503s to 308s
+        return QosException.unavailable();
     }
 }
