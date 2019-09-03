@@ -1,0 +1,4 @@
+type: thriftOnly
+thrift:
+  - foo:44
+  - bar:44

@@ -40,7 +40,7 @@ public final class CassandraServersConfigs {
 
     }
 
-    public static DefaultConfig defaultConfig(Set<InetSocketAddress> thriftServers) {
+    public static DefaultConfig defaultConfig(Iterable<InetSocketAddress> thriftServers) {
         return ImmutableDefaultConfig.builder().addAllThrift(thriftServers).build();
     }
 
@@ -48,7 +48,7 @@ public final class CassandraServersConfigs {
         return ImmutableDefaultConfig.builder().addThrift(thriftServers).build();
     }
 
-    public static ThriftOnlyConfig thriftOnlyConfig(Set<InetSocketAddress> thriftServers) {
+    public static ThriftOnlyConfig thriftOnlyConfig(Iterable<InetSocketAddress> thriftServers) {
         return ImmutableThriftOnlyConfig.builder().addAllThrift(thriftServers).build();
     }
 

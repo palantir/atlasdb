@@ -22,8 +22,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -121,43 +119,4 @@ public class CassandraKeyValueServiceConfigsTest {
                 AtlasDbConfigs.OBJECT_MAPPER.readValue("type: CassandraKeyValueServiceRuntimeConfig",
                         CassandraKeyValueServiceRuntimeConfig.class);
     }
-
-    @Test
-    public void canDeserializeDefaultDisabled() throws IOException, URISyntaxException {
-        CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableThriftOnlyConfig.builder().addAllThrift(SERVERS).build())
-                .replicationFactor(1)
-                .credentials(CREDENTIALS)
-                .build();
-
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
-                .getResource("testConfigServers.yml");
-        CassandraKeyValueServiceConfig deserializedTestConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraKeyValueServiceConfig.class);
-
-        assertThat(deserializedTestConfig).isEqualTo(testConfig);
-    }
-
-    @Test
-    public void canDeserializeDefaultEnabled() throws IOException, URISyntaxException {
-        List<CassandraServersConfigs.CqlCapableConfig.CqlCapableServer> hosts =
-                SERVERS.stream().map(server ->
-                        CassandraServersConfigs.cqlCapableServer(server.getHostName(), 44, 45))
-                        .collect(Collectors.toList());
-        CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableCqlCapableConfig.builder()
-                        .addAllHosts(hosts)
-                        .build())
-                .replicationFactor(1)
-                .credentials(CREDENTIALS)
-                .build();
-
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
-                .getResource("testConfigCQL.yml");
-        CassandraKeyValueServiceConfig deserializedTestConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraKeyValueServiceConfig.class);
-
-        assertThat(deserializedTestConfig).isEqualTo(testConfig);
-    }
 }
-
