@@ -44,6 +44,7 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
 
 @AutoService(AtlasDbFactory.class)
+@SuppressWarnings("OptionalOrElseMethodInvocation")
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
     private static Logger log = LoggerFactory.getLogger(CassandraAtlasDbFactory.class);
     private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
