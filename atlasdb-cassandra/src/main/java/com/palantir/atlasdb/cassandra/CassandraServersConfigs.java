@@ -22,7 +22,6 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -33,20 +32,20 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableSet;
 
 public final class CassandraServersConfigs {
-    protected CassandraServersConfigs() {
+    private CassandraServersConfigs() {
 
     }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type",
-            defaultImpl = DefaultCassandraServersCqlDisabledConfig.class)
+            defaultImpl = ImmutableDefaultCassandraServersCqlDisabledConfig.class)
     @JsonSubTypes(
             {
-                    @JsonSubTypes.Type(value = DefaultCassandraServersCqlDisabledConfig.class,
+                    @JsonSubTypes.Type(value = ImmutableDefaultCassandraServersCqlDisabledConfig.class,
                             name = DefaultCassandraServersCqlDisabledConfig.TYPE),
-                    @JsonSubTypes.Type(value = ImmutableExplicitCassandraServersCqlDisabledConfig.class,
-                            name = ExplicitCassandraServersCqlDisabledConfig.TYPE),
-                    @JsonSubTypes.Type(value = ImmutableCassandraServersCqlEnabledConfig.class,
-                            name = CassandraServersCqlEnabledConfig.TYPE)
+                    @JsonSubTypes.Type(value = ImmutableThriftOnlyCassandraServersConfig.class,
+                            name = ThriftOnlyCassandraServersConfig.TYPE),
+                    @JsonSubTypes.Type(value = ImmutableCqlCapableCassandraServersConfig.class,
+                            name = CqlCapableCassandraServersConfig.TYPE)
             }
     )
     public interface CassandraServersConfig {
@@ -55,84 +54,58 @@ public final class CassandraServersConfigs {
         String type();
     }
 
-    @JsonDeserialize(as = DefaultCassandraServersCqlDisabledConfig.class)
+    @Value.Immutable
+    @JsonDeserialize(as = ImmutableDefaultCassandraServersCqlDisabledConfig.class)
+    @JsonSerialize(as = ImmutableDefaultCassandraServersCqlDisabledConfig.class)
     @JsonTypeName(DefaultCassandraServersCqlDisabledConfig.TYPE)
-    public static class DefaultCassandraServersCqlDisabledConfig implements CassandraServersConfig {
-        public static final String TYPE = "default";
+    public interface DefaultCassandraServersCqlDisabledConfig extends CassandraServersConfig {
+        String TYPE = "default";
 
-        private Set<InetSocketAddress> thriftServers;
-
-        @JsonCreator
-        public DefaultCassandraServersCqlDisabledConfig(InetSocketAddress... thriftServers) {
-            this.thriftServers = ImmutableSet.copyOf(thriftServers);
-        }
-
-        @JsonCreator
-        public DefaultCassandraServersCqlDisabledConfig(Iterable<InetSocketAddress> thriftServers) {
-            this.thriftServers = ImmutableSet.copyOf(thriftServers);
-        }
-
-        @Override
         @JsonValue
-        public Set<InetSocketAddress> thrift() {
-            return thriftServers;
+        @Override
+        Set<InetSocketAddress> thrift();
+
+        @Override
+        default Set<InetSocketAddress> cql() {
+            return null;
         }
 
         @Override
-        public Set<InetSocketAddress> cql() {
-            return ImmutableSet.of();
-        }
-
-        @Override
-        public String type() {
+        default String type() {
             return TYPE;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj instanceof DefaultCassandraServersCqlDisabledConfig) {
-                return thriftServers.equals(((DefaultCassandraServersCqlDisabledConfig) obj).thriftServers);
-            }
-            return false;
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
         }
     }
 
 
-    @JsonDeserialize(as = ImmutableExplicitCassandraServersCqlDisabledConfig.class)
-    @JsonSerialize(as = ImmutableExplicitCassandraServersCqlDisabledConfig.class)
-    @JsonTypeName(ExplicitCassandraServersCqlDisabledConfig.TYPE)
+    @JsonDeserialize(as = ImmutableThriftOnlyCassandraServersConfig.class)
+    @JsonSerialize(as = ImmutableThriftOnlyCassandraServersConfig.class)
+    @JsonTypeName(ThriftOnlyCassandraServersConfig.TYPE)
     @Value.Immutable
-    public abstract static class ExplicitCassandraServersCqlDisabledConfig implements CassandraServersConfig {
-        public static final String TYPE = "cqlDisabled";
+    public interface ThriftOnlyCassandraServersConfig extends CassandraServersConfig {
+        String TYPE = "thriftOnly";
 
         @Override
-        public Set<InetSocketAddress> cql() {
+        default Set<InetSocketAddress> cql() {
             return ImmutableSet.of();
         }
 
         @JsonProperty
         @Override
-        public String type() {
+        default String type() {
             return TYPE;
         }
     }
 
-    @JsonDeserialize(as = ImmutableCassandraServersCqlEnabledConfig.class)
-    @JsonSerialize(as = ImmutableCassandraServersCqlEnabledConfig.class)
-    @JsonTypeName(CassandraServersCqlEnabledConfig.TYPE)
+    @JsonDeserialize(as = ImmutableCqlCapableCassandraServersConfig.class)
+    @JsonSerialize(as = ImmutableCqlCapableCassandraServersConfig.class)
+    @JsonTypeName(CqlCapableCassandraServersConfig.TYPE)
     @Value.Immutable
-    public abstract static class CassandraServersCqlEnabledConfig implements CassandraServersConfig {
-        public static final String TYPE = "cqlEnabled";
-
+    public interface CqlCapableCassandraServersConfig extends CassandraServersConfig {
+        String TYPE = "cqlCapable";
 
         @JsonProperty
         @Override
-        public String type() {
+        default String type() {
             return TYPE;
         }
     }

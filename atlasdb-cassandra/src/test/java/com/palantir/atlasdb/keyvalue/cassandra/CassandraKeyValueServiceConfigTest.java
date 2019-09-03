@@ -23,10 +23,12 @@ import java.nio.file.Paths;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultCassandraServersCqlDisabledConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public class CassandraKeyValueServiceConfigTest {
@@ -40,7 +42,9 @@ public class CassandraKeyValueServiceConfigTest {
 
     private static final ImmutableCassandraKeyValueServiceConfig CASSANDRA_CONFIG =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(SERVER_ADDRESS))
+                    .servers(
+                            ImmutableDefaultCassandraServersCqlDisabledConfig
+                                    .builder().addThrift(SERVER_ADDRESS).build())
                     .replicationFactor(1)
                     .keyspace("atlasdb")
                     .credentials(CREDENTIALS)

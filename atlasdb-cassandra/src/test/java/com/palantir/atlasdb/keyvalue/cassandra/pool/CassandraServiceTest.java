@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultCassandraServersCqlDisabledConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -136,8 +137,9 @@ public class CassandraServiceTest {
                         .username("username")
                         .password("password")
                         .build())
-                .servers(new CassandraServersConfigs.DefaultCassandraServersCqlDisabledConfig(
-                        servers.toArray(new InetSocketAddress[0])))
+                .servers(
+                        ImmutableDefaultCassandraServersCqlDisabledConfig
+                                .builder().addAllThrift(servers).build())
                 .build();
 
         blacklist = new Blacklist(config);
