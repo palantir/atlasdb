@@ -44,6 +44,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -390,6 +391,10 @@ public abstract class TransactionManagers {
                 this::withConsolidatedGrabImmutableTsLockFlag,
                 () -> runtimeConfigSupplier.get().transaction());
 
+        TimestampCache timestampCache = config().timestampCache()
+                .orElseGet(() -> new DefaultTimestampCache(
+                        metricsManager.getRegistry(), () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
@@ -409,8 +414,7 @@ public abstract class TransactionManagers {
                         config().keyValueService().concurrentGetRangesThreadPoolSize(),
                         config().keyValueService().defaultGetRangesConcurrency(),
                         config().initializeAsync(),
-                        new TimestampCache(metricsManager.getRegistry(),
-                                () -> runtimeConfigSupplier.get().getTimestampCacheSize()),
+                        timestampCache,
                         targetedSweep,
                         callbacks,
                         validateLocksOnReads(),
