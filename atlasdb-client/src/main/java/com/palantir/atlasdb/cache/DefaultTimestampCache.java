@@ -45,14 +45,7 @@ public class DefaultTimestampCache implements TimestampCache {
         startToCommitTimestampCache = createCache(size.get());
         evictionPolicy = startToCommitTimestampCache.policy().eviction().get();
         AtlasDbMetrics.registerCache(metricRegistry, startToCommitTimestampCache,
-                MetricRegistry.name(DefaultTimestampCache.class, "startToCommitTimestamp"));
-    }
-
-    @VisibleForTesting
-    DefaultTimestampCache(Cache<Long, Long> cache) {
-        this.evictionPolicy = cache.policy().eviction().get();
-        this.size = evictionPolicy::getMaximum;
-        this.startToCommitTimestampCache = cache;
+                MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
     }
 
     @Override
