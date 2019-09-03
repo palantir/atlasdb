@@ -22,7 +22,7 @@ public final class AtlasDbRemotingConstants {
     public static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
     public static final AtlasDbHttpProtocolVersion CURRENT_CLIENT_PROTOCOL_VERSION
             = AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME;
-    public static final UserAgent.Agent ATLASDB_CONJURE_JAVA_RUNTIME_HTTP_AGENT
+    public static final UserAgent.Agent ATLASDB_HTTP_CLIENT_AGENT
             = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, CURRENT_CLIENT_PROTOCOL_VERSION.getProtocolVersionString());
 
     private AtlasDbRemotingConstants() {

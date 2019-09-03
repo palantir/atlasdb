@@ -19,6 +19,7 @@ package com.palantir.atlasdb.http;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.ws.rs.core.Context;
@@ -67,16 +68,13 @@ abstract class ProtocolAwareExceptionMapper<E extends Exception> implements Exce
     }
 
     private AtlasDbHttpProtocolVersion getHttpProtocolVersion() {
-        List<String> userAgentHeader = httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT);
-        Optional<String> maybeProtocolVersion = parseProtocolVersionFromUserAgentHeader(userAgentHeader);
-        return AtlasDbHttpProtocolVersion.inferFromString(maybeProtocolVersion);
+        return AtlasDbHttpProtocolVersion.inferFromString(
+                Optional.ofNullable(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT))
+                        .flatMap(ProtocolAwareExceptionMapper::parseProtocolVersionFromUserAgentHeader));
     }
 
     @VisibleForTesting
-    Optional<String> parseProtocolVersionFromUserAgentHeader(List<String> userAgentHeader) {
-        if (userAgentHeader == null) {
-            return Optional.empty();
-        }
+    static Optional<String> parseProtocolVersionFromUserAgentHeader(@Nonnull List<String> userAgentHeader) {
         return userAgentHeader
                 .stream()
                 .map(UserAgents::tryParse)
