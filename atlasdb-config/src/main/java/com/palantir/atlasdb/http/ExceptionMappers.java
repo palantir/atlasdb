@@ -22,9 +22,14 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.remoting2.errors.SerializableError;
 
 public final class ExceptionMappers {
+    private static final Logger log = LoggerFactory.getLogger(ExceptionMappers.class);
+
     private ExceptionMappers() {
         // utility
     }
@@ -34,6 +39,7 @@ public final class ExceptionMappers {
      * HTTP header (Content-Type: application/json).
      */
     public static Response encode503ResponseWithoutRetryAfter(Exception exception) {
+        log.warn("ENCODE 503 WITHOUT RETRY AFTER", new RuntimeException());
         return encode503ResponseInternal(exception).build();
     }
 
@@ -43,6 +49,7 @@ public final class ExceptionMappers {
      * value.
      */
     public static Response encode503ResponseWithRetryAfter(Exception exception) {
+        log.warn("ENCODE 503 WITH RETRY AFTER", new RuntimeException());
         return encode503ResponseInternal(exception)
                 .header(HttpHeaders.RETRY_AFTER, "0")
                 .build();
