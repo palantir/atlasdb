@@ -179,10 +179,10 @@ public final class CassandraServersConfigs {
             @JsonProperty
             String hostname();
             @JsonProperty
-            Integer thriftPort();
+            int thriftPort();
 
             @JsonProperty
-            Integer cqlPort();
+            int cqlPort();
 
             default InetSocketAddress thriftServer() {
                 return new InetSocketAddress(hostname(), thriftPort());
