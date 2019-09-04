@@ -39,7 +39,7 @@ public class CassandraServersConfigsTest {
             CassandraServersConfigs.cqlCapableServer("foo", 44, 45);
     public static final CassandraServersConfigs.CqlCapableConfig.CqlCapableServer CQL_CAPABLE_SERVER_2 =
             CassandraServersConfigs.cqlCapableServer("bar", 44, 45);
-    public static final Iterable<CassandraServersConfigs.CqlCapableConfig.CqlCapableServer> CQL_CQPABLE_SERVERS =
+    public static final Iterable<CassandraServersConfigs.CqlCapableConfig.CqlCapableServer> CQL_CAPABLE_SERVERS =
             ImmutableSet.of(CQL_CAPABLE_SERVER_1, CQL_CAPABLE_SERVER_2);
 
     @Test
@@ -101,7 +101,7 @@ public class CassandraServersConfigsTest {
     @Test
     public void canDeserializeMultiEntryCqlCapable() throws IOException, URISyntaxException {
         CassandraServersConfigs.CqlCapableConfig expected =
-                CassandraServersConfigs.cqlCapableConfig(CQL_CQPABLE_SERVERS);
+                CassandraServersConfigs.cqlCapableConfig(CQL_CAPABLE_SERVERS);
         URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
                 .getResource("testServersConfigCqlCapableMulti.yml");
         CassandraServersConfigs.CqlCapableConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER

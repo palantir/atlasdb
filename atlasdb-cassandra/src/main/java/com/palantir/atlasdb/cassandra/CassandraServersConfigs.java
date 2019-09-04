@@ -148,7 +148,7 @@ public final class CassandraServersConfigs {
 
         @Override
         public final void check() {
-            Preconditions.checkState(!thrift().isEmpty(), "'servers' must have at least one entry");
+            Preconditions.checkState(!thrift().isEmpty(), "'thrift' must have at least one entry");
             for (InetSocketAddress addr : thrift()) {
                 Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
             }
@@ -189,14 +189,19 @@ public final class CassandraServersConfigs {
             }
 
             default InetSocketAddress cqlServer() {
-                return new InetSocketAddress(hostname(), thriftPort());
+                return new InetSocketAddress(hostname(), cqlPort());
             }
         }
 
         @Override
         public final <T> T visit(Visitor<T> visitor) {
-            return visitor.apply(hosts().stream().map(CqlCapableServer::thriftServer).collect(Collectors.toSet()),
-                    Optional.of(hosts().stream().map(CqlCapableServer::thriftServer).collect(Collectors.toSet())));
+            return visitor.apply(
+                    hosts().stream()
+                            .map(CqlCapableServer::thriftServer)
+                            .collect(Collectors.toSet()),
+                    Optional.of(hosts().stream()
+                            .map(CqlCapableServer::cqlServer)
+                            .collect(Collectors.toSet())));
         }
 
 
