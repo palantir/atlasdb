@@ -39,7 +39,7 @@ public final class ExceptionMappers {
      * HTTP header (Content-Type: application/json).
      */
     public static Response encode503ResponseWithoutRetryAfter(Exception exception) {
-        log.warn("ENCODE 503 WITHOUT RETRY AFTER", new RuntimeException());
+        log.warn("ENCODE 503 WITHOUT RETRY AFTER", exception);
         return encode503ResponseInternal(exception).build();
     }
 
@@ -49,7 +49,7 @@ public final class ExceptionMappers {
      * value.
      */
     public static Response encode503ResponseWithRetryAfter(Exception exception) {
-        log.warn("ENCODE 503 WITH RETRY AFTER", new RuntimeException());
+        log.warn("ENCODE 503 WITH RETRY AFTER", exception);
         return encode503ResponseInternal(exception)
                 .header(HttpHeaders.RETRY_AFTER, "0")
                 .build();
