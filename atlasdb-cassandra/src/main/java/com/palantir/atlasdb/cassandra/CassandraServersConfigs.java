@@ -123,7 +123,6 @@ public final class CassandraServersConfigs {
         @Value.Check
         @Override
         public final void check() {
-            Preconditions.checkState(!thrift().isEmpty(), "'servers' must have at least one entry");
             for (InetSocketAddress addr : thrift()) {
                 Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
             }
@@ -151,7 +150,6 @@ public final class CassandraServersConfigs {
         @Value.Check
         @Override
         public final void check() {
-            Preconditions.checkState(!thrift().isEmpty(), "'thrift' must have at least one entry");
             for (InetSocketAddress addr : thrift()) {
                 Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
             }
@@ -194,6 +192,13 @@ public final class CassandraServersConfigs {
             default InetSocketAddress cqlServer() {
                 return new InetSocketAddress(hostname(), cqlPort());
             }
+
+            @Value.Check
+            default void check() {
+                Preconditions.checkState(thriftPort() > 0, "'thriftPort' must be positive integer");
+                Preconditions.checkState(cqlPort() > 0, "'cqlPort' must be a positive integer");
+            }
+
         }
 
         @Override
@@ -216,7 +221,7 @@ public final class CassandraServersConfigs {
         @Value.Check
         @Override
         public final void check() {
-            Preconditions.checkState(!hosts().isEmpty(), "there should be at least one thrift capable entry");
+
         }
 
         @JsonProperty
