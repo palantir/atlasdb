@@ -1,8 +1,6 @@
 type: cqlCapable
 hosts:
-  - hostname: foo
-    thriftPort: 44
-    cqlPort: 45
-  - hostname: bar
-    cqlPort: 45
-    thriftPort: 44
+  - foo
+  - bar
+thriftPort: 44
+cqlPort: 45

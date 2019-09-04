@@ -21,82 +21,45 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
 import java.net.URL;
 
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class CassandraServersConfigsTest {
 
-    public static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", 44);
-    public static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", 44);
-    public static final Iterable<InetSocketAddress> THRIFT_SERVERS = ImmutableSet.of(THRIFT_SERVER_1, THRIFT_SERVER_2);
+    private static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", 44);
+    private static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", 44);
 
-    public static final CassandraServersConfigs.CqlCapableConfig.CqlCapableServer CQL_CAPABLE_SERVER_1 =
-            CassandraServersConfigs.cqlCapableServer("foo", 44, 45);
-    public static final CassandraServersConfigs.CqlCapableConfig.CqlCapableServer CQL_CAPABLE_SERVER_2 =
-            CassandraServersConfigs.cqlCapableServer("bar", 44, 45);
-    public static final Iterable<CassandraServersConfigs.CqlCapableConfig.CqlCapableServer> CQL_CAPABLE_SERVERS =
-            ImmutableSet.of(CQL_CAPABLE_SERVER_1, CQL_CAPABLE_SERVER_2);
+    private static final CassandraServersConfigs.CqlCapableConfig CQL_CAPABLE_CONFIG =
+            cqlCapable(44, 45, "bar", "foo");
 
-    public static void helperTestMethod(CassandraServersConfigs.CassandraServersConfig expected, String configPath,
-            Class<? extends CassandraServersConfigs.CassandraServersConfig> deserializationClass) throws IOException {
-        URL configUrl = deserializationClass.getClassLoader()
+    public static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
+        return ImmutableDefaultConfig.builder().addThrift(thriftServers).build();
+    }
+
+    public static CassandraServersConfigs.CqlCapableConfig cqlCapable(int thriftPort, int cqlPort, String... hosts) {
+        return ImmutableCqlCapableConfig.builder().addHosts(hosts).cqlPort(cqlPort).thriftPort(thriftPort).build();
+    }
+
+    @Test
+    public void canDeserializeMultiEntryDefault() throws IOException {
+        assertThat(deserializeClassFromFile("testServersConfigDefaultMulti.yml"))
+                .isEqualTo(defaultConfig(THRIFT_SERVER_1, THRIFT_SERVER_2));
+    }
+
+    @Test
+    public void canDeserializeMultiEntryCqlCapable() throws IOException {
+        assertThat(deserializeClassFromFile("testServersConfigCqlCapableMulti.yml"))
+                .isEqualTo(CQL_CAPABLE_CONFIG);
+    }
+
+    private static CassandraServersConfig deserializeClassFromFile(String configPath) throws IOException {
+        URL configUrl = CassandraServersConfig.class.getClassLoader()
                 .getResource(configPath);
-        CassandraServersConfigs.CassandraServersConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), deserializationClass);
-
-        assertThat(deserializedServersConfig).isEqualTo(expected);
-    }
-
-    @Test
-    public void canDeserializeOneEntryDefault() throws IOException, URISyntaxException {
-        helperTestMethod(
-                CassandraServersConfigs.defaultConfig(THRIFT_SERVER_1),
-                "testServersConfigDefaultSingle.yml",
-                CassandraServersConfigs.DefaultConfig.class);
-    }
-
-    @Test
-    public void canDeserializeMultiEntryDefault() throws IOException, URISyntaxException {
-        helperTestMethod(
-                CassandraServersConfigs.defaultConfig(THRIFT_SERVERS),
-                "testServersConfigDefaultMulti.yml",
-                CassandraServersConfigs.DefaultConfig.class);
-    }
-
-    @Test
-    public void canDeserializeOneEntryThrift() throws IOException, URISyntaxException {
-        helperTestMethod(
-                CassandraServersConfigs.thriftOnly(THRIFT_SERVER_1),
-                "testServersConfigThriftSingle.yml",
-                CassandraServersConfigs.ThriftOnlyConfig.class);
-    }
-
-    @Test
-    public void canDeserializeMultiEntryThrift() throws IOException, URISyntaxException {
-        helperTestMethod(
-                CassandraServersConfigs.thriftOnly(THRIFT_SERVERS),
-                "testServersConfigThriftMulti.yml",
-                CassandraServersConfigs.ThriftOnlyConfig.class);
-    }
-
-    @Test
-    public void canDeserializeSingleEntryCqlCapable() throws IOException, URISyntaxException {
-        helperTestMethod(
-                CassandraServersConfigs.cqlCapable(CQL_CAPABLE_SERVER_1),
-                "testServersConfigCqlCapableSingle.yml",
-                CassandraServersConfigs.CqlCapableConfig.class);
-    }
-
-    @Test
-    public void canDeserializeMultiEntryCqlCapable() throws IOException, URISyntaxException {
-        helperTestMethod(
-                CassandraServersConfigs.cqlCapable(CQL_CAPABLE_SERVERS),
-                "testServersConfigCqlCapableMulti.yml",
-                CassandraServersConfigs.CqlCapableConfig.class);
+        return AtlasDbConfigs.OBJECT_MAPPER
+                .readValue(new File(configUrl.getPath()), CassandraServersConfig.class);
     }
 }

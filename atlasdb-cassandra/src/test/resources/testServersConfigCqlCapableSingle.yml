@@ -1,5 +1,0 @@
-type: cqlCapable
-hosts:
-  - hostname: foo
-    thriftPort: 44
-    cqlPort: 45

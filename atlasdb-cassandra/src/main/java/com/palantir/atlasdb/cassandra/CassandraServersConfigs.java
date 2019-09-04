@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cassandra;
 
 
 import java.net.InetSocketAddress;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -40,63 +38,23 @@ public final class CassandraServersConfigs {
 
     }
 
-    public static DefaultConfig defaultConfig(Iterable<InetSocketAddress> thriftServers) {
-        return ImmutableDefaultConfig.builder().addAllThrift(thriftServers).build();
-    }
-
-    public static DefaultConfig defaultConfig(InetSocketAddress thriftServers) {
-        return ImmutableDefaultConfig.builder().addThrift(thriftServers).build();
-    }
-
-    public static ThriftOnlyConfig thriftOnly(Iterable<InetSocketAddress> thriftServers) {
-        return ImmutableThriftOnlyConfig.builder().addAllThrift(thriftServers).build();
-    }
-
-    public static ThriftOnlyConfig thriftOnly(InetSocketAddress thriftServers) {
-        return ImmutableThriftOnlyConfig.builder().addThrift(thriftServers).build();
-    }
-
-    public static CqlCapableConfig cqlCapable(CqlCapableConfig.CqlCapableServer... servers) {
-        return ImmutableCqlCapableConfig.builder().addHosts(servers).build();
-    }
-
-    public static CqlCapableConfig cqlCapable(Iterable<CqlCapableConfig.CqlCapableServer> servers) {
-        return ImmutableCqlCapableConfig.builder().addAllHosts(servers).build();
-    }
-
-
-    public static CqlCapableConfig.CqlCapableServer cqlCapableServer(String hostname, int thriftPort, int cqlPort) {
-        Preconditions.checkState(thriftPort > 0, "Thrift port should be a positive number");
-        Preconditions.checkState(cqlPort > 0, "CQL port should be a positive number");
-        return ImmutableCqlCapableServer
-                .builder()
-                .hostname(hostname)
-                .thriftPort(thriftPort)
-                .cqlPort(cqlPort).build();
-    }
+    private static final String SERVER_FORMAT_ERROR = "each server must specify a port ([host]:[port])";
+    private static final String PORT_NUMBER_ERROR = "%s port number should be a positive number";
 
     public interface Visitor<T> extends BiFunction<Set<InetSocketAddress>, Optional<Set<InetSocketAddress>>, T> {
+        @Override
+        T apply(Set<InetSocketAddress> thriftServers, Optional<Set<InetSocketAddress>> maybeCqlServers);
     }
 
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type",
-            defaultImpl = ImmutableDefaultConfig.class)
-    @JsonSubTypes(
-            {
-                    @JsonSubTypes.Type(value = ImmutableDefaultConfig.class,
-                            name = DefaultConfig.TYPE),
-                    @JsonSubTypes.Type(value = ImmutableThriftOnlyConfig.class,
-                            name = ThriftOnlyConfig.TYPE),
-                    @JsonSubTypes.Type(value = ImmutableCqlCapableConfig.class,
-                            name = CqlCapableConfig.TYPE)
-            }
-    )
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = ImmutableDefaultConfig.class)
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = ImmutableDefaultConfig.class, name = DefaultConfig.TYPE),
+            @JsonSubTypes.Type(value = ImmutableCqlCapableConfig.class, name = CqlCapableConfig.TYPE)
+            })
     public interface CassandraServersConfig {
         <T> T visit(Visitor<T> visitor);
 
         int numberOfHosts();
-
-        void check();
     }
 
     @Value.Immutable
@@ -104,64 +62,26 @@ public final class CassandraServersConfigs {
     @JsonSerialize(as = ImmutableDefaultConfig.class)
     @JsonTypeName(DefaultConfig.TYPE)
     public abstract static class DefaultConfig implements CassandraServersConfig {
-        public static final String TYPE = "default";
-
-        @Override
-        public final <T> T visit(Visitor<T> visitor) {
-            return visitor.apply(thrift(), Optional.empty());
-        }
+        static final String TYPE = "default";
 
         @JsonValue
-        public abstract Set<InetSocketAddress> thrift();
+        abstract Set<InetSocketAddress> thrift();
 
         @Override
         public int numberOfHosts() {
             return thrift().size();
         }
 
-
         @Value.Check
-        @Override
-        public final void check() {
+        final void check() {
             for (InetSocketAddress addr : thrift()) {
-                Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
+                Preconditions.checkState(addr.getPort() > 0, SERVER_FORMAT_ERROR);
             }
         }
-    }
-
-
-    @Value.Immutable
-    @JsonDeserialize(as = ImmutableThriftOnlyConfig.class)
-    @JsonSerialize(as = ImmutableThriftOnlyConfig.class)
-    @JsonTypeName(ThriftOnlyConfig.TYPE)
-    public abstract static class ThriftOnlyConfig implements CassandraServersConfig {
-        public static final String TYPE = "thriftOnly";
 
         @Override
         public final <T> T visit(Visitor<T> visitor) {
             return visitor.apply(thrift(), Optional.empty());
-        }
-
-        @Override
-        public final int numberOfHosts() {
-            return thrift().size();
-        }
-
-        @Value.Check
-        @Override
-        public final void check() {
-            for (InetSocketAddress addr : thrift()) {
-                Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
-            }
-        }
-
-        @JsonProperty
-        public abstract Set<InetSocketAddress> thrift();
-
-        @JsonProperty
-        @Value.Default
-        String type() {
-            return TYPE;
         }
     }
 
@@ -170,48 +90,13 @@ public final class CassandraServersConfigs {
     @JsonTypeName(CqlCapableConfig.TYPE)
     @Value.Immutable
     public abstract static class CqlCapableConfig implements CassandraServersConfig {
-        public static final String TYPE = "cqlCapable";
+        static final String TYPE = "cqlCapable";
 
-        @Value.Immutable
-        @JsonDeserialize(as = ImmutableCqlCapableServer.class)
-        @JsonSerialize(as = ImmutableCqlCapableServer.class)
-        interface CqlCapableServer {
+        abstract Set<String> hosts();
 
-            @JsonProperty
-            String hostname();
-            @JsonProperty
-            int thriftPort();
+        abstract int thriftPort();
 
-            @JsonProperty
-            int cqlPort();
-
-            default InetSocketAddress thriftServer() {
-                return new InetSocketAddress(hostname(), thriftPort());
-            }
-
-            default InetSocketAddress cqlServer() {
-                return new InetSocketAddress(hostname(), cqlPort());
-            }
-
-            @Value.Check
-            default void check() {
-                Preconditions.checkState(thriftPort() > 0, "'thriftPort' must be positive integer");
-                Preconditions.checkState(cqlPort() > 0, "'cqlPort' must be a positive integer");
-            }
-
-        }
-
-        @Override
-        public final <T> T visit(Visitor<T> visitor) {
-            return visitor.apply(
-                    hosts().stream()
-                            .map(CqlCapableServer::thriftServer)
-                            .collect(Collectors.toSet()),
-                    Optional.of(hosts().stream()
-                            .map(CqlCapableServer::cqlServer)
-                            .collect(Collectors.toSet())));
-        }
-
+        abstract int cqlPort();
 
         @Override
         public final int numberOfHosts() {
@@ -219,18 +104,20 @@ public final class CassandraServersConfigs {
         }
 
         @Value.Check
+        final void check() {
+            Preconditions.checkState(thriftPort() > 0, String.format(PORT_NUMBER_ERROR, "'thriftPort'"));
+            Preconditions.checkState(cqlPort() > 0, String.format(PORT_NUMBER_ERROR, "'cqlPort'"));
+        }
+
         @Override
-        public final void check() {
-
+        public final <T> T visit(Visitor<T> visitor) {
+            return visitor.apply(
+                    hosts().stream()
+                            .map(host -> new InetSocketAddress(host, thriftPort()))
+                            .collect(Collectors.toSet()),
+                    Optional.of(hosts().stream()
+                            .map(host -> new InetSocketAddress(host, cqlPort()))
+                            .collect(Collectors.toSet())));
         }
-
-        @JsonProperty
-        @Value.Default
-        String type() {
-            return TYPE;
-        }
-
-        @JsonProperty
-        public abstract List<CqlCapableServer> hosts();
     }
 }

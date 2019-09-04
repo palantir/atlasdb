@@ -1,3 +1,0 @@
-type: thriftOnly
-thrift:
-  - foo:44
