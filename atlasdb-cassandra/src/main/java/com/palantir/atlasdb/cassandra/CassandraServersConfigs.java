@@ -48,19 +48,19 @@ public final class CassandraServersConfigs {
         return ImmutableDefaultConfig.builder().addThrift(thriftServers).build();
     }
 
-    public static ThriftOnlyConfig thriftOnlyConfig(Iterable<InetSocketAddress> thriftServers) {
+    public static ThriftOnlyConfig thriftOnly(Iterable<InetSocketAddress> thriftServers) {
         return ImmutableThriftOnlyConfig.builder().addAllThrift(thriftServers).build();
     }
 
-    public static ThriftOnlyConfig thriftOnlyConfig(InetSocketAddress thriftServers) {
+    public static ThriftOnlyConfig thriftOnly(InetSocketAddress thriftServers) {
         return ImmutableThriftOnlyConfig.builder().addThrift(thriftServers).build();
     }
 
-    public static CqlCapableConfig cqlCapableConfig(CqlCapableConfig.CqlCapableServer... servers) {
+    public static CqlCapableConfig cqlCapable(CqlCapableConfig.CqlCapableServer... servers) {
         return ImmutableCqlCapableConfig.builder().addHosts(servers).build();
     }
 
-    public static CqlCapableConfig cqlCapableConfig(Iterable<CqlCapableConfig.CqlCapableServer> servers) {
+    public static CqlCapableConfig cqlCapable(Iterable<CqlCapableConfig.CqlCapableServer> servers) {
         return ImmutableCqlCapableConfig.builder().addAllHosts(servers).build();
     }
 
@@ -119,8 +119,10 @@ public final class CassandraServersConfigs {
             return thrift().size();
         }
 
+
+        @Value.Check
         @Override
-        public void check() {
+        public final void check() {
             Preconditions.checkState(!thrift().isEmpty(), "'servers' must have at least one entry");
             for (InetSocketAddress addr : thrift()) {
                 Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
@@ -146,6 +148,7 @@ public final class CassandraServersConfigs {
             return thrift().size();
         }
 
+        @Value.Check
         @Override
         public final void check() {
             Preconditions.checkState(!thrift().isEmpty(), "'thrift' must have at least one entry");
@@ -210,6 +213,7 @@ public final class CassandraServersConfigs {
             return hosts().size();
         }
 
+        @Value.Check
         @Override
         public final void check() {
             Preconditions.checkState(!hosts().isEmpty(), "there should be at least one thrift capable entry");

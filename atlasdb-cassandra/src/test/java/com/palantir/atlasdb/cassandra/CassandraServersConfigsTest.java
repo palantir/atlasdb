@@ -71,7 +71,7 @@ public class CassandraServersConfigsTest {
     @Test
     public void canDeserializeOneEntryThrift() throws IOException, URISyntaxException {
         helperTestMethod(
-                CassandraServersConfigs.thriftOnlyConfig(THRIFT_SERVER_1),
+                CassandraServersConfigs.thriftOnly(THRIFT_SERVER_1),
                 "testServersConfigThriftSingle.yml",
                 CassandraServersConfigs.ThriftOnlyConfig.class);
     }
@@ -79,7 +79,7 @@ public class CassandraServersConfigsTest {
     @Test
     public void canDeserializeMultiEntryThrift() throws IOException, URISyntaxException {
         helperTestMethod(
-                CassandraServersConfigs.thriftOnlyConfig(THRIFT_SERVERS),
+                CassandraServersConfigs.thriftOnly(THRIFT_SERVERS),
                 "testServersConfigThriftMulti.yml",
                 CassandraServersConfigs.ThriftOnlyConfig.class);
     }
@@ -87,7 +87,7 @@ public class CassandraServersConfigsTest {
     @Test
     public void canDeserializeSingleEntryCqlCapable() throws IOException, URISyntaxException {
         helperTestMethod(
-                CassandraServersConfigs.cqlCapableConfig(CQL_CAPABLE_SERVER_1),
+                CassandraServersConfigs.cqlCapable(CQL_CAPABLE_SERVER_1),
                 "testServersConfigCqlCapableSingle.yml",
                 CassandraServersConfigs.CqlCapableConfig.class);
     }
@@ -95,7 +95,7 @@ public class CassandraServersConfigsTest {
     @Test
     public void canDeserializeMultiEntryCqlCapable() throws IOException, URISyntaxException {
         helperTestMethod(
-                CassandraServersConfigs.cqlCapableConfig(CQL_CAPABLE_SERVERS),
+                CassandraServersConfigs.cqlCapable(CQL_CAPABLE_SERVERS),
                 "testServersConfigCqlCapableMulti.yml",
                 CassandraServersConfigs.CqlCapableConfig.class);
     }
