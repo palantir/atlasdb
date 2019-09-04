@@ -92,6 +92,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     @Override
     public void continueOrPropagate(RetryableException ex) {
         ExceptionRetryBehaviour retryBehaviour = ExceptionRetryBehaviour.getRetryBehaviourForException(ex);
+        log.error("RETRY BEHAVIOUR = {}", retryBehaviour, ex);
 
         synchronized (this) {
             // Only fail over if this failure was to the current server.
