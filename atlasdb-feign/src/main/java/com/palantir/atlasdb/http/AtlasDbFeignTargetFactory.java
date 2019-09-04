@@ -54,7 +54,8 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
     private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
 
-    static final TargetFactory DEFAULT = new AtlasDbFeignTargetFactory(
+    // TODO (jkong): Decide what to do with usage in benchmarking infrastructure
+    public static final TargetFactory DEFAULT = new AtlasDbFeignTargetFactory(
             DEFAULT_CONNECT_TIMEOUT_MILLIS,
             DEFAULT_READ_TIMEOUT_MILLIS,
             FailoverFeignTarget.DEFAULT_MAX_BACKOFF.toMillis());
