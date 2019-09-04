@@ -42,71 +42,61 @@ public class CassandraServersConfigsTest {
     public static final Iterable<CassandraServersConfigs.CqlCapableConfig.CqlCapableServer> CQL_CAPABLE_SERVERS =
             ImmutableSet.of(CQL_CAPABLE_SERVER_1, CQL_CAPABLE_SERVER_2);
 
-    @Test
-    public void canDeserializeOneEntryDefault() throws IOException, URISyntaxException {
-        CassandraServersConfigs.DefaultConfig expected = CassandraServersConfigs.defaultConfig(THRIFT_SERVER_1);
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
-                .getResource("testServersConfigDefaultSingle.yml");
-        CassandraServersConfigs.DefaultConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraServersConfigs.DefaultConfig.class);
+    public static void helperTestMethod(CassandraServersConfigs.CassandraServersConfig expected, String configPath,
+            Class<? extends CassandraServersConfigs.CassandraServersConfig> deserializationClass) throws IOException {
+        URL configUrl = deserializationClass.getClassLoader()
+                .getResource(configPath);
+        CassandraServersConfigs.CassandraServersConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER
+                .readValue(new File(configUrl.getPath()), deserializationClass);
 
         assertThat(deserializedServersConfig).isEqualTo(expected);
+    }
+
+    @Test
+    public void canDeserializeOneEntryDefault() throws IOException, URISyntaxException {
+        helperTestMethod(
+                CassandraServersConfigs.defaultConfig(THRIFT_SERVER_1),
+                "testServersConfigDefaultSingle.yml",
+                CassandraServersConfigs.DefaultConfig.class);
     }
 
     @Test
     public void canDeserializeMultiEntryDefault() throws IOException, URISyntaxException {
-        CassandraServersConfigs.DefaultConfig expected = CassandraServersConfigs.defaultConfig(THRIFT_SERVERS);
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
-                .getResource("testServersConfigDefaultMulti.yml");
-        CassandraServersConfigs.DefaultConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraServersConfigs.DefaultConfig.class);
-
-        assertThat(deserializedServersConfig).isEqualTo(expected);
+        helperTestMethod(
+                CassandraServersConfigs.defaultConfig(THRIFT_SERVERS),
+                "testServersConfigDefaultMulti.yml",
+                CassandraServersConfigs.DefaultConfig.class);
     }
 
     @Test
     public void canDeserializeOneEntryThrift() throws IOException, URISyntaxException {
-        CassandraServersConfigs.ThriftOnlyConfig expected = CassandraServersConfigs.thriftOnlyConfig(THRIFT_SERVER_1);
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
-                .getResource("testServersConfigThriftSingle.yml");
-        CassandraServersConfigs.ThriftOnlyConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraServersConfigs.ThriftOnlyConfig.class);
-
-        assertThat(deserializedServersConfig).isEqualTo(expected);
+        helperTestMethod(
+                CassandraServersConfigs.thriftOnlyConfig(THRIFT_SERVER_1),
+                "testServersConfigThriftSingle.yml",
+                CassandraServersConfigs.ThriftOnlyConfig.class);
     }
 
     @Test
     public void canDeserializeMultiEntryThrift() throws IOException, URISyntaxException {
-        CassandraServersConfigs.ThriftOnlyConfig expected = CassandraServersConfigs.thriftOnlyConfig(THRIFT_SERVERS);
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
-                .getResource("testServersConfigThriftMulti.yml");
-        CassandraServersConfigs.ThriftOnlyConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraServersConfigs.ThriftOnlyConfig.class);
-
-        assertThat(deserializedServersConfig).isEqualTo(expected);
+        helperTestMethod(
+                CassandraServersConfigs.thriftOnlyConfig(THRIFT_SERVERS),
+                "testServersConfigThriftMulti.yml",
+                CassandraServersConfigs.ThriftOnlyConfig.class);
     }
 
     @Test
     public void canDeserializeSingleEntryCqlCapable() throws IOException, URISyntaxException {
-        CassandraServersConfigs.CqlCapableConfig expected =
-                CassandraServersConfigs.cqlCapableConfig(CQL_CAPABLE_SERVER_1);
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
-                .getResource("testServersConfigCqlCapableSingle.yml");
-        CassandraServersConfigs.CqlCapableConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraServersConfigs.CqlCapableConfig.class);
-
-        assertThat(deserializedServersConfig).isEqualTo(expected);
+        helperTestMethod(
+                CassandraServersConfigs.cqlCapableConfig(CQL_CAPABLE_SERVER_1),
+                "testServersConfigCqlCapableSingle.yml",
+                CassandraServersConfigs.CqlCapableConfig.class);
     }
 
     @Test
     public void canDeserializeMultiEntryCqlCapable() throws IOException, URISyntaxException {
-        CassandraServersConfigs.CqlCapableConfig expected =
-                CassandraServersConfigs.cqlCapableConfig(CQL_CAPABLE_SERVERS);
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader()
-                .getResource("testServersConfigCqlCapableMulti.yml");
-        CassandraServersConfigs.CqlCapableConfig deserializedServersConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraServersConfigs.CqlCapableConfig.class);
-
-        assertThat(deserializedServersConfig).isEqualTo(expected);
+        helperTestMethod(
+                CassandraServersConfigs.cqlCapableConfig(CQL_CAPABLE_SERVERS),
+                "testServersConfigCqlCapableMulti.yml",
+                CassandraServersConfigs.CqlCapableConfig.class);
     }
 }
