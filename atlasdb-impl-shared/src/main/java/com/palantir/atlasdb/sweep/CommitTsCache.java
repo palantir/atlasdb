@@ -18,21 +18,19 @@ package com.palantir.atlasdb.sweep;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutionException;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.base.Throwables;
 
 public final class CommitTsCache {
     private static final Long ONE_MILLION = 1_000_000L;
     private LoadingCache<Long, Long> cache;
 
     private CommitTsCache(TransactionService transactionService, long maxSize) {
-        cache = Caffeine.newBuilder()
-                .maximumSize(maxSize)
-                .expireAfterAccess(5, TimeUnit.MINUTES)
-                .build(new AbortingCommitTsLoader(transactionService));
+        cache = CacheBuilder.newBuilder().maximumSize(maxSize).build(new AbortingCommitTsLoader(transactionService));
     }
 
     public static CommitTsCache create(TransactionService transactionService) {
@@ -44,7 +42,7 @@ public final class CommitTsCache {
     }
 
     public long load(long startTs) {
-        return cache.get(startTs);
+        return cache.getUnchecked(startTs);
     }
 
     /**
@@ -52,6 +50,10 @@ public final class CommitTsCache {
      * does batched lookups for non-cached start timestamps.
      */
     public Map<Long, Long> loadBatch(Collection<Long> timestamps) {
-        return cache.getAll(timestamps);
+        try {
+            return cache.getAll(timestamps);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
     }
 }
