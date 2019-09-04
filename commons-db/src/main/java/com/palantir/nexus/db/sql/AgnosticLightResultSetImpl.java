@@ -81,6 +81,9 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
 
     @Override
     public void close() {
+        if (hasBeenClosed) {
+            return;
+        }
         timerKey.stop();
         try {
             stmt.close();
