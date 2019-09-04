@@ -73,7 +73,7 @@ fi
 case $CIRCLE_NODE_INDEX in
     0) echo 12345;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
