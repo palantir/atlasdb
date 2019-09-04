@@ -24,8 +24,10 @@ import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
+import com.palantir.flake.ShouldRetry;
 
 @RunWith(Suite.class)
+@ShouldRetry
 @Suite.SuiteClasses({
         TodoEteTest.class,
         TimestampManagementEteTest.class,
