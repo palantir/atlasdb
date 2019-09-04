@@ -32,6 +32,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 public final class CassandraServersConfigs {
     private CassandraServersConfigs() {
@@ -105,8 +106,8 @@ public final class CassandraServersConfigs {
 
         @Value.Check
         final void check() {
-            Preconditions.checkState(thriftPort() > 0, String.format(PORT_NUMBER_ERROR, "'thriftPort'"));
-            Preconditions.checkState(cqlPort() > 0, String.format(PORT_NUMBER_ERROR, "'cqlPort'"));
+            Preconditions.checkState(thriftPort() > 0, PORT_NUMBER_ERROR, SafeArg.of("'thriftPort'", thriftPort()));
+            Preconditions.checkState(cqlPort() > 0, PORT_NUMBER_ERROR, SafeArg.of("'cqlPort'", cqlPort()));
         }
 
         @Override
