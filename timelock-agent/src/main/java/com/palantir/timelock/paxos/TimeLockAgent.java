@@ -241,4 +241,8 @@ public class TimeLockAgent {
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
+
+    public void shutdown() {
+        leadershipCreator.shutdown();
+    }
 }

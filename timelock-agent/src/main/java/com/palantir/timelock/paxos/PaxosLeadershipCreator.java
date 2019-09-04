@@ -138,4 +138,8 @@ class PaxosLeadershipCreator {
     boolean isCurrentSuspectedLeader() {
         return isCurrentSuspectedLeader.get();
     }
+
+    void shutdown() {
+        leaderElectionService.stepDown();
+    }
 }
