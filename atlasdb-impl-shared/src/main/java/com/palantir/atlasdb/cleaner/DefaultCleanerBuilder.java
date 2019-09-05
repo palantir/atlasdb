@@ -156,7 +156,7 @@ public class DefaultCleanerBuilder {
 
     private static Optional<Long> timestampSeed(TimelockService timelockService) {
         try {
-            return Optional.of(timelockService.getFreshTimestamp());
+            return Optional.of(-1L);
         } catch (Exception e) {
             log.info("On node startup quorum not present", e);
             return Optional.empty();
