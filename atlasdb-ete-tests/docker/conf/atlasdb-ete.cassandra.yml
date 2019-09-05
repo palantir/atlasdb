@@ -13,7 +13,11 @@ atlasdb:
   keyValueService:
     type: cassandra
     servers:
-      - cassandra:9160
+      type: cqlCapable
+      hosts:
+        - cassandra
+      cqlPort: 9042
+      thriftPort: 9160
     poolSize: 20
     credentials:
       username: cassandra
