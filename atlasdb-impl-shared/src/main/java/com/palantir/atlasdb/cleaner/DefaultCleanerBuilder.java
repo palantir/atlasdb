@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -112,7 +112,7 @@ public class DefaultCleanerBuilder {
         return this;
     }
 
-    private Puncher buildPuncher(Optional<Long> maybeTimestampSeed) {
+    private Puncher buildPuncher(LongSupplier timestampSeedSource) {
         PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService, initalizeAsync);
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
@@ -122,7 +122,7 @@ public class DefaultCleanerBuilder {
                 cachingPuncherStore,
                 clock,
                 Suppliers.ofInstance(transactionReadTimeout));
-        return AsyncPuncher.create(simplePuncher, punchIntervalMillis, maybeTimestampSeed);
+        return AsyncPuncher.create(simplePuncher, punchIntervalMillis, timestampSeedSource);
     }
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
@@ -144,7 +144,7 @@ public class DefaultCleanerBuilder {
     }
 
     public Cleaner buildCleaner() {
-        Puncher puncher = buildPuncher(timestampSeed(timelockService));
+        Puncher puncher = buildPuncher(timelockService::getFreshTimestamp);
         Supplier<Long> immutableTs = ImmutableTimestampSupplier
                 .createMemoizedWithExpiration(timelockService);
         Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTs);
@@ -152,14 +152,5 @@ public class DefaultCleanerBuilder {
                 scrubber,
                 puncher,
                 Suppliers.ofInstance(transactionReadTimeout));
-    }
-
-    private static Optional<Long> timestampSeed(TimelockService timelockService) {
-        try {
-            return Optional.of(timelockService.getFreshTimestamp());
-        } catch (Exception e) {
-            log.info("On node startup quorum not present", e);
-            return Optional.empty();
-        }
     }
 }
