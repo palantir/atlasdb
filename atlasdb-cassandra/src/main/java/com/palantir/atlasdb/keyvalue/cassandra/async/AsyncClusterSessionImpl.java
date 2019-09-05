@@ -23,8 +23,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +46,58 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
     private final Executor executor;
 
     private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory(getSessionName() + "-healtcheck", true /* daemon */));
+            new NamedThreadFactory(sessionName() + "-healtcheck", true /* daemon */));
     private final PreparedStatement healthCheckStatement;
+
+
+    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSessionPair pair,
+            ThreadFactory threadFactory) {
+        return create(clusterName, pair, Executors.newCachedThreadPool(threadFactory));
+    }
+
+    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSessionPair pair,
+            Executor executor) {
+        PreparedStatement healthCheckStatement = pair.session().prepare("SELECT dateof(now()) FROM system.local ;");
+        return new AsyncClusterSessionImpl(clusterName, pair, executor, healthCheckStatement);
+    }
+
+    private AsyncClusterSessionImpl(String sessionName, CassandraClusterSessionPair pair, Executor executor,
+            PreparedStatement healthCheckStatement) {
+        this.sessionName = sessionName;
+        this.pair = pair;
+        this.executor = executor;
+        this.healthCheckStatement = healthCheckStatement;
+    }
+
+    @Override
+    public Map<MetricName, Metric> usedCqlClusterMetrics() {
+        return KeyedStream.stream(
+                pair.cluster().getMetrics()
+                        .getRegistry()
+                        .getMetrics())
+                .mapKeys(name -> MetricName.builder().safeName(name).build())
+                .collectToMap();
+    }
+
+    @Override
+    public String sessionName() {
+        return sessionName;
+    }
+
+    @Override
+    public void close() {
+        service.shutdownNow();
+        boolean shutdown = false;
+        try {
+            shutdown = service.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Interrupted while shutting down health checker. Should not happen");
+            Thread.currentThread().interrupt();
+        }
+        if (!shutdown) {
+            log.error("Failed to shutdown health checker in a timely manner");
+        }
+    }
 
     private void start() {
         service.scheduleAtFixedRate(() -> {
@@ -72,58 +120,5 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
                     }
                     return builder.toString();
                 }, executor);
-    }
-
-    @Nonnull
-    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSessionPair pair,
-            ThreadFactory threadFactory) {
-        return create(clusterName, pair, Executors.newCachedThreadPool(threadFactory));
-    }
-
-    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSessionPair pair,
-            Executor executor) {
-
-        PreparedStatement healthCheckStatement = pair.session().prepare("SELECT dateof(now()) FROM system.local ;");
-
-        return new AsyncClusterSessionImpl(clusterName, pair, executor, healthCheckStatement);
-    }
-
-    private AsyncClusterSessionImpl(String sessionName, CassandraClusterSessionPair pair, Executor executor,
-            PreparedStatement healthCheckStatement) {
-        this.sessionName = sessionName;
-        this.pair = pair;
-        this.executor = executor;
-        this.healthCheckStatement = healthCheckStatement;
-    }
-
-    @Override
-    public Map<MetricName, Metric> getMetricsSet() {
-        return KeyedStream.stream(
-                pair.cluster().getMetrics()
-                        .getRegistry()
-                        .getMetrics())
-                .mapKeys(name -> MetricName.builder().safeName(name).build())
-                .collectToMap();
-    }
-
-    @Nonnull
-    @Override
-    public String getSessionName() {
-        return sessionName;
-    }
-
-    @Override
-    public void close() {
-        service.shutdownNow();
-        boolean shutdown = false;
-        try {
-            shutdown = service.awaitTermination(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            log.error("Interrupted while shutting down health checker. Should not happen");
-            Thread.currentThread().interrupt();
-        }
-        if (!shutdown) {
-            log.error("Failed to shutdown health checker in a timely manner");
-        }
     }
 }

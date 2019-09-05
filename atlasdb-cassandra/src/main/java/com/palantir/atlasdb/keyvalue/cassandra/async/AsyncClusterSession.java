@@ -26,10 +26,10 @@ import com.palantir.tritium.metrics.registry.MetricName;
 
 public interface AsyncClusterSession extends Closeable {
 
-    Map<MetricName, Metric> getMetricsSet();
+    Map<MetricName, Metric> usedCqlClusterMetrics();
 
     @Nonnull
-    String getSessionName();
+    String sessionName();
 
     @Override
     void close();
