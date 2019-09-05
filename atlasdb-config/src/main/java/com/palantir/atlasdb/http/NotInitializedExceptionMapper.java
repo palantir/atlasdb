@@ -25,8 +25,8 @@ import com.palantir.exception.NotInitializedException;
  * {@link AtlasDbHttpProtocolVersion}. The intention is that clients may retry on an arbitrary node of the service,
  * and they should backoff, as that node of the cluster is still starting up.
  *
- * This is a 503 without a Retry-After header and with a message body corresponding to {@link NotInitializedException}
- * in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
+ * This is a 503 without a {@code Retry-After} header and with a message body corresponding to
+ * {@link NotInitializedException} in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  */
 public class NotInitializedExceptionMapper extends ProtocolAwareExceptionMapper<NotInitializedException> {
     @Override

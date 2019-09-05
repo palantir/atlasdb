@@ -18,15 +18,15 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
 public class AtlasDbHttpProtocolVersionTest {
     @Test
     public void infersFromKnownVersionStrings() {
-        Arrays.stream(AtlasDbHttpProtocolVersion.values())
+        Stream.of(AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN, AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME)
                 .forEach(value -> {
                     Optional<String> protocolVersionString = Optional.of(value.getProtocolVersionString());
                     assertThat(AtlasDbHttpProtocolVersion.inferFromString(protocolVersionString))
