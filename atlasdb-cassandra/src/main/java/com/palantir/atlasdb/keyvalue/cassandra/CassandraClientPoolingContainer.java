@@ -143,8 +143,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             return fn.apply(resource);
         } catch (Exception e) {
             if (isInvalidClientConnection(resource)) {
-                log.warn("Not reusing resource {} due to {} of host {}",
-                        UnsafeArg.of("resource", resource),
+                log.warn("Not reusing resource due to {} of host {}",
                         UnsafeArg.of("exception", e.toString()),
                         SafeArg.of("host", CassandraLogHelper.host(host)), e);
                 shouldReuse = false;
@@ -158,8 +157,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         } finally {
             if (resource != null) {
                 if (shouldReuse) {
-                    log.debug("Returning {} to pool of host {}",
-                            UnsafeArg.of("resource", resource),
+                    log.debug("Returning resource to pool of host {}",
                             SafeArg.of("host", CassandraLogHelper.host(host)));
                     eagerlyCleanupReadBuffersFromIdleConnection(resource, host);
                     clientPool.returnObject(resource);
@@ -199,8 +197,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void invalidateQuietly(CassandraClient resource) {
         try {
-            log.debug("Discarding {} of host {}",
-                    UnsafeArg.of("pool", resource),
+            log.debug("Discarding resource of host {}",
                     SafeArg.of("host", CassandraLogHelper.host(host)));
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
