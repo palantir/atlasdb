@@ -234,7 +234,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         MetricsManager metricsManager = MetricsManagers.createForTests();
         Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
         Pair<CassandraClientPool, Optional<AsyncClusterSession>> connections;
-
         try {
             connections = config.servers()
                     .visit((thriftServers, maybeCqlServers) -> new Pair<>(
@@ -250,7 +249,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             log.warn("AsyncClusterSession cretion exception", e);
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
-
         return createOrShutdownClientPool(metricsManager, config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 connections.lhSide,
