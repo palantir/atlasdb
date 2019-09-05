@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -46,7 +47,7 @@ public final class AsyncPuncher implements Puncher {
     public static AsyncPuncher create(
             Puncher delegate,
             long interval,
-            LongSupplier seedTimestampSupplier) {
+            Optional<LongSupplier> seedTimestampSupplier) {
         AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval, seedTimestampSupplier);
         asyncPuncher.start();
         return asyncPuncher;
@@ -59,10 +60,11 @@ public final class AsyncPuncher implements Puncher {
     private final long interval;
     private final AtomicLong lastTimestamp;
 
-    private AsyncPuncher(Puncher delegate, long interval, LongSupplier seedTimestampSupplier) {
+    private AsyncPuncher(Puncher delegate, long interval, Optional<LongSupplier> seedTimestampSupplier) {
         this.delegate = delegate;
         this.interval = interval;
-        this.lastTimestamp = new AtomicLong(getInitialTimestamp(seedTimestampSupplier));
+        this.lastTimestamp = new AtomicLong(
+                seedTimestampSupplier.map(this::getInitialTimestamp).orElse(INVALID_TIMESTAMP));
     }
 
     private void start() {
@@ -125,7 +127,7 @@ public final class AsyncPuncher implements Puncher {
                     SafeArg.of("timeLimit", SEED_TIME_LIMIT),
                     timeout);
         } catch (Exception e) {
-            log.info("On node startup quorum not present", e);
+            log.info("Error occurred when trying to acquire a seed timestamp. Continuing without seeding.", e);
         }
         return INVALID_TIMESTAMP;
     }
