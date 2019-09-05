@@ -26,6 +26,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public class CassandraKeyValueServiceConfigTest {
@@ -39,7 +40,9 @@ public class CassandraKeyValueServiceConfigTest {
 
     private static final ImmutableCassandraKeyValueServiceConfig CASSANDRA_CONFIG =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .addServers(SERVER_ADDRESS)
+                    .servers(
+                            ImmutableDefaultConfig
+                                    .builder().addThrift(SERVER_ADDRESS).build())
                     .replicationFactor(1)
                     .keyspace("atlasdb")
                     .credentials(CREDENTIALS)

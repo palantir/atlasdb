@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 
 public class CassandraKeyValueServicesSchemaConsensusTest {
     private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
@@ -40,11 +41,11 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static CassandraClient client = mock(CassandraClient.class);
 
     private static final Set<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
-            new InetSocketAddress("1", 0),
-            new InetSocketAddress("2", 0),
-            new InetSocketAddress("3", 0),
-            new InetSocketAddress("4", 0),
-            new InetSocketAddress("5", 0));
+            new InetSocketAddress("1", 1),
+            new InetSocketAddress("2", 1),
+            new InetSocketAddress("3", 1),
+            new InetSocketAddress("4", 1),
+            new InetSocketAddress("5", 1));
     private static final String TABLE = "table";
     private static final String VERSION_1 = "v1";
     private static final String VERSION_2 = "v2";
@@ -56,9 +57,13 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @BeforeClass
     public static void initializeMocks() {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
-        when(config.servers()).thenReturn(FIVE_SERVERS);
+        when(config.servers()).thenReturn(
+                ImmutableDefaultConfig
+                        .builder().addAllThrift(FIVE_SERVERS).build());
         when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
-        when(waitingConfig.servers()).thenReturn(FIVE_SERVERS);
+        when(waitingConfig.servers())
+                .thenReturn(ImmutableDefaultConfig
+                        .builder().addAllThrift(FIVE_SERVERS).build());
     }
 
     @Test

@@ -144,7 +144,9 @@ public class CassandraService implements AutoCloseable {
         }
 
         InetAddress resolvedHost = InetAddress.getByName(host);
-        Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
+        Set<InetSocketAddress> allKnownHosts = config.servers().visit(
+                (thrift, cql) -> Sets.union(currentPools.keySet(), thrift));
+
         for (InetSocketAddress address : allKnownHosts) {
             if (Objects.equals(address.getAddress(), resolvedHost)) {
                 return address;
@@ -257,9 +259,10 @@ public class CassandraService implements AutoCloseable {
         }
 
         log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
-                + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
-                + " Current host blacklist is {}."
-                + " Current state logged at TRACE",
+                        + "live hosts that claim ownership of the given range."
+                        + " Falling back to choosing a random live node."
+                        + " Current host blacklist is {}."
+                        + " Current state logged at TRACE",
                 SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
         log.trace("Current ring view is: {}.",
                 SafeArg.of("tokenMap", getRingViewDescription()));
@@ -285,9 +288,9 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void cacheInitialCassandraHosts() {
-        cassandraHosts = config.servers().stream()
+        cassandraHosts = config.servers().visit((thrift, cql) -> thrift.stream()
                 .sorted(Comparator.comparing(InetSocketAddress::toString))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
         cassandraHosts.forEach(this::addPool);
     }
 

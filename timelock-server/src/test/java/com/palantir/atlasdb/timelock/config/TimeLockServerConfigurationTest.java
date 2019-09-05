@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -61,7 +62,9 @@ public class TimeLockServerConfigurationTest {
             .build();
     public static final CassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
             .builder()
-            .addServers(new InetSocketAddress("cassandra", 9160))
+            .servers(
+                    ImmutableDefaultConfig.builder().addThrift(
+                            new InetSocketAddress("cassandra", 9160)).build())
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()
