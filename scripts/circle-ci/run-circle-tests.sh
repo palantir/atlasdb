@@ -12,19 +12,19 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
+CONTAINER_1=(':atlasdb-ete-tests:dbkvsTest')
 
-CONTAINER_2=(':atlasdb-ete-tests:check')
+CONTAINER_2=(':atlasdb-ete-tests:dbkvsTest')
 
-CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check')
+CONTAINER_3=(':atlasdb-ete-tests:dbkvsTest')
 
-CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
+CONTAINER_4=(':atlasdb-ete-tests:dbkvsTest')
 
-CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
+CONTAINER_5=(':atlasdb-ete-tests:dbkvsTest')
 
-CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest')
+CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest')
 
-CONTAINER_7=('compileJava' 'compileTestJava')
+CONTAINER_7=(':atlasdb-ete-tests:dbkvsTest')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")
@@ -73,10 +73,10 @@ fi
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
-    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
 esac
