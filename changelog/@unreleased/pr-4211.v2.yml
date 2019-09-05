@@ -1,0 +1,28 @@
+type: feature
+feature:
+  description: |-
+    So/async session
+
+    **Goals (and why)**:
+    Second step towards, async get API. This PR allows CQL session creation and sends health checks every hour to Cassandra cluster as a simple sanity check
+
+    **Implementation Description (bullets)**:
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+
+    **Concerns (what feedback would you like?)**:
+    - code structure, naming and entry points.
+
+    **Where should we start reviewing?**:
+    - AsyncClusterSession.java
+
+    **Priority (whenever / two weeks / yesterday)**:
+    whenever
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/4211
