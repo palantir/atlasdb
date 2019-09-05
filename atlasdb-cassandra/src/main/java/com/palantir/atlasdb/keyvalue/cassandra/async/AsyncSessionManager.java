@@ -67,6 +67,11 @@ public final class AsyncSessionManager {
     interface UniqueCassandraCluster {
         @Value.Parameter
         Set<InetSocketAddress> servers();
+
+        default void check() {
+            Preconditions.checkState(servers() != null, "UniqueCassandraCluster has null as "
+                    + "servers value");
+        }
     }
 
     /**
@@ -76,11 +81,17 @@ public final class AsyncSessionManager {
     @Value.Immutable
     interface CassandraClusterSessionPair {
         @Value.Parameter
-        @Nonnull
         Cluster cluster();
         @Value.Parameter
-        @Nonnull
         Session session();
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(cluster() != null, "CassandraClusterSession pair created "
+                    + "with null cluster");
+            Preconditions.checkState(session() != null, "CassandraClusterSession pair created "
+                    + "with null session");
+        }
     }
 
     static class SimpleAddressTranslator implements AddressTranslator {
