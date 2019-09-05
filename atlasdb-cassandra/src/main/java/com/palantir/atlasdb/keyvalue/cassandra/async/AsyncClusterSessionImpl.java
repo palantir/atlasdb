@@ -103,7 +103,8 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
         }
     }
 
-    private void start() {
+    @Override
+    public  void start() {
         service.scheduleAtFixedRate(() -> {
             ListenableFuture<String> time = getTimeAsync();
             try {
