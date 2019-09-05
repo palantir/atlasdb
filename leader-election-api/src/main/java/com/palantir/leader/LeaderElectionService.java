@@ -36,6 +36,16 @@ public interface LeaderElectionService {
     }
 
     /**
+     * Indicates that this node should not nominate itself for leadership.
+     *
+     * <b>Note</b> This only affects future elections, does not cause any change in leadership if this node is
+     * currently leader.</b>
+     *
+     * @see #stepDown()
+     */
+    void markNotEligibleForLeadership();
+
+    /**
      * This method will block until this node becomes the leader and is supported by a quorum of nodes.
      *
      * @return a leadership token to be used with {@link #isStillLeading}

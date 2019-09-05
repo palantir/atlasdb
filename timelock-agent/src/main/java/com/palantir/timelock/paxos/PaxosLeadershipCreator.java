@@ -140,6 +140,7 @@ class PaxosLeadershipCreator {
     }
 
     void shutdown() {
+        leaderElectionService.markNotEligibleForLeadership();
         leaderElectionService.stepDown();
     }
 }
