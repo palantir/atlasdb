@@ -23,6 +23,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncSessionManager.Cassand
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 public final class AsyncClusterSessionImpl implements AsyncClusterSession {
@@ -79,6 +82,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
                 .collectToMap();
     }
 
+    @Nonnull
     @Override
     public String sessionName() {
         return sessionName;
@@ -103,7 +107,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
         service.scheduleAtFixedRate(() -> {
             ListenableFuture<String> time = getTimeAsync();
             try {
-                log.info("Current cluster time is: " + time.get());
+                log.info("Current cluster time is: {}", SafeArg.of("clusterTime", time));
             } catch (Exception e) {
                 log.info("Cluster session health check failed");
             }
