@@ -155,6 +155,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.timestamp.RemoteTimestampManagementAdapter;
+import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -928,8 +930,8 @@ public abstract class TransactionManagers {
                 = new NamespaceAwareTimelockRpcClient(timelockClient, timelockNamespace);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
                 = RemoteTimelockServiceAdapter.create(namespaceAwareTimelockRpcClient);
-        TimestampManagementService timestampManagementService
-                = creator.createNamespacedService(TimestampManagementService.class, timelockNamespace);
+        TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
+                creator.createService(TimestampManagementRpcClient.class), timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
