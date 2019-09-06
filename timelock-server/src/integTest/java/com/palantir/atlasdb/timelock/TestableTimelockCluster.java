@@ -48,6 +48,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
+import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -200,7 +201,7 @@ public class TestableTimelockCluster {
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelockRpcClient(client).deprecatedStartTransaction(request).toStartTransactionResponse();
+        return namespaceAwareClient().deprecatedStartTransaction(request).toStartTransactionResponse();
     }
 
     private TimestampService timestampService() {
@@ -219,7 +220,7 @@ public class TestableTimelockCluster {
         return timelockServicesForClient.computeIfAbsent(
                 name,
                 clientName -> RemoteTimelockServiceAdapter.create(
-                        proxies.failoverForClient(clientName, NamespaceAwareTimelockRpcClient.class)));
+                        proxies.failover(TimelockRpcClient.class, proxies.getServerUris()), clientName));
     }
 
     TimeLockUnlocker unlockerForClient(String name) {
@@ -228,15 +229,15 @@ public class TestableTimelockCluster {
     }
 
     <T> CompletableFuture<T> runWithRpcClientAsync(Function<NamespaceAwareTimelockRpcClient, T> function) {
-        return CompletableFuture.supplyAsync(() -> function.apply(timelockRpcClient()));
+        return CompletableFuture.supplyAsync(() -> function.apply(namespaceAwareClient()));
     }
 
-    NamespaceAwareTimelockRpcClient timelockRpcClient() {
-        return timelockRpcClient(client);
+    NamespaceAwareTimelockRpcClient namespaceAwareClient() {
+        return new NamespaceAwareTimelockRpcClient(timelockRpcClient(), client);
     }
 
-    private NamespaceAwareTimelockRpcClient timelockRpcClient(String name) {
-        return proxies.failoverForClient(name, NamespaceAwareTimelockRpcClient.class);
+    private TimelockRpcClient timelockRpcClient() {
+        return proxies.failover(TimelockRpcClient.class, proxies.getServerUris());
     }
 
     RuleChain getRuleChain() {
