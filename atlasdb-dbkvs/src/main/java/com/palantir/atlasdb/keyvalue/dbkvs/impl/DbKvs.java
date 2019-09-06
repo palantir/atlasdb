@@ -423,14 +423,12 @@ public final class DbKvs extends AbstractKeyValueService {
         try {
             futures = executor.invokeAll(callables);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
             throw Throwables.throwUncheckedException(e);
         }
         for (Future<Void> future : futures) {
             try {
                 future.get();
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
                 throw Throwables.throwUncheckedException(e);
             } catch (ExecutionException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
@@ -1399,7 +1397,6 @@ public final class DbKvs extends AbstractKeyValueService {
         try {
             writeThread.join();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
         return result.get();
