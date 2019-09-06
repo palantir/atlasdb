@@ -784,11 +784,11 @@ public class StreamStoreRenderer {
                     line("        .map(", StreamMetadataRow, "::getId)");
                     line("        .map(", StreamIndexRow, "::of)");
                     line("        .collect(Collectors.toSet());");
-                    line("Map<", StreamIndexRow, ", Iterator<", StreamIndexColumnValue, ">> indexIterator");
+                    line("Map<", StreamIndexRow, ", Iterator<", StreamIndexColumnValue, ">> referenceIteratorByStream");
                     line("        = indexTable.getRowsColumnRangeIterator(indexRows,");
                     line("                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));");
-                    line("Set<", StreamMetadataRow, "> rowsWithNoIndexEntries");
-                    line("        = KeyedStream.stream(indexIterator)");
+                    line("Set<", StreamMetadataRow, "> streamsWithNoReferences");
+                    line("        = KeyedStream.stream(referenceIteratorByStream)");
                     line("        .filter(valueIterator -> !valueIterator.hasNext())");
                     line("        .keys()");
                     line("        .map(", StreamIndexRow, "::getId)");
@@ -797,7 +797,7 @@ public class StreamStoreRenderer {
                     line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);");
                     line("Set<", StreamId, "> toDelete = Sets.newHashSet();");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {"); {
-                        line("if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {"); {
+                        line("if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {"); {
                             line("toDelete.add(e.getKey().getId());");
                         } line("}");
                     } line("}");
