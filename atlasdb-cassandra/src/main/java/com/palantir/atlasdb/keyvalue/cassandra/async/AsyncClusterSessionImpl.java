@@ -108,7 +108,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
         service.scheduleAtFixedRate(() -> {
             ListenableFuture<String> time = getTimeAsync();
             try {
-                log.info("Current cluster time is: {}", SafeArg.of("clusterTime", time));
+                log.info("Current cluster time is: {}", SafeArg.of("clusterTime", time.get()));
             } catch (Exception e) {
                 log.info("Cluster session health check failed");
             }
