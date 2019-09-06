@@ -37,11 +37,11 @@ public class ValueMetadataCleanupTask implements OnCleanupTask {
                 .map(ValueStreamMetadataTable.ValueStreamMetadataRow::getId)
                 .map(ValueStreamIdxTable.ValueStreamIdxRow::of)
                 .collect(Collectors.toSet());
-        Map<ValueStreamIdxTable.ValueStreamIdxRow, Iterator<ValueStreamIdxTable.ValueStreamIdxColumnValue>> indexIterator
+        Map<ValueStreamIdxTable.ValueStreamIdxRow, Iterator<ValueStreamIdxTable.ValueStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> rowsWithNoIndexEntries
-                = KeyedStream.stream(indexIterator)
+        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> streamsWithNoReferences
+                = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys()
                 .map(ValueStreamIdxTable.ValueStreamIdxRow::getId)
@@ -50,7 +50,7 @@ public class ValueMetadataCleanupTask implements OnCleanupTask {
         Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
+            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

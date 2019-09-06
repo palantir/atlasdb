@@ -37,11 +37,11 @@ public class TestHashComponentsMetadataCleanupTask implements OnCleanupTask {
                 .map(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow::getId)
                 .map(TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow::of)
                 .collect(Collectors.toSet());
-        Map<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow, Iterator<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue>> indexIterator
+        Map<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow, Iterator<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> rowsWithNoIndexEntries
-                = KeyedStream.stream(indexIterator)
+        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> streamsWithNoReferences
+                = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys()
                 .map(TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow::getId)
@@ -50,7 +50,7 @@ public class TestHashComponentsMetadataCleanupTask implements OnCleanupTask {
         Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
+            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

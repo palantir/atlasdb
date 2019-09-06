@@ -37,11 +37,11 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
                 .map(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow::getId)
                 .map(SnapshotsStreamIdxTable.SnapshotsStreamIdxRow::of)
                 .collect(Collectors.toSet());
-        Map<SnapshotsStreamIdxTable.SnapshotsStreamIdxRow, Iterator<SnapshotsStreamIdxTable.SnapshotsStreamIdxColumnValue>> indexIterator
+        Map<SnapshotsStreamIdxTable.SnapshotsStreamIdxRow, Iterator<SnapshotsStreamIdxTable.SnapshotsStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> rowsWithNoIndexEntries
-                = KeyedStream.stream(indexIterator)
+        Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> streamsWithNoReferences
+                = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys()
                 .map(SnapshotsStreamIdxTable.SnapshotsStreamIdxRow::getId)
@@ -50,7 +50,7 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
         Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
+            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

@@ -37,11 +37,11 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
                 .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::getId)
                 .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::of)
                 .collect(Collectors.toSet());
-        Map<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, Iterator<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue>> indexIterator
+        Map<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, Iterator<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rowsWithNoIndexEntries
-                = KeyedStream.stream(indexIterator)
+        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> streamsWithNoReferences
+                = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys()
                 .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::getId)
@@ -50,7 +50,7 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
         Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
+            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

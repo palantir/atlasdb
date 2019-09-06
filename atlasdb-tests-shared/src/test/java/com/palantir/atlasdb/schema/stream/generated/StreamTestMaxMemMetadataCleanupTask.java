@@ -37,11 +37,11 @@ public class StreamTestMaxMemMetadataCleanupTask implements OnCleanupTask {
                 .map(StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow::getId)
                 .map(StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow::of)
                 .collect(Collectors.toSet());
-        Map<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, Iterator<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue>> indexIterator
+        Map<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, Iterator<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow> rowsWithNoIndexEntries
-                = KeyedStream.stream(indexIterator)
+        Set<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow> streamsWithNoReferences
+                = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys()
                 .map(StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow::getId)
@@ -50,7 +50,7 @@ public class StreamTestMaxMemMetadataCleanupTask implements OnCleanupTask {
         Map<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
+            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }

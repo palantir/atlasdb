@@ -37,11 +37,11 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
                 .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::getId)
                 .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::of)
                 .collect(Collectors.toSet());
-        Map<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, Iterator<UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue>> indexIterator
+        Map<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, Iterator<UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rowsWithNoIndexEntries
-                = KeyedStream.stream(indexIterator)
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> streamsWithNoReferences
+                = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys()
                 .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::getId)
@@ -50,7 +50,7 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
         Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || rowsWithNoIndexEntries.contains(e.getKey())) {
+            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
                 toDelete.add(e.getKey().getId());
             }
         }
