@@ -36,23 +36,23 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
-    private final TimelockRpcClient delegate;
+    private final NamespaceAwareTimelockRpcClient delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
 
     @VisibleForTesting
-    LockLeaseService(TimelockRpcClient timelockRpcClient, UUID clientId) {
-        this.delegate = timelockRpcClient;
+    LockLeaseService(NamespaceAwareTimelockRpcClient namespaceAwareTimelockRpcClient, UUID clientId) {
+        this.delegate = namespaceAwareTimelockRpcClient;
         this.clientId = clientId;
-        this.time = new CoalescingSupplier<>(timelockRpcClient::getLeaderTime);
+        this.time = new CoalescingSupplier<>(namespaceAwareTimelockRpcClient::getLeaderTime);
     }
 
-    static LockLeaseService create(TimelockRpcClient timelockRpcClient) {
-        return new LockLeaseService(timelockRpcClient, UUID.randomUUID());
+    static LockLeaseService create(NamespaceAwareTimelockRpcClient namespaceAwareTimelockRpcClient) {
+        return new LockLeaseService(namespaceAwareTimelockRpcClient, UUID.randomUUID());
     }
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {

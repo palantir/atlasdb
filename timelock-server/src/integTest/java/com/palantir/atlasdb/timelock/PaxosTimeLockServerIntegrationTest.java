@@ -473,7 +473,8 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static TimelockService getTimelockService(String client) {
-        return RemoteTimelockServiceAdapter.create(getProxyForService(client, TimelockRpcClient.class));
+        return RemoteTimelockServiceAdapter.create(
+                getProxyForRootService(client, TimelockRpcClient.class), client);
     }
 
     private static LockService getLockService(String client) {
@@ -488,6 +489,16 @@ public class PaxosTimeLockServerIntegrationTest {
         return getProxyForService(client, TimestampManagementService.class);
     }
 
+    private static <T> T getProxyForRootService(String client, Class<T> clazz) {
+        return AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
+                Optional.of(TestProxies.TRUST_CONTEXT),
+                getGenericRootUri(),
+                clazz,
+                client,
+                true);
+    }
+
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
@@ -496,6 +507,10 @@ public class PaxosTimeLockServerIntegrationTest {
                 clazz,
                 client,
                 true);
+    }
+
+    private static String getGenericRootUri() {
+        return String.format("https://localhost:%d", TIMELOCK_SERVER_HOLDER.getTimelockPort());
     }
 
     private static String getRootUriForClient(String client) {

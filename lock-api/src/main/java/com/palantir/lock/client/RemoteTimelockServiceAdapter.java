@@ -23,6 +23,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -30,38 +31,42 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
-    private final TimelockRpcClient timelockRpcClient;
+    private final NamespaceAwareTimelockRpcClient rpcClient;
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
 
-    private RemoteTimelockServiceAdapter(TimelockRpcClient timelockRpcClient) {
-        this.timelockRpcClient = timelockRpcClient;
-        this.lockLeaseService = LockLeaseService.create(timelockRpcClient);
+    private RemoteTimelockServiceAdapter(NamespaceAwareTimelockRpcClient rpcClient) {
+        this.rpcClient = rpcClient;
+        this.lockLeaseService = LockLeaseService.create(rpcClient);
         this.transactionStarter = TransactionStarter.create(lockLeaseService);
     }
 
-    public static RemoteTimelockServiceAdapter create(TimelockRpcClient timelockRpcClient) {
-        return new RemoteTimelockServiceAdapter(timelockRpcClient);
+    public static RemoteTimelockServiceAdapter create(NamespaceAwareTimelockRpcClient rpcClient) {
+        return new RemoteTimelockServiceAdapter(rpcClient);
+    }
+
+    public static RemoteTimelockServiceAdapter create(TimelockRpcClient rpcClient, String timelockNamespace) {
+        return create(new NamespaceAwareTimelockRpcClient(rpcClient, timelockNamespace));
     }
 
     @Override
     public long getFreshTimestamp() {
-        return timelockRpcClient.getFreshTimestamp();
+        return rpcClient.getFreshTimestamp();
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return timelockRpcClient.getFreshTimestamps(numTimestampsRequested);
+        return rpcClient.getFreshTimestamps(numTimestampsRequested);
     }
 
     @Override
     public long getImmutableTimestamp() {
-        return timelockRpcClient.getImmutableTimestamp();
+        return rpcClient.getImmutableTimestamp();
     }
 
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return timelockRpcClient.waitForLocks(request);
+        return rpcClient.waitForLocks(request);
     }
 
     @Override
@@ -91,7 +96,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public long currentTimeMillis() {
-        return timelockRpcClient.currentTimeMillis();
+        return rpcClient.currentTimeMillis();
     }
 
     @Override

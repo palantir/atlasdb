@@ -47,7 +47,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -219,7 +219,7 @@ public class TestableTimelockCluster {
         return timelockServicesForClient.computeIfAbsent(
                 name,
                 clientName -> RemoteTimelockServiceAdapter.create(
-                        proxies.failoverForClient(clientName, TimelockRpcClient.class)));
+                        proxies.failoverForClient(clientName, NamespaceAwareTimelockRpcClient.class)));
     }
 
     TimeLockUnlocker unlockerForClient(String name) {
@@ -227,16 +227,16 @@ public class TestableTimelockCluster {
                 clientName -> AsyncTimeLockUnlocker.create(timelockServiceForClient(clientName)));
     }
 
-    <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
+    <T> CompletableFuture<T> runWithRpcClientAsync(Function<NamespaceAwareTimelockRpcClient, T> function) {
         return CompletableFuture.supplyAsync(() -> function.apply(timelockRpcClient()));
     }
 
-    TimelockRpcClient timelockRpcClient() {
+    NamespaceAwareTimelockRpcClient timelockRpcClient() {
         return timelockRpcClient(client);
     }
 
-    private TimelockRpcClient timelockRpcClient(String name) {
-        return proxies.failoverForClient(name, TimelockRpcClient.class);
+    private NamespaceAwareTimelockRpcClient timelockRpcClient(String name) {
+        return proxies.failoverForClient(name, NamespaceAwareTimelockRpcClient.class);
     }
 
     RuleChain getRuleChain() {

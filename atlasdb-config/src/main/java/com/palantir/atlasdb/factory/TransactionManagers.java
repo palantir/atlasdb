@@ -148,6 +148,7 @@ import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -887,8 +888,10 @@ public abstract class TransactionManagers {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
+        String timelockNamespace = OptionalResolver.resolve(
+                config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
         LockAndTimestampServices lockAndTimestampServices =
-                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent);
+                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent, timelockNamespace);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.timestampManagement(),
@@ -907,21 +910,24 @@ public abstract class TransactionManagers {
                 "Cannot create raw services from timelock with another source of timestamps/locks configured!");
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
-        String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
                 clientConfig,
-                () -> runtimeConfigSupplier.get().timelockRuntime(),
-                resolvedClient);
+                () -> runtimeConfigSupplier.get().timelockRuntime());
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
-            String userAgent) {
+            String userAgent,
+            String timelockNamespace) {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
         LockService lockService = creator.createService(LockService.class);
+
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
-        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(timelockClient);
+        NamespaceAwareTimelockRpcClient namespaceAwareTimelockRpcClient
+                = new NamespaceAwareTimelockRpcClient(timelockClient, timelockNamespace);
+        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
+                = RemoteTimelockServiceAdapter.create(namespaceAwareTimelockRpcClient);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
         return ImmutableLockAndTimestampServices.builder()
