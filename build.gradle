@@ -92,7 +92,6 @@ subprojects {
 }
 
 configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
-    print it
     apply from: "$rootDir/gradle/publish-jars.gradle"
 }
 
