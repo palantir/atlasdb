@@ -54,10 +54,6 @@ public abstract class TimeLockClientConfig {
         return ImmutableServerListConfig.builder().build();
     }
 
-    public ServerListConfig toNamespacedServerList() {
-        return ServerListConfigs.namespaceUris(serversList(), getClientOrThrow());
-    }
-
     @Value.Check
     protected final void check() {
         Preconditions.checkArgument(!client().isPresent() || !client().get().isEmpty(),

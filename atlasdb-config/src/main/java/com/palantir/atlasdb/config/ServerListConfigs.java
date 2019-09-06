@@ -16,9 +16,7 @@
 package com.palantir.atlasdb.config;
 
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public final class ServerListConfigs {
     private ServerListConfigs() {
@@ -30,17 +28,5 @@ public final class ServerListConfigs {
         return runtimeConfig.get()
                 .map(TimeLockRuntimeConfig::serversList)
                 .orElseGet(installClientConfig::serversList);
-    }
-
-    public static ServerListConfig namespaceUris(ServerListConfig config, String namespace) {
-        Set<String> serversWithNamespaces = config
-                .servers()
-                .stream()
-                .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + namespace)
-                .collect(Collectors.toSet());
-        return ImmutableServerListConfig.builder()
-                .from(config)
-                .servers(serversWithNamespaces)
-                .build();
     }
 }

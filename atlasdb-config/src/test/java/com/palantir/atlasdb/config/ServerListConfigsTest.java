@@ -30,11 +30,6 @@ public class ServerListConfigsTest {
     private static final ImmutableServerListConfig SERVERS_LIST_2 = ImmutableServerListConfig.builder()
             .addServers("one", "two")
             .build();
-    private static final ImmutableServerListConfig SERVERS_LIST_3 = ImmutableServerListConfig.builder()
-            .addServers("three/")
-            .build();
-    private static final ImmutableServerListConfig SERVERS_LIST_EMPTY = ImmutableServerListConfig.builder()
-            .build();
 
     private static final TimeLockClientConfig INSTALL_CONFIG = ImmutableTimeLockClientConfig.builder()
             .serversList(SERVERS_LIST_1)
@@ -44,44 +39,18 @@ public class ServerListConfigsTest {
             .build();
 
     @Test
-    public void namespacingAddsClientNameCorrectly() {
-        ServerListConfig namespacedServersList = ServerListConfigs.namespaceUris(SERVERS_LIST_1, CLIENT);
-        assertThat(namespacedServersList.servers()).containsExactly("one/client");
-    }
-
-    @Test
-    public void namespacingAddsClientNameToAllServers() {
-        ServerListConfig namespacedServersList = ServerListConfigs.namespaceUris(SERVERS_LIST_2, CLIENT);
-        assertThat(namespacedServersList.servers()).containsExactlyInAnyOrder("one/client", "two/client");
-    }
-
-    @Test
-    public void namespacingCanDealWithTrailingSlash() {
-        ServerListConfig namespacedServersList = ServerListConfigs.namespaceUris(SERVERS_LIST_3, CLIENT);
-        assertThat(namespacedServersList.servers()).containsExactlyInAnyOrder("three/client");
-    }
-
-    @Test
-    public void namespacingCanDealWithServerListConfigsWithZeroNodes() {
-        ServerListConfig namespacedServersList = ServerListConfigs.namespaceUris(SERVERS_LIST_EMPTY, CLIENT);
-        assertThat(namespacedServersList.servers()).isEmpty();
-    }
-
-    @Test
     public void prioritisesRuntimeConfigIfAvailable() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                () -> Optional.of(RUNTIME_CONFIG)
-        );
-        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client", "two/client");
+                () -> Optional.of(RUNTIME_CONFIG));
+        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one", "two");
     }
 
     @Test
     public void prioritisesRuntimeConfigEvenIfThatHasNoClients() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build())
-        );
+                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()));
         assertThat(resolvedConfig.servers()).isEmpty();
     }
 
@@ -89,8 +58,7 @@ public class ServerListConfigsTest {
     public void fallsBackToInstallConfigIfRuntimeConfigNotAvailable() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                Optional::empty
-        );
-        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client");
+                Optional::empty);
+        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one");
     }
 }
