@@ -55,11 +55,13 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
         this.metricRegistry = Preconditions.checkNotNull(metricRegistry, "metricRegistry");
         this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName");
         this.timers = Arrays.stream(clazz.getDeclaredMethods())
-                .collect(ImmutableMap.toImmutableMap(
-                        Function.identity(),
-                        method -> metricRegistry.timer(
-                                InstrumentationUtils.getBaseMetricName(method, serviceName),
-                                InstrumentationUtils::createNewTimer)));
+                .collect(ImmutableMap.toImmutableMap(Function.identity(), this::getTimer));
+    }
+
+    private Timer getTimer(Method method) {
+        return metricRegistry.timer(
+                InstrumentationUtils.getBaseMetricName(method, serviceName),
+                InstrumentationUtils::createNewTimer);
     }
 
     @Override
@@ -75,7 +77,12 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
         }
 
         long nanos = System.nanoTime() - context.getStartTimeNanos();
-        timers.get(context.getMethod()).update(nanos, TimeUnit.NANOSECONDS);
+        Method method = context.getMethod();
+        Timer timer = timers.get(method);
+        if (timer == null) {
+            timer = getTimer(method);
+        }
+        timer.update(nanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
