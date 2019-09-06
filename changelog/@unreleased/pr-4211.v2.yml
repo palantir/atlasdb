@@ -1,5 +1,5 @@
 type: feature
 feature:
-  description: 'Opening of CQL session which will be use for async endpoints.'
+  description: 'Opening of CQL session which will be use for async endpoints. CassandraMul'
   links:
   - https://github.com/palantir/atlasdb/pull/4211
