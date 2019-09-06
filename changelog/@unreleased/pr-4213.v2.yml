@@ -6,6 +6,6 @@ changes:
         - https://github.com/palantir/atlasdb/pull/4213
   - type: break
     break:
-      description: `AsyncPuncher#create` now takes an `Optional<LongSupplier>` instead of just an `Optional<Long>`.
+      description: "`AsyncPuncher#create` now takes an `Optional<LongSupplier>` instead of just an `Optional<Long>`."
       links:
         - https://github.com/palantir/atlasdb/pull/4213
