@@ -1,0 +1,11 @@
+changes:
+  - type: fix
+    fix:
+      description:  When seeding the async puncher, we now run that with a one second timeout, and should that fail just don't seed; previously, we would block startup on successfully acquiring the seed.
+      links:
+        - https://github.com/palantir/atlasdb/pull/4213
+  - type: break
+    break:
+      description: `AsyncPuncher#create` now takes an `Optional<LongSupplier>` instead of just an `Optional<Long>`.
+      links:
+        - https://github.com/palantir/atlasdb/pull/4213

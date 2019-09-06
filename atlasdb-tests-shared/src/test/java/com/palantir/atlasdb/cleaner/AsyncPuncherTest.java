@@ -64,7 +64,7 @@ public class AsyncPuncherTest {
         PuncherStore puncherStore = InMemoryPuncherStore.create();
         Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
-        asyncPuncherSeeded = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, Optional.of(PUNCHER_SEED));
+        asyncPuncherSeeded = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL, Optional.of(() -> PUNCHER_SEED));
     }
 
     @After
