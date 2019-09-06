@@ -234,6 +234,7 @@ public final class AsyncSessionManager {
                 .withRetryPolicy(retryPolicy(config))
                 .withSSL(sslOptions(config))
                 .withAddressTranslator(mapper)
+                .withoutJMXReporting()
                 .withThreadingOptions(new ThreadingOptions());
 
         return buildCluster(clusterBuilder);

@@ -231,7 +231,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
 
-    public static CassandraKeyValueService createForTestingWithAsync(CassandraKeyValueServiceConfig config) {
+    public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
         Pair<CassandraClientPool, AsyncClusterSession> connections;
@@ -263,21 +263,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 connections.rhSide,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 log,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
-        MetricsManager metricsManager = MetricsManagers.createForTests();
-        CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
-                config,
-                CassandraClientPoolImpl.StartupChecks.RUN,
-                new Blacklist(config));
-        return createOrShutdownClientPool(metricsManager, config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
-                clientPool,
-                null,
-                CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
-                LoggerFactory.getLogger(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
@@ -343,16 +328,36 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
-        CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
-                config,
-                runtimeConfigSupplier,
-                initializeAsync);
+        Pair<CassandraClientPool, AsyncClusterSession> connections;
+        try {
+            connections = config.servers()
+                    .visit((thriftServers, maybeCqlServers) -> {
+                        CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
+                                config,
+                                runtimeConfigSupplier,
+                                initializeAsync);
+                        log.info("Maybe creating AsyncClusterSession");
+                        AsyncClusterSession asyncClusterSession = maybeCqlServers
+                                .map(servers -> {
+                                    log.info("Creating an AsyncClusterSession");
+                                    return AsyncSessionManager
+                                            .getOrInitializeAsyncSessionManager()
+                                            .getAsyncSession(config, servers);
+                                }).orElse(null);
+                        return new Pair<>(clientPool, asyncClusterSession);
+                    });
+
+        } catch (Exception e) {
+            log.warn("AsyncClusterSession creation exception", e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+
         return createOrShutdownClientPool(
                 metricsManager,
                 config,
                 runtimeConfigSupplier,
-                clientPool,
-                null,
+                connections.lhSide,
+                connections.rhSide,
                 mutationTimestampProvider,
                 log,
                 initializeAsync);
@@ -1680,7 +1685,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void close() {
         clientPool.shutdown();
         if (asyncSession != null) {
+            log.info("Closing async session");
             asyncSession.close();
+            log.info("Async session closed");
         }
         super.close();
     }
