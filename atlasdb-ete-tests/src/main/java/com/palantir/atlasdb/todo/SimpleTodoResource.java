@@ -62,6 +62,12 @@ public class SimpleTodoResource implements TodoResource {
     }
 
     @Override
+    public void storeUnmarkedSnapshot(String snapshot) {
+        InputStream snapshotStream = new ByteArrayInputStream(snapshot.getBytes());
+        atlas.storeUnmarkedSnapshot(snapshotStream);
+    }
+
+    @Override
     public void runIterationOfTargetedSweep() {
         atlas.runIterationOfTargetedSweep();
     }
