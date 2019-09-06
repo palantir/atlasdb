@@ -86,6 +86,7 @@ public class LegacyTimelockService implements TimelockService {
         try {
             lock = lockService.lock(immutableTsLockClient.getClientId(), lockRequest);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw Throwables.throwUncheckedException(e);
         }
 
