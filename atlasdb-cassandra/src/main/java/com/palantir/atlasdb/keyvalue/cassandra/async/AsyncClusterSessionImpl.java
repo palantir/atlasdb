@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import org.apache.http.util.Args;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +52,6 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
     private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(sessionName() + "-healtcheck", true /* daemon */));
     private final PreparedStatement healthCheckStatement;
-
 
     public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSessionPair pair,
             ThreadFactory threadFactory) {
@@ -91,15 +91,22 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
     @Override
     public void close() {
         service.shutdownNow();
+        log.info("Shutting down health checker for cluster session {}", SafeArg.of("clusterSession", sessionName));
         boolean shutdown = false;
         try {
             shutdown = service.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             log.error("Interrupted while shutting down health checker. Should not happen");
             Thread.currentThread().interrupt();
+        } finally {
+            AsyncSessionManager.getOrInitializeAsyncSessionManager().closeClusterSession(this);
         }
+
         if (!shutdown) {
-            log.error("Failed to shutdown health checker in a timely manner");
+            log.error("Failed to shutdown health checker in a timely manner for {}",
+                    SafeArg.of("clusterSession", sessionName));
+        } else {
+            log.info("Shut down health checker for cluster session {}", SafeArg.of("clusterSession", sessionName));
         }
     }
 

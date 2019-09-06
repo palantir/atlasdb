@@ -151,7 +151,6 @@ import okio.ByteString;
  */
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
-
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
         @Override
@@ -407,7 +406,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (asyncSession != null) {
             asyncSession.start();
         }
-
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 metricsManager,

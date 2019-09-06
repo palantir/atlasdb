@@ -31,7 +31,6 @@ public interface AsyncClusterSession extends Closeable {
     @Nonnull
     String sessionName();
 
-
     void start();
 
     @Override

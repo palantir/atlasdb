@@ -103,7 +103,6 @@ public final class AsyncSessionManager {
 
         @Override
         public void init(Cluster cluster) {
-
         }
 
         @Override
@@ -114,7 +113,6 @@ public final class AsyncSessionManager {
 
         @Override
         public void close() {
-
         }
     }
 
@@ -201,13 +199,13 @@ public final class AsyncSessionManager {
     private CassandraClusterSessionPair createCassandraClusterSessionPair(CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers) {
         Cluster cluster = createCluster(config, servers);
-        Session session = null;
+        Session session;
 
         try {
             session = cluster.connectAsync().get();
         } catch (Exception e) {
             log.warn("Error on cluster connection");
-            Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
 
         return ImmutableCassandraClusterSessionPair.of(cluster, Objects.requireNonNull(session));
@@ -225,7 +223,7 @@ public final class AsyncSessionManager {
 
         Cluster.Builder clusterBuilder = Cluster.builder()
                 .addContactPointsWithPorts(servers)
-                .withClusterName(clusterName) // for JMX Metrics
+                .withClusterName(clusterName)
                 .withCredentials(config.credentials().username(), config.credentials().password())
                 .withCompression(ProtocolOptions.Compression.LZ4)
                 .withLoadBalancingPolicy(loadBalancingPolicy(config, servers))
@@ -234,7 +232,7 @@ public final class AsyncSessionManager {
                 .withRetryPolicy(retryPolicy(config))
                 .withSSL(sslOptions(config))
                 .withAddressTranslator(mapper)
-                .withoutJMXReporting()
+                .withoutJMXReporting() // there is an exception with out
                 .withThreadingOptions(new ThreadingOptions());
 
         return buildCluster(clusterBuilder);
@@ -294,27 +292,21 @@ public final class AsyncSessionManager {
 
     private static Cluster buildCluster(Cluster.Builder clusterBuilder) {
         Cluster cluster;
-        //        Metadata metadata;
         try {
             cluster = clusterBuilder.build();
-            //            metadata = cluster.getMetadata(); // special; this is the first place we connect to
-            // hosts, this is where people will see failures
         } catch (NoHostAvailableException e) {
             if (e.getMessage().contains("Unknown compression algorithm")) {
                 clusterBuilder.withCompression(ProtocolOptions.Compression.NONE);
                 cluster = clusterBuilder.build();
-                //                metadata = cluster.getMetadata();
             } else {
-                throw e;
+                throw Throwables.throwUncheckedException(e);
             }
         } catch (IllegalStateException e) {
-            // god dammit datastax what did I do to _you_
             if (e.getMessage().contains("requested compression is not available")) {
                 clusterBuilder.withCompression(ProtocolOptions.Compression.NONE);
                 cluster = clusterBuilder.build();
-                //                metadata = cluster.getMetadata();
             } else {
-                throw e;
+                throw Throwables.throwUncheckedException(e);
             }
         }
         return cluster;
