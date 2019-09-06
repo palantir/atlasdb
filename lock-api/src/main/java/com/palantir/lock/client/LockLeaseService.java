@@ -31,12 +31,12 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
