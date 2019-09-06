@@ -112,7 +112,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
             } catch (Exception e) {
                 log.info("Cluster session health check failed");
             }
-        }, 0, 1, TimeUnit.HOURS);
+        }, 0, 1, TimeUnit.MINUTES);
     }
 
     private ListenableFuture<String> getTimeAsync() {
