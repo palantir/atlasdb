@@ -921,7 +921,7 @@ public abstract class TransactionManagers {
             String userAgent,
             String timelockNamespace) {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
-        LockService lockService = creator.createService(LockService.class);
+        LockService lockService = creator.createNamespacedService(LockService.class, timelockNamespace);
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
         NamespaceAwareTimelockRpcClient namespaceAwareTimelockRpcClient
