@@ -928,7 +928,8 @@ public abstract class TransactionManagers {
                 = new NamespaceAwareTimelockRpcClient(timelockClient, timelockNamespace);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
                 = RemoteTimelockServiceAdapter.create(namespaceAwareTimelockRpcClient);
-        TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
+        TimestampManagementService timestampManagementService
+                = creator.createNamespacedService(TimestampManagementService.class, timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)

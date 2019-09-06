@@ -73,7 +73,7 @@ public class ServerListConfigsTest {
                 INSTALL_CONFIG,
                 () -> Optional.of(RUNTIME_CONFIG)
         );
-        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client", "two/client");
+        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one", "two");
     }
 
     @Test
@@ -91,6 +91,6 @@ public class ServerListConfigsTest {
                 INSTALL_CONFIG,
                 Optional::empty
         );
-        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client");
+        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one");
     }
 }

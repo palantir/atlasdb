@@ -27,7 +27,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
+import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -95,7 +95,7 @@ public class TestableTimelockServer {
 
     public TimelockService timelockServiceForClient(String client) {
         return RemoteTimelockServiceAdapter.create(
-                proxies.singleNodeForClient(client, serverHolder, NamespaceAwareTimelockRpcClient.class));
+                proxies.singleNode(serverHolder, TimelockRpcClient.class), client);
     }
 
     public MetricsOutput getMetricsOutput() {
