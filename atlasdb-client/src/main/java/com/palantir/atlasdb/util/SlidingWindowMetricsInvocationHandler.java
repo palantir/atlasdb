@@ -59,10 +59,7 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
                         Function.identity(),
                         method -> metricRegistry.timer(
                                 InstrumentationUtils.getBaseMetricName(method, serviceName),
-                                InstrumentationUtils::createNewTimer)))
-
-
-        ;
+                                InstrumentationUtils::createNewTimer)));
     }
 
     @Override
