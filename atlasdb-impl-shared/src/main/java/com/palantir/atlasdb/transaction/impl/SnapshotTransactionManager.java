@@ -82,6 +82,7 @@ import com.palantir.timestamp.TimestampService;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
     final Supplier<TransactionConfig> transactionConfig;
+    final TableTransactionConflictManager tableTransactionConflictManager = new TableTransactionConflictManager();
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -241,7 +242,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                TableTransactionConflictManager.NoOpRunningTransaction.INSTANCE); // this method is not used in prod
     }
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
@@ -279,7 +281,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                TableTransactionConflictManager.NoOpRunningTransaction.INSTANCE); // read transactions cannot conflict
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

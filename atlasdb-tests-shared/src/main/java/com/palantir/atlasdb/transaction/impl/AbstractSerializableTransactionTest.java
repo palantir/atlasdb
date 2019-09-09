@@ -106,13 +106,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictHandler.SERIALIZABLE,
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
+        long startTimestamp = timestampService.getFreshTimestamp();
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                Suppliers.ofInstance(timestampService.getFreshTimestamp()),
+                () -> startTimestamp,
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
@@ -128,7 +129,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 getSweepQueueWriterInitialized(),
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> ImmutableTransactionConfig.builder().build()) {
+                () -> ImmutableTransactionConfig.builder().build(),
+                tableTransactionConflictManager.startTransaction(startTimestamp)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());

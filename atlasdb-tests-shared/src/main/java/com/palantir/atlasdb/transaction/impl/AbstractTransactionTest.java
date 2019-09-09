@@ -139,7 +139,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                tableTransactionConflictManager.startTransaction(startTimestamp));
     }
 
     @Test

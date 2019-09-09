@@ -499,7 +499,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                tableTransactionConflictManager.startTransaction(startTimestampSupplier.get()));
     }
 
     @VisibleForTesting
