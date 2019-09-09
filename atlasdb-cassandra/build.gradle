@@ -60,8 +60,8 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   annotationProcessor 'com.google.auto.service:auto-service'
   compileOnly 'com.google.auto.service:auto-service'
-  compileOnly project(":atlasdb-processors")
   annotationProcessor project(":atlasdb-processors")
+  compileOnly project(":atlasdb-processors")
 
   explicitShadow 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
 }

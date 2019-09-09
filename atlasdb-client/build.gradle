@@ -92,6 +92,6 @@ dependencies {
 
   integrationInputCompile project(":atlasdb-client")
 
-  integrationInputCompile group: 'org.immutables', name: 'value'
-
+  integrationInputAnnotationProcessor group: 'org.immutables', name: 'value'
+  integrationInputCompileOnly 'org.immutables:value::annotations'
 }
