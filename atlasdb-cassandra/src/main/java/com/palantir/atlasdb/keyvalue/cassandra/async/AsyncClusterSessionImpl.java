@@ -27,11 +27,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Metric;
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncSessionManager.CassandraClusterSession;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
@@ -42,29 +43,31 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncClusterSessionImpl.class);
 
-    private final CassandraClusterSession pair;
     private final String sessionName;
     private final Executor executor;
 
     private final ScheduledExecutorService healthCheckExecutor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(sessionName() + "-healthCheck", true /* daemon */));
     private final PreparedStatement healthCheckStatement;
+    private final Cluster cluster;
+    private final Session session;
 
-    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSession pair,
+    public static AsyncClusterSessionImpl create(String clusterName, Cluster cluster, Session session,
             ThreadFactory threadFactory) {
-        return create(clusterName, pair, Executors.newCachedThreadPool(threadFactory));
+        return create(clusterName, cluster, session, Executors.newCachedThreadPool(threadFactory));
     }
 
-    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSession pair,
+    public static AsyncClusterSessionImpl create(String clusterName, Cluster cluster, Session session,
             Executor executor) {
-        PreparedStatement healthCheckStatement = pair.session().prepare("SELECT dateof(now()) FROM system.local ;");
-        return new AsyncClusterSessionImpl(clusterName, pair, executor, healthCheckStatement).start();
+        PreparedStatement healthCheckStatement = session.prepare("SELECT dateof(now()) FROM system.local ;");
+        return new AsyncClusterSessionImpl(clusterName, cluster, session, executor, healthCheckStatement).start();
     }
 
-    private AsyncClusterSessionImpl(String sessionName, CassandraClusterSession pair, Executor executor,
+    private AsyncClusterSessionImpl(String sessionName, Cluster cluster, Session session, Executor executor,
             PreparedStatement healthCheckStatement) {
         this.sessionName = sessionName;
-        this.pair = pair;
+        this.cluster = cluster;
+        this.session = session;
         this.executor = executor;
         this.healthCheckStatement = healthCheckStatement;
     }
@@ -72,7 +75,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
     @Override
     public Map<MetricName, Metric> usedCqlClusterMetrics() {
         return KeyedStream.stream(
-                pair.cluster().getMetrics()
+                cluster.getMetrics()
                         .getRegistry()
                         .getMetrics())
                 .mapKeys(name -> MetricName.builder().safeName(name).build())
@@ -105,7 +108,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
         }
     }
 
-    public AsyncClusterSessionImpl start() {
+    private AsyncClusterSessionImpl start() {
         healthCheckExecutor.scheduleAtFixedRate(() -> {
             ListenableFuture<String> time = getTimeAsync();
             try {
@@ -118,7 +121,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
     }
 
     private ListenableFuture<String> getTimeAsync() {
-        return Futures.transform(pair.session().executeAsync(healthCheckStatement.bind()),
+        return Futures.transform(session.executeAsync(healthCheckStatement.bind()),
                 result -> {
                     Row row;
                     StringBuilder builder = new StringBuilder();

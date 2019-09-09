@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadFactory;
@@ -37,7 +36,6 @@ import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ThreadingOptions;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.policies.AddressTranslator;
@@ -65,22 +63,6 @@ public final class AsyncSessionManager {
         @Value.Parameter
         Set<InetSocketAddress> servers();
 
-        default void check() {
-            Preconditions.checkState(servers() != null, "UniqueCassandraCluster has null as "
-                    + "servers value");
-        }
-    }
-
-    /**
-     * Creating one session per cluster, in this case the underlying session is shared between different C* KVS as long
-     * as they are trying to connect to the same cluster.
-     */
-    @Value.Immutable
-    interface CassandraClusterSession {
-        @Value.Parameter
-        Cluster cluster();
-        @Value.Parameter
-        Session session();
     }
 
     static class SimpleAddressTranslator implements AddressTranslator {
@@ -113,7 +95,7 @@ public final class AsyncSessionManager {
         Preconditions.checkState(
                 null == FACTORY.getAndUpdate(
                         previous ->
-                                previous == null ? new AsyncSessionManager(taggedMetricRegistry) : previous
+                                previous == null ? new AsyncSessionManager(Optional.of(taggedMetricRegistry)) : previous
                 ),
                 "Already initialized");
     }
@@ -121,73 +103,45 @@ public final class AsyncSessionManager {
     public static AsyncSessionManager getOrInitializeAsyncSessionManager() {
         return FACTORY.updateAndGet(previous -> {
             if (previous == null) {
-                return new AsyncSessionManager();
+                return new AsyncSessionManager(Optional.empty());
             } else {
                 return previous;
             }
         });
     }
 
-    private final TaggedMetricRegistry taggedMetricRegistry;
-    private final Cache<UniqueCassandraCluster, CassandraClusterSession> clusters = Caffeine.newBuilder()
+    private final Optional<TaggedMetricRegistry> maybeTaggedMetricRegistry;
+    private final Cache<UniqueCassandraCluster, AsyncClusterSession> clusters = Caffeine.newBuilder()
             .weakValues()
             .removalListener(
-                    (RemovalListener<UniqueCassandraCluster, CassandraClusterSession>) (key, value, cause) -> {
-                        value.session().close();
-                        value.cluster().close();
-                    })
+                    (RemovalListener<UniqueCassandraCluster, AsyncClusterSession>) (key, value, cause) -> value.close())
             .build();
 
     private final AtomicLong cassandraId = new AtomicLong();
     private final AtomicLong sessionId = new AtomicLong();
 
-    private AsyncSessionManager(TaggedMetricRegistry taggedMetricRegistry) {
-        this.taggedMetricRegistry = taggedMetricRegistry;
-    }
-
-    private AsyncSessionManager() {
-        this.taggedMetricRegistry = null;
+    private AsyncSessionManager(Optional<TaggedMetricRegistry> maybeTaggedMetricRegistry) {
+        this.maybeTaggedMetricRegistry = maybeTaggedMetricRegistry;
     }
 
     public AsyncClusterSession getAsyncSession(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
-        CassandraClusterSession cassandraClusterSession = getCassandraClusterSession(config, servers);
+        Cluster cluster = createCluster(config, servers);
 
         long curId = sessionId.getAndIncrement();
-        String sessionName = cassandraClusterSession.cluster().getClusterName()
+        String sessionName = cluster.getClusterName()
                 + "-session" + "-" + curId;
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(sessionName + "-%d")
                 .build();
 
-        return AsyncClusterSessionImpl.create(sessionName, cassandraClusterSession, threadFactory);
+        return AsyncClusterSessionImpl.create(sessionName, cluster, cluster.connect(), threadFactory);
     }
 
     public void closeClusterSession(AsyncClusterSession asyncClusterSession) {
         if (!(asyncClusterSession instanceof AsyncClusterSessionImpl)) {
             log.warn("Closing session which was not opened by this manager");
         }
-    }
-
-    private CassandraClusterSession getCassandraClusterSession(CassandraKeyValueServiceConfig config,
-            Set<InetSocketAddress> servers) {
-        return clusters.get(ImmutableUniqueCassandraCluster.of(servers),
-                key -> createCassandraClusterSession(config, servers));
-    }
-
-    private CassandraClusterSession createCassandraClusterSession(CassandraKeyValueServiceConfig config,
-            Set<InetSocketAddress> servers) {
-        Cluster cluster = createCluster(config, servers);
-        Session session;
-
-        try {
-            session = cluster.connectAsync().get();
-        } catch (Exception e) {
-            log.warn("Error on cluster connection");
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-        }
-
-        return ImmutableCassandraClusterSession.of(cluster, Objects.requireNonNull(session));
     }
 
 
