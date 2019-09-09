@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.common.compression;
 
-import java.io.IOException;
+import java.util.zip.GZIPInputStream;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 
+public enum EnumClientCompressor {
+    GZIP(GzipCompressingInputStream.class.getName(), GZIPInputStream.class.getName()),
+    LZ4(LZ4CompressingInputStream.class.getName(), LZ4BlockInputStream.class.getName()),
+    NONE(null, null);
 
-public class LZ4CompressionTests extends AbstractCompressionTests {
+    public final String compressionType;
+    public final String inputClass;
 
-    @Override
-    protected void initializeCompressStreams() throws IOException {
-        compressingStream = new LZ4CompressingInputStream(uncompressedStream);
-        decompressingStream = new LZ4BlockInputStream(compressingStream);
+    EnumClientCompressor(String compressionType, String inputClass) {
+        this.compressionType = compressionType;
+        this.inputClass = inputClass;
     }
 }

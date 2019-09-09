@@ -24,6 +24,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.common.compression.EnumClientCompressor;
 
 public class StreamStoreDefinitionBuilder {
     private final ValueType valueType;
@@ -32,7 +33,7 @@ public class StreamStoreDefinitionBuilder {
     private Map<String, StreamTableDefinitionBuilder> streamTables =
             Maps.newHashMapWithExpectedSize(StreamTableType.values().length);
     private int inMemoryThreshold = AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD;
-    private boolean compressStream;
+    private EnumClientCompressor compressStreamType;
     private int numberOfRowComponentsHashed = 0;
 
     /**
@@ -48,7 +49,7 @@ public class StreamStoreDefinitionBuilder {
         this.valueType = valueType;
         this.shortName = shortName;
         this.longName = longName;
-        this.compressStream = false;
+        this.compressStreamType = EnumClientCompressor.NONE;
     }
 
     /**
@@ -102,7 +103,12 @@ public class StreamStoreDefinitionBuilder {
     }
 
     public StreamStoreDefinitionBuilder compressStreamInClient() {
-        compressStream = true;
+        compressStreamType = EnumClientCompressor.LZ4;
+        return this;
+    }
+
+    public StreamStoreDefinitionBuilder compressStreamInClient(EnumClientCompressor compressionType) {
+        compressStreamType = compressionType;
         return this;
     }
 
@@ -125,7 +131,7 @@ public class StreamStoreDefinitionBuilder {
                 longName,
                 valueType,
                 inMemoryThreshold,
-                compressStream,
+                compressStreamType,
                 numberOfRowComponentsHashed);
     }
 

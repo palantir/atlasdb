@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,14 @@
 package com.palantir.common.compression;
 
 import java.io.IOException;
+import java.util.zip.GZIPInputStream;
 
-import net.jpountz.lz4.LZ4BlockInputStream;
 
-
-public class LZ4CompressionTests extends AbstractCompressionTests {
+public class GzipCompressionTests extends AbstractCompressionTests {
 
     @Override
     protected void initializeCompressStreams() throws IOException {
-        compressingStream = new LZ4CompressingInputStream(uncompressedStream);
-        decompressingStream = new LZ4BlockInputStream(compressingStream);
+        compressingStream = new GzipCompressingInputStream(uncompressedStream);
+        decompressingStream = new GZIPInputStream(compressingStream);
     }
 }
