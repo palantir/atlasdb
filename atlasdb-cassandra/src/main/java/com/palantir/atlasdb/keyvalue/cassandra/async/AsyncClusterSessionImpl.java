@@ -23,8 +23,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +31,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncSessionManager.CassandraClusterSessionPair;
+import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncSessionManager.CassandraClusterSession;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
@@ -44,26 +42,26 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncClusterSessionImpl.class);
 
-    private final CassandraClusterSessionPair pair;
+    private final CassandraClusterSession pair;
     private final String sessionName;
     private final Executor executor;
 
-    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory(sessionName() + "-healtcheck", true /* daemon */));
+    private final ScheduledExecutorService healthCheckExecutor = PTExecutors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory(sessionName() + "-healthCheck", true /* daemon */));
     private final PreparedStatement healthCheckStatement;
 
-    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSessionPair pair,
+    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSession pair,
             ThreadFactory threadFactory) {
         return create(clusterName, pair, Executors.newCachedThreadPool(threadFactory));
     }
 
-    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSessionPair pair,
+    public static AsyncClusterSessionImpl create(String clusterName, CassandraClusterSession pair,
             Executor executor) {
         PreparedStatement healthCheckStatement = pair.session().prepare("SELECT dateof(now()) FROM system.local ;");
-        return new AsyncClusterSessionImpl(clusterName, pair, executor, healthCheckStatement);
+        return new AsyncClusterSessionImpl(clusterName, pair, executor, healthCheckStatement).start();
     }
 
-    private AsyncClusterSessionImpl(String sessionName, CassandraClusterSessionPair pair, Executor executor,
+    private AsyncClusterSessionImpl(String sessionName, CassandraClusterSession pair, Executor executor,
             PreparedStatement healthCheckStatement) {
         this.sessionName = sessionName;
         this.pair = pair;
@@ -81,19 +79,17 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
                 .collectToMap();
     }
 
-    @Nonnull
     @Override
     public String sessionName() {
         return sessionName;
     }
 
-    @Override
     public void close() {
-        service.shutdownNow();
+        healthCheckExecutor.shutdownNow();
         log.info("Shutting down health checker for cluster session {}", SafeArg.of("clusterSession", sessionName));
         boolean shutdown = false;
         try {
-            shutdown = service.awaitTermination(5, TimeUnit.SECONDS);
+            shutdown = healthCheckExecutor.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             log.error("Interrupted while shutting down health checker. Should not happen");
             Thread.currentThread().interrupt();
@@ -109,9 +105,8 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
         }
     }
 
-    @Override
-    public  void start() {
-        service.scheduleAtFixedRate(() -> {
+    public AsyncClusterSessionImpl start() {
+        healthCheckExecutor.scheduleAtFixedRate(() -> {
             ListenableFuture<String> time = getTimeAsync();
             try {
                 log.info("Current cluster time is: {}", SafeArg.of("clusterTime", time.get()));
@@ -119,6 +114,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
                 log.info("Cluster session health check failed");
             }
         }, 0, 1, TimeUnit.MINUTES);
+        return this;
     }
 
     private ListenableFuture<String> getTimeAsync() {

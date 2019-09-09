@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,7 +37,6 @@ import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
-import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ThreadingOptions;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
@@ -44,7 +44,6 @@ import com.datastax.driver.core.policies.AddressTranslator;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.LatencyAwarePolicy;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
@@ -61,7 +60,6 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AsyncSessionManager {
 
-    // helper interfaces, automatically generated
     @Value.Immutable
     interface UniqueCassandraCluster {
         @Value.Parameter
@@ -78,19 +76,11 @@ public final class AsyncSessionManager {
      * as they are trying to connect to the same cluster.
      */
     @Value.Immutable
-    interface CassandraClusterSessionPair {
+    interface CassandraClusterSession {
         @Value.Parameter
         Cluster cluster();
         @Value.Parameter
         Session session();
-
-        @Value.Check
-        default void check() {
-            Preconditions.checkState(cluster() != null, "CassandraClusterSession pair created "
-                    + "with null cluster");
-            Preconditions.checkState(session() != null, "CassandraClusterSession pair created "
-                    + "with null session");
-        }
     }
 
     static class SimpleAddressTranslator implements AddressTranslator {
@@ -116,7 +106,6 @@ public final class AsyncSessionManager {
         }
     }
 
-    // class fields and methods
     private static final Logger log = LoggerFactory.getLogger(AsyncSessionManager.class);
     private static final AtomicReference<AsyncSessionManager> FACTORY = new AtomicReference<>(null);
 
@@ -139,25 +128,17 @@ public final class AsyncSessionManager {
         });
     }
 
-    public static AsyncSessionManager getAsyncSessinManager() {
-        AsyncSessionManager factory = FACTORY.get();
-        Preconditions.checkState(factory != null, "AsyncSessionManager is not initialized");
-        return factory;
-    }
-
-    // instance fields and methods
     private final TaggedMetricRegistry taggedMetricRegistry;
-    private final Cache<UniqueCassandraCluster, CassandraClusterSessionPair> clusters = Caffeine.newBuilder()
+    private final Cache<UniqueCassandraCluster, CassandraClusterSession> clusters = Caffeine.newBuilder()
             .weakValues()
             .removalListener(
-                    (RemovalListener<UniqueCassandraCluster, CassandraClusterSessionPair>) (key, value, cause) -> {
+                    (RemovalListener<UniqueCassandraCluster, CassandraClusterSession>) (key, value, cause) -> {
                         value.session().close();
                         value.cluster().close();
                     })
             .build();
 
     private final AtomicLong cassandraId = new AtomicLong();
-    // global for all sessions
     private final AtomicLong sessionId = new AtomicLong();
 
     private AsyncSessionManager(TaggedMetricRegistry taggedMetricRegistry) {
@@ -169,34 +150,32 @@ public final class AsyncSessionManager {
     }
 
     public AsyncClusterSession getAsyncSession(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
-        CassandraClusterSessionPair cassandraClusterSessionPair = getCassandraClusterSessionPair(config, servers);
+        CassandraClusterSession cassandraClusterSession = getCassandraClusterSession(config, servers);
 
         long curId = sessionId.getAndIncrement();
-        String sessionName = cassandraClusterSessionPair.cluster().getClusterName()
-                + "-session" + (curId == 0 ? "" : "-" + curId);
+        String sessionName = cassandraClusterSession.cluster().getClusterName()
+                + "-session" + "-" + curId;
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(sessionName + "-%d")
                 .build();
 
-        return AsyncClusterSessionImpl.create(sessionName, cassandraClusterSessionPair, threadFactory);
+        return AsyncClusterSessionImpl.create(sessionName, cassandraClusterSession, threadFactory);
     }
 
     public void closeClusterSession(AsyncClusterSession asyncClusterSession) {
-        // in this case nothing happens as the
         if (!(asyncClusterSession instanceof AsyncClusterSessionImpl)) {
             log.warn("Closing session which was not opened by this manager");
         }
     }
 
-    private CassandraClusterSessionPair getCassandraClusterSessionPair(CassandraKeyValueServiceConfig config,
+    private CassandraClusterSession getCassandraClusterSession(CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers) {
         return clusters.get(ImmutableUniqueCassandraCluster.of(servers),
-                key -> createCassandraClusterSessionPair(config, servers)
-        );
+                key -> createCassandraClusterSession(config, servers));
     }
 
-    private CassandraClusterSessionPair createCassandraClusterSessionPair(CassandraKeyValueServiceConfig config,
+    private CassandraClusterSession createCassandraClusterSession(CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers) {
         Cluster cluster = createCluster(config, servers);
         Session session;
@@ -208,13 +187,13 @@ public final class AsyncSessionManager {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
 
-        return ImmutableCassandraClusterSessionPair.of(cluster, Objects.requireNonNull(session));
+        return ImmutableCassandraClusterSession.of(cluster, Objects.requireNonNull(session));
     }
 
 
     private Cluster createCluster(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
         long curId = cassandraId.getAndIncrement();
-        String clusterName = "cassandra" + (curId == 0 ? "" : "-" + curId);
+        String clusterName = "cassandra" + "-" + curId;
 
         log.info("Creating cluster {}", SafeArg.of("clusterId", clusterName));
 
@@ -229,40 +208,38 @@ public final class AsyncSessionManager {
                 .withLoadBalancingPolicy(loadBalancingPolicy(config, servers))
                 .withPoolingOptions(poolingOptions(config))
                 .withQueryOptions(queryOptions(config))
-                .withRetryPolicy(retryPolicy(config))
-                .withSSL(sslOptions(config))
+                .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
                 .withAddressTranslator(mapper)
-                .withoutJMXReporting() // there is an exception with out
+                .withoutJMXReporting()
                 .withThreadingOptions(new ThreadingOptions());
+
+        sslOptions(config).ifPresent(clusterBuilder::withSSL);
 
         return buildCluster(clusterBuilder);
     }
 
-    private static SSLOptions sslOptions(CassandraKeyValueServiceConfig config) {
+    private static Optional<RemoteEndpointAwareJdkSSLOptions> sslOptions(CassandraKeyValueServiceConfig config) {
         if (config.sslConfiguration().isPresent()) {
             SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
-            return RemoteEndpointAwareJdkSSLOptions.builder()
+            return Optional.of(RemoteEndpointAwareJdkSSLOptions.builder()
                     .withSSLContext(sslContext)
-                    .build();
+                    .build());
         } else if (config.ssl().isPresent() && config.ssl().get()) {
-            return RemoteEndpointAwareJdkSSLOptions.builder().build();
+            return Optional.of(RemoteEndpointAwareJdkSSLOptions.builder().build());
         } else {
-            return null;
+            return Optional.empty();
         }
     }
 
     private static PoolingOptions poolingOptions(CassandraKeyValueServiceConfig config) {
-        PoolingOptions poolingOptions = new PoolingOptions();
-        poolingOptions.setMaxRequestsPerConnection(HostDistance.LOCAL, config.poolSize());
-        poolingOptions.setMaxRequestsPerConnection(HostDistance.REMOTE, config.poolSize());
-        poolingOptions.setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
-        return poolingOptions;
+        return new PoolingOptions()
+                .setMaxRequestsPerConnection(HostDistance.LOCAL, config.poolSize())
+                .setMaxRequestsPerConnection(HostDistance.REMOTE, config.poolSize())
+                .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
     }
 
     private static QueryOptions queryOptions(CassandraKeyValueServiceConfig config) {
-        QueryOptions queryOptions = new QueryOptions();
-        queryOptions.setFetchSize(config.fetchBatchCount());
-        return queryOptions;
+        return new QueryOptions().setFetchSize(config.fetchBatchCount());
     }
 
     private static LoadBalancingPolicy loadBalancingPolicy(CassandraKeyValueServiceConfig config,
@@ -284,10 +261,6 @@ public final class AsyncSessionManager {
         // but also shuffle which replica we talk to for a load balancing that comes at the expense
         // of less effective caching
         return new TokenAwarePolicy(policy, TokenAwarePolicy.ReplicaOrdering.RANDOM);
-    }
-
-    private static RetryPolicy retryPolicy(CassandraKeyValueServiceConfig config) {
-        return DefaultRetryPolicy.INSTANCE;
     }
 
     private static Cluster buildCluster(Cluster.Builder clusterBuilder) {
