@@ -242,14 +242,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 CassandraClientPoolImpl.StartupChecks.RUN,
                                 new Blacklist(config));
                         log.info("Maybe creating AsyncClusterSession");
-                        AsyncClusterSession asyncClusterSession = maybeCqlServers
+                        Optional<AsyncClusterSession> maybeAsyncClusterSession = maybeCqlServers
                                 .map(servers -> {
                                     log.info("Creating an AsyncClusterSession");
                                     return AsyncSessionManager
                                             .getOrInitializeAsyncSessionManager()
                                             .getAsyncSession(config, servers);
-                                }).orElse(null);
-                        return new Pair<>(clientPool, Optional.of(asyncClusterSession));
+                                });
+                        return new Pair<>(clientPool, maybeAsyncClusterSession);
                     });
 
         } catch (Exception e) {
@@ -336,14 +336,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 runtimeConfigSupplier,
                                 initializeAsync);
                         log.info("Maybe creating AsyncClusterSession");
-                        AsyncClusterSession asyncClusterSession = maybeCqlServers
+                        Optional<AsyncClusterSession> maybeAsyncClusterSession = maybeCqlServers
                                 .map(servers -> {
                                     log.info("Creating an AsyncClusterSession");
                                     return AsyncSessionManager
                                             .getOrInitializeAsyncSessionManager()
                                             .getAsyncSession(config, servers);
-                                }).orElse(null);
-                        return new Pair<>(clientPool, Optional.of(asyncClusterSession));
+                                });
+                        return new Pair<>(clientPool, maybeAsyncClusterSession);
                     });
 
         } catch (Exception e) {
