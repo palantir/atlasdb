@@ -790,7 +790,7 @@ public class StreamStoreRenderer {
                     line("Set<", StreamMetadataRow, "> streamsWithNoReferences");
                     line("        = KeyedStream.stream(referenceIteratorByStream)");
                     line("        .filter(valueIterator -> !valueIterator.hasNext())");
-                    line("        .keys()");
+                    line("        .keys() // (authorized)"); // required for large internal product
                     line("        .map(", StreamIndexRow, "::getId)");
                     line("        .map(", StreamMetadataRow, "::of)");
                     line("        .collect(Collectors.toSet());");

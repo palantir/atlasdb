@@ -43,7 +43,7 @@ public class StreamTestMaxMemMetadataCleanupTask implements OnCleanupTask {
         Set<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow> streamsWithNoReferences
                 = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
-                .keys()
+                .keys() // (authorized)
                 .map(StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow::getId)
                 .map(StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow::of)
                 .collect(Collectors.toSet());

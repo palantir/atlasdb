@@ -43,7 +43,7 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
         Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> streamsWithNoReferences
                 = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
-                .keys()
+                .keys() // (authorized)
                 .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::getId)
                 .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::of)
                 .collect(Collectors.toSet());
