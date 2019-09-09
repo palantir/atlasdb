@@ -37,7 +37,7 @@ publishing {
             }
             pom.withXml {
                 def scm = asNode().appendNode('scm')
-                scm.appendNode('url', 'https://github.com/palantir/atlasdb')
+                scm.appendNode('url', 'git@github.com:palantir/atlasdb.git')
                 def licenses = asNode().appendNode('licenses')
                 def license = licenses.appendNode('license')
                 license.appendNode('name', 'Apache 2.0')

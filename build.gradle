@@ -88,8 +88,11 @@ allprojects {
 
 subprojects {
     apply plugin: 'com.palantir.configuration-resolver'
-    apply from: "$rootDir/gradle/publish-jars.gradle"
     task allDeps(type: DependencyReportTask) {}
+}
+
+configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
+    apply from: "$rootDir/gradle/publish-jars.gradle"
 }
 
 apply from: 'gradle/idea.gradle'
