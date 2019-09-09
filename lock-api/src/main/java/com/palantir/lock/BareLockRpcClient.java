@@ -33,7 +33,7 @@ import com.palantir.logsafe.Safe;
 /**
  * See also {@link LockRpcClient}. This interface exists to support legacy users not using an external TimeLock
  * server (as in these cases, lock services will not be namespaced) but also using remoting frameworks where
- * null values are not permitted.
+ * endpoints producing null values are not permitted.
  */
 @Path("/lock")
 @Produces(MediaType.APPLICATION_JSON)
