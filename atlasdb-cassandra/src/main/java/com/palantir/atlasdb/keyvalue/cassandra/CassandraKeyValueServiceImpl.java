@@ -1661,6 +1661,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
+        maybeAsyncClusterSession.ifPresent(asyncClusterSession ->
+                AsyncSessionManager.getOrInitializeAsyncSessionManager()
+                        .giveBackAsyncClusterSession(asyncClusterSession));
         super.close();
     }
 

@@ -138,7 +138,7 @@ public final class AsyncSessionManager {
         return AsyncClusterSessionImpl.create(sessionName, cluster, cluster.connect(), threadFactory);
     }
 
-    public void closeClusterSession(AsyncClusterSession asyncClusterSession) {
+    public void giveBackAsyncClusterSession(AsyncClusterSession asyncClusterSession) {
         if (!(asyncClusterSession instanceof AsyncClusterSessionImpl)) {
             log.warn("Closing session which was not opened by this manager");
         }

@@ -96,8 +96,6 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
         } catch (InterruptedException e) {
             log.error("Interrupted while shutting down health checker. Should not happen");
             Thread.currentThread().interrupt();
-        } finally {
-            AsyncSessionManager.getOrInitializeAsyncSessionManager().closeClusterSession(this);
         }
 
         if (!shutdown) {
