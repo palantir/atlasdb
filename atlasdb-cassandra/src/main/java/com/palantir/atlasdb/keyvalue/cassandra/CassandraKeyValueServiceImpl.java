@@ -208,7 +208,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
-    private final AsyncClusterSession asyncSession;
+    private final Optional<AsyncClusterSession> asyncSession;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
 
@@ -233,7 +233,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class);
-        Pair<CassandraClientPool, AsyncClusterSession> connections;
+        Pair<CassandraClientPool, Optional<AsyncClusterSession>> connections;
         try {
             connections = config.servers()
                     .visit((thriftServers, maybeCqlServers) -> {
@@ -249,7 +249,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             .getOrInitializeAsyncSessionManager()
                                             .getAsyncSession(config, servers);
                                 }).orElse(null);
-                        return new Pair<>(clientPool, asyncClusterSession);
+                        return new Pair<>(clientPool, Optional.of(asyncClusterSession));
                     });
 
         } catch (Exception e) {
@@ -327,7 +327,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
-        Pair<CassandraClientPool, AsyncClusterSession> connections;
+        Pair<CassandraClientPool, Optional<AsyncClusterSession>> connections;
         try {
             connections = config.servers()
                     .visit((thriftServers, maybeCqlServers) -> {
@@ -343,7 +343,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             .getOrInitializeAsyncSessionManager()
                                             .getAsyncSession(config, servers);
                                 }).orElse(null);
-                        return new Pair<>(clientPool, asyncClusterSession);
+                        return new Pair<>(clientPool, Optional.of(asyncClusterSession));
                     });
 
         } catch (Exception e) {
@@ -367,7 +367,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
-            AsyncClusterSession maybeAsyncSession,
+            Optional<AsyncClusterSession> maybeAsyncSession,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
@@ -399,13 +399,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
-            AsyncClusterSession asyncSession,
+            Optional<AsyncClusterSession> asyncSession,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
-        if (asyncSession != null) {
-            asyncSession.start();
-        }
+        asyncSession.ifPresent(AsyncClusterSession::start);
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 metricsManager,
@@ -422,7 +420,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
-            AsyncClusterSession asyncSession,
+            Optional<AsyncClusterSession> asyncSession,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
@@ -1682,11 +1680,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
-        if (asyncSession != null) {
-            log.info("Closing async session");
-            asyncSession.close();
-            log.info("Async session closed");
-        }
+        asyncSession.ifPresent(AsyncClusterSession::close);
         super.close();
     }
 
