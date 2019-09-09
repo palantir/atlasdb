@@ -47,7 +47,6 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.Throwables;
@@ -90,6 +89,7 @@ public final class AsyncSessionManager {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncSessionManager.class);
     private static final AtomicReference<AsyncSessionManager> FACTORY = new AtomicReference<>(null);
+    private static final AtomicLong cassandraId = new AtomicLong();
 
     public static void initialize(TaggedMetricRegistry taggedMetricRegistry) {
         Preconditions.checkState(
@@ -113,12 +113,8 @@ public final class AsyncSessionManager {
     private final Optional<TaggedMetricRegistry> maybeTaggedMetricRegistry;
     private final Cache<UniqueCassandraCluster, AsyncClusterSession> clusters = Caffeine.newBuilder()
             .weakValues()
-            .removalListener(
-                    (RemovalListener<UniqueCassandraCluster, AsyncClusterSession>) (key, value, cause) -> value.close())
+            .<UniqueCassandraCluster, AsyncClusterSession>removalListener((key, value, cause) -> value.close())
             .build();
-
-    private final AtomicLong cassandraId = new AtomicLong();
-    private final AtomicLong sessionId = new AtomicLong();
 
     private AsyncSessionManager(Optional<TaggedMetricRegistry> maybeTaggedMetricRegistry) {
         this.maybeTaggedMetricRegistry = maybeTaggedMetricRegistry;
@@ -127,9 +123,8 @@ public final class AsyncSessionManager {
     public AsyncClusterSession getAsyncSession(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
         Cluster cluster = createCluster(config, servers);
 
-        long curId = sessionId.getAndIncrement();
         String sessionName = cluster.getClusterName()
-                + "-session" + "-" + curId;
+                + "-session";
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(sessionName + "-%d")
