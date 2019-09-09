@@ -43,7 +43,7 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
         Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> streamsWithNoReferences
                 = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
-                .keys()
+                .keys() // (authorized)
                 .map(SnapshotsStreamIdxTable.SnapshotsStreamIdxRow::getId)
                 .map(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow::of)
                 .collect(Collectors.toSet());

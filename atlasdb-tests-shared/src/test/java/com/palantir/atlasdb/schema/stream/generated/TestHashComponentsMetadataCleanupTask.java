@@ -43,7 +43,7 @@ public class TestHashComponentsMetadataCleanupTask implements OnCleanupTask {
         Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> streamsWithNoReferences
                 = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
-                .keys()
+                .keys() // (authorized)
                 .map(TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow::getId)
                 .map(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow::of)
                 .collect(Collectors.toSet());

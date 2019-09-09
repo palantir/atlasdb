@@ -43,7 +43,7 @@ public class StreamTestWithHashMetadataCleanupTask implements OnCleanupTask {
         Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> streamsWithNoReferences
                 = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
-                .keys()
+                .keys() // (authorized)
                 .map(StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow::getId)
                 .map(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow::of)
                 .collect(Collectors.toSet());

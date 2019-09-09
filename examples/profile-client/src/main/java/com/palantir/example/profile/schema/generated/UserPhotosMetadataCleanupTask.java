@@ -43,7 +43,7 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
         Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> streamsWithNoReferences
                 = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
-                .keys()
+                .keys() // (authorized)
                 .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::getId)
                 .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::of)
                 .collect(Collectors.toSet());

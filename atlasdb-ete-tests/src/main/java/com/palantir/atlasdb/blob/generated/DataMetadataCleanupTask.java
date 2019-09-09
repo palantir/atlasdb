@@ -43,7 +43,7 @@ public class DataMetadataCleanupTask implements OnCleanupTask {
         Set<DataStreamMetadataTable.DataStreamMetadataRow> streamsWithNoReferences
                 = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
-                .keys()
+                .keys() // (authorized)
                 .map(DataStreamIdxTable.DataStreamIdxRow::getId)
                 .map(DataStreamMetadataTable.DataStreamMetadataRow::of)
                 .collect(Collectors.toSet());
