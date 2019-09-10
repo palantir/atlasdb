@@ -50,6 +50,11 @@ public class RemoteLockServiceAdapter implements LockService {
     }
 
     @Override
+    public boolean unlock(LockRefreshToken token) {
+        return bareLockRpcClient.unlock(token);
+    }
+
+    @Override
     public boolean unlockSimple(SimpleHeldLocksToken token) {
         return bareLockRpcClient.unlockSimple(token);
     }
@@ -121,11 +126,6 @@ public class RemoteLockServiceAdapter implements LockService {
     @Override
     public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
         return bareLockRpcClient.lockAndGetHeldLocks(client, request).orElse(null);
-    }
-
-    @Override
-    public boolean unlock(LockRefreshToken token) {
-        return bareLockRpcClient.unlock(token);
     }
 
     @Override
