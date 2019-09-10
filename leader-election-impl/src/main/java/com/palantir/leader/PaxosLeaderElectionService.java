@@ -170,12 +170,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public Set<PingableLeader> getPotentialLeaders() {
-        // TODO(jakubk) Not sure about the implications here
-        if (leaderEligible.get()) {
-            return Sets.union(ImmutableSet.of(localPingable), ImmutableSet.copyOf(otherPingables));
-        } else {
-            return ImmutableSet.copyOf(otherPingables);
-        }
+        return Sets.union(ImmutableSet.of(localPingable), ImmutableSet.copyOf(otherPingables));
     }
 
     @Override
