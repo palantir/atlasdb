@@ -561,7 +561,7 @@ public class StreamStoreRenderer {
             }
 
             private void storeBlocksAndGetFinalMetadata() {
-                String compression = clientSideCompression.toString();
+                String compression = clientSideCompression.compressionType;
                 line("@Override");
                 line("protected StreamMetadata storeBlocksAndGetFinalMetadata(Transaction t, long id, InputStream stream) {"); {
                     line("//Hash the data before compressing it");
@@ -581,7 +581,11 @@ public class StreamStoreRenderer {
             private void loadStreamWithCompression() {
                 line("@Override");
                 line("public InputStream loadStream(Transaction t, final ", StreamId, " id) {"); {
-                    line("return new " + clientSideCompression.inputClass + "(super.loadStream(t, id));");
+                    line("try {"); {
+                        line("return new " + clientSideCompression.inputClass + "(super.loadStream(t, id));");
+                    } line("} catch (IOException e) {"); {
+                        line("throw new RuntimeException(e);");
+                    } line("}");
                 } line("}");
             }
 
@@ -589,7 +593,15 @@ public class StreamStoreRenderer {
                 line("@Override");
                 line("public Optional<InputStream> loadSingleStream(Transaction t, final ", StreamId, " id) {"); {
                     line("Optional<InputStream> inputStream = super.loadSingleStream(t, id);");
-                    line("return inputStream.map(" + clientSideCompression.inputClass + "::new);");
+
+                    line("return inputStream.map( s-> {"); {
+                        line("try {"); {
+                            line("return new " + clientSideCompression.inputClass + "(s);");
+                        } line("} catch (IOException e) {"); {
+                            line("throw new RuntimeException(e);");
+                        } line("}");
+                    }
+                    line("});");
                 } line("}");
             }
 
@@ -598,7 +610,11 @@ public class StreamStoreRenderer {
                 line("public Map<", StreamId, ", InputStream> loadStreams(Transaction t, Set<", StreamId, "> ids) {"); {
                     line("Map<", StreamId, ", InputStream> compressedStreams = super.loadStreams(t, ids);");
                     line("return Maps.transformValues(compressedStreams, stream -> {"); {
-                        line("return new " + clientSideCompression.inputClass + "(stream);");
+                        line("try {"); {
+                            line("return new " + clientSideCompression.inputClass + "(stream);");
+                        } line("} catch (IOException e) {"); {
+                            line("throw new RuntimeException(e);");
+                        } line("}");
                     } line("});");
                 } line("}");
             }
