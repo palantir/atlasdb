@@ -234,7 +234,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             MetricsManager metricsManager = MetricsManagers.createForTests();
             CqlClusterManager cqlClusterManager = config.cqlClusterManager()
-                    .orElse(DefaultCqlClusterManager.getInstance());
+                    .orElseGet(DefaultCqlClusterManager::getInstance);
             CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
                     config,
                     CassandraClientPoolImpl.StartupChecks.RUN,
