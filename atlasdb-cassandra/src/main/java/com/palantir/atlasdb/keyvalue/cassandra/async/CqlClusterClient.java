@@ -41,7 +41,6 @@ public interface CqlClusterClient extends Closeable {
 
         R result();
 
-
         V retrieveRow(Row row);
 
         default void visitResultSet(ResultSet resultSet, int numberOfRowsToVisit) {
@@ -59,8 +58,6 @@ public interface CqlClusterClient extends Closeable {
     }
 
     String sessionName();
-
-    CqlClusterClient start();
 
     void close();
 
