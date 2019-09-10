@@ -61,7 +61,6 @@ public final class AsyncSessionManager {
     interface UniqueCassandraCluster {
         @Value.Parameter
         Set<InetSocketAddress> servers();
-
     }
 
     static class SimpleAddressTranslator implements AddressTranslator {
