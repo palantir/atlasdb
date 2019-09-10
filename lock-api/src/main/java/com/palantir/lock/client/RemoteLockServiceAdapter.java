@@ -28,6 +28,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
@@ -37,6 +38,11 @@ public class RemoteLockServiceAdapter implements LockService {
 
     public RemoteLockServiceAdapter(BareLockRpcClient bareLockRpcClient) {
         this.bareLockRpcClient = bareLockRpcClient;
+    }
+
+    public static LockService create(String namespace, LockRpcClient lockRpcClient) {
+        BareLockRpcClient namespacedClient = new NamespacedLockRpcClient(namespace, lockRpcClient);
+        return new RemoteLockServiceAdapter(namespacedClient);
     }
 
     @Override
@@ -112,6 +118,12 @@ public class RemoteLockServiceAdapter implements LockService {
         return bareLockRpcClient.getMinLockedInVersionId(client).orElse(null);
     }
 
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId(String client) {
+        return bareLockRpcClient.getMinLockedInVersionId(client).orElse(null);
+    }
+
     @Override
     public LockServerOptions getLockServerOptions() {
         return bareLockRpcClient.getLockServerOptions();
@@ -131,12 +143,6 @@ public class RemoteLockServiceAdapter implements LockService {
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
         return bareLockRpcClient.refreshLockRefreshTokens(tokens);
-    }
-
-    @Nullable
-    @Override
-    public Long getMinLockedInVersionId(String client) {
-        return bareLockRpcClient.getMinLockedInVersionId(client).orElse(null);
     }
 
     @Override
