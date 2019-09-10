@@ -16,17 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.io.Closeable;
-import java.util.Map;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
-import com.codahale.metrics.Metric;
-import com.palantir.tritium.metrics.registry.MetricName;
-
-public interface AsyncClusterSession extends Closeable {
-
-    Map<MetricName, Metric> usedCqlClusterMetrics();
-
-    String sessionName();
-
-    void close();
+public interface CqlClientFactory {
+    CqlClient constructClient(CassandraKeyValueServiceConfig config);
 }
