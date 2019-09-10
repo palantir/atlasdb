@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.SSLContext;
 
@@ -43,7 +44,13 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.Throwables;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 
-public class CqlClusterManagerImpl implements CqlClusterManager {
+public final class DefaultCqlClusterManager implements CqlClusterManager {
+
+    private static final AtomicReference<DefaultCqlClusterManager> defaultInstance = new AtomicReference<>();
+
+    public static  DefaultCqlClusterManager getInstance() {
+        return defaultInstance.updateAndGet(previous -> previous == null ? new DefaultCqlClusterManager() : previous);
+    }
 
     private final AtomicLong cassandraId = new AtomicLong();
     private final AtomicLong clientId = new AtomicLong();
@@ -52,6 +59,10 @@ public class CqlClusterManagerImpl implements CqlClusterManager {
             .weakValues()
             .<UniqueCassandraCluster, CassandraClusterSession>removalListener((key, value, cause) -> value.close())
             .build();
+
+    private DefaultCqlClusterManager() {
+
+    }
 
 
     @Override
@@ -68,7 +79,8 @@ public class CqlClusterManagerImpl implements CqlClusterManager {
                 cassandraClusterSession.session());
     }
 
-    private CassandraClusterSession createClusterSession(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
+    private CassandraClusterSession createClusterSession(CassandraKeyValueServiceConfig config,
+            Set<InetSocketAddress> servers) {
         Cluster cluster = createCluster(config, servers);
         String sessionName = cluster.getClusterName()
                 + "-session";
@@ -101,6 +113,28 @@ public class CqlClusterManagerImpl implements CqlClusterManager {
         sslOptions(config).ifPresent(clusterBuilder::withSSL);
 
         return buildCluster(clusterBuilder);
+    }
+
+    private static Cluster buildCluster(Cluster.Builder clusterBuilder) {
+        Cluster cluster;
+        try {
+            cluster = clusterBuilder.build();
+        } catch (NoHostAvailableException e) {
+            if (e.getMessage().contains("Unknown compression algorithm")) {
+                clusterBuilder.withCompression(ProtocolOptions.Compression.NONE);
+                cluster = clusterBuilder.build();
+            } else {
+                throw Throwables.throwUncheckedException(e);
+            }
+        } catch (IllegalStateException e) {
+            if (e.getMessage().contains("requested compression is not available")) {
+                clusterBuilder.withCompression(ProtocolOptions.Compression.NONE);
+                cluster = clusterBuilder.build();
+            } else {
+                throw Throwables.throwUncheckedException(e);
+            }
+        }
+        return cluster;
     }
 
     private static Optional<RemoteEndpointAwareJdkSSLOptions> sslOptions(CassandraKeyValueServiceConfig config) {
@@ -146,27 +180,5 @@ public class CqlClusterManagerImpl implements CqlClusterManager {
         // but also shuffle which replica we talk to for a load balancing that comes at the expense
         // of less effective caching
         return new TokenAwarePolicy(policy, TokenAwarePolicy.ReplicaOrdering.RANDOM);
-    }
-
-    private static Cluster buildCluster(Cluster.Builder clusterBuilder) {
-        Cluster cluster;
-        try {
-            cluster = clusterBuilder.build();
-        } catch (NoHostAvailableException e) {
-            if (e.getMessage().contains("Unknown compression algorithm")) {
-                clusterBuilder.withCompression(ProtocolOptions.Compression.NONE);
-                cluster = clusterBuilder.build();
-            } else {
-                throw Throwables.throwUncheckedException(e);
-            }
-        } catch (IllegalStateException e) {
-            if (e.getMessage().contains("requested compression is not available")) {
-                clusterBuilder.withCompression(ProtocolOptions.Compression.NONE);
-                cluster = clusterBuilder.build();
-            } else {
-                throw Throwables.throwUncheckedException(e);
-            }
-        }
-        return cluster;
     }
 }

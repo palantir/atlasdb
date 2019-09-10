@@ -30,6 +30,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClusterManager;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
@@ -161,6 +162,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * The existence of this object overrides any configuration made via the ssl config value.
      */
     Optional<SslConfiguration> sslConfiguration();
+
+    Optional<CqlClusterManager> cqlClusterManager();
 
     int replicationFactor();
 

@@ -97,7 +97,8 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClusterClient;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClusterClientImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClusterManager;
+import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCqlClusterManager;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -230,8 +231,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
-        MetricsManager metricsManager = MetricsManagers.createForTests();
         try {
+            MetricsManager metricsManager = MetricsManagers.createForTests();
+            CqlClusterManager cqlClusterManager = config.cqlClusterManager()
+                    .orElse(DefaultCqlClusterManager.getInstance());
             CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
                     config,
                     CassandraClientPoolImpl.StartupChecks.RUN,
@@ -239,7 +242,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Optional<CqlClusterClient> asyncClusterSession = config.servers()
                     .visit((thriftServers, maybeCqlServers) -> maybeCqlServers
-                            .map(servers -> CqlClusterClientImpl.create(config, servers)));
+                            .map(servers -> cqlClusterManager.createCqlClusterClient(config, servers)));
 
             return createOrShutdownClientPool(metricsManager, config,
                     CassandraKeyValueServiceRuntimeConfig::getDefault,
@@ -290,6 +293,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config,
                 runtimeConfig,
                 mutationTimestampProvider,
+                config.cqlClusterManager().orElseGet(DefaultCqlClusterManager::getInstance),
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 initializeAsync);
     }
@@ -304,6 +308,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 mutationTimestampProvider,
+                config.cqlClusterManager().orElseGet(DefaultCqlClusterManager::getInstance),
                 log,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
@@ -313,6 +318,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraMutationTimestampProvider mutationTimestampProvider,
+            CqlClusterManager cqlClusterManager,
             Logger log,
             boolean initializeAsync) {
         try {
@@ -323,7 +329,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Optional<CqlClusterClient> asyncClusterSession = config.servers()
                     .visit((thriftServers, maybeCqlServers) -> maybeCqlServers
-                            .map(servers -> CqlClusterClientImpl.create(config, servers)));
+                            .map(servers -> cqlClusterManager.createCqlClusterClient(config, servers)));
 
             return createOrShutdownClientPool(
                     metricsManager,
