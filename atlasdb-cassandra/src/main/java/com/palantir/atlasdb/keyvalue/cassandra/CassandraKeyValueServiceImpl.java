@@ -97,7 +97,7 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncClusterSession;
-import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncSessionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncClusterSessionImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -239,9 +239,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Optional<AsyncClusterSession> asyncClusterSession = config.servers()
                     .visit((thriftServers, maybeCqlServers) -> maybeCqlServers
-                            .map(servers -> AsyncSessionManager
-                                    .getOrInitializeAsyncSessionManager()
-                                    .getAsyncSession(config, servers)));
+                            .map(servers -> AsyncClusterSessionImpl.create(config, servers)));
 
             return createOrShutdownClientPool(metricsManager, config,
                     CassandraKeyValueServiceRuntimeConfig::getDefault,
@@ -325,9 +323,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Optional<AsyncClusterSession> asyncClusterSession = config.servers()
                     .visit((thriftServers, maybeCqlServers) -> maybeCqlServers
-                            .map(servers -> AsyncSessionManager
-                                    .getOrInitializeAsyncSessionManager()
-                                    .getAsyncSession(config, servers)));
+                            .map(servers -> AsyncClusterSessionImpl.create(config, servers)));
 
             return createOrShutdownClientPool(
                     metricsManager,
@@ -1661,9 +1657,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
-        maybeAsyncClusterSession.ifPresent(asyncClusterSession ->
-                AsyncSessionManager.getOrInitializeAsyncSessionManager()
-                        .giveBackAsyncClusterSession(asyncClusterSession));
+        maybeAsyncClusterSession.ifPresent(AsyncClusterSession::close);
         super.close();
     }
 
