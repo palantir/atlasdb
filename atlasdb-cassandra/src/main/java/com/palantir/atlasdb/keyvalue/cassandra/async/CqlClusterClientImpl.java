@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -27,6 +28,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.net.ssl.SSLContext;
 
@@ -41,6 +45,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ThreadingOptions;
@@ -54,6 +59,7 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -62,9 +68,11 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tracing.AsyncTracer;
 
-public final class AsyncClusterSessionImpl implements AsyncClusterSession {
+public final class CqlClusterClientImpl implements CqlClusterClient {
 
     static class SimpleAddressTranslator implements AddressTranslator {
 
@@ -223,7 +231,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
     }
 
 
-    private final Logger log = LoggerFactory.getLogger(AsyncClusterSessionImpl.class);
+    private final Logger log = LoggerFactory.getLogger(CqlClusterClientImpl.class);
 
     private final String sessionName;
     private final Executor executor;
@@ -234,7 +242,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
     private final Cluster cluster;
     private final Session session;
 
-    public static AsyncClusterSession create(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
+    public static CqlClusterClient create(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
         CassandraClusterSession cassandraClusterSession =
                 clusters.get(ImmutableUniqueCassandraCluster.builder().addAllServers(servers).build(),
                         key -> createClusterSession(config, servers));
@@ -249,18 +257,18 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
                 threadFactory);
     }
 
-    public static AsyncClusterSession create(String clusterName, Cluster cluster, Session session,
+    public static CqlClusterClient create(String clusterName, Cluster cluster, Session session,
             ThreadFactory threadFactory) {
         return create(clusterName, cluster, session, Executors.newCachedThreadPool(threadFactory));
     }
 
-    public static AsyncClusterSession create(String clusterName, Cluster cluster, Session session,
+    public static CqlClusterClient create(String clusterName, Cluster cluster, Session session,
             Executor executor) {
         PreparedStatement healthCheckStatement = session.prepare("SELECT dateof(now()) FROM system.local ;");
-        return new AsyncClusterSessionImpl(clusterName, cluster, session, executor, healthCheckStatement).start();
+        return new CqlClusterClientImpl(clusterName, cluster, session, executor, healthCheckStatement).start();
     }
 
-    private AsyncClusterSessionImpl(String sessionName, Cluster cluster, Session session, Executor executor,
+    private CqlClusterClientImpl(String sessionName, Cluster cluster, Session session, Executor executor,
             PreparedStatement healthCheckStatement) {
         this.sessionName = sessionName;
         this.cluster = cluster;
@@ -296,7 +304,7 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
     }
 
     @Override
-    public AsyncClusterSessionImpl start() {
+    public CqlClusterClientImpl start() {
         healthCheckExecutor.scheduleAtFixedRate(() -> {
             ListenableFuture<String> time = getTimeAsync();
             try {
@@ -306,6 +314,30 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
             }
         }, 0, 1, TimeUnit.MINUTES);
         return this;
+    }
+
+    // TODO (OStevan): make a prepared statement cache as per
+    //  https://docs.datastax.com/en/developer/java-driver/3.7/manual/statements/prepared/
+    @Override
+    public PreparedStatement prepareStatement(String queryString) {
+        return session.prepare(queryString);
+    }
+
+    @Override
+    public <V, R> ListenableFuture<R> executeQuery(CqlQuery<V, R> cqlQuery) {
+        Visitor<V, R> visitor = cqlQuery.createVisitor();
+        return transform(Futures.transformAsync(session.executeAsync(cqlQuery.boundStatement()), iterate(visitor),
+                executor), Visitor::result);
+    }
+
+    @Override
+    public <V, P, R> ListenableFuture<R> executeQueries(Stream<CqlQuery<V, P>> inputStatementPairStream,
+            Function<List<P>, R> transformer) {
+        List<ListenableFuture<P>> allResults = inputStatementPairStream
+                .map(this::executeQuery)
+                .collect(Collectors.toList());
+
+        return transform(Futures.allAsList(allResults), transformer);
     }
 
     private ListenableFuture<String> getTimeAsync() {
@@ -318,5 +350,32 @@ public final class AsyncClusterSessionImpl implements AsyncClusterSession {
                     }
                     return builder.toString();
                 }, executor);
+    }
+
+    private <I, O> ListenableFuture<O> transform(ListenableFuture<I> input,
+            Function<? super I, ? extends O> function) {
+        AsyncTracer asyncTracer = new AsyncTracer();
+        return Futures.transform(input, p -> asyncTracer.withTrace(() -> function.apply(p)),
+                executor);
+    }
+
+
+    private <V, R> AsyncFunction<ResultSet, Visitor<V, R>> iterate(
+            final Visitor<V, R> visitor) {
+        return rs -> {
+            Preconditions.checkArgument(rs != null, "ResultSet should not be null when iterating");
+            // How far we can go without triggering the blocking fetch:
+            int remainingInPage = rs.getAvailableWithoutFetching();
+
+            visitor.visitResultSet(rs, remainingInPage);
+
+            boolean wasLastPage = rs.getExecutionInfo().getPagingState() == null;
+            if (wasLastPage) {
+                return Futures.immediateFuture(visitor);
+            } else {
+                ListenableFuture<ResultSet> future = rs.fetchMoreResults();
+                return Futures.transformAsync(future, iterate(visitor), executor);
+            }
+        };
     }
 }
