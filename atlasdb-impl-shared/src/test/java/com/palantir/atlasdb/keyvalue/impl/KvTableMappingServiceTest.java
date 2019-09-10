@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.exception.TableMappingNotFoundException;
 
 public class KvTableMappingServiceTest {
     private static final TableReference FQ_TABLE = TableReference.createFromFullyQualifiedName("test.test");

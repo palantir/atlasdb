@@ -72,6 +72,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -517,8 +518,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         if (table != null) {
             table.entries.clear();
         } else {
-            throw new IllegalStateException(
-                    String.format("Truncate called on a table (%s) that did not exist", tableRef));
+            throw tableMappingException(tableRef);
         }
     }
 
@@ -531,7 +531,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         if (!tables.containsKey(tableRef)) {
-            throw new IllegalArgumentException("No such table " + tableRef);
+            throw tableMappingException(tableRef);
         }
         tableMetadata.put(tableRef, metadata);
     }
@@ -568,7 +568,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         }
         Table table = tables.get(tableRef);
         if (table == null) {
-            throw new IllegalArgumentException("table " + tableRef.getQualifiedName() + " does not exist");
+            throw tableMappingException(tableRef);
         }
         return table;
     }
@@ -589,6 +589,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return ClusterAvailabilityStatus.ALL_AVAILABLE;
+    }
+
+    private static IllegalArgumentException tableMappingException(TableReference tableReference) {
+        return new IllegalArgumentException(
+                new TableMappingNotFoundException(
+                        "Table " + tableReference.getQualifiedName() + " does not exist"));
     }
 
     private static class Key implements Comparable<Key> {

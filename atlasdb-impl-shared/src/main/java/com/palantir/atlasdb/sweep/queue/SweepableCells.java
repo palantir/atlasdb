@@ -59,6 +59,7 @@ import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
 
 public class SweepableCells extends SweepQueueTable {
@@ -269,7 +270,22 @@ public class SweepableCells extends SweepQueueTable {
         }
 
         cellsToDelete.forEach((tableRef, multimap) -> {
-            kvs.delete(tableRef, multimap);
+            try {
+                kvs.delete(tableRef, multimap);
+            } catch (IllegalArgumentException exception) {
+                Throwable underlyingThrowable = exception.getCause();
+                if (underlyingThrowable != null
+                        && underlyingThrowable.getClass().isAssignableFrom(TableMappingNotFoundException.class)) {
+                    // this table no longer exists, but had work to do in the sweep queue still;
+                    // don't error out on this batch so that the queue cleans up and doesn't constantly retry forever
+                    log.info("Tried to delete {} aborted writes from table {}, "
+                                    + "but instead found that the table no longer exists.",
+                            SafeArg.of("number", multimap.size()),
+                            LoggingArgs.tableRef(tableRef));
+                } else {
+                    throw exception;
+                }
+            }
             maybeMetrics.ifPresent(metrics -> metrics.updateAbortedWritesDeleted(shardStrategy, multimap.size()));
             log.info("Deleted {} aborted writes from table {}.", SafeArg.of("number", multimap.size()),
                     LoggingArgs.tableRef(tableRef));
