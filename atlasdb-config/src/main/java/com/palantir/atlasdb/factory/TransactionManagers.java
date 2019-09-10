@@ -139,11 +139,13 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.ProfilingTimelockService;
+import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
@@ -923,7 +925,8 @@ public abstract class TransactionManagers {
             String userAgent,
             String timelockNamespace) {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
-        LockService lockService = creator.createNamespacedService(LockService.class, timelockNamespace);
+        LockService lockService = RemoteLockServiceAdapter.create(
+                timelockNamespace, creator.createService(LockRpcClient.class));
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
         NamespaceAwareTimelockRpcClient namespaceAwareTimelockRpcClient
