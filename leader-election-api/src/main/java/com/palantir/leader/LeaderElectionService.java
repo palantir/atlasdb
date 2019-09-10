@@ -36,10 +36,12 @@ public interface LeaderElectionService {
     }
 
     /**
-     * Indicates that this node should not nominate itself for leadership.
+     * Indicates that this node should never nominate itself for leadership in the context of this leader election
+     * service.
      *
      * <b>Note</b> This only affects future elections, does not cause any change in leadership if this node is
-     * currently leader.</b>
+     * currently leader. If this node has proposed leadership in an ongoing election,
+     * that proposal still stands and the node could subsequently gain leadership.</b>
      *
      * @see #stepDown()
      */
