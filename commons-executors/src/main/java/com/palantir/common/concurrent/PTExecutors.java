@@ -40,7 +40,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.util.concurrent.Runnables;
 import com.palantir.tracing.Tracers;
 
 /**
@@ -254,7 +258,9 @@ public final class PTExecutors {
      * @return the newly created scheduled executor
      */
     public static ScheduledExecutorService newSingleThreadScheduledExecutor() {
-        return wrap(Executors.newSingleThreadScheduledExecutor(newNamedThreadFactory(true)));
+        ThreadFactory factory = newNamedThreadFactory(true);
+        String executorName = getExecutorName(factory);
+        return wrap(executorName, Executors.newSingleThreadScheduledExecutor(factory));
     }
 
     /**
@@ -270,9 +276,9 @@ public final class PTExecutors {
      * @return a newly created scheduled executor
      * @throws NullPointerException if threadFactory is null
      */
-    public static ScheduledExecutorService newSingleThreadScheduledExecutor(
-            ThreadFactory threadFactory) {
-        return wrap(Executors.newSingleThreadScheduledExecutor(threadFactory));
+    public static ScheduledExecutorService newSingleThreadScheduledExecutor(ThreadFactory threadFactory) {
+        String executorName = getExecutorName(threadFactory);
+        return wrap(executorName, Executors.newSingleThreadScheduledExecutor(threadFactory));
     }
 
     /**
@@ -371,11 +377,12 @@ public final class PTExecutors {
     public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
             long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
             ThreadFactory threadFactory, RejectedExecutionHandler handler) {
+        String executorName = getExecutorName(threadFactory);
         ThreadPoolExecutor tpe = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, // (authorized)
                 unit, workQueue, threadFactory, handler) {
             @Override
             public void execute(Runnable command) {
-                super.execute(wrap(command));
+                super.execute(wrap(executorName, command));
             }
         };
         // QA-49019 - always allow core pool threads to timeout.
@@ -440,27 +447,59 @@ public final class PTExecutors {
                 "Cannot create a ScheduledThreadPoolExecutor with %s threads - thread count must not be negative!",
                 corePoolSize);
         int positiveCorePoolSize = corePoolSize > 0 ? corePoolSize : 1;
+        String executorName = getExecutorName(threadFactory);
         ScheduledThreadPoolExecutor ret = new ScheduledThreadPoolExecutor(positiveCorePoolSize, threadFactory,
                 handler) {
             @Override
             public void execute(Runnable command) {
-                super.execute(wrap(command));
+                super.execute(wrap(executorName, command));
             }
         };
         ret.setKeepAliveTime(DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         return ret;
     }
 
+    // Characters likely to be part of a pattern, not part of the executor name. For example, rather than
+    // "mine-bitcoin-31" we want "mine-bitcoin"
+    private static final CharMatcher THREAD_NAME_TRIMMED_CHARS = CharMatcher.inRange('0', '9')
+            .or(CharMatcher.anyOf(".-_"))
+            .or(CharMatcher.whitespace());
+
+    @VisibleForTesting
+    static String getExecutorName(ThreadFactory factory) {
+        if (factory instanceof NamedThreadFactory) {
+            return ((NamedThreadFactory) factory).getPrefix();
+        }
+        // fall back to create a thread, and capture the name
+        // Thread isn't started, allow it to be collected immediately.
+        String threadName = factory.newThread(Runnables.doNothing()).getName();
+        if (!Strings.isNullOrEmpty(threadName)) {
+            String trimmed = THREAD_NAME_TRIMMED_CHARS.trimTrailingFrom(threadName);
+            if (!Strings.isNullOrEmpty(trimmed)) {
+                return trimmed;
+            }
+        }
+        return "PTExecutor";
+    }
+
     /**
      * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
      * variables are propagated through.
      */
-    public static ExecutorService wrap(final ExecutorService executorService) {
+    public static ExecutorService wrap(final String operationName, final ExecutorService executorService) {
         return new AbstractForwardingExecutorService() {
             @Override protected ExecutorService delegate() {
                 return executorService;
             }
+
+            @Override protected Runnable wrap(Runnable runnable) {
+                return PTExecutors.wrap(operationName, runnable);
+            }
         };
+    }
+
+    public static ExecutorService wrap(final ExecutorService executorService) {
+        return wrap("PTExecutor", executorService);
     }
 
     /**
@@ -468,12 +507,25 @@ public final class PTExecutors {
      * ExecutorInheritableThreadLocal} variables are propagated through.
      */
     public static ScheduledExecutorService wrap(
+            final String operationName,
             final ScheduledExecutorService scheduledExecutorService) {
         return new AbstractForwardingScheduledExecutorService() {
             @Override protected ScheduledExecutorService delegate() {
                 return scheduledExecutorService;
             }
+
+            @Override protected Runnable wrap(Runnable runnable) {
+                return PTExecutors.wrap(operationName, runnable);
+            }
+
+            @Override protected <T> Callable<T> wrap(Callable<T> callable) {
+                return PTExecutors.wrap(operationName, callable);
+            }
         };
+    }
+
+    public static ScheduledExecutorService wrap(final ScheduledExecutorService scheduledExecutorService) {
+        return wrap("PTExecutor", scheduledExecutorService);
     }
 
     /**
@@ -482,7 +534,11 @@ public final class PTExecutors {
      * interface, then the returned {@code Runnable} will also implement {@code Future}.
      */
     public static Runnable wrap(final Runnable runnable) {
-        Runnable wrappedRunnable = wrapRunnable(runnable);
+        return wrap("PTExecutor", runnable);
+    }
+
+    public static Runnable wrap(final String operationName, final Runnable runnable) {
+        Runnable wrappedRunnable = wrapRunnable(operationName, runnable);
         if (runnable instanceof Future<?>) {
             @SuppressWarnings("unchecked")
             Future<Object> unsafeFuture = (Future<Object>) runnable;
@@ -492,7 +548,7 @@ public final class PTExecutors {
     }
 
     public static <T> RunnableFuture<T> wrap(RunnableFuture<T> rf) {
-        Runnable wrappedRunnable = wrapRunnable(rf);
+        Runnable wrappedRunnable = wrapRunnable("PTExecutor", rf);
         return new ForwardingRunnableFuture<>(wrappedRunnable, rf);
     }
 
@@ -500,10 +556,10 @@ public final class PTExecutors {
      * Wraps the given {@code Callable} so that {@link ExecutorInheritableThreadLocal} variables are
      * propagated through.
      */
-    public static <T> Callable<T> wrap(final Callable<? extends T> callable) {
+    public static <T> Callable<T> wrap(final String operationName, final Callable<? extends T> callable) {
         final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
-        return Tracers.wrap(() -> {
+        return Tracers.wrap(operationName, () -> {
             ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
                     ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
             try {
@@ -514,6 +570,9 @@ public final class PTExecutors {
         });
     }
 
+    public static <T> Callable<T> wrap(final Callable<? extends T> callable) {
+        return wrap("PTExecutor", callable);
+    }
     /**
      * Wraps the given {@code Callable}s so that {@link ExecutorInheritableThreadLocal} variables
      * are propagated through.
@@ -527,10 +586,11 @@ public final class PTExecutors {
         return wrapped;
     }
 
-    private static Runnable wrapRunnable(Runnable runnable) {
+    private static Runnable wrapRunnable(String operationName, Runnable runnable) {
         final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
-        return Tracers.wrap(() -> {
+
+        return Tracers.wrap(operationName, () -> {
             ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
                     ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
             try {

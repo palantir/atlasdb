@@ -39,6 +39,7 @@ dependencies {
     compile group: 'com.google.code.findbugs', name: 'findbugs-annotations'
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
+    testCompile group: 'org.assertj', name: 'assertj-core'
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
