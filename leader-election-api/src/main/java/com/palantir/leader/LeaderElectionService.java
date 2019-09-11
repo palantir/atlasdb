@@ -41,7 +41,7 @@ public interface LeaderElectionService {
      *
      * <b>Note</b> This only affects future elections, does not cause any change in leadership if this node is
      * currently leader. If this node has proposed leadership in an ongoing election,
-     * that proposal still stands and the node could subsequently gain leadership.</b>
+     * that proposal still stands and the node could subsequently gain leadership.
      *
      * @see #stepDown()
      */
