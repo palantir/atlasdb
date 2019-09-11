@@ -16,124 +16,127 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.net.InetSocketAddress;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.policies.AddressTranslator;
+import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.tracing.AsyncTracer;
 
 public final class CqlClientImpl implements CqlClient {
 
-    static class SimpleAddressTranslator implements AddressTranslator {
-
-        private final Map<String, InetSocketAddress> mapper;
-
-        SimpleAddressTranslator(CassandraKeyValueServiceConfig config) {
-            this.mapper = config.addressTranslation();
-        }
-
-        @Override
-        public void init(Cluster cluster) {
-        }
-
-        @Override
-        public InetSocketAddress translate(InetSocketAddress address) {
-            InetSocketAddress temp = mapper.getOrDefault(address.getHostString(), address);
-            return new InetSocketAddress(temp.getAddress(), temp.getPort());
-        }
-
-        @Override
-        public void close() {
-        }
-    }
-
     private final Session session;
-    private final String sessionName;
     private final Executor executor;
 
-    public static CqlClient create(String clientName, Session session,
+    public static CqlClient create(Session session,
             Executor executor) {
-        return new CqlClientImpl(clientName, session, executor);
+        return new CqlClientImpl(session, executor);
     }
 
-    private CqlClientImpl(String sessionName, Session session, Executor executor) {
-        this.sessionName = sessionName;
+    private CqlClientImpl(Session session, Executor executor) {
         this.session = session;
         this.executor = executor;
     }
 
-
     @Override
-    public String sessionName() {
-        return sessionName;
+    public void close() {
+        Cluster cluster = session.getCluster();
+        session.close();
+        cluster.close();
     }
 
     @Override
-    public void close() {
-        session.close();
+    public CqlQueryBuilder<Object> queryBuilder() {
+        return new CqlQueryBuilderImpl<>();
     }
 
     // TODO (OStevan): make a prepared statement cache as per
     //  https://docs.datastax.com/en/developer/java-driver/3.7/manual/statements/prepared/
-    @Override
-    public PreparedStatement prepareStatement(String queryString) {
+    private PreparedStatement prepareStatement(String queryString) {
         return session.prepare(queryString);
     }
 
-    @Override
-    public <V, R> ListenableFuture<R> executeQuery(CqlQuery<V, R> cqlQuery) {
-        Visitor<V, R> visitor = cqlQuery.createVisitor();
-        return transform(Futures.transformAsync(session.executeAsync(cqlQuery.boundStatement()), iterate(visitor),
-                executor), Visitor::result);
+    private class CqlQueryImpl<R> implements CqlQuery<R> {
+
+        private final RowStreamAccumulator<R> rowStreamAccumulator;
+        private final BoundStatement boundStatement;
+
+        CqlQueryImpl(BoundStatement boundStatement, RowStreamAccumulator<R> rowStreamAccumulator) {
+            this.boundStatement = boundStatement;
+            this.rowStreamAccumulator = rowStreamAccumulator;
+        }
+
+        final AsyncFunction<ResultSet, R> iterate() {
+            return resultSet -> {
+                Preconditions.checkArgument(resultSet != null, "ResultSet should not be null when iterating");
+
+                rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
+                        .limit(resultSet.getAvailableWithoutFetching()));
+
+                boolean wasLastPage = resultSet.getExecutionInfo().getPagingState() == null;
+                if (wasLastPage) {
+                    return Futures.immediateFuture(rowStreamAccumulator.result());
+                } else {
+                    ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
+                    return Futures.transformAsync(future, iterate(), executor);
+                }
+            };
+        }
+
+        @Override
+        public ListenableFuture<R> execute() {
+            return Futures.transformAsync(session.executeAsync(boundStatement), iterate(), executor);
+        }
     }
 
-    @Override
-    public <V, P, R> ListenableFuture<R> executeQueries(Stream<CqlQuery<V, P>> inputStatementPairStream,
-            Function<List<P>, R> transformer) {
-        List<ListenableFuture<P>> allResults = inputStatementPairStream
-                .map(this::executeQuery)
-                .collect(Collectors.toList());
+    private class CqlQueryBuilderImpl<R> implements CqlQueryBuilder<R> {
 
-        return transform(Futures.allAsList(allResults), transformer);
-    }
+        private String queryString;
+        private Map<String, Object> args = new HashMap<>();
+        private RowStreamAccumulator<R> rowStreamAccumulator;
 
-    private <I, O> ListenableFuture<O> transform(ListenableFuture<I> input,
-            Function<? super I, ? extends O> function) {
-        AsyncTracer asyncTracer = new AsyncTracer();
-        return Futures.transform(input, p -> asyncTracer.withTrace(() -> function.apply(p)),
-                executor);
-    }
+        @Override
+        public CqlQueryBuilder<R> setQueryString(String query) {
+            this.queryString = query;
+            return this;
+        }
 
+        @Override
+        public CqlQueryBuilder<R> setArg(String argumentName, Object argument) {
+            args.put(argumentName, argument);
+            return this;
+        }
 
-    private <V, R> AsyncFunction<ResultSet, Visitor<V, R>> iterate(
-            final Visitor<V, R> visitor) {
-        return rs -> {
-            Preconditions.checkArgument(rs != null, "ResultSet should not be null when iterating");
-            int remainingInPage = rs.getAvailableWithoutFetching();
+        @Override
+        public <T> CqlQueryBuilder<T> setResultSetVisitor(RowStreamAccumulator<T> visitor) {
+            this.rowStreamAccumulator = (RowStreamAccumulator<R>) visitor;
+            return (CqlQueryBuilder<T>) this;
+        }
 
-            visitor.visitResultSet(rs, remainingInPage);
+        @Override
+        public CqlQuery<R> build() {
+            Preconditions.checkNotNull(queryString, "Empty query string");
+            PreparedStatement statement = CqlClientImpl.this.prepareStatement(queryString);
 
-            boolean wasLastPage = rs.getExecutionInfo().getPagingState() == null;
-            if (wasLastPage) {
-                return Futures.immediateFuture(visitor);
-            } else {
-                ListenableFuture<ResultSet> future = rs.fetchMoreResults();
-                return Futures.transformAsync(future, iterate(visitor), executor);
+            Object[] argsArray = new Object[args.size()];
+            for (int i = 0; i < args.size(); i++) {
+                Preconditions.checkState(this.args.keySet().contains(statement.getVariables().getName(i)),
+                        "Set argument is not expected");
+                argsArray[i] = args.get(statement.getVariables().getName(i));
             }
-        };
+
+            BoundStatement boundStatement = statement.bind(argsArray);
+
+            Preconditions.checkNotNull(rowStreamAccumulator, "RowStreamAccumulator is not set");
+            return new CqlQueryImpl<>(boundStatement, rowStreamAccumulator);
+        }
     }
 }

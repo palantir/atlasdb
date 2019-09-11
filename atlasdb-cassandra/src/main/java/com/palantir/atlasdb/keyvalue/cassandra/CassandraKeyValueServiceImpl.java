@@ -97,7 +97,7 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactoryImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -150,6 +150,7 @@ import okio.ByteString;
  */
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
+
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
         @Override
@@ -230,25 +231,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
-        try {
-            MetricsManager metricsManager = MetricsManagers.createForTests();
-            CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
-                    config,
-                    CassandraClientPoolImpl.StartupChecks.RUN,
-                    new Blacklist(config));
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
+                config,
+                CassandraClientPoolImpl.StartupChecks.RUN,
+                new Blacklist(config));
 
-            CqlClient cqlClient = new CqlClientFactoryImpl().constructClient(config);
-
-            return createOrShutdownClientPool(metricsManager, config,
-                    CassandraKeyValueServiceRuntimeConfig::getDefault,
-                    clientPool,
-                    cqlClient,
-                    CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
-                    LoggerFactory.getLogger(CassandraKeyValueService.class),
-                    AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-        }
+        return createOrShutdownClientPool(metricsManager, config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault,
+                clientPool,
+                CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
+                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static CassandraKeyValueService create(
@@ -272,7 +266,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 clientPool,
-                new CqlClientFactoryImpl().constructClient(config),
                 mutationTimestampProvider,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -313,27 +306,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
-        try {
-            CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
-                    config,
-                    runtimeConfigSupplier,
-                    initializeAsync);
+        CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
+                config,
+                runtimeConfigSupplier,
+                initializeAsync);
 
-            CqlClient cqlClient = new CqlClientFactoryImpl().constructClient(config);
-
-            return createOrShutdownClientPool(
-                    metricsManager,
-                    config,
-                    runtimeConfigSupplier,
-                    clientPool,
-                    cqlClient,
-                    mutationTimestampProvider,
-                    log,
-                    initializeAsync);
-        } catch (Exception e) {
-            log.warn("CqlClient creation exception", e);
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-        }
+        return createOrShutdownClientPool(
+                metricsManager,
+                config,
+                runtimeConfigSupplier,
+                clientPool,
+                mutationTimestampProvider,
+                log,
+                initializeAsync);
     }
 
     private static CassandraKeyValueService createOrShutdownClientPool(
@@ -341,17 +326,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
-            CqlClient cqlClient,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
         try {
-            return createAndInitialize(
+            return createWithCqlClient(
                     metricsManager,
                     config,
                     runtimeConfigSupplier,
                     clientPool,
-                    cqlClient,
                     mutationTimestampProvider,
                     log,
                     initializeAsync);
@@ -366,6 +349,33 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    private static CassandraKeyValueService createWithCqlClient(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            CassandraClientPool clientPool,
+            CassandraMutationTimestampProvider mutationTimestampProvider,
+            Logger log,
+            boolean initializeAsync) {
+        try {
+            CqlClient cqlClient = CqlClientFactory.constructClient(config);
+
+            return createAndInitialize(
+                    metricsManager,
+                    config,
+                    runtimeConfigSupplier,
+                    clientPool,
+                    cqlClient,
+                    mutationTimestampProvider,
+                    log,
+                    initializeAsync);
+        } catch (Exception e) {
+            log.warn("CqlClient creation exception", e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+
     }
 
     private static CassandraKeyValueService createAndInitialize(

@@ -16,8 +16,137 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
-public interface CqlClientFactory {
-    CqlClient constructClient(CassandraKeyValueServiceConfig config);
+import javax.net.ssl.SSLContext;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.ProtocolOptions;
+import com.datastax.driver.core.QueryOptions;
+import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.ThreadingOptions;
+import com.datastax.driver.core.policies.AddressTranslator;
+import com.datastax.driver.core.policies.DefaultRetryPolicy;
+import com.datastax.driver.core.policies.LatencyAwarePolicy;
+import com.datastax.driver.core.policies.LoadBalancingPolicy;
+import com.datastax.driver.core.policies.RoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
+import com.datastax.driver.core.policies.WhiteListPolicy;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+
+public final class CqlClientFactory {
+
+    private CqlClientFactory() {
+
+    }
+
+    public static CqlClient constructClient(CassandraKeyValueServiceConfig config) {
+        return config.servers().visit((thriftServers, maybeCqlServers) ->
+                maybeCqlServers.map(cqlServers -> createClient(config, cqlServers))
+                        .orElseGet(ThrowingCqlClientImpl::new));
+    }
+
+    private static CqlClient createClient(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
+        Cluster.Builder clusterBuilder = Cluster.builder()
+                .addContactPointsWithPorts(servers)
+                .withCredentials(config.credentials().username(), config.credentials().password())
+                .withCompression(ProtocolOptions.Compression.LZ4)
+                .withLoadBalancingPolicy(loadBalancingPolicy(config, servers))
+                .withPoolingOptions(poolingOptions(config))
+                .withQueryOptions(queryOptions(config))
+                .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
+                .withoutJMXReporting()
+                .withThreadingOptions(new ThreadingOptions());
+
+        if (!config.addressTranslation().isEmpty()) {
+            clusterBuilder.withAddressTranslator(new SimpleAddressTranslator(config));
+        }
+
+        sslOptions(config).ifPresent(clusterBuilder::withSSL);
+
+        Session session = clusterBuilder.build().connect();
+
+        ThreadFactory threadFactory = new ThreadFactoryBuilder()
+                .setNameFormat(session.getCluster().getClusterName() + "-session" + "-%d")
+                .build();
+
+        return CqlClientImpl.create(session, Executors.newCachedThreadPool(threadFactory));
+    }
+
+    private static Optional<RemoteEndpointAwareJdkSSLOptions> sslOptions(CassandraKeyValueServiceConfig config) {
+        if (config.sslConfiguration().isPresent()) {
+            SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
+            return Optional.of(RemoteEndpointAwareJdkSSLOptions.builder()
+                    .withSSLContext(sslContext)
+                    .build());
+        } else if (config.ssl().isPresent() && config.ssl().get()) {
+            return Optional.of(RemoteEndpointAwareJdkSSLOptions.builder().build());
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    private static PoolingOptions poolingOptions(CassandraKeyValueServiceConfig config) {
+        return new PoolingOptions()
+                .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
+                .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
+                .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
+    }
+
+    private static QueryOptions queryOptions(CassandraKeyValueServiceConfig config) {
+        return new QueryOptions().setFetchSize(config.fetchBatchCount());
+    }
+
+    private static LoadBalancingPolicy loadBalancingPolicy(CassandraKeyValueServiceConfig config,
+            Set<InetSocketAddress> servers) {
+        // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
+        // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
+        // Note we are being purposely datacenter-irreverent here, instead relying on latency alone
+        // to approximate what DCAwareRR would do;
+        // this is because DCs for Atlas are always quite latency-close and should be used this way,
+        // not as if we have some cross-country backup DC.
+        LoadBalancingPolicy policy = LatencyAwarePolicy.builder(new RoundRobinPolicy()).build();
+
+        // If user wants, do not automatically add in new nodes to pool (useful during DC migrations / rebuilds)
+        if (!config.autoRefreshNodes()) {
+            policy = new WhiteListPolicy(policy, servers);
+        }
+
+        // also try and select coordinators who own the data we're talking about to avoid an extra hop,
+        // but also shuffle which replica we talk to for a load balancing that comes at the expense
+        // of less effective caching
+        return new TokenAwarePolicy(policy, TokenAwarePolicy.ReplicaOrdering.RANDOM);
+    }
+
+    private static class SimpleAddressTranslator implements AddressTranslator {
+
+        private final Map<String, InetSocketAddress> mapper;
+
+        SimpleAddressTranslator(CassandraKeyValueServiceConfig config) {
+            this.mapper = config.addressTranslation();
+        }
+
+        @Override
+        public void init(Cluster cluster) {
+        }
+
+        @Override
+        public InetSocketAddress translate(InetSocketAddress address) {
+            return mapper.getOrDefault(address.getHostString(), address);
+        }
+
+        @Override
+        public void close() {
+        }
+    }
 }

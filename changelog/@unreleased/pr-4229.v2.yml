@@ -1,5 +1,0 @@
-type: improvement
-improvement:
-  description: `CqlClient` interface and its implementation along with `CqlClientManager` interface.
-  links:
-  - https://github.com/palantir/atlasdb/pull/4229
