@@ -16,15 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-public class ThrowingCqlClientImpl implements CqlClient {
+import java.util.stream.Stream;
 
-    @Override
-    public void close() {
+import com.datastax.driver.core.Row;
 
-    }
+public interface RowStreamAccumulator<R> {
+    void accumulateRowStream(Stream<Row> rowStream);
 
-    @Override
-    public CqlQueryBuilder<Object> queryBuilder() {
-        throw new UnsupportedOperationException("Not configured to use CQL client, check your KVS config file.");
-    }
+    R result();
 }

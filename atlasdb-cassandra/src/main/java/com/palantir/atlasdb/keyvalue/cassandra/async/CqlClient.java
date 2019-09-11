@@ -16,47 +16,24 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Stream;
-
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.ListenableFuture;
 
 public interface CqlClient extends AutoCloseable {
 
-    interface CqlQuery<V, R> {
-        BoundStatement boundStatement();
-
-        Visitor<V, R> createVisitor();
+    interface CqlQuery<R> {
+        ListenableFuture<R> execute();
     }
 
-    interface Visitor<V, R> {
+    interface CqlQueryBuilder<R> {
 
-        void visit(V value);
+        CqlQueryBuilder<R> setQueryString(String queryString);
 
-        R result();
+        CqlQueryBuilder<R> setArg(String argumentName, Object argument);
 
-        V retrieveRow(Row row);
+        <T> CqlQueryBuilder<T> setResultSetVisitor(RowStreamAccumulator<T> rowStreamAccumulator);
 
-        default void visitResultSet(ResultSet resultSet, int numberOfRowsToVisit) {
-            Streams.stream(resultSet)
-                    .limit(numberOfRowsToVisit)
-                    .map(this::retrieveRow)
-                    .forEach(this::visit);
-        }
+        CqlQuery<R> build();
     }
 
-    String sessionName();
-
-    PreparedStatement prepareStatement(String queryString);
-
-    <V, R> ListenableFuture<R> executeQuery(CqlQuery<V, R> cqlQuery);
-
-    <V, P, R> ListenableFuture<R> executeQueries(Stream<CqlQuery<V, P>> boundStatementStream,
-            Function<List<P>, R> transformer);
+    CqlQueryBuilder<Object> queryBuilder();
 }
