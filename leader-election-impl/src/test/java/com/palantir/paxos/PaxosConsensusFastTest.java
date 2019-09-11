@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.SortedMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -236,6 +237,34 @@ public class PaxosConsensusFastTest {
 
         restoreAllNodes();
         assertThat(state.leader(0).isStillLeading(token)).isEqualTo(StillLeadingStatus.LEADING);
+    }
+
+    @Test
+    public void markNotEligibleForLeadership() throws InterruptedException {
+        LeadershipToken token = state.gainLeadership(0);
+        assertThat(state.leader(0).isStillLeading(token)).isEqualTo(StillLeadingStatus.LEADING);
+
+        state.leader(0).markNotEligibleForLeadership();
+        assertThat(state.leader(0).stepDown()).isTrue();
+
+        CountDownLatch waitingForLeadership = new CountDownLatch(1);
+        ExecutorService exec = PTExecutors.newSingleThreadExecutor();
+        Future<Void> future = exec.submit(() -> {
+            waitingForLeadership.countDown();
+            state.gainLeadership(0);
+            return null;
+        });
+
+        waitingForLeadership.await();
+
+        LeadershipToken token2 = state.gainLeadership(1);
+        assertThat(state.leader(0).isStillLeading(token)).isEqualTo(StillLeadingStatus.NOT_LEADING);
+        assertThat(state.leader(1).isStillLeading(token2)).isEqualTo(StillLeadingStatus.LEADING);
+
+        assertThat(future.cancel(true)).isTrue();
+
+        exec.shutdown();
+        exec.awaitTermination(10, TimeUnit.SECONDS);
     }
 
     private void knockOutQuorumNotIncludingZero() {

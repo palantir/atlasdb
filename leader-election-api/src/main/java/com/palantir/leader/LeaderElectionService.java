@@ -36,8 +36,8 @@ public interface LeaderElectionService {
     }
 
     /**
-     * Indicates that this node should never nominate itself for leadership in the context of this leader election
-     * service.
+     * Indicates that this node should no longer try to nominate itself for leadership in the context of
+     * this leader election service.
      *
      * <b>Note</b> This only affects future elections, does not cause any change in leadership if this node is
      * currently leader. If this node has proposed leadership in an ongoing election,
