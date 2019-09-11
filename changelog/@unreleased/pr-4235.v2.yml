@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    Upgraded third party libraries to get past known vulnerabilities.
+
+  links:
+  - https://github.com/palantir/atlasdb/pull/4235

@@ -5,7 +5,7 @@ dependencies {
     compile project(':atlasdb-service')
     compile 'org.fusesource.jansi:jansi:1.11'
     compile group: 'commons-cli', name:'commons-cli'
-    compile 'jline:jline:2.12'
+    compile 'jline:jline:2.14.6' // matching groovy-groovysh
     compile group: 'org.codehaus.groovy', name: 'groovy'
     compile group: 'org.codehaus.groovy', name: 'groovy-groovysh'
     compile group: 'org.codehaus.groovy', name: 'groovy-json'
