@@ -86,6 +86,7 @@ public final class TableTransactionConflictManager {
         TransactionState withOutConflict(boolean outConflict);
     }
 
+    @SuppressWarnings("GuardedBy") // Only accessed from cleanUp which is accessed with the object lock
     private long bytesUsed() {
         return runningTransactions.values().stream()
                 .mapToInt(txn -> OVERHEADS + 30 * (txn.readSet().size() + txn.writeSet().size()))
@@ -93,11 +94,13 @@ public final class TableTransactionConflictManager {
                 .sum();
     }
 
+    @SuppressWarnings("GuardedBy") // Only accessed from cleanUp which is accessed with the object lock
     private Optional<Long> getFirstRunningTransaction() {
         return Maps.filterValues(runningTransactions, state -> !state.commitTimestamp().isPresent())
                 .keySet().stream().findFirst();
     }
 
+    @SuppressWarnings("GuardedBy") // Accesses are from committing or aborting transactions, all synchronized
     private void cleanUp() {
         Optional<Long> maybeMinRunning = getFirstRunningTransaction();
         if (!maybeMinRunning.isPresent() || bytesUsed() >= MAX_MEMORY) {
@@ -223,6 +226,7 @@ public final class TableTransactionConflictManager {
         }
     }
 
+    @SuppressWarnings("GuardedBy") // Only accessed from commitTransaction which is synchronized
     private boolean isConflictingRead(long startTimestamp, TableReference table) {
         TransactionState ourState = runningTransactions.get(startTimestamp);
         Set<Long> otherWriteStartTimestamps = lastUpdated.get(table);
@@ -242,6 +246,7 @@ public final class TableTransactionConflictManager {
         return false;
     }
 
+    @SuppressWarnings("GuardedBy") // Only accessed from commitTransaction which is synchronized
     private void registerWriteConflicts(long startTimestamp, TableReference table) {
         Set<Long> readStartTimestamps = reads.get(table);
         for (Long readStartTimestamp : readStartTimestamps) {
