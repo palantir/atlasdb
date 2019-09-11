@@ -70,8 +70,10 @@ public class LockRefresher implements AutoCloseable {
             if (!refreshFailures.isEmpty()) {
                 log.info("Failed to refresh {} lock tokens, most likely because they were lost on the server."
                                 + " The first (up to) 20 of these were {}.",
+                        SafeArg.of("successfullyRefreshed", successfullyRefreshedTokens.size()),
                         SafeArg.of("numLockTokens", refreshFailures.size()),
-                        SafeArg.of("firstFailures", Iterables.limit(refreshFailures, 20)));
+                        SafeArg.of("firstFailures",
+                                Iterables.transform(Iterables.limit(refreshFailures, 20), LockToken::getRequestId)));
             }
         } catch (Throwable error) {
             log.warn("Error while refreshing locks. Trying again on next iteration", error);
