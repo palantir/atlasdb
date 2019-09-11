@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
@@ -40,9 +41,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -56,21 +54,10 @@ import com.palantir.logsafe.UnsafeArg;
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
 
-    private static final LoadingCache<InetSocketAddress, SSLSocketFactory> sslSocketFactories =
-            CacheBuilder.newBuilder().build(new CacheLoader<InetSocketAddress, SSLSocketFactory>() {
-                @Override
-                public SSLSocketFactory load(InetSocketAddress host) throws Exception {
-                    /*
-                     * Use a separate SSLSocketFactory per host to reduce contention on the synchronized method
-                     * SecureRandom.nextBytes. Otherwise, this is identical to SSLSocketFactory.getDefault()
-                     */
-                    return SSLContext.getInstance("Default").getSocketFactory();
-                }
-            });
-
     private final MetricsManager metricsManager;
     private final InetSocketAddress addr;
     private final CassandraKeyValueServiceConfig config;
+    private final SSLSocketFactory sslSocketFactory;
 
     public CassandraClientFactory(
             MetricsManager metricsManager,
@@ -79,10 +66,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.metricsManager = metricsManager;
         this.addr = addr;
         this.config = config;
+        this.sslSocketFactory = createSslSocketFactory(config);
     }
 
     @Override
-    public CassandraClient create() throws Exception {
+    public CassandraClient create() {
         try {
             return instrumentClient(getRawClientWithKeyspace(addr, config));
         } catch (Exception e) {
@@ -105,18 +93,17 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return client;
     }
 
-    private static Cassandra.Client getRawClientWithKeyspace(InetSocketAddress addr,
-            CassandraKeyValueServiceConfig config)
+    private Cassandra.Client getRawClientWithKeyspace(InetSocketAddress inetSocketAddress,
+            CassandraKeyValueServiceConfig kvsConfig)
             throws Exception {
-
-        Client ret = getRawClient(addr, config);
+        Client ret = getRawClient(inetSocketAddress, kvsConfig, sslSocketFactory);
         try {
-            ret.set_keyspace(config.getKeyspaceOrThrow());
+            ret.set_keyspace(kvsConfig.getKeyspaceOrThrow());
             log.debug("Created new client for {}/{}{}{}",
-                    SafeArg.of("address", CassandraLogHelper.host(addr)),
-                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
-                    SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
-                    UnsafeArg.of("usernameConfig", " as user " + config.credentials().username()));
+                    SafeArg.of("address", CassandraLogHelper.host(inetSocketAddress)),
+                    UnsafeArg.of("keyspace", kvsConfig.getKeyspaceOrThrow()),
+                    SafeArg.of("usingSsl", kvsConfig.usingSsl() ? " over SSL" : ""),
+                    UnsafeArg.of("usernameConfig", " as user " + kvsConfig.credentials().username()));
             return ret;
         } catch (Exception e) {
             ret.getOutputProtocol().getTransport().close();
@@ -126,10 +113,29 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     static CassandraClient getClientInternal(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
             throws TException {
-        return new CassandraClientImpl(getRawClient(addr, config));
+        return new CassandraClientImpl(getRawClient(addr, config, createSslSocketFactory(config)));
     }
 
-    private static Cassandra.Client getRawClient(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+    private static SSLSocketFactory createSslSocketFactory(CassandraKeyValueServiceConfig config) {
+        return config.sslConfiguration().map(SslSocketFactories::createSslSocketFactory)
+                .orElseGet(() -> {
+                    try {
+                        /*
+                         * Identical to SSLSocketFactory.getDefault(), but reduces contention on verifying it has
+                         * already been set up. If we suffer from contention here in SecureRandom operations,
+                         * we can consider sharding out the SSL context by connection.
+                         */
+                        return SSLContext.getInstance("Default").getSocketFactory();
+                    } catch (NoSuchAlgorithmException e) {
+                        throw new AssertionError(e);
+                    }
+                });
+    }
+
+    private static Cassandra.Client getRawClient(
+            InetSocketAddress addr,
+            CassandraKeyValueServiceConfig config,
+            SSLSocketFactory sslSocketFactory)
             throws TException {
         TSocket thriftSocket = new TSocket(addr.getHostString(), addr.getPort(), config.socketTimeoutMillis());
         thriftSocket.open();
@@ -144,13 +150,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         if (config.usingSsl()) {
             boolean success = false;
             try {
-                final SSLSocketFactory factory;
-                if (config.sslConfiguration().isPresent()) {
-                    factory = SslSocketFactories.createSslSocketFactory(config.sslConfiguration().get());
-                } else {
-                    factory = sslSocketFactories.getUnchecked(addr);
-                }
-                SSLSocket socket = (SSLSocket) factory.createSocket(
+                SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
                         thriftSocket.getSocket(),
                         addr.getHostString(),
                         addr.getPort(),

@@ -134,9 +134,11 @@ class LockLeaseService {
 
     @SuppressWarnings("unchecked")
     private static Set<LeasedLockToken> leasedTokens(Set<LockToken> tokens) {
-        Preconditions.checkArgument(tokens.stream()
-                        .allMatch(token -> token instanceof LeasedLockToken),
-                "All lock tokens should be an instance of LeasedLockToken");
+        for (LockToken token : tokens) {
+            Preconditions.checkArgument(
+                    token instanceof LeasedLockToken,
+                    "All lock tokens should be an instance of LeasedLockToken");
+        }
         return (Set<LeasedLockToken>) (Set<?>) tokens;
     }
 
