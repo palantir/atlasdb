@@ -93,17 +93,17 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return client;
     }
 
-    private Cassandra.Client getRawClientWithKeyspace(InetSocketAddress addr,
-            CassandraKeyValueServiceConfig config)
+    private Cassandra.Client getRawClientWithKeyspace(InetSocketAddress inetSocketAddress,
+            CassandraKeyValueServiceConfig kvsConfig)
             throws Exception {
-        Client ret = getRawClient(addr, config, sslSocketFactory);
+        Client ret = getRawClient(inetSocketAddress, kvsConfig, sslSocketFactory);
         try {
-            ret.set_keyspace(config.getKeyspaceOrThrow());
+            ret.set_keyspace(kvsConfig.getKeyspaceOrThrow());
             log.debug("Created new client for {}/{}{}{}",
-                    SafeArg.of("address", CassandraLogHelper.host(addr)),
-                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
-                    SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
-                    UnsafeArg.of("usernameConfig", " as user " + config.credentials().username()));
+                    SafeArg.of("address", CassandraLogHelper.host(inetSocketAddress)),
+                    UnsafeArg.of("keyspace", kvsConfig.getKeyspaceOrThrow()),
+                    SafeArg.of("usingSsl", kvsConfig.usingSsl() ? " over SSL" : ""),
+                    UnsafeArg.of("usernameConfig", " as user " + kvsConfig.credentials().username()));
             return ret;
         } catch (Exception e) {
             ret.getOutputProtocol().getTransport().close();
@@ -121,9 +121,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 .orElseGet(() -> {
                     try {
                         /*
-                         * Use a separate SSLSocketFactory per host to reduce contention on the synchronized
-                         * method SecureRandom.nextBytes. Otherwise, this is identical to
-                         * SSLSocketFactory.getDefault()
+                         * Identical to SSLSocketFactory.getDefault(), but reduces contention on verifying it has
+                         * already been set up.
                          */
                         return SSLContext.getInstance("Default").getSocketFactory();
                     } catch (NoSuchAlgorithmException e) {
@@ -146,7 +145,6 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             log.error("Couldn't set socket keep alive for host {}",
                     SafeArg.of("address", CassandraLogHelper.host(addr)));
         }
-        thriftSocket.getSocket().getInetAddress();
 
         if (config.usingSsl()) {
             boolean success = false;
