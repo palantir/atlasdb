@@ -184,6 +184,7 @@ public final class TableTransactionConflictManager {
         }
     }
 
+    @SuppressWarnings("GuardedBy") // Errorprone does not deal with lambdas properly
     private synchronized Status commitTransaction(
             long startTimestamp,
             long commitTimestamp,
