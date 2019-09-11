@@ -122,7 +122,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     try {
                         /*
                          * Identical to SSLSocketFactory.getDefault(), but reduces contention on verifying it has
-                         * already been set up.
+                         * already been set up. If we suffer from contention here in SecureRandom operations,
+                         * we can consider sharding out the SSL context by connection.
                          */
                         return SSLContext.getInstance("Default").getSocketFactory();
                     } catch (NoSuchAlgorithmException e) {
