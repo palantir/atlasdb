@@ -68,7 +68,8 @@ public class LockRefresher implements AutoCloseable {
             Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
             tokensToRefresh.removeAll(refreshFailures);
             if (!refreshFailures.isEmpty()) {
-                log.info("Failed to refresh {} lock tokens, most likely because they were lost on the server."
+                log.info("Successfully refreshed {}, but failed to refresh {} lock tokens, "
+                                + "most likely because they were lost on the server."
                                 + " The first (up to) 20 of these were {}.",
                         SafeArg.of("successfullyRefreshed", successfullyRefreshedTokens.size()),
                         SafeArg.of("numLockTokens", refreshFailures.size()),
