@@ -57,9 +57,11 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
@@ -478,7 +480,8 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static LockService getLockService(String client) {
-        return getProxyForService(client, LockService.class);
+        LockRpcClient lockRpcClient = getProxyForRootService(client, LockRpcClient.class);
+        return RemoteLockServiceAdapter.create(client, lockRpcClient);
     }
 
     private static TimestampService getTimestampService(String client) {
