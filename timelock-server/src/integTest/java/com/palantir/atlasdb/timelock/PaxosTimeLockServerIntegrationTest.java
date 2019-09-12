@@ -68,6 +68,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.RemoteTimestampManagementAdapter;
+import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -482,7 +484,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static LockService getLockService(String client) {
         LockRpcClient lockRpcClient = getProxyForRootService(client, LockRpcClient.class);
-        return RemoteLockServiceAdapter.create(client, lockRpcClient);
+        return RemoteLockServiceAdapter.create(lockRpcClient, client);
     }
 
     private static TimestampService getTimestampService(String client) {
@@ -490,7 +492,9 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static TimestampManagementService getTimestampManagementService(String client) {
-        return getProxyForService(client, TimestampManagementService.class);
+        return new RemoteTimestampManagementAdapter(
+                getProxyForRootService(client, TimestampManagementRpcClient.class),
+                client);
     }
 
     private static <T> T getProxyForRootService(String client, Class<T> clazz) {

@@ -40,7 +40,7 @@ public class RemoteLockServiceAdapter implements LockService {
         this.bareLockRpcClient = bareLockRpcClient;
     }
 
-    public static LockService create(String namespace, LockRpcClient lockRpcClient) {
+    public static LockService create(LockRpcClient lockRpcClient, String namespace) {
         BareLockRpcClient namespacedClient = new NamespacedLockRpcClient(namespace, lockRpcClient);
         return new RemoteLockServiceAdapter(namespacedClient);
     }
