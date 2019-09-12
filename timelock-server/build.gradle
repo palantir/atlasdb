@@ -37,7 +37,6 @@ dependencies {
     compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
 
-
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
 
@@ -70,6 +69,9 @@ dependencies {
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
+
+    testCommonAnnotationProcessor group: 'org.immutables', name: 'value'
+    testCommonCompileOnly 'org.immutables:value::annotations'
 
     testCommonImplementation group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
     testCommonImplementation group: 'com.ea.agentloader', name: 'ea-agent-loader'
