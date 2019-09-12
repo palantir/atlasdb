@@ -4,20 +4,38 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
 testSets {
-    integTest
+    libraries {
+        testCommon {
+            extendsFrom unitTest
+        }
+    }
+
+    integTest {
+        imports 'testCommon'
+    }
+
+    suiteTest {
+        imports 'testCommon'
+    }
+}
+
+suiteTest {
+    filter {
+        includeTestsMatching "com.palantir.atlasdb.timelock.suite.*"
+    }
 }
 
 check.dependsOn integTest
+check.dependsOn suiteTest
 
 dependencies {
-    compile (project(":timelock-agent"))
+    compile project(":timelock-agent")
 
     compile group: 'io.dropwizard', name: 'dropwizard-core'
     compile group: 'io.dropwizard', name: 'dropwizard-http2'
     compile group: 'io.dropwizard', name: 'dropwizard-request-logging'
     compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
-    compile group: 'com.ea.agentloader', name: 'ea-agent-loader'
 
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
@@ -52,5 +70,16 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
+    testCommonAnnotationProcessor group: 'org.immutables', name: 'value'
+    testCommonCompileOnly 'org.immutables:value::annotations'
+
+    testCommonImplementation group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
+    testCommonImplementation group: 'com.ea.agentloader', name: 'ea-agent-loader'
+    testCommonImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
+    testCommonImplementation (project(":atlasdb-tests-shared")) {
+        exclude group: 'com.fasterxml.jackson.jaxrs'
+    }
+
+    testCommonApi group: 'io.dropwizard', name: 'dropwizard-testing'
+    testCommonApi group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
 }
