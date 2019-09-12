@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRpcClient;
@@ -207,7 +208,7 @@ public class TestableTimelockCluster {
     }
 
     private TimestampService timestampService() {
-        return proxies.failoverForClient(client, TimestampService.class);
+        return new TimelockTimestampServiceAdapter(timelockService());
     }
 
     LockService lockService() {

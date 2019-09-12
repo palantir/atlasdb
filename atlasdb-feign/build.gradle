@@ -25,10 +25,11 @@ configurations {
 dependencies {
   explicitShadow project(':lock-api')
   explicitShadow group: 'com.squareup.okhttp3', name: 'okhttp'
+  explicitShadow group: 'com.palantir.common', name: 'streams'
   explicitShadow group: 'com.palantir.conjure.java.api', name: 'service-config'
+  explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
   explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'
-  explicitShadow group: 'com.palantir.common', name: 'streams'
 
   explicitShadow group: 'javax.validation', name: 'validation-api'
 

@@ -24,14 +24,15 @@ import java.util.function.Supplier;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class AtlasDbHttpClients {
-    private static final TargetFactory DEFAULT_TARGET_FACTORY = AtlasDbFeignTargetFactory.DEFAULT;
-    private static final TargetFactory TESTING_TARGET_FACTORY = AtlasDbFeignTargetFactory.FAST_FAIL_FOR_TESTING;
+    private static final TargetFactory DEFAULT_TARGET_FACTORY = ConjureJavaRuntimeTargetFactory.DEFAULT;
+    private static final TargetFactory TESTING_TARGET_FACTORY = ConjureJavaRuntimeTargetFactory.DEFAULT;
 
     private AtlasDbHttpClients() {
         // Utility class
