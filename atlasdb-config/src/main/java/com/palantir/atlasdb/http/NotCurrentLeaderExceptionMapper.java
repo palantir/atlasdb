@@ -19,9 +19,6 @@ import java.util.Optional;
 
 import javax.ws.rs.core.Response;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 
@@ -35,8 +32,6 @@ import com.palantir.leader.NotCurrentLeaderException;
  * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMapper<NotCurrentLeaderException> {
-    private static final Logger log = LoggerFactory.getLogger(NotCurrentLeaderExceptionMapper.class);
-
     private final Optional<RedirectRetryTargeter> redirectRetryTargeter;
 
     public NotCurrentLeaderExceptionMapper() {
