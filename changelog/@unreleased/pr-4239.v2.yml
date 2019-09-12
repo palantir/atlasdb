@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: 'Prepend `PTExecutor: ` to PTExecutor tracing operation names'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4239
