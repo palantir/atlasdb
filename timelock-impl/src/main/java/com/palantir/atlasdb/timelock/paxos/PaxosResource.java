@@ -28,7 +28,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 public final class PaxosResource {
     private final PaxosComponents paxosComponents;
 
-    private PaxosResource(PaxosComponents paxosComponents) {
+    PaxosResource(PaxosComponents paxosComponents) {
         this.paxosComponents = paxosComponents;
     }
 

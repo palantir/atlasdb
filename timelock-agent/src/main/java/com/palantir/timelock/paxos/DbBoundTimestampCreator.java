@@ -24,6 +24,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
@@ -41,7 +42,7 @@ public class DbBoundTimestampCreator implements TimestampCreator {
     }
 
     @Override
-    public Supplier<ManagedTimestampService> createTimestampService(String client, LeaderConfig leaderConfig) {
+    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig) {
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
                 new MetricsManager(new MetricRegistry(), SharedTaggedMetricRegistries.getSingleton(), x -> false),
                 kvsConfig,
