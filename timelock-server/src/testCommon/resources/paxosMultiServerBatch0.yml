@@ -2,8 +2,6 @@ install:
   paxos:
     data-directory: "<TEMP_DATA_DIR>"
     is-new-service: false
-    client-paxos:
-      use-batch-paxos: true
   cluster:
     cluster:
       security:
@@ -22,6 +20,8 @@ install:
 runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000
+    timestamp-paxos:
+      use-batch-paxos: true
 
 logging:
   appenders:

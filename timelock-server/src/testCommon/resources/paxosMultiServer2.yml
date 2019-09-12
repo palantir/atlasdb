@@ -20,6 +20,8 @@ install:
 runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000
+    timestamp-paxos:
+      use-batch-paxos: false
 
 logging:
   appenders:

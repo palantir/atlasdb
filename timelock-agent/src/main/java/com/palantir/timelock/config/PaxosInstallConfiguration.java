@@ -44,12 +44,6 @@ public interface PaxosInstallConfiguration {
     @JsonProperty("is-new-service")
     boolean isNewService();
 
-    @Value.Default
-    @JsonProperty("client-paxos")
-    default ClientPaxosConfig clientPaxos() {
-        return ClientPaxosConfig.defaultConfig();
-    }
-
     @Value.Check
     default void check() {
         if (isNewService() && dataDirectory().isDirectory()) {
@@ -66,22 +60,6 @@ public interface PaxosInstallConfiguration {
                     + "made a mistake by this point. This is a non-trivial operation and risks service corruption, "
                     + "so contact support for assistance. Otherwise, if this is a new timelock service, please "
                     + "configure paxos.is-new-service to true for the first startup only of each node.");
-        }
-    }
-
-    @Value.Immutable
-    @JsonDeserialize(as = ImmutableClientPaxosConfig.class)
-    @JsonSerialize(as = ImmutableClientPaxosConfig.class)
-    interface ClientPaxosConfig {
-
-        @Value.Default
-        @JsonProperty("use-batch-paxos")
-        default boolean useBatchPaxos() {
-            return false;
-        }
-
-        static ClientPaxosConfig defaultConfig() {
-            return ImmutableClientPaxosConfig.builder().build();
         }
     }
 
