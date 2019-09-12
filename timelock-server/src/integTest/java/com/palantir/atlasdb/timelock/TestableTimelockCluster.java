@@ -211,7 +211,7 @@ public class TestableTimelockCluster {
     }
 
     LockService lockService() {
-        return RemoteLockServiceAdapter.create(client, proxies.failover(LockRpcClient.class, proxies.getServerUris()));
+        return RemoteLockServiceAdapter.create(proxies.failover(LockRpcClient.class, proxies.getServerUris()), client);
     }
 
     TimelockService timelockService() {
