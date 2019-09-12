@@ -45,7 +45,7 @@ import com.palantir.lock.client.TimeLockUnlocker;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
@@ -219,8 +219,10 @@ public class TestableTimelockCluster {
     TimelockService timelockServiceForClient(String name) {
         return timelockServicesForClient.computeIfAbsent(
                 name,
-                clientName -> RemoteTimelockServiceAdapter.create(
-                        proxies.failover(TimelockRpcClient.class, proxies.getServerUris()), clientName));
+                clientName -> {
+                    TimelockRpcClient rpcClient = proxies.failover(TimelockRpcClient.class, proxies.getServerUris());
+                    return RemoteTimelockServiceAdapter.create(new NamespacedTimelockRpcClient(rpcClient, clientName));
+                });
     }
 
     TimeLockUnlocker unlockerForClient(String name) {
@@ -228,12 +230,12 @@ public class TestableTimelockCluster {
                 clientName -> AsyncTimeLockUnlocker.create(timelockServiceForClient(clientName)));
     }
 
-    <T> CompletableFuture<T> runWithRpcClientAsync(Function<NamespaceAwareTimelockRpcClient, T> function) {
+    <T> CompletableFuture<T> runWithRpcClientAsync(Function<NamespacedTimelockRpcClient, T> function) {
         return CompletableFuture.supplyAsync(() -> function.apply(namespaceAwareClient()));
     }
 
-    NamespaceAwareTimelockRpcClient namespaceAwareClient() {
-        return new NamespaceAwareTimelockRpcClient(timelockRpcClient(), client);
+    NamespacedTimelockRpcClient namespaceAwareClient() {
+        return new NamespacedTimelockRpcClient(timelockRpcClient(), client);
     }
 
     private TimelockRpcClient timelockRpcClient() {

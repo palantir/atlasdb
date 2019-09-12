@@ -83,7 +83,7 @@ public final class ServiceCreator {
                 limitPayload);
     }
 
-    public <T> T createNamespacedService(Class<T> serviceClass, String namespace) {
+    public <T> T createServiceWithNamespacedUris(Class<T> serviceClass, String namespace) {
         return create(
                 metricsManager,
                 () -> ServerListConfigs.namespaceUris(servers.get(), namespace),

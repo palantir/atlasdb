@@ -45,14 +45,14 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LockLeaseServiceTest {
-    @Mock private NamespaceAwareTimelockRpcClient namespaceAwareTimelockRpcClient;
+    @Mock private NamespacedTimelockRpcClient namespaceAwareTimelockRpcClient;
     @Mock private LockRequest lockRequest;
     @Mock private PartitionedTimestamps partitionedTimestamps;
 

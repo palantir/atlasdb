@@ -22,17 +22,15 @@ import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.timestamp.TimestampRange;
 
 /**
- * Interface describing timelock endpoints to be used by feign client factories to create raw clients.
- *
- * If you are adding a replacement for an endpoint, please version by number, e.g. a new version of
- * fresh-timestamp might be fresh-timestamp-2.
+ * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a
+ * parameter.
  */
 
-public class NamespaceAwareTimelockRpcClient {
+public class NamespacedTimelockRpcClient {
     private final TimelockRpcClient timelockRpcClient;
     private final String namespace;
 
-    public NamespaceAwareTimelockRpcClient(TimelockRpcClient timelockRpcClient, String namespace) {
+    public NamespacedTimelockRpcClient(TimelockRpcClient timelockRpcClient, String namespace) {
         this.timelockRpcClient = timelockRpcClient;
         this.namespace = namespace;
     }

@@ -148,7 +148,7 @@ import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.v2.NamespaceAwareTimelockRpcClient;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -921,15 +921,15 @@ public abstract class TransactionManagers {
             String userAgent,
             String timelockNamespace) {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
-        LockService lockService = creator.createNamespacedService(LockService.class, timelockNamespace);
+        LockService lockService = creator.createServiceWithNamespacedUris(LockService.class, timelockNamespace);
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
-        NamespaceAwareTimelockRpcClient namespaceAwareTimelockRpcClient
-                = new NamespaceAwareTimelockRpcClient(timelockClient, timelockNamespace);
+        NamespacedTimelockRpcClient namespaceAwareTimelockRpcClient
+                = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
                 = RemoteTimelockServiceAdapter.create(namespaceAwareTimelockRpcClient);
         TimestampManagementService timestampManagementService
-                = creator.createNamespacedService(TimestampManagementService.class, timelockNamespace);
+                = creator.createServiceWithNamespacedUris(TimestampManagementService.class, timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)

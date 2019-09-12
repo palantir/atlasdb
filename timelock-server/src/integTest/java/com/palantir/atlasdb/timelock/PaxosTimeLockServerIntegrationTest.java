@@ -63,6 +63,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
@@ -474,7 +475,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static TimelockService getTimelockService(String client) {
         return RemoteTimelockServiceAdapter.create(
-                getProxyForRootService(client, TimelockRpcClient.class), client);
+                new NamespacedTimelockRpcClient(getProxyForRootService(client, TimelockRpcClient.class), client));
     }
 
     private static LockService getLockService(String client) {
