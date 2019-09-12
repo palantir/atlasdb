@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -29,8 +30,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.awaitility.Awaitility;
+import org.immutables.value.Value;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -57,9 +62,11 @@ import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
 
-public class TestableTimelockCluster {
+public class TestableTimelockCluster implements TestRule {
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private final Optional<String> clusterName;
 
     private final String client = UUID.randomUUID().toString();
     private final List<TemporaryConfigurationHolder> configs;
@@ -70,7 +77,8 @@ public class TestableTimelockCluster {
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-    TestableTimelockCluster(String baseUri, String... configFileTemplates) {
+    public TestableTimelockCluster(String baseUri, String... configFileTemplates) {
+        this.clusterName = Optional.empty();
         this.configs = Arrays.stream(configFileTemplates)
                 .map(this::getConfigHolder)
                 .collect(Collectors.toList());
@@ -79,6 +87,29 @@ public class TestableTimelockCluster {
                 .map(holder -> new TestableTimelockServer(baseUri, client, holder))
                 .collect(Collectors.toList());
         this.proxies = new TestProxies(baseUri, servers);
+    }
+
+    public TestableTimelockCluster(ClusterName clusterName, String baseUri, String... configFileTemplates) {
+        this.clusterName = Optional.of(clusterName.get());
+        this.configs = Arrays.stream(configFileTemplates)
+                .map(this::getConfigHolder)
+                .collect(Collectors.toList());
+        this.servers = configs.stream()
+                .map(TestableTimelockCluster::getServerHolder)
+                .map(holder -> new TestableTimelockServer(baseUri, client, holder))
+                .collect(Collectors.toList());
+        this.proxies = new TestProxies(baseUri, servers);
+    }
+
+    @Value.Immutable
+    public abstract static class ClusterName {
+        @Value.Parameter
+        public abstract String get();
+
+        @Override
+        public String toString() {
+            return get();
+        }
     }
 
     void waitUntilLeaderIsElected() {
@@ -266,4 +297,13 @@ public class TestableTimelockCluster {
         return new TemporaryConfigurationHolder(temporaryFolder, configTemplate);
     }
 
+    @Override
+    public Statement apply(Statement base, Description description) {
+        return getRuleChain().apply(base, description);
+    }
+
+    @Override
+    public String toString() {
+        return clusterName.orElseGet(super::toString);
+    }
 }

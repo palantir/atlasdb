@@ -148,7 +148,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                tableTransactionConflictManager.startTransaction(startTimestamp));
     }
 
     @Override

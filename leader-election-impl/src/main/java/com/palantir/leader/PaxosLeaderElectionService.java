@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.immutables.value.Value;
@@ -69,6 +70,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
+    private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
+
     PaxosLeaderElectionService(PaxosProposer proposer,
             PaxosLearner knowledge,
             LeaderPinger leaderPinger,
@@ -92,6 +95,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
         this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(latestRoundVerifier);
+    }
+
+    public void markNotEligibleForLeadership() {
+        boolean previousLeaderEligible = leaderEligible.getAndSet(false);
+        if (previousLeaderEligible) {
+            log.info("Node no longer eligible for leadership");
+        }
     }
 
     @Override
@@ -131,7 +141,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         log.debug("Waiting for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
         Thread.sleep(backoffTime);
 
-        proposeLeadershipAfter(currentState.greatestLearnedValue());
+        if (leaderEligible.get()) {
+            proposeLeadershipAfter(currentState.greatestLearnedValue());
+        } else {
+            log.debug("Not eligible for leadership");
+        }
     }
 
     @Override

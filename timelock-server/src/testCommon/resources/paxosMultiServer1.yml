@@ -1,0 +1,60 @@
+install:
+  paxos:
+    data-directory: "<TEMP_DATA_DIR>"
+    is-new-service: false
+  cluster:
+    cluster:
+      security:
+        trustStorePath: "var/security/trustStore.jks"
+        trustStoreType: "JKS"
+        keyStorePath: "var/security/keyStore.jks"
+        keyStorePassword: "keystore"
+        keyStoreType: "JKS"
+      uris:
+      - "localhost:9080"
+      - "localhost:9081"
+      - "localhost:9082"
+    local-server: "localhost:9081"
+  timestampBoundPersistence:
+
+runtime:
+  paxos:
+    leader-ping-response-wait-in-ms: 1000
+
+logging:
+  appenders:
+    - type: console
+      logFormat: "server-1 %-5p [%d{ISO8601,UTC}] %c: %m%n%rEx"
+
+server:
+  requestLog:
+    appenders:
+      - type: console
+        logFormat: 'server-1       [%t{ISO8601,UTC}] %s %localPort %r %b "%i{User-Agent}" %D'
+
+  applicationConnectors:
+  - type: h2
+    port: 9081
+    keyStorePath: var/security/keyStore.jks
+    keyStorePassword: keystore
+    trustStorePath: var/security/trustStore.jks
+    validateCerts: false
+    supportedCipherSuites:
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_RSA_WITH_AES_256_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+      - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA
+      - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA
+      - TLS_RSA_WITH_AES_256_CBC_SHA
+      - TLS_RSA_WITH_AES_128_CBC_SHA
+      - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
+  adminConnectors:
+    - type: http
+      port: 7091

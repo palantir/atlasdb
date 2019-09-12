@@ -14,17 +14,27 @@ install:
       - "localhost:9080"
       - "localhost:9081"
       - "localhost:9082"
-    local-server: "localhost:9080"
+    local-server: "localhost:9082"
   timestampBoundPersistence:
 
 runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000
 
+logging:
+  appenders:
+    - type: console
+      logFormat: "server-2 %-5p [%d{ISO8601,UTC}] %c: %m%n%rEx"
+
 server:
+  requestLog:
+    appenders:
+      - type: console
+        logFormat: 'server-2       [%t{ISO8601,UTC}] %s %localPort %r %b "%i{User-Agent}" %D'
+
   applicationConnectors:
   - type: h2
-    port: 9080
+    port: 9082
     keyStorePath: var/security/keyStore.jks
     keyStorePassword: keystore
     trustStorePath: var/security/trustStore.jks
@@ -47,4 +57,4 @@ server:
       - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
   adminConnectors:
     - type: http
-      port: 7090
+      port: 7082

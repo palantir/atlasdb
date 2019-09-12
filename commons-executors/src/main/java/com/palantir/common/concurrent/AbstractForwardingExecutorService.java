@@ -35,7 +35,7 @@ public abstract class AbstractForwardingExecutorService extends AbstractExecutor
 
     @Override
     public void execute(Runnable command) {
-        delegate().execute(PTExecutors.wrap(command));
+        delegate().execute(wrap(command));
     }
 
     @Override
@@ -56,5 +56,9 @@ public abstract class AbstractForwardingExecutorService extends AbstractExecutor
     @Override
     public List<Runnable> shutdownNow() {
         return delegate().shutdownNow();
+    }
+
+    protected Runnable wrap(Runnable runnable) {
+        return PTExecutors.wrap(runnable);
     }
 }

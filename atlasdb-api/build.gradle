@@ -19,9 +19,10 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
 
-  processor group: 'org.immutables', name: 'value'
-  compileOnly project(":atlasdb-processors")
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
   annotationProcessor project(":atlasdb-processors")
+  compileOnly project(":atlasdb-processors")
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.assertj', name: 'assertj-core'
