@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ import com.palantir.logsafe.SafeArg;
 public final class TransactionRetryStrategy {
     public enum Strategies {
         LEGACY(createLegacy(BlockStrategies.threadSleepStrategy())),
-        EXPONENTIAL(createExponential(BlockStrategies.threadSleepStrategy(), ThreadLocalRandom.current()));
+        EXPONENTIAL(createExponential(BlockStrategies.threadSleepStrategy(), ThreadLocalRandom::current));
 
         private final TransactionRetryStrategy strategy;
 
@@ -165,9 +166,9 @@ public final class TransactionRetryStrategy {
     }
 
     @VisibleForTesting
-    static TransactionRetryStrategy createExponential(BlockStrategy blockStrategy, ThreadLocalRandom random) {
+    static TransactionRetryStrategy createExponential(BlockStrategy blockStrategy, Supplier<ThreadLocalRandom> random) {
         return new TransactionRetryStrategy(
-                randomize(random, WaitStrategies.exponentialWait(100, 1, TimeUnit.MINUTES)),
+                randomize(random.get(), WaitStrategies.exponentialWait(100, 1, TimeUnit.MINUTES)),
                 blockStrategy);
     }
 }
