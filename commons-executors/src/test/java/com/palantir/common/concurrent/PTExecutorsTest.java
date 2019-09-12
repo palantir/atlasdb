@@ -29,7 +29,7 @@ public class PTExecutorsTest {
     @Test
     public void testExecutorName_namedThreadFactory() {
         ThreadFactory factory = new NamedThreadFactory("my-prefix");
-        assertThat(PTExecutors.getExecutorName(factory)).isEqualTo("my-prefix");
+        assertThat(PTExecutors.getExecutorName(factory)).isEqualTo("PTExecutor: my-prefix");
     }
 
     @Test
@@ -39,7 +39,7 @@ public class PTExecutorsTest {
             thread.setName("foo-3");
             return thread;
         };
-        assertThat(PTExecutors.getExecutorName(factory)).isEqualTo("foo");
+        assertThat(PTExecutors.getExecutorName(factory)).isEqualTo("PTExecutor: foo");
     }
 
     @Test

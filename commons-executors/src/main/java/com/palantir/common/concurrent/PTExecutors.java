@@ -468,7 +468,7 @@ public final class PTExecutors {
     @VisibleForTesting
     static String getExecutorName(ThreadFactory factory) {
         if (factory instanceof NamedThreadFactory) {
-            return ((NamedThreadFactory) factory).getPrefix();
+            return "PTExecutor: " + ((NamedThreadFactory) factory).getPrefix();
         }
         // fall back to create a thread, and capture the name
         // Thread isn't started, allow it to be collected immediately.
@@ -476,7 +476,7 @@ public final class PTExecutors {
         if (!Strings.isNullOrEmpty(threadName)) {
             String trimmed = THREAD_NAME_TRIMMED_CHARS.trimTrailingFrom(threadName);
             if (!Strings.isNullOrEmpty(trimmed)) {
-                return trimmed;
+                return "PTExecutor: " + trimmed;
             }
         }
         return "PTExecutor";
