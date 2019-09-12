@@ -11,10 +11,10 @@ install:
         keyStorePassword: "keystore"
         keyStoreType: "JKS"
       uris:
-      - "localhost:9080"
-      - "localhost:9081"
-      - "localhost:9082"
-    local-server: "localhost:9080"
+      - "localhost:9083"
+      - "localhost:9084"
+      - "localhost:9085"
+    local-server: "localhost:9083"
   timestampBoundPersistence:
 
 runtime:
@@ -36,7 +36,7 @@ server:
 
   applicationConnectors:
   - type: h2
-    port: 9080
+    port: 9083
     keyStorePath: var/security/keyStore.jks
     keyStorePassword: keystore
     trustStorePath: var/security/trustStore.jks
@@ -59,4 +59,4 @@ server:
       - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
   adminConnectors:
     - type: http
-      port: 7090
+      port: 7093
