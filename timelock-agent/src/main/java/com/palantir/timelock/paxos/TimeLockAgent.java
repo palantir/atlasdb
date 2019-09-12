@@ -77,6 +77,7 @@ public class TimeLockAgent {
                 metricsManager,
                 install.paxos().dataDirectory().toPath(),
                 install,
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
                 executor);
 
         TimeLockAgent agent = new TimeLockAgent(
