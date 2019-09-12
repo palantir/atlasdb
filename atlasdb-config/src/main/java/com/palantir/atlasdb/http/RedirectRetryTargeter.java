@@ -16,58 +16,31 @@
 
 package com.palantir.atlasdb.http;
 
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.List;
 
-import javax.ws.rs.core.UriBuilder;
-
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public class RedirectRetryTargeter {
-    private final URL localServerBaseUrl;
     private final URL nextServerBaseUrl;
 
-    public RedirectRetryTargeter(URL localServerBaseUrl, URL nextServerBaseUrl) {
-        this.localServerBaseUrl = localServerBaseUrl;
+    private RedirectRetryTargeter(URL nextServerBaseUrl) {
         this.nextServerBaseUrl = nextServerBaseUrl;
     }
 
-    // Precondition: requestUrl is a suffix of the local server's base URL.
-    URL redirectRequest(URL requestUrl) {
-        String requestContextPath = getRequestPath(requestUrl);
-        try {
-            return UriBuilder.fromUri(nextServerBaseUrl.toURI())
-                    .path(requestContextPath)
-                    .build()
-                    .toURL();
-        } catch (MalformedURLException | URISyntaxException e) {
-            throw new RuntimeException("Error when constructing a URL in RedirectRetryTargeter. This is"
-                    + " a product bug. The path of this URL was " + nextServerBaseUrl.getFile() + requestContextPath);
-        }
+    public static RedirectRetryTargeter create(URL localServer, List<URL> clusterUrls) {
+        int localServerIndex = clusterUrls.indexOf(localServer);
+        Preconditions.checkArgument(localServerIndex != -1,
+                "Local server not found in the list of cluster URLs.",
+                SafeArg.of("localServer", localServer),
+                SafeArg.of("clusterUrls", clusterUrls));
+
+        int nextServerIndex = (localServerIndex + 1) % clusterUrls.size();
+        return new RedirectRetryTargeter(clusterUrls.get(nextServerIndex));
     }
 
-    @VisibleForTesting
-    String getRequestPath(URL requestUrl) {
-        String localServerContextPath = localServerBaseUrl.getPath();
-        String requestPath = requestUrl.getPath();
-        Preconditions.checkState(requestPath.startsWith(localServerContextPath),
-                "We attempted to process a request in an application-specific exception mapper that is not"
-                        + " in our context path.",
-                SafeArg.of("localServerBaseUrl", localServerBaseUrl),
-                UnsafeArg.of("requestUrl", requestUrl)); // unsafe since this is user-provided
-
-        return requestPath.substring(localServerContextPath.length());
-    }
-
-    @Override
-    public String toString() {
-        return "RedirectRetryTargeter{"
-                + "localServerBaseUrl=" + localServerBaseUrl
-                + ", nextServerBaseUrl=" + nextServerBaseUrl
-                + '}';
+    URL redirectRequest() {
+        return nextServerBaseUrl;
     }
 }
