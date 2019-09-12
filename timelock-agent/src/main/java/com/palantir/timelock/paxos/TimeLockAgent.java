@@ -224,13 +224,10 @@ public class TimeLockAgent {
 
     private void registerExceptionMappers() {
         registrar.accept(new BlockingTimeoutExceptionMapper());
-        URL localServerBaseUrl = PaxosRemotingUtils.convertAddressToUrl(install, install.cluster().localServer());
-        List<URL> baseUrls = PaxosRemotingUtils.convertAddressesToUrls(install, install.cluster().clusterMembers());
 
-        registrar.accept(new NotCurrentLeaderExceptionMapper(
-                new RedirectRetryTargeter(
-                        localServerBaseUrl,
-                        baseUrls.get((baseUrls.indexOf(localServerBaseUrl) + 1) % baseUrls.size()))));
+        URL localServer = PaxosRemotingUtils.convertAddressToUrl(install, install.cluster().localServer());
+        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(install, install.cluster().clusterMembers());
+        registrar.accept(new NotCurrentLeaderExceptionMapper(RedirectRetryTargeter.create(localServer, clusterUrls)));
 
         registrar.accept(new TooManyRequestsExceptionMapper());
     }

@@ -15,19 +15,15 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.MalformedURLException;
 import java.util.Optional;
 
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.logsafe.UnsafeArg;
 
 /**
  * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's
@@ -42,9 +38,6 @@ public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMappe
     private static final Logger log = LoggerFactory.getLogger(NotCurrentLeaderExceptionMapper.class);
 
     private final Optional<RedirectRetryTargeter> redirectRetryTargeter;
-
-    @Context
-    private UriInfo uriInfo;
 
     public NotCurrentLeaderExceptionMapper() {
         this.redirectRetryTargeter = Optional.empty();
@@ -61,15 +54,7 @@ public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMappe
 
     @Override
     QosException handleConjureJavaRuntime(NotCurrentLeaderException exception) {
-        return redirectRetryTargeter.map(targeter -> {
-            try {
-                return QosException.retryOther(targeter.redirectRequest(uriInfo.getRequestUri().toURL()));
-            } catch (MalformedURLException e) {
-                log.warn("Unable to parse context information {} into a URL. Returning generic 503.",
-                        UnsafeArg.of("uri", uriInfo.getRequestUri()), // may contain arbitrary query params
-                        e);
-                return QosException.unavailable();
-            }
-        }).orElseGet(QosException::unavailable);
+        return redirectRetryTargeter.<QosException>map(targeter -> QosException.retryOther(targeter.redirectRequest()))
+                .orElseGet(QosException::unavailable);
     }
 }

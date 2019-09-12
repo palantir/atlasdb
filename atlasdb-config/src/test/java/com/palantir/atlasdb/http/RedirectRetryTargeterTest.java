@@ -24,74 +24,45 @@ import java.net.URL;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
+
 public class RedirectRetryTargeterTest {
-    private static final String SCHEME_1 = "http";
-    private static final String SCHEME_2 = "https";
-
-    private static final String HOST_1 = "hostage";
-    private static final String HOST_2 = "hostile";
-
-    private static final int PORT_1 = 42;
-    private static final int PORT_2 = 4222;
-
-    private static final String PATH_1 = "/api/masyu/";
-    private static final String PATH_2 = "/kpi/snake/";
-    private static final String REQUEST_PATH_1 = "request/jewelled-branch-of-hourai";
-    private static final String REQUEST_PATH_2 = "/request/swallows-cowrie-shell";
-
-    private static final URL BASE_URL_1;
-    private static final URL BASE_URL_2;
+    private static final URL URL_1;
+    private static final URL URL_2;
+    private static final URL URL_3;
 
     static {
         try {
-            BASE_URL_1 = new URL(SCHEME_1, HOST_1, PORT_1, PATH_1);
-            BASE_URL_2 = new URL(SCHEME_2, HOST_2, PORT_2, PATH_2);
+            URL_1 = new URL("https", "hostage", 42, "/request/hourai-branch");
+            URL_2 = new URL("http", "hostile", 424, "/request/swallows-cowrie-shell");
+            URL_3 = new URL("https", "hostel", 4242, "/request/fire-rat-robe");
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static final RedirectRetryTargeter SELF_TARGETER = new RedirectRetryTargeter(BASE_URL_1, BASE_URL_1);
-    private static final RedirectRetryTargeter REDIRECTING_TARGETER = new RedirectRetryTargeter(BASE_URL_1, BASE_URL_2);
-
     @Test
-    public void getRequestPathAvoidsContext() throws MalformedURLException {
-        URL requestUrl = new URL(SCHEME_1, HOST_1, PORT_1, PATH_1 + REQUEST_PATH_1);
-        assertThat(REDIRECTING_TARGETER.getRequestPath(requestUrl)).isEqualTo(REQUEST_PATH_1);
+    public void redirectsToSelfIfOnlyOneNode() {
+        RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_1, ImmutableList.of(URL_1));
+        assertThat(targeter.redirectRequest()).isEqualTo(URL_1);
     }
 
     @Test
-    public void getRequestPathThrowsIfPathIsNotContextPrefixed() throws MalformedURLException {
-        URL requestUrl = new URL(SCHEME_1, HOST_1, PORT_1, REQUEST_PATH_1);
-        assertThatThrownBy(() -> REDIRECTING_TARGETER.getRequestPath(requestUrl))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("not in our context path");
+    public void redirectsToNextNode() {
+        RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_2, ImmutableList.of(URL_1, URL_2, URL_3));
+        assertThat(targeter.redirectRequest()).isEqualTo(URL_3);
     }
 
     @Test
-    public void canRedirectToSelf() throws MalformedURLException {
-        URL requestUrl = new URL(SCHEME_1, HOST_1, PORT_1, PATH_1 + REQUEST_PATH_1);
-        assertThat(SELF_TARGETER.redirectRequest(requestUrl)).isEqualTo(requestUrl);
+    public void redirectsAroundLastElement() {
+        RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_3, ImmutableList.of(URL_1, URL_2, URL_3));
+        assertThat(targeter.redirectRequest()).isEqualTo(URL_1);
     }
 
     @Test
-    public void canRedirectToOtherNodes() throws MalformedURLException {
-        URL requestUrl = new URL(SCHEME_1, HOST_1, PORT_1, PATH_1 + REQUEST_PATH_1);
-        assertThat(REDIRECTING_TARGETER.redirectRequest(requestUrl)).isEqualTo(
-                new URL(SCHEME_2, HOST_2, PORT_2, PATH_2 + REQUEST_PATH_1));
-    }
-
-    @Test
-    public void handlesRepeatedContextPathCorrectly() throws MalformedURLException {
-        URL requestUrl = new URL(SCHEME_1, HOST_1, PORT_1, PATH_1 + PATH_1.substring(1));
-        assertThat(REDIRECTING_TARGETER.redirectRequest(requestUrl)).isEqualTo(
-                new URL(SCHEME_2, HOST_2, PORT_2, PATH_2 + PATH_1.substring(1)));
-    }
-
-    @Test
-    public void handlesRequestPathWithLeadingSlash() throws MalformedURLException {
-        URL requestUrl = new URL(SCHEME_1, HOST_1, PORT_1, PATH_1 + REQUEST_PATH_2);
-        assertThat(REDIRECTING_TARGETER.redirectRequest(requestUrl)).isEqualTo(
-                new URL(SCHEME_2, HOST_2, PORT_2, PATH_2 + REQUEST_PATH_2.substring(1)));
+    public void throwsIfNodeUnrecognized() {
+        assertThatThrownBy(() -> RedirectRetryTargeter.create(URL_3, ImmutableList.of(URL_1)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Local server not found in the list of cluster URLs.");
     }
 }
