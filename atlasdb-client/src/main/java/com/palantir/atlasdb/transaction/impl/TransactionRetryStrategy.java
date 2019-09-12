@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +45,7 @@ import com.palantir.logsafe.SafeArg;
 public final class TransactionRetryStrategy {
     public enum Strategies {
         LEGACY(createLegacy(BlockStrategies.threadSleepStrategy())),
-        EXPONENTIAL(createExponential(BlockStrategies.threadSleepStrategy(), ThreadLocalRandom::current));
+        EXPONENTIAL(createExponential(BlockStrategies.threadSleepStrategy(), new Random()));
 
         private final TransactionRetryStrategy strategy;
 
@@ -147,8 +146,8 @@ public final class TransactionRetryStrategy {
         T run() throws E;
     }
 
-    private static WaitStrategy randomize(ThreadLocalRandom random, WaitStrategy strategy) {
-        return attempt -> random.nextLong(strategy.computeSleepTime(attempt));
+    private static WaitStrategy randomize(Random random, WaitStrategy strategy) {
+        return attempt -> random.nextInt(Ints.checkedCast(strategy.computeSleepTime(attempt)));
     }
 
     private static boolean shouldRetry(Throwable e) {
@@ -166,9 +165,9 @@ public final class TransactionRetryStrategy {
     }
 
     @VisibleForTesting
-    static TransactionRetryStrategy createExponential(BlockStrategy blockStrategy, Supplier<ThreadLocalRandom> random) {
+    static TransactionRetryStrategy createExponential(BlockStrategy blockStrategy, Random random) {
         return new TransactionRetryStrategy(
-                randomize(random.get(), WaitStrategies.exponentialWait(100, 1, TimeUnit.MINUTES)),
+                randomize(random, WaitStrategies.exponentialWait(100, 1, TimeUnit.MINUTES)),
                 blockStrategy);
     }
 }

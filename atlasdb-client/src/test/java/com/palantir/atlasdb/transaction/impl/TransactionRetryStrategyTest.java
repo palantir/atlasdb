@@ -63,10 +63,10 @@ public class TransactionRetryStrategyTest {
 
     @Before
     public void before() {
-        when(random.nextLong(anyLong())).thenAnswer(inv -> (long) inv.getArgument(0) - 1);
+        when(random.nextInt(anyInt())).thenAnswer(inv -> (int) inv.getArgument(0) - 1);
         mockRetries(1);
         legacy = TransactionRetryStrategy.createLegacy(blockStrategy);
-        exponential = TransactionRetryStrategy.createExponential(blockStrategy, () -> random);
+        exponential = TransactionRetryStrategy.createExponential(blockStrategy, random);
     }
 
     private String runExponential() throws Exception {
