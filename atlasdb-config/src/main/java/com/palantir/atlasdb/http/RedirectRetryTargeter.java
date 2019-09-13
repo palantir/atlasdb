@@ -22,7 +22,7 @@ import java.util.List;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
-public class RedirectRetryTargeter {
+public final class RedirectRetryTargeter {
     private final URL nextServerBaseUrl;
 
     private RedirectRetryTargeter(URL nextServerBaseUrl) {
