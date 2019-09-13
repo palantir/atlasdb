@@ -16,49 +16,45 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 
-import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public interface QueryFormer {
 
     enum SupportedQuery {
-        GET;
+        TIME("TIME", "SELECT dateof(now()) FROM system.local ;"),
+        GET("GET", "SELECT value, column2 FROM test.default.test "
+                + "WHERE key = :key AND column1 = :column1 AND column2 > :column2 ;");
 
-        @Override
-        public String toString() {
-            switch (this) {
-                case GET:
-                    return "GET";
-                default:
-                    throw new RuntimeException("Method toString not defined for all enums in SupportedQuery");
-            }
+        private final String name;
+        private final String format;
+
+        SupportedQuery(String name, String format) {
+            this.name = name;
+            this.format = format;
+        }
+
+        String getName() {
+            return name;
+        }
+
+        String formQueryString(String fullyQualifiedName) {
+            return String.format(this.format, fullyQualifiedName);
         }
     }
 
-    class FieldNameProvider {
-        public static String row = "key";
-        public static String column = "column1";
-        public static String timestamp = "column2";
-        public static String value = "value";
+    String CACHE_NAME_PREFIX = "query.async.query.forming.cache.metrics.";
 
-        protected FieldNameProvider() {}
+    static <K, V> Cache<K, V> registerCache(TaggedMetricRegistry taggedMetricRegistry, String name, Cache<K, V> cache) {
+        CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, name);
+        return cache;
     }
 
-    String TIME_PATTERN = "SELECT dateof(now()) FROM system.local ;";
-    String GET_PATTERN =
-            "SELECT " + FieldNameProvider.value + ", " + FieldNameProvider.timestamp + " FROM %s "
-                    + "WHERE " + FieldNameProvider.row + " = :" + FieldNameProvider.row
-                    + " AND " + FieldNameProvider.column + " = :" + FieldNameProvider.column
-                    + " AND " + FieldNameProvider.timestamp + " > :" + FieldNameProvider.timestamp + " ;";
-
-    Map<SupportedQuery, String> QUERY_FORMATS_MAP = ImmutableMap.of(
-            SupportedQuery.GET, GET_PATTERN);
-
-
-    default String formTimeQuery() {
-        return TIME_PATTERN;
+    static <K, V> Cache<K, V> createCache(int cacheSize) {
+        return Caffeine.newBuilder().maximumSize(cacheSize).build();
     }
 
     String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference);

@@ -16,35 +16,57 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 
+import org.immutables.value.Value;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
+public final class UnifiedCacheQueryFormer implements QueryFormer {
 
-public final class UnifiedCacheQueryFormer extends AbstractQueryFormer {
+    @Value.Immutable
+    interface CacheKey {
+        @Value.Parameter
+        String keySpace();
 
+        @Value.Parameter
+        TableReference tableReference();
 
-    public static UnifiedCacheQueryFormer create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
-        UnifiedCacheQueryFormer unifiedCacheQueryForming = create(cacheSize);
-        AbstractQueryFormer.registerCache(taggedMetricRegistry, CACHE_NAME_PREFIX + "ALL",
-                unifiedCacheQueryForming.cache);
-        return unifiedCacheQueryForming;
+        @Value.Parameter
+        SupportedQuery supportedQuery();
+
+        @Value.Derived
+        default String fullyQualifiedName() {
+            return keySpace() + "." + tableReference().getQualifiedName();
+        }
+
+        @Value.Derived
+        default String formattedQuery() {
+            return supportedQuery().formQueryString(fullyQualifiedName());
+        }
     }
 
-    public static UnifiedCacheQueryFormer create(int cacheSize) {
-        return new UnifiedCacheQueryFormer(AbstractQueryFormer.createCache(cacheSize));
+    public static QueryFormer create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
+        return new UnifiedCacheQueryFormer(
+                QueryFormer.registerCache(
+                        taggedMetricRegistry,
+                        CACHE_NAME_PREFIX + "ALL",
+                        QueryFormer.createCache(cacheSize)));
     }
 
-    private final Cache<String, String> cache;
+    private final Cache<CacheKey, String> cache;
 
-    private UnifiedCacheQueryFormer(Cache<String, String> cache) {
+    private UnifiedCacheQueryFormer(Cache<CacheKey, String> cache) {
         this.cache = cache;
     }
 
     @Override
     public String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
-        String normalizedName = AbstractQueryFormer.normalizeName(keySpace, tableReference);
-        String cacheKey = supportedQuery.toString() + '.' + normalizedName;
-        return cache.get(cacheKey, key -> String.format(QUERY_FORMATS_MAP.get(supportedQuery), normalizedName));
+        CacheKey cacheKey = ImmutableCacheKey.builder()
+                .supportedQuery(supportedQuery)
+                .keySpace(keySpace)
+                .tableReference(tableReference)
+                .build();
+        return cache.get(cacheKey, CacheKey::formattedQuery);
     }
 }

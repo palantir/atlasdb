@@ -22,43 +22,44 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class QueryFormingTest {
 
-    private TableReference dummyTableReference = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test");
+    private static final TableReference DUMMY_TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test");
+    private static final String DUMMY_FULLY_QUALIFIED_NAME = "test.default.test";
 
-    private String dummyGetQuery = "SELECT value, column2 FROM test.default.test "
+    private static final String DUMMY_GET_QUERY = "SELECT value, column2 FROM test.default.test "
             + "WHERE key = :key AND column1 = :column1 AND column2 > :column2 ;";
 
-    private QueryFormer dummyQueryFormer = new AbstractQueryFormer() {
+    private static final QueryFormer DUMMY_QUERY_FORMER = UnifiedCacheQueryFormer
+            .create(SharedTaggedMetricRegistries.getSingleton(), 100);
 
-        @Override
-        public String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
-            String normalizedName = AbstractQueryFormer.normalizeName(keySpace, tableReference);
-            return String.format(QUERY_FORMATS_MAP.get(supportedQuery), normalizedName);
-        }
-    };
-
-
-    @Test
-    public void testCorrectNameNormalization() {
-        String normalizedName = AbstractQueryFormer.normalizeName("test", dummyTableReference);
-        assertThat(normalizedName).isEqualTo("test.default.test");
-    }
 
     @Test
     public void testCorrectGetQueryForming() {
-        String formedQuery = dummyQueryFormer.formQuery(QueryFormer.SupportedQuery.GET, "test",
-                dummyTableReference);
-        assertThat(formedQuery).isEqualTo(dummyGetQuery);
+        String formedQuery = DUMMY_QUERY_FORMER.formQuery(QueryFormer.SupportedQuery.GET, "test",
+                DUMMY_TABLE_REFERENCE);
+        assertThat(formedQuery).isEqualTo(DUMMY_GET_QUERY);
     }
 
     @Test
-    public void testConsistentBehaviour() {
-        String firstFormed = dummyQueryFormer.formQuery(QueryFormer.SupportedQuery.GET, "test",
-                dummyTableReference);
-        String secondFormed = dummyQueryFormer.formQuery(QueryFormer.SupportedQuery.GET, "test",
-                dummyTableReference);
-        assertThat(firstFormed).isEqualTo(secondFormed);
+    public void testFullyQualifiedName() {
+        UnifiedCacheQueryFormer.CacheKey cacheKey = ImmutableCacheKey.builder()
+                .tableReference(DUMMY_TABLE_REFERENCE)
+                .supportedQuery(QueryFormer.SupportedQuery.GET)
+                .keySpace("test")
+                .build();
+        assertThat(cacheKey.fullyQualifiedName()).isEqualTo(DUMMY_FULLY_QUALIFIED_NAME);
+    }
+
+    @Test
+    public void testFormattedQuery() {
+        UnifiedCacheQueryFormer.CacheKey cacheKey = ImmutableCacheKey.builder()
+                .tableReference(DUMMY_TABLE_REFERENCE)
+                .supportedQuery(QueryFormer.SupportedQuery.GET)
+                .keySpace("test")
+                .build();
+        assertThat(cacheKey.formattedQuery()).isEqualTo(DUMMY_GET_QUERY);
     }
 }
