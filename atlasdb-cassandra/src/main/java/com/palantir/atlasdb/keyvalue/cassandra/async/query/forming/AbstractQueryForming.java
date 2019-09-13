@@ -24,7 +24,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public abstract class AbstractQueryForming implements QueryFormer {
     static Cache<String, String> createAndRegisterCache(TaggedMetricRegistry taggedMetricRegistry,
-            SupportedQueries operation, int cacheSize) {
+            String operation, int cacheSize) {
         Cache<String, String> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
         CaffeineCacheStats.registerCache(taggedMetricRegistry, cache,
                 "query.async.prepared.statements.cache.metrics." + operation);

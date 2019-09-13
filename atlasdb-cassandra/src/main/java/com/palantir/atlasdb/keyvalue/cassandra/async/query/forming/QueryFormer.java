@@ -24,7 +24,17 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public interface QueryFormer {
 
     enum SupportedQueries {
-        GET
+        GET;
+
+        @Override
+        public String toString() {
+            switch (this) {
+                case GET:
+                    return "GET";
+                default:
+                    throw new RuntimeException("Method toString not defined for all enums in SupportedQueries");
+            }
+        }
     }
 
     class FieldNameProvider {

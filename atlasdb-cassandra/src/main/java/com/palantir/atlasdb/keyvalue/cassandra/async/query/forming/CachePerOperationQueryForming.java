@@ -28,14 +28,10 @@ public final class CachePerOperationQueryForming extends AbstractQueryForming {
 
     public static CachePerOperationQueryForming create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
         return new CachePerOperationQueryForming(
-                Stream.of(SupportedQueries.values()).collect(Collectors.collectingAndThen(
-                        Collectors.toMap(
-                                Function.identity(),
-                                operation -> createAndRegisterCache(taggedMetricRegistry, operation, cacheSize)
-                        ),
-                        ImmutableMap::copyOf
-                        )
-                ));
+                Stream.of(SupportedQueries.values()).collect(Collectors.collectingAndThen(Collectors.toMap(
+                        Function.identity(),
+                        operation -> createAndRegisterCache(taggedMetricRegistry, operation.toString(), cacheSize)),
+                        ImmutableMap::copyOf)));
     }
 
     public static CachePerOperationQueryForming create(int cacheSize) {
@@ -59,7 +55,8 @@ public final class CachePerOperationQueryForming extends AbstractQueryForming {
 
     @Override
     String registerFormed(SupportedQueries supportedQuery, String normalizedName, String queryString) {
-        return requestToCacheMap.get(supportedQuery).get(normalizedName,
-                key -> queryString);
+        return requestToCacheMap
+                .get(supportedQuery)
+                .get(normalizedName, key -> queryString);
     }
 }
