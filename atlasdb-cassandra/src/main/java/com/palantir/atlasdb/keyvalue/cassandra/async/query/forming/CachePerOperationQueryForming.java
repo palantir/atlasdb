@@ -16,15 +16,38 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class CachePerOperationQueryForming extends AbstractQueryForming {
+
+    public static CachePerOperationQueryForming create(
+            TaggedMetricRegistry taggedMetricRegistry,
+            Map<SupportedQueries, Integer> cacheSizes) {
+        ImmutableMap.Builder<SupportedQueries, Cache<String, String>> builder = ImmutableMap.builder();
+
+        cacheSizes.forEach((operation, size) ->
+                builder.put(operation, createAndRegisterCache(taggedMetricRegistry, operation.toString(), size)));
+
+        return new CachePerOperationQueryForming(builder.build());
+    }
+
+    public static CachePerOperationQueryForming create(Map<SupportedQueries, Integer> cacheSizes) {
+        Preconditions.checkState(cacheSizes.size() == SupportedQueries.values().length,
+                "Not all operations have a defined cache size");
+        ImmutableMap.Builder<SupportedQueries, Cache<String, String>> builder = ImmutableMap.builder();
+
+        cacheSizes.forEach((operation, size) -> builder.put(operation, createCache(size)));
+
+        return new CachePerOperationQueryForming(builder.build());
+    }
 
     public static CachePerOperationQueryForming create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
         return new CachePerOperationQueryForming(

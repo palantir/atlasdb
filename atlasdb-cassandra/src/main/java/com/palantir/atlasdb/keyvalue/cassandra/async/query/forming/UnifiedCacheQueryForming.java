@@ -33,7 +33,7 @@ public class UnifiedCacheQueryForming extends AbstractQueryForming {
 
     private final Cache<String, String> cache;
 
-    UnifiedCacheQueryForming(Cache<String, String> cache) {
+    private UnifiedCacheQueryForming(Cache<String, String> cache) {
         this.cache = cache;
     }
 
