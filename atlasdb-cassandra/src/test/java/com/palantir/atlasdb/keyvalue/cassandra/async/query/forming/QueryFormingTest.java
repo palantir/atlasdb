@@ -31,9 +31,11 @@ public class QueryFormingTest {
             + "WHERE key = :key AND column1 = :column1 AND column2 > :column2 ;";
 
     private QueryFormer dummyQueryFormer = new AbstractQueryFormer() {
+
         @Override
-        String registerFormed(SupportedQuery supportedQuery, String normalizedName, String queryString) {
-            return queryString;
+        public String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
+            String normalizedName = AbstractQueryFormer.normalizeName(keySpace, tableReference);
+            return String.format(QUERY_FORMATS_MAP.get(supportedQuery), normalizedName);
         }
     };
 
