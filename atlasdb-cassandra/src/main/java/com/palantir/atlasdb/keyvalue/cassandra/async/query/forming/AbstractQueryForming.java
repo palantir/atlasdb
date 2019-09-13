@@ -23,12 +23,11 @@ import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public abstract class AbstractQueryForming implements QueryFormer {
-    static Cache<String, String> createAndRegisterCache(TaggedMetricRegistry taggedMetricRegistry,
-            String operation, int cacheSize) {
-        Cache<String, String> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
-        CaffeineCacheStats.registerCache(taggedMetricRegistry, cache,
-                "query.async.prepared.statements.cache.metrics." + operation);
-        return cache;
+
+    static final String CACHE_NAME_PREFIX = "query.async.prepared.statements.cache.metrics.";
+
+    static void registerCache(TaggedMetricRegistry taggedMetricRegistry, String name, Cache<String, String> cache) {
+        CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, name);
     }
 
     static Cache<String, String> createCache(int cacheSize) {
@@ -36,14 +35,14 @@ public abstract class AbstractQueryForming implements QueryFormer {
     }
 
     // TODO (OStevan): prone to injection, fix this with some pattern match checking
-    private static String normalizeName(String keyspace, TableReference tableReference) {
+    static String normalizeName(String keyspace, TableReference tableReference) {
         return keyspace + "." + tableReference.getQualifiedName();
     }
 
-    abstract String registerFormed(SupportedQueries supportedQuery, String normalizedName, String queryString);
+    abstract String registerFormed(SupportedQuery supportedQuery, String normalizedName, String queryString);
 
     @Override
-    public String formQuery(SupportedQueries supportedQuery, String keySpace, TableReference tableReference) {
+    public String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
         String normalizedName = AbstractQueryForming.normalizeName(keySpace, tableReference);
         return registerFormed(supportedQuery, normalizedName,
                 String.format(QUERY_FORMATS_MAP.get(supportedQuery), normalizedName));
