@@ -202,20 +202,13 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void leaderIdChangesAcrossFailovers() {
         Set<LeaderTime> leaderTimes = new HashSet<>();
-<<<<<<< HEAD:timelock-server/src/integTest/java/com/palantir/atlasdb/timelock/MultiNodePaxosTimeLockServerIntegrationTest.java
-        leaderTimes.add(CLUSTER.namespaceAwareClient().getLeaderTime());
-=======
-        leaderTimes.add(cluster.timelockRpcClient().getLeaderTime());
->>>>>>> develop:timelock-server/src/suiteTest/java/com/palantir/atlasdb/timelock/MultiNodePaxosTimeLockServerIntegrationTest.java
+        leaderTimes.add(cluster.namespaceAwareClient().getLeaderTime());
 
         for (int i = 0; i < 3; i++) {
             cluster.failoverToNewLeader();
 
-<<<<<<< HEAD:timelock-server/src/integTest/java/com/palantir/atlasdb/timelock/MultiNodePaxosTimeLockServerIntegrationTest.java
-            LeaderTime leaderTime = CLUSTER.namespaceAwareClient().getLeaderTime();
-=======
-            LeaderTime leaderTime = cluster.timelockRpcClient().getLeaderTime();
->>>>>>> develop:timelock-server/src/suiteTest/java/com/palantir/atlasdb/timelock/MultiNodePaxosTimeLockServerIntegrationTest.java
+            LeaderTime leaderTime = cluster.namespaceAwareClient().getLeaderTime();
+
             leaderTimes.forEach(previousLeaderTime ->
                     assertThat(previousLeaderTime.isComparableWith(leaderTime)).isFalse());
             leaderTimes.add(leaderTime);
