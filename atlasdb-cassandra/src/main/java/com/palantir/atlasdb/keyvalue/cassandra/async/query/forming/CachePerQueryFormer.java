@@ -23,12 +23,12 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public final class CachePerQueryForming extends AbstractQueryForming {
+public final class CachePerQueryFormer extends AbstractQueryFormer {
 
-    public static CachePerQueryForming create(
+    public static CachePerQueryFormer create(
             TaggedMetricRegistry taggedMetricRegistry,
             Map<SupportedQuery, Integer> cacheSizes) {
-        CachePerQueryForming cachePerQueryForming = create(cacheSizes);
+        CachePerQueryFormer cachePerQueryForming = create(cacheSizes);
 
         cachePerQueryForming.requestToCacheMap.forEach((queryType, cache) ->
                 registerCache(taggedMetricRegistry, CACHE_NAME_PREFIX + queryType, cache));
@@ -36,18 +36,18 @@ public final class CachePerQueryForming extends AbstractQueryForming {
         return cachePerQueryForming;
     }
 
-    public static CachePerQueryForming create(Map<SupportedQuery, Integer> cacheSizes) {
+    public static CachePerQueryFormer create(Map<SupportedQuery, Integer> cacheSizes) {
         Preconditions.checkState(cacheSizes.size() == SupportedQuery.values().length,
                 "Not all operations have a defined cache size");
         ImmutableMap.Builder<SupportedQuery, Cache<String, String>> builder = ImmutableMap.builder();
 
         cacheSizes.forEach((queryType, size) -> builder.put(queryType, createCache(size)));
 
-        return new CachePerQueryForming(builder.build());
+        return new CachePerQueryFormer(builder.build());
     }
 
-    public static CachePerQueryForming create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
-        CachePerQueryForming cachePerQueryForming = create(cacheSize);
+    public static CachePerQueryFormer create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
+        CachePerQueryFormer cachePerQueryForming = create(cacheSize);
 
         cachePerQueryForming.requestToCacheMap.forEach((queryType, cache) ->
                 registerCache(taggedMetricRegistry, CACHE_NAME_PREFIX + queryType, cache));
@@ -55,7 +55,7 @@ public final class CachePerQueryForming extends AbstractQueryForming {
         return cachePerQueryForming;
     }
 
-    public static CachePerQueryForming create(int cacheSize) {
+    public static CachePerQueryFormer create(int cacheSize) {
         ImmutableMap.Builder<SupportedQuery, Cache<String, String>> builder = ImmutableMap.builder();
 
         for (SupportedQuery supportedQuery : SupportedQuery.values()) {
@@ -63,12 +63,12 @@ public final class CachePerQueryForming extends AbstractQueryForming {
         }
 
 
-        return new CachePerQueryForming(builder.build());
+        return new CachePerQueryFormer(builder.build());
     }
 
     private final ImmutableMap<SupportedQuery, Cache<String, String>> requestToCacheMap;
 
-    private CachePerQueryForming(
+    private CachePerQueryFormer(
             ImmutableMap<SupportedQuery, Cache<String, String>> requestToCacheMap) {
         this.requestToCacheMap = requestToCacheMap;
     }

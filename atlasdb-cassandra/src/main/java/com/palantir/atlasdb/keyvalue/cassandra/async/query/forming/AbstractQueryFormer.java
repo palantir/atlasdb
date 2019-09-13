@@ -22,7 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public abstract class AbstractQueryForming implements QueryFormer {
+public abstract class AbstractQueryFormer implements QueryFormer {
 
     static final String CACHE_NAME_PREFIX = "query.async.prepared.statements.cache.metrics.";
 
@@ -42,8 +42,8 @@ public abstract class AbstractQueryForming implements QueryFormer {
     abstract String registerFormed(SupportedQuery supportedQuery, String normalizedName, String queryString);
 
     @Override
-    public String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
-        String normalizedName = AbstractQueryForming.normalizeName(keySpace, tableReference);
+    public final String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
+        String normalizedName = AbstractQueryFormer.normalizeName(keySpace, tableReference);
         return registerFormed(supportedQuery, normalizedName,
                 String.format(QUERY_FORMATS_MAP.get(supportedQuery), normalizedName));
     }

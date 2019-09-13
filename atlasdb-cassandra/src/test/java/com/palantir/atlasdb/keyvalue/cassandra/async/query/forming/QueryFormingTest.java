@@ -28,9 +28,9 @@ public class QueryFormingTest {
     private TableReference dummyTableReference = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test");
 
     private String dummyGetQuery = "SELECT value, column2 FROM test.default.test "
-            + "WHERE key"+ " = :key AND column1 = :column1 AND column2 > :column2 ;";
+            + "WHERE key = :key AND column1 = :column1 AND column2 > :column2 ;";
 
-    private QueryFormer dummyQueryFormer = new AbstractQueryForming() {
+    private QueryFormer dummyQueryFormer = new AbstractQueryFormer() {
         @Override
         String registerFormed(SupportedQuery supportedQuery, String normalizedName, String queryString) {
             return queryString;
@@ -40,7 +40,7 @@ public class QueryFormingTest {
 
     @Test
     public void testCorrectNameNormalization() {
-        String normalizedName = AbstractQueryForming.normalizeName("test", dummyTableReference);
+        String normalizedName = AbstractQueryFormer.normalizeName("test", dummyTableReference);
         assertThat(normalizedName).isEqualTo("test.default.test");
     }
 

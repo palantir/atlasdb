@@ -20,22 +20,22 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 
-public final class UnifiedCacheQueryForming extends AbstractQueryForming {
+public final class UnifiedCacheQueryFormer extends AbstractQueryFormer {
 
 
-    public static UnifiedCacheQueryForming create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
-        UnifiedCacheQueryForming unifiedCacheQueryForming = create(cacheSize);
+    public static UnifiedCacheQueryFormer create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
+        UnifiedCacheQueryFormer unifiedCacheQueryForming = create(cacheSize);
         registerCache(taggedMetricRegistry, CACHE_NAME_PREFIX + "ALL", unifiedCacheQueryForming.cache);
         return unifiedCacheQueryForming;
     }
 
-    public static UnifiedCacheQueryForming create(int cacheSize) {
-        return new UnifiedCacheQueryForming(createCache(cacheSize));
+    public static UnifiedCacheQueryFormer create(int cacheSize) {
+        return new UnifiedCacheQueryFormer(createCache(cacheSize));
     }
 
     private final Cache<String, String> cache;
 
-    private UnifiedCacheQueryForming(Cache<String, String> cache) {
+    private UnifiedCacheQueryFormer(Cache<String, String> cache) {
         this.cache = cache;
     }
 
