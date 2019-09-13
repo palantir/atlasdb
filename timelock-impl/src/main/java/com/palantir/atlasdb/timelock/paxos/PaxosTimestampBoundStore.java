@@ -268,7 +268,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value)
             throws NotCurrentLeaderException {
-        if (!value.getLeaderUUID().equals(proposer.getUuid())) {
+        if (!proposer.getUuid().equals(value.getLeaderUUID())) {
             String errorMsg = String.format(
                     "Timestamp limit changed from under us for sequence '%s' (proposer with UUID '%s' changed"
                             + " it, our UUID is '%s'). This suggests that we have lost leadership, and another timelock"
