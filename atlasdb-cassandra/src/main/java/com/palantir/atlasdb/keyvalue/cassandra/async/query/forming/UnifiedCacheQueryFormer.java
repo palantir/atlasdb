@@ -26,12 +26,13 @@ public final class UnifiedCacheQueryFormer extends AbstractQueryFormer {
 
     public static UnifiedCacheQueryFormer create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
         UnifiedCacheQueryFormer unifiedCacheQueryForming = create(cacheSize);
-        registerCache(taggedMetricRegistry, CACHE_NAME_PREFIX + "ALL", unifiedCacheQueryForming.cache);
+        AbstractQueryFormer.registerCache(taggedMetricRegistry, CACHE_NAME_PREFIX + "ALL",
+                unifiedCacheQueryForming.cache);
         return unifiedCacheQueryForming;
     }
 
     public static UnifiedCacheQueryFormer create(int cacheSize) {
-        return new UnifiedCacheQueryFormer(createCache(cacheSize));
+        return new UnifiedCacheQueryFormer(AbstractQueryFormer.createCache(cacheSize));
     }
 
     private final Cache<String, String> cache;

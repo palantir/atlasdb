@@ -32,7 +32,7 @@ public final class CachePerQueryFormer extends AbstractQueryFormer {
         CachePerQueryFormer cachePerQueryForming = create(cacheSizes);
 
         cachePerQueryForming.requestToCacheMap.forEach((queryType, cache) ->
-                registerCache(taggedMetricRegistry, CACHE_NAME_PREFIX + queryType, cache));
+                AbstractQueryFormer.registerCache(taggedMetricRegistry, CACHE_NAME_PREFIX + queryType, cache));
 
         return cachePerQueryForming;
     }
