@@ -80,8 +80,6 @@ public abstract class TransactionTestSetup {
     protected final TimestampCache timestampCache = new DefaultTimestampCache(
             new MetricRegistry(),
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
-    protected final TableTransactionConflictManager tableTransactionConflictManager =
-            new TableTransactionConflictManager();
 
     protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;

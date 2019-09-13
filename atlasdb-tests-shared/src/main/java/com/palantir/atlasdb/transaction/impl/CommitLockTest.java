@@ -28,6 +28,7 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -157,14 +158,13 @@ public class CommitLockTest extends TransactionTestSetup {
                 conflictHandler,
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
-        long startTimestamp = timestampService.getFreshTimestamp();
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timelockService,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                () -> startTimestamp,
+                Suppliers.ofInstance(timestampService.getFreshTimestamp()),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
@@ -180,8 +180,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG,
-                tableTransactionConflictManager.startTransaction(startTimestamp)) {
+                () -> TRANSACTION_CONFIG) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

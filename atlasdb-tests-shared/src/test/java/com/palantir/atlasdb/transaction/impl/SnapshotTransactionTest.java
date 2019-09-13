@@ -308,8 +308,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> transactionConfig,
-                TableTransactionConflictManager.NoOpRunningTransaction.INSTANCE);
+                () -> transactionConfig);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -375,8 +374,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> transactionConfig,
-                TableTransactionConflictManager.NoOpRunningTransaction.INSTANCE);
+                () -> transactionConfig);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -1304,8 +1302,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 validateLocksOnReads,
-                () -> transactionConfig,
-                TableTransactionConflictManager.NoOpRunningTransaction.INSTANCE);
+                () -> transactionConfig);
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
