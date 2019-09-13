@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -74,9 +75,10 @@ public final class CachePerQueryFormer extends AbstractQueryFormer {
     }
 
     @Override
-    String registerFormed(SupportedQuery supportedQuery, String normalizedName, String queryString) {
+    public final String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
+        String normalizedName = AbstractQueryFormer.normalizeName(keySpace, tableReference);
         return requestToCacheMap
                 .get(supportedQuery)
-                .get(normalizedName, key -> queryString);
+                .get(normalizedName, key -> String.format(QUERY_FORMATS_MAP.get(supportedQuery), normalizedName));
     }
 }

@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 
@@ -40,8 +41,9 @@ public final class UnifiedCacheQueryFormer extends AbstractQueryFormer {
     }
 
     @Override
-    String registerFormed(SupportedQuery supportedQuery, String normalizedName, String queryString) {
+    public final String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
+        String normalizedName = AbstractQueryFormer.normalizeName(keySpace, tableReference);
         String cacheKey = supportedQuery.toString() + '.' + normalizedName;
-        return cache.get(cacheKey, key -> queryString);
+        return cache.get(cacheKey, key -> String.format(QUERY_FORMATS_MAP.get(supportedQuery), normalizedName));
     }
 }
