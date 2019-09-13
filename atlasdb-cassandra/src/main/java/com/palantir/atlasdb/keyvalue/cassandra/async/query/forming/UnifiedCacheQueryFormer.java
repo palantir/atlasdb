@@ -41,7 +41,7 @@ public final class UnifiedCacheQueryFormer extends AbstractQueryFormer {
     }
 
     @Override
-    public final String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
+    public String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
         String normalizedName = AbstractQueryFormer.normalizeName(keySpace, tableReference);
         String cacheKey = supportedQuery.toString() + '.' + normalizedName;
         return cache.get(cacheKey, key -> String.format(QUERY_FORMATS_MAP.get(supportedQuery), normalizedName));

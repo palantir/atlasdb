@@ -75,7 +75,7 @@ public final class CachePerQueryFormer extends AbstractQueryFormer {
     }
 
     @Override
-    public final String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
+    public String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference) {
         String normalizedName = AbstractQueryFormer.normalizeName(keySpace, tableReference);
         return requestToCacheMap
                 .get(supportedQuery)
