@@ -219,7 +219,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
-    protected final TableTransactionConflictManager.RunningTransaction tableConflictsTransaction;
 
     protected volatile boolean hasReads;
 
@@ -250,8 +249,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig,
-            TableTransactionConflictManager.RunningTransaction tableConflictsTransaction) {
+            Supplier<TransactionConfig> transactionConfig) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -277,7 +275,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
-        this.tableConflictsTransaction = tableConflictsTransaction;
     }
 
     @Override
@@ -1309,7 +1306,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (hasWrites()) {
                     throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
-                tableConflictsTransaction.abort();
                 transactionOutcomeMetrics.markAbort();
                 return;
             }
@@ -1387,7 +1383,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 transactionOutcomeMetrics.markSuccessfulCommit();
             } else {
                 state.set(State.FAILED);
-                tableConflictsTransaction.abort();
                 transactionOutcomeMetrics.markFailedCommit();
             }
         }

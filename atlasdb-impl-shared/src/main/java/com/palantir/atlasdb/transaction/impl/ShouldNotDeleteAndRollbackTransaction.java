@@ -100,8 +100,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 MultiTableSweepQueueWriter.NO_OP,
                 IGNORING_EXECUTOR,
                 true,
-                transactionConfig,
-                TableTransactionConflictManager.NoOpRunningTransaction.INSTANCE);
+                transactionConfig);
     }
 
     @Override

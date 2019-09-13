@@ -16,9 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +38,6 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -135,8 +132,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    MultiTableSweepQueueWriter sweepQueue,
                                    ExecutorService deleteExecutor,
                                    boolean validateLocksOnReads,
-                                   Supplier<TransactionConfig> transactionConfig,
-                                   TableTransactionConflictManager.RunningTransaction tableConflictsTransaction) {
+                                   Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -158,8 +154,7 @@ public class SerializableTransaction extends SnapshotTransaction {
               sweepQueue,
               deleteExecutor,
               validateLocksOnReads,
-              transactionConfig,
-              tableConflictsTransaction);
+              transactionConfig);
     }
 
     @Override
@@ -447,49 +442,13 @@ public class SerializableTransaction extends SnapshotTransaction {
         super.put(tableRef, values);
     }
 
-    // for now, ignores negative lookups because this method is for metrics and that doesn't rely on it
-    private Set<TableReference> someTablesReadExcludingWrites() {
-        Set<TableReference> tablesRead = new HashSet<>();
-        tablesRead.addAll(Maps.filterEntries(readsByTable,
-                entry -> !writesByTable.containsKey(entry.getKey())
-                        || !writesByTable.get(entry.getKey()).keySet().containsAll(entry.getValue().keySet()))
-                .keySet());
-        return tablesRead;
-    }
-
-    private static String tableConflictMetricName(String name) {
-        return MetricRegistry.name(SerializableTransaction.class, "tableConflictHandling", name);
-    }
-
     @Override
     protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
-        TableTransactionConflictManager.Status status =
-                tableConflictsTransaction.commit(
-                        commitTimestamp,
-                        writesByTable.keySet(),
-                        someTablesReadExcludingWrites());
-        if (status == TableTransactionConflictManager.Status.ERROR) {
-            metricsManager.getRegistry().meter(tableConflictMetricName("error")).mark();
-        }
-        try {
-            Transaction ro = getReadOnlyTransaction(commitTimestamp);
-            verifyRanges(ro);
-            verifyColumnRanges(ro);
-            verifyCells(ro);
-            verifyRows(ro);
-        } catch (TransactionSerializableConflictException e) {
-            if (status == TableTransactionConflictManager.Status.NO_READ_WRITE_CONFLICTS) {
-                metricsManager.getRegistry().meter(tableConflictMetricName("unnecessaryConflicts")).mark();
-            }
-            throw e;
-        }
-        if (status == TableTransactionConflictManager.Status.NO_READ_WRITE_CONFLICTS) {
-            metricsManager.getRegistry().meter(tableConflictMetricName("couldBeAvoided.txns")).mark();
-            metricsManager.getRegistry().meter(tableConflictMetricName("couldBeAvoided.cellLoads"))
-                    .mark(cellsRead.values().stream().mapToInt(Collection::size).asLongStream().sum());
-        } else if (status == TableTransactionConflictManager.Status.CANNOT_ADVISE) {
-            metricsManager.getRegistry().meter(tableConflictMetricName("couldNotAdvise")).mark();
-        }
+        Transaction ro = getReadOnlyTransaction(commitTimestamp);
+        verifyRanges(ro);
+        verifyColumnRanges(ro);
+        verifyCells(ro);
+        verifyRows(ro);
     }
 
     private void verifyRows(Transaction ro) {
@@ -786,8 +745,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig,
-                TableTransactionConflictManager.NoOpRunningTransaction.INSTANCE) {
+                transactionConfig) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
