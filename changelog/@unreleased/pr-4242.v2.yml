@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Utility classes for forming table name qualified CQL query strings.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4242
