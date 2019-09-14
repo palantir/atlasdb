@@ -17,7 +17,6 @@ package com.palantir.atlasdb.util;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -25,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingLevel;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
@@ -58,9 +56,9 @@ public final class AtlasDbMetrics {
             Class<T> serviceInterface,
             U service,
             String name,
-            Function<InvocationContext, Map<String, String>> tagFunction) {
+            Map<String, String> tags) {
         return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
+                .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tags))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,

@@ -88,7 +88,7 @@ public class PaxosComponents {
                 clazz,
                 instance,
                 name,
-                unused -> tags);
+                tags);
     }
 
     @Value.Immutable

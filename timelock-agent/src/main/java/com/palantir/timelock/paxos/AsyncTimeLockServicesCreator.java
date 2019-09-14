@@ -29,6 +29,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.factory.DynamicDecoratingProxy;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
@@ -134,11 +135,24 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private <T> T instrument(TaggedMetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {
+        T leaderIdentifyingProxy = instrumentWithLeaderTag(metricRegistry, serviceClass, service, client, true);
+        T nonLeaderIdentifyingProxy = instrumentWithLeaderTag(metricRegistry, serviceClass, service, client, false);
+
+        // TODO (jkong): Consider compressing this down further to eliminate a layer of indirection?
+        return DynamicDecoratingProxy.newProxyInstance(leaderIdentifyingProxy, nonLeaderIdentifyingProxy,
+                leadershipCreator::isCurrentSuspectedLeader, serviceClass);
+    }
+
+    private <T> T instrumentWithLeaderTag(
+            TaggedMetricRegistry metricRegistry,
+            Class<T> serviceClass,
+            T service,
+            String client,
+            boolean tagValue) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass),
-                context -> ImmutableMap.of(
+                ImmutableMap.of(
                         AtlasDbMetricNames.TAG_CLIENT, client,
-                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(
-                                leadershipCreator.isCurrentSuspectedLeader())));
+                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(tagValue)));
     }
 }
