@@ -29,16 +29,12 @@ public interface QueryFormer {
         GET("GET", "SELECT value, column2 FROM %s "
                 + "WHERE key = :key AND column1 = :column1 AND column2 > :column2 ;");
 
-        private final String name;
-        private final String format;
+        public final String name;
+        public final String format;
 
         SupportedQuery(String name, String format) {
             this.name = name;
             this.format = format;
-        }
-
-        String getName() {
-            return name;
         }
 
         String formQueryString(String fullyQualifiedName) {
