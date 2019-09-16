@@ -25,9 +25,9 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 public interface QueryFormer {
 
     enum SupportedQuery {
-        TIME("TIME", "SELECT dateof(now()) FROM system.local ;"),
+        TIME("TIME", "SELECT dateof(now()) FROM system.local;"),
         GET("GET", "SELECT value, column2 FROM %s "
-                + "WHERE key = :key AND column1 = :column1 AND column2 > :column2 ;");
+                + "WHERE key = :key AND column1 = :column1 AND column2 > :column2;");
 
         public final String name;
         public final String format;
