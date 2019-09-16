@@ -41,6 +41,7 @@ public class QueryFormingTest {
     public void testCorrectGetQueryForming() {
         String formedQuery = DUMMY_QUERY_FORMER.formQuery(QueryFormer.SupportedQuery.GET, "test",
                 DUMMY_TABLE_REFERENCE);
+
         assertThat(formedQuery).isEqualTo(DUMMY_GET_QUERY);
     }
 
@@ -51,6 +52,7 @@ public class QueryFormingTest {
                 .supportedQuery(QueryFormer.SupportedQuery.GET)
                 .keySpace("test")
                 .build();
+
         assertThat(cacheKey.fullyQualifiedName()).isEqualTo(DUMMY_FULLY_QUALIFIED_NAME);
     }
 
@@ -61,6 +63,7 @@ public class QueryFormingTest {
                 .supportedQuery(QueryFormer.SupportedQuery.GET)
                 .keySpace("test")
                 .build();
+        
         assertThat(cacheKey.formattedQuery()).isEqualTo(DUMMY_GET_QUERY);
     }
 }
