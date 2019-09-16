@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class UnifiedCacheQueryFormer implements QueryFormer {
@@ -37,7 +38,7 @@ public final class UnifiedCacheQueryFormer implements QueryFormer {
 
         @Value.Derived
         default String fullyQualifiedName() {
-            return keySpace() + "." + tableReference().getQualifiedName();
+            return keySpace() + "." + AbstractKeyValueService.internalTableName(tableReference());
         }
 
         @Value.Derived

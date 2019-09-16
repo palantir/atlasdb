@@ -26,10 +26,11 @@ import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class QueryFormingTest {
 
-    private static final TableReference DUMMY_TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test");
-    private static final String DUMMY_FULLY_QUALIFIED_NAME = "test.default.test";
+    private static final TableReference DUMMY_TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE,
+            "test");
+    private static final String DUMMY_FULLY_QUALIFIED_NAME = "test.default__test";
 
-    private static final String DUMMY_GET_QUERY = "SELECT value, column2 FROM test.default.test "
+    private static final String DUMMY_GET_QUERY = "SELECT value, column2 FROM test.default__test "
             + "WHERE key = :key AND column1 = :column1 AND column2 > :column2 ;";
 
     private static final QueryFormer DUMMY_QUERY_FORMER = UnifiedCacheQueryFormer
