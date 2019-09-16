@@ -63,7 +63,7 @@ public class QueryFormingTest {
                 .supportedQuery(QueryFormer.SupportedQuery.GET)
                 .keySpace("test")
                 .build();
-        
+
         assertThat(cacheKey.formattedQuery()).isEqualTo(DUMMY_GET_QUERY);
     }
 }
