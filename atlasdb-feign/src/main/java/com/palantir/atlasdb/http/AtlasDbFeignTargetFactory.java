@@ -41,8 +41,6 @@ import feign.Retryer;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
 import feign.codec.ErrorDecoder;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
 public final class AtlasDbFeignTargetFactory implements TargetFactory {
@@ -69,9 +67,9 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             .registerModule(new JavaTimeModule())
             .registerModule(new GuavaModule());
     private static final Contract contract = new JAXRSContract();
-    private static final Encoder encoder = new JacksonEncoder(mapper);
+    private static final Encoder encoder = new AtlasDbJacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(
-            new OptionalAwareDecoder(new JacksonDecoder(mapper)));
+            new OptionalAwareDecoder(new AtlasDbJacksonDecoder(mapper)));
     private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
 
     private final int connectTimeout;
