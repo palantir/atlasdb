@@ -35,7 +35,6 @@ public class QueryFormingTest {
     private static final QueryFormer DUMMY_QUERY_FORMER = CacheQueryFormer
             .create(SharedTaggedMetricRegistries.getSingleton(), 100);
 
-
     @Test
     public void testCorrectGetQueryForming() {
         String formedQuery = DUMMY_QUERY_FORMER.formQuery(SupportedQuery.GET, "test",
