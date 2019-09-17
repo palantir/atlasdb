@@ -61,7 +61,7 @@ public final class CacheQueryFormer implements QueryFormer {
                 .tableReference(tableReference)
                 .build();
         return cache.get(cacheKey, key ->
-                key.supportedQuery().formQueryString(key.keySpace()
-                        + "." + AbstractKeyValueService.internalTableName(key.tableReference())));
+                key.supportedQuery().formQueryString(key.keySpace(),
+                        AbstractKeyValueService.internalTableName(key.tableReference())));
     }
 }

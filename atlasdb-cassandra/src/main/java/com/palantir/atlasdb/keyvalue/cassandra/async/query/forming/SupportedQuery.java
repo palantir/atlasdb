@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 
 enum SupportedQuery {
     TIME("TIME", "SELECT dateof(now()) FROM system.local;"),
-    GET("GET", "SELECT value, column2 FROM %s "
+    GET("GET", "SELECT value, column2 FROM \"%s\".\"%s\" "
             + "WHERE key = :row AND column1 = :column AND column2 > :timestamp;");
 
     private final String name;
@@ -29,8 +29,8 @@ enum SupportedQuery {
         this.format = format;
     }
 
-    String formQueryString(String fullyQualifiedName) {
-        return String.format(this.format, fullyQualifiedName);
+    String formQueryString(String keySpace, String internalTableName) {
+        return String.format(this.format, keySpace, internalTableName);
     }
 
     @Override
