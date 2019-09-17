@@ -28,42 +28,19 @@ public class QueryFormingTest {
 
     private static final TableReference DUMMY_TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE,
             "test");
-    private static final String DUMMY_FULLY_QUALIFIED_NAME = "test.default__test";
 
     private static final String DUMMY_GET_QUERY = "SELECT value, column2 FROM test.default__test "
-            + "WHERE key = :key AND column1 = :column1 AND column2 > :column2;";
+            + "WHERE key = :row AND column1 = :column AND column2 > :timestamp;";
 
-    private static final QueryFormer DUMMY_QUERY_FORMER = UnifiedCacheQueryFormer
+    private static final QueryFormer DUMMY_QUERY_FORMER = CacheQueryFormer
             .create(SharedTaggedMetricRegistries.getSingleton(), 100);
 
 
     @Test
     public void testCorrectGetQueryForming() {
-        String formedQuery = DUMMY_QUERY_FORMER.formQuery(QueryFormer.SupportedQuery.GET, "test",
+        String formedQuery = DUMMY_QUERY_FORMER.formQuery(SupportedQuery.GET, "test",
                 DUMMY_TABLE_REFERENCE);
 
         assertThat(formedQuery).isEqualTo(DUMMY_GET_QUERY);
-    }
-
-    @Test
-    public void testFullyQualifiedName() {
-        UnifiedCacheQueryFormer.CacheKey cacheKey = ImmutableCacheKey.builder()
-                .tableReference(DUMMY_TABLE_REFERENCE)
-                .supportedQuery(QueryFormer.SupportedQuery.GET)
-                .keySpace("test")
-                .build();
-
-        assertThat(cacheKey.fullyQualifiedName()).isEqualTo(DUMMY_FULLY_QUALIFIED_NAME);
-    }
-
-    @Test
-    public void testFormattedQuery() {
-        UnifiedCacheQueryFormer.CacheKey cacheKey = ImmutableCacheKey.builder()
-                .tableReference(DUMMY_TABLE_REFERENCE)
-                .supportedQuery(QueryFormer.SupportedQuery.GET)
-                .keySpace("test")
-                .build();
-
-        assertThat(cacheKey.formattedQuery()).isEqualTo(DUMMY_GET_QUERY);
     }
 }

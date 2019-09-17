@@ -19,11 +19,15 @@ package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 import org.immutables.value.Value;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public final class UnifiedCacheQueryFormer implements QueryFormer {
+public final class CacheQueryFormer implements QueryFormer {
+
+    private static final String CACHE_NAME = "query.async.query.forming.cache.metrics.all";
 
     @Value.Immutable
     interface CacheKey {
@@ -35,29 +39,17 @@ public final class UnifiedCacheQueryFormer implements QueryFormer {
 
         @Value.Parameter
         SupportedQuery supportedQuery();
-
-        @Value.Derived
-        default String fullyQualifiedName() {
-            return keySpace() + "." + AbstractKeyValueService.internalTableName(tableReference());
-        }
-
-        @Value.Derived
-        default String formattedQuery() {
-            return supportedQuery().formQueryString(fullyQualifiedName());
-        }
     }
 
     public static QueryFormer create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
-        return new UnifiedCacheQueryFormer(
-                QueryFormer.registerCache(
-                        taggedMetricRegistry,
-                        CACHE_NAME_PREFIX + "ALL",
-                        QueryFormer.createCache(cacheSize)));
+        Cache<CacheKey, String> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
+        CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, CACHE_NAME);
+        return new CacheQueryFormer(cache);
     }
 
     private final Cache<CacheKey, String> cache;
 
-    private UnifiedCacheQueryFormer(Cache<CacheKey, String> cache) {
+    private CacheQueryFormer(Cache<CacheKey, String> cache) {
         this.cache = cache;
     }
 
@@ -68,6 +60,8 @@ public final class UnifiedCacheQueryFormer implements QueryFormer {
                 .keySpace(keySpace)
                 .tableReference(tableReference)
                 .build();
-        return cache.get(cacheKey, CacheKey::formattedQuery);
+        return cache.get(cacheKey, key ->
+                key.supportedQuery().formQueryString(key.keySpace() + "." +
+                        AbstractKeyValueService.internalTableName(key.tableReference())));
     }
 }

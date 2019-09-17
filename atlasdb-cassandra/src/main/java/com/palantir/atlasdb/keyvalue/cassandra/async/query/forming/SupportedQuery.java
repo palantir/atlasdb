@@ -16,8 +16,25 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+enum SupportedQuery {
+    TIME("TIME", "SELECT dateof(now()) FROM system.local;"),
+    GET("GET", "SELECT value, column2 FROM %s "
+            + "WHERE key = :row AND column1 = :column AND column2 > :timestamp;");
 
-public interface QueryFormer {
-    String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference);
+    private final String name;
+    private final String format;
+
+    SupportedQuery(String name, String format) {
+        this.name = name;
+        this.format = format;
+    }
+
+    String formQueryString(String fullyQualifiedName) {
+        return String.format(this.format, fullyQualifiedName);
+    }
+
+    @Override
+    public String toString() {
+        return "Supported query:" + name;
+    }
 }
