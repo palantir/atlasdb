@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,6 +67,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -98,6 +100,8 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.RowStreamAccumulators;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -1926,9 +1930,46 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return true;
     }
 
+    /**
+     * Asynchronously retrieves the data from the key-value store using Cassandra native protocol.
+     * @param tableRef the name of the table to retrieve values from.
+     * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
+     *        retrieve that rows's value.
+     * @return listenable future containing the result
+     */
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        throw new UnsupportedOperationException("Async get API entry point is currently not supported");
+        CqlClient.Executable<Map<Cell, Value>> job = executor -> {
+            CqlQuerySpec<Optional<Value>> querySpec = ImmutableCqlQuerySpec.<Optional<Value>>builder()
+                    .rowStreamAccumulatorFactory(RowStreamAccumulators.GetQueryAccumulator::new)
+                    .supportedQuery(SupportedQuery.GET)
+                    .keySpace(config.getKeyspaceOrThrow())
+                    .tableReference(tableRef)
+                    .build();
+
+            return Futures.transform(
+                    Futures.allAsList(
+                            KeyedStream.stream(timestampByCell).map((cell, timestamp) ->
+                                    cqlClient.execute(cqlClient.<Optional<Value>>asyncQueryBuilder()
+                                            .setQuerySpec(querySpec)
+                                            .setArg("row", ByteBuffer.wrap(cell.getRowName()))
+                                            .setArg("column", ByteBuffer.wrap(cell.getColumnName()))
+                                            .setArg("timestamp", ~timestamp)
+                                            .build()))
+                                    .entries()
+                                    .map(entry -> Futures.transform(entry.getValue(),
+                                            val -> new AbstractMap.SimpleEntry<>(entry.getKey(), val),
+                                            executor))
+                                    .collect(Collectors.toList())),
+                    resultList -> resultList.stream()
+                            .filter(entry -> entry.getValue().isPresent())
+                            .collect(Collectors.toMap(
+                                    AbstractMap.SimpleEntry::getKey,
+                                    entry -> entry.getValue().get())),
+                    executor);
+        };
+
+        return cqlClient.execute(job);
     }
 
     private static class TableCellAndValue {

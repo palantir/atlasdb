@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import java.util.concurrent.Executor;
+
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -123,6 +125,11 @@ public final class CqlClientImpl implements CqlClient {
         return new CqlQueryBuilderImpl();
     }
 
+    @Override
+    public <R> ListenableFuture<R> execute(Executable<R> executable) {
+        return executable.execute(resourceHandle.executor());
+    }
+
     private class CqlQueryImpl<R> implements CqlQuery<R> {
 
         private final RowStreamAccumulator<R> rowStreamAccumulator;
@@ -139,7 +146,7 @@ public final class CqlClientImpl implements CqlClient {
          * page.
          * @return {@code AsyncFunction} which will transform the {@code Future} containing the {@code resultSet}
          */
-        private AsyncFunction<ResultSet, R> iterate() {
+        private AsyncFunction<ResultSet, R> iterate(Executor executor) {
             return resultSet -> {
                 rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
                         .limit(resultSet.getAvailableWithoutFetching()));
@@ -149,17 +156,17 @@ public final class CqlClientImpl implements CqlClient {
                     return Futures.immediateFuture(rowStreamAccumulator.result());
                 } else {
                     ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
-                    return Futures.transformAsync(future, iterate(), resourceHandle.executor());
+                    return Futures.transformAsync(future, iterate(executor), executor);
                 }
             };
         }
 
         @Override
-        public ListenableFuture<R> execute() {
+        public ListenableFuture<R> execute(Executor executor) {
             return Futures.transformAsync(
                     resourceHandle.session().executeAsync(boundStatement),
-                    iterate(),
-                    resourceHandle.executor());
+                    iterate(executor),
+                    executor);
         }
     }
 
@@ -172,43 +179,6 @@ public final class CqlClientImpl implements CqlClient {
             BoundStatement boundStatement = querySpec.bind(statement.bind());
 
             return new CqlQueryImpl<>(boundStatement, querySpec.rowStreamAccumulatorFactory().get());
-        }
-    }
-
-    private class CqlQueryImpl<R> implements CqlQuery<R> {
-
-        private final RowStreamAccumulator<R> rowStreamAccumulator;
-        private final BoundStatement boundStatement;
-
-        CqlQueryImpl(BoundStatement boundStatement, RowStreamAccumulator<R> rowStreamAccumulator) {
-            this.boundStatement = boundStatement;
-            this.rowStreamAccumulator = rowStreamAccumulator;
-        }
-
-        /**
-         * This method is implemented to process only the currently available data page. After each page is processed we
-         * asynchronously request more data and process it. That way no thread is blocked waiting to retrieve the next
-         * page.
-         * @return {@code AsyncFunction} which will transform the {@code Future} containing the {@code resultSet}
-         */
-        private AsyncFunction<ResultSet, R> iterate() {
-            return resultSet -> {
-                rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
-                        .limit(resultSet.getAvailableWithoutFetching()));
-
-                boolean wasLastPage = resultSet.getExecutionInfo().getPagingState() == null;
-                if (wasLastPage) {
-                    return Futures.immediateFuture(rowStreamAccumulator.result());
-                } else {
-                    ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
-                    return Futures.transformAsync(future, iterate(), executorService);
-                }
-            };
-        }
-
-        @Override
-        public ListenableFuture<R> execute() {
-            return Futures.transformAsync(session.executeAsync(boundStatement), iterate(), executorService);
         }
     }
 }

@@ -62,7 +62,8 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     /**
-     * @param delegate the KeyValueService to be profiled Defaults to using a 1 second slowlog.
+     * @param delegate the KeyValueService to be profiled
+     * @param slowLogThresholdMillis sets the threshold for slow log, Defaults to using a 1 second slowlog.
      * @return ProfilingKeyValueService that profiles the delegate KeyValueService
      * @deprecated in favour of ProfilingKeyValueService#create(KeyValueService delegate). Use {@link
      * KvsProfilingLogger#setSlowLogThresholdMillis(long)} to configure the slow logging threshold.
@@ -433,11 +434,9 @@ public final class ProfilingKeyValueService implements KeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         long startTime = System.currentTimeMillis();
-        return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows,
-                batchColumnRangeSelection, timestamp),
+        return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp),
                 (logger, stopwatch) ->
-                        logger.log(
-                                "Call to KVS.getRowsColumnRange at time {}, on table {} for {} rows with range {} took {} ms.",
+                        logger.log("Call to KVS.getRowsColumnRange at time {}, on table {} for {} rows with range {} took {} ms.",
                                 LoggingArgs.startTimeMillis(startTime),
                                 LoggingArgs.tableRef(tableRef),
                                 LoggingArgs.rowCount(Iterables.size(rows)),

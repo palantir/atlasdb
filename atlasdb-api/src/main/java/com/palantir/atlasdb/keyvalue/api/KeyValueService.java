@@ -638,7 +638,8 @@ public interface KeyValueService extends AutoCloseable {
     // ASYNC API ENTRY POINTS
     ////////////////////////////////////////////////////////////
     /**
-     * Asynchronously gets values from the key-value store using.
+     * Asynchronously gets values from the key-value store when the store allows it. In other cases it just wraps the
+     * result in an immediate future.
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to

@@ -16,68 +16,42 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import java.util.Comparator;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import com.datastax.driver.core.Row;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
-final class RowStreamAccumulators {
+public final class RowStreamAccumulators {
 
     private RowStreamAccumulators() {
 
     }
 
-    static class CurrentTimeAccumulator implements RowStreamAccumulator<String> {
+    @NotThreadSafe
+    public static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
 
-        private final AtomicReference<String> resultReference = new AtomicReference<>();
-
-        CurrentTimeAccumulator() {
-
-        }
+        private Optional<Value> resultValue = Optional.empty();
 
         @Override
         public void accumulateRowStream(Stream<Row> rowStream) {
-            rowStream.forEach(this::processRow);
-        }
-
-        @Override
-        public String result() {
-            if (resultReference.get() == null) {
-                throw new RuntimeException("Processing current cluster time query raises an exception");
-            }
-            return resultReference.get();
-        }
-
-        private void processRow(Row row) {
-            resultReference.compareAndSet(null, row.getTimestamp(0).toString());
-        }
-    }
-
-    static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
-
-        private Value resultValue = null;
-
-        @Override
-        public void accumulateRowStream(Stream<Row> rowStream) {
-            rowStream.forEach(this::processRow);
+            Stream<Value> valueStream = rowStream.map(GetQueryAccumulator::parseValue);
+            resultValue = resultValue.map(value -> Streams.concat(Stream.of(value), valueStream))
+                    .orElse(valueStream)
+                    .max(Comparator.comparingLong(Value::getTimestamp));
         }
 
         @Override
         public Optional<Value> result() {
-            return Optional.ofNullable(resultValue);
+            return resultValue;
         }
 
-        private void processRow(Row row) {
-            Value rowValue = Value.create(row.getBytes(0).array(), row.getLong(1));
-            if (resultValue == null) {
-                resultValue = rowValue;
-                return;
-            }
-            if (rowValue.getTimestamp() < resultValue.getTimestamp()) {
-                resultValue = rowValue;
-            }
+        private static Value parseValue(Row row) {
+            return Value.create(row.getBytes(0).array(), ~row.getLong(1));
         }
     }
 }
