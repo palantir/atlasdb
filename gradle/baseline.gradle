@@ -2,7 +2,7 @@ apply plugin: 'com.palantir.baseline-checkstyle'
 
 // ./gradlew compileJava compileTestJava -PenableErrorProne=true
 plugins.withId('com.palantir.baseline-error-prone') {
-    plugin.withId('java') {
+    plugins.withId('java') {
         dependencies {
             compileOnly 'com.google.code.findbugs:jsr305'
         }
