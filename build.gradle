@@ -26,7 +26,6 @@ buildscript {
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '5.1.0'
-    id version '0.4.0'
     id 'org.unbroken-dome.test-sets' version '2.1.1'
     id 'com.google.protobuf' version '0.8.10'
 }
@@ -37,7 +36,6 @@ repositories {
         url 'https://dl.bintray.com/palantir/releases/'
     }
 }
-apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.baseline-config'
 apply plugin: 'com.palantir.baseline-circleci'
