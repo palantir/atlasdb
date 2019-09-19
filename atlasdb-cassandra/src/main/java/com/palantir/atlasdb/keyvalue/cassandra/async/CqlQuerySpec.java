@@ -14,10 +14,29 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
+package com.palantir.atlasdb.keyvalue.cassandra.async;
+
+import java.util.function.Supplier;
+
+import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public interface QueryFormer {
-    String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference);
+@Value.Immutable
+public interface CqlQuerySpec<R> {
+    @Value.Parameter
+    String keySpace();
+
+    @Value.Parameter
+    TableReference tableReference();
+
+    @Value.Parameter
+    SupportedQuery supportedQuery();
+
+    @Value.Parameter
+    Supplier<RowStreamAccumulator<R>> rowStreamAccumulatorFactory();
+
+    default String formatQueryString() {
+        return supportedQuery().formQueryString(keySpace(), tableReference());
+    }
 }

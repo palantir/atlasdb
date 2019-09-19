@@ -32,6 +32,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.NettyOptions;
 import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
@@ -46,6 +47,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.proxy.Socks5ProxyHandler;
@@ -58,7 +60,10 @@ public final class CqlClientFactory {
 
     }
 
-    public static CqlClient constructClient(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+    public static CqlClient constructClient(
+            TaggedMetricRegistry taggedMetricRegistry,
+            CassandraKeyValueServiceConfig config,
+            boolean initializeAsync) {
         return config.servers().accept(new CassandraServersConfigs.Visitor<CqlClient>() {
             @Override
             public CqlClient visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
@@ -71,6 +76,7 @@ public final class CqlClientFactory {
                         config,
                         cqlCapableConfig.cqlHosts(),
                         cqlCapableConfig.socksProxy(),
+                        QueryCache.create(taggedMetricRegistry, 100),
                         initializeAsync);
             }
         });
@@ -80,6 +86,7 @@ public final class CqlClientFactory {
             CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers,
             Optional<SocketAddress> proxy,
+            QueryCache<PreparedStatement> queryCache,
             boolean initializeAsync) {
 
         Cluster.Builder clusterBuilder = Cluster.builder()
@@ -103,7 +110,8 @@ public final class CqlClientFactory {
                 .setNameFormat(cluster.getClusterName() + "-session" + "-%d")
                 .build();
 
-        return CqlClientImpl.create(cluster, Executors.newCachedThreadPool(threadFactory), initializeAsync);
+        return CqlClientImpl.create(cluster, Executors.newCachedThreadPool(threadFactory), queryCache,
+                initializeAsync);
     }
 
     private static Optional<RemoteEndpointAwareJdkSSLOptions> sslOptions(CassandraKeyValueServiceConfig config) {

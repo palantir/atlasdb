@@ -41,12 +41,16 @@ public final class CqlClientImpl implements CqlClient {
     private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
         private final Cluster cluster;
         private final ExecutorService executor;
+        private final QueryCache<PreparedStatement> cache;
         private final Logger log;
         private volatile CqlClientImpl internalImpl;
 
-        InitializingWrapper(Cluster cluster, ExecutorService executor, Logger log) {
+        InitializingWrapper(Cluster cluster, ExecutorService executor,
+                QueryCache<PreparedStatement> queryCache,
+                Logger log) {
             this.cluster = cluster;
             this.executor = executor;
+            this.cache = queryCache;
             this.log = log;
         }
 
@@ -57,8 +61,13 @@ public final class CqlClientImpl implements CqlClient {
         }
 
         @Override
+        public <R> CqlQueryBuilder<R> asyncQueryBuilder() {
+            return internalImpl.asyncQueryBuilder();
+        }
+
+        @Override
         protected void tryInitialize() {
-            internalImpl = new CqlClientImpl(cluster.connect(), executor, log);
+            internalImpl = new CqlClientImpl(cluster.connect(), executor, cache, log);
         }
 
         @Override
@@ -77,17 +86,28 @@ public final class CqlClientImpl implements CqlClient {
     private final Session session;
     private final ExecutorService executorService;
     private final Logger log;
+    private final QueryCache<PreparedStatement> cache;
 
-    public static CqlClient create(Cluster cluster, ExecutorService executor, boolean initializeAsync) {
+    public static CqlClient create(Cluster cluster,
+            ExecutorService executorService, QueryCache<PreparedStatement> queryCache, boolean initializeAsync) {
         if (initializeAsync) {
-            return new InitializingWrapper(cluster, executor, LoggerFactory.getLogger(CqlClient.class));
+            return new InitializingWrapper(
+                    cluster,
+                    executorService,
+                    queryCache,
+                    LoggerFactory.getLogger(CqlClient.class));
         }
-        return new CqlClientImpl(cluster.connect(), executor, LoggerFactory.getLogger(CqlClient.class));
+        return new CqlClientImpl(
+                cluster.connect(),
+                executorService,
+                queryCache,
+                LoggerFactory.getLogger(CqlClient.class));
     }
 
-    private CqlClientImpl(Session session, ExecutorService executorService, Logger log) {
+    private CqlClientImpl(Session session, ExecutorService executor, QueryCache<PreparedStatement> cache, Logger log) {
         this.session = session;
-        this.executorService = executorService;
+        this.executorService = executor;
+        this.cache = cache;
         this.log = log;
     }
 
@@ -112,14 +132,8 @@ public final class CqlClientImpl implements CqlClient {
     }
 
     @Override
-    public CqlQueryBuilder<Object> queryBuilder() {
+    public <R> CqlQueryBuilder<R> asyncQueryBuilder() {
         return new CqlQueryBuilderImpl<>();
-    }
-
-    // TODO (OStevan): make a prepared statement cache as per
-    //  https://docs.datastax.com/en/developer/java-driver/3.7/manual/statements/prepared/
-    private PreparedStatement prepareStatement(String queryString) {
-        return session.prepare(queryString);
     }
 
     private class CqlQueryImpl<R> implements CqlQuery<R> {
@@ -140,6 +154,8 @@ public final class CqlClientImpl implements CqlClient {
          */
         private AsyncFunction<ResultSet, R> iterate() {
             return resultSet -> {
+                Preconditions.checkNotNull(resultSet, "ResultSet should not be null when iterating");
+
                 rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
                         .limit(resultSet.getAvailableWithoutFetching()));
 
@@ -161,13 +177,13 @@ public final class CqlClientImpl implements CqlClient {
 
     private class CqlQueryBuilderImpl<R> implements CqlQueryBuilder<R> {
 
-        private String queryString;
+        private CqlQuerySpec<R> cqlQuerySpec;
         private Map<String, Object> args = new HashMap<>();
         private RowStreamAccumulator<R> rowStreamAccumulator;
 
         @Override
-        public CqlQueryBuilder<R> setQueryString(String query) {
-            this.queryString = query;
+        public CqlQueryBuilder<R> setQuerySpec(CqlQuerySpec<R> querySpec) {
+            this.cqlQuerySpec = querySpec;
             return this;
         }
 
@@ -178,15 +194,16 @@ public final class CqlClientImpl implements CqlClient {
         }
 
         @Override
-        public <T> CqlQueryBuilder<T> setRowStreamAccumulator(RowStreamAccumulator<T> visitor) {
-            this.rowStreamAccumulator = (RowStreamAccumulator<R>) visitor;
+        public <T> CqlQueryBuilder<T> setRowStreamAccumulator(RowStreamAccumulator<T> rowStreamAccumulator) {
+            this.rowStreamAccumulator = (RowStreamAccumulator<R>) rowStreamAccumulator;
             return (CqlQueryBuilder<T>) this;
         }
 
         @Override
         public CqlQuery<R> build() {
-            Preconditions.checkNotNull(queryString, "Empty query string");
-            PreparedStatement statement = CqlClientImpl.this.prepareStatement(queryString);
+            Preconditions.checkNotNull(cqlQuerySpec, "Empty query spec");
+            PreparedStatement statement = cache.cacheQuerySpec(cqlQuerySpec, () ->
+                    session.prepare(cqlQuerySpec.formatQueryString()));
 
             Object[] argsArray = new Object[args.size()];
             for (int i = 0; i < args.size(); i++) {
@@ -198,8 +215,12 @@ public final class CqlClientImpl implements CqlClient {
 
             BoundStatement boundStatement = statement.bind(argsArray);
 
-            Preconditions.checkNotNull(rowStreamAccumulator, "RowStreamAccumulator is not set");
-            return new CqlQueryImpl<>(boundStatement, rowStreamAccumulator);
+            Preconditions.checkNotNull(cqlQuerySpec.rowStreamAccumulatorFactory(),
+                    "RowStreamAccumulator supplier is not set");
+            RowStreamAccumulator<R> accumulator = cqlQuerySpec.rowStreamAccumulatorFactory().get();
+            Preconditions.checkNotNull(accumulator, "Supplied RowStreamAccumulator is null");
+
+            return new CqlQueryImpl<>(boundStatement, accumulator);
         }
     }
 }

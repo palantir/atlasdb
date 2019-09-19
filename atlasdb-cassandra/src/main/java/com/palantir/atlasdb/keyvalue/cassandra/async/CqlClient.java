@@ -28,7 +28,7 @@ public interface CqlClient extends AutoCloseable {
 
     interface CqlQueryBuilder<R> {
 
-        CqlQueryBuilder<R> setQueryString(String queryString);
+        CqlQueryBuilder<R> setQuerySpec(CqlQuerySpec<R> cqlQuerySpec);
 
         CqlQueryBuilder<R> setArg(String argumentName, Object argument);
 
@@ -37,5 +37,5 @@ public interface CqlClient extends AutoCloseable {
         CqlQuery<R> build();
     }
 
-    CqlQueryBuilder<Object> queryBuilder();
+    <R> CqlQueryBuilder<R> asyncQueryBuilder();
 }

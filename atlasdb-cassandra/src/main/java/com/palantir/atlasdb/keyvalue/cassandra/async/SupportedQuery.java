@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
+package com.palantir.atlasdb.keyvalue.cassandra.async;
+
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 
 enum SupportedQuery {
     TIME("TIME", "SELECT dateof(now()) FROM system.local;"),
@@ -29,8 +32,8 @@ enum SupportedQuery {
         this.format = format;
     }
 
-    String formQueryString(String keySpace, String internalTableName) {
-        return String.format(this.format, keySpace, internalTableName);
+    String formQueryString(String keySpace, TableReference tableReference) {
+        return String.format(this.format, keySpace, AbstractKeyValueService.internalTableName(tableReference));
     }
 
     @Override

@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-public class ThrowingCqlClientImpl implements CqlClient {
+class ThrowingCqlClientImpl implements CqlClient {
 
     @Override
     public void close() {
@@ -24,7 +24,7 @@ public class ThrowingCqlClientImpl implements CqlClient {
     }
 
     @Override
-    public CqlQueryBuilder<Object> queryBuilder() {
+    public <R> CqlQueryBuilder<R> asyncQueryBuilder() {
         throw new UnsupportedOperationException("Not configured to use CQL client, check your KVS config file.");
     }
 }

@@ -150,7 +150,6 @@ import okio.ByteString;
  */
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
-
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
         @Override
@@ -360,7 +359,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            CqlClient cqlClient = CqlClientFactory.constructClient(config, initializeAsync);
+            CqlClient cqlClient = CqlClientFactory.constructClient(
+                    metricsManager.getTaggedRegistry(),
+                    config,
+                    initializeAsync);
 
             return createAndInitialize(
                     metricsManager,
