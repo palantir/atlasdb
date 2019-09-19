@@ -64,7 +64,7 @@ public final class PollingRefreshable<T> implements AutoCloseable {
             lastSeenValue = supplier.get();
             refreshable.set(lastSeenValue);
         } catch (Exception e) {
-            log.info("Exception occurred in supplier when trying to populate the initial value.");
+            log.info("Exception occurred in supplier when trying to populate the initial value.", e);
             lastSeenValue = null;
         }
     }

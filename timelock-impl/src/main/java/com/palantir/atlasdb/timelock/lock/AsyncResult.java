@@ -184,6 +184,7 @@ public class AsyncResult<T> {
         future.whenComplete((result, error) -> completionHandler.run());
     }
 
+    @SuppressWarnings("DangerousCompletableFutureUsage")
     public void onCompleteAsync(Runnable completionHandler) {
         future.whenCompleteAsync((result, error) -> completionHandler.run());
     }

@@ -209,16 +209,16 @@ public final class LockServiceImpl
 
     /** The mapping from lock client to the set of tokens held by that client. */
     private final SetMultimap<LockClient, HeldLocksToken> lockClientMultimap =
-            Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, HeldLocksToken>create());
+            Multimaps.synchronizedSetMultimap(HashMultimap.create());
 
     private final SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap =
-        Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, LockRequest>create());
+        Multimaps.synchronizedSetMultimap(HashMultimap.create());
 
     private final Set<Thread> indefinitelyBlockingThreads =
             ConcurrentHashMap.newKeySet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
-            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), TreeMultiset::create));
+            Multimaps.newMultimap(Maps.newHashMap(), TreeMultiset::create));
 
     private static final AtomicInteger instanceCount = new AtomicInteger();
     private static final int MAX_FAILED_LOCKS_TO_LOG = 20;
@@ -425,7 +425,7 @@ public final class LockServiceImpl
             } catch (Throwable e) { // (authorized)
                 log.error("Internal lock server error: state has been corrupted!!",
                         UnsafeArg.of("exception", e),
-                        SafeArg.of("stacktrace", e.getStackTrace()));
+                        SafeArg.of("stacktrace", e.getStackTrace()), e);
                 throw Throwables.throwUncheckedException(e);
             }
         }
@@ -1116,7 +1116,7 @@ public final class LockServiceImpl
         try {
             Thread.currentThread().setName(name);
         } catch (SecurityException ex) {
-            requestLogger.error("Cannot rename LockServer threads");
+            requestLogger.error("Cannot rename LockServer threads", ex);
         }
     }
 

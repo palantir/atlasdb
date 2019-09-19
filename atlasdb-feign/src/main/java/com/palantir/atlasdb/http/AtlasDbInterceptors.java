@@ -61,8 +61,9 @@ public final class AtlasDbInterceptors {
             RequestBody body = chain.request().body();
             if (body != null && body.contentLength() >= MAX_PAYLOAD_SIZE) {
                 throw new SafeIllegalArgumentException(
-                        "Request too large. Maximum allowed payload size is {} bytes, but the request has {}.",
-                        SafeArg.of("maximumSize", MAX_PAYLOAD_SIZE), SafeArg.of("actualSize", body.contentLength()));
+                        "Request too large.",
+                        SafeArg.of("maximumAllowedSizeInBytes", MAX_PAYLOAD_SIZE),
+                        SafeArg.of("actualSizeInBytes", body.contentLength()));
             }
             return chain.proceed(chain.request());
         }

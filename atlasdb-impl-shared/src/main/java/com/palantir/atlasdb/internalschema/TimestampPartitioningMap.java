@@ -115,8 +115,7 @@ public abstract class TimestampPartitioningMap<T> {
     private static <T> void validateProvidedTimestampBounds(long lowerBoundForNewValue, T newValue,
             RangeAndValue<T> latestEntry) {
         if (lowerBoundForNewValue < latestEntry.longRange().lowerEndpoint()) {
-            throw new SafeIllegalArgumentException("Cannot install a new value at an earlier timestamp;"
-                    + " attempted to install version {} at {}, but the newest interval is at {}.",
+            throw new SafeIllegalArgumentException("Cannot install a new value at an earlier timestamp",
                     SafeArg.of("attemptedNewValue", newValue),
                     SafeArg.of("attemptedLowerBound", lowerBoundForNewValue),
                     SafeArg.of("existingInterval", latestEntry));
@@ -162,16 +161,15 @@ public abstract class TimestampPartitioningMap<T> {
 
     private static <T> void validateCoversPreciselyAllTimestamps(RangeMap<Long, T> timestampRangeMap) {
         if (timestampRangeMap.asMapOfRanges().isEmpty() || !timestampRangeMap.span().equals(ALL_TIMESTAMPS)) {
-            throw new SafeIllegalArgumentException("Attempted to initialize a timestamp partitioning map"
-                    + " of {}; its span does not cover precisely all timestamps.",
+            throw new SafeIllegalArgumentException("Attempted to initialize a timestamp partitioning map;"
+                    + " its span does not cover precisely all timestamps.",
                     SafeArg.of("timestampToTransactionSchemaMap", timestampRangeMap));
         }
 
         RangeSet<Long> rangesCovered = TreeRangeSet.create(timestampRangeMap.asMapOfRanges().keySet());
         if (rangesCovered.asRanges().size() != 1) {
-            throw new SafeIllegalArgumentException("Attempted to initialize a timestamp partitioning map"
-                    + " of {}. While the span covers all timestamps, some are missing. The disconnected ranges"
-                    + " of the provided map were {}.",
+            throw new SafeIllegalArgumentException("Attempted to initialize a timestamp partitioning map."
+                    + " While the span covers all timestamps, there are some disconnected ranges.",
                     SafeArg.of("timestampToTransactionSchemaMap", timestampRangeMap),
                     SafeArg.of("disconnectedRanges", rangesCovered));
         }

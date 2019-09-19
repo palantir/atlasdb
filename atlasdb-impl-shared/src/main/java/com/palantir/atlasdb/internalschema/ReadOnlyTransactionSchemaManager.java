@@ -38,8 +38,8 @@ public class ReadOnlyTransactionSchemaManager {
 
     public Integer getTransactionsSchemaVersion(long timestamp) {
         if (timestamp < AtlasDbConstants.STARTING_TS) {
-            throw new SafeIllegalStateException("Query attempted for timestamp {} which was never given out by the"
-                    + " timestamp service, as timestamps start at {}",
+            throw new SafeIllegalStateException("Query attempted for a timestamp which was never given out by the"
+                    + " timestamp service",
                     SafeArg.of("queriedTimestamp", timestamp),
                     SafeArg.of("startOfTime", AtlasDbConstants.STARTING_TS));
         }

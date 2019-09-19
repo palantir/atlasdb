@@ -76,7 +76,8 @@ public class PreStartHandlingTransactionService implements TransactionService {
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         if (!isTimestampValid(startTimestamp)) {
-            throw new SafeIllegalStateException("Attempted to putUnlessExists({}, {}) which is disallowed.",
+            throw new SafeIllegalStateException("Attempted to putUnlessExists which is disallowed for the given start "
+                    + "timestamp.",
                     SafeArg.of("startTimestamp", startTimestamp),
                     SafeArg.of("commitTimestamp", commitTimestamp));
         }

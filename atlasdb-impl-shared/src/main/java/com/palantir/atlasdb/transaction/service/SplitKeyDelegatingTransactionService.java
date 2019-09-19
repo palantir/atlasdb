@@ -75,8 +75,8 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
 
         Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
         if (!unknownKeys.isEmpty()) {
-            throw new SafeIllegalStateException("A batch of timestamps {} produced some transaction service keys which"
-                    + " are unknown: {}. Known transaction service keys were {}.",
+            throw new SafeIllegalStateException("A batch of timestamps produced some transaction service keys which"
+                    + " are unknown.",
                     SafeArg.of("timestamps", startTimestamps),
                     SafeArg.of("unknownKeys", unknownKeys),
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
@@ -109,8 +109,7 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
         TransactionService service = keyedServices.get(key);
 
         if (service == null) {
-            throw new SafeIllegalStateException("Could not find a transaction service for timestamp {}, which"
-                    + " produced a key of {}. Known transaction service keys were {}.",
+            throw new SafeIllegalStateException("Could not find a transaction service for the given timestamp",
                     SafeArg.of("timestamp", startTimestamp),
                     SafeArg.of("serviceKey", key),
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
