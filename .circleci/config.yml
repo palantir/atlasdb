@@ -18,7 +18,7 @@ jobs:
 
       - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
       - run: ./scripts/circle-ci/download-moreutils.sh
-      - run: ./scripts/time-cmd.sh ./gradlew --profile --parallel --stacktrace resolveConfigurations classes testClasses
+      - run: ./scripts/time-cmd.sh ./gradlew --profile --parallel --stacktrace classes testClasses
 
       - save_cache:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
