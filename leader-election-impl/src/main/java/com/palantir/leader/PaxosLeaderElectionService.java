@@ -306,7 +306,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             } catch (PaxosRoundFailureException e) {
                 log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
                         + " state was {}.",
-                        SafeArg.of("leadershipState", leadershipState));
+                        SafeArg.of("leadershipState", leadershipState), e);
                 throw new ServiceNotAvailableException("Couldn't relinquish leadership", e);
             }
         }

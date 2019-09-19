@@ -267,7 +267,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 // Note that the file name is a Paxos log entry - so it is the round number - and thus safe.
                 log.error("Problem reading paxos state, specifically when reading file {} (file-name {})",
                         UnsafeArg.of("full path", file.getAbsolutePath()),
-                        SafeArg.of("file name", file.getName()));
+                        SafeArg.of("file name", file.getName()), e);
                 throw Throwables.rewrap(e);
             } finally {
                 IOUtils.closeQuietly(fileIn);

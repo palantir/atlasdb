@@ -97,11 +97,11 @@ public class AsyncInitializerTest {
         AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
 
         assertThatThrownBy(() -> initializer.initialize(false))
-                .isInstanceOf(RuntimeException.class)
-                .withFailMessage("Failed initializing");
+                .withFailMessage("Failed initializing")
+                .isInstanceOf(RuntimeException.class);
         assertThatThrownBy(() -> initializer.initialize(false))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Multiple calls tried to initialize the same instance.");
+                .hasMessageContaining("Multiple calls tried to initialize the same instance.")
+                .isInstanceOf(IllegalStateException.class);
         tickSchedulerFiveTimes(initializer);
         assertThat(initializer.initializationAttempts).isEqualTo(1);
     }
@@ -112,8 +112,8 @@ public class AsyncInitializerTest {
 
         initializer.initialize(true);
         assertThatThrownBy(() -> initializer.initialize(false))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Multiple calls tried to initialize the same instance.");
+                .hasMessageContaining("Multiple calls tried to initialize the same instance.")
+                .isInstanceOf(IllegalStateException.class);
         tickSchedulerFiveTimes(initializer);
         assertThat(initializer.initializationAttempts).isEqualTo(1 + FIVE);
     }

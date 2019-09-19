@@ -119,7 +119,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 Thread.sleep(GAIN_LEADERSHIP_BACKOFF.toMillis());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.warn("gain leadership backoff interrupted");
+                log.warn("gain leadership backoff interrupted", e);
             }
         }
     }

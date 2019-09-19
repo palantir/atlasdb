@@ -118,11 +118,12 @@ public class CachedComposedSupplierTest {
         assertThat(counter).isEqualTo(1 + supplierCounter / 100);
     }
 
+    @SuppressWarnings("ReturnValueIgnored")
     @Test
     public void recomputesIfSupplierHasNotUpdatedForTooLong() throws InterruptedException {
         AtomicLong clockCounter = new AtomicLong();
         testSupplier = new CachedComposedSupplier<>(this::countingFunction, this::constantNumber,
-                5, () -> clockCounter.get());
+                5, clockCounter::get);
         for (int i = 0; i < 25; i++) {
             clockCounter.incrementAndGet();
             testSupplier.get();
