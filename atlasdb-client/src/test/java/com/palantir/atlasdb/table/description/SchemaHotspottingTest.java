@@ -20,15 +20,13 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
 public class SchemaHotspottingTest {

@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.annotation.concurrent.NotThreadSafe;
-
 import com.google.common.hash.Hashing;
 import com.palantir.logsafe.Preconditions;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe
 public abstract class Renderer {

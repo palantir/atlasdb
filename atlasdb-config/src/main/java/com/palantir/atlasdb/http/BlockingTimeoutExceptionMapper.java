@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.time.Duration;
-
-import javax.ws.rs.core.Response;
-
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import java.time.Duration;
+import javax.ws.rs.core.Response;
 
 /**
  * Converts {@link BlockingTimeoutException}s into appropriate status responses, depending on the user's

@@ -15,11 +15,10 @@
  */
 package com.palantir.util.paging;
 
-import java.util.Iterator;
-
 import com.google.common.collect.AbstractIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
+import java.util.Iterator;
 
 /**
  * This class only requires two methods {@link #getFirstPage()} and

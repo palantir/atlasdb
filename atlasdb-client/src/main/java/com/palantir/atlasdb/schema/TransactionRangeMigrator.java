@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -38,6 +32,10 @@ import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
+import java.util.Map;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionRangeMigrator implements RangeMigrator {
     private static final Logger log = LoggerFactory.getLogger(TransactionRangeMigrator.class);

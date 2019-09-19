@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.cache;
 
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 public class DefaultTimestampCache implements TimestampCache {
     private final Supplier<Long> size;

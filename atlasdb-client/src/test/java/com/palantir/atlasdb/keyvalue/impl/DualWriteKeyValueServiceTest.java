@@ -22,10 +22,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import org.junit.Test;
 
 public class DualWriteKeyValueServiceTest {
     private final KeyValueService delegate1 = mock(KeyValueService.class);

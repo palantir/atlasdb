@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ForwardingObject;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -37,6 +29,13 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 public abstract class ForwardingTransaction extends ForwardingObject implements Transaction {
 

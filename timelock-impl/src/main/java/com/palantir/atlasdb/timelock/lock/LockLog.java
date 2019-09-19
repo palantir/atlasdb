@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Collection;
-import java.util.UUID;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.timelock.lock.LockEvents.RequestInfo;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import java.util.Collection;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 public final class LockLog {
 

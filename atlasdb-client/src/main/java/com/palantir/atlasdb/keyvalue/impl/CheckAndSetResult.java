@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.List;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

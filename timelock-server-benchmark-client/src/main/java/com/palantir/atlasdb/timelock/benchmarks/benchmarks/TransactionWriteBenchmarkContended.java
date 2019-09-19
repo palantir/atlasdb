@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable.BlobsSerializableRow;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TransactionWriteBenchmarkContended extends AbstractBenchmark {
 

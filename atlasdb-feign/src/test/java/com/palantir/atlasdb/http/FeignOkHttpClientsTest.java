@@ -18,10 +18,8 @@ package com.palantir.atlasdb.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
-
-import org.junit.Test;
-
 import okhttp3.OkHttpClient;
+import org.junit.Test;
 
 public class FeignOkHttpClientsTest {
     @Test

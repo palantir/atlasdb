@@ -15,17 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges;
 
-import java.sql.Connection;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -61,6 +50,15 @@ import com.palantir.util.jmx.OperationTimer.TimingState;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.timer.LoggingOperationTimer;
+import java.sql.Connection;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DbKvsGetRanges {
     private static final Logger log = LoggerFactory.getLogger(DbKvsGetRanges.class);

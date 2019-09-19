@@ -17,7 +17,6 @@
 package com.palantir.paxos;
 
 import java.util.Map;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

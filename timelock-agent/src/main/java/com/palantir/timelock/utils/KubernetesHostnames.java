@@ -15,6 +15,9 @@
  */
 package com.palantir.timelock.utils;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -23,13 +26,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 public final class KubernetesHostnames {
 

@@ -17,13 +17,6 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-
-import org.junit.After;
-import org.junit.Test;
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
@@ -31,6 +24,11 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import org.junit.After;
+import org.junit.Test;
 
 public class MetricsManagerTest {
     private static final Class<List> LIST_CLASS = List.class;

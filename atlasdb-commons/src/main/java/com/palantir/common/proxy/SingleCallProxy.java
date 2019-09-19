@@ -15,12 +15,11 @@
  */
 package com.palantir.common.proxy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Ensure that only a single method is ever called.  Throw {@link IllegalStateException} on all subsequent calls.

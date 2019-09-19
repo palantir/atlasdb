@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -48,6 +41,12 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class TableRemappingKeyValueService extends ForwardingObject implements KeyValueService {
     public static TableRemappingKeyValueService create(KeyValueService delegate,

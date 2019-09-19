@@ -15,24 +15,21 @@
  */
 package com.palantir.atlasdb.keyvalue.jdbc.impl;
 
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.common.collect.Maps2;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import javax.annotation.Nullable;
-
 import org.jooq.InsertValuesStep4;
 import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.Row3;
 import org.jooq.impl.DSL;
-
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Maps;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.common.collect.Maps2;
 
 public class SingleTimestampPutBatch implements PutBatch {
     private final Map<Cell, byte[]> data;

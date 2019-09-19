@@ -15,17 +15,15 @@
  */
 package com.palantir.paxos;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 
 /**
  * Implementation of a paxos proposer than can be a designated proposer (leader) and designated

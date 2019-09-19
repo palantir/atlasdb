@@ -15,6 +15,10 @@
  */
 package com.palantir.common.base;
 
+import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.PalantirInterruptedException;
+import com.palantir.logsafe.Preconditions;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -24,14 +28,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirInterruptedException;
-import com.palantir.logsafe.Preconditions;
 
 /**
  * Utilities for creating and propagating exceptions.

@@ -22,16 +22,14 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import feign.RequestTemplate;
 import feign.codec.EncodeException;
 import feign.codec.Encoder;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 
 class AtlasDbJacksonEncoder implements Encoder {
     private final ObjectMapper mapper;

@@ -15,15 +15,13 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.Map;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Preconditions;
+import java.util.Map;
+import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 @VisibleForTesting

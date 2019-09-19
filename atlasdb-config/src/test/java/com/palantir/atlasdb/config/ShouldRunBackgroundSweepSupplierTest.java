@@ -20,14 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class ShouldRunBackgroundSweepSupplierTest {
     private static final TargetedSweepInstallConfig SWEEP_QUEUE_WRITES_ENABLED

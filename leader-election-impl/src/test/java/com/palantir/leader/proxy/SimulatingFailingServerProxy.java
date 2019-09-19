@@ -15,9 +15,8 @@
  */
 package com.palantir.leader.proxy;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.palantir.common.proxy.SimulatingServerProxy;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class SimulatingFailingServerProxy {
 

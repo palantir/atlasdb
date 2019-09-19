@@ -15,10 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -36,10 +38,6 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.tracing.CloseableTrace;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class TracingCassandraClient implements AutoDelegate_CassandraClient {

@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-
-import org.junit.Before;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -54,6 +50,8 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
+import java.util.Map;
+import org.junit.Before;
 
 public abstract class TransactionTestSetup {
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(

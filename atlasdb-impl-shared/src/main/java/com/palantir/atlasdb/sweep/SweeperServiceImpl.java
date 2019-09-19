@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,6 +22,9 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.conjure.java.server.jersey.WebPreconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SweeperServiceImpl implements SweeperService {
     private static final Logger log = LoggerFactory.getLogger(SweeperServiceImpl.class);
@@ -143,4 +141,3 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
 }
-

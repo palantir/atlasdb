@@ -15,17 +15,15 @@
  */
 package com.palantir.paxos;
 
+import com.palantir.leader.PaxosKnowledgeEventRecorder;
+import com.palantir.logsafe.SafeArg;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.leader.PaxosKnowledgeEventRecorder;
-import com.palantir.logsafe.SafeArg;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
 

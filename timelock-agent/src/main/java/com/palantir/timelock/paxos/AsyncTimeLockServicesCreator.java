@@ -15,14 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
@@ -46,6 +38,12 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockServicesCreator.class);

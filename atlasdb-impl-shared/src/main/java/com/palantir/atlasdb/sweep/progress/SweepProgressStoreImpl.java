@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -40,6 +33,11 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SweepProgressStoreImpl implements SweepProgressStore {
 

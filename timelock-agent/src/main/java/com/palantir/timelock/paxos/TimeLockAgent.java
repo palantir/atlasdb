@@ -15,11 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
@@ -47,6 +42,10 @@ import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {

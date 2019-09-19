@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 public interface CqlExecutor {
     /**

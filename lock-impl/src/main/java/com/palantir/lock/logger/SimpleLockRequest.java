@@ -15,15 +15,13 @@
  */
 package com.palantir.lock.logger;
 
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.LockGroupBehavior;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.TimeDuration;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class SimpleLockRequest {

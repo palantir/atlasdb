@@ -16,9 +16,8 @@
 package com.palantir.atlasdb.schema.stream;
 
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.table.description.ValueType;
+import org.junit.Test;
 
 public class StreamStoreDefinitionBuilderTest {
 

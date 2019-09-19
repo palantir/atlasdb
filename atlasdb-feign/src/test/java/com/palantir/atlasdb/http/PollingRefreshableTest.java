@@ -20,17 +20,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.conjure.java.ext.refresh.Refreshable;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
-
-import com.palantir.conjure.java.ext.refresh.Refreshable;
 
 public class PollingRefreshableTest {
     private static final long FORTY_TWO = 42L;

@@ -17,16 +17,6 @@ package com.palantir.atlasdb.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.Callable;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ObjectArrays;
@@ -38,6 +28,14 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestKvsMigrationCommand {
     private AtlasDbServices fromServices;

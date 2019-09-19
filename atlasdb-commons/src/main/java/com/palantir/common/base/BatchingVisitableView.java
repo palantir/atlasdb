@@ -15,12 +15,6 @@
  */
 package com.palantir.common.base;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -32,6 +26,10 @@ import com.google.common.collect.Ordering;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * A wrapper for {@link BatchingVisitable} which adds support for common operations.

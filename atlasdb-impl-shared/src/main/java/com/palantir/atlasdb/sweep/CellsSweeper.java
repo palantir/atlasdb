@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -34,6 +26,12 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CellsSweeper {
     private static final Logger log = LoggerFactory.getLogger(CellsSweeper.class);

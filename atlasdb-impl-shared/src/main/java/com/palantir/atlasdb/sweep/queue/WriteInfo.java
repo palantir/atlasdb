@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import org.immutables.value.Value;
-
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
+import org.immutables.value.Value;
 
 /**
  * Contains information about a committed write, for use by the sweep queue.

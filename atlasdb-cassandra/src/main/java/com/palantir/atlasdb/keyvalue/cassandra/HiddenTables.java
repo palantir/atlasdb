@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Set;
 
 public final class HiddenTables {
     private HiddenTables() {

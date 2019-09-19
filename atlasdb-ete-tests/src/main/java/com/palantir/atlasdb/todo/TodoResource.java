@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.todo;
 
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.List;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -24,9 +25,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Path("/todos")
 public interface TodoResource {

@@ -16,15 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.function.IntPredicate;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.github.rholder.retry.Attempt;
 import com.github.rholder.retry.BlockStrategies;
@@ -41,6 +32,13 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.function.IntPredicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TransactionRetryStrategy {
     public enum Strategies {

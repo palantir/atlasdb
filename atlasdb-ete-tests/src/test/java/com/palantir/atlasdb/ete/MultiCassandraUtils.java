@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-
 import com.google.common.base.Throwables;
 import com.palantir.docker.compose.connection.Container;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 
 public final class MultiCassandraUtils {
     private static final int CASSANDRA_PORT = 9160;

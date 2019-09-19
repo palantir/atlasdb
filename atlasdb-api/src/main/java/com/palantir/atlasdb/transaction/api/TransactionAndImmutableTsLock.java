@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import org.immutables.value.Value;
-
 import com.palantir.lock.v2.LockToken;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TransactionAndImmutableTsLock {

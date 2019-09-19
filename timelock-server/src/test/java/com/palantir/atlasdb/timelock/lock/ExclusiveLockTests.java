@@ -19,12 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
-import java.util.UUID;
-
-import org.junit.Test;
-
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import java.util.UUID;
+import org.junit.Test;
 
 public class ExclusiveLockTests {
 

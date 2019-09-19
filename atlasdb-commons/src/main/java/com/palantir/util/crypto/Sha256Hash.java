@@ -15,14 +15,6 @@
  */
 package com.palantir.util.crypto;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.io.BaseEncoding;
@@ -30,6 +22,13 @@ import com.google.common.io.ByteStreams;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 /**
  * A SHA-256 hash. This class provides type-safety and equals/hashCode

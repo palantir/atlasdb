@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -32,6 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import java.util.Map;
+import java.util.Set;
 
 public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(Maps.newConcurrentMap());

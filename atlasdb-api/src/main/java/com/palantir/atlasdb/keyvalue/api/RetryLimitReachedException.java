@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.common.exception.AtlasDbDependencyException;
 import java.util.Arrays;
 import java.util.List;
-
-import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class RetryLimitReachedException extends AtlasDbDependencyException {
     private static final String MESSAGE = "Request was retried %d times and failed each time for the request.";

@@ -18,11 +18,6 @@ package com.palantir.atlasdb.timelock.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.net.InetSocketAddress;
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -36,6 +31,9 @@ import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
+import java.net.InetSocketAddress;
+import java.util.Set;
+import org.junit.Test;
 
 public class TimeLockServerConfigurationTest {
     private static final String ADDRESS = "localhost:8701";

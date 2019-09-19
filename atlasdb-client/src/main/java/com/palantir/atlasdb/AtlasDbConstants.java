@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -25,6 +23,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.util.Set;
 
 public final class AtlasDbConstants {
     private AtlasDbConstants() {

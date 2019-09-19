@@ -15,12 +15,10 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 
 /**
  * A reentrant lock linked to a specific {@link LockClient}.

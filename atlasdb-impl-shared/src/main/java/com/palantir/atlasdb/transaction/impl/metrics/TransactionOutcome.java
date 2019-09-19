@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import java.util.function.Supplier;
 
 /**
  * A TransactionOutcome describes an outcome resulting from a transaction. Note that a single transaction can

@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.table.generation;
 
-import java.util.List;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.List;
 
 public class Triggers {
     public static <T, U extends T> List<T> getAllTriggers(Transaction t,

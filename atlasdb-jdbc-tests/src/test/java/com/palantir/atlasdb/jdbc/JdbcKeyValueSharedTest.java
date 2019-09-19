@@ -17,11 +17,10 @@ package com.palantir.atlasdb.jdbc;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
     @ClassRule

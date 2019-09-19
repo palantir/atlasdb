@@ -16,13 +16,10 @@
 
 package com.palantir.atlasdb.http;
 
-import java.util.function.Function;
-
-import javax.ws.rs.core.Response;
-
-import org.immutables.value.Value;
-
 import com.palantir.conjure.java.api.errors.QosException;
+import java.util.function.Function;
+import javax.ws.rs.core.Response;
+import org.immutables.value.Value;
 
 interface AtlasDbHttpProtocolHandler<E extends Exception> {
     Response handleLegacyOrUnknownVersion(E underlyingException);

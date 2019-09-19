@@ -15,13 +15,12 @@
  */
 package com.palantir.db.oracle;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * JdbcHandler allows Oracle dependent logic to be injected into the SQL

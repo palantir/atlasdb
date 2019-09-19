@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.timelock.transaction.client;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Comparator;
 import java.util.SortedSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.immutables.value.Value;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Distributes residues of a given modulus in a balanced fashion (though we don't automatically rebalance between

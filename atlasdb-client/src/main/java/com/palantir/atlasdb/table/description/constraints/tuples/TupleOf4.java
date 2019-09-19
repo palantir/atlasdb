@@ -53,4 +53,3 @@ public class TupleOf4<A,B,C,D> implements Tuple{
     }
 
 }
-

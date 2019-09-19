@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.dht;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -22,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Token;
@@ -32,9 +33,6 @@ import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.Hex;
 import org.apache.cassandra.utils.Pair;
 import org.apache.commons.lang3.ArrayUtils;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 
 public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     private final Random r = new SecureRandom();

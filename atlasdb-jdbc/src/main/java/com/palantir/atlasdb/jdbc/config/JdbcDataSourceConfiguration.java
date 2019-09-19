@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.jdbc.config;
 
-import javax.sql.DataSource;
-
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import javax.sql.DataSource;
 
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type")
 public interface JdbcDataSourceConfiguration {

@@ -15,11 +15,6 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -42,6 +37,10 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * A {@link TimelockService} implementation that delegates to a {@link LockService} and {@link TimestampService}.

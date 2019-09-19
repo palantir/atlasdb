@@ -15,12 +15,6 @@
  */
 package com.palantir.example.profile;
 
-import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -37,6 +31,11 @@ import com.palantir.example.profile.schema.generated.UserProfileTable.UserBirthd
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserBirthdaysIdxTable.UserBirthdaysIdxRow;
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public class ProfileStore {
     final TransactionManager txnMgr;

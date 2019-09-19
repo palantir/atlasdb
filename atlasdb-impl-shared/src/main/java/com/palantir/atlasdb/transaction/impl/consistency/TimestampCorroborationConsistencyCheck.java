@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.transaction.impl.consistency;
 
-import java.util.function.ToLongFunction;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.SafeArg;
+import java.util.function.ToLongFunction;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Compares a source of fresh timestamps against a conservative lower bound that should always be strictly lower than

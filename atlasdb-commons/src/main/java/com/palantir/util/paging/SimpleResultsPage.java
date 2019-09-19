@@ -15,13 +15,11 @@
  */
 package com.palantir.util.paging;
 
-import java.io.Serializable;
-import java.util.Collections;
-
-import javax.annotation.concurrent.Immutable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.io.Serializable;
+import java.util.Collections;
+import javax.annotation.concurrent.Immutable;
 
 /**
  *

@@ -17,5 +17,3 @@
 package com.palantir.lock;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-
-

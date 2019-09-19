@@ -19,18 +19,16 @@ package com.palantir.atlasdb.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.paxos.PaxosValue;
 import java.util.Random;
 import java.util.UUID;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.google.common.collect.ImmutableSet;
-import com.palantir.paxos.PaxosValue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BatchPingableLeaderResourceTests {

@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.List;
-
-import org.apache.cassandra.thrift.TokenRange;
-import org.apache.cassandra.thrift.UnavailableException;
-
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import java.util.List;
+import org.apache.cassandra.thrift.TokenRange;
+import org.apache.cassandra.thrift.UnavailableException;
 
 public final class CassandraUtils {
     private CassandraUtils() {}

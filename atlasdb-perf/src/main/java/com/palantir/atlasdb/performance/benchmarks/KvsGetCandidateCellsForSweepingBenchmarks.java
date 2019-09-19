@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -36,6 +26,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
 import com.palantir.common.base.ClosableIterator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.annotations.Warmup;
 
 @State(Scope.Benchmark)
 public class KvsGetCandidateCellsForSweepingBenchmarks {

@@ -15,11 +15,10 @@
  */
 package com.palantir.common.base;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
-
-import com.google.common.collect.ImmutableSet;
 
 
 public class ClosableIterators {

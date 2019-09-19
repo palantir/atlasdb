@@ -17,13 +17,11 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.charset.StandardCharsets;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
+import java.nio.charset.StandardCharsets;
+import org.junit.Test;
 
 public final class WriteReferencePersisterTest {
     private static final TableReference TABLE = TableReference.create(

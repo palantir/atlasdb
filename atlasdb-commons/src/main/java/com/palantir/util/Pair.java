@@ -15,14 +15,12 @@
  */
 package com.palantir.util;
 
-import java.io.Serializable;
-import java.util.Comparator;
-
-import javax.annotation.concurrent.Immutable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
 import com.palantir.common.annotation.LongTermSerialized;
+import java.io.Serializable;
+import java.util.Comparator;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * A generic class for handling pairs of things.

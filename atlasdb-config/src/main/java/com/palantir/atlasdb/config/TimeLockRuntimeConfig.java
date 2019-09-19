@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.config;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)

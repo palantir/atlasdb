@@ -23,8 +23,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.util.concurrent.TimeUnit;
-
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -32,10 +34,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampStoreInvalidator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TimeLockMigratorTest {

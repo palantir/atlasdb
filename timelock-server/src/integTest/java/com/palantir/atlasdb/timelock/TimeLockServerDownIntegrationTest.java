@@ -18,10 +18,6 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -30,6 +26,9 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 public class TimeLockServerDownIntegrationTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");

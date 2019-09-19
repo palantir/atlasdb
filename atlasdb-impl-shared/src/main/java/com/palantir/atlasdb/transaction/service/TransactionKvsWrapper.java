@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -25,6 +22,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TransactionKvsWrapper {
     // The maximum key-value store timestamp (exclusive) at which data is stored in transaction table.

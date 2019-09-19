@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.services;
 
-import java.io.File;
-import java.io.IOException;
-
-import javax.inject.Singleton;
-
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-
 import dagger.Module;
 import dagger.Provides;
+import java.io.File;
+import java.io.IOException;
+import javax.inject.Singleton;
 
 @Module
 public class ServicesConfigModule {

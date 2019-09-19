@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
+import java.util.function.Supplier;
 
 public abstract class WrappingTransactionManager implements AutoDelegate_TransactionManager {
     private final TransactionManager delegate;

@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.List;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.timestamp.TimestampService;
+import java.util.List;
 
 public final class TimestampClient {
     private TimestampClient() {

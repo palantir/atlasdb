@@ -18,13 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -41,6 +34,11 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingReques
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.ClosableIterator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Test;
 
 public abstract class AbstractGetCandidateCellsForSweepingTest {
     private final KvsManager kvsManager;

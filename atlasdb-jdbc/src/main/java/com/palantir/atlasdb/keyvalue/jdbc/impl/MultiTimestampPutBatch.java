@@ -15,26 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.jdbc.impl;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
-
-import org.jooq.InsertValuesStep4;
-import org.jooq.Record;
-import org.jooq.Result;
-import org.jooq.Row3;
-import org.jooq.impl.DSL;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import javax.annotation.Nullable;
+import org.jooq.InsertValuesStep4;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.Row3;
+import org.jooq.impl.DSL;
 
 public class MultiTimestampPutBatch implements PutBatch {
     private final Multimap<Cell, Value> data;

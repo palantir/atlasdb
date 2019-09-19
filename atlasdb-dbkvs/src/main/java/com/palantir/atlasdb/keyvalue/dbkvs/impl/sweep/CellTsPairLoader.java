@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-import java.util.Iterator;
-import java.util.List;
-
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Iterator;
+import java.util.List;
 
 public interface CellTsPairLoader {
 

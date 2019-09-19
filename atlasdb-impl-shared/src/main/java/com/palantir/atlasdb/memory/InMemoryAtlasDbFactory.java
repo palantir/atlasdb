@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.memory;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -64,6 +55,13 @@ import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is the easiest way to try out AtlasDB with your schema.  It runs entirely in memory but has

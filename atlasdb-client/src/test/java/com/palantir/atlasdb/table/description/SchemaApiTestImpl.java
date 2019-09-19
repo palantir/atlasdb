@@ -17,13 +17,6 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.hash.Hashing;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -38,6 +31,11 @@ import com.palantir.atlasdb.table.description.test.StringValue;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.BatchingVisitables;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.junit.Test;
 
 public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 

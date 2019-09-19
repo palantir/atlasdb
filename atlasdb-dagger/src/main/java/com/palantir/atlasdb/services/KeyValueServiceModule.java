@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
@@ -44,9 +41,10 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
-
 import dagger.Module;
 import dagger.Provides;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Module
 public class KeyValueServiceModule {

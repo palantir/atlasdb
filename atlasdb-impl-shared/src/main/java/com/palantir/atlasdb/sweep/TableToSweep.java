@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.lock.SingleLockService;
+import java.util.Optional;
 
 public final class TableToSweep {
     private final TableReference tableRef;

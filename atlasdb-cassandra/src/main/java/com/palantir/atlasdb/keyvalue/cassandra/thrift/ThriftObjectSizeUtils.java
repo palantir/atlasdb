@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
+import com.google.common.collect.Maps;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CounterColumn;
@@ -36,8 +36,6 @@ import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.SuperColumn;
-
-import com.google.common.collect.Maps;
 
 public final class ThriftObjectSizeUtils {
 

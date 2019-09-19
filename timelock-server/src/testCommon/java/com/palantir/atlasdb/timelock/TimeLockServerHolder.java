@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.function.Supplier;
-
-import org.junit.rules.ExternalResource;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
-
 import io.dropwizard.testing.DropwizardTestSupport;
+import java.io.File;
+import java.io.IOException;
+import java.util.function.Supplier;
+import org.junit.rules.ExternalResource;
 
 public class TimeLockServerHolder extends ExternalResource {
 

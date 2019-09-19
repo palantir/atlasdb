@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.blob;
 
-import java.io.File;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -28,6 +23,9 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.UnsafeArg;
+import java.io.File;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlobSchema implements AtlasSchema {
     private static final Logger log = LoggerFactory.getLogger(BlobSchema.class);

@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.Autobatchers.SupplierKey;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.leader.PingableLeader;
+import java.io.Closeable;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 public class AutobatchingPingableLeaderFactory implements Closeable {
 

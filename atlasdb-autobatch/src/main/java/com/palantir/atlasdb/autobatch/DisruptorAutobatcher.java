@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.io.Closeable;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ThreadFactory;
-import java.util.function.Function;
-
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -30,6 +25,10 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.palantir.logsafe.Preconditions;
+import java.io.Closeable;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadFactory;
+import java.util.function.Function;
 
 /**
  * While this class is public, it shouldn't be used as API outside of AtlasDB because we

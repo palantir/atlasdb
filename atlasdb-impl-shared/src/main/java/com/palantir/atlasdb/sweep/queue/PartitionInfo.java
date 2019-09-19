@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import org.immutables.value.Value;
-
 import com.palantir.util.PersistableBoolean;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface PartitionInfo {

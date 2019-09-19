@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.util;
 
-import java.util.concurrent.TimeUnit;
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Snapshot;
 import com.google.common.annotations.VisibleForTesting;
+import java.util.concurrent.TimeUnit;
 
 public class SlidingWindowMeanGauge implements Gauge<Double> {
     private final Histogram histogram;

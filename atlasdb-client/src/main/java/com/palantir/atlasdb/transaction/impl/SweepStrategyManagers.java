@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.base.Functions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
@@ -27,6 +24,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.util.Map;
+import java.util.Set;
 
 public class SweepStrategyManagers {
     private SweepStrategyManagers() {

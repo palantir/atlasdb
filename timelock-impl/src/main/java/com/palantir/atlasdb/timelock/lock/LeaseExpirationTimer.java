@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.function.Supplier;
-
 import com.palantir.common.time.NanoTime;
+import java.util.function.Supplier;
 
 public class LeaseExpirationTimer {
 

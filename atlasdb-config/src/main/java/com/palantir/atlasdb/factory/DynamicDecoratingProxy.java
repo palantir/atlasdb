@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.factory;
 
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.exception.NotInitializedException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.exception.NotInitializedException;
 
 public final class DynamicDecoratingProxy<T> extends AbstractInvocationHandler {
     private final T decoratedService;

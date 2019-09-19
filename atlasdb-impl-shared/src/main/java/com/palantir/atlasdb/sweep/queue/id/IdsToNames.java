@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue.id;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -36,6 +31,10 @@ import com.palantir.atlasdb.schema.generated.SweepIdToNameTable.SweepIdToNameCol
 import com.palantir.atlasdb.schema.generated.SweepIdToNameTable.SweepIdToNameRow;
 import com.palantir.atlasdb.schema.generated.SweepIdToNameTable.SweepIdToNameRowResult;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import java.util.Collections;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 class IdsToNames {
     private static final TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();

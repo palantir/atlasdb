@@ -18,6 +18,17 @@ package com.palantir.atlasdb.internalschema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
+import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.coordination.ValueAndBound;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -30,20 +41,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
-import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.coordination.ValueAndBound;
-import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
     private static final int NUM_THREADS = 8;

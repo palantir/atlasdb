@@ -15,12 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.nio.file.Paths;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
@@ -39,6 +33,11 @@ import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import java.nio.file.Paths;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 class PaxosLeadershipCreator {
     private final MetricsManager metricsManager;

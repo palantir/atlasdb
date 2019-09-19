@@ -15,19 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.util.stream.Collectors;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.NotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -43,6 +30,16 @@ import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.util.debug.ThreadDumps;
+import java.nio.ByteBuffer;
+import java.util.stream.Collectors;
+import javax.annotation.concurrent.GuardedBy;
+import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {

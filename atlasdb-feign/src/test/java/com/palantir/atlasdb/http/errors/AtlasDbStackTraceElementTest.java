@@ -17,9 +17,8 @@ package com.palantir.atlasdb.http.errors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.remoting2.errors.SerializableStackTraceElement;
+import org.junit.Test;
 
 /**
  * We only need to test that our custom toString() can cope with Optional.empty() in a reasonable way.

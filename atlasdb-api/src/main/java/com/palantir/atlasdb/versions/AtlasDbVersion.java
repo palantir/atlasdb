@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.versions;
 
+import com.google.common.base.Suppliers;
 import java.io.PrintStream;
 import java.util.Optional;
 import java.util.function.Supplier;
-
-import com.google.common.base.Suppliers;
 
 public final class AtlasDbVersion {
     public static final String REPORT_VERSION_PROPERTY = "atlasdb.report.version";
@@ -54,4 +53,3 @@ public final class AtlasDbVersion {
                 .orElse(VERSION_UNKNOWN_STRING);
     }
 }
-

@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
+import java.util.Optional;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * Synthesises provided install and runtime configurations, and uses this to decide whether the background sweeper

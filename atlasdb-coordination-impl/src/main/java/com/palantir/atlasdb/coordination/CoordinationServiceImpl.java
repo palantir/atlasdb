@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.coordination;
 
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.logsafe.SafeArg;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.logsafe.SafeArg;
 
 public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     private static final Logger log = LoggerFactory.getLogger(CoordinationServiceImpl.class);

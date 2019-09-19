@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.Collection;
-import java.util.List;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.processors.AutoDelegate;
+import java.util.Collection;
+import java.util.List;
 
 @AutoDelegate
 public interface SweepPriorityStore {

@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -32,6 +26,11 @@ import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public final class SweepQueueUtils {
     public static final long REFRESH_TIME = TimeUnit.MINUTES.toMillis(5L);

@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.services.test;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -40,9 +37,10 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
-
 import dagger.Module;
 import dagger.Provides;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Module
 public class TestTransactionManagerModule {

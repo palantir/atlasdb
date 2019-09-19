@@ -15,10 +15,9 @@
  */
 package com.palantir.util.timer;
 
+import com.palantir.util.jmx.OperationTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.util.jmx.OperationTimer;
 
 public class LoggingOperationTimer implements OperationTimer {
     private final Logger delegate;

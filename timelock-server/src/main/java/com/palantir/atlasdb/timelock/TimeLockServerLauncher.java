@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -33,11 +26,15 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-
 import io.dropwizard.Application;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.util.UUID;
+import java.util.function.Consumer;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
 /**
  * Provides a way of launching an embedded TimeLock server using Dropwizard. Should only be used in tests.

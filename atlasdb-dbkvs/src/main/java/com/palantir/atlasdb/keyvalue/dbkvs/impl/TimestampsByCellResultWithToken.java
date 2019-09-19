@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Arrays;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -26,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
+import java.util.Arrays;
 
 final class TimestampsByCellResultWithToken {
     private byte[] currentRow = null;

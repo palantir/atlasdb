@@ -25,16 +25,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class BlockConsumingInputStreamTest {

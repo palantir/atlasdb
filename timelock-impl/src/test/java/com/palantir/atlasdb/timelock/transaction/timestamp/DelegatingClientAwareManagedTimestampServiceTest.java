@@ -25,17 +25,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.UUID;
-
-import org.junit.After;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.List;
+import java.util.UUID;
+import org.junit.After;
+import org.junit.Test;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
 public class DelegatingClientAwareManagedTimestampServiceTest {

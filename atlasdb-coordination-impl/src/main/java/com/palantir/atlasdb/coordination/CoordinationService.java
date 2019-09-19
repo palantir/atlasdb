@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.coordination;
 
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import java.util.Optional;
 import java.util.function.Function;
-
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
 /**
  * A {@link CoordinationService} is used to agree on values being relevant or correct at a given timestamp.

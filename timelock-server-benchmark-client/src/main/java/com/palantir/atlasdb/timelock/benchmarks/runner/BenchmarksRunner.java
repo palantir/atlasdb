@@ -84,4 +84,3 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
     }
 
 }
-

@@ -17,11 +17,10 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class RangeRequestTest {
 

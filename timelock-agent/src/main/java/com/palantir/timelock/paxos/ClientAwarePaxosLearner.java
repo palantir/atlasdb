@@ -16,8 +16,11 @@
 
 package com.palantir.timelock.paxos;
 
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.common.annotation.Inclusive;
+import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosValue;
 import java.util.Collection;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
@@ -27,11 +30,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.common.annotation.Inclusive;
-import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosValue;
 
 /**
  * This interface is used internally to allow creating a single feign proxy where different clients can be injected

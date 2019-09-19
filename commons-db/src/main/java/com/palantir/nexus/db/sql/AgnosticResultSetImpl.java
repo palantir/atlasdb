@@ -15,15 +15,14 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.sql.ResultSetMetaData;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.sql.ResultSets;
+import java.sql.ResultSetMetaData;
+import java.util.List;
+import java.util.Map;
 
 public class AgnosticResultSetImpl implements AgnosticResultSet {
     private final List<List<Object>> results;

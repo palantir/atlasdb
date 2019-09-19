@@ -23,14 +23,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.function.Supplier;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import java.util.function.Supplier;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TargetedSweeperNumShardSupplierTest {
     private KeyValueService kvs;

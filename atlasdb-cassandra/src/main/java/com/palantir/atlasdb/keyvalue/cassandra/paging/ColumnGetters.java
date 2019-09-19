@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
+import com.google.common.collect.Maps;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.KeySlice;
-
-import com.google.common.collect.Maps;
 
 final class ColumnGetters {
     private ColumnGetters() {

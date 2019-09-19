@@ -23,13 +23,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -37,6 +30,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
+import java.util.Optional;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+import org.junit.Before;
+import org.junit.Test;
 
 public class BackgroundCompactorTest {
     private static final String TABLE_STRING = "ns.table";

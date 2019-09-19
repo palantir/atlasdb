@@ -15,14 +15,12 @@
  */
 package com.palantir.util.jmx;
 
+import com.palantir.annotations.PgNotExtendableApi;
+import com.palantir.annotations.PgPublicApi;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.management.MXBean;
-
-import com.palantir.annotations.PgNotExtendableApi;
-import com.palantir.annotations.PgPublicApi;
 
 /*
  * TODO (carrino) consider abstracting this a little bit further so that this

@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponseImpl;
 import com.palantir.paxos.PaxosValue;
+import java.util.Map;
+import java.util.Set;
 
 final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Entry<Client, PaxosValue>, PaxosResponse> {
     private static final PaxosResponse SUCCESSFUL_RESPONSE = new PaxosResponseImpl(true);

@@ -17,16 +17,6 @@ package com.palantir.atlasdb.console;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -41,6 +31,14 @@ import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.jmock.lib.legacy.ClassImposteriser;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AtlasConsoleServiceTest {
     private final Mockery context = new Mockery();

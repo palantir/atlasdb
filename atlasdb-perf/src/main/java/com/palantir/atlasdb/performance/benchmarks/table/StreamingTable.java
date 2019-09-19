@@ -15,17 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Random;
-
-import org.openjdk.jmh.annotations.Level;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
-
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -42,6 +31,15 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.persist.Persistable;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Random;
+import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
 @State(Scope.Benchmark)
 public class StreamingTable {

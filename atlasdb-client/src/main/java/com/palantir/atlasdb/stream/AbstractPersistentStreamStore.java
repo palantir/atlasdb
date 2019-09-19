@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.util.Map;
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -43,6 +34,13 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.util.Map;
+import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {

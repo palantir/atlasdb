@@ -21,17 +21,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.nexus.db.monitoring.timer.DurationSqlTimer;
+import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-
 import org.junit.Test;
-
-import com.palantir.nexus.db.monitoring.timer.DurationSqlTimer;
-import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 
 @SuppressWarnings("unchecked") // mocked executors
 public class BasicSQLTest {

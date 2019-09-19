@@ -23,17 +23,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.function.Function;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.TransformingCoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import java.util.Optional;
+import java.util.function.Function;
+import org.junit.Before;
+import org.junit.Test;
 
 @SuppressWarnings("unchecked") // This test uses mocks liberally
 public class TransformingCoordinationServiceTest {

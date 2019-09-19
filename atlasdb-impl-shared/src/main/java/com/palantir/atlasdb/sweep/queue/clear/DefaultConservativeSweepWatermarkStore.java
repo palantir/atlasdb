@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.sweep.queue.clear;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -36,6 +31,10 @@ import com.palantir.atlasdb.schema.generated.TableClearsTable.TableClearsRow;
 import com.palantir.atlasdb.schema.generated.TableClearsTable.TableClearsRowResult;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.common.streams.KeyedStream;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class DefaultConservativeSweepWatermarkStore implements ConservativeSweepWatermarkStore {
     private static final TableReference CLEARS = TargetedSweepTableFactory.of().getTableClearsTable(null).getTableRef();

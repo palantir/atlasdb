@@ -15,11 +15,9 @@
  */
 package com.palantir.nexus.db;
 
-import java.io.Serializable;
-
-import org.joda.time.format.ISODateTimeFormat;
-
 import com.google.common.base.MoreObjects;
+import java.io.Serializable;
+import org.joda.time.format.ISODateTimeFormat;
 
 /**
  * A RuntimeException that represents the creation location of a resource (e.g. JDBC Connection or

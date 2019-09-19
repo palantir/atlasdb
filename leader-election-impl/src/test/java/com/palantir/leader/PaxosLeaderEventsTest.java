@@ -21,20 +21,18 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
+import com.palantir.paxos.LeaderPinger;
+import com.palantir.paxos.SingleLeaderPinger;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.google.common.collect.ImmutableMap;
-import com.palantir.paxos.LeaderPinger;
-import com.palantir.paxos.SingleLeaderPinger;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PaxosLeaderEventsTest {

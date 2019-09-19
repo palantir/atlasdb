@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 
-import org.immutables.value.Value;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.immutables.value.Value;
 
 public final class CacheQueryFormer implements QueryFormer {
 

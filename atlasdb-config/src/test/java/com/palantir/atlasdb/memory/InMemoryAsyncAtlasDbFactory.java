@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.memory;
 
-import java.util.Optional;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -33,6 +29,9 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
@@ -67,4 +66,3 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
         return new InMemoryTimestampService();
     }
 }
-

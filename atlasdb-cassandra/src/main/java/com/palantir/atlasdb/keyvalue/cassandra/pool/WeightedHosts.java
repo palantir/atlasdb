@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.logsafe.Preconditions;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
-
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
-import com.palantir.logsafe.Preconditions;
 
 /**
  * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to

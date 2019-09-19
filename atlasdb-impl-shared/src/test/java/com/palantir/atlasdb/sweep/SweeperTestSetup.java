@@ -22,13 +22,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.mockito.stubbing.Answer;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -46,6 +39,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.mockito.stubbing.Answer;
 
 public class SweeperTestSetup {
     protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(

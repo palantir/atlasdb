@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.util.function.LongConsumer;
-
-import org.assertj.core.api.AbstractAssert;
-import org.assertj.core.api.WritableAssertionInfo;
-import org.assertj.core.internal.Objects;
-
 import com.codahale.metrics.Metric;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.function.LongConsumer;
+import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.WritableAssertionInfo;
+import org.assertj.core.internal.Objects;
 
 public class TransactionOutcomeMetricsAssert extends
         AbstractAssert<TransactionOutcomeMetricsAssert, TransactionOutcomeMetrics> {

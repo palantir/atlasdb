@@ -15,15 +15,14 @@
  */
 package com.palantir.leader.proxy;
 
+import com.palantir.common.base.Throwables;
+import com.palantir.common.proxy.DelegatingInvocationHandler;
+import com.palantir.logsafe.Preconditions;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.palantir.common.base.Throwables;
-import com.palantir.common.proxy.DelegatingInvocationHandler;
-import com.palantir.logsafe.Preconditions;
 
 public final class ToggleableExceptionProxy implements DelegatingInvocationHandler {
 

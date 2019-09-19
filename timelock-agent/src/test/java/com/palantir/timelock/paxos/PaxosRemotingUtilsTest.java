@@ -19,12 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -36,6 +30,10 @@ import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
+import org.junit.Test;
 
 public class PaxosRemotingUtilsTest {
     private static final List<String> CLUSTER_URIS = ImmutableList.of("foo:1", "bar:2", "baz:3");

@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.compact;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.HashMap;
+import java.util.Map;
 
 class CompactionHistoryProvider {
     Map<String, Long> getHistory(Transaction tx) {

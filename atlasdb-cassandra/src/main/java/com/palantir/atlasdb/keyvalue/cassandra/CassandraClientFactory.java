@@ -15,16 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-
 import org.apache.cassandra.thrift.AuthenticationRequest;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -40,16 +47,6 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Maps;
-import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.conjure.java.config.ssl.SslSocketFactories;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);

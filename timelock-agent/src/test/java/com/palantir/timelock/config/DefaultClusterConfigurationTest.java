@@ -17,12 +17,10 @@ package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+import java.util.Optional;
+import org.junit.Test;
 
 public class DefaultClusterConfigurationTest {
     private static final String ADDRESS_1 = "localhost:1";

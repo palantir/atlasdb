@@ -15,15 +15,14 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.nexus.db.DBType;
+import com.palantir.proxy.util.ProxyUtils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
-
-import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.nexus.db.DBType;
-import com.palantir.proxy.util.ProxyUtils;
 
 public final class ResourceTypes {
     private ResourceTypes() {

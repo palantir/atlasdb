@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import java.util.Set;
-
-import javax.validation.constraints.Size;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
+import java.util.Set;
+import javax.validation.constraints.Size;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableClusterConfiguration.class)
 @JsonDeserialize(as = ImmutableClusterConfiguration.class)

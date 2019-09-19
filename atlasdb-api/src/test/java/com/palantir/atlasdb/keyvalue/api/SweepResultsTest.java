@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import java.util.Optional;
-
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.palantir.atlasdb.encoding.PtBytes;
 
 public class SweepResultsTest {
     private static final SweepResults RESULTS = SweepResults.builder()

@@ -16,12 +16,20 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Ticker;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.Query;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.QueryWeight;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
+import com.palantir.atlasdb.qos.metrics.QosMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -38,16 +46,6 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Ticker;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.Query;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.QueryWeight;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
-import com.palantir.atlasdb.qos.metrics.QosMetrics;
-import com.palantir.atlasdb.util.MetricsManager;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class QosCassandraClient implements AutoDelegate_CassandraClient {

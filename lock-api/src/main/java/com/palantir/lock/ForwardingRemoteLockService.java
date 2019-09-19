@@ -15,11 +15,10 @@
  */
 package com.palantir.lock;
 
+import com.google.common.collect.ForwardingObject;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Set;
-
-import com.google.common.collect.ForwardingObject;
 
 public abstract class ForwardingRemoteLockService extends ForwardingObject implements CloseableRemoteLockService {
 

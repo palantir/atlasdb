@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.compact;
 
-import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
-
 import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 class CompactionOutcomeMetrics {
     private final SlidingTimeWindowReservoir reservoir;

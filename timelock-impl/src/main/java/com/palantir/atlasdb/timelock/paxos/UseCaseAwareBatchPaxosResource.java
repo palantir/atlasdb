@@ -16,15 +16,12 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.EnumMap;
-
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-
 import org.immutables.value.Value;
-
-import com.google.common.collect.ImmutableMap;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE)
 public class UseCaseAwareBatchPaxosResource {

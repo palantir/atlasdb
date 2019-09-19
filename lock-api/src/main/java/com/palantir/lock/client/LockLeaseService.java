@@ -16,10 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CoalescingSupplier;
@@ -38,6 +34,9 @@ import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 class LockLeaseService {
     private final TimelockRpcClient delegate;

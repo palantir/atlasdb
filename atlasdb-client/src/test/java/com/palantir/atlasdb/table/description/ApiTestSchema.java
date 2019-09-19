@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.io.File;
-import java.util.stream.Stream;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.table.description.test.StringValuePersister;
+import java.io.File;
+import java.util.stream.Stream;
 
 /**
  * Schema used to test for Table API correctness and for accidental TableRenderer changes.

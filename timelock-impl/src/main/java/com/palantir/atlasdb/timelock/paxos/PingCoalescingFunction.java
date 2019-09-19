@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import java.util.Map;
+import java.util.Set;
 
 final class PingCoalescingFunction implements CoalescingRequestFunction<Client, Boolean> {
 

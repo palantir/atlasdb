@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 import java.nio.ByteBuffer;
-
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.immutables.value.Value;
-
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 
 public final class SlicePredicates {
 

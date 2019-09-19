@@ -15,10 +15,9 @@
  */
 package com.palantir.timelock.config;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutablePaxosTsBoundPersisterConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosTsBoundPersisterConfiguration.class)

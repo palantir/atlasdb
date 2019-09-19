@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.batch;
 
+import com.google.common.base.Throwables;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
-
-import com.google.common.base.Throwables;
 
 public class ParallelTaskRunner implements BatchingTaskRunner {
     private final ExecutorService executor;

@@ -16,15 +16,13 @@
 
 package com.palantir.lock.client;
 
-import java.util.UUID;
-
-import javax.annotation.concurrent.GuardedBy;
-
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.UUID;
+import javax.annotation.concurrent.GuardedBy;
 
 final class LeasedLockToken implements LockToken {
     private final LockToken serverToken;

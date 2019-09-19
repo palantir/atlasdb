@@ -17,11 +17,10 @@ package com.palantir.atlasdb.sweep.queue.id;
 
 import static com.palantir.logsafe.Preconditions.checkState;
 
-import org.immutables.value.Value;
-
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.persist.Persistable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface SweepTableIdentifier extends Persistable {

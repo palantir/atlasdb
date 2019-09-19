@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import java.util.Optional;
-import java.util.Set;
-
-import javax.net.ssl.SSLSocketFactory;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -29,6 +22,10 @@ import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.Optional;
+import java.util.Set;
+import javax.net.ssl.SSLSocketFactory;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ServicesConfig {

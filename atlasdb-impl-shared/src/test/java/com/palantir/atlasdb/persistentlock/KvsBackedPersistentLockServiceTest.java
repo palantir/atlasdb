@@ -21,13 +21,12 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import org.junit.Before;
+import org.junit.Test;
 
 public class KvsBackedPersistentLockServiceTest {
     private static final String TEST_REASON = "for-test";

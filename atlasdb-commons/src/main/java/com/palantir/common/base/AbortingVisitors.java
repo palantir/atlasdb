@@ -15,13 +15,12 @@
  */
 package com.palantir.common.base;
 
-import java.util.Collections;
-import java.util.List;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.common.visitor.VisitorCheckedException;
+import java.util.Collections;
+import java.util.List;
 
 public class AbortingVisitors {
 

@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Map;
-import java.util.UUID;
-
-import org.apache.cassandra.thrift.Compression;
-import org.apache.thrift.TException;
-
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import com.datastax.driver.core.schemabuilder.TableOptions.CompactionOptions;
@@ -32,6 +26,10 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePrior
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
+import java.util.Map;
+import java.util.UUID;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.thrift.TException;
 
 class CassandraTableCreator {
     private static final String ROW = "key";

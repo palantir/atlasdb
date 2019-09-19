@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.Lists;
+import com.palantir.common.base.Throwables;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
-import com.google.common.collect.Lists;
-import com.palantir.common.base.Throwables;
 
 class TaskRunner {
     private ExecutorService executor;

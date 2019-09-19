@@ -20,11 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
+import org.junit.Test;
 
 public class SweepBatchWithPartitionInfoTest {
     private final SweepBatch batch = mock(SweepBatch.class);

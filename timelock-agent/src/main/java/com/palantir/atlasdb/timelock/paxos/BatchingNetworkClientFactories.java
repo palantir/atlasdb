@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

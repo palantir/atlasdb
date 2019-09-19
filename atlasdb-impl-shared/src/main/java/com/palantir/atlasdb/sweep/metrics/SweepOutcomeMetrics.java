@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.google.common.collect.ImmutableList;
@@ -27,6 +22,10 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public final class SweepOutcomeMetrics {
     public static final List<SweepOutcome> LEGACY_OUTCOMES = Arrays.asList(SweepOutcome.values());

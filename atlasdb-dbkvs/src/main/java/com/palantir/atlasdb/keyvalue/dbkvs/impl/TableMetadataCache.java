@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 
 public class TableMetadataCache {
     private static final TableMetadata EMPTY = TableMetadata.allDefault();

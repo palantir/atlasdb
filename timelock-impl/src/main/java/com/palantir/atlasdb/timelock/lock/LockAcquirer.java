@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import com.google.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Throwables;
-import com.palantir.logsafe.SafeArg;
 
 public class LockAcquirer implements AutoCloseable {
 

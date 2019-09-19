@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import java.util.Map;
+import java.util.Set;
 
 public class UnmodifiableTransaction extends ForwardingTransaction {
     final Transaction delegate;

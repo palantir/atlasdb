@@ -15,20 +15,17 @@
  */
 package com.palantir.atlasdb.http;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.config.ssl.TrustContext;
+import feign.Client;
+import feign.okhttp.OkHttpClient;
 import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
 import javax.net.ssl.SSLSocketFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.palantir.conjure.java.config.ssl.TrustContext;
-
-import feign.Client;
-import feign.okhttp.OkHttpClient;
 import okhttp3.CipherSuite;
 import okhttp3.ConnectionPool;
 import okhttp3.ConnectionSpec;

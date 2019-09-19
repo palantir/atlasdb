@@ -15,23 +15,21 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
-
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient {

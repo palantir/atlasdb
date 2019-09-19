@@ -15,12 +15,10 @@
  */
 package com.palantir.util;
 
+import static com.palantir.util.AggregatingVersionedSupplier.UNINITIALIZED_VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.util.AggregatingVersionedSupplier.UNINITIALIZED_VERSION;
-
 import java.util.Comparator;
-
 import org.junit.Before;
 import org.junit.Test;
 

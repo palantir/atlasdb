@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
-
 import javax.management.JMException;
 
 @SuppressWarnings("checkstyle")

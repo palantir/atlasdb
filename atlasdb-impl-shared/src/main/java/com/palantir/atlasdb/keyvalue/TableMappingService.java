@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.common.annotation.Idempotent;
+import java.util.Map;
+import java.util.Set;
 
 public interface TableMappingService {
     /**

@@ -27,12 +27,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
-
-import com.google.common.collect.ImmutableSet;
 
 public class JepsenLockClientTest {
     private static final String LOCK_TOKEN = "foo";

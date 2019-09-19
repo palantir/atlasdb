@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Set;
-import java.util.SortedSet;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -42,6 +32,14 @@ import com.palantir.common.annotation.Immutable;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * Allows you to restrict a call on the database

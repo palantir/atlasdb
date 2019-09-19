@@ -22,11 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.UUID;
-
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -48,6 +43,9 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.UUID;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class TransactionManagerTest extends TransactionTestSetup {
     @ClassRule

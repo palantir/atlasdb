@@ -17,14 +17,12 @@ package com.palantir.flake;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import com.google.common.collect.Maps;
 
 @ShouldRetry(numAttempts = 2)
 public class FlakeRetryingRuleClassAnnotationTest {

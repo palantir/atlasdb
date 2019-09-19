@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.schema;
 
-import java.io.File;
-import java.io.IOException;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -26,6 +23,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.io.File;
+import java.io.IOException;
 
 public final class BenchmarksSchema implements AtlasSchema {
     public static final Namespace NAMESPACE = Namespace.create("benchmarks");

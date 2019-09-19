@@ -15,10 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.time.Duration;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -27,6 +23,9 @@ import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.timelock.TimeLockStatus;
+import java.time.Duration;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 public class LeaderPingHealthCheck {
 

@@ -18,13 +18,11 @@ package com.palantir.lock.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.math.BigInteger;
-import java.util.Random;
-
-import org.junit.Test;
-
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockToken;
+import java.math.BigInteger;
+import java.util.Random;
+import org.junit.Test;
 
 public class LockTokenConverterTest {
 

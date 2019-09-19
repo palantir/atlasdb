@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public final class RangeRequests {
     private RangeRequests() {

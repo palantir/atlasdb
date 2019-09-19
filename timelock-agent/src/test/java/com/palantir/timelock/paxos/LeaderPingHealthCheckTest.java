@@ -19,12 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.timelock.TimeLockStatus;
+import org.junit.Test;
 
 public class LeaderPingHealthCheckTest {
 

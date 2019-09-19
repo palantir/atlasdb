@@ -21,18 +21,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
+import clojure.lang.Keyword;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
-
-import clojure.lang.Keyword;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.junit.Test;
 
 public class JepsenHistoryCheckerTest {
     private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(

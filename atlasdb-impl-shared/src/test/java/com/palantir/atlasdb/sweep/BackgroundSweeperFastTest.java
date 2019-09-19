@@ -18,20 +18,18 @@ package com.palantir.atlasdb.sweep;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
-import java.util.Optional;
-
-import org.assertj.core.api.Assertions;
-import org.assertj.core.data.Percentage;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.sweep.priority.ImmutableSweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
+import java.util.Optional;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.data.Percentage;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 public class BackgroundSweeperFastTest extends SweeperTestSetup {
 

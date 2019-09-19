@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.Optional;
-
 import com.google.common.annotations.VisibleForTesting;
+import java.util.Optional;
 
 public final class UserAgents {
     private static final String ATLASDB_CLIENT = "atlasdb";

@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.io.PrintWriter;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -39,6 +30,13 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.MapEntries;
+import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 @SuppressWarnings("checkstyle:all") // too many warnings to fix

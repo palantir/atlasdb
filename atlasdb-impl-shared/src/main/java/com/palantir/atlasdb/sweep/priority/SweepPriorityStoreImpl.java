@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.OptionalLong;
-
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -35,6 +31,9 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
+import java.util.Collection;
+import java.util.List;
+import java.util.OptionalLong;
 
 public final class SweepPriorityStoreImpl implements SweepPriorityStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepPriorityStore {

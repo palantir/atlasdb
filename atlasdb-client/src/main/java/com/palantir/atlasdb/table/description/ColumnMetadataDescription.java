@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.concurrent.Immutable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class ColumnMetadataDescription {

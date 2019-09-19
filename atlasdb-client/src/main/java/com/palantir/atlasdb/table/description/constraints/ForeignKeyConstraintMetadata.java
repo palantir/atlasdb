@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.table.description.constraints;
 
-import java.util.Collections;
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.util.Collections;
+import java.util.List;
 
 public final class ForeignKeyConstraintMetadata {
 

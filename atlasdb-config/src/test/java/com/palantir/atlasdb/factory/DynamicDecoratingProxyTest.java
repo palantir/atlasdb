@@ -20,11 +20,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.junit.Test;
-
 import com.palantir.timestamp.TimestampService;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.junit.Test;
 
 public class DynamicDecoratingProxyTest {
     private final TimestampService decorated = mock(TimestampService.class);

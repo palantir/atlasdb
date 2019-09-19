@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.timelock.auth.config;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.timelock.auth.api.Credentials;
+import java.util.List;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableTimelockAuthConfiguration.class)
 @JsonDeserialize(as = ImmutableTimelockAuthConfiguration.class)

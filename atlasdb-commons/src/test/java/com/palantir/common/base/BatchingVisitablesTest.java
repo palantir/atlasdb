@@ -24,12 +24,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
-
-import org.junit.Test;
-
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -44,6 +38,9 @@ import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.List;
+import javax.annotation.Nullable;
+import org.junit.Test;
 
 @SuppressWarnings("Guava") // BatchingVisitables uses Guava.
 public class BatchingVisitablesTest {

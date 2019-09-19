@@ -16,4 +16,3 @@
 @ParametersAreNonnullByDefault package com.palantir.lock.impl;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-

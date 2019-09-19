@@ -17,13 +17,11 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.common.time.NanoTime;
 import java.time.Duration;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.common.time.NanoTime;
 
 public class LeaseExpirationTimerTest {
 

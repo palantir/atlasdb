@@ -17,12 +17,6 @@ package com.palantir.lock.logger;
 
 import static org.junit.Assert.assertEquals;
 
-import java.math.BigInteger;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -37,6 +31,10 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
 
 public class LockServiceSerDeTest {
 

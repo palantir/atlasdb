@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import com.google.common.base.MoreObjects;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import com.google.common.base.MoreObjects;
-import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 
 public class CassandraReloadableKvsConfig implements AutoDelegate_CassandraKeyValueServiceConfig {
     private final CassandraKeyValueServiceConfig config;

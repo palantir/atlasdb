@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -28,6 +25,8 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumn
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsRow;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.List;
+import java.util.Map;
 
 public final class RangeScanDynamicColumnsBenchmark extends AbstractRangeScanBenchmark {
 

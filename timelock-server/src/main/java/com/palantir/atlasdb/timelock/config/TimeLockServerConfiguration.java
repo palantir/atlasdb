@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import java.util.Set;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
@@ -28,10 +22,13 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
-
 import io.dropwizard.Configuration;
 import io.dropwizard.jetty.HttpConnectorFactory;
 import io.dropwizard.server.DefaultServerFactory;
+import java.util.Set;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TimeLockServerConfiguration extends Configuration {
     private static final Logger log = LoggerFactory.getLogger(TimeLockServerConfiguration.class);

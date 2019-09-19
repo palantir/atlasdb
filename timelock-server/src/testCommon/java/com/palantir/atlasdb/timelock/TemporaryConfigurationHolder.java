@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
 public class TemporaryConfigurationHolder extends ExternalResource {
     @VisibleForTesting

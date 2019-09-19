@@ -15,9 +15,8 @@
  */
 package com.palantir.nexus.db.monitoring.timer;
 
-import java.util.List;
-
 import com.google.common.collect.Lists;
+import java.util.List;
 
 final class CombinedSqlTimer implements SqlTimer {
     private final List<SqlTimer> sqlTimers;

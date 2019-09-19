@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableSweepProgress.class)
 @JsonDeserialize(as = ImmutableSweepProgress.class)

@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.UUID;
-
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.logsafe.SafeArg;
-
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.UUID;
 import net.jcip.annotations.GuardedBy;
 
 public class ImmutableTimestampTracker {

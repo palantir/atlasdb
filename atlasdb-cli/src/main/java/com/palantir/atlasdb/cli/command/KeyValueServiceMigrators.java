@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import org.immutables.value.Value;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
@@ -30,6 +27,8 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import org.immutables.value.Value;
+import org.slf4j.LoggerFactory;
 
 public final class KeyValueServiceMigrators {
     private static final OutputPrinter printer

@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.regex.Pattern;
-
-import org.apache.commons.lang3.Validate;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 import com.palantir.logsafe.Preconditions;
+import java.util.regex.Pattern;
+import org.apache.commons.lang3.Validate;
 
 public final class Namespace {
     public static final Namespace EMPTY_NAMESPACE = new Namespace("");

@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import org.immutables.value.Value;
-
 import com.google.common.base.Preconditions;
 import com.palantir.common.persist.Persistable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class TargetedSweepMetadata implements Persistable {

@@ -15,11 +15,6 @@
  */
 package com.palantir.common.base;
 
-import java.util.Iterator;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Objects;
@@ -35,6 +30,9 @@ import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Iterator;
+import java.util.List;
+import javax.annotation.Nullable;
 
 public class BatchingVisitables {
     private BatchingVisitables() {/**/}

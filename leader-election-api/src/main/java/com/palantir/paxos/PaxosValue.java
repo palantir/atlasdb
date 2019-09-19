@@ -15,11 +15,6 @@
  */
 package com.palantir.paxos;
 
-import java.io.Serializable;
-import java.util.Arrays;
-
-import javax.annotation.Nullable;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
@@ -31,6 +26,9 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
+import java.io.Serializable;
+import java.util.Arrays;
+import javax.annotation.Nullable;
 
 @Immutable
 public class PaxosValue implements Persistable, Versionable, Serializable {

@@ -25,25 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-
-import javax.naming.LimitExceededException;
-
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.KeyRange;
-import org.apache.cassandra.thrift.KeySlice;
-import org.apache.cassandra.thrift.Mutation;
-import org.apache.cassandra.thrift.SlicePredicate;
-import org.apache.thrift.TException;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -56,6 +37,22 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.QueryWeight;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers;
 import com.palantir.atlasdb.qos.metrics.QosMetrics;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+import javax.naming.LimitExceededException;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.KeyRange;
+import org.apache.cassandra.thrift.KeySlice;
+import org.apache.cassandra.thrift.Mutation;
+import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.thrift.TException;
+import org.junit.Before;
+import org.junit.Test;
 
 public class QosCassandraClientTest {
     private final CassandraClient mockClient = mock(CassandraClient.class);

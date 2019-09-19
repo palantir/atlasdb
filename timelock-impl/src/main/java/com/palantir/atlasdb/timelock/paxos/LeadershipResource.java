@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import javax.ws.rs.Path;
-
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
+import javax.ws.rs.Path;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)

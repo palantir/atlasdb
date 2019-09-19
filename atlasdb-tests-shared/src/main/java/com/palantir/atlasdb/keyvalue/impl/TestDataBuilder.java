@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 public class TestDataBuilder {
     private final KeyValueService kvs;

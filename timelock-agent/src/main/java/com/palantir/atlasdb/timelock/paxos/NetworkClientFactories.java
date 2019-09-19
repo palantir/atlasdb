@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
+import java.io.Closeable;
+import java.util.List;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface NetworkClientFactories {

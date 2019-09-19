@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -25,6 +22,8 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import java.util.Arrays;
+import java.util.List;
 
 public class UpdateExecutor {
     private final ConnectionSupplier conns;

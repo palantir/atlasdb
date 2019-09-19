@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.table.description.constraints;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public final class ConstraintMetadata {
     private final List<RowConstraintMetadata> rowConstraints;

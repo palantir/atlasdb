@@ -18,13 +18,12 @@ package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
+import org.junit.Test;
 
 public class ReadOnlyTransactionServiceIntegrationTest {
     private static final long COORDINATION_QUANTUM = 100_000_000L;

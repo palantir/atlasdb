@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import com.palantir.common.base.ClosableIterator;
+import java.util.List;
+import javax.annotation.Nullable;
 
 public interface BatchProvider<T> {
     ClosableIterator<T> getBatch(int batchSize, @Nullable byte[] lastToken);

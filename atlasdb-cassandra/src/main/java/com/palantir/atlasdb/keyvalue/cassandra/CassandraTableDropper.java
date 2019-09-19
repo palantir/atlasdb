@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.cassandra.thrift.KsDef;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.Throwables;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CassandraTableDropper {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);

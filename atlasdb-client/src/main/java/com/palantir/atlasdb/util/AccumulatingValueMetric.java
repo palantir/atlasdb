@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.codahale.metrics.Gauge;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class AccumulatingValueMetric implements Gauge<Long> {
     private final AtomicLong value = new AtomicLong(0L);

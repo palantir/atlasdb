@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -41,6 +36,10 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
     private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();

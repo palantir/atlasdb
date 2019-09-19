@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.encoding;
 
-import java.nio.charset.StandardCharsets;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.cache.Cache;
@@ -27,6 +23,8 @@ import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
+import java.nio.charset.StandardCharsets;
+import javax.annotation.Nullable;
 
 public final class PtBytes {
     private PtBytes() { }

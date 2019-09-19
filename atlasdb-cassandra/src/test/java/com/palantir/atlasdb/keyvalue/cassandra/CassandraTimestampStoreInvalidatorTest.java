@@ -22,10 +22,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class CassandraTimestampStoreInvalidatorTest {
     private static final long BACKUP_TIMESTAMP = 42;

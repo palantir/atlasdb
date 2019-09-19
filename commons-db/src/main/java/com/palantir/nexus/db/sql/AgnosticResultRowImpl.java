@@ -16,17 +16,16 @@
 package com.palantir.nexus.db.sql;
 
 
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.DBType;
+import com.palantir.sql.Blobs;
+import com.palantir.sql.Clobs;
 import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
-import com.palantir.sql.Blobs;
-import com.palantir.sql.Clobs;
 
 public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
     private List<Object> columns;

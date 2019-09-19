@@ -19,11 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.LongSupplier;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import java.util.function.LongSupplier;
+import org.junit.Test;
 
 public class SweepTimestampTest {
     private final LongSupplier mockImmutableTimestampSupplier = mock(LongSupplier.class);

@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.util.Map;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 
 public final class CassandraEnvironment {
     public static final String CASSANDRA_VERSION = "CASSANDRA_VERSION";

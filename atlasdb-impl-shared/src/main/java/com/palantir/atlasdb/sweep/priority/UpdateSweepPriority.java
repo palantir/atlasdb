@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import java.util.OptionalLong;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

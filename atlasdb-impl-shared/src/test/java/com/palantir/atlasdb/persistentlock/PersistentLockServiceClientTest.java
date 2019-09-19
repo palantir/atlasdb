@@ -18,20 +18,16 @@ package com.palantir.atlasdb.persistentlock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import java.util.UUID;
-
-import javax.ws.rs.core.Response;
-
-import org.junit.After;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
-
 import io.dropwizard.testing.junit.DropwizardClientRule;
+import java.util.UUID;
+import javax.ws.rs.core.Response;
+import org.junit.After;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class PersistentLockServiceClientTest {
     private static final String REASON = "some-reason";

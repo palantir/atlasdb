@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import com.google.common.base.Joiner;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.google.common.base.Joiner;
-import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 
 public abstract class AbstractDbQueryFactory implements DbQueryFactory {
     @Override

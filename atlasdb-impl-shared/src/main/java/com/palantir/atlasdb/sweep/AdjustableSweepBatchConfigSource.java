@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.SafeArg;
 
 public final class AdjustableSweepBatchConfigSource {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);

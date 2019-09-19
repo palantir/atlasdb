@@ -18,12 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.concurrent.ThreadLocalRandom;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
@@ -31,6 +25,10 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.util.concurrent.ThreadLocalRandom;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 @ShouldRetry
 public class CassandraTimestampBackupIntegrationTest {

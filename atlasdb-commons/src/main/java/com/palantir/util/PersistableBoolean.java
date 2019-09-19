@@ -15,9 +15,8 @@
  */
 package com.palantir.util;
 
-import java.util.Arrays;
-
 import com.palantir.common.persist.Persistable;
+import java.util.Arrays;
 
 public enum PersistableBoolean implements Persistable {
     TRUE {

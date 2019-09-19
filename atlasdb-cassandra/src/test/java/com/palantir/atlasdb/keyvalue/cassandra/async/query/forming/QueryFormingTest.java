@@ -18,11 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import org.junit.Test;
 
 public class QueryFormingTest {
 

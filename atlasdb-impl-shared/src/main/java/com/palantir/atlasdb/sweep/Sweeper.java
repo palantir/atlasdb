@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
-import java.util.function.Function;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import java.util.Optional;
+import java.util.function.Function;
 
 public enum Sweeper {
     CONSERVATIVE(provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),

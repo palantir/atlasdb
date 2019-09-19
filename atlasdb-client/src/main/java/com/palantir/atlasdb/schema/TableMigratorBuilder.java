@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.RowNamePartitioner;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Builder for a {@link TableMigrator}.

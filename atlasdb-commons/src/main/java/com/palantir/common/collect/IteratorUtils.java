@@ -15,14 +15,6 @@
  */
 package com.palantir.common.collect;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
@@ -36,6 +28,12 @@ import com.palantir.common.base.Visitors;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import javax.annotation.Nullable;
 
 public class IteratorUtils {
 

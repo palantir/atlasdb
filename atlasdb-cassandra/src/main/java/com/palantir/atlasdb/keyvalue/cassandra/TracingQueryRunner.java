@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
+import java.nio.ByteBuffer;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
 
 public class TracingQueryRunner {
     private final Logger log;

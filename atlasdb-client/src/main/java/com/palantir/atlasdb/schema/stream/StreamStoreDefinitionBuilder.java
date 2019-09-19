@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class StreamStoreDefinitionBuilder {
     private final ValueType valueType;

@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-import java.util.Map;
-
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.processors.AutoDelegate;
+import java.net.InetSocketAddress;
+import java.util.Map;
 
 @AutoDelegate
 public interface CassandraClientPool {

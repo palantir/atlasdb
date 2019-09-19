@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.console;
 
-import java.io.IOException;
-
 import com.palantir.atlasdb.api.TransactionToken;
+import java.io.IOException;
 
 public interface AtlasConsoleService {
     String tables() throws IOException;

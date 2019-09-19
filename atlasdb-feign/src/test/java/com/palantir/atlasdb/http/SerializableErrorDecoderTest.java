@@ -17,16 +17,6 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import javax.ws.rs.core.MediaType;
-
-import org.apache.http.HttpStatus;
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
@@ -39,8 +29,14 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.remoting2.errors.SerializableError;
 import com.palantir.remoting2.ext.jackson.ObjectMappers;
-
 import feign.Response;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import javax.ws.rs.core.MediaType;
+import org.apache.http.HttpStatus;
+import org.junit.Test;
 
 @SuppressWarnings("ThrowableNotThrown")
 public class SerializableErrorDecoderTest {

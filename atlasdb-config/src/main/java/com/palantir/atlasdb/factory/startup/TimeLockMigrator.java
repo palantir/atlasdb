@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
-import java.util.function.Supplier;
-
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -26,6 +24,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import java.util.function.Supplier;
 
 @SuppressWarnings("FinalClass")
 public class TimeLockMigrator extends AsyncInitializer {
@@ -98,4 +97,3 @@ public class TimeLockMigrator extends AsyncInitializer {
         return TimeLockMigrator.class.getSimpleName();
     }
 }
-

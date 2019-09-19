@@ -15,10 +15,9 @@
  */
 package com.palantir.common.collect;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.AbstractQueue;
 import java.util.Iterator;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This queue is empty and will neither return nor accept any elements

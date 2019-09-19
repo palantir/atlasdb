@@ -15,11 +15,10 @@
  */
 package com.palantir.lock;
 
-import java.io.Serializable;
-import java.math.BigInteger;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.logsafe.Preconditions;
+import java.io.Serializable;
+import java.math.BigInteger;
 
 public class SimpleHeldLocksToken implements Serializable {
     private static final long serialVersionUID = 1L;

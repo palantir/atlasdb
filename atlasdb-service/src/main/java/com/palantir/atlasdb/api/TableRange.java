@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.api;
 
-import java.util.Arrays;
-
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
 
 /**
  * <pre>

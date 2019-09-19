@@ -16,14 +16,13 @@
 
 package com.palantir.leader;
 
+import com.palantir.atlasdb.autobatch.Autobatchers;
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-
-import com.palantir.atlasdb.autobatch.Autobatchers;
-import com.palantir.atlasdb.autobatch.BatchElement;
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 
 public class BatchingLeaderElectionService implements LeaderElectionService {
     private final LeaderElectionService delegate;

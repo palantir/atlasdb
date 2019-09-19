@@ -22,15 +22,13 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Test;
 
 public class HeldLocksTest {
 

@@ -17,15 +17,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.containers.UninitializedCassandraResource;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
 import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Test;
-
-import com.palantir.atlasdb.containers.UninitializedCassandraResource;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class CassandraKeyValueServiceAsyncInitializationTest {
     @ClassRule

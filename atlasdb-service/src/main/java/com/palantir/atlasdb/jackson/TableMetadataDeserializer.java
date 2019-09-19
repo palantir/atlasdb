@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -42,6 +37,10 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.persist.Persistable;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     private static final long serialVersionUID = 1L;

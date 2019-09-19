@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -29,6 +23,10 @@ import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import org.immutables.value.Value;
 
 public class PaxosComponents {
 

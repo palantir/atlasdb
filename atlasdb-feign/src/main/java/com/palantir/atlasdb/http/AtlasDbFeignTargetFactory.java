@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.ProxySelector;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -32,7 +26,6 @@ import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
-
 import feign.Client;
 import feign.Contract;
 import feign.Feign;
@@ -42,6 +35,11 @@ import feign.codec.Decoder;
 import feign.codec.Encoder;
 import feign.codec.ErrorDecoder;
 import feign.jaxrs.JAXRSContract;
+import java.net.ProxySelector;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class AtlasDbFeignTargetFactory implements TargetFactory {
     // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,

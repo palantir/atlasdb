@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.compact;
 
-import java.util.concurrent.TimeUnit;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableCompactorConfig.class)
 @JsonDeserialize(as = ImmutableCompactorConfig.class)

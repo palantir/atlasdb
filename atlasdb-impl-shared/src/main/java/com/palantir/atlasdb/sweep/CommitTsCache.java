@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public final class CommitTsCache {
     private static final Long ONE_MILLION = 1_000_000L;

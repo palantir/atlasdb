@@ -15,13 +15,12 @@
  */
 package com.palantir.lock.impl;
 
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.util.UUID;
-
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.UUID;
 
 class LockTokenConverter {
 

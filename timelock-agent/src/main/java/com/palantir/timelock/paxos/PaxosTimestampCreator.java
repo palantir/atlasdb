@@ -15,9 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.UUID;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.timelock.paxos.Client;
@@ -33,6 +30,8 @@ import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 public class PaxosTimestampCreator implements TimestampCreator {
     private final MetricRegistry metricRegistry;

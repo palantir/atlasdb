@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Map;
-
-import org.apache.commons.io.FileUtils;
-import org.joda.time.Duration;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
@@ -40,6 +28,16 @@ import com.palantir.docker.compose.execution.DockerExecutionException;
 import com.palantir.docker.compose.execution.ImmutableDockerComposeExecArgument;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
+import org.apache.commons.io.FileUtils;
+import org.joda.time.Duration;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DockerClientOrchestrationRule extends ExternalResource {
     private static final Logger log = LoggerFactory.getLogger(DockerClientOrchestrationRule.class);

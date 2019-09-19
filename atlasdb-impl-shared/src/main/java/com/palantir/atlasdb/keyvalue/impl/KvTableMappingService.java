@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.LongSupplier;
-
-import org.apache.commons.lang3.Validate;
-
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -54,6 +45,13 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
+import org.apache.commons.lang3.Validate;
 
 public class KvTableMappingService implements TableMappingService {
     public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.internal()

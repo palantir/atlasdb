@@ -23,17 +23,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.math.LongMath;
 import java.util.Map;
 import java.util.function.Function;
-
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.math.LongMath;
 
 @SuppressWarnings("unchecked") // Mocking
 public class SplitKeyDelegatingTransactionServiceTest {

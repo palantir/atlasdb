@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
+import com.palantir.common.base.Throwables;
+import com.palantir.timestamp.InMemoryTimestampService;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -24,11 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
-import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
-import com.palantir.common.base.Throwables;
-import com.palantir.timestamp.InMemoryTimestampService;
 
 /**
  * Utilities for ETE tests

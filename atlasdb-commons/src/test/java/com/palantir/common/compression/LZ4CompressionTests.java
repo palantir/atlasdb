@@ -18,18 +18,15 @@ package com.palantir.common.compression;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.io.ByteStreams;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Random;
-
+import net.jpountz.lz4.LZ4BlockInputStream;
 import org.junit.After;
 import org.junit.Test;
-
-import com.google.common.io.ByteStreams;
-
-import net.jpountz.lz4.LZ4BlockInputStream;
 
 public class LZ4CompressionTests {
 

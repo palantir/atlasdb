@@ -17,15 +17,12 @@ package com.palantir.atlasdb.jepsen.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.Test;
-
+import clojure.lang.Keyword;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.JepsenConstants;
-
-import clojure.lang.Keyword;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.Test;
 
 public class EventTest {
     public static final String SOME_LONG_AS_STRING = "136";

@@ -15,18 +15,16 @@
  */
 package com.palantir.nexus.db.pool;
 
-import java.sql.Connection;
-import java.util.Arrays;
-import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.FinalizableReferenceQueue;
 import com.google.common.base.FinalizableWeakReference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.nexus.db.ResourceCreationLocation;
+import java.sql.Connection;
+import java.util.Arrays;
+import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CloseTracking {
     private static final Logger log = LoggerFactory.getLogger(CloseTracking.class);

@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges;
 
-import java.util.Collection;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.nexus.db.DBType;
+import java.util.Collection;
+import javax.annotation.Nullable;
 
 public final class RangePredicateHelper {
     private final boolean reverse;

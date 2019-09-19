@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
-import java.util.Map;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -35,6 +28,11 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.processors.AutoDelegate;
+import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
+import java.util.Map;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)

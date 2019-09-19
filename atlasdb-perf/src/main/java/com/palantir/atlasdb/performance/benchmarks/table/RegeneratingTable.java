@@ -15,17 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.stream.LongStream;
-
-import org.openjdk.jmh.annotations.Level;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -41,6 +30,15 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.stream.LongStream;
+import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
 /**
  * State class for creating a single Atlas table with one wide row.

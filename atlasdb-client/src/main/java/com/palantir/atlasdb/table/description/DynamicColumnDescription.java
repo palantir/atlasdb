@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import javax.annotation.concurrent.Immutable;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.DynamicColumnDescription.Builder;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class DynamicColumnDescription {

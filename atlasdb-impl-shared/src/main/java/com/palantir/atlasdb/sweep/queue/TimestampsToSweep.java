@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.SortedSet;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

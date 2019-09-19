@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.BlockingDeque;
-
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 

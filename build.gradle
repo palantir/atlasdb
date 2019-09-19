@@ -30,12 +30,6 @@ plugins {
     id 'com.google.protobuf' version '0.8.10'
 }
 
-repositories {
-    mavenCentral()
-    maven {
-        url 'https://dl.bintray.com/palantir/releases/'
-    }
-}
 apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.baseline-config'
 apply plugin: 'com.palantir.baseline-circleci'
@@ -58,14 +52,6 @@ allprojects {
     apply plugin: 'java-library'
     apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
 
-    // temporary until this is merged/fixed inside gradle-processors
-    configurations.allProcessors {
-        canBeConsumed = false
-        attributes {
-            attribute Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_API)
-        }
-    }
-
     dependencyRecommendations {
         strategy OverrideTransitives
         propertiesFile file: project.rootProject.file('versions.props')
@@ -80,6 +66,13 @@ allprojects {
             if (details.requested.group == 'com.palantir.docker.compose' && details.requested.name == 'docker-compose-rule') {
                 details.useTarget group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4', version: dependencyRecommendations.getRecommendedVersion('com.palantir.docker.compose', 'docker-compose-rule-junit4')
             }
+        }
+    }
+
+    repositories {
+        mavenCentral()
+        maven {
+            url 'https://dl.bintray.com/palantir/releases/'
         }
     }
 }

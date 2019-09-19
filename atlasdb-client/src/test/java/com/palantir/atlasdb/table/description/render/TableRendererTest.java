@@ -20,17 +20,15 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import org.junit.Test;
 
 public class TableRendererTest {
 

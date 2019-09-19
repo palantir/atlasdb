@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.coordination;
 
 import java.util.Optional;
-
 import org.immutables.value.Value;
 
 /**

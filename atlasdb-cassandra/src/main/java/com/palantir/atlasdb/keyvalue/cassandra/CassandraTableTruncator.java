@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Collection;
-
-import org.apache.thrift.TException;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import java.util.Collection;
+import org.apache.thrift.TException;
 
 class CassandraTableTruncator {
     private final TracingQueryRunner queryRunner;

@@ -18,16 +18,14 @@ package com.palantir.common.collect;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.Spliterator;
-import java.util.stream.StreamSupport;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import java.util.List;
+import java.util.Spliterator;
+import java.util.stream.StreamSupport;
+import org.junit.Test;
 
 public class IterableViewTest {
 

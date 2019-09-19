@@ -17,18 +17,15 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Instant;
-import java.util.Date;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableError;
-
 import feign.RetryableException;
+import java.time.Instant;
+import java.util.Date;
+import org.junit.Test;
 
 @SuppressWarnings("ThrowableResultOfMethodCallIgnored") // We need to create exceptions for testing.
 public class ExceptionRetryBehaviourTest {

@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.IOException;
-import java.net.URL;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.util.TestProxies;
@@ -31,6 +28,8 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.io.IOException;
+import java.net.URL;
 
 public class TestableTimelockServer {
 

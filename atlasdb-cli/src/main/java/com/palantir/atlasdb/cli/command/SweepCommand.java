@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Functions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -45,9 +35,15 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.slf4j.LoggerFactory;
 
 @Command(name = "sweep", description = "Sweep old table rows")
 public class SweepCommand extends SingleBackendCommand {

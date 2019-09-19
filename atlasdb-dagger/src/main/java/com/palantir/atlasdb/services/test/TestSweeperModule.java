@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.services.test;
 
-import java.util.Optional;
-import java.util.function.LongSupplier;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -36,9 +30,12 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
-
 import dagger.Module;
 import dagger.Provides;
+import java.util.Optional;
+import java.util.function.LongSupplier;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Module
 public class TestSweeperModule {

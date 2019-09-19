@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.Callable;
-
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Callable;
 
 public abstract class AbstractCommand implements Callable<Integer> {
 

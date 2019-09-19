@@ -16,13 +16,11 @@
 
 package com.palantir.paxos;
 
-import java.util.Map;
-import java.util.function.Function;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.streams.KeyedStream;
+import java.util.Map;
+import java.util.function.Function;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class PaxosResponsesWithRemote<S, T extends PaxosResponse> {

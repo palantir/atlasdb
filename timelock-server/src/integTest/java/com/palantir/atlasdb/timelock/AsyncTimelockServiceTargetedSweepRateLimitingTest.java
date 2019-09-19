@@ -16,28 +16,10 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
 import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.THOROUGH;
 import static com.palantir.atlasdb.timelock.lock.TargetedSweepLockDecorator.LOCK_ACQUIRES_PER_SECOND;
-
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.assertj.core.data.Offset;
-import org.junit.After;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableList;
@@ -58,6 +40,21 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.util.Pair;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.assertj.core.data.Offset;
+import org.junit.After;
+import org.junit.Test;
 
 public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractAsyncTimelockServiceIntegrationTest {
 

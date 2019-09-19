@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Collection;
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import java.util.Collection;
+import java.util.Map;
 
 public interface DbQueryFactory {
     FullQuery getLatestRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue);

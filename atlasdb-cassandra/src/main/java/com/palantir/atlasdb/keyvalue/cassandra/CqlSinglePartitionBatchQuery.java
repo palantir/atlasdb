@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.Arg;
+import java.util.List;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class CqlSinglePartitionBatchQuery {

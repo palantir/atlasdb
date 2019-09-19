@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
+import org.immutables.value.Value;
 
 /**
  * An {@link InternalSchemaMetadata} object controls how Atlas nodes carry out certain operations.

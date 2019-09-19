@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.io.Closeable;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Supplier;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
@@ -39,6 +31,13 @@ import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.Shard
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.util.Pair;
+import java.io.Closeable;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Supplier;
 
 public final class TargetedSweepLockDecorator implements OrderedLocksDecorator, Closeable {
 

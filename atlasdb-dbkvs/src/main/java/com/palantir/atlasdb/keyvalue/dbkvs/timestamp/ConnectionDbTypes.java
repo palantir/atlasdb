@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
+import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.nexus.db.DBType;
 
 public final class ConnectionDbTypes {
     private static final Logger log = LoggerFactory.getLogger(ConnectionDbTypes.class);

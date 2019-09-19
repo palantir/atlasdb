@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.timelock.auth.impl;
 
-import java.util.Map;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
+import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
-import com.palantir.atlasdb.timelock.auth.api.Authorizer;
-import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
+import java.util.Map;
 
 public class SimpleAuthorizer implements Authorizer {
     private final Map<ClientId, Privileges> privileges;

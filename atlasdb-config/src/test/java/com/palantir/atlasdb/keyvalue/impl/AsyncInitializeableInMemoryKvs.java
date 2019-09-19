@@ -79,4 +79,3 @@ public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer imple
         return false;
     }
 }
-

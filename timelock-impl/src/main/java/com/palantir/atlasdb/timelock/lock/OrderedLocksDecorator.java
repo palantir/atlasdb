@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.List;
-
 import com.palantir.lock.LockDescriptor;
+import java.util.List;
 
 public interface OrderedLocksDecorator {
     OrderedLocksDecorator DO_NOTHING = (descriptors, locks) -> OrderedLocks.fromOrderedList(locks);

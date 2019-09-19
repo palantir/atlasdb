@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.UUID;
-
-import org.json.simple.JSONValue;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
+import java.util.UUID;
+import org.json.simple.JSONValue;
 
 public enum ValueType {
     /**

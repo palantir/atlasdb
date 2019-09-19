@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Optional;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +27,12 @@ import com.palantir.config.crypto.DecryptingVariableSubstitutor;
 import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
 import com.palantir.config.crypto.jackson.JsonNodeVisitors;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Optional;
+import java.util.function.Function;
+import javax.annotation.Nullable;
 
 public final class AtlasDbConfigs {
     public static final String ATLASDB_CONFIG_OBJECT_PATH = "/atlasdb";

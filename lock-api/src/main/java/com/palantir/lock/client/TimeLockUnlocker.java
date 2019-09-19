@@ -15,10 +15,9 @@
  */
 package com.palantir.lock.client;
 
+import com.palantir.lock.v2.LockToken;
 import java.io.Closeable;
 import java.util.Set;
-
-import com.palantir.lock.v2.LockToken;
 
 public interface TimeLockUnlocker extends Closeable {
     void enqueue(Set<LockToken> tokens);

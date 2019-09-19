@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.timelock.auth.config;
 
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class NamespacePrivileges implements Privileges {

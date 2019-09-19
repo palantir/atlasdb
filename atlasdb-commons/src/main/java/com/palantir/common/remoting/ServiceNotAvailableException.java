@@ -15,9 +15,8 @@
  */
 package com.palantir.common.remoting;
 
-import java.util.Optional;
-
 import com.google.common.net.HostAndPort;
+import java.util.Optional;
 
 /**
  * If a server is shutting down or cannot respond to a call for another reson this exception may be thrown.

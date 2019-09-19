@@ -23,17 +23,15 @@
  */
 package com.palantir.atlasdb.http;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.RuntimeJsonMappingException;
+import feign.Response;
+import feign.Util;
+import feign.codec.Decoder;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.RuntimeJsonMappingException;
-
-import feign.Response;
-import feign.Util;
-import feign.codec.Decoder;
 
 class AtlasDbJacksonDecoder implements Decoder {
     private final ObjectMapper mapper;

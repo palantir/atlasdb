@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.http;
 
+import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public interface TargetFactory {
     <T> T createProxyWithoutRetrying(

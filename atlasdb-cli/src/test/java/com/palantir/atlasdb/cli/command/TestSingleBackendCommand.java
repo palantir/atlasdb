@@ -15,25 +15,22 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.services.AtlasDbServices;
-
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 import io.airlift.airline.Option;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class TestSingleBackendCommand {
 

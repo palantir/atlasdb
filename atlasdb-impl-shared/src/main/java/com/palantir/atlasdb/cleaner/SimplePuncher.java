@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.function.Supplier;
-
 import com.palantir.common.time.Clock;
+import java.util.function.Supplier;
 
 /**
  * Puncher implementation that calls the underlying PuncherStore directly, and blockingly, on every

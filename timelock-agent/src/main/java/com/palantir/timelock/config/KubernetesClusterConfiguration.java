@@ -15,16 +15,14 @@
  */
 package com.palantir.timelock.config;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.timelock.utils.KubernetesHostnames;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 /**
  * Generates the current hostname, and those of the expected members of the cluster if the server is being executed

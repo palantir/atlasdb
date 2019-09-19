@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -30,6 +25,10 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public final class TimeLockTestUtils {
     private TimeLockTestUtils() {

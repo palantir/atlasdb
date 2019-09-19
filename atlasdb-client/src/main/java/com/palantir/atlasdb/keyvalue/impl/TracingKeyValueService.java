@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -47,6 +42,10 @@ import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.tracing.Tracer}
@@ -416,4 +415,3 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         return delegate().shouldTriggerCompactions();
     }
 }
-

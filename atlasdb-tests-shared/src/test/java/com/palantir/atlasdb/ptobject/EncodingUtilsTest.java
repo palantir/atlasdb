@@ -19,15 +19,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.SortedMap;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -37,6 +28,13 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.ptobject.EncodingUtils.EncodingType;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.util.crypto.Sha256Hash;
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.SortedMap;
+import org.junit.Test;
 
 @SuppressWarnings("checkstyle:all")
 public class EncodingUtilsTest {

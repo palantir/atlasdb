@@ -20,10 +20,9 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.junit.Test;
 
 public class AtlasDbMetricsTest {
 

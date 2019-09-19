@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.Set;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Set;
 
 /**
  * Thrown if there is a conflict detected when a transaction is committed.

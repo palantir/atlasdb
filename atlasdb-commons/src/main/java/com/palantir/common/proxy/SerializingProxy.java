@@ -15,14 +15,13 @@
  */
 package com.palantir.common.proxy;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.util.ObjectInputStreamFactory;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-
-import com.palantir.logsafe.Preconditions;
-import com.palantir.util.ObjectInputStreamFactory;
 
 public class SerializingProxy implements DelegatingInvocationHandler {
 

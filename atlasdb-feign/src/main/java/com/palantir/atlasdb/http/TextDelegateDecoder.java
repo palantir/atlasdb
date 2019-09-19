@@ -29,18 +29,15 @@
 
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
-import java.lang.reflect.Type;
-
-import javax.ws.rs.core.MediaType;
-
 import com.google.common.net.HttpHeaders;
 import com.palantir.common.remoting.HeaderAccessUtils;
-
 import feign.FeignException;
 import feign.Response;
 import feign.codec.Decoder;
 import feign.codec.StringDecoder;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import javax.ws.rs.core.MediaType;
 
 /**
  * If the response has a Content-Type of text/plain, then this decoder uses a string decoder.

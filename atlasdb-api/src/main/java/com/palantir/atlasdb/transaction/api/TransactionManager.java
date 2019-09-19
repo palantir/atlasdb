@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -29,6 +27,7 @@ import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.function.Supplier;
 
 @AutoDelegate
 public interface TransactionManager extends AutoCloseable {

@@ -15,14 +15,12 @@
  */
 package com.palantir.cassandra.multinode;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import java.util.Arrays;
-
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({

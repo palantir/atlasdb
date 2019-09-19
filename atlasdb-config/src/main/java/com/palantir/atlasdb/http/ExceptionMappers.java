@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.http;
 
+import com.palantir.remoting2.errors.SerializableError;
 import java.util.Arrays;
 import java.util.List;
-
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import com.palantir.remoting2.errors.SerializableError;
 
 public final class ExceptionMappers {
     private ExceptionMappers() {

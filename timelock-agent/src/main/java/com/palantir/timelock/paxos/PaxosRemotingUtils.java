@@ -15,16 +15,15 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.Collection;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class PaxosRemotingUtils {
     private PaxosRemotingUtils() {

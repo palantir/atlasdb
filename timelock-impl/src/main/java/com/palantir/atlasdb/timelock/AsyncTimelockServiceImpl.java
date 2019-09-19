@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Set;
-import java.util.UUID;
-
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
@@ -40,6 +37,8 @@ import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.Set;
+import java.util.UUID;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 

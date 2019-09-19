@@ -18,14 +18,13 @@ package com.palantir.atlasdb.factory.startup;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.exception.NotInitializedException;
+import org.junit.Test;
 
 public class ConsistencyCheckRunnerTest {
     private static final RuntimeException EXCEPTION_1 = new RuntimeException("bad");

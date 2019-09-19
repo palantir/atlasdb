@@ -17,9 +17,8 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import org.junit.Test;
 
 public class PaxosTimeLockConstantsTest {
     @Test

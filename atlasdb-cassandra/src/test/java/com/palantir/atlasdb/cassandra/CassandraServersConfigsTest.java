@@ -18,15 +18,13 @@ package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
-
 import org.junit.Test;
-
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class CassandraServersConfigsTest {
 

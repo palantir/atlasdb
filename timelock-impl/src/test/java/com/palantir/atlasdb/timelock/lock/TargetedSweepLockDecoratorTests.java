@@ -19,15 +19,6 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
-
-import org.junit.After;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
@@ -35,6 +26,13 @@ import com.palantir.atlasdb.timelock.config.ImmutableRateLimitConfig;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.util.Pair;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
+import org.junit.After;
+import org.junit.Test;
 
 public class TargetedSweepLockDecoratorTests {
 

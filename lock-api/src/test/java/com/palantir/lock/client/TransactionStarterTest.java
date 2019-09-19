@@ -17,26 +17,10 @@
 package com.palantir.lock.client;
 
 import static java.util.stream.Collectors.toList;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.IntStream;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
@@ -52,6 +36,18 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.IntStream;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionStarterTest {

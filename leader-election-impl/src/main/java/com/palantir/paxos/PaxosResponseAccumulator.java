@@ -16,13 +16,11 @@
 
 package com.palantir.paxos;
 
+import com.palantir.logsafe.Preconditions;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Predicate;
-
 import javax.annotation.concurrent.NotThreadSafe;
-
-import com.palantir.logsafe.Preconditions;
 
 @NotThreadSafe
 final class PaxosResponseAccumulator<S, T extends PaxosResponse> {

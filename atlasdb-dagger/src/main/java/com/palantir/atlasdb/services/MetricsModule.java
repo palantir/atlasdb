@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.services;
 
-import javax.inject.Singleton;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-
 import dagger.Module;
 import dagger.Provides;
+import javax.inject.Singleton;
 
 @Module
 public class MetricsModule {

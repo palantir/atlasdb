@@ -16,11 +16,10 @@
 
 package com.palantir.paxos;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-
-import com.google.common.collect.ImmutableList;
 
 public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkClient {
 

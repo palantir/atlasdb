@@ -19,9 +19,8 @@ import static com.palantir.atlasdb.table.description.render.ColumnRenderers.Type
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.VarName;
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.short_name;
 
-import java.util.SortedSet;
-
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import java.util.SortedSet;
 
 @SuppressWarnings("checkstyle:AvoidNestedBlocks")
 class NamedRowResultRenderer extends Renderer {

@@ -18,9 +18,8 @@ package com.palantir.common.time;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Test;
 
 public final class NanoTimeTests {
 
@@ -50,4 +49,3 @@ public final class NanoTimeTests {
         assertThat(deserialized).isEqualTo(nanoTime);
     }
 }
-

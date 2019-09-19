@@ -23,12 +23,11 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.exception.NotInitializedException;
+import org.junit.Test;
 
 public class CassandraKvsWrapperTest {
     private static final CassandraKeyValueServiceImpl kvs = mock(CassandraKeyValueServiceImpl.class);

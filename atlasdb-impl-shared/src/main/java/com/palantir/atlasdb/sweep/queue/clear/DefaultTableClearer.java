@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.sweep.queue.clear;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
@@ -35,6 +28,12 @@ import com.palantir.atlasdb.sweep.queue.ImmutableTimestampSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFilter;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public final class DefaultTableClearer implements TableClearer, TargetedSweepFilter {
     private final LoadingCache<TableReference, SweepStrategy> sweepStrategies;

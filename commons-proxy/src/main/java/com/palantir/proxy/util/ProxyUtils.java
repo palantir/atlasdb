@@ -15,6 +15,7 @@
  */
 package com.palantir.proxy.util;
 
+import com.palantir.proxy.exception.ProxyException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,8 +25,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import com.palantir.proxy.exception.ProxyException;
 
 public final class ProxyUtils {
     private ProxyUtils() {

@@ -15,9 +15,6 @@
  */
 package com.palantir.example.profile.schema;
 
-import java.io.File;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -33,6 +30,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.example.profile.protos.generated.ProfilePersistence;
+import java.io.File;
+import java.util.List;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
 public class ProfileSchema implements AtlasSchema {

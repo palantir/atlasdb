@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
+import java.util.List;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface DedicatedRows {

@@ -15,20 +15,17 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.concurrent.locks.AbstractQueuedSynchronizer;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Preconditions;
-
 import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 
 class LockServerSync extends AbstractQueuedSynchronizer {
     private static final long serialVersionUID = 1L;

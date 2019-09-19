@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import java.util.Map;
+import java.util.Set;
 
 public interface ValuesLoader {
 

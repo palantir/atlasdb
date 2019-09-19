@@ -15,12 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
+import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeyRange;
@@ -28,9 +29,6 @@ import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 
 public final class ThriftQueryWeighers {
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);

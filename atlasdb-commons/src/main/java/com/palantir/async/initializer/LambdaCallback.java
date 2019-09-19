@@ -15,10 +15,9 @@
  */
 package com.palantir.async.initializer;
 
+import com.palantir.common.base.Throwables;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-
-import com.palantir.common.base.Throwables;
 
 /**
  * Convenience class for creating callbacks using lambda expressions.

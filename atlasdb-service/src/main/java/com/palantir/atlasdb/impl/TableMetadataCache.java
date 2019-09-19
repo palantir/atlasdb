@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.impl;
 
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.CheckForNull;
-import javax.inject.Inject;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.CheckForNull;
+import javax.inject.Inject;
 
 public class TableMetadataCache {
     private final LoadingCache<String, TableMetadata> cache;

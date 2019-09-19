@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.util.Map;
-import java.util.function.Predicate;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
@@ -26,6 +23,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Tracks various states of an AtlasDB transaction, and marks associated meters in the

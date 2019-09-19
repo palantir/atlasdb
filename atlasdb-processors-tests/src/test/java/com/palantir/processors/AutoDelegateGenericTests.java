@@ -19,12 +19,10 @@ package com.palantir.processors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.Sets;
 import java.util.Set;
-
 import org.assertj.core.api.Condition;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
 
 public class AutoDelegateGenericTests {
     @Test

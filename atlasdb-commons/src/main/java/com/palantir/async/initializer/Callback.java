@@ -15,10 +15,9 @@
  */
 package com.palantir.async.initializer;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.Throwables;
+import java.util.List;
 
 /**
  * A Callback is a potentially retryable operation on a resource R. The intended use is to specify a task to be run on

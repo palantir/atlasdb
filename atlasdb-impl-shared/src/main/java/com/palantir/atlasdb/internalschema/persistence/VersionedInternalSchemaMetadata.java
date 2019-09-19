@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.internalschema.persistence;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 /**
  * A serialized form of {@link InternalSchemaMetadata} that includes both a

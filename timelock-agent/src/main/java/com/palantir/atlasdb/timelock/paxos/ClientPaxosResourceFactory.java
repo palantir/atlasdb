@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.factory.DynamicDecoratingProxy;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -32,6 +24,12 @@ import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import java.io.Closeable;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 public final class ClientPaxosResourceFactory {
 

@@ -15,10 +15,9 @@
  */
 package com.palantir.paxos;
 
-import java.util.Objects;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
+import java.util.Objects;
 
 @Immutable
 public class BooleanPaxosResponse implements PaxosResponse {

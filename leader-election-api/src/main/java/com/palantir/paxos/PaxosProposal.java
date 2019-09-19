@@ -15,15 +15,13 @@
  */
 package com.palantir.paxos;
 
-import java.io.Serializable;
-
-import javax.annotation.Nonnull;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
+import java.io.Serializable;
+import javax.annotation.Nonnull;
 
 /**
  * A proposal of a value that needs quorum support.

@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.io.IOException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.ImmutableDockerComposeRunOption;
+import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ThreeNodeCassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);

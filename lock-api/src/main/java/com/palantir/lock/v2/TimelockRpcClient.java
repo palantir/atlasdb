@@ -16,8 +16,10 @@
 
 package com.palantir.lock.v2;
 
+import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.logsafe.Safe;
+import com.palantir.timestamp.TimestampRange;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -25,10 +27,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.logsafe.Safe;
-import com.palantir.timestamp.TimestampRange;
 
 /**
  * Interface describing timelock endpoints to be used by feign client factories to create raw clients.

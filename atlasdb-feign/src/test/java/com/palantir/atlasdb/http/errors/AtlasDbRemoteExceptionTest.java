@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.http.errors;
 
-import java.util.List;
-
-import javax.ws.rs.NotFoundException;
-
-import org.apache.http.HttpStatus;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableError;
 import com.palantir.remoting2.errors.SerializableStackTraceElement;
+import java.util.List;
+import javax.ws.rs.NotFoundException;
+import org.apache.http.HttpStatus;
+import org.junit.Test;
 
 @SuppressWarnings("ThrowableInstanceNeverThrown") // This test validates properties of runtime exceptions.
 public class AtlasDbRemoteExceptionTest {

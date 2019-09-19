@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
-import java.net.InetSocketAddress;
-
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
+import java.net.InetSocketAddress;
 
 public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 

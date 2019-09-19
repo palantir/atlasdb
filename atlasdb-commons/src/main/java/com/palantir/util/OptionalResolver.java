@@ -15,14 +15,13 @@
  */
 package com.palantir.util;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 
 public final class OptionalResolver {
     private OptionalResolver() {

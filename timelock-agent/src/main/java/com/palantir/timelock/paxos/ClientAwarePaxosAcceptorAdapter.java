@@ -16,16 +16,15 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 
 public final class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {

@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface OrderedLocks {

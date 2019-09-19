@@ -15,13 +15,12 @@
  */
 package com.palantir.common.proxy;
 
+import com.google.common.base.Suppliers;
+import com.palantir.common.base.Throwables;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
-
-import com.google.common.base.Suppliers;
-import com.palantir.common.base.Throwables;
 
 public class DelayProxy implements DelegatingInvocationHandler {
 

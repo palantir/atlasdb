@@ -24,12 +24,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.table.description.generated.ApiTestTableFactory;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable;
@@ -37,6 +31,10 @@ import com.palantir.atlasdb.table.description.generated.SchemaApiTestV2Table;
 import com.palantir.atlasdb.table.description.test.StringValue;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransaction;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.Test;
 
 public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
 

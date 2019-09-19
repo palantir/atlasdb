@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface PersistentLockId {

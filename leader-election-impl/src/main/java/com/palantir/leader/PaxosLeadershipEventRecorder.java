@@ -15,14 +15,12 @@
  */
 package com.palantir.leader;
 
-import java.util.Optional;
-
-import javax.annotation.concurrent.GuardedBy;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
+import java.util.Optional;
+import javax.annotation.concurrent.GuardedBy;
 
 public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder, PaxosLeaderElectionEventRecorder {
 

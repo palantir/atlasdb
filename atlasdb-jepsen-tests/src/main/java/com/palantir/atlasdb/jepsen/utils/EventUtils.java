@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.jepsen.utils;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import clojure.lang.Keyword;
 import com.palantir.atlasdb.jepsen.JepsenConstants;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
-
-import clojure.lang.Keyword;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class EventUtils {
     private EventUtils() {

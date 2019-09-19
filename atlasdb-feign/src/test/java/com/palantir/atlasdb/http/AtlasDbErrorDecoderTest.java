@@ -22,20 +22,17 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.Map;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HttpHeaders;
-
 import feign.Response;
 import feign.RetryableException;
 import feign.codec.ErrorDecoder;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Map;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AtlasDbErrorDecoderTest {
     private static final String EMPTY_METHOD_KEY = "";

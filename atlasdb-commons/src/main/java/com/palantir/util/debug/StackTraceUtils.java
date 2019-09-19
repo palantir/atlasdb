@@ -15,6 +15,7 @@
  */
 package com.palantir.util.debug;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
@@ -32,13 +33,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.management.JMException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings("checkstyle")
 // WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great

@@ -15,18 +15,15 @@
  */
 package com.palantir.atlasdb.jdbc.config;
 
-import java.util.Properties;
-
-import javax.sql.DataSource;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.util.Properties;
+import javax.sql.DataSource;
+import org.immutables.value.Value;
 
 @AutoService(JdbcDataSourceConfiguration.class)
 @Value.Immutable

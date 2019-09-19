@@ -18,17 +18,15 @@ package com.palantir.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.palantir.common.concurrent.PTExecutors;
 
 public class CachedComposedSupplierTest {
     private long counter;

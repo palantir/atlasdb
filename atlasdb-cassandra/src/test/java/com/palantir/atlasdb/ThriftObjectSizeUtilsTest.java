@@ -17,10 +17,12 @@ package com.palantir.atlasdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
@@ -32,10 +34,6 @@ import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SuperColumn;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
 
 public class ThriftObjectSizeUtilsTest {
     private static final String TEST_NAME = "foo";

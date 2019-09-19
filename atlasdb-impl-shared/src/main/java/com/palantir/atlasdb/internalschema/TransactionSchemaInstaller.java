@@ -16,18 +16,16 @@
 
 package com.palantir.atlasdb.internalschema;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.logsafe.SafeArg;
 
 public final class TransactionSchemaInstaller implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TransactionSchemaInstaller.class);

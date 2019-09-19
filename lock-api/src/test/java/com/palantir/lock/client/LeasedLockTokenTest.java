@@ -19,16 +19,14 @@ package com.palantir.lock.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Duration;
-import java.util.UUID;
-
-import org.junit.Test;
-
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
+import java.time.Duration;
+import java.util.UUID;
+import org.junit.Test;
 
 public class LeasedLockTokenTest {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());

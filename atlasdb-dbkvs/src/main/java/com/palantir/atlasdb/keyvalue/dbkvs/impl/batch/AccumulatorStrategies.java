@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.batch;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class AccumulatorStrategies {
 

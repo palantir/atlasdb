@@ -15,9 +15,8 @@
  */
 package com.palantir.lock;
 
-import java.util.concurrent.locks.ReadWriteLock;
-
 import com.google.common.primitives.Longs;
+import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * A descriptor for a {@link ReadWriteLock}, identified by a lock ID (a unique

@@ -20,21 +20,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HttpHeaders;
+import feign.Response;
+import feign.codec.Decoder;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Map;
-
 import javax.ws.rs.core.MediaType;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.net.HttpHeaders;
-
-import feign.Response;
-import feign.codec.Decoder;
 
 public class TextDelegateDecoderTest {
     private static final int HTTP_OK = 200;

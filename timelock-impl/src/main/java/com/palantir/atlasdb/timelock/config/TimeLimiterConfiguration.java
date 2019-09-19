@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableTimeLimiterConfiguration.class)
 @JsonDeserialize(as = ImmutableTimeLimiterConfiguration.class)

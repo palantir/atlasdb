@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.timelock.auth.api;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import org.immutables.value.Value;
 import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
 
 @Value.Immutable
 public abstract class BCryptedSecret {

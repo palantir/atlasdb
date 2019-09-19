@@ -18,9 +18,8 @@ package com.palantir.atlasdb.sweep;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import org.junit.Test;
 
 public class ExaminedCellLimitTest {
     private String startingRow;

@@ -18,12 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import com.palantir.common.base.FunctionCheckedException;
 import java.net.InetSocketAddress;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.common.base.FunctionCheckedException;
 
 public class RetryableCassandraRequestTest {
     private static final int DEFAULT_PORT = 5000;

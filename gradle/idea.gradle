@@ -81,17 +81,7 @@ if (project == rootProject) {
                     .get('component', name: 'ProjectCodeStyleSettingsManager')
                     .get('option', name: 'USE_PER_PROJECT_SETTINGS')
                     .set('value': 'true')
-            def importsTable = Xml.from(provider)
-                    .get('component', name: 'ProjectCodeStyleSettingsManager')
-                    .get('option', name: 'PER_PROJECT_SETTINGS').get('value')
-                    .get('option', name: 'IMPORT_LAYOUT_TABLE').get('value')
-            importsTable.node.children().clear()
-            ['true', 'false'].each { static1 ->
-                ['java', 'javax', 'org', 'com', ''].each { name ->
-                    importsTable.node.appendNode('package', [name: name, withSubpackages: 'true', static: static1])
-                    importsTable.node.appendNode('emptyLine')
-                }
-            }
+
             Xml.from(provider)
                     .get('component', name: 'ProjectCodeStyleSettingsManager')
                     .get('option', name: 'PER_PROJECT_SETTINGS').get('value')

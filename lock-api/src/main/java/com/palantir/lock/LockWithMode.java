@@ -15,9 +15,8 @@
  */
 package com.palantir.lock;
 
-import java.util.Objects;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Objects;
 
 public class LockWithMode {
     private LockDescriptor lockDescriptor;

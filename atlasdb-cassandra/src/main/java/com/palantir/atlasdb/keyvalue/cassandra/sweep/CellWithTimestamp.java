@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import org.immutables.value.Value;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class CellWithTimestamp {

@@ -15,19 +15,17 @@
  */
 package com.palantir.lock.logger;
 
+import com.palantir.lock.LockDescriptor;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
-
-import com.palantir.lock.LockDescriptor;
 
 /**
  * A simple wrapper for writing lock state as YAML to a file.

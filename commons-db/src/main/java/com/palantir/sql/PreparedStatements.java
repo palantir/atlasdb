@@ -15,14 +15,13 @@
  */
 package com.palantir.sql;
 
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.BasicSQL;
 import java.io.InputStream;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.BasicSQL;
 
 public class PreparedStatements {
     public static int getUpdateCount(PreparedStatement ps) throws PalantirSqlException {

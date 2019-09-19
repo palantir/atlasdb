@@ -15,14 +15,6 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import java.io.File;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -30,6 +22,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
+import java.io.File;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
 @JsonSerialize(as = ImmutableOracleConnectionConfig.class)

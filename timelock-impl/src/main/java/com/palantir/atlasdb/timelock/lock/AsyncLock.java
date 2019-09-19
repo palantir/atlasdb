@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.UUID;
-
 import com.palantir.lock.LockDescriptor;
+import java.util.UUID;
 
 public interface AsyncLock {
 

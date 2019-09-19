@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.util.Random;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.todo.TodoResource;
+import java.util.Random;
 
 public final class StreamTestUtils {
     private StreamTestUtils() {

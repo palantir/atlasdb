@@ -29,17 +29,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
-import java.util.Collections;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import java.math.BigInteger;
+import java.util.Collections;
+import org.junit.Test;
 
 public class SynchronousLockClientTest {
     private static final LockService LOCK_SERVICE = mock(LockService.class);

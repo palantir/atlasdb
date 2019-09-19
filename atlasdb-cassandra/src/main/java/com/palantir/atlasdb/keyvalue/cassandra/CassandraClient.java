@@ -15,11 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.processors.AutoDelegate;
 import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -42,9 +43,6 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocol;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.processors.AutoDelegate;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 @AutoDelegate

@@ -15,11 +15,9 @@
  */
 package com.palantir.lock;
 
-import java.util.Comparator;
-
-import javax.annotation.Nullable;
-
 import com.google.common.primitives.Longs;
+import java.util.Comparator;
+import javax.annotation.Nullable;
 
 /**
  * A lock server token with an expiration date.

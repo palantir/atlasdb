@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen.lock;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
@@ -36,6 +28,12 @@ import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This checker verifies that refreshes of locks do not cause two processes to simultaneously hold the same lock.

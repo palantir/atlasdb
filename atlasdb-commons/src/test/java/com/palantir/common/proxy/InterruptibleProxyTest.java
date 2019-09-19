@@ -20,16 +20,14 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.PalantirInterruptedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.junit.Test;
-
-import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirInterruptedException;
 
 public class InterruptibleProxyTest {
 

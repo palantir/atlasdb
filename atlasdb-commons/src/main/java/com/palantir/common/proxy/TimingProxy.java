@@ -15,13 +15,12 @@
  */
 package com.palantir.common.proxy;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.jmx.OperationTimer;
 import com.palantir.util.jmx.OperationTimer.TimingState;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 
 public class TimingProxy implements DelegatingInvocationHandler {
 

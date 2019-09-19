@@ -15,6 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.codahale.metrics.Gauge;
+import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.pooling.PoolingContainer;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -27,7 +38,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.transport.TFramedTransport;
@@ -36,18 +46,6 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.Gauge;
-import com.google.common.base.Function;
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.pooling.PoolingContainer;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);

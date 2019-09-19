@@ -15,12 +15,6 @@
  */
 package com.palantir.lock;
 
-import java.util.Set;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -28,6 +22,10 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // Used for mocking
 public class SingleLockService implements AutoCloseable {

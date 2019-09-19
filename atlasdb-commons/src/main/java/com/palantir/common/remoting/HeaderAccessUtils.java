@@ -15,10 +15,9 @@
  */
 package com.palantir.common.remoting;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Map;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * This class is useful for accessing HTTP headers in a case-insensitive manner.

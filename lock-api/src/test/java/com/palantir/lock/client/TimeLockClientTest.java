@@ -26,14 +26,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.net.ConnectException;
-import java.net.UnknownHostException;
-import java.util.UUID;
-
-import org.junit.Test;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -47,6 +39,12 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.CloseableTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.net.ConnectException;
+import java.net.UnknownHostException;
+import java.util.UUID;
+import org.junit.Test;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 public class TimeLockClientTest {
 

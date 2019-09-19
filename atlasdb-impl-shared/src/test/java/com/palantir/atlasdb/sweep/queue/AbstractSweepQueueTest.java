@@ -17,14 +17,6 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.mockito.Mockito.spy;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import org.assertj.core.api.Assertions;
-import org.junit.After;
-import org.junit.Before;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -42,6 +34,12 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import org.assertj.core.api.Assertions;
+import org.junit.After;
+import org.junit.Before;
 
 public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");

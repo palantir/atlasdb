@@ -15,8 +15,8 @@
  */
 package com.palantir.paxos;
 
+import com.palantir.common.annotation.Inclusive;
 import java.util.Collection;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
@@ -26,8 +26,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.common.annotation.Inclusive;
 
 @Path("/learner")
 public interface PaxosLearner {

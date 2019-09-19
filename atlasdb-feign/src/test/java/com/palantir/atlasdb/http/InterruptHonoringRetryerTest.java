@@ -17,13 +17,11 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import feign.RetryableException;
 import java.io.InterruptedIOException;
 import java.sql.Date;
 import java.time.Instant;
-
 import org.junit.Test;
-
-import feign.RetryableException;
 
 public class InterruptHonoringRetryerTest {
 

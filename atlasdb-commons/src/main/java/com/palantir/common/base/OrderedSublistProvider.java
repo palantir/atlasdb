@@ -15,9 +15,8 @@
  */
 package com.palantir.common.base;
 
-import java.util.List;
-
 import com.palantir.common.annotation.Inclusive;
+import java.util.List;
 
 /**
  * Provides sublists of a list of T's, where each T is identified by a long.

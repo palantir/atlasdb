@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
-import java.util.concurrent.atomic.LongAccumulator;
-import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
-
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.concurrent.atomic.LongAccumulator;
+import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 
 /**
  * A timelock service decorator for introducing runtime validity checks on received timestamps.

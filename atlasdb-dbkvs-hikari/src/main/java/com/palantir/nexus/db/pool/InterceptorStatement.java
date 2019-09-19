@@ -15,6 +15,8 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.reflect.AbstractInvocationHandler;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,12 +24,8 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.reflect.AbstractInvocationHandler;
 
 /**
  * Allows you to intercept and override methods in {@link Statement} and subinterfaces

@@ -22,14 +22,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.Clock;
+import com.codahale.metrics.Gauge;
 import java.util.function.Supplier;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.Clock;
-import com.codahale.metrics.Gauge;
 
 @SuppressWarnings("unchecked") // Mocks of known types
 public class TrackerUtilsTest {

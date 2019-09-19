@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
@@ -24,6 +22,7 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.io.IOException;
 
 public final class WriteReferencePersister {
     private static final byte[] writePrefix = { 1 };

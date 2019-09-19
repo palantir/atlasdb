@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableRangeMap;
@@ -33,6 +26,11 @@ import com.google.common.collect.TreeRangeSet;
 import com.palantir.common.annotation.Output;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 /**
  * A {@link TimestampPartitioningMap} keeps track of a mapping of timestamp ranges to values.

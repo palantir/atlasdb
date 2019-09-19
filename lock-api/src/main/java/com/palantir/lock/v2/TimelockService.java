@@ -15,13 +15,11 @@
  */
 package com.palantir.lock.v2;
 
-import java.util.Set;
-
-import javax.ws.rs.QueryParam;
-
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
+import java.util.Set;
+import javax.ws.rs.QueryParam;
 
 @AutoDelegate
 public interface TimelockService {

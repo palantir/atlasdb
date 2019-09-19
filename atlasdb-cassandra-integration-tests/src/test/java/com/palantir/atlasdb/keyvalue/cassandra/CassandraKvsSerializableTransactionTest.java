@@ -17,14 +17,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.Mockito.mock;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import org.junit.ClassRule;
 
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule

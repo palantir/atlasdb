@@ -22,9 +22,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.nio.ByteBuffer;
 import java.util.List;
-
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;
@@ -36,11 +39,6 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class ProfilingCassandraClientTest {
     private static final CqlQuery CQL_QUERY = CqlQuery.builder()

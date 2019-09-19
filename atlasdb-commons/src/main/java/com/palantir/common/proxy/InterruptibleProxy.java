@@ -15,6 +15,11 @@
  */
 package com.palantir.common.proxy;
 
+import com.google.common.base.Suppliers;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.exception.PalantirInterruptedException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -22,12 +27,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
-
-import com.google.common.base.Suppliers;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.exception.PalantirInterruptedException;
 
 /**
  * Proxy that calls the requested method in another thread waits on a Future.
@@ -89,4 +88,3 @@ public final class InterruptibleProxy implements DelegatingInvocationHandler {
         return delegate;
     }
 }
-

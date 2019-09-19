@@ -19,16 +19,6 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.assertj.core.data.Offset;
-import org.junit.After;
-import org.junit.Test;
-
 import com.codahale.metrics.Meter;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -37,6 +27,14 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.util.Pair;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.assertj.core.data.Offset;
+import org.junit.After;
+import org.junit.Test;
 
 public class TargetedSweepAsyncLockTests {
 

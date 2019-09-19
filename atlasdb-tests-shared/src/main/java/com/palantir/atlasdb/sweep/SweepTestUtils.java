@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.function.Supplier;
-
-import org.awaitility.Awaitility;
-import org.awaitility.Duration;
-
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -51,6 +46,9 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.function.Supplier;
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 
 public final class SweepTestUtils {
     private SweepTestUtils() {}

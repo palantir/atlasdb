@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
-import java.util.Comparator;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.Callback;
@@ -30,6 +24,10 @@ import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsi
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.util.Comparator;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Executes multiple {@link TransactionManagerConsistencyCheck}s in sequence, aggregating the

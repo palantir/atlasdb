@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -22,14 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 
 public class DbKvsPartitionersTest {
     @Test

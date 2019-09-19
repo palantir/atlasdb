@@ -16,17 +16,15 @@
 
 package com.palantir.timelock.paxos;
 
+import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosValue;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosValue;
 
 public final class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
     private final String client;

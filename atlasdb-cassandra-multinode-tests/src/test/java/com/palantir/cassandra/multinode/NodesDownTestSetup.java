@@ -15,14 +15,6 @@
  */
 package com.palantir.cassandra.multinode;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.junit.AfterClass;
-import org.junit.ClassRule;
-
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -31,6 +23,12 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.connection.DockerPort;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
+import org.junit.AfterClass;
+import org.junit.ClassRule;
 
 public abstract class NodesDownTestSetup {
     private static final int CASSANDRA_THRIFT_PORT = 9160;

@@ -18,13 +18,11 @@ package com.palantir.atlasdb.jepsen;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.List;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
+import java.util.List;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class JepsenHistoryCheckersTest {
     @Test

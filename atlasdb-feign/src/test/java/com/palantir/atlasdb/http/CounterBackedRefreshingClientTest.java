@@ -21,16 +21,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
-
 import feign.Client;
 import feign.Request;
 import feign.Response;
+import java.io.IOException;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class CounterBackedRefreshingClientTest {
     @SuppressWarnings("unchecked") // For testing, and we can configure the return types appropriately.

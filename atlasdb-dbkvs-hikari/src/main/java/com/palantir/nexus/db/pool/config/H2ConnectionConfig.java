@@ -15,15 +15,13 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.nexus.db.DBType;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableH2ConnectionConfig.class)
 @JsonSerialize(as = ImmutableH2ConnectionConfig.class)

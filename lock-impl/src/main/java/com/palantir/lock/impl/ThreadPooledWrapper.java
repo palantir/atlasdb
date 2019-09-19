@@ -15,12 +15,10 @@
  */
 package com.palantir.lock.impl;
 
+import com.palantir.common.base.FunctionCheckedException;
 import java.util.concurrent.Semaphore;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.common.base.FunctionCheckedException;
 
 public class ThreadPooledWrapper<F> {
     private static final Logger log = LoggerFactory.getLogger(ThreadPooledWrapper.class);

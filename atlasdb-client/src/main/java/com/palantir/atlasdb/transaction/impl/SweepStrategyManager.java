@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import java.util.Map;
 
 public class SweepStrategyManager {
     private final RecomputingSupplier<Map<TableReference, SweepStrategy>> supplier;
