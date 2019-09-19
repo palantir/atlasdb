@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Before;
 
 import com.codahale.metrics.MetricRegistry;

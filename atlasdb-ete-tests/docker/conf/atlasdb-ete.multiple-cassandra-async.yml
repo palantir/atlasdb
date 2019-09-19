@@ -15,9 +15,13 @@ atlasdb:
   keyValueService:
     type: cassandra
     servers:
-      - cassandra1:9160
-      - cassandra2:9160
-      - cassandra3:9160
+      type: cqlCapable
+      hosts:
+        - cassandra1
+        - cassandra2
+        - cassandra3
+      cqlPort: 9042
+      thriftPort: 9160
     ssl: false
     replicationFactor: 3
 

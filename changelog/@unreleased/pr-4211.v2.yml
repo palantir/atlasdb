@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: >
+    Opening of CQL session which will be use for async endpoints. `CassandraMultinodeTestSuite` now runs health checks
+    using CQL client.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4211
