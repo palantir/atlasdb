@@ -190,7 +190,7 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
     private static Supplier<LockDescriptor> lockDescriptorSupplier(
             int numShards,
             SweepStrategy sweepStrategy) {
-        AtomicInteger counter = new AtomicInteger(new Random().nextInt() % numShards);
+        AtomicInteger counter = new AtomicInteger(new Random().nextInt(numShards));
         return () -> {
             int shard = counter.getAndIncrement() % numShards;
             ShardAndStrategy shardStrategy = ShardAndStrategy.of(shard, sweepStrategy);

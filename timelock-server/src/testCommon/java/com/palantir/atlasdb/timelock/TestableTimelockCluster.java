@@ -259,7 +259,7 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
-        return CompletableFuture.supplyAsync(() -> function.apply(timelockRpcClient()));
+        return CompletableFuture.supplyAsync(() -> function.apply(timelockRpcClient()), executor);
     }
 
     TimelockRpcClient timelockRpcClient() {

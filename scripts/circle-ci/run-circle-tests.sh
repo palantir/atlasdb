@@ -24,7 +24,7 @@ CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-
 
 CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest')
 
-CONTAINER_7=('compileJava' 'compileTestJava')
+CONTAINER_7=('compileJava' 'compileTestJava' 'compileIntegTestJava')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")

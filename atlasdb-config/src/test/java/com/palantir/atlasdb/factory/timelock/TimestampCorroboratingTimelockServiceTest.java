@@ -26,6 +26,8 @@ import static org.mockito.Mockito.when;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.junit.Before;
@@ -43,6 +45,8 @@ import com.palantir.timestamp.TimestampRange;
 public class TimestampCorroboratingTimelockServiceTest {
     private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
             LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private TimelockService rawTimelockService;
     private TimelockService timelockService;
@@ -88,7 +92,7 @@ public class TimestampCorroboratingTimelockServiceTest {
                 .thenReturn(2L);
 
         Future<Void> blockingGetFreshTimestampCall =
-                CompletableFuture.runAsync(timelockService::getFreshTimestamp);
+                CompletableFuture.runAsync(timelockService::getFreshTimestamp, executorService);
 
         blockingTimestampReturning1.waitForFirstCallToBlock();
 
