@@ -122,6 +122,7 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
         assertNull(local.get());
     }
 
+    @SuppressWarnings("CheckReturnValue")
     @Test
     public void testSameThread() {
         local.set("whatup");
