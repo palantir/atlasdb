@@ -17,9 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -205,12 +202,12 @@ public class CassandraClientPoolTest {
 
         assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool))
                 .isInstanceOf(AtlasDbDependencyException.class);
-        assertThat(blacklist.contains(HOST_1), is(true));
+        assertThat(blacklist.contains(HOST_1)).isEqualTo(true);
 
         fail.set(false);
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1), is(false));
+        assertThat(blacklist.contains(HOST_1)).isEqualTo(false);
     }
 
     @Test
@@ -221,12 +218,12 @@ public class CassandraClientPoolTest {
                 pool, container -> container.getHost().equals(downHost.get())));
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1), is(true));
+        assertThat(blacklist.contains(HOST_1)).isEqualTo(true);
 
         downHost.set(HOST_2);
 
         runNoopWithRetryOnHost(HOST_2, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1), is(false));
+        assertThat(blacklist.contains(HOST_1)).isEqualTo(false);
     }
 
     @Test
@@ -248,7 +245,7 @@ public class CassandraClientPoolTest {
                 .inPool(cassandraClientPool);
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_2), is(false));
+        assertThat(blacklist.contains(HOST_2)).isEqualTo(false);
     }
 
     @Test
@@ -512,14 +509,12 @@ public class CassandraClientPoolTest {
     private void verifyAggregateFailureMetrics(
             double requestFailureProportion,
             double requestConnectionExceptionProportion) {
-        assertEquals(requestFailureProportion,
-                getAggregateMetricValueForMetricName("requestFailureProportion"));
-        assertEquals(requestConnectionExceptionProportion,
-                getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"));
+        assertThat(getAggregateMetricValueForMetricName("requestFailureProportion")).isEqualTo(requestFailureProportion);
+        assertThat(getAggregateMetricValueForMetricName("requestConnectionExceptionProportion")).isEqualTo(requestConnectionExceptionProportion);
     }
 
     private void verifyBlacklistMetric(Integer expectedSize) {
-        assertEquals(expectedSize, getAggregateMetricValueForMetricName("numBlacklistedHosts"));
+        assertThat(getAggregateMetricValueForMetricName("numBlacklistedHosts")).isEqualTo(expectedSize);
     }
 
     private Object getAggregateMetricValueForMetricName(String metricName) {

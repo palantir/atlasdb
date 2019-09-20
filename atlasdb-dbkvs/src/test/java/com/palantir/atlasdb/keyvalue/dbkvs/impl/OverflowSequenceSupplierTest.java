@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OverflowSequenceSupplier;
@@ -42,7 +41,7 @@ public class OverflowSequenceSupplierTest {
         long firstSequenceId = sequenceSupplier.get();
         long nextSequenceId = sequenceSupplier.get();
 
-        assertThat(nextSequenceId - firstSequenceId, is(1L));
+        assertThat(nextSequenceId - firstSequenceId).isEqualTo(1L);
     }
 
     @Test
@@ -56,7 +55,7 @@ public class OverflowSequenceSupplierTest {
         long firstSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
         long secondSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
 
-        assertThat(secondSequenceId - firstSequenceId, greaterThanOrEqualTo(1000L));
+        assertThat(secondSequenceId - firstSequenceId).is(new HamcrestCondition<>(greaterThanOrEqualTo(1000L)));
     }
 
     @Test
@@ -76,9 +75,9 @@ public class OverflowSequenceSupplierTest {
         for (int i = 0; i < 999; i++) {
             id = firstSupplier.get();
         }
-        assertThat(id, equalTo(1000L));
+        assertThat(id).isEqualTo(1000L);
 
         // Should then skip to 2001
-        assertThat(firstSupplier.get(), equalTo(2001L));
+        assertThat(firstSupplier.get()).isEqualTo(2001L);
     }
 }

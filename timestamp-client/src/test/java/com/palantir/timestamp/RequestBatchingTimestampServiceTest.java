@@ -20,8 +20,6 @@ import static java.util.stream.Collectors.toList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -71,8 +69,8 @@ public final class RequestBatchingTimestampServiceTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        assertFalse(service.isInitialized());
-        assertTrue(service.isInitialized());
+        assertThat(service.isInitialized()).isFalse();
+        assertThat(service.isInitialized()).isTrue();
     }
 
     @Test

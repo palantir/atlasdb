@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Paths;
@@ -50,26 +49,26 @@ public class CassandraKeyValueServiceConfigTest {
 
     @Test
     public void usingSslIfSslParamPresentAndTrue() {
-        assertTrue(CASSANDRA_CONFIG.withSsl(true).usingSsl());
+        assertThat(CASSANDRA_CONFIG.withSsl(true).usingSsl()).isTrue();
     }
 
     @Test
     public void notUsingSslIfSslParamPresentAndFalse() {
-        assertFalse(CASSANDRA_CONFIG.withSsl(false).usingSsl());
+        assertThat(CASSANDRA_CONFIG.withSsl(false).usingSsl()).isFalse();
     }
 
     @Test
     public void notUsingSslIfSslParamFalseAndSslConfigurationPresent() {
-        assertFalse(CASSANDRA_CONFIG.withSsl(false).withSslConfiguration(SSL_CONFIGURATION).usingSsl());
+        assertThat(CASSANDRA_CONFIG.withSsl(false).withSslConfiguration(SSL_CONFIGURATION).usingSsl()).isFalse();
     }
 
     @Test
     public void usingSslIfSslParamNotPresentAndSslConfigurationPresent() {
-        assertTrue(CASSANDRA_CONFIG.withSslConfiguration(SSL_CONFIGURATION).usingSsl());
+        assertThat(CASSANDRA_CONFIG.withSslConfiguration(SSL_CONFIGURATION).usingSsl()).isTrue();
     }
 
     @Test
     public void notUsingSslIfSslParamNotPresentAndSslConfigurationNotPresent() {
-        assertFalse(CASSANDRA_CONFIG.usingSsl());
+        assertThat(CASSANDRA_CONFIG.usingSsl()).isFalse();
     }
 }

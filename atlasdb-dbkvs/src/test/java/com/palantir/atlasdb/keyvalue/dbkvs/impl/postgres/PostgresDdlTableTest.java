@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -150,7 +149,7 @@ public class PostgresDdlTableTest {
     }
 
     private void assertThatVacuumWasPerformed(SqlConnection sqlConnection, boolean assertThatTimestampsWereChecked) {
-        assertTrue(postgresDdlTable.shouldRunCompaction());
+        assertThat(postgresDdlTable.shouldRunCompaction()).isTrue();
         postgresDdlTable.compactInternally(false);
 
         if (assertThatTimestampsWereChecked) {
@@ -161,7 +160,7 @@ public class PostgresDdlTableTest {
     }
 
     private void assertThatVacuumWasNotPerformed(SqlConnection sqlConnection) {
-        assertFalse(postgresDdlTable.shouldRunCompaction());
+        assertThat(postgresDdlTable.shouldRunCompaction()).isFalse();
         postgresDdlTable.compactInternally(false);
 
         verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any());

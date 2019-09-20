@@ -15,12 +15,13 @@
  */
 package com.palantir.atlasdb.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -103,7 +104,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
             for (long rangeId : next1.keySet()) {
                 byte[] oldCheckpoint = checkpointer.getCheckpoint(t1, rangeId, txn);
-                Assert.assertNull(oldCheckpoint);
+                assertThat(oldCheckpoint).isNull();
             }
             return null;
         });
@@ -126,7 +127,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
         for (Entry<Long, byte[]> e : startById.entrySet()) {
             byte[] oldCheckpoint = checkpointer.getCheckpoint(extraId, e.getKey(), txn);
             byte[] currentCheckpoint = e.getValue();
-            Assert.assertTrue(Arrays.equals(oldCheckpoint, currentCheckpoint));
+            assertThat(Arrays.equals(oldCheckpoint, currentCheckpoint)).isTrue();
         }
     }
 }

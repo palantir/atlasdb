@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.emptyArray;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isEmptyString;
-import static org.junit.Assert.assertThat;
 
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -39,8 +38,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), isEmptyString());
-        assertThat(query.getArgs(), emptyArray());
+        assertThat(query.getQuery()).is(new HamcrestCondition<>(isEmptyString()));
+        assertThat(query.getArgs()).isEmpty();
     }
 
     @Test
@@ -49,8 +48,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).startRowInclusive(ROW_NAME);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND row_name >= ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND row_name >= ? ");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining((Object) ROW_NAME)));
     }
 
     @Test
@@ -59,8 +58,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(true, DBType.ORACLE, builder).startRowInclusive(ROW_NAME);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND row_name <= ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND row_name <= ? ");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining((Object) ROW_NAME)));
     }
 
     @Test
@@ -70,8 +69,8 @@ public class RangePredicateHelperTest {
                 .startCellInclusive(ROW_NAME, PtBytes.EMPTY_BYTE_ARRAY);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND row_name >= ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND row_name >= ? ");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining((Object) ROW_NAME)));
     }
 
     @Test
@@ -80,8 +79,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellInclusive(ROW_NAME, COL_NAME);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND (row_name, col_name) >= (?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name, col_name) >= (?, ?)");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, COL_NAME)));
     }
 
     @Test
@@ -90,8 +89,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(true, DBType.POSTGRESQL, builder).startCellInclusive(ROW_NAME, COL_NAME);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND (row_name, col_name) <= (?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name, col_name) <= (?, ?)");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, COL_NAME)));
     }
 
     @Test
@@ -100,8 +99,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).startCellInclusive(ROW_NAME, COL_NAME);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND (row_name >= ? AND (row_name > ? OR col_name >= ?))"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name >= ? AND (row_name > ? OR col_name >= ?))");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, ROW_NAME, COL_NAME)));
     }
 
     @Test
@@ -110,8 +109,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(true, DBType.ORACLE, builder).startCellInclusive(ROW_NAME, COL_NAME);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND (row_name <= ? AND (row_name < ? OR col_name <= ?))"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name <= ? AND (row_name < ? OR col_name <= ?))");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, ROW_NAME, COL_NAME)));
     }
 
     @Test
@@ -120,8 +119,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellTsInclusive(ROW_NAME, COL_NAME, null);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND (row_name, col_name) >= (?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name, col_name) >= (?, ?)");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, COL_NAME)));
     }
 
     @Test
@@ -130,8 +129,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND (row_name, col_name, ts) >= (?, ?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME, TS));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name, col_name, ts) >= (?, ?, ?)");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, COL_NAME, TS)));
     }
 
     @Test
@@ -140,8 +139,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(true, DBType.POSTGRESQL, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND (row_name, col_name, ts) <= (?, ?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME, TS));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name, col_name, ts) <= (?, ?, ?)");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, COL_NAME, TS)));
     }
 
     @Test
@@ -150,9 +149,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(),
-                equalTo(" AND (row_name >= ? AND (row_name > ? OR col_name > ? OR (col_name = ? AND ts >= ?)))"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name >= ? AND (row_name > ? OR col_name > ? OR (col_name = ? AND ts >= ?)))");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS)));
     }
 
     @Test
@@ -161,9 +159,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(true, DBType.ORACLE, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(),
-                equalTo(" AND (row_name <= ? AND (row_name < ? OR col_name < ? OR (col_name = ? AND ts <= ?)))"));
-        assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS));
+        assertThat(query.getQuery()).isEqualTo(" AND (row_name <= ? AND (row_name < ? OR col_name < ? OR (col_name = ? AND ts <= ?)))");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS)));
     }
 
     @Test
@@ -172,8 +169,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).endRowExclusive(PtBytes.EMPTY_BYTE_ARRAY);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), isEmptyString());
-        assertThat(query.getArgs(), emptyArray());
+        assertThat(query.getQuery()).is(new HamcrestCondition<>(isEmptyString()));
+        assertThat(query.getArgs()).isEmpty();
     }
 
     @Test
@@ -182,8 +179,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).endRowExclusive(ROW_NAME);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND row_name < ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND row_name < ? ");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining((Object) ROW_NAME)));
     }
 
     @Test
@@ -192,8 +189,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(true, DBType.ORACLE, builder).endRowExclusive(ROW_NAME);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND row_name > ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
+        assertThat(query.getQuery()).isEqualTo(" AND row_name > ? ");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining((Object) ROW_NAME)));
     }
 
     @Test
@@ -202,8 +199,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).columnSelection(ImmutableList.of());
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), isEmptyString());
-        assertThat(query.getArgs(), emptyArray());
+        assertThat(query.getQuery()).is(new HamcrestCondition<>(isEmptyString()));
+        assertThat(query.getArgs()).isEmpty();
     }
 
     @Test
@@ -214,8 +211,8 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).columnSelection(ImmutableList.of(COL_NAME, colTwo));
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery(), equalTo(" AND (col_name = ? OR col_name = ?) "));
-        assertThat(query.getArgs(), arrayContaining(COL_NAME, colTwo));
+        assertThat(query.getQuery()).isEqualTo(" AND (col_name = ? OR col_name = ?) ");
+        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(COL_NAME, colTwo)));
     }
 
 }

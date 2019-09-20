@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -56,7 +53,7 @@ public class StreamStoreBenchmarks {
                 BufferedReader bufferedReader = new BufferedReader(reader)) {
             String line = bufferedReader.readLine();
 
-            assertThat(line, startsWith("bytes"));
+            assertThat(line).startsWith("bytes");
         }
     }
 
@@ -72,8 +69,8 @@ public class StreamStoreBenchmarks {
         try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id))) {
             byte[] firstBytes = new byte[16];
             int read = inputStream.read(firstBytes);
-            assertThat(read, is(16));
-            assertArrayEquals(table.getLargeStreamFirstBytes(), firstBytes);
+            assertThat(read).isEqualTo(16);
+            assertThat(firstBytes).isEqualTo(table.getLargeStreamFirstBytes());
         }
     }
 
@@ -89,8 +86,8 @@ public class StreamStoreBenchmarks {
         try (InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, id))) {
             byte[] firstBytes = new byte[16];
             int read = inputStream.read(firstBytes);
-            assertThat(read, is(16));
-            assertArrayEquals(table.getVeryLargeStreamFirstBytes(), firstBytes);
+            assertThat(read).isEqualTo(16);
+            assertThat(firstBytes).isEqualTo(table.getVeryLargeStreamFirstBytes());
         }
     }
 }

@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.eq;
@@ -60,7 +59,7 @@ public class LockStoreTest {
     public void lockIsInitiallyOpen() {
         Set<LockEntry> lockEntries = lockStore.allLockEntries();
 
-        assertThat(lockEntries, contains(LockStoreImpl.LOCK_OPEN));
+        assertThat(lockEntries).containsExactly(LockStoreImpl.LOCK_OPEN);
     }
 
     @Test
@@ -74,7 +73,7 @@ public class LockStoreTest {
     public void canAcquireLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
-        assertThat(lockStore.allLockEntries(), contains(lockEntry));
+        assertThat(lockStore.allLockEntries()).containsExactly(lockEntry);
     }
 
     @Test(expected = CheckAndSetException.class)
@@ -102,7 +101,7 @@ public class LockStoreTest {
         LockStore otherLockStore = LockStoreImpl.create(kvs);
         LockEntry otherLockEntry = otherLockStore.acquireBackupLock("grabbed by other store");
 
-        assertThat(lockStore.allLockEntries(), contains(otherLockEntry));
+        assertThat(lockStore.allLockEntries()).containsExactly(otherLockEntry);
     }
 
     @Test
@@ -110,7 +109,7 @@ public class LockStoreTest {
         LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
         lockStore.releaseLock(lockEntry);
 
-        assertThat(lockStore.allLockEntries(), contains(LockStoreImpl.LOCK_OPEN));
+        assertThat(lockStore.allLockEntries()).containsExactly(LockStoreImpl.LOCK_OPEN);
     }
 
     @Test(expected = CheckAndSetException.class)

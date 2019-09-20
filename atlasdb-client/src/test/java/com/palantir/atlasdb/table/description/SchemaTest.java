@@ -20,15 +20,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,6 +35,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -64,11 +62,10 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH),
-                allOf(
+        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH)).is(new HamcrestCondition<>(allOf(
                         containsString("import com.google.common.base.Optional"),
                         containsString("{@link Optional}"),
-                        containsString("Optional.absent")));
+                        containsString("Optional.absent"))));
     }
 
     @Test
@@ -76,10 +73,9 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH),
-                allOf(
+        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH)).is(new HamcrestCondition<>(allOf(
                         containsString("import com.google.common.base.Optional"),
-                        not(containsString("import java.util.Optional"))));
+                        not(containsString("import java.util.Optional")))));
     }
 
     @Test
@@ -87,10 +83,9 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH),
-                allOf(
+        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH)).is(new HamcrestCondition<>(allOf(
                         not(containsString("import com.google.common.base.Optional")),
-                        containsString("import java.util.Optional")));
+                        containsString("import java.util.Optional"))));
     }
 
     @Test

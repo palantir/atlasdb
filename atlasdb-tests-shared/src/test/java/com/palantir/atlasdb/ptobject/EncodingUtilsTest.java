@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.ptobject;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -49,8 +47,8 @@ public class EncodingUtilsTest {
         byte[] ffFlipped = EncodingUtils.flipAllBits(ff);
         byte[] ooFlipped = EncodingUtils.flipAllBits(oo);
 
-        assertArrayEquals(oo, ffFlipped);
-        assertArrayEquals(ff, ooFlipped);
+        assertThat(ffFlipped).isEqualTo(oo);
+        assertThat(ooFlipped).isEqualTo(ff);
     }
 
     @Test
@@ -58,7 +56,7 @@ public class EncodingUtilsTest {
         byte[] bytes = new byte[1000];
         for(int i=0; i<100; i++) {
             rand.nextBytes(bytes);
-            assertArrayEquals(bytes, EncodingUtils.flipAllBits(EncodingUtils.flipAllBits(bytes)));
+            assertThat(EncodingUtils.flipAllBits(EncodingUtils.flipAllBits(bytes))).isEqualTo(bytes);
         }
     }
 
@@ -68,38 +66,38 @@ public class EncodingUtilsTest {
             byte[] bytes = new byte[1000];
             rand.nextBytes(bytes);
             String str = new String(bytes);
-            assertArrayEquals(str.getBytes(), EncodingUtils.decodeVarString(EncodingUtils.encodeVarString(str)).getBytes());
-            assertEquals(EncodingUtils.sizeOfVarString(str), EncodingUtils.encodeVarString(str).length);
+            assertThat(EncodingUtils.decodeVarString(EncodingUtils.encodeVarString(str)).getBytes()).isEqualTo(str.getBytes());
+            assertThat(EncodingUtils.encodeVarString(str).length).isEqualTo(EncodingUtils.sizeOfVarString(str));
         }
     }
 
     @Test
     public void testVarSimple() {
-        assertEquals(Long.MIN_VALUE, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(Long.MIN_VALUE)));
-        assertEquals(-2L, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(-2)));
-        assertEquals(-1L, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(-1)));
-        assertEquals(0L, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(0)));
-        assertEquals(1L, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(1)));
-        assertEquals(2L, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(2)));
-        assertEquals(Long.MAX_VALUE, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(Long.MAX_VALUE)));
+        assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(Long.MIN_VALUE))).isEqualTo(Long.MIN_VALUE);
+        assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(-2))).isEqualTo(-2L);
+        assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(-1))).isEqualTo(-1L);
+        assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(0))).isEqualTo(0L);
+        assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(1))).isEqualTo(1L);
+        assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(2))).isEqualTo(2L);
+        assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(Long.MAX_VALUE))).isEqualTo(Long.MAX_VALUE);
         for (int i = 0 ; i < 1000; i++) {
             long nextLong = rand.nextLong();
-            assertEquals(nextLong, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong)));
+            assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong))).isEqualTo(nextLong);
         }
 
         for (int i = 0 ; i < 1000; i++) {
             long nextLong = rand.nextInt();
-            assertEquals(nextLong, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong)));
+            assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong))).isEqualTo(nextLong);
         }
 
         for (int i = 0 ; i < 1000; i++) {
             long nextLong = rand.nextInt(1<<20);
-            assertEquals(nextLong, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong)));
+            assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong))).isEqualTo(nextLong);
         }
 
         for (int i = 0 ; i < 1000; i++) {
             long nextLong = rand.nextInt(1<<10);
-            assertEquals(nextLong, EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong)));
+            assertThat(EncodingUtils.decodeVarLong(EncodingUtils.encodeVarLong(nextLong))).isEqualTo(nextLong);
         }
     }
 
@@ -139,8 +137,8 @@ public class EncodingUtilsTest {
         long last = 0;
         for (Map.Entry<byte[], Long> e : map.entrySet()) {
             long l = e.getValue();
-            assertEquals(l, EncodingUtils.decodeVarLong(e.getKey()));
-            assertTrue(Arrays.equals(e.getKey(), EncodingUtils.encodeVarLong(l)));
+            assertThat(EncodingUtils.decodeVarLong(e.getKey())).isEqualTo(l);
+            assertThat(Arrays.equals(e.getKey(), EncodingUtils.encodeVarLong(l))).isTrue();
             if (l < last) {
                 String lString = PtBytes.encodeHexString(EncodingUtils.encodeVarLong(l));
                 String lastString = PtBytes.encodeHexString(EncodingUtils.encodeVarLong(last));
@@ -153,31 +151,31 @@ public class EncodingUtilsTest {
 
     @Test
     public void testVarSigned() {
-        assertEquals(Long.MIN_VALUE, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(Long.MIN_VALUE)));
-        assertEquals(-2L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(-2)));
-        assertEquals(-1L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(-1)));
-        assertEquals(0L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(0)));
-        assertEquals(1L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(1)));
-        assertEquals(2L, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(2)));
-        assertEquals(Long.MAX_VALUE, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(Long.MAX_VALUE)));
+        assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(Long.MIN_VALUE))).isEqualTo(Long.MIN_VALUE);
+        assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(-2))).isEqualTo(-2L);
+        assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(-1))).isEqualTo(-1L);
+        assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(0))).isEqualTo(0L);
+        assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(1))).isEqualTo(1L);
+        assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(2))).isEqualTo(2L);
+        assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(Long.MAX_VALUE))).isEqualTo(Long.MAX_VALUE);
         for (int i = 0 ; i < 1000; i++) {
             long nextLong = rand.nextLong();
-            assertEquals(nextLong, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong)));
+            assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong))).isEqualTo(nextLong);
         }
 
         for (int i = 0 ; i < 1000; i++) {
             long nextLong = rand.nextInt();
-            assertEquals(nextLong, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong)));
+            assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong))).isEqualTo(nextLong);
         }
 
         for (int i = 0 ; i < 1000; i++) {
             long nextLong = rand.nextInt(1<<20);
-            assertEquals(nextLong, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong)));
+            assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong))).isEqualTo(nextLong);
         }
 
         for (int i = 0 ; i < 1000; i++) {
             long nextLong = rand.nextInt(1<<10);
-            assertEquals(nextLong, EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong)));
+            assertThat(EncodingUtils.decodeSignedVarLong(EncodingUtils.encodeSignedVarLong(nextLong))).isEqualTo(nextLong);
         }
     }
 
@@ -193,7 +191,7 @@ public class EncodingUtilsTest {
 
         int index = 0;
         for (int i = 0; i < 1000; i++) {
-            assertEquals(longs[i], EncodingUtils.decodeSignedVarLong(b, index));
+            assertThat(EncodingUtils.decodeSignedVarLong(b, index)).isEqualTo(longs[i]);
             index += EncodingUtils.sizeOfSignedVarLong(longs[i]);
         }
     }
@@ -234,8 +232,8 @@ public class EncodingUtilsTest {
         long last = Long.MIN_VALUE;
         for (Map.Entry<byte[], Long> e : map.entrySet()) {
             long l = e.getValue();
-            assertEquals(l, EncodingUtils.decodeSignedVarLong(e.getKey()));
-            assertTrue(Arrays.equals(e.getKey(), EncodingUtils.encodeSignedVarLong(l)));
+            assertThat(EncodingUtils.decodeSignedVarLong(e.getKey())).isEqualTo(l);
+            assertThat(Arrays.equals(e.getKey(), EncodingUtils.encodeSignedVarLong(l))).isTrue();
             if (l < last) {
                 String lString = PtBytes.encodeHexString(EncodingUtils.encodeVarLong(l));
                 String lastString = PtBytes.encodeHexString(EncodingUtils.encodeVarLong(last));
@@ -282,7 +280,7 @@ public class EncodingUtilsTest {
 
             List<Object> result = EncodingUtils.fromBytes(b, types);
 
-            assertEquals(components, result);
+            assertThat(result).isEqualTo(components);
         }
     }
 }

@@ -16,7 +16,6 @@
 package com.palantir.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.net.MalformedURLException;
@@ -90,7 +89,7 @@ public class PaxosRemotingUtilsTest {
         for (int i = 0; i < nodes; i++) {
             acceptorList.add(null);
         }
-        assertEquals(expected, PaxosRemotingUtils.getQuorumSize(acceptorList));
+        assertThat(PaxosRemotingUtils.getQuorumSize(acceptorList)).isEqualTo(expected);
     }
 
     @Test

@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.schema;
 
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.regex.Pattern;
 

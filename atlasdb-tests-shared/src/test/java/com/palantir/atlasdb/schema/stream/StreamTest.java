@@ -15,17 +15,8 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -143,10 +134,10 @@ public class StreamTest extends AtlasDbTestCase {
         });
         txManager.runTaskWithRetry((TransactionTask<Void, Exception>) t -> {
             Optional<InputStream> inputStream = defaultStore.loadSingleStream(t, streamId);
-            assertTrue(inputStream.isPresent());
+            assertThat(inputStream.isPresent()).isTrue();
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             outputStream.write(inputStream.get());
-            assertArrayEquals(data, outputStream.toByteArray());
+            assertThat(outputStream.toByteArray()).isEqualTo(data);
             return null;
         });
     }
@@ -162,7 +153,7 @@ public class StreamTest extends AtlasDbTestCase {
                     new ByteArrayInputStream(data), reference);
         });
         txManager.runTaskWithRetry((TransactionTask<Void, Exception>) t -> {
-            assertThat(defaultStore.loadSingleStream(t, streamId ^ 1L), is(Optional.empty()));
+            assertThat(defaultStore.loadSingleStream(t, streamId ^ 1L)).isEqualTo(Optional.empty());
             return null;
         });
     }
@@ -173,7 +164,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamValueRow hydratedRow =
                 StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        assertEquals(row, hydratedRow);
+        assertThat(hydratedRow).isEqualTo(row);
     }
 
     @Test
@@ -182,7 +173,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamMetadataRow hydratedRow =
                 StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        assertEquals(row, hydratedRow);
+        assertThat(hydratedRow).isEqualTo(row);
     }
 
     @Test
@@ -191,7 +182,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamIdxRow hydratedRow =
                 StreamTestWithHashStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        assertEquals(row, hydratedRow);
+        assertThat(hydratedRow).isEqualTo(row);
     }
 
     @Test
@@ -200,7 +191,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         TestHashComponentsStreamValueRow hydratedRow =
                 TestHashComponentsStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        assertEquals(row, hydratedRow);
+        assertThat(hydratedRow).isEqualTo(row);
     }
 
     @Test
@@ -209,7 +200,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         TestHashComponentsStreamMetadataRow hydratedRow =
                 TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        assertEquals(row, hydratedRow);
+        assertThat(hydratedRow).isEqualTo(row);
     }
 
     @Test
@@ -218,7 +209,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         TestHashComponentsStreamIdxRow hydratedRow =
                 TestHashComponentsStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        assertEquals(row, hydratedRow);
+        assertThat(hydratedRow).isEqualTo(row);
     }
 
     @Test
@@ -338,7 +329,7 @@ public class StreamTest extends AtlasDbTestCase {
 
     private void verifyLoadSingleStream(PersistentStreamStore store, long id, byte[] toStore) throws IOException {
         Optional<InputStream> stream = txManager.runTaskThrowOnConflict(t -> store.loadSingleStream(t, id));
-        assertTrue(stream.isPresent());
+        assertThat(stream.isPresent()).isTrue();
         assertStreamHasBytes(stream.get(), toStore);
     }
 
@@ -350,12 +341,12 @@ public class StreamTest extends AtlasDbTestCase {
 
     private void verifyLoadStreamAsFile(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
         File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
-        assertArrayEquals(bytesToStore, FileUtils.readFileToByteArray(file));
+        assertThat(FileUtils.readFileToByteArray(file)).isEqualTo(bytesToStore);
     }
 
     private void assertStreamHasBytes(InputStream stream, byte[] bytes) throws IOException {
         byte[] streamAsBytes = IOUtils.toByteArray(stream);
-        assertArrayEquals(bytes, streamAsBytes);
+        assertThat(streamAsBytes).isEqualTo(bytes);
         stream.close();
     }
 
@@ -576,9 +567,9 @@ public class StreamTest extends AtlasDbTestCase {
         Map<Sha256Hash, Long> sha256HashLongMap = txManager.runTaskWithRetry(
                 t -> defaultStore.lookupStreamIdsByHash(t, ImmutableSet.of(hash1, hash2, hash3)));
 
-        assertEquals(id1, sha256HashLongMap.get(hash1).longValue());
-        assertEquals(id2, sha256HashLongMap.get(hash2).longValue());
-        assertNull(sha256HashLongMap.get(hash3));
+        assertThat(sha256HashLongMap.get(hash1).longValue()).isEqualTo(id1);
+        assertThat(sha256HashLongMap.get(hash2).longValue()).isEqualTo(id2);
+        assertThat(sha256HashLongMap.get(hash3)).isNull();
     }
 
     @Test
@@ -599,8 +590,8 @@ public class StreamTest extends AtlasDbTestCase {
         Pair<Long, Sha256Hash> idAndHash1 = defaultStore.storeStream(new ByteArrayInputStream(bytes));
         Pair<Long, Sha256Hash> idAndHash2 = defaultStore.storeStream(new ByteArrayInputStream(bytes));
 
-        assertThat(idAndHash1.getRhSide(), equalTo(idAndHash2.getRhSide()));        //verify hashes are the same
-        assertThat(idAndHash1.getLhSide(), not(equalTo(idAndHash2.getLhSide())));   //verify ids are different
+        assertThat(idAndHash1.getRhSide()).isEqualTo(idAndHash2.getRhSide());        //verify hashes are the same
+        assertThat(idAndHash1.getLhSide()).isNotEqualTo(idAndHash2.getLhSide());   //verify ids are different
     }
 
     @Test
@@ -645,8 +636,8 @@ public class StreamTest extends AtlasDbTestCase {
         });
 
         Optional<InputStream> stream = getStream(streamId);
-        assertTrue(stream.isPresent());
-        assertNotNull(stream.get());
+        assertThat(stream.isPresent()).isTrue();
+        assertThat(stream.get()).isNotNull();
     }
 
     @Test
@@ -658,7 +649,7 @@ public class StreamTest extends AtlasDbTestCase {
         long id = storeStream(compressedStore, input, PtBytes.toBytes("ref"));
         long numBlocksUsed = getStreamBlockSize(getStreamMetadata(id));
 
-        assertEquals(expectedBlocksUsed, numBlocksUsed);
+        assertThat(numBlocksUsed).isEqualTo(expectedBlocksUsed);
     }
 
     private StreamMetadata getStreamMetadata(long id) {
@@ -683,7 +674,7 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     private void assertStreamDoesNotExist(final long streamId) {
-        assertFalse("This element should have been deleted", getStream(streamId).isPresent());
+        assertThat(getStream(streamId).isPresent()).describedAs("This element should have been deleted").isFalse();
     }
 
     private void runConflictingTasksConcurrently(long streamId, TwoConflictingTasks tasks) throws InterruptedException {

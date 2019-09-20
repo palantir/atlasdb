@@ -15,8 +15,7 @@
  */
 package com.palantir.timestamp;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -41,8 +40,8 @@ public class DelegatingManagedTimestampServiceTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        assertFalse(managedTimestampService.isInitialized());
-        assertTrue(managedTimestampService.isInitialized());
+        assertThat(managedTimestampService.isInitialized()).isFalse();
+        assertThat(managedTimestampService.isInitialized()).isTrue();
     }
 
     @Test

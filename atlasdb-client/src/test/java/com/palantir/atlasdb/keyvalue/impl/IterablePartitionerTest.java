@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.List;
 
-import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -100,7 +100,7 @@ public class IterablePartitionerTest {
         );
         int i = 1;
         for (List<Integer> partition : partitions) {
-            Assert.assertThat(partition, Matchers.contains(i));
+            assertThat(partition).containsExactly(i);
             i++;
         }
     }

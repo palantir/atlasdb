@@ -15,10 +15,8 @@
  */
 package com.palantir.common.proxy;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +59,7 @@ public class InterruptibleProxyTest {
 
             @Override
             public String remove(int arg0) {
-                assertNotEquals(Thread.currentThread(), callingThread);
+                assertThat(callingThread).isNotEqualTo(Thread.currentThread());
                 while(true) {
                     try {
                         Thread.sleep(100);
@@ -86,17 +84,17 @@ public class InterruptibleProxyTest {
         @SuppressWarnings("unchecked")
         List<String> proxy =
                 InterruptibleProxy.newProxyInstance(List.class, strings, CancelDelegate.CANCEL);
-        assertEquals("Foo", proxy.get(0));
+        assertThat(proxy.get(0)).isEqualTo("Foo");
         try {
             Thread.currentThread().interrupt();
-            assertEquals("Foo", proxy.get(1));
+            assertThat(proxy.get(1)).isEqualTo("Foo");
             fail("Should be interrupted");
         } catch (PalantirInterruptedException e) {
             // Should get here
         }
 
         try {
-            assertEquals("Foo", proxy.get(1000));
+            assertThat(proxy.get(1000)).isEqualTo("Foo");
             fail("Should throw exception");
         } catch (IndexOutOfBoundsException e) {
             // Should get here
@@ -111,7 +109,7 @@ public class InterruptibleProxyTest {
 
         barrier.await();
 
-        assertTrue(gotInterrupted.get());
+        assertThat(gotInterrupted.get()).isTrue();
     }
 
 }

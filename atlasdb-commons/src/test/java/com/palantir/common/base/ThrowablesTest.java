@@ -15,10 +15,8 @@
  */
 package com.palantir.common.base;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -39,8 +37,8 @@ public class ThrowablesTest {
             fail("Should not get here");
         } catch (TwoArgConstructorException e) {
             TwoArgConstructorException wrapped = Throwables.rewrap(e);
-            assertEquals(e.getMessage(), wrapped.getMessage());
-            assertSame(e, wrapped.getCause());
+            assertThat(wrapped.getMessage()).isEqualTo(e.getMessage());
+            assertThat(wrapped.getCause()).isSameAs(e);
         }
 
 
@@ -49,8 +47,8 @@ public class ThrowablesTest {
             fail("Should not get here");
         } catch (SQLException e) {
             SQLException wrapped = Throwables.rewrap(e);
-            assertEquals(e.getMessage(), wrapped.getMessage());
-            assertSame(e, wrapped.getCause());
+            assertThat(wrapped.getMessage()).isEqualTo(e.getMessage());
+            assertThat(wrapped.getCause()).isSameAs(e);
         }
 
         try {
@@ -59,9 +57,9 @@ public class ThrowablesTest {
         } catch (NoUsefulConstructorException e) {
             int sizeBefore = e.getStackTrace().length;
             NoUsefulConstructorException wrapped = Throwables.rewrap(e);
-            assertSame(e, wrapped);
+            assertThat(wrapped).isSameAs(e);
             int sizeAfter = e.getStackTrace().length;
-            assertTrue(sizeAfter + " should be > " + sizeBefore, sizeAfter > sizeBefore);
+            assertThat(sizeAfter > sizeBefore).describedAs(sizeAfter + " should be > " + sizeBefore).isTrue();
         }
     }
 

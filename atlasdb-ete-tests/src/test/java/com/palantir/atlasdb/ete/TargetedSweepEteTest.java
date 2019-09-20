@@ -16,13 +16,11 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -106,16 +104,16 @@ public class TargetedSweepEteTest {
     }
 
     private void assertDeleted(long idx, long hash, long meta, long val) {
-        Assert.assertThat(todoClient.numberOfCellsDeleted(INDEX_TABLE), equalTo(idx));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(HASH_TABLE), equalTo(hash));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(METADATA_TABLE), equalTo(meta));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(VALUES_TABLE), equalTo(val));
+        assertThat(todoClient.numberOfCellsDeleted(INDEX_TABLE)).isEqualTo(idx);
+        assertThat(todoClient.numberOfCellsDeleted(HASH_TABLE)).isEqualTo(hash);
+        assertThat(todoClient.numberOfCellsDeleted(METADATA_TABLE)).isEqualTo(meta);
+        assertThat(todoClient.numberOfCellsDeleted(VALUES_TABLE)).isEqualTo(val);
     }
 
     private void assertDeletedAndSwept(long idx, long hash, long meta, long val) {
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(INDEX_TABLE), equalTo(idx));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(HASH_TABLE), equalTo(hash));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(METADATA_TABLE), equalTo(meta));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(VALUES_TABLE), equalTo(val));
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(INDEX_TABLE)).isEqualTo(idx);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(HASH_TABLE)).isEqualTo(hash);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(METADATA_TABLE)).isEqualTo(meta);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(VALUES_TABLE)).isEqualTo(val);
     }
 }

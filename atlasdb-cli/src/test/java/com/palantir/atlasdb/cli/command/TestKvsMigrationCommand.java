@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -143,9 +142,9 @@ public class TestKvsMigrationCommand {
                 }
                 Map<Cell, byte[]> expected = expectedBuilder.build();
                 Map<Cell, byte[]> result = t.get(table, expected.keySet());
-                Assert.assertEquals(expected.keySet(), result.keySet());
+                assertThat(result.keySet()).isEqualTo(expected.keySet());
                 for (Entry<Cell, byte[]> e : result.entrySet()) {
-                    Assert.assertArrayEquals(expected.get(e.getKey()), e.getValue());
+                    assertThat(e.getValue()).isEqualTo(expected.get(e.getKey()));
                 }
                 return null;
             });

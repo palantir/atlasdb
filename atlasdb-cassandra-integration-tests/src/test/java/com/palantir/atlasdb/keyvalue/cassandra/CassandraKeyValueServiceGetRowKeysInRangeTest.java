@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -161,9 +159,9 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     }
 
     private static void assertListsMatch(List<byte[]> result, List<byte[]> expected) {
-        assertThat(result.size(), is(expected.size()));
+        assertThat(result.size()).isEqualTo(expected.size());
         for (int i = 0; i < result.size(); i++) {
-            assertArrayEquals(result.get(i), expected.get(i));
+            assertThat(expected.get(i)).isEqualTo(result.get(i));
         }
     }
 }

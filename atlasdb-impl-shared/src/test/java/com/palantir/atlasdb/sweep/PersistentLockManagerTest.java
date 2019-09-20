@@ -15,12 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -76,7 +72,7 @@ public class PersistentLockManagerTest {
     public void canAcquireLock() {
         manager.acquirePersistentLockWithRetry();
 
-        assertThat(manager.lockId, is(mockLockId));
+        assertThat(manager.lockId).isEqualTo(mockLockId);
         verify(mockPls, times(1)).acquireBackupLock("Sweep");
     }
 
@@ -97,10 +93,10 @@ public class PersistentLockManagerTest {
         whenWeGetTheLockFirstTimeAndThenHoldItForever();
 
         manager.acquirePersistentLockWithRetry();
-        assertThat(manager.lockId, is(FIRST_LOCK_ID));
+        assertThat(manager.lockId).isEqualTo(FIRST_LOCK_ID);
 
         manager.acquirePersistentLockWithRetry();
-        assertThat(manager.lockId, is(FIRST_LOCK_ID)); // same lockId - we didn't get a new one
+        assertThat(manager.lockId).isEqualTo(FIRST_LOCK_ID); // same lockId - we didn't get a new one
     }
 
     @Test
@@ -109,7 +105,7 @@ public class PersistentLockManagerTest {
         manager.acquirePersistentLockWithRetry();
         manager.releasePersistentLock();
 
-        assertThat(manager.lockId, nullValue());
+        assertThat(manager.lockId).isNull();
         verify(mockPls, times(1)).releaseBackupLock(mockLockId);
     }
 
@@ -120,7 +116,7 @@ public class PersistentLockManagerTest {
         manager.acquirePersistentLockWithRetry();
         manager.releasePersistentLock();
 
-        assertThat(manager.lockId, is(mockLockId));
+        assertThat(manager.lockId).isEqualTo(mockLockId);
     }
 
     @Test
@@ -131,7 +127,7 @@ public class PersistentLockManagerTest {
         manager.releasePersistentLock();
         manager.releasePersistentLock();
 
-        assertThat(manager.lockId, nullValue());
+        assertThat(manager.lockId).isNull();
     }
 
     @Test
@@ -141,7 +137,7 @@ public class PersistentLockManagerTest {
         manager.acquirePersistentLockWithRetry();
         manager.shutdown();
 
-        assertThat(manager.lockId, nullValue());
+        assertThat(manager.lockId).isNull();
     }
 
     @Test
@@ -178,7 +174,7 @@ public class PersistentLockManagerTest {
         whenWeGetTheLockFirstTimeAndThenHoldItForever();
 
         manager.acquirePersistentLockWithRetry();
-        assertThat(manager.lockId, is(FIRST_LOCK_ID));
+        assertThat(manager.lockId).isEqualTo(FIRST_LOCK_ID);
 
         try {
             manager.releasePersistentLock();
@@ -187,7 +183,7 @@ public class PersistentLockManagerTest {
         }
 
         manager.acquirePersistentLockWithRetry();
-        assertThat(manager.lockId, is(FIRST_LOCK_ID));
+        assertThat(manager.lockId).isEqualTo(FIRST_LOCK_ID);
     }
 
     @Test
@@ -242,7 +238,7 @@ public class PersistentLockManagerTest {
         manager.tryAcquirePersistentLock();
 
         verify(mockPls, times(2)).acquireBackupLock("Sweep");
-        assertNull(manager.lockId);
+        assertThat(manager.lockId).isNull();
     }
 
     @Test
@@ -289,8 +285,7 @@ public class PersistentLockManagerTest {
     public void noOpPersistentLockDoesNotThrow() {
         PersistentLockManager noOpManager = new PersistentLockManager(
                 metricsManager, new NoOpPersistentLockService(), 0L);
-        assertTrue("NoOpPersistentLockService should return true when acquiring lock",
-                noOpManager.tryAcquirePersistentLock());
+        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock").isTrue();
         noOpManager.releasePersistentLock();
     }
 
@@ -298,10 +293,8 @@ public class PersistentLockManagerTest {
     public void noOpPersistentLockCanLockTwice() {
         PersistentLockManager noOpManager = new PersistentLockManager(
                 metricsManager, new NoOpPersistentLockService(), 0L);
-        assertTrue("NoOpPersistentLockService should return true when acquiring lock",
-                noOpManager.tryAcquirePersistentLock());
-        assertTrue("NoOpPersistentLockService should return true when acquiring lock for the second time",
-                noOpManager.tryAcquirePersistentLock());
+        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock").isTrue();
+        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock for the second time").isTrue();
     }
 
     private void whenWeGetTheLockFirstTimeAndThenHoldItForever() {

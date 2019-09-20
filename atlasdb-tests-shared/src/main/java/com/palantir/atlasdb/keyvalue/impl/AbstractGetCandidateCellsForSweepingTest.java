@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 import java.util.Map;
@@ -71,11 +70,11 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .store();
         List<CandidateCellForSweeping> cells = getAllCandidates(
                 conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 2000L, 2));
-        assertEquals(ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
+        assertThat(cells).isEqualTo(ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
                 .cell(cell(10, 1))
                 .isLatestValueEmpty(false)
                 .sortedTimestamps(ImmutableList.of(1000L, 1001L, 1002L, 1003L, 1004L))
-                .build()), cells);
+                .build()));
     }
 
     @Test
@@ -212,7 +211,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 }
             }
         }
-        assertEquals((1 + 50) * 50 / 2, expectedCells.size());
+        assertThat(expectedCells.size()).isEqualTo((1 + 50) * 50 / 2);
         builder.store();
         List<CandidateCellForSweeping> candidates = getAllCandidates(
                 ImmutableCandidateCellForSweepingRequest.builder()
@@ -222,8 +221,8 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                         .shouldDeleteGarbageCollectionSentinels(false)
                         .batchSizeHint(1)
                         .build());
-        assertEquals(expectedCells,
-                candidates.stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()));
+        assertThat(candidates.stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
+                .isEqualTo(expectedCells);
     }
 
     protected List<CandidateCellForSweeping> getAllCandidates(CandidateCellForSweepingRequest request) {

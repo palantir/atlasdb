@@ -17,8 +17,6 @@ package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -71,8 +69,8 @@ public class TimeLockClientTest {
                 .thenReturn(true);
         when(timestampService.isInitialized()).thenReturn(true);
 
-        assertFalse(timelock.isInitialized());
-        assertTrue(timelock.isInitialized());
+        assertThat(timelock.isInitialized()).isFalse();
+        assertThat(timelock.isInitialized()).isTrue();
     }
 
     @Test

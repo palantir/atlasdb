@@ -17,12 +17,6 @@ package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -326,12 +320,12 @@ public class TransactionManagersTest {
                 .build()
                 .serializable();
 
-        assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
+        assertThat(LockRequest.getDefaultLockTimeout()).isEqualTo(expectedTimeout);
 
         LockRequest lockRequest = LockRequest
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"),
                         LockMode.WRITE)).build();
-        assertEquals(expectedTimeout, lockRequest.getLockTimeout());
+        assertThat(lockRequest.getLockTimeout()).isEqualTo(expectedTimeout);
     }
 
     @Test
@@ -407,7 +401,7 @@ public class TransactionManagersTest {
                 .build()
                 .serializable();
         assertThat(metrics.getNames().stream()
-                .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+                .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME))).isEqualTo(false);
     }
 
     @Test
@@ -417,11 +411,11 @@ public class TransactionManagersTest {
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(true)
                 .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
-                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+                .lockImmutableTsOnReadOnlyTransactions()).isEqualTo(true);
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                 .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
-                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+                .lockImmutableTsOnReadOnlyTransactions()).isEqualTo(false);
     }
 
     @Test
@@ -436,11 +430,11 @@ public class TransactionManagersTest {
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                 .withConsolidatedGrabImmutableTsLockFlag(transactionConfigLocking)
-                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+                .lockImmutableTsOnReadOnlyTransactions()).isEqualTo(true);
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                 .withConsolidatedGrabImmutableTsLockFlag(transactionConfigNotLocking)
-                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+                .lockImmutableTsOnReadOnlyTransactions()).isEqualTo(false);
     }
 
     private TransactionManagers withLockImmutableTsOnReadOnlyTransaction(boolean option) {
@@ -493,7 +487,7 @@ public class TransactionManagersTest {
         when(migrator.isInitialized()).thenReturn(true);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
 
-        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices)).isTrue();
     }
 
     @Test
@@ -501,14 +495,14 @@ public class TransactionManagersTest {
         when(migrator.isInitialized()).thenReturn(false);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
 
-        assertFalse(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices)).isFalse();
     }
 
     @Test
     public void timeLockMigrationReportsReadyIfMigrationNotNeeded() {
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.empty());
 
-        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices)).isTrue();
     }
 
     @Test
@@ -543,21 +537,20 @@ public class TransactionManagersTest {
         setUpTimeLockBlockInInstallConfig();
         verifyUsingTimeLockByGettingAFreshTimestamp();
 
-        assertTrue("Runtime config was not expected to contain a timelock block",
-                !runtimeConfig.timelockRuntime().isPresent());
+        assertThat(!runtimeConfig.timelockRuntime().isPresent()).describedAs("Runtime config was not expected to contain a timelock block").isTrue();
     }
 
     @Test
     public void timelockServiceStatusReturnsHealthyWithoutRequest() {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
-        assertTrue(tm.getTimelockServiceStatus().isHealthy());
+        assertThat(tm.getTimelockServiceStatus().isHealthy()).isTrue();
     }
 
     @Test
     public void timelockServiceStatusReturnsHealthyAfterSuccessfulRequests() {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
         tm.getUnreadableTimestamp();
-        assertTrue(tm.getTimelockServiceStatus().isHealthy());
+        assertThat(tm.getTimelockServiceStatus().isHealthy()).isTrue();
     }
 
     @Test
@@ -590,7 +583,7 @@ public class TransactionManagersTest {
                 .build()
                 .serializable();
 
-        assertFalse(manager.isInitialized());
+        assertThat(manager.isInitialized()).isFalse();
         assertThatThrownBy(() -> manager.runTaskWithRetry(unused -> null)).isInstanceOf(NotInitializedException.class);
 
         Awaitility.await().atMost(12, TimeUnit.SECONDS).until(manager::isInitialized);
@@ -601,25 +594,25 @@ public class TransactionManagersTest {
     @Test
     public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isEqualTo(true);
     }
 
     @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesDisabledButTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, true);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isEqualTo(true);
     }
 
     @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isEqualTo(true);
     }
 
     @Test
     public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(false));
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isEqualTo(false);
     }
 
     private KeyValueService initializeKeyValueServiceWithSweepSettings(
@@ -666,7 +659,7 @@ public class TransactionManagersTest {
         Map<RangeScanTestTable.RangeScanTestRow, Long> result = manager.runTaskWithRetry(tx ->
                 GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).getColumn1s(ImmutableSet.of(testRow)));
 
-        assertThat(Iterables.getOnlyElement(result.entrySet()).getValue(), is(12345L));
+        assertThat(Iterables.getOnlyElement(result.entrySet()).getValue()).isEqualTo(12345L);
     }
 
     private void verifyUsingTimeLockByGettingAFreshTimestamp() {
@@ -676,15 +669,15 @@ public class TransactionManagersTest {
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
-        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(0L)));
-        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount()).isEqualTo(0L);
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(0L);
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
-        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(1L)));
-        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(1L)));
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount()).isEqualTo(1L);
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(1L);
     }
 
     private void assertThatTimeAndLockMetricsWithTagsAreRecorded(

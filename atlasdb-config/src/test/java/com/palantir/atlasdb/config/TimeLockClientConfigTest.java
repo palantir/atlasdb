@@ -15,11 +15,8 @@
  */
 package com.palantir.atlasdb.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItems;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
@@ -50,13 +47,13 @@ public class TimeLockClientConfigTest {
     @Test
     public void canGetNamespacedConfigsFromTimelockBlock() {
         ServerListConfig namespacedConfig = MULTIPLE_SERVER_CONFIG.toNamespacedServerList();
-        assertThat(namespacedConfig.servers(), hasItems(SERVER_1 + "/" + CLIENT, SERVER_2 + "/" + CLIENT));
+        assertThat(namespacedConfig.servers()).contains(SERVER_1 + "/" + CLIENT, SERVER_2 + "/" + CLIENT);
     }
 
     @Test
     public void preservesSslOnConversionToNamespacedServerListIfPresent() {
         ServerListConfig namespacedConfig = CLIENT_CONFIG.toNamespacedServerList();
-        assertThat(namespacedConfig.sslConfiguration(), equalTo(Optional.of(SSL_CONFIGURATION)));
+        assertThat(namespacedConfig.sslConfiguration()).isEqualTo(Optional.of(SSL_CONFIGURATION));
     }
 
     @Test
@@ -65,7 +62,7 @@ public class TimeLockClientConfigTest {
                 .withSslConfiguration(Optional.empty());
         TimeLockClientConfig config = ImmutableTimeLockClientConfig.copyOf(CLIENT_CONFIG)
                 .withServersList(serversListWithoutSsl);
-        assertThat(config.toNamespacedServerList().sslConfiguration(), equalTo(Optional.empty()));
+        assertThat(config.toNamespacedServerList().sslConfiguration()).isEqualTo(Optional.empty());
     }
 
     @Test
@@ -84,7 +81,7 @@ public class TimeLockClientConfigTest {
                 .build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .satisfies((exception) ->
-                        assertThat(exception.getMessage(), containsString("Timelock client string cannot be empty")));
+                        assertThat(exception.getMessage()).contains("Timelock client string cannot be empty"));
     }
 
     @Test

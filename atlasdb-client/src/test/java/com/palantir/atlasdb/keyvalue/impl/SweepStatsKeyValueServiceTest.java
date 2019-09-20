@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,20 +53,20 @@ public class SweepStatsKeyValueServiceTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        assertFalse(kvs.isInitialized());
-        assertTrue(kvs.isInitialized());
+        assertThat(kvs.isInitialized()).isFalse();
+        assertThat(kvs.isInitialized()).isTrue();
     }
 
     @Test
     public void deleteRangeAllCountsAsClearingTheTable() throws Exception {
         kvs.deleteRange(TABLE, RangeRequest.all());
-        assertTrue(kvs.hasBeenCleared(TABLE));
+        assertThat(kvs.hasBeenCleared(TABLE)).isTrue();
     }
 
     @Test
     public void otherDeleteRangeDoesNotCountAsClearingTheTable() throws Exception {
         RangeRequest request = RangeRequest.builder().startRowInclusive(ROW).build();
         kvs.deleteRange(TABLE, request);
-        assertFalse(kvs.hasBeenCleared(TABLE));
+        assertThat(kvs.hasBeenCleared(TABLE)).isFalse();
     }
 }

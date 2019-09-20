@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BrokenBarrierException;
@@ -124,7 +122,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
         // retrieve the metadata and see that it's the same as what we just put in
         byte[] existingMetadata = kvs.getMetadataForTable(missingMetadataTable);
-        assertThat(initialMetadata, is(existingMetadata));
+        assertThat(initialMetadata).isEqualTo(existingMetadata);
 
         // Directly get and delete the metadata (`get` necessary to get the fake timestamp putMetadataForTables used)
         Cell cell = Cell.create(
@@ -140,7 +138,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
         // retrieve the metadata again and see that it's the same as what we just put in
         existingMetadata = kvs.getMetadataForTable(missingMetadataTable);
-        assertThat(initialMetadata, is(existingMetadata));
+        assertThat(initialMetadata).isEqualTo(existingMetadata);
     }
 
     @Test
@@ -164,11 +162,11 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
         // retrieve the metadata and see that it's the same as what we just put in
         byte[] existingMetadata = kvs.getMetadataForTable(caseSensitiveTable);
-        assertThat(initialMetadata, is(existingMetadata));
+        assertThat(initialMetadata).isEqualTo(existingMetadata);
 
         // retrieve same metadata with a wacky cased version of the "same" name
         existingMetadata = kvs.getMetadataForTable(wackyCasedTable);
-        assertThat(initialMetadata, is(existingMetadata));
+        assertThat(initialMetadata).isEqualTo(existingMetadata);
 
         kvs.dropTable(caseSensitiveTable);
     }
@@ -185,15 +183,11 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 .filter(cfDef -> cfDef.name.equals(
                         AbstractKeyValueService.internalTableName(TransactionConstants.TRANSACTIONS2_TABLE)))
                 .collect(MoreCollectors.onlyElement());
-        assertThat(transactions2CfDef.bloom_filter_fp_chance, equalTo(
-                CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE));
-        assertThat(transactions2CfDef.min_index_interval,
-                equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL));
-        assertThat(transactions2CfDef.max_index_interval,
-                equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL));
-        assertThat(transactions2CfDef.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
-                equalTo(String.valueOf(
-                        TransactionConstants.TRANSACTIONS2_TABLE_METADATA.getExplicitCompressionBlockSizeKB())));
+        assertThat(transactions2CfDef.bloom_filter_fp_chance).isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE);
+        assertThat(transactions2CfDef.min_index_interval).isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL);
+        assertThat(transactions2CfDef.max_index_interval).isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL);
+        assertThat(transactions2CfDef.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)).isEqualTo(String.valueOf(
+                        TransactionConstants.TRANSACTIONS2_TABLE_METADATA.getExplicitCompressionBlockSizeKB()));
     }
 
     private static CassandraKeyValueService kvsWithSchemaMutationTimeout(int millis) {

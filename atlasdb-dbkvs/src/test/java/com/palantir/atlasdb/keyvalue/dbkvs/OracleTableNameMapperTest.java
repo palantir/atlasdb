@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -71,7 +70,7 @@ public class OracleTableNameMapperTest {
         TableReference tableRef = TableReference.create(Namespace.create("ns1"), "short");
         String shortPrefixedTableName = oracleTableNameMapper
                 .getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
-        assertThat(shortPrefixedTableName, is("a_ns__short_0000"));
+        assertThat(shortPrefixedTableName).isEqualTo("a_ns__short_0000");
     }
 
     @Test
@@ -93,7 +92,7 @@ public class OracleTableNameMapperTest {
     public void shouldGetRightPrimaryKeyConstraintForTableNamesWithinLimits() {
         String tableName = "table";
         String pkConstraintName = PrimaryKeyConstraintNames.get(tableName);
-        assertThat(pkConstraintName, is(AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX + tableName));
+        assertThat(pkConstraintName).isEqualTo(AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX + tableName);
     }
 
     private String getTableNameWithNumber(int tableNum) {

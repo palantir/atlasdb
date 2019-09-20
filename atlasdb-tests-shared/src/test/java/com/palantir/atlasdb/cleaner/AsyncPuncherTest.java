@@ -118,7 +118,7 @@ public class AsyncPuncherTest {
             Thread.sleep(ASYNC_PUNCHER_INTERVAL);
             retrieved = puncher.getTimestampSupplier().get();
         }
-        assertThat(expected).isEqualTo(retrieved);
+        assertThat(retrieved).isEqualTo(expected);
     }
 
 }

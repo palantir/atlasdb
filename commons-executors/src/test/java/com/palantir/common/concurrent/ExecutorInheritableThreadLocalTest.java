@@ -15,8 +15,7 @@
  */
 package com.palantir.common.concurrent;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -26,7 +25,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
@@ -121,7 +119,7 @@ public class ExecutorInheritableThreadLocalTest {
     @Test
     public void testNullable() {
         local.set(null);
-        assertNull(local.get());
+        assertThat(local.get()).isNull();
     }
 
     @Test
@@ -129,19 +127,19 @@ public class ExecutorInheritableThreadLocalTest {
         local.set("whatup");
         ListeningExecutorService sameThreadExecutor = MoreExecutors.newDirectExecutorService();
         sameThreadExecutor.submit(PTExecutors.wrap(Callables.returning(null)));
-        Assert.assertEquals("whatup", local.get());
+        assertThat(local.get()).isEqualTo("whatup");
     }
 
     @Test
     public void testRemove() {
         local.get();
         local.remove();
-        assertEquals(orig, local.get());
+        assertThat(local.get()).isEqualTo(orig);
     }
 
     @Test
     public void testCreate() {
-        assertEquals(orig, local.get());
+        assertThat(local.get()).isEqualTo(orig);
     }
 
     @Test
@@ -149,7 +147,7 @@ public class ExecutorInheritableThreadLocalTest {
         String str = "whatup";
         local.set(str);
         Future<String> future = exec.submit(local::get);
-        assertEquals(str, future.get());
+        assertThat(future.get()).isEqualTo(str);
     }
 
     @Test
@@ -160,7 +158,7 @@ public class ExecutorInheritableThreadLocalTest {
             return null;
         });
         future.get();
-        assertEquals(ImmutableList.of(11, 12), outputList);
+        assertThat(outputList).isEqualTo(ImmutableList.of(11, 12));
     }
 
     @Test
@@ -168,16 +166,16 @@ public class ExecutorInheritableThreadLocalTest {
         nullInts.remove();
         nullCallCount.set(new AtomicInteger(0));
         Preconditions.checkArgument(nullInts.get() == null);
-        assertEquals(1, nullCallCount.get().get());
+        assertThat(nullCallCount.get().get()).isEqualTo(1);
         Future<?> future = exec.submit((Callable<Void>) () -> {
-            assertEquals(3, nullCallCount.get().get());
+            assertThat(nullCallCount.get().get()).isEqualTo(3);
             Preconditions.checkArgument(nullInts.get() == null);
-            assertEquals(3, nullCallCount.get().get());
+            assertThat(nullCallCount.get().get()).isEqualTo(3);
             return null;
         });
         future.get();
-        assertEquals(3, nullCallCount.get().get());
+        assertThat(nullCallCount.get().get()).isEqualTo(3);
         Preconditions.checkArgument(nullInts.get() == null);
-        assertEquals(3, nullCallCount.get().get());
+        assertThat(nullCallCount.get().get()).isEqualTo(3);
     }
 }

@@ -15,19 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -61,13 +55,13 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.jmock.lib.concurrent.Synchroniser;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -332,36 +326,36 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         long val = concurrentlyIncrementValueThousandTimesAndGet();
-        assertEquals(1000, val);
+        assertThat(val).isEqualTo(1000);
     }
 
     @Test
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
         long val = concurrentlyIncrementValueThousandTimesAndGet();
-        assertEquals(1000, val);
+        assertThat(val).isEqualTo(1000);
         TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
                 .hasPlaceholderWriteWriteConflictsSatisfying(conflicts ->
-                        assertThat(conflicts, greaterThanOrEqualTo(1L)));
+                        assertThat(conflicts).is(new HamcrestCondition<>(greaterThanOrEqualTo(1L))));
     }
 
     @Test
     public void testConcurrentWriteIgnoreConflicts() throws InterruptedException, ExecutionException {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.IGNORE_ALL);
         long val = concurrentlyIncrementValueThousandTimesAndGet();
-        assertThat(val, Matchers.lessThan(1000L));
+        assertThat(val).is(new HamcrestCondition<>(Matchers.lessThan(1000L)));
     }
 
     @Test
     public void testImmutableTs() throws Exception {
         final long firstTs = timestampService.getFreshTimestamp();
         long startTs = txManager.runTaskThrowOnConflict(t -> {
-            Assert.assertTrue(firstTs < txManager.getImmutableTimestamp());
-            Assert.assertTrue(txManager.getImmutableTimestamp() < t.getTimestamp());
-            Assert.assertTrue(t.getTimestamp() < timestampService.getFreshTimestamp());
+            assertThat(firstTs < txManager.getImmutableTimestamp()).isTrue();
+            assertThat(txManager.getImmutableTimestamp() < t.getTimestamp()).isTrue();
+            assertThat(t.getTimestamp() < timestampService.getFreshTimestamp()).isTrue();
             return t.getTimestamp();
         });
-        Assert.assertTrue(firstTs < txManager.getImmutableTimestamp());
-        Assert.assertTrue(startTs < txManager.getImmutableTimestamp());
+        assertThat(firstTs < txManager.getImmutableTimestamp()).isTrue();
+        assertThat(startTs < txManager.getImmutableTimestamp()).isTrue();
     }
 
     // If lock happens concurrent with get, we aren't sure that we can rollback the transaction
@@ -414,7 +408,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 pathTypeTracker);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
-            fail();
+            fail("fail");
         } catch (RuntimeException e) {
             //expected
         }
@@ -569,7 +563,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     return true;
                 }));
 
-        Assert.assertEquals(0, numRows.toInteger() % 5);
+        assertThat(numRows.toInteger() % 5).isEqualTo(0);
     }
 
     @Test
@@ -629,7 +623,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column" + columnNumber));
                 byte[] storedValue = t.get(TABLE, Collections.singleton(cell)).get(cell);
                 BigInteger expectedValue = writtenValues.get(transactionIndex).get(columnNumber);
-                assertEquals(expectedValue, new BigInteger(storedValue));
+                assertThat(new BigInteger(storedValue)).isEqualTo(expectedValue);
             }
         }
     }
@@ -652,13 +646,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // local writes still apply columnSelection
         RowResult<byte[]> rowResult1 = snapshotTx.getRows(TABLE, ImmutableList.of(row1), column1Selection).get(row1);
-        assertThat(rowResult1.getColumns(), hasEntry(row1Column1.getColumnName(), row1Column1Value));
-        assertThat(rowResult1.getColumns(), not(hasEntry(row1Column2.getColumnName(), row1Column2Value)));
+        assertThat(rowResult1.getColumns()).is(new HamcrestCondition<>(hasEntry(row1Column1.getColumnName(), row1Column1Value)));
+        assertThat(rowResult1.getColumns()).is(new HamcrestCondition<>(not(hasEntry(row1Column2.getColumnName(), row1Column2Value))));
 
         RowResult<byte[]> rowResult2 = snapshotTx.getRows(TABLE, ImmutableList.of(row1), ColumnSelection.all())
                 .get(row1);
-        assertThat(rowResult2.getColumns(), hasEntry(row1Column1.getColumnName(), row1Column1Value));
-        assertThat(rowResult2.getColumns(), hasEntry(row1Column2.getColumnName(), row1Column2Value));
+        assertThat(rowResult2.getColumns()).is(new HamcrestCondition<>(hasEntry(row1Column1.getColumnName(), row1Column1Value)));
+        assertThat(rowResult2.getColumns()).is(new HamcrestCondition<>(hasEntry(row1Column2.getColumnName(), row1Column2Value)));
     }
 
     @Test
@@ -677,7 +671,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.commit();
         try {
             t2.commit();
-            assertTrue(false);
+            assertThat(false).isTrue();
         } catch (TransactionConflictException e) {
             // We expect to catch this exception
         }
@@ -690,7 +684,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t2.commit();
         try {
             t1.commit();
-            assertTrue(false);
+            assertThat(false).isTrue();
         } catch (TransactionConflictException e) {
             // We expect to catch this exception
         }
@@ -728,8 +722,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .map(Optional::get)
                 .collect(Collectors.toList());
         if (!successfulTasks.isEmpty()) {
-            Assert.fail("Expected read to fail with TransactionFailedRetriableException, but it succeeded for: " +
-                    Joiner.on(", ").join(successfulTasks));
+            fail("Expected read to fail with TransactionFailedRetriableException, but it succeeded for: " +
+                            Joiner.on(", ").join(successfulTasks));
         }
     }
 
@@ -843,7 +837,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.commit();
         try {
             t2.commit();
-            fail();
+            fail("fail");
         } catch (TransactionConflictException e) {
             // good
         }
@@ -855,7 +849,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t2.commit();
         try {
             t1.commit();
-            fail();
+            fail("fail");
         } catch (TransactionConflictException e) {
             // good
         }
@@ -867,7 +861,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t2.commit();
         try {
             t1.commit();
-            fail();
+            fail("fail");
         } catch (TransactionConflictException e) {
             // good
         }
@@ -879,7 +873,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.commit();
         try {
             t2.commit();
-            fail();
+            fail("fail");
         } catch (TransactionConflictException e) {
             // good
         }
@@ -896,7 +890,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.commit();
         try {
             t2.commit();
-            fail();
+            fail("fail");
         } catch (TransactionConflictException e) {
             // good
         }
@@ -917,9 +911,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         RowResult<byte[]> rowResult = readRow(defaultRow);
 
-        assertThat(rowResult, is(notNullValue()));
-        assertThat(rowResult.getCellSet(), hasItem(writtenCell));
-        assertThat(rowResult.getCellSet(), not(hasItem(emptyCell)));
+        assertThat(rowResult).isNotNull();
+        assertThat(rowResult.getCellSet()).contains(writtenCell);
+        assertThat(rowResult.getCellSet()).doesNotContain(emptyCell);
     }
 
     @Test
@@ -930,11 +924,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
-            fail();
+            fail("fail");
         } catch (TransactionLockTimeoutNonRetriableException e) {
             LockDescriptor descriptor = Iterables.getFirst(expiredLockToken.getLockDescriptors(), null);
-            assertThat(e.getMessage(), containsString(descriptor.toString()));
-            assertThat(e.getMessage(), containsString("Retry is not possible."));
+            assertThat(e.getMessage()).contains(descriptor.toString());
+            assertThat(e.getMessage()).contains("Retry is not possible.");
         }
     }
 
@@ -953,9 +947,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
-            fail();
+            fail("fail");
         } catch (TransactionFailedRetriableException e) {
-            assertThat(e.getMessage(), containsString("Condition failed"));
+            assertThat(e.getMessage()).contains("Condition failed");
         }
     }
 
@@ -1025,9 +1019,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
-            fail();
+            fail("fail");
         } catch (TransactionFailedNonRetriableException e) {
-            assertThat(e.getMessage(), containsString("Condition failed"));
+            assertThat(e.getMessage()).contains("Condition failed");
         }
     }
 
@@ -1044,9 +1038,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         try {
             serializableTxManager.runTaskWithConditionReadOnly(ALWAYS_FAILS_CONDITION,
                     (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
-            fail();
+            fail("fail");
         } catch (TransactionFailedRetriableException e) {
-            assertThat(e.getMessage(), containsString("Condition failed"));
+            assertThat(e.getMessage()).contains("Condition failed");
         }
         TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
                 .hasFailedCommits(1);
@@ -1069,11 +1063,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
         });
-        assertThat(counter.intValue(), is(1));
+        assertThat(counter.intValue()).isEqualTo(1);
 
         serializableTxManager.runTaskWithConditionReadOnly(succeedsCondition,
                 (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
-        assertThat(counter.intValue(), is(2));
+        assertThat(counter.intValue()).isEqualTo(2);
     }
 
     @Test
@@ -1096,20 +1090,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
-            fail();
+            fail("fail");
         } catch (TransactionFailedRetriableException e) {
             // expected
         }
-        assertThat(counter.intValue(), is(1));
+        assertThat(counter.intValue()).isEqualTo(1);
 
         try {
             serializableTxManager.runTaskWithConditionReadOnly(failsCondition,
                     (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
-            fail();
+            fail("fail");
         } catch (TransactionFailedRetriableException e) {
             // expected
         }
-        assertThat(counter.intValue(), is(2));
+        assertThat(counter.intValue()).isEqualTo(2);
     }
 
     @Test
@@ -1147,7 +1141,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         BatchColumnRangeSelection.create(null, null, 10)).get(row))
                         .transform(Map.Entry::getKey)
                         .immutableCopy());
-        assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+        assertThat(cells).isEqualTo(ImmutableList.of(firstCell, secondCell));
     }
 
     @Test
@@ -1341,7 +1335,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         keyValueService.addGarbageCollectionSentinelValues(TABLE, ImmutableSet.of(cell));
         Transaction txn = txManager.createNewTransaction();
-        assertThat(txn.get(TABLE, ImmutableSet.of(cell)), is(ImmutableMap.of()));
+        assertThat(txn.get(TABLE, ImmutableSet.of(cell))).isEqualTo(ImmutableMap.of());
     }
 
     @Test

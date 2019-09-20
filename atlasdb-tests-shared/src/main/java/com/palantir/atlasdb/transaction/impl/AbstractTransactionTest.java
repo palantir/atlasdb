@@ -17,12 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -156,8 +151,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         String encodeHexString = BaseEncoding.base16().lowerCase().encode(bytes);
         putDirect("row" + i, "col" + i, encodeHexString, 0);
         Pair<String, Long> pair = getDirect("row" + i, "col" + i, 1);
-        assertEquals(0L, (long) pair.getRhSide());
-        assertEquals(encodeHexString, pair.getLhSide());
+        assertThat((long) pair.getRhSide()).isEqualTo(0L);
+        assertThat(pair.getLhSide()).isEqualTo(encodeHexString);
     }
 
     @Test
@@ -167,26 +162,26 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", eight, 0);
         putDirect("row2", "col1", sixteen, 0);
         Pair<String, Long> direct1 = getDirect("row1", "col1", 1);
-        assertEquals(eight, direct1.lhSide);
+        assertThat(direct1.lhSide).isEqualTo(eight);
         Pair<String, Long> direct2 = getDirect("row2", "col1", 1);
-        assertEquals(sixteen, direct2.lhSide);
+        assertThat(direct2.lhSide).isEqualTo(sixteen);
     }
 
     @Test
     public void testKeyValueRows() {
         putDirect("row1", "col1", "v1", 0);
         Pair<String, Long> pair = getDirect("row1", "col1", 1);
-        assertEquals(0L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(0L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
 
         putDirect("row1", "col1", "v2", 2);
         pair = getDirect("row1", "col1", 2);
-        assertEquals(0L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(0L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
 
         pair = getDirect("row1", "col1", 3);
-        assertEquals(2L, (long)pair.getRhSide());
-        assertEquals("v2", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(2L);
+        assertThat(pair.getLhSide()).isEqualTo("v2");
     }
 
     // we want PK violations on the Transaction table
@@ -206,17 +201,17 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     public void testEmptyValue() {
         putDirect("row1", "col1", "v1", 0);
         Pair<String, Long> pair = getDirect("row1", "col1", 1);
-        assertEquals(0L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(0L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
 
         putDirect("row1", "col1", "", 2);
         pair = getDirect("row1", "col1", 2);
-        assertEquals(0L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(0L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
 
         pair = getDirect("row1", "col1", 3);
-        assertEquals(2L, (long)pair.getRhSide());
-        assertEquals("", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(2L);
+        assertThat(pair.getLhSide()).isEqualTo("");
     }
 
     @Test
@@ -229,29 +224,29 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row2", "col4", "v4", 6);
 
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().build(), 1));
-        assertEquals(1, list.size());
+        assertThat(list.size()).isEqualTo(1);
         RowResult<Value> row = list.iterator().next();
-        assertEquals(1, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(1);
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().build(), 2));
-        assertEquals(2, list.size());
+        assertThat(list.size()).isEqualTo(2);
         row = list.iterator().next();
-        assertEquals(1, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(1);
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().build(), 3));
-        assertEquals(2, list.size());
+        assertThat(list.size()).isEqualTo(2);
         row = list.iterator().next();
-        assertEquals(2, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(2);
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().endRowExclusive(PtBytes.toBytes("row2")).build(), 3));
-        assertEquals(1, list.size());
+        assertThat(list.size()).isEqualTo(1);
         row = list.iterator().next();
-        assertEquals(2, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(2);
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().startRowInclusive(PtBytes.toBytes("row1a")).build(), 3));
-        assertEquals(1, list.size());
+        assertThat(list.size()).isEqualTo(1);
         row = list.iterator().next();
-        assertEquals(1, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(1);
     }
 
     @Test
@@ -260,7 +255,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         byte[] rowBytes = PtBytes.toBytes("row1");
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().startRowInclusive(rowBytes).endRowExclusive(rowBytes).build(), 1));
-        assertTrue(list.isEmpty());
+        assertThat(list.isEmpty()).isTrue();
     }
 
     @Test
@@ -350,27 +345,27 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         List<byte[]> selectedColumns = ImmutableList.of(PtBytes.toBytes("col2"));
         RangeRequest simpleRange = RangeRequest.builder().retainColumns(ColumnSelection.create(selectedColumns)).build();
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange, 1));
-        assertEquals(0, list.size());
+        assertThat(list.size()).isEqualTo(0);
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange, 2));
-        assertEquals(1, list.size());
+        assertThat(list.size()).isEqualTo(1);
         RowResult<Value> row = list.iterator().next();
-        assertEquals(1, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(1);
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange, 3));
-        assertEquals(2, list.size());
+        assertThat(list.size()).isEqualTo(2);
         row = list.iterator().next();
-        assertEquals(1, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(1);
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange.getBuilder().endRowExclusive(PtBytes.toBytes("row2")).build(), 3));
-        assertEquals(1, list.size());
+        assertThat(list.size()).isEqualTo(1);
         row = list.iterator().next();
-        assertEquals(1, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(1);
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange.getBuilder().startRowInclusive(PtBytes.toBytes("row1a")).build(), 3));
-        assertEquals(1, list.size());
+        assertThat(list.size()).isEqualTo(1);
         row = list.iterator().next();
-        assertEquals(1, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(1);
     }
 
     @Test
@@ -378,9 +373,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", "", 0);
 
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().build(), 1));
-        assertEquals(1, list.size());
+        assertThat(list.size()).isEqualTo(1);
         RowResult<Value> row = list.iterator().next();
-        assertEquals(1, row.getColumns().size());
+        assertThat(row.getColumns().size()).isEqualTo(1);
     }
 
     @Test
@@ -390,7 +385,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row2", "col2", "", 0);
 
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, ImmutableList.of(RangeRequest.builder().build(), RangeRequest.builder().build()), 1);
-        assertTrue(ranges.size() >= 1);
+        assertThat(ranges.size() >= 1).isTrue();
     }
 
     @Test
@@ -403,10 +398,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         final RangeRequest oneRange = RangeRequest.builder().startRowInclusive("row2".getBytes()).build();
         final RangeRequest allRangeBatch = RangeRequest.builder().batchHint(3).build();
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, ImmutableList.of(allRange, oneRange, allRangeBatch), 1);
-        assertTrue(ranges.get(allRange).getResults().size()>=1);
-        assertEquals(2, ranges.get(allRangeBatch).getResults().size());
-        assertFalse(ranges.get(allRangeBatch).moreResultsAvailable());
-        assertEquals(1, ranges.get(oneRange).getResults().size());
+        assertThat(ranges.get(allRange).getResults().size()>=1).isTrue();
+        assertThat(ranges.get(allRangeBatch).getResults().size()).isEqualTo(2);
+        assertThat(ranges.get(allRangeBatch).moreResultsAvailable()).isFalse();
+        assertThat(ranges.get(oneRange).getResults().size()).isEqualTo(1);
     }
 
     @Test
@@ -419,7 +414,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         for (int i = 0 ; i < 1000 ; i++) {
             ClosableIterator<RowResult<Value>> range = keyValueService.getRange(TEST_TABLE, allRange, 1);
             ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(range);
-            assertEquals(2, list.size());
+            assertThat(list.size()).isEqualTo(2);
         }
     }
 
@@ -433,7 +428,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         for (int i = 0 ; i < 1000 ; i++) {
             ClosableIterator<RowResult<Value>> range = keyValueService.getRange(TEST_TABLE, allRange, 1);
             ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(range);
-            assertEquals(1, list.size());
+            assertThat(list.size()).isEqualTo(1);
         }
     }
 
@@ -449,8 +444,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         RangeRequest allRange = RangeRequest.reverseBuilder().batchHint(3).build();
         ClosableIterator<RowResult<Value>> range = keyValueService.getRange(TEST_TABLE, allRange, 1);
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(range);
-        assertEquals(2, list.size());
-        assertEquals("row2", PtBytes.toString(list.iterator().next().getRowName()));
+        assertThat(list.size()).isEqualTo(2);
+        assertThat(PtBytes.toString(list.iterator().next().getRowName())).isEqualTo("row2");
     }
 
     @Test
@@ -461,8 +456,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }
 
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(RangeRequest.builder().batchHint(1000).build()), 100), 1);
-        assertEquals(1, ranges.keySet().size());
-        assertEquals(totalPuts, ranges.values().iterator().next().getResults().size());
+        assertThat(ranges.keySet().size()).isEqualTo(1);
+        assertThat(ranges.values().iterator().next().getResults().size()).isEqualTo(totalPuts);
     }
 
     @Test
@@ -476,8 +471,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }
 
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(RangeRequest.reverseBuilder().batchHint(1000).build()), 100), 1);
-        assertEquals(1, ranges.keySet().size());
-        assertEquals(totalPuts, ranges.values().iterator().next().getResults().size());
+        assertThat(ranges.keySet().size()).isEqualTo(1);
+        assertThat(ranges.values().iterator().next().getResults().size()).isEqualTo(totalPuts);
     }
 
     @Test
@@ -489,9 +484,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(rangeRequest), 100), 1);
-        assertEquals(1, ranges.keySet().size());
-        assertEquals(1, ranges.values().iterator().next().getResults().size());
-        assertEquals("row0", PtBytes.toString(ranges.values().iterator().next().getResults().iterator().next().getRowName()));
+        assertThat(ranges.keySet().size()).isEqualTo(1);
+        assertThat(ranges.values().iterator().next().getResults().size()).isEqualTo(1);
+        assertThat(PtBytes.toString(ranges.values().iterator().next().getResults().iterator().next().getRowName())).isEqualTo("row0");
     }
 
     @Test
@@ -506,18 +501,18 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         RangeRequest rangeRequest = RangeRequest.reverseBuilder().batchHint(1).build();
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(rangeRequest), 100), 1);
-        assertEquals(1, ranges.keySet().size());
-        assertEquals(1, ranges.values().iterator().next().getResults().size());
-        assertEquals("row99", PtBytes.toString(ranges.values().iterator().next().getResults().iterator().next().getRowName()));
+        assertThat(ranges.keySet().size()).isEqualTo(1);
+        assertThat(ranges.values().iterator().next().getResults().size()).isEqualTo(1);
+        assertThat(PtBytes.toString(ranges.values().iterator().next().getResults().iterator().next().getRowName())).isEqualTo("row99");
     }
 
     @Test
     public void testRangePageBatchSizeOne() {
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Collections.singleton(rangeRequest), 1);
-        assertEquals(1, ranges.keySet().size());
-        assertEquals(0, ranges.values().iterator().next().getResults().size());
-        assertEquals(false, ranges.values().iterator().next().moreResultsAvailable());
+        assertThat(ranges.keySet().size()).isEqualTo(1);
+        assertThat(ranges.values().iterator().next().getResults().size()).isEqualTo(0);
+        assertThat(ranges.values().iterator().next().moreResultsAvailable()).isEqualTo(false);
     }
 
     @Test
@@ -526,9 +521,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row2", "col2", "", 0);
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Collections.singleton(rangeRequest), 1);
-        assertEquals(1, ranges.keySet().size());
+        assertThat(ranges.keySet().size()).isEqualTo(1);
         TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page = ranges.values().iterator().next();
-        assertTrue(!page.getResults().isEmpty() || page.moreResultsAvailable());
+        assertThat(!page.getResults().isEmpty() || page.moreResultsAvailable()).isTrue();
     }
 
     @Test
@@ -545,19 +540,19 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect(rowName, columnName, value, ts-1000);
 
         Pair<String, Long> get = getDirect(rowName, columnName, ts + 1);
-        assertEquals(Pair.create(value, ts), get);
+        assertThat(get).isEqualTo(Pair.create(value, ts));
 
         get = getDirect(rowName, columnName, ts);
-        assertEquals(Pair.create(value, ts-1), get);
+        assertThat(get).isEqualTo(Pair.create(value, ts-1));
 
         get = getDirect(rowName, columnName, ts-1);
-        assertEquals(Pair.create(value, ts-1000), get);
+        assertThat(get).isEqualTo(Pair.create(value, ts-1000));
 
         get = getDirect(rowName, columnName, ts-999);
-        assertEquals(Pair.create(value, ts-1000), get);
+        assertThat(get).isEqualTo(Pair.create(value, ts-1000));
 
         get = getDirect(rowName, columnName, ts-1000);
-        assertNull(get);
+        assertThat(get).isNull();
     }
 
     @Test
@@ -567,9 +562,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row3", "col2", "", 0);
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Collections.singleton(rangeRequest), 1);
-        assertEquals(1, ranges.keySet().size());
+        assertThat(ranges.keySet().size()).isEqualTo(1);
         TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page = ranges.values().iterator().next();
-        assertTrue(page.moreResultsAvailable());
+        assertThat(page.moreResultsAvailable()).isTrue();
     }
 
     @Test
@@ -582,16 +577,16 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row3", "col2", "", 5);
         RangeRequest rangeRequest = RangeRequest.reverseBuilder().batchHint(1).build();
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Collections.singleton(rangeRequest), 1);
-        assertEquals(1, ranges.keySet().size());
+        assertThat(ranges.keySet().size()).isEqualTo(1);
         TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page = ranges.values().iterator().next();
-        assertTrue(page.moreResultsAvailable());
+        assertThat(page.moreResultsAvailable()).isTrue();
     }
 
     @Test
     public void testRangeBatchSizeOne() {
         RangeRequest range = RangeRequest.builder().batchHint(1).build();
         ClosableIterator<RowResult<Value>> ranges = keyValueService.getRange(TEST_TABLE, range, 1);
-        assertEquals(false, ranges.hasNext());
+        assertThat(ranges.hasNext()).isEqualTo(false);
     }
 
     @Test
@@ -618,8 +613,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Iterable<BatchingVisitable<RowResult<byte[]>>> ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(range1, range2), 1000));
         for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
             final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
-            assertEquals(1, list.size());
-            assertEquals(1, list.get(0).getColumns().size());
+            assertThat(list.size()).isEqualTo(1);
+            assertThat(list.get(0).getColumns().size()).isEqualTo(1);
         }
         RangeRequest range3 = range1.getBuilder().retainColumns(ColumnSelection.create(ImmutableSet.of(PtBytes.toBytes("col2")))).build();
         verifyAllGetRangesImplsRangeSizes(t, range3, 0);
@@ -635,7 +630,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         ClosableIterator<RowResult<Value>> range = keyValueService.getRange(TEST_TABLE, RangeRequest.builder().batchHint(1000).build(), 1);
         try {
             int reads = Iterators.size(range);
-            assertEquals(totalPuts, reads);
+            assertThat(reads).isEqualTo(totalPuts);
         } finally {
             range.close();
         }
@@ -754,26 +749,26 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     protected void verifyMatchingResult(List<Map.Entry<Cell, byte[]>> expected, byte[] row, Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange) {
-        assertEquals(1, columnRange.size());
-        assertArrayEquals(row, Iterables.getOnlyElement(columnRange.keySet()));
+        assertThat(columnRange.size()).isEqualTo(1);
+        assertThat(Iterables.getOnlyElement(columnRange.keySet())).isEqualTo(row);
         BatchingVisitable<Map.Entry<Cell, byte[]>> batchingVisitable = Iterables.getOnlyElement(columnRange.values());
         List<Map.Entry<Cell, byte[]>> results = BatchingVisitables.copyToList(batchingVisitable);
-        assertEquals(expected.size(), results.size());
+        assertThat(results.size()).isEqualTo(expected.size());
         for (int i = 0 ; i < expected.size() ; i++) {
-            assertEquals(expected.get(i).getKey(), results.get(i).getKey());
-            assertArrayEquals(expected.get(i).getValue(), results.get(i).getValue());
+            assertThat(results.get(i).getKey()).isEqualTo(expected.get(i).getKey());
+            assertThat(results.get(i).getValue()).isEqualTo(expected.get(i).getValue());
         }
     }
 
     protected void verifyMatchingResultForIterator(List<Map.Entry<Cell, byte[]>> expected, byte[] row, Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange) {
-        assertEquals(1, columnRange.size());
-        assertArrayEquals(row, Iterables.getOnlyElement(columnRange.keySet()));
+        assertThat(columnRange.size()).isEqualTo(1);
+        assertThat(Iterables.getOnlyElement(columnRange.keySet())).isEqualTo(row);
         Iterator<Map.Entry<Cell, byte[]>> iterator = Iterables.getOnlyElement(columnRange.values());
         List<Map.Entry<Cell, byte[]>> results = Lists.newArrayList(iterator);
-        assertEquals(expected.size(), results.size());
+        assertThat(results.size()).isEqualTo(expected.size());
         for (int i = 0 ; i < expected.size() ; i++) {
-            assertEquals(expected.get(i).getKey(), results.get(i).getKey());
-            assertArrayEquals(expected.get(i).getValue(), results.get(i).getValue());
+            assertThat(results.get(i).getKey()).isEqualTo(expected.get(i).getKey());
+            assertThat(results.get(i).getValue()).isEqualTo(expected.get(i).getValue());
         }
     }
 
@@ -855,8 +850,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] v = PtBytes.toBytes(value);
         Map<Cell, byte[]> map = ImmutableMap.of(k, v);
         keyValueService.multiPut(ImmutableMap.of(TEST_TABLE, map, table, map), 0);
-        assertEquals(value, getDirect("row", "col", 1).lhSide);
-        assertEquals(value, getDirect(table, "row", "col", 1).lhSide);
+        assertThat(getDirect("row", "col", 1).lhSide).isEqualTo(value);
+        assertThat(getDirect(table, "row", "col", 1).lhSide).isEqualTo(value);
         keyValueService.dropTable(table);
     }
 
@@ -864,11 +859,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     public void testKeyValueDelete() {
         putDirect("row1", "col1", "v1", 0);
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
-        assertEquals(0L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(0L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
         keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 0L)));
         pair = getDirect("row1", "col1", 2);
-        assertNull(pair);
+        assertThat(pair).isNull();
     }
 
     @Test
@@ -876,12 +871,12 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", "v1", 1);
         putDirect("row1", "col1", "v2", 2);
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
-        assertEquals(2L, (long)pair.getRhSide());
-        assertEquals("v2", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(2L);
+        assertThat(pair.getLhSide()).isEqualTo("v2");
         keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 2L)));
         pair = getDirect("row1", "col1", 3);
-        assertEquals(1L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(1L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
     }
 
     @Test
@@ -889,12 +884,12 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", "v0", 0);
         putDirect("row1", "col1", "v1", 1);
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
-        assertEquals(1L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(1L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
         keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         pair = getDirect("row1", "col1", 2);
-        assertEquals(0L, (long)pair.getRhSide());
-        assertEquals("v0", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(0L);
+        assertThat(pair.getLhSide()).isEqualTo("v0");
     }
 
     @Test
@@ -902,11 +897,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", "v0", 0);
         putDirect("row1", "col1", "v1", 10);
         Pair<String, Long> pair = getDirect("row1", "col1", 11);
-        assertEquals(10L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(10L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
         pair = getDirect("row1", "col1", 2);
-        assertEquals(0L, (long)pair.getRhSide());
-        assertEquals("v0", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(0L);
+        assertThat(pair.getLhSide()).isEqualTo("v0");
     }
 
     @Test
@@ -914,12 +909,12 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", "v0", 0);
         putDirect("row1", "col1", "v1", 1);
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
-        assertEquals(1L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(1L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
         keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 0L)));
         pair = getDirect("row1", "col1", 2);
-        assertEquals(1L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(1L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
     }
 
     @Test
@@ -927,25 +922,25 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", "v1", 1);
         putDirect("row1", "col1", "v2", 2);
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
-        assertEquals(2L, (long)pair.getRhSide());
-        assertEquals("v2", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(2L);
+        assertThat(pair.getLhSide()).isEqualTo("v2");
         keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         pair = getDirect("row1", "col1", 3);
-        assertEquals(2L, (long)pair.getRhSide());
-        assertEquals("v2", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(2L);
+        assertThat(pair.getLhSide()).isEqualTo("v2");
     }
 
     @Test
     public void testKeyValueDelete7() {
         putDirect("row1", "col1", "v2", 2);
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
-        assertEquals(2L, (long)pair.getRhSide());
-        assertEquals("v2", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(2L);
+        assertThat(pair.getLhSide()).isEqualTo("v2");
         keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 3L)));
         pair = getDirect("row1", "col1", 3);
-        assertEquals(2L, (long)pair.getRhSide());
-        assertEquals("v2", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(2L);
+        assertThat(pair.getLhSide()).isEqualTo("v2");
     }
 
     @Test
@@ -956,11 +951,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", "v4", 4);
         putDirect("row1", "col1", "v5", 5);
         Pair<String, Long> pair = getDirect("row1", "col1", 6);
-        assertEquals(5L, (long)pair.getRhSide());
-        assertEquals("v5", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(5L);
+        assertThat(pair.getLhSide()).isEqualTo("v5");
         pair = getDirect("row1", "col1", 2);
-        assertEquals(1L, (long)pair.getRhSide());
-        assertEquals("v1", pair.getLhSide());
+        assertThat((long)pair.getRhSide()).isEqualTo(1L);
+        assertThat(pair.getLhSide()).isEqualTo("v1");
     }
 
     // This test is required to pass if you want your KV store to support hard delete
@@ -970,19 +965,19 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(k));
         putDirect("row1", "col1", "v3", 3);
         Pair<String, Long> pair = getDirect("row1", "col1", Long.MAX_VALUE);
-        assertEquals("v3", pair.getLhSide());
+        assertThat(pair.getLhSide()).isEqualTo("v3");
         pair = getDirect("row1", "col1", 0);
-        assertEquals("", pair.getLhSide());
-        assertEquals(-1L, (long)pair.getRhSide());
+        assertThat(pair.getLhSide()).isEqualTo("");
+        assertThat((long)pair.getRhSide()).isEqualTo(-1L);
 
         keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(k, 3L));
         pair = getDirect("row1", "col1", Long.MAX_VALUE);
-        assertEquals("", pair.getLhSide());
-        assertEquals(-1L, (long)pair.getRhSide());
+        assertThat(pair.getLhSide()).isEqualTo("");
+        assertThat((long)pair.getRhSide()).isEqualTo(-1L);
         Multimap<Cell, Long> allTimestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(k), 0);
-        assertEquals(1, allTimestamps.size());
+        assertThat(allTimestamps.size()).isEqualTo(1);
         allTimestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(k), Long.MAX_VALUE);
-        assertEquals(1, allTimestamps.size());
+        assertThat(allTimestamps.size()).isEqualTo(1);
     }
 
     @Test
@@ -996,11 +991,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Map<Cell, Value> results = keyValueService.get(TEST_TABLE, ImmutableMap.of(cell1, 5L, cell2, 8L));
 
         Value v = results.get(cell1);
-        assertEquals(1L, v.getTimestamp());
-        assertEquals("v1", new String(v.getContents()));
+        assertThat(v.getTimestamp()).isEqualTo(1L);
+        assertThat(new String(v.getContents())).isEqualTo("v1");
         v = results.get(cell2);
-        assertEquals(3L, v.getTimestamp());
-        assertEquals("v3", new String(v.getContents()));
+        assertThat(v.getTimestamp()).isEqualTo(3L);
+        assertThat(new String(v.getContents())).isEqualTo("v3");
     }
 
     @Test
@@ -1009,15 +1004,15 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         put(t, "row1", "col1", "v1");
         put(t, "row1", "col2", "v2");
         put(t, "row2", "col1", "v3");
-        assertEquals("v1", get(t, "row1", "col1"));
-        assertEquals("v2", get(t, "row1", "col2"));
-        assertEquals("v3", get(t, "row2", "col1"));
+        assertThat(get(t, "row1", "col1")).isEqualTo("v1");
+        assertThat(get(t, "row1", "col2")).isEqualTo("v2");
+        assertThat(get(t, "row2", "col1")).isEqualTo("v3");
         t.commit();
 
         t = startTransaction();
-        assertEquals("v1", get(t, "row1", "col1"));
-        assertEquals("v2", get(t, "row1", "col2"));
-        assertEquals("v3", get(t, "row2", "col1"));
+        assertThat(get(t, "row1", "col1")).isEqualTo("v1");
+        assertThat(get(t, "row1", "col2")).isEqualTo("v2");
+        assertThat(get(t, "row2", "col1")).isEqualTo("v3");
     }
 
     @Test
@@ -1030,9 +1025,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         t.commit();
 
         t = startTransaction();
-        assertEquals("v1", get(t, "row1", "col1"));
-        assertEquals("v2", get(t, "row1", "col2"));
-        assertEquals("v3", get(t, "row2", "col1"));
+        assertThat(get(t, "row1", "col1")).isEqualTo("v1");
+        assertThat(get(t, "row1", "col2")).isEqualTo("v2");
+        assertThat(get(t, "row2", "col1")).isEqualTo("v3");
         BatchingVisitable<RowResult<byte[]>> visitable = t.getRange(TEST_TABLE, RangeRequest.builder().build());
         put(t, "row0", "col1", "v5");
         put(t, "row1", "col1", "v5");
@@ -1045,14 +1040,14 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         visitable.batchAccept(100, AbortingVisitors.batching((RowVisitor) item -> {
             MapEntries.putAll(vals, item.getCells());
             if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
-                assertEquals(3, IterableView.of(item.getCells()).size());
-                assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
+                assertThat(IterableView.of(item.getCells()).size()).isEqualTo(3);
+                assertThat(new String(item.getColumns().get("col1".getBytes()))).isEqualTo("v5");
             }
             return true;
         }));
-        assertTrue(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes())));
-        assertTrue(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes()))));
-        assertFalse(vals.containsKey(Cell.create("row2".getBytes(), "col1".getBytes())));
+        assertThat(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes()))).isTrue();
+        assertThat(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes())))).isTrue();
+        assertThat(vals.containsKey(Cell.create("row2".getBytes(), "col1".getBytes()))).isFalse();
     }
 
     @Test
@@ -1066,9 +1061,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         t.commit();
 
         t = startTransaction();
-        assertEquals("v1", get(t, "row1", "col1"));
-        assertEquals("v2", get(t, "row1", "col2"));
-        assertEquals("v3", get(t, "row2", "col1"));
+        assertThat(get(t, "row1", "col1")).isEqualTo("v1");
+        assertThat(get(t, "row1", "col2")).isEqualTo("v2");
+        assertThat(get(t, "row2", "col1")).isEqualTo("v3");
 
         // we need a bunch of buffer writes so that we don't exhaust the local iterator right away
         // because of peeking iterators looking ahead
@@ -1093,14 +1088,14 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                     }
                     MapEntries.putAll(vals, item.getCells());
                     if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
-                        assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
-                        assertEquals(3, IterableView.of(item.getCells()).size());
+                        assertThat(new String(item.getColumns().get("col1".getBytes()))).isEqualTo("v5");
+                        assertThat(IterableView.of(item.getCells()).size()).isEqualTo(3);
                     }
                     return true;
                 }));
-                assertTrue(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes())));
-                assertTrue(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes()))));
-                assertFalse(vals.containsKey(Cell.create("row2".getBytes(), "col1".getBytes())));
+                assertThat(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes()))).isTrue();
+                assertThat(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes())))).isTrue();
+                assertThat(vals.containsKey(Cell.create("row2".getBytes(), "col1".getBytes()))).isFalse();
                 return null;
             } catch (Throwable t1) {
                 latch.countDown();
@@ -1130,16 +1125,16 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             put(t, "row1", "col1", "v1");
             put(t, "row1", "col2", "v2");
             put(t, "row2", "col1", "v3");
-            assertEquals("v1", get(t, "row1", "col1"));
-            assertEquals("v2", get(t, "row1", "col2"));
-            assertEquals("v3", get(t, "row2", "col1"));
+            assertThat(get(t, "row1", "col1")).isEqualTo("v1");
+            assertThat(get(t, "row1", "col2")).isEqualTo("v2");
+            assertThat(get(t, "row2", "col1")).isEqualTo("v3");
             return null;
         });
 
         getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
-            assertEquals("v1", get(t, "row1", "col1"));
-            assertEquals("v2", get(t, "row1", "col2"));
-            assertEquals("v3", get(t, "row2", "col1"));
+            assertThat(get(t, "row1", "col1")).isEqualTo("v1");
+            assertThat(get(t, "row1", "col2")).isEqualTo("v2");
+            assertThat(get(t, "row2", "col1")).isEqualTo("v3");
             return null;
         });
     }
@@ -1151,7 +1146,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 put(t, "row1", "col1", "v1");
                 return null;
             });
-            fail();
+            fail("fail");
         } catch (RuntimeException e) {
             // we want this to throw
         }
@@ -1161,9 +1156,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     public void testDelete() {
         getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
             put(t, "row1", "col1", "v1");
-            assertEquals("v1", get(t, "row1", "col1"));
+            assertThat(get(t, "row1", "col1")).isEqualTo("v1");
             delete(t, "row1", "col1");
-            assertEquals(null, get(t, "row1", "col1"));
+            assertThat(get(t, "row1", "col1")).isEqualTo(null);
             return null;
         });
 
@@ -1178,7 +1173,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         });
 
         getManager().runTaskWithRetry((TxTask) t -> {
-            assertEquals(null, get(t, "row1", "col1"));
+            assertThat(get(t, "row1", "col1")).isEqualTo(null);
             return null;
         });
 
@@ -1193,7 +1188,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         });
 
         getManager().runTaskWithRetry((TxTask) t -> {
-            assertEquals(null, get(t, "row1", "col1"));
+            assertThat(get(t, "row1", "col1")).isEqualTo(null);
             return null;
         });
     }
@@ -1206,7 +1201,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         put(t2, "row1", "col1", "v1");
         t2.commit();
 
-        assertNull(get(t1, "row1", "col1"));
+        assertThat(get(t1, "row1", "col1")).isNull();
     }
 
     @Test
@@ -1216,17 +1211,17 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         t0.commit();
 
         Transaction t1 = startTransaction();
-        assertEquals("v1", get(t1, "row1", "col1"));
+        assertThat(get(t1, "row1", "col1")).isEqualTo("v1");
 
         Transaction t2 = startTransaction();
         put(t2, "row1", "col1", "v2");
         t2.commit();
 
         // Repeated read: should see original value.
-        assertEquals("v1", get(t1, "row1", "col1"));
+        assertThat(get(t1, "row1", "col1")).isEqualTo("v1");
 
         Transaction t3 = startTransaction();
-        assertEquals("v2", get(t3, "row1", "col1"));
+        assertThat(get(t3, "row1", "col1")).isEqualTo("v2");
     }
 
     @Test
@@ -1313,11 +1308,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
-        assertTrue(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable));
+        assertThat(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable)).isTrue();
         byte[] bytes = TableMetadata.allDefault().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
-        assertTrue(Arrays.equals(bytes, bytesRead));
+        assertThat(Arrays.equals(bytes, bytesRead)).isTrue();
         bytes = new TableDefinition() {{
             rowName();
             rowComponent("row", ValueType.FIXED_LONG);
@@ -1332,7 +1327,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }}.toTableMetadata().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
-        assertTrue(Arrays.equals(bytes, bytesRead));
+        assertThat(Arrays.equals(bytes, bytesRead)).isTrue();
     }
 
     private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest templateRangeRequest, int expectedRangeSize) {
@@ -1345,13 +1340,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         List<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
-        assertEquals(getRangesWithPrefetchingImpl.size(), getRangesLazyImpl.size());
-        assertEquals(getRangesLazyImpl.size(), getRangesInParallelImpl.size());
+        assertThat(getRangesLazyImpl.size()).isEqualTo(getRangesWithPrefetchingImpl.size());
+        assertThat(getRangesInParallelImpl.size()).isEqualTo(getRangesLazyImpl.size());
 
         for (int i = 0; i < getRangesWithPrefetchingImpl.size(); i++) {
-            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesWithPrefetchingImpl.get(i)).size());
-            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesInParallelImpl.get(i)).size());
-            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesLazyImpl.get(i)).size());
+            assertThat(BatchingVisitables.copyToList(getRangesWithPrefetchingImpl.get(i)).size()).isEqualTo(expectedRangeSize);
+            assertThat(BatchingVisitables.copyToList(getRangesInParallelImpl.get(i)).size()).isEqualTo(expectedRangeSize);
+            assertThat(BatchingVisitables.copyToList(getRangesLazyImpl.get(i)).size()).isEqualTo(expectedRangeSize);
         }
     }
 
@@ -1363,9 +1358,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
-        assertEquals(expectedValues, extractStringsFromVisitables(getRangesWithPrefetchingImpl));
-        assertEquals(expectedValues, extractStringsFromVisitables(getRangesInParallelImpl));
-        assertEquals(expectedValues, extractStringsFromVisitables(getRangesLazyImpl));
+        assertThat(extractStringsFromVisitables(getRangesWithPrefetchingImpl)).isEqualTo(expectedValues);
+        assertThat(extractStringsFromVisitables(getRangesInParallelImpl)).isEqualTo(expectedValues);
+        assertThat(extractStringsFromVisitables(getRangesLazyImpl)).isEqualTo(expectedValues);
     }
 
     private List<String> extractStringsFromVisitables(Iterable<BatchingVisitable<RowResult<byte[]>>> visitables) {

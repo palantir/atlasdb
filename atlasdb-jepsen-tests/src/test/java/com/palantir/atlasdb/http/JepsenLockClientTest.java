@@ -15,11 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -59,13 +55,13 @@ public class JepsenLockClientTest {
     @Test
     public void unlockSingleReturnsTrueIfTokenCanBeUnlocked() throws InterruptedException {
         when(mockClient.unlock(any())).then(REPLY_WITH_FIRST_TOKEN);
-        assertTrue(client.unlockSingle(LOCK_TOKEN));
+        assertThat(client.unlockSingle(LOCK_TOKEN)).isTrue();
     }
 
     @Test
     public void unlockSingleReturnsFalseIfTokenCannotBeUnlocked() throws InterruptedException {
         when(mockClient.unlock(any())).thenReturn(ImmutableSet.of());
-        assertFalse(client.unlockSingle(LOCK_TOKEN));
+        assertThat(client.unlockSingle(LOCK_TOKEN)).isFalse();
     }
 
     @Test
@@ -83,13 +79,13 @@ public class JepsenLockClientTest {
     @Test
     public void refreshSingleReturnsTokenIfCanBeRefreshed() throws InterruptedException {
         when(mockClient.refresh(any())).then(REPLY_WITH_FIRST_TOKEN);
-        assertEquals(client.refreshSingle(LOCK_TOKEN), LOCK_TOKEN);
+        assertThat(LOCK_TOKEN).isEqualTo(client.refreshSingle(LOCK_TOKEN));
     }
 
     @Test
     public void refreshSingleReturnsNullIfCannotRefresh() throws InterruptedException {
         when(mockClient.refresh(any())).thenReturn(ImmutableSet.of());
-        assertThat(client.refreshSingle(LOCK_TOKEN), nullValue());
+        assertThat(client.refreshSingle(LOCK_TOKEN)).isNull();
     }
 
     static class StringLockClient implements JepsenLockClient<String> {

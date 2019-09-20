@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -27,7 +26,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -155,10 +153,10 @@ public class ReadTransactionShould {
             String errorMessage) {
         try {
             thrower.run();
-            Assert.fail();
+            fail("fail");
         } catch (Exception e) {
-            Assert.assertThat(e, is(instanceOf(exception)));
-            Assert.assertThat(e.getMessage(), containsString(errorMessage));
+            assertThat(e).isInstanceOf(exception);
+            assertThat(e.getMessage()).contains(errorMessage);
             verifyZeroInteractions(delegateTransaction);
         }
     }

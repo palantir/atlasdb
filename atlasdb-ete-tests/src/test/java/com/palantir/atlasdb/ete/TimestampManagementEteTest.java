@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.Test;
 
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
@@ -33,12 +32,12 @@ public class TimestampManagementEteTest {
 
     @Test
     public void shouldBeAbleToFetchAndForwardTimestamp() {
-        assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
+        assertThat(timestampClient.getFreshTimestamp()).isNotNull();
 
         long newts = timestampClient.getFreshTimestamp() + 10000000;
         timestampClient.fastForwardTimestamp(newts);
 
-        assertThat(timestampClient.getFreshTimestamp(), is(greaterThan(newts)));
+        assertThat(timestampClient.getFreshTimestamp()).is(new HamcrestCondition<>(is(greaterThan(newts))));
     }
 
 }

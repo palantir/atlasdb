@@ -15,8 +15,7 @@
  */
 package com.palantir.example.profile;
 
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -26,7 +25,6 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -67,7 +65,7 @@ public class ProfileStoreTest {
         final UUID userId = storeUser();
         runWithRetry(store -> {
             UserProfile storedData = store.getUserData(userId);
-            Assert.assertEquals(USER, storedData);
+            assertThat(storedData).isEqualTo(USER);
             return userId;
         });
     }
@@ -88,7 +86,7 @@ public class ProfileStoreTest {
             InputStream image = store.getImageForUser(userId);
             try {
                 Sha256Hash hash = Sha256Hash.createFrom(image);
-                Assert.assertEquals(Sha256Hash.computeHash(IMAGE), hash);
+                assertThat(hash).isEqualTo(Sha256Hash.computeHash(IMAGE));
             } catch (IOException e) {
                 throw Throwables.throwUncheckedException(e);
             } finally {
@@ -103,7 +101,7 @@ public class ProfileStoreTest {
         final UUID userId = UUID.randomUUID();
         runWithRetry(store -> {
             InputStream image = store.getImageForUser(userId);
-            assertThat(image, nullValue());
+            assertThat(image).isNull();
             return null;
         });
     }
@@ -121,7 +119,7 @@ public class ProfileStoreTest {
             Sha256Hash imageHash = Sha256Hash.computeHash(IMAGE);
             store.updateImage(userId, imageHash, new ByteArrayInputStream(IMAGE));
             UserProfile storedData = store.getUserData(userId);
-            Assert.assertEquals(USER, storedData);
+            assertThat(storedData).isEqualTo(USER);
             return null;
         });
     }
@@ -137,7 +135,7 @@ public class ProfileStoreTest {
         txnMgr.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
             ProfileTableFactory tables = ProfileTableFactory.of();
             UserPhotosStreamValueTable streams = tables.getUserPhotosStreamValueTable(txn);
-            Assert.assertTrue(streams.getAllRowsUnordered().isEmpty());
+            assertThat(streams.getAllRowsUnordered().isEmpty()).isTrue();
             return null;
         });
     }
@@ -155,7 +153,7 @@ public class ProfileStoreTest {
         final UUID userId = storeUser();
         runWithRetry(store -> {
             Set<UUID> usersWithBirthday = store.getUsersWithBirthday(USER.getBirthEpochDay());
-            Assert.assertEquals(ImmutableSet.of(userId), usersWithBirthday);
+            assertThat(usersWithBirthday).isEqualTo(ImmutableSet.of(userId));
             return userId;
         });
     }
@@ -172,7 +170,7 @@ public class ProfileStoreTest {
         return runWithRetry(store -> {
             UUID userId = store.storeNewUser(USER);
             UserProfile storedData = store.getUserData(userId);
-            Assert.assertEquals(USER, storedData);
+            assertThat(storedData).isEqualTo(USER);
             return userId;
         });
     }

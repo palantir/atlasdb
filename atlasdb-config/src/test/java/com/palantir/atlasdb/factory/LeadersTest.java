@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -29,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -63,9 +60,9 @@ public class LeadersTest {
                 PaxosLearner.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        MatcherAssert.assertThat(paxosLearners.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
-        paxosLearners.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
-        MatcherAssert.assertThat(Iterables.getLast(paxosLearners).getGreatestLearnedValue(), is(presentPaxosValue));
+        assertThat(paxosLearners.size()).isEqualTo(REMOTE_SERVICE_ADDRESSES.size() + 1);
+        paxosLearners.forEach(object -> assertThat(object).isNotNull());
+        assertThat(Iterables.getLast(paxosLearners).getGreatestLearnedValue()).isEqualTo(value);
         verify(localLearner).getGreatestLearnedValue();
         verifyNoMoreInteractions(localLearner);
     }
@@ -84,10 +81,10 @@ public class LeadersTest {
                 PaxosAcceptor.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        MatcherAssert.assertThat(paxosAcceptors.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
-        paxosAcceptors.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
+        assertThat(paxosAcceptors.size()).isEqualTo(REMOTE_SERVICE_ADDRESSES.size() + 1);
+        paxosAcceptors.forEach(object -> assertThat(object).isNotNull());
 
-        MatcherAssert.assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted(), is(1L));
+        assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted()).isEqualTo(1L);
         verify(localAcceptor).getLatestSequencePreparedOrAccepted();
         verifyNoMoreInteractions(localAcceptor);
     }
@@ -106,9 +103,9 @@ public class LeadersTest {
                 PaxosAcceptor.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        MatcherAssert.assertThat(paxosAcceptors.size(), is(1));
+        assertThat(paxosAcceptors.size()).isEqualTo(1);
 
-        MatcherAssert.assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted(), is(1L));
+        assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted()).isEqualTo(1L);
         verify(localAcceptor).getLatestSequencePreparedOrAccepted();
         verifyNoMoreInteractions(localAcceptor);
     }

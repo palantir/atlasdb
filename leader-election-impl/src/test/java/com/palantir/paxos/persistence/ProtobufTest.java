@@ -15,7 +15,7 @@
  */
 package com.palantir.paxos.persistence;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -40,12 +40,12 @@ public class ProtobufTest {
         expected = new PaxosValue("leader1", 2, new byte[]{8, 0, 1, 2, 5});
         persisted = expected.persistToBytes();
         actual = PaxosValue.hydrateFromProto(PaxosPersistence.PaxosValue.parseFrom(persisted));
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         expected = new PaxosValue("dealer2", 8, null);
         persisted = expected.persistToBytes();
         actual = PaxosValue.hydrateFromProto(PaxosPersistence.PaxosValue.parseFrom(persisted));
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -57,12 +57,12 @@ public class ProtobufTest {
         expected = new PaxosProposalId(10, "string");
         persisted = expected.persistToProto();
         actual = PaxosProposalId.hydrateFromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         expected = new PaxosProposalId(10, "");
         persisted = expected.persistToProto();
         actual = PaxosProposalId.hydrateFromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -75,13 +75,13 @@ public class ProtobufTest {
                 new PaxosValue("red leader", 93, null));
         persisted = expected.persistToProto();
         actual = PaxosProposal.hydrateFromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         expected = new PaxosProposal(new PaxosProposalId(0, "noice"),
                 new PaxosValue("", 93, new byte[]{}));
         persisted = expected.persistToProto();
         actual = PaxosProposal.hydrateFromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -93,28 +93,28 @@ public class ProtobufTest {
         expected = PaxosPromise.reject(new PaxosProposalId(3, "unique"));
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         expected = PaxosPromise.accept(new PaxosProposalId(20, "id"),
                 new PaxosProposalId(6, "fire"),
                 new PaxosValue("me", 5, new byte[]{8, 8, 100}));
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         expected = PaxosPromise.accept(new PaxosProposalId(20, "id"),
                 null,
                 new PaxosValue("me", 5, new byte[]{8, 8, 100}));
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         expected = PaxosPromise.accept(new PaxosProposalId(20, "id"),
                 null,
                 null);
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -126,12 +126,12 @@ public class ProtobufTest {
         expected = new PaxosResponseImpl(true);
         persisted = toProto(expected);
         actual = fromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         expected = new PaxosResponseImpl(false);
         persisted = toProto(expected);
         actual = fromProto(persisted);
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 
     private static PaxosAcceptorPersistence.PaxosResponse toProto(PaxosResponse result) {

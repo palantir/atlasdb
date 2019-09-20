@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -92,7 +91,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void isAlwaysInitialized() {
-        assertTrue(snapshotTransactionManager.isInitialized());
+        assertThat(snapshotTransactionManager.isInitialized()).isTrue();
     }
 
     @Test

@@ -15,14 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 
+import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,7 +45,7 @@ public class WeightedHostsTest {
         int prevKey = 0;
         for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
             int currWeight = entry.getKey() - prevKey;
-            assertEquals(expectedWeight, currWeight);
+            assertThat(currWeight).isEqualTo(expectedWeight);
             prevKey = entry.getKey();
         }
     }
@@ -71,7 +71,7 @@ public class WeightedHostsTest {
                 hostWithLargestWeight = entry.getValue();
             }
         }
-        assertEquals(lowActivityHost, hostWithLargestWeight);
+        assertThat(hostWithLargestWeight).isEqualTo(lowActivityHost);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class WeightedHostsTest {
                 hostWithSmallestWeight = entry.getValue();
             }
         }
-        assertEquals(highActivityHost, hostWithSmallestWeight);
+        assertThat(hostWithSmallestWeight).isEqualTo(highActivityHost);
     }
 
     @Test
@@ -110,7 +110,7 @@ public class WeightedHostsTest {
         int prevKey = 0;
         for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
             int currWeight = entry.getKey() - prevKey;
-            assertThat(currWeight, Matchers.greaterThan(0));
+            assertThat(currWeight).is(new HamcrestCondition<>(Matchers.greaterThan(0)));
             prevKey = entry.getKey();
         }
     }
@@ -140,7 +140,7 @@ public class WeightedHostsTest {
             numTimesSelected.put(host, numTimesSelected.get(host) + 1);
         }
 
-        assertEquals(hostsToWeight, numTimesSelected);
+        assertThat(numTimesSelected).isEqualTo(hostsToWeight);
     }
 
     private static CassandraClientPoolingContainer createMockClientPoolingContainerWithUtilization(int utilization) {

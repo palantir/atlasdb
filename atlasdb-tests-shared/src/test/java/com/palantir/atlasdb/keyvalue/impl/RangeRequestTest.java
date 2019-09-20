@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -28,26 +27,26 @@ public class RangeRequestTest {
     @Test
     public void testPrefix() {
         byte[] end = RangeRequest.builder().prefixRange(new byte[] {-1}).build().getEndExclusive();
-        assertEquals(0, end.length);
+        assertThat(end.length).isEqualTo(0);
         end = RangeRequest.builder().prefixRange(new byte[] {-2}).build().getEndExclusive();
-        assertEquals(1, end.length);
-        assertEquals(-1, end[0]);
+        assertThat(end.length).isEqualTo(1);
+        assertThat(end[0]).isEqualTo(-1);
 
         end = RangeRequest.builder().prefixRange(new byte[] {0, -1}).build().getEndExclusive();
-        assertEquals(1, end.length);
-        assertEquals(1, end[0]);
+        assertThat(end.length).isEqualTo(1);
+        assertThat(end[0]).isEqualTo(1);
 
         end = RangeRequest.builder().prefixRange(new byte[] {0, -1, 0}).build().getEndExclusive();
-        assertEquals(3, end.length);
-        assertEquals(1, end[2]);
+        assertThat(end.length).isEqualTo(3);
+        assertThat(end[2]).isEqualTo(1);
     }
 
     @Test
     public void testEmpty() {
         RangeRequest request = RangeRequest.builder().endRowExclusive(RangeRequests.getFirstRowName()).build();
-        Assert.assertTrue(request.isEmptyRange());
+        assertThat(request.isEmptyRange()).isTrue();
         request = RangeRequest.reverseBuilder().endRowExclusive(RangeRequests.getLastRowName()).build();
-        Assert.assertTrue(request.isEmptyRange());
+        assertThat(request.isEmptyRange()).isTrue();
     }
 
 }

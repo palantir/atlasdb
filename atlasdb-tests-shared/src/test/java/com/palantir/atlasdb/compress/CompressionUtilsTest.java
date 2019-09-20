@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.compress;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 
@@ -31,23 +29,23 @@ public class CompressionUtilsTest {
         byte[] original = new byte[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
         byte[] compressed = CompressionUtils.compress(original, Compression.NONE);
-        assertArrayEquals(original, compressed);
+        assertThat(compressed).isEqualTo(original);
         byte[] decompressed = CompressionUtils.decompress(compressed, Compression.NONE);
-        assertArrayEquals(original, decompressed);
+        assertThat(decompressed).isEqualTo(original);
 
         compressed = CompressionUtils.compress(original, Compression.SNAPPY);
-        assertFalse(Arrays.equals(original, compressed));
+        assertThat(Arrays.equals(original, compressed)).isFalse();
         decompressed = CompressionUtils.decompress(compressed, Compression.SNAPPY);
-        assertArrayEquals(original, decompressed);
+        assertThat(decompressed).isEqualTo(original);
     }
 
     @Test
     public void testCompressAndDecompressWithSnappy() {
         byte[] original = new byte[1024];
         byte[] compressed = CompressionUtils.compressWithSnappy(original);
-        assertFalse(Arrays.equals(original, compressed));
+        assertThat(Arrays.equals(original, compressed)).isFalse();
         byte[] decompressed = CompressionUtils.decompressWithSnappy(compressed);
-        assertArrayEquals(original, decompressed);
+        assertThat(decompressed).isEqualTo(original);
     }
 
     @Test
@@ -59,7 +57,7 @@ public class CompressionUtilsTest {
         } catch (IllegalArgumentException e) {
             threwIllegalArgumentException = true;
         }
-        assertTrue(threwIllegalArgumentException);
+        assertThat(threwIllegalArgumentException).isTrue();
     }
 
     @Test
@@ -71,6 +69,6 @@ public class CompressionUtilsTest {
         } catch (IllegalArgumentException e) {
             threwIllegalArgumentException = true;
         }
-        assertTrue(threwIllegalArgumentException);
+        assertThat(threwIllegalArgumentException).isTrue();
     }
 }

@@ -15,9 +15,8 @@
  */
 package com.palantir.nexus.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -49,7 +48,7 @@ public class ThreadConfinedProxyTest {
         List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
                 ThreadConfinedProxy.Strictness.VALIDATE);
         subject.add(testString);
-        assertEquals(testString, Iterables.getOnlyElement(subject));
+        assertThat(Iterables.getOnlyElement(subject)).isEqualTo(testString);
     }
 
     @Test
@@ -73,7 +72,7 @@ public class ThreadConfinedProxyTest {
         childThread.start();
         childThread.join(10000);
 
-        assertTrue(outputReference.get());
+        assertThat(outputReference.get()).isTrue();
     }
 
     @Test
@@ -97,7 +96,7 @@ public class ThreadConfinedProxyTest {
         childThread.start();
         childThread.join(10000);
 
-        assertTrue(outputReference.get());
+        assertThat(outputReference.get()).isTrue();
     }
 
 
@@ -126,17 +125,17 @@ public class ThreadConfinedProxyTest {
         childThread.start();
         childThread.join(10000);
 
-        assertEquals(2, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(2);
 
         // Cannot be access from main thread anymore
         try {
             subject.add(testString);
-            fail();
+            fail("fail");
         } catch (Exception e) {
             outputReference.compareAndSet(2, 3);
         }
 
-        assertEquals(3, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(3);
 
         // Cannot give to another thread because main thread does not own it
         Thread otherThread = new Thread(() -> {
@@ -148,16 +147,16 @@ public class ThreadConfinedProxyTest {
 
         otherThread.start();
         otherThread.join(10000);
-        assertEquals(4, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(4);
 
         // Cannot give away from main thread either
         try {
             ThreadConfinedProxy.changeThread(subject, mainThread, otherThread);
-            fail();
+            fail("fail");
         } catch (Exception e) {
             outputReference.compareAndSet(4, 5);
         }
-        assertEquals(5, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(5);
     }
 
 
@@ -188,10 +187,10 @@ public class ThreadConfinedProxyTest {
         childThread.start();
         childThread.join(10000);
 
-        assertEquals(2, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(2);
 
         // We got delegated back, so we can use subject again
-        assertEquals(testString, Iterables.getOnlyElement(subject));
+        assertThat(Iterables.getOnlyElement(subject)).isEqualTo(testString);
     }
 
 
@@ -230,10 +229,10 @@ public class ThreadConfinedProxyTest {
         childThread.start();
         childThread.join(10000);
 
-        assertEquals(2, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(2);
 
         // We got delegated back, so we can use subject again
-        assertEquals(testString, Iterables.getOnlyElement(subject));
+        assertThat(Iterables.getOnlyElement(subject)).isEqualTo(testString);
     }
 
     @Test
@@ -242,7 +241,7 @@ public class ThreadConfinedProxyTest {
         IThingThatThrows thing = ThreadConfinedProxy.newProxyInstance(IThingThatThrows.class, new ThingThatThrows(),
                 ThreadConfinedProxy.Strictness.VALIDATE);
 
-        assertEquals(1, thing.doStuff(IThingThatThrows.Behavior.RETURN_ONE));
+        assertThat(thing.doStuff(IThingThatThrows.Behavior.RETURN_ONE)).isEqualTo(1);
 
         try {
             thing.doStuff(IThingThatThrows.Behavior.THROW_RUNTIME);

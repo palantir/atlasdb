@@ -15,10 +15,8 @@
  */
 package com.palantir.cassandra.multinode;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -81,14 +80,13 @@ public class CassandraSchemaLockTest {
             }
         } finally {
             executorService.shutdown();
-            assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
+            assertThat(executorService.awaitTermination(4, TimeUnit.MINUTES)).isTrue();
         }
 
         CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
-        assertThat(kvs.getAllTableNames(), hasItem(table1));
+        assertThat(kvs.getAllTableNames()).contains(table1);
 
-        assertThat(new File(CONTAINERS.getLogDirectory()),
-                containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
+        assertThat(new File(CONTAINERS.getLogDirectory())).is(new HamcrestCondition<>(containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError()))));
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")

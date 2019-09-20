@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -41,7 +40,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?");
-        assertEquals(whereClauses.getClauses(), expectedClauses);
+        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START));
     }
@@ -52,7 +51,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name < ?");
-        assertEquals(whereClauses.getClauses(), expectedClauses);
+        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(END));
     }
@@ -63,7 +62,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?");
-        assertEquals(whereClauses.getClauses(), expectedClauses);
+        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END));
     }
@@ -74,7 +73,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name <= ?", "i.row_name > ?");
-        assertEquals(whereClauses.getClauses(), expectedClauses);
+        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(END, START));
     }
@@ -86,7 +85,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", "i.col_name IN (?)");
-        assertEquals(whereClauses.getClauses(), expectedClauses);
+        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END, COL1));
     }
@@ -98,7 +97,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", "i.col_name IN (?,?,?)");
-        assertEquals(whereClauses.getClauses(), expectedClauses);
+        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END, COL1, COL2, COL3));
     }
@@ -110,7 +109,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request, extraClause);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", extraClause);
-        assertEquals(whereClauses.getClauses(), expectedClauses);
+        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END));
 
@@ -126,7 +125,7 @@ public class WhereClausesTest {
                 "other.row_name >= ?",
                 "other.row_name < ?",
                 "other.col_name IN (?)");
-        assertEquals(whereClauses.getClauses(), expectedClauses);
+        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END, COL1));
     }
@@ -134,8 +133,8 @@ public class WhereClausesTest {
     private void checkWhereArguments(WhereClauses whereClauses, List<byte[]> expectedArgs) {
         List<Object> actualArgs = whereClauses.getArguments();
         for (int i = 0; i < actualArgs.size(); i++) {
-            assertArrayEquals(expectedArgs.get(i), (byte[]) actualArgs.get(i));
+            assertThat((byte[]) actualArgs.get(i)).isEqualTo(expectedArgs.get(i));
         }
-        assertEquals(expectedArgs.size(), actualArgs.size());
+        assertThat(actualArgs.size()).isEqualTo(expectedArgs.size());
     }
 }

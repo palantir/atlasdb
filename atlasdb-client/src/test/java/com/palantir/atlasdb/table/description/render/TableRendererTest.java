@@ -15,14 +15,15 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -40,27 +41,25 @@ public class TableRendererTest {
     @Test
     public void testCanRenderGuavaOptionals() {
         TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
-        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES),
-                allOf(
+        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES)).is(new HamcrestCondition<>(allOf(
                         containsString("import com.google.common.base.Optional"),
                         not(containsString("import java.util.Optional")),
                         containsString("{@link Optional}"),
                         containsString("Optional<TestTableRowResult> getRow("),
                         containsString("Optional.absent"),
-                        not(containsString("Optional.empty"))));
+                        not(containsString("Optional.empty")))));
     }
 
     @Test
     public void testCanRenderJava8Optionals() {
         TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
-        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES),
-                allOf(
+        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES)).is(new HamcrestCondition<>(allOf(
                         not(containsString("import com.google.common.base.Optional")),
                         containsString("import java.util.Optional"),
                         containsString("{@link Optional}"),
                         containsString("Optional<TestTableRowResult> getRow("),
                         not(containsString("Optional.absent")),
-                        containsString("Optional.empty")));
+                        containsString("Optional.empty"))));
     }
 
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {

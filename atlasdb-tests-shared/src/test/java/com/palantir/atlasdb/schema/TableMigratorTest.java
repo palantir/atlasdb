@@ -15,11 +15,13 @@
  */
 package com.palantir.atlasdb.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -57,7 +59,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         TableMigratorBuilder builder = new TableMigratorBuilder();
         try {
             builder.build();
-            Assert.fail();
+            fail("fail");
         } catch (Exception e) {
             // expected
         }
@@ -155,8 +157,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                             public boolean visit(RowResult<byte[]> item) throws RuntimeException {
                                 Iterable<Entry<Cell, byte[]>> cells = item.getCells();
                                 Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
-                                Assert.assertEquals(theCell, entry.getKey());
-                                Assert.assertArrayEquals(theValue, entry.getValue());
+                                assertThat(entry.getKey()).isEqualTo(theCell);
+                                assertThat(entry.getValue()).isEqualTo(theValue);
                                 count.increment();
                                 return true;
                             }
@@ -164,6 +166,6 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 return null;
             });
         }
-        Assert.assertEquals(2L, count.longValue());
+        assertThat(count.longValue()).isEqualTo(2L);
     }
 }

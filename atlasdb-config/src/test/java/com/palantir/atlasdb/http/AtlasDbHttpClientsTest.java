@@ -17,8 +17,6 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -240,7 +238,7 @@ public class AtlasDbHttpClientsTest {
                 PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
 
         int response = client.getTestNumber();
-        assertThat(response, equalTo(TEST_NUMBER_1));
+        assertThat(response).isEqualTo(TEST_NUMBER);
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
@@ -265,7 +263,7 @@ public class AtlasDbHttpClientsTest {
                 .build());
         Uninterruptibles.sleepUninterruptibly(
                 PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
-        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_2));
+        assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_2);
     }
 
     private static String getUriForPort(int port) {

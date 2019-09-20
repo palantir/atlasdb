@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -95,7 +94,7 @@ public class OracleTableNameUnmapperTest {
 
         String shortName = oracleTableNameUnmapper
                 .getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF);
-        assertThat(shortName, is(SHORT_TABLE_NAME));
+        assertThat(shortName).isEqualTo(SHORT_TABLE_NAME);
     }
 
     @Test
@@ -109,7 +108,7 @@ public class OracleTableNameUnmapperTest {
 
         String shortName = oracleTableNameUnmapper
                 .getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF_2);
-        assertThat(shortName, is(SHORT_TABLE_NAME));
+        assertThat(shortName).isEqualTo(SHORT_TABLE_NAME);
 
         // verify that underlying datastore was called once instead of hitting the cache
         verify(row, times(1)).getString("short_table_name");

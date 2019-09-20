@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,7 +33,7 @@ public class SimplePuncherTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        assertFalse(puncher.isInitialized());
-        assertTrue(puncher.isInitialized());
+        assertThat(puncher.isInitialized()).isFalse();
+        assertThat(puncher.isInitialized()).isTrue();
     }
 }

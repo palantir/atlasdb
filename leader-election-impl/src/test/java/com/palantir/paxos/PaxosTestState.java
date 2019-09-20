@@ -15,7 +15,8 @@
  */
 package com.palantir.paxos;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -61,13 +62,10 @@ public class PaxosTestState {
         try {
             token = leader(leaderNum).blockOnBecomingLeader();
         } catch (InterruptedException e) {
-            Assertions.fail(e.getMessage(), e);
+            fail(e.getMessage(), e);
         }
         if (checkAfterwards) {
-            assertEquals(
-                    "leader should still be leading right after becoming leader",
-                    StillLeadingStatus.LEADING,
-                    leader(leaderNum).isStillLeading(token));
+            assertThat(leader(leaderNum).isStillLeading(token)).describedAs("leader should still be leading right after becoming leader").isEqualTo(StillLeadingStatus.LEADING);
         }
         return token;
     }

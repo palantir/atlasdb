@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,7 +66,7 @@ public class AtlasDbErrorDecoderTest {
     public void shouldCreateNewRetryableExceptionWithNullRetryAfterWhen429WithNullRetryAfterAndNotRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_429, NON_RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-        assertNull(((RetryableException) exception).retryAfter());
+        assertThat(((RetryableException) exception).retryAfter()).isNull();
     }
 
     @Test
@@ -79,14 +76,14 @@ public class AtlasDbErrorDecoderTest {
                 NON_RETRYABLE_EXCEPTION,
                 HEADERS_WITH_RETRY_AFTER);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-        assertNull(((RetryableException) exception).retryAfter());
+        assertThat(((RetryableException) exception).retryAfter()).isNull();
     }
 
     @Test
     public void shouldDelegateToDefaultDecoderWhen429AndRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_429, RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-        assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
+        assertThat(exception).isSameAs(RETRYABLE_EXCEPTION);
     }
 
     // 503 tests
@@ -94,7 +91,7 @@ public class AtlasDbErrorDecoderTest {
     public void shouldCreateNewRetryableExceptionWithMatchingNullRetryAfterWhen503AndNotRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_503, NON_RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-        assertNull(((RetryableException) exception).retryAfter());
+        assertThat(((RetryableException) exception).retryAfter()).isNull();
     }
 
     @Test
@@ -104,14 +101,14 @@ public class AtlasDbErrorDecoderTest {
                 NON_RETRYABLE_EXCEPTION,
                 HEADERS_WITH_RETRY_AFTER);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-        assertThat(((RetryableException) exception).retryAfter(), is(RETRY_AFTER_DATE));
+        assertThat(((RetryableException) exception).retryAfter()).isEqualTo(RETRY_AFTER_DATE);
     }
 
     @Test
     public void shouldDelegateToDefaultDecoderWhen503AndRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_503, RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-        assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
+        assertThat(exception).isSameAs(RETRYABLE_EXCEPTION);
     }
 
     // Not 503 nor 429 tests
@@ -121,14 +118,14 @@ public class AtlasDbErrorDecoderTest {
                 STATUS_NOT_503_NOR_429,
                 NON_RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-        assertThat(exception, is(sameInstance(NON_RETRYABLE_EXCEPTION)));
+        assertThat(exception).isSameAs(NON_RETRYABLE_EXCEPTION);
     }
 
     @Test
     public void shouldDelegateToDefaultDecoderWhenNeither503Nor429AndRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_NOT_503_NOR_429, RETRYABLE_EXCEPTION);
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-        assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
+        assertThat(exception).isSameAs(RETRYABLE_EXCEPTION);
     }
 
     private Response makeDefaultDecoderReplyWhenReceivingResponse(int status, Exception exception) {

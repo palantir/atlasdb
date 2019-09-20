@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -64,7 +64,7 @@ public class LockCheckingTransactionTaskTest {
 
     @Test
     public void shouldReturnResultOfDelegate() throws Exception {
-        assertEquals(wrappingTask.execute(transaction), "result");
+        assertThat("result").isEqualTo(wrappingTask.execute(transaction));
     }
 
     @Test

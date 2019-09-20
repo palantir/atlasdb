@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,7 +59,7 @@ public final class Gradle extends ExternalResource {
             try (InputStream processInputStream = process.getInputStream()) {
                 IOUtils.copy(processInputStream, System.out);
             }
-            assertThat(process.waitFor(), is(equalTo(0)));
+            assertThat(process.waitFor()).isEqualTo(0);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {

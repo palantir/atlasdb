@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.TimeUnit;
 
@@ -48,7 +47,7 @@ public class SweepBenchmarks {
                 .maxCellTsPairsToExamine(RegeneratingTable.SWEEP_DUPLICATES * uniqueCellsToSweep)
                 .build();
         SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), batchConfig, PtBytes.EMPTY_BYTE_ARRAY);
-        assertThat(sweepResults.getStaleValuesDeleted(), is((long) DELETED_COUNT * uniqueCellsToSweep));
+        assertThat(sweepResults.getStaleValuesDeleted()).isEqualTo((long) DELETED_COUNT * uniqueCellsToSweep);
         return sweepResults;
     }
 
@@ -64,7 +63,7 @@ public class SweepBenchmarks {
                     .build();
             sweepResults = sweepTaskRunner.run(table.getTableRef(), batchConfig, nextStartRow);
             nextStartRow = sweepResults.getNextStartRow().get();
-            assertThat(sweepResults.getStaleValuesDeleted(), is((long) DELETED_COUNT));
+            assertThat(sweepResults.getStaleValuesDeleted()).isEqualTo((long) DELETED_COUNT);
         }
         return sweepResults;
     }

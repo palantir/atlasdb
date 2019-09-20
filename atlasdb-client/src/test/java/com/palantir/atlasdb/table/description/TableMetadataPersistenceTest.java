@@ -15,9 +15,10 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Collection;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -65,13 +66,13 @@ public class TableMetadataPersistenceTest {
         TableMetadata metadata = tableDefinition.toTableMetadata();
         byte[] metadataAsBytes = metadata.persistToBytes();
         TableMetadata metadataFromBytes = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataAsBytes);
-        Assert.assertEquals(metadata, metadataFromBytes);
+        assertThat(metadataFromBytes).isEqualTo(metadata);
     }
 
     @Test
     public void testMetadataHasExpectedCompressionBlockSize() {
         TableMetadata metadata = tableDefinition.toTableMetadata();
-        Assert.assertEquals(compressionBlockSizeKB, metadata.getExplicitCompressionBlockSizeKB());
+        assertThat(metadata.getExplicitCompressionBlockSizeKB()).isEqualTo(compressionBlockSizeKB);
     }
 
     private static TableDefinition getRangeScanWithoutCompression() {

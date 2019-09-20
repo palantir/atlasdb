@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,7 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-import org.junit.Assert;
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -141,9 +142,8 @@ public class NextTableToSweepProviderTest {
         whenGettingNextTableToSweep();
 
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertTrue(tableToSweep.isPresent());
-        Assert.assertThat(tableToSweep.get().getTableRef(),
-                anyOf(is(table("table2")), is(table("table3")), is(table("table4"))));
+        assertThat(tableToSweep.isPresent()).isTrue();
+        assertThat(tableToSweep.get().getTableRef()).is(new HamcrestCondition<>(anyOf(is(table("table2")), is(table("table3")), is(table("table4")))));
     }
 
     @Test
@@ -267,22 +267,21 @@ public class NextTableToSweepProviderTest {
 
     private void thenProviderReturnsEmpty() {
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertFalse("expected to not have chosen a table!", tableToSweep.isPresent());
+        assertThat(tableToSweep.isPresent()).describedAs("expected to not have chosen a table!").isFalse();
     }
 
     private void thenTableChosenIs(TableReference table) {
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertTrue("expected to have chosen a table!", tableToSweep.isPresent());
-        Assert.assertThat(tableToSweep.get().getTableRef(), is(table));
+        assertThat(tableToSweep.isPresent()).describedAs("expected to have chosen a table!").isTrue();
+        assertThat(tableToSweep.get().getTableRef()).isEqualTo(table);
     }
 
     private void thenTableIsChosenAtLeastOnce(TableReference table) {
-        Assert.assertTrue("expected table " + table + " to be chosen at least once, but wasn't!",
-                tablesToSweep.stream()
+        assertThat(tablesToSweep.stream()
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .map(TableToSweep::getTableRef)
-                        .anyMatch(chosenTable -> chosenTable.equals(table)));
+                        .anyMatch(chosenTable -> chosenTable.equals(table))).describedAs("expected table " + table + " to be chosen at least once, but wasn't!").isTrue();
     }
 
     // helpers

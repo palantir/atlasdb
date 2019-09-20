@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.function.Supplier;
@@ -94,35 +94,35 @@ public class PuncherTest {
         Supplier<Long> timestampSupplier = puncher.getTimestampSupplier();
 
         timeMillis += 60000L;
-        assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(Long.MIN_VALUE);
         timeMillis += 60000L;
-        assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(Long.MIN_VALUE);
         timeMillis += 60000L;
 
         final long firstExpectedMillis = timeMillis;
         puncher.punch(firstPunchTimestamp);
 
         timeMillis += 60000L;
-        assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(firstPunchTimestamp);
 
         final long secondExpectedMillis = timeMillis;
         puncher.punch(secondPunchTimestamp);
 
-        assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(firstPunchTimestamp);
         timeMillis += 60000L;
-        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(secondPunchTimestamp);
         timeMillis += 10L;
-        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(secondPunchTimestamp);
 
         puncher.punch(thirdPunchTimestamp);
 
-        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(secondPunchTimestamp);
         timeMillis += 60000L;
-        assertEquals(thirdPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(thirdPunchTimestamp);
 
-        assertEquals(firstExpectedMillis, puncherStore.getMillisForTimestamp(firstTimestampToGetMillis));
-        assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(secondTimestampToGetMillis));
-        assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis));
+        assertThat(puncherStore.getMillisForTimestamp(firstTimestampToGetMillis)).isEqualTo(firstExpectedMillis);
+        assertThat(puncherStore.getMillisForTimestamp(secondTimestampToGetMillis)).isEqualTo(secondExpectedMillis);
+        assertThat(puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis)).isEqualTo(secondExpectedMillis);
     }
 
     @Test

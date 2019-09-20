@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -45,7 +46,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
 
         long sweepTimestamp = numInsertions + 1;
         SweepResults results = completeSweep(sweepTimestamp).get();
-        Assert.assertEquals(numInsertions - 1, results.getStaleValuesDeleted());
+        assertThat(results.getStaleValuesDeleted()).isEqualTo(numInsertions - 1);
     }
 
     private static KeyValueService createKeyValueService() {

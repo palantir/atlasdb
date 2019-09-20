@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Assert;
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -549,46 +549,46 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
     //Then
     private void thenNoTablesToSweep() {
-        Assert.assertThat(priorities.isEmpty(), is(true));
+        assertThat(priorities.isEmpty()).isEqualTo(true);
     }
 
     private void thenOnlyTablePrioritisedIs(TableReference table) {
-        Assert.assertThat(priorities.size(), is(1));
-        Assert.assertThat(priorities.containsKey(table), is(true));
+        assertThat(priorities.size()).isEqualTo(1);
+        assertThat(priorities.containsKey(table)).isEqualTo(true);
     }
 
     private void thenOnlyTablePrioritisedIs(SweepPriorityHistory sweepPriorityHistory) {
-        Assert.assertThat(priorities.size(), is(1));
-        Assert.assertThat(priorities.containsKey(sweepPriorityHistory.tableRef), is(true));
+        assertThat(priorities.size()).isEqualTo(1);
+        assertThat(priorities.containsKey(sweepPriorityHistory.tableRef)).isEqualTo(true);
     }
 
     private void thenTableHasPriority(TableReference table) {
-        Assert.assertThat(priorities.get(table), greaterThan(0.0));
+        assertThat(priorities.get(table)).is(new HamcrestCondition<>(greaterThan(0.0)));
     }
 
     private void thenTableHasPriority(SweepPriorityHistory sweepPriorityHistory) {
-        Assert.assertThat(priorities.get(sweepPriorityHistory.tableRef), greaterThan(0.0));
+        assertThat(priorities.get(sweepPriorityHistory.tableRef)).is(new HamcrestCondition<>(greaterThan(0.0)));
     }
 
     private void thenTableHasZeroPriority(SweepPriorityHistory sweepPriorityHistory) {
-        Assert.assertThat(priorities.get(sweepPriorityHistory.tableRef), is(0.0));
+        assertThat(priorities.get(sweepPriorityHistory.tableRef)).isEqualTo(0.0);
     }
 
     private void thenNumberOfTablesIs(int expectedNumberOfTables) {
-        Assert.assertThat(priorities.size(), is(expectedNumberOfTables));
+        assertThat(priorities.size()).isEqualTo(expectedNumberOfTables);
     }
 
     private void thenFirstTableHasHigherPriorityThanSecond(SweepPriorityHistory higherPriorityTable,
             SweepPriorityHistory lowerPriorityTable) {
         double priority1 = priorities.get(higherPriorityTable.tableRef);
         double priority2 = priorities.get(lowerPriorityTable.tableRef);
-        Assert.assertThat(priority1, greaterThan(priority2));
+        assertThat(priority1).is(new HamcrestCondition<>(greaterThan(priority2)));
     }
 
     private void thenHasHighestPriority(SweepPriorityHistory highPriorityTable) {
         // Don't want to constrain implementation to use MAX_DOUBLE in case we do something more nuanced in the future.
         double priority = priorities.get(highPriorityTable.tableRef);
-        Assert.assertThat(priority, greaterThan(1_000_000.0));
+        assertThat(priority).is(new HamcrestCondition<>(greaterThan(1_000_000.0)));
     }
 
     // helpers

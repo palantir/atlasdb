@@ -16,8 +16,7 @@
 package com.palantir.lock.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +87,7 @@ public class ThreadPooledWrapperTest {
         executorService.awaitTermination(1, TimeUnit.SECONDS);
 
         for (Future future : futures) {
-            assertEquals(1L, (long) future.get());
+            assertThat((long) future.get()).isEqualTo(1L);
         }
     }
 
@@ -124,10 +123,10 @@ public class ThreadPooledWrapperTest {
         executorService.awaitTermination(1, TimeUnit.SECONDS);
 
         for (Future future : futuresForClient1) {
-            assertEquals(1L, future.get());
+            assertThat(future.get()).isEqualTo(1L);
         }
         for (Future future : futuresForClient2) {
-            assertEquals(2L, future.get());
+            assertThat(future.get()).isEqualTo(2L);
         }
     }
 
@@ -176,7 +175,7 @@ public class ThreadPooledWrapperTest {
                 if (future.isDone()) {
                     try {
                         future.get();
-                        fail();
+                        fail("fail");
                     } catch (Exception e) {
                         assertThat(e).isInstanceOf(ExecutionException.class)
                                 .hasMessageContaining("TooManyRequestsException");

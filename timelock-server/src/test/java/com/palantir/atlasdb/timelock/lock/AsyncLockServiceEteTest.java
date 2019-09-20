@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
@@ -81,7 +79,7 @@ public class AsyncLockServiceEteTest {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         assertLocked(LOCK_A);
 
-        assertTrue(service.unlock(token));
+        assertThat(service.unlock(token)).isTrue();
         assertNotLocked(LOCK_A);
     }
 
@@ -89,7 +87,7 @@ public class AsyncLockServiceEteTest {
     public void canLockAndUnlockMultipleLocks() {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A, LOCK_B, LOCK_C);
 
-        assertTrue(service.unlock(token));
+        assertThat(service.unlock(token)).isTrue();
         assertNotLocked(LOCK_A);
         assertNotLocked(LOCK_B);
         assertNotLocked(LOCK_C);
@@ -171,7 +169,7 @@ public class AsyncLockServiceEteTest {
     public void locksCanBeRefreshed() {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
 
-        assertTrue(service.refresh(token));
+        assertThat(service.refresh(token)).isTrue();
     }
 
     @Test
@@ -179,7 +177,7 @@ public class AsyncLockServiceEteTest {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         service.unlock(token);
 
-        assertFalse(service.refresh(token));
+        assertThat(service.refresh(token)).isFalse();
     }
 
     @Test
@@ -187,7 +185,7 @@ public class AsyncLockServiceEteTest {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         service.unlock(token);
 
-        assertFalse(service.unlock(token));
+        assertThat(service.unlock(token)).isFalse();
     }
 
     @Test
@@ -195,7 +193,7 @@ public class AsyncLockServiceEteTest {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         service.refresh(token);
 
-        assertTrue(service.unlock(token));
+        assertThat(service.unlock(token)).isTrue();
     }
 
     @Test
@@ -338,12 +336,12 @@ public class AsyncLockServiceEteTest {
 
     private void assertNotLocked(String lock) {
         LockToken token = lockSynchronously(UUID.randomUUID(), lock);
-        assertTrue(service.unlock(token));
+        assertThat(service.unlock(token)).isTrue();
     }
 
     private void assertLocked(String... locks) {
         AsyncResult<Leased<LockToken>> result = lock(UUID.randomUUID(), locks);
-        assertFalse(result.isComplete());
+        assertThat(result.isComplete()).isFalse();
 
         result.map(token -> service.unlock(token.value()));
     }

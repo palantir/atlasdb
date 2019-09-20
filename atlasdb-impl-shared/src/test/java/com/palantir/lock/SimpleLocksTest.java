@@ -15,8 +15,7 @@
  */
 package com.palantir.lock;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
@@ -48,7 +47,7 @@ public class SimpleLocksTest {
         when(mockLockService.lock(anyString(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L));
         lockService.lockOrRefresh();
 
-        assertTrue(lockService.haveLocks());
+        assertThat(lockService.haveLocks()).isTrue();
     }
 
     @Test
@@ -59,7 +58,7 @@ public class SimpleLocksTest {
         when(mockLockService.refreshLockRefreshTokens(any())).thenReturn(ImmutableSet.of());
         lockService.lockOrRefresh();
 
-        assertFalse(lockService.haveLocks());
+        assertThat(lockService.haveLocks()).isFalse();
     }
 
     @Test
