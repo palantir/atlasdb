@@ -40,6 +40,7 @@ import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerMachine;
+import com.palantir.docker.compose.logging.FileLogCollector;
 import com.palantir.docker.compose.logging.LogCollector;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
@@ -100,11 +101,8 @@ public class Containers extends ExternalResource {
         return logDirectory;
     }
 
-    private void setupLogCollectorForLogDirectory() throws InterruptedException {
-        if (currentLogCollector != null) {
-            currentLogCollector.stopCollecting();
-        }
-        currentLogCollector = InterruptibleFileLogCollector.fromPath(logDirectory);
+    private void setupLogCollectorForLogDirectory() {
+        currentLogCollector = FileLogCollector.fromPath(logDirectory);
     }
 
     private void setupDockerComposeRule() throws InterruptedException, IOException {
