@@ -306,7 +306,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        servers().visit((thriftServers, cqlServers) -> {
+        servers().visitThrift(thriftServers -> {
             Preconditions.checkState(!thriftServers.isEmpty(), "'thrift' must have at least one entry");
             return null;
         });

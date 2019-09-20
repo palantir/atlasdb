@@ -144,8 +144,8 @@ public class CassandraService implements AutoCloseable {
         }
 
         InetAddress resolvedHost = InetAddress.getByName(host);
-        Set<InetSocketAddress> allKnownHosts = config.servers().visit(
-                (thrift, cql) -> Sets.union(currentPools.keySet(), thrift));
+        Set<InetSocketAddress> allKnownHosts = config.servers().visitThrift(
+                thrift -> Sets.union(currentPools.keySet(), thrift));
 
         for (InetSocketAddress address : allKnownHosts) {
             if (Objects.equals(address.getAddress(), resolvedHost)) {
@@ -288,7 +288,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void cacheInitialCassandraHosts() {
-        cassandraHosts = config.servers().visit((thrift, cql) -> thrift.stream()
+        cassandraHosts = config.servers().visitThrift(thrift -> thrift.stream()
                 .sorted(Comparator.comparing(InetSocketAddress::toString))
                 .collect(Collectors.toList()));
         cassandraHosts.forEach(this::addPool);
