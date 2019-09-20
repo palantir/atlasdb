@@ -21,6 +21,7 @@ dependencies {
   compile project(':atlasdb-dbkvs')
   compile project(':atlasdb-cassandra')
 
+  compile group: 'org.assertj', name: 'assertj-core'
   compile group: 'io.airlift', name: 'airline', version: '0.7'
   compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
   compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
