@@ -105,7 +105,7 @@ public final class CassandraKeyValueServices {
 
         String configNodes = addNodeInformation(new StringBuilder(),
                 "Nodes specified in config file:",
-                config.servers().visit((thrift, cql) ->
+                config.servers().visitThrift(thrift ->
                         thrift.stream().map(InetSocketAddress::getHostName).collect(Collectors.toList())))
                 .toString();
 

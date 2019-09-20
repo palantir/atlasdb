@@ -16,6 +16,10 @@
 package com.palantir.atlasdb.containers;
 
 import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -56,8 +60,8 @@ public class CassandraContainer extends Container {
     private CassandraContainer(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableDefaultConfig
-                        .builder().addThrift(forService(name)).build())
+                .servers(ImmutableCqlCapableConfig
+                        .builder().addHosts(name).cqlPort(9042).thriftPort(9160).build())
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username(USERNAME)
@@ -89,7 +93,7 @@ public class CassandraContainer extends Container {
 
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
-        return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.createForTesting(config)
+        return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.createForTesting(getConfig())
                 .isInitialized());
     }
 
@@ -105,7 +109,20 @@ public class CassandraContainer extends Container {
     }
 
     public CassandraKeyValueServiceConfig getConfig() {
-        return config;
+        try {
+            return ProxySelector.getDefault()
+                    .select(new URI("tcp", name, null, null)).stream()
+                    .filter(proxy -> proxy.type() == Proxy.Type.SOCKS)
+                    .findFirst()
+                    .map(proxy -> (CassandraKeyValueServiceConfig) ImmutableCassandraKeyValueServiceConfig.builder()
+                            .from(config)
+                            .servers(ImmutableCqlCapableConfig.builder()
+                                    .addHosts(name).cqlPort(9042).thriftPort(9160)
+                                    .socksProxy(proxy.address()).build()).build())
+                    .orElse(config);
+        } catch (URISyntaxException e) {
+            return config;
+        }
     }
 
     String getServiceName() {

@@ -184,7 +184,7 @@ public final class CassandraVerifier {
     }
 
     private static boolean attemptToCreateKeyspace(CassandraKeyValueServiceConfig config) {
-        return config.servers().visit((thrift, cql) ->
+        return config.servers().visitThrift(thrift ->
                 thrift.stream().anyMatch(host -> attemptToCreateIfNotExists(config, host)));
     }
 

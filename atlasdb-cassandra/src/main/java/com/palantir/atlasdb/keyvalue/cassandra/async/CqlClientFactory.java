@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
+import java.net.SocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -27,13 +29,13 @@ import javax.net.ssl.SSLContext;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.NettyOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ThreadingOptions;
-import com.datastax.driver.core.policies.AddressTranslator;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.LatencyAwarePolicy;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
@@ -44,6 +46,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 
+import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.proxy.Socks5ProxyHandler;
+
 public final class CqlClientFactory {
 
     private CqlClientFactory() {
@@ -51,12 +56,16 @@ public final class CqlClientFactory {
     }
 
     public static CqlClient constructClient(CassandraKeyValueServiceConfig config) {
-        return config.servers().visit((thriftServers, maybeCqlServers) ->
-                maybeCqlServers.map(cqlServers -> createClient(config, cqlServers))
+        return config.servers().visitCql((maybeCqlServers, proxy) ->
+                maybeCqlServers.map(cqlServers -> createClient(config, cqlServers, proxy))
                         .orElseGet(ThrowingCqlClientImpl::new));
     }
 
-    private static CqlClient createClient(CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
+    private static CqlClient createClient(
+            CassandraKeyValueServiceConfig config,
+            Set<InetSocketAddress> servers,
+            Optional<SocketAddress> proxy) {
+
         Cluster.Builder clusterBuilder = Cluster.builder()
                 .addContactPointsWithPorts(servers)
                 .withCredentials(config.credentials().username(), config.credentials().password())
@@ -68,9 +77,7 @@ public final class CqlClientFactory {
                 .withoutJMXReporting()
                 .withThreadingOptions(new ThreadingOptions());
 
-        if (!config.addressTranslation().isEmpty()) {
-            clusterBuilder.withAddressTranslator(new SimpleAddressTranslator(config));
-        }
+        proxy.ifPresent(proxyAddress -> clusterBuilder.withNettyOptions(new SocksProxyNettyOptions(proxyAddress)));
 
         sslOptions(config).ifPresent(clusterBuilder::withSSL);
 
@@ -128,25 +135,25 @@ public final class CqlClientFactory {
         return new TokenAwarePolicy(policy, TokenAwarePolicy.ReplicaOrdering.RANDOM);
     }
 
-    private static class SimpleAddressTranslator implements AddressTranslator {
+    private static final class SocksProxyNettyOptions extends NettyOptions {
 
-        private final Map<String, InetSocketAddress> mapper;
+        private final SocketAddress proxyAddress;
 
-        SimpleAddressTranslator(CassandraKeyValueServiceConfig config) {
-            this.mapper = config.addressTranslation();
+        SocksProxyNettyOptions(SocketAddress proxyAddress) {
+            this.proxyAddress = proxyAddress;
+        }
+
+        private static URI makeUri(String hostString) {
+            try {
+                return new URI("tcp", hostString, null, null);
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
-        public void init(Cluster cluster) {
-        }
-
-        @Override
-        public InetSocketAddress translate(InetSocketAddress address) {
-            return mapper.getOrDefault(address.getHostString(), address);
-        }
-
-        @Override
-        public void close() {
+        public void afterChannelInitialized(SocketChannel channel) {
+            channel.pipeline().addFirst(new Socks5ProxyHandler(proxyAddress));
         }
     }
 }
