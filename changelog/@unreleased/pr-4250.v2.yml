@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Improvements to AtlasDB memory profile.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4250
