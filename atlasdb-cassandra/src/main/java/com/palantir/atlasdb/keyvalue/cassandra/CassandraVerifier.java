@@ -90,9 +90,9 @@ public final class CassandraVerifier {
     }
 
     private static void createSimpleRfTestKeyspaceIfNotExists(CassandraClient client) throws TException {
-        if (client.describe_keyspaces().stream()
-                .map(KsDef::getName)
-                .noneMatch(keyspace -> Objects.equals(keyspace, CassandraConstants.SIMPLE_RF_TEST_KEYSPACE))) {
+        try {
+            client.describe_keyspace(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
+        } catch (NotFoundException e) {
             client.system_add_keyspace(SIMPLE_RF_TEST_KS_DEF);
         }
     }

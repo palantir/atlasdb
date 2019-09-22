@@ -304,6 +304,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return ssl().orElseGet(sslConfiguration()::isPresent);
     }
 
+    @Value.Default
+    default boolean useConscrypt() {
+        return false;
+    }
+
     @Value.Check
     default void check() {
         servers().visit((thriftServers, cqlServers) -> {

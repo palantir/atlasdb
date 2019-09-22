@@ -159,6 +159,7 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.CachedTransformingSupplier;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
@@ -908,10 +909,12 @@ public abstract class TransactionManagers {
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
-        return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
-                clientConfig,
-                () -> runtimeConfigSupplier.get().timelockRuntime(),
-                resolvedClient);
+        return new CachedTransformingSupplier<>(
+                runtimeConfigSupplier,
+                runtimeConf -> ServerListConfigs.parseInstallAndRuntimeConfigs(
+                        clientConfig,
+                        runtimeConf.timelockRuntime(),
+                        resolvedClient));
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(

@@ -18,12 +18,17 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.util.Map;
+import java.util.function.Function;
 
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 
 import org.apache.cassandra.thrift.AuthenticationRequest;
 import org.apache.cassandra.thrift.Cassandra;
@@ -38,6 +43,7 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.conscrypt.Conscrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +53,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -54,6 +61,7 @@ import com.palantir.logsafe.UnsafeArg;
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
 
+    private static final Provider CONSCRYPT = Conscrypt.newProvider();
     private final MetricsManager metricsManager;
     private final InetSocketAddress addr;
     private final CassandraKeyValueServiceConfig config;
@@ -117,7 +125,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private static SSLSocketFactory createSslSocketFactory(CassandraKeyValueServiceConfig config) {
-        return config.sslConfiguration().map(SslSocketFactories::createSslSocketFactory)
+        return config.sslConfiguration().map(factoryFactory(config))
                 .orElseGet(() -> {
                     try {
                         /*
@@ -130,6 +138,23 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                         throw new AssertionError(e);
                     }
                 });
+    }
+
+    private static Function<SslConfiguration, SSLSocketFactory> factoryFactory(CassandraKeyValueServiceConfig conf) {
+        return conf.useConscrypt()
+                ? CassandraClientFactory::conscryptSslSocketFactory : SslSocketFactories::createSslSocketFactory;
+    }
+
+    private static SSLSocketFactory conscryptSslSocketFactory(SslConfiguration config) {
+        String algorithm = "TLS";
+        TrustManager[] trustManagers = SslSocketFactories.createTrustManagers(config);
+        try {
+            SSLContext sslContext = SSLContext.getInstance(algorithm, CONSCRYPT);
+            sslContext.init(new KeyManager[] {}, trustManagers, null);
+            return sslContext.getSocketFactory();
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static Cassandra.Client getRawClient(

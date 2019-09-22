@@ -10,6 +10,7 @@ configurations {
 
 dependencies {
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation 'org.conscrypt:conscrypt-openjdk-uber'
 
   explicitShadow (group: 'de.jflex', name: 'jflex', version: '1.6.0') {
     exclude(group: 'org.apache.ant', module: 'ant')
