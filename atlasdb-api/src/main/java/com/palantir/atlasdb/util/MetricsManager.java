@@ -131,7 +131,7 @@ public class MetricsManager {
     }
 
     public Histogram registerOrGetHistogram(Class clazz, String metricName) {
-        return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
+        return registerOrGetHistogram(metricNameCache.get(clazz, metricName, ImmutableMap.of()).safeName());
     }
 
     private Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
@@ -141,7 +141,7 @@ public class MetricsManager {
     }
 
     public Timer registerOrGetTimer(Class clazz, String metricName) {
-        return registerOrGetTimer(MetricRegistry.name(clazz, metricName));
+        return registerOrGetTimer(metricNameCache.get(clazz, metricName, ImmutableMap.of()).safeName());
     }
 
     private Timer registerOrGetTimer(String fullyQualifiedHistogramName) {

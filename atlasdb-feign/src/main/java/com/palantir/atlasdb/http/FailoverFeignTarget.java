@@ -250,7 +250,30 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         if (input.url().indexOf("http") != 0) {
             input.insert(0, url());
         }
-        return input.request();
+        return fasterRequest(input);
+    }
+
+    /**
+     * Version of {@link RequestTemplate#request} which does not unnecessarily
+     * copy headers and does not copy the whole URL if not necessary.
+     */
+    private Request fasterRequest(RequestTemplate input) {
+        return Request.create(
+                input.method(),
+                fastUrl(input),
+                input.headers(),
+                input.body(),
+                input.charset());
+    }
+
+    private static String fastUrl(RequestTemplate input) {
+        String queryLine = input.queryLine();
+        String url = input.url();
+        if (queryLine.isEmpty()) {
+            return url;
+        } else {
+            return url + queryLine;
+        }
     }
 
     public Client wrapClient(final Client client)  {
