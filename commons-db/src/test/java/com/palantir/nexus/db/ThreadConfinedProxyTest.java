@@ -15,6 +15,10 @@
  */
 package com.palantir.nexus.db;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +37,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.common.proxy.TimingProxy;
 import com.palantir.util.timer.LoggingOperationTimer;
 
-public class ThreadConfinedProxyTest extends Assert {
+public class ThreadConfinedProxyTest {
 
     Logger log = LoggerFactory.getLogger(ThreadConfinedProxyTest.class);
 
