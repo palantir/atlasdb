@@ -64,6 +64,13 @@ public class CqlClientImpl implements CqlClient {
         protected String getInitializingClassName() {
             return "CqlClient";
         }
+
+        @Override
+        public void close() {
+            if (internalImpl != null) {
+                internalImpl.close();
+            }
+        }
     }
 
     private final Session session;
