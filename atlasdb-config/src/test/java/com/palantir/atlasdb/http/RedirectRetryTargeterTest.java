@@ -27,19 +27,9 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 
 public class RedirectRetryTargeterTest {
-    private static final URL URL_1;
-    private static final URL URL_2;
-    private static final URL URL_3;
-
-    static {
-        try {
-            URL_1 = new URL("https", "hostage", 42, "/request/hourai-branch");
-            URL_2 = new URL("http", "hostile", 424, "/request/swallows-cowrie-shell");
-            URL_3 = new URL("https", "hostel", 4242, "/request/fire-rat-robe");
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    private static final URL URL_1 = createUrlUnchecked("https", "hostage", 42, "/request/hourai-branch");
+    private static final URL URL_2 = createUrlUnchecked("https", "hostile", 424, "/request/swallows-cowrie-shell");
+    private static final URL URL_3 = createUrlUnchecked("https", "hostel", 4242, "/request/fire-rat-robe");
 
     @Test
     public void redirectsToSelfIfOnlyOneNode() {
@@ -64,5 +54,13 @@ public class RedirectRetryTargeterTest {
         assertThatThrownBy(() -> RedirectRetryTargeter.create(URL_3, ImmutableList.of(URL_1)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Local server not found in the list of cluster URLs.");
+    }
+
+    private static URL createUrlUnchecked(String protocol, String host, int port, String path) {
+        try {
+            return new URL(protocol, host, port, path);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
