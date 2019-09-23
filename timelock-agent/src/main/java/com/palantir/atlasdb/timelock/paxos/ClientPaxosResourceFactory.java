@@ -43,11 +43,21 @@ public final class ClientPaxosResourceFactory {
             TimeLockInstallConfiguration install,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor) {
-        PaxosComponents paxosComponents = new PaxosComponents(metrics.getTaggedRegistry(), "bound-store", logDirectory);
-        PaxosResource paxosResource = new PaxosResource(paxosComponents);
-        BatchPaxosAcceptorResource clientAcceptorResource =
-                new BatchPaxosAcceptorResource(new LocalBatchPaxosAcceptor(paxosComponents, new AcceptorCacheImpl()));
-        BatchPaxosLearnerResource clientLearnerResource = new BatchPaxosLearnerResource(paxosComponents);
+        TimelockMetrics timelockMetrics = TimelockMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
+        PaxosComponents paxosComponents = new PaxosComponents(timelockMetrics, logDirectory);
+
+        AcceptorCache acceptorCache = timelockMetrics
+                .instrument(AcceptorCache.class, new AcceptorCacheImpl(), "acceptor-cache");
+        BatchPaxosAcceptorResource clientAcceptorResource = timelockMetrics.instrument(
+                BatchPaxosAcceptorResource.class,
+                new BatchPaxosAcceptorResource(new LocalBatchPaxosAcceptor(paxosComponents, acceptorCache)),
+                "batch-paxos-acceptor-resource");
+
+        BatchPaxosLearnerResource clientLearnerResource = timelockMetrics.instrument(
+                BatchPaxosLearnerResource.class,
+                new BatchPaxosLearnerResource(paxosComponents),
+                "batch-paxos-learner-resource");
+
         UseCaseAwareBatchPaxosResource batchPaxosResource =
                 new UseCaseAwareBatchPaxosResource(clientAcceptorResource, clientLearnerResource);
 
@@ -55,7 +65,7 @@ public final class ClientPaxosResourceFactory {
 
         TimelockProxyFactories proxyFactories = ImmutableTimelockProxyFactories.builder()
                 .install(install)
-                .metrics(metrics.getRegistry())
+                .metrics(timelockMetrics)
                 .build();
 
         SingleLeaderNetworkClientFactories singleClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
@@ -75,7 +85,7 @@ public final class ClientPaxosResourceFactory {
         return ImmutableClientResources.builder()
                 .quorumSize(quorumSize)
                 .components(paxosComponents)
-                .nonBatchedResource(paxosResource)
+                .nonBatchedResource(new PaxosResource(paxosComponents))
                 .batchedResource(batchPaxosResource)
                 .networkClientFactories(factories(paxosRuntime, singleClientFactories, batchClientFactories))
                 .build();

@@ -107,8 +107,7 @@ public class PaxosTimestampBoundStoreTest {
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getRoot().getAbsolutePath();
             PaxosComponents components = new PaxosComponents(
-                    SharedTaggedMetricRegistries.getSingleton(),
-                    "test",
+                    TimelockMetrics.of(PaxosUseCase.TIMESTAMP, SharedTaggedMetricRegistries.getSingleton()),
                     Paths.get(root, Integer.toString(i)));
 
             AtomicBoolean failureController = new AtomicBoolean(false);
