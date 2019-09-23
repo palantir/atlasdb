@@ -17,6 +17,7 @@
 package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -38,9 +39,10 @@ public class ClusterConfigurationTest {
     public void shouldThrowIfLocalServerNotInServers() {
         ImmutableDefaultClusterConfiguration.Builder builder = ImmutableDefaultClusterConfiguration.builder()
                 .localServer(ADDRESS_1)
+                .enableNonstandardAndPossiblyDangerousTopology(true)
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(ADDRESS_2), Optional.empty()));
-        assertThatThrownBy(builder::build)
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatIllegalArgumentException()
+                .isThrownBy(builder::build);
     }
 
     @Test
