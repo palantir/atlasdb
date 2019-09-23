@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Previously, we introduced a flag that would warn on dangerous usage
+    of timelock i.e. where there isn't quorum. This was in a config object used for
+    testing so it was not actually applied. It has been applied now.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4256
