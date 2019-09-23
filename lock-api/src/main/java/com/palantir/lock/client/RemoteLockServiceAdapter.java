@@ -21,7 +21,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import com.palantir.lock.BareLockRpcClient;
+import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -34,124 +34,124 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 
 public class RemoteLockServiceAdapter implements LockService {
-    private final BareLockRpcClient bareLockRpcClient;
+    private final NamespaceAgnosticLockRpcClient namespaceAgnosticLockRpcClient;
 
-    public RemoteLockServiceAdapter(BareLockRpcClient bareLockRpcClient) {
-        this.bareLockRpcClient = bareLockRpcClient;
+    public RemoteLockServiceAdapter(NamespaceAgnosticLockRpcClient namespaceAgnosticLockRpcClient) {
+        this.namespaceAgnosticLockRpcClient = namespaceAgnosticLockRpcClient;
     }
 
     public static LockService create(LockRpcClient lockRpcClient, String namespace) {
-        BareLockRpcClient namespacedClient = new NamespacedLockRpcClient(namespace, lockRpcClient);
+        NamespaceAgnosticLockRpcClient namespacedClient = new NamespaceAgnosticLockClientAdaptor(namespace, lockRpcClient);
         return new RemoteLockServiceAdapter(namespacedClient);
     }
 
     @Override
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
-        return bareLockRpcClient.lockWithFullLockResponse(client, request).orElse(null);
+        return namespaceAgnosticLockRpcClient.lockWithFullLockResponse(client, request).orElse(null);
     }
 
     @Override
     public boolean unlock(HeldLocksToken token) {
-        return bareLockRpcClient.unlock(token);
+        return namespaceAgnosticLockRpcClient.unlock(token);
     }
 
     @Override
     public boolean unlock(LockRefreshToken token) {
-        return bareLockRpcClient.unlock(token);
+        return namespaceAgnosticLockRpcClient.unlock(token);
     }
 
     @Override
     public boolean unlockSimple(SimpleHeldLocksToken token) {
-        return bareLockRpcClient.unlockSimple(token);
+        return namespaceAgnosticLockRpcClient.unlockSimple(token);
     }
 
     @Override
     public boolean unlockAndFreeze(HeldLocksToken token) {
-        return bareLockRpcClient.unlockAndFreeze(token);
+        return namespaceAgnosticLockRpcClient.unlockAndFreeze(token);
     }
 
     @Override
     public Set<HeldLocksToken> getTokens(LockClient client) {
-        return bareLockRpcClient.getTokens(client);
+        return namespaceAgnosticLockRpcClient.getTokens(client);
     }
 
     @Override
     public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
-        return bareLockRpcClient.refreshTokens(tokens);
+        return namespaceAgnosticLockRpcClient.refreshTokens(tokens);
     }
 
     @Nullable
     @Override
     public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
-        return bareLockRpcClient.refreshGrant(grant).orElse(null);
+        return namespaceAgnosticLockRpcClient.refreshGrant(grant).orElse(null);
     }
 
     @Nullable
     @Override
     public HeldLocksGrant refreshGrant(BigInteger grantId) {
-        return bareLockRpcClient.refreshGrant(grantId).orElse(null);
+        return namespaceAgnosticLockRpcClient.refreshGrant(grantId).orElse(null);
     }
 
     @Override
     public HeldLocksGrant convertToGrant(HeldLocksToken token) {
-        return bareLockRpcClient.convertToGrant(token);
+        return namespaceAgnosticLockRpcClient.convertToGrant(token);
     }
 
     @Override
     public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
-        return bareLockRpcClient.useGrant(client, grant);
+        return namespaceAgnosticLockRpcClient.useGrant(client, grant);
     }
 
     @Override
     public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
-        return bareLockRpcClient.useGrant(client, grantId);
+        return namespaceAgnosticLockRpcClient.useGrant(client, grantId);
     }
 
     @Nullable
     @Override
     public Long getMinLockedInVersionId() {
-        return bareLockRpcClient.getMinLockedInVersionId().orElse(null);
+        return namespaceAgnosticLockRpcClient.getMinLockedInVersionId().orElse(null);
     }
 
     @Override
     public Long getMinLockedInVersionId(LockClient client) {
-        return bareLockRpcClient.getMinLockedInVersionId(client).orElse(null);
+        return namespaceAgnosticLockRpcClient.getMinLockedInVersionId(client).orElse(null);
     }
 
     @Nullable
     @Override
     public Long getMinLockedInVersionId(String client) {
-        return bareLockRpcClient.getMinLockedInVersionId(client).orElse(null);
+        return namespaceAgnosticLockRpcClient.getMinLockedInVersionId(client).orElse(null);
     }
 
     @Override
     public LockServerOptions getLockServerOptions() {
-        return bareLockRpcClient.getLockServerOptions();
+        return namespaceAgnosticLockRpcClient.getLockServerOptions();
     }
 
     @Nullable
     @Override
     public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
-        return bareLockRpcClient.lock(client, request).orElse(null);
+        return namespaceAgnosticLockRpcClient.lock(client, request).orElse(null);
     }
 
     @Override
     public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
-        return bareLockRpcClient.lockAndGetHeldLocks(client, request).orElse(null);
+        return namespaceAgnosticLockRpcClient.lockAndGetHeldLocks(client, request).orElse(null);
     }
 
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
-        return bareLockRpcClient.refreshLockRefreshTokens(tokens);
+        return namespaceAgnosticLockRpcClient.refreshLockRefreshTokens(tokens);
     }
 
     @Override
     public long currentTimeMillis() {
-        return bareLockRpcClient.currentTimeMillis();
+        return namespaceAgnosticLockRpcClient.currentTimeMillis();
     }
 
     @Override
     public void logCurrentState() {
-        bareLockRpcClient.currentTimeMillis();
+        namespaceAgnosticLockRpcClient.currentTimeMillis();
     }
 }

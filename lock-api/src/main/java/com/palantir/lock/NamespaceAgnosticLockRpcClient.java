@@ -38,7 +38,7 @@ import com.palantir.logsafe.Safe;
 @Path("/lock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public interface BareLockRpcClient {
+public interface NamespaceAgnosticLockRpcClient {
     @POST
     @Path("lock-with-full-response/{client: .*}")
     @CancelableServerCall

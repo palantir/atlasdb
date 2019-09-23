@@ -20,7 +20,7 @@ import java.math.BigInteger;
 import java.util.Optional;
 import java.util.Set;
 
-import com.palantir.lock.BareLockRpcClient;
+import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -31,11 +31,11 @@ import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
 
-public class NamespacedLockRpcClient implements BareLockRpcClient {
+public class NamespaceAgnosticLockClientAdaptor implements NamespaceAgnosticLockRpcClient {
     private final String namespace;
     private final LockRpcClient lockRpcClient;
 
-    public NamespacedLockRpcClient(String namespace, LockRpcClient lockRpcClient) {
+    public NamespaceAgnosticLockClientAdaptor(String namespace, LockRpcClient lockRpcClient) {
         this.namespace = namespace;
         this.lockRpcClient = lockRpcClient;
     }
