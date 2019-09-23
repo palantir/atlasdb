@@ -22,11 +22,12 @@ public final class ExceptionMatchers {
     private ExceptionMatchers() { }
 
     public static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
-        assertThat(throwable)
-                .hasMessageContaining("method invoked on a non-leader");
-
-        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
-        assertThat(throwable.getClass().getName())
-                .contains("RetryableException");
+//        assertThat(throwable)
+//                .hasMessageContaining("method invoked on a non-leader");
+//
+//        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
+//        assertThat(throwable.getClass().getName())
+//                .contains("RetryableException");
+        assertThat(throwable).hasMessageContaining("Failed to determine");
     }
 }
