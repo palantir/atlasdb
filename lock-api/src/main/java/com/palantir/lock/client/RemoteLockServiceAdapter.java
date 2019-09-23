@@ -21,7 +21,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -31,6 +30,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
+import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleHeldLocksToken;
 
 public class RemoteLockServiceAdapter implements LockService {
@@ -41,8 +41,9 @@ public class RemoteLockServiceAdapter implements LockService {
     }
 
     public static LockService create(LockRpcClient lockRpcClient, String namespace) {
-        NamespaceAgnosticLockRpcClient namespacedClient = new NamespaceAgnosticLockClientAdaptor(namespace, lockRpcClient);
-        return new RemoteLockServiceAdapter(namespacedClient);
+        NamespaceAgnosticLockRpcClient namespaceAgnosticClient
+                = new NamespaceAgnosticLockClientAdaptor(namespace, lockRpcClient);
+        return new RemoteLockServiceAdapter(namespaceAgnosticClient);
     }
 
     @Override
