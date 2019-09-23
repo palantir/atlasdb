@@ -152,6 +152,6 @@ public class RemoteLockServiceAdapter implements LockService {
 
     @Override
     public void logCurrentState() {
-        namespaceAgnosticLockRpcClient.currentTimeMillis();
+        namespaceAgnosticLockRpcClient.logCurrentState();
     }
 }
