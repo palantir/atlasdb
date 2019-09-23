@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,72 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.config;
+
+package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+
 public class ClusterConfigurationTest {
+
     private static final String ADDRESS_1 = "localhost:1";
     private static final String ADDRESS_2 = "localhost:2";
 
     @Test
-    public void shouldThrowIfLocalServerNotSpecified() {
-        assertThatThrownBy(ImmutableClusterConfiguration.builder()::build)
-                .isInstanceOf(IllegalStateException.class);
-    }
-
-    @Test
-    public void shouldThrowIfNoServersSpecified() {
-        assertThatThrownBy(ImmutableClusterConfiguration.builder()
-                .localServer(ADDRESS_1)
-                ::build)
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
     public void shouldThrowIfLocalServerNotInServers() {
-        assertThatThrownBy(ImmutableClusterConfiguration.builder()
+        ImmutableDefaultClusterConfiguration.Builder builder = ImmutableDefaultClusterConfiguration.builder()
                 .localServer(ADDRESS_1)
-                .addServers(ADDRESS_2)
-                ::build)
+                .cluster(PartialServiceConfiguration.of(ImmutableList.of(ADDRESS_2), Optional.empty()));
+        assertThatThrownBy(builder::build)
                 .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    public void shouldAcceptValidHostPortString() {
-        assertAddressValid(ADDRESS_1);
-    }
-
-    @Test
-    public void shouldAcceptHostSpecifiedAsIpAddress() {
-        assertAddressValid("1.2.3.4:1");
-    }
-
-    @Test
-    public void shouldThrowIfServerHasNoPort() {
-        assertAddressNotValid("localhost");
-    }
-
-    @Test
-    public void shouldThrowIfServerHasInvalidPort() {
-        assertAddressNotValid("localhost:1234567");
-    }
-
-    @Test
-    public void shouldThrowIfStringIncludesProtocol() {
-        assertAddressNotValid("http://palantir.com:8080");
-    }
-
-    @Test
-    public void shouldThrowIfPortUnparseable() {
-        assertAddressNotValid("localhost:foo");
     }
 
     @Test
@@ -118,40 +80,32 @@ public class ClusterConfigurationTest {
         assertConfigurationWithFixedNumberOfServersIsValidWithDisclaimer(314);
     }
 
-    private void assertAddressValid(String address) {
-        ClusterConfiguration.checkHostPortString(address);
-    }
-
-    private void assertAddressNotValid(String address) {
-        assertThatThrownBy(() -> ClusterConfiguration.checkHostPortString(address))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    private void assertConfigurationWithFixedNumberOfServersIsValidWithoutDisclaimer(int numServers) {
+    private static void assertConfigurationWithFixedNumberOfServersIsValidWithoutDisclaimer(int numServers) {
         ClusterConfiguration configuration = createClusterConfiguration(numServers, false);
         assertThat(configuration).isNotNull();
     }
 
-    private void assertConfigurationWithFixedNumberOfServersIsValidWithDisclaimer(int numServers) {
+    private static void assertConfigurationWithFixedNumberOfServersIsValidWithDisclaimer(int numServers) {
         ClusterConfiguration configuration = createClusterConfiguration(numServers, true);
         assertThat(configuration).isNotNull();
     }
 
-    private ClusterConfiguration createClusterConfiguration(int numServers, boolean disclaimer) {
+    private static ClusterConfiguration createClusterConfiguration(int numServers, boolean disclaimer) {
         List<String> servers = IntStream.range(0, numServers)
                 .mapToObj(index -> "server" + index + ":42")
                 .collect(Collectors.toList());
-        return ImmutableClusterConfiguration.builder()
-                .addAllServers(servers)
+        return ImmutableDefaultClusterConfiguration.builder()
+                .cluster(PartialServiceConfiguration.of(servers, Optional.empty()))
                 .localServer(servers.get(0))
                 .enableNonstandardAndPossiblyDangerousTopology(disclaimer)
                 .build();
     }
 
-    private void assertConfigurationWithFixedNumberOfServersIsInvalidWithoutDisclaimer(int numServers) {
+    private static void assertConfigurationWithFixedNumberOfServersIsInvalidWithoutDisclaimer(int numServers) {
         assertThatThrownBy(() -> createClusterConfiguration(numServers, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not a standard configuration!")
                 .hasMessageContaining("IRRECOVERABLY COMPROMISED");
     }
+
 }
