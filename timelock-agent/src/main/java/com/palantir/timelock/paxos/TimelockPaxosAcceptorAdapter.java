@@ -58,7 +58,8 @@ public final class TimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     }
 
     /**
-     * Given a list of {@link TimelockPaxosAcceptorRpcClient}s, returns a function allowing for injection of the client name.
+     * Given a list of {@link TimelockPaxosAcceptorRpcClient}s, returns a function allowing for injection of the client
+     * name.
      */
     public static Function<Client, List<PaxosAcceptor>> wrap(
             PaxosUseCase paxosUseCase,
