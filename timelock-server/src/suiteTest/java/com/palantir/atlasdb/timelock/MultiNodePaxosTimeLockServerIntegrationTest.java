@@ -202,12 +202,13 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void leaderIdChangesAcrossFailovers() {
         Set<LeaderTime> leaderTimes = new HashSet<>();
-        leaderTimes.add(cluster.timelockRpcClient().getLeaderTime());
+        leaderTimes.add(cluster.namespacedClient().getLeaderTime());
 
         for (int i = 0; i < 3; i++) {
             cluster.failoverToNewLeader();
 
-            LeaderTime leaderTime = cluster.timelockRpcClient().getLeaderTime();
+            LeaderTime leaderTime = cluster.namespacedClient().getLeaderTime();
+
             leaderTimes.forEach(previousLeaderTime ->
                     assertThat(previousLeaderTime.isComparableWith(leaderTime)).isFalse());
             leaderTimes.add(leaderTime);
@@ -380,7 +381,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
                 requestorUuid,
                 numRequestedTimestamps);
-        StartTransactionResponseV4 response = cluster.timelockRpcClient().startTransactions(request);
+        StartTransactionResponseV4 response = cluster.namespacedClient().startTransactions(request);
         return response.timestamps().stream()
                 .boxed()
                 .collect(Collectors.toList());

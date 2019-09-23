@@ -25,19 +25,19 @@ import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private final TimelockService timelockService;
 
-    private AsyncLockClient(TimelockRpcClient timelockService) {
+    private AsyncLockClient(NamespacedTimelockRpcClient timelockService) {
         this.timelockService = RemoteTimelockServiceAdapter.create(timelockService);
     }
 
     public static AsyncLockClient create(MetricRegistry metricRegistry, List<String> hosts) {
-        return new AsyncLockClient(TimelockUtils.createClient(metricRegistry, hosts, TimelockRpcClient.class));
+        return new AsyncLockClient(TimelockUtils.createClient(metricRegistry, hosts, NamespacedTimelockRpcClient.class));
     }
 
     @Override

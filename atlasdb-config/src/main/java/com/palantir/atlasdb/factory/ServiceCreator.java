@@ -30,6 +30,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -75,6 +76,17 @@ public final class ServiceCreator {
         return create(
                 metricsManager,
                 servers,
+                SslSocketFactories::createTrustContext,
+                ServiceCreator::createProxySelector,
+                serviceClass,
+                userAgent,
+                limitPayload);
+    }
+
+    public <T> T createServiceWithNamespacedUris(Class<T> serviceClass, String namespace) {
+        return create(
+                metricsManager,
+                () -> ServerListConfigs.namespaceUris(servers.get(), namespace),
                 SslSocketFactories::createTrustContext,
                 ServiceCreator::createProxySelector,
                 serviceClass,

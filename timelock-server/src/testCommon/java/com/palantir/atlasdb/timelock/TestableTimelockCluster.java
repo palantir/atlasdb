@@ -50,6 +50,7 @@ import com.palantir.lock.client.TimeLockUnlocker;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
@@ -231,7 +232,7 @@ public class TestableTimelockCluster implements TestRule {
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelockRpcClient(client).deprecatedStartTransaction(request).toStartTransactionResponse();
+        return namespacedClient().deprecatedStartTransaction(request).toStartTransactionResponse();
     }
 
     private TimestampService timestampService() {
@@ -249,8 +250,10 @@ public class TestableTimelockCluster implements TestRule {
     TimelockService timelockServiceForClient(String name) {
         return timelockServicesForClient.computeIfAbsent(
                 name,
-                clientName -> RemoteTimelockServiceAdapter.create(
-                        proxies.failoverForClient(clientName, TimelockRpcClient.class)));
+                clientName -> {
+                    TimelockRpcClient rpcClient = proxies.failover(TimelockRpcClient.class, proxies.getServerUris());
+                    return RemoteTimelockServiceAdapter.create(new NamespacedTimelockRpcClient(rpcClient, clientName));
+                });
     }
 
     TimeLockUnlocker unlockerForClient(String name) {
@@ -258,16 +261,16 @@ public class TestableTimelockCluster implements TestRule {
                 clientName -> AsyncTimeLockUnlocker.create(timelockServiceForClient(clientName)));
     }
 
-    <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
-        return CompletableFuture.supplyAsync(() -> function.apply(timelockRpcClient()));
+    <T> CompletableFuture<T> runWithRpcClientAsync(Function<NamespacedTimelockRpcClient, T> function) {
+        return CompletableFuture.supplyAsync(() -> function.apply(namespacedClient()));
     }
 
-    TimelockRpcClient timelockRpcClient() {
-        return timelockRpcClient(client);
+    NamespacedTimelockRpcClient namespacedClient() {
+        return new NamespacedTimelockRpcClient(timelockRpcClient(), client);
     }
 
-    private TimelockRpcClient timelockRpcClient(String name) {
-        return proxies.failoverForClient(name, TimelockRpcClient.class);
+    private TimelockRpcClient timelockRpcClient() {
+        return proxies.failover(TimelockRpcClient.class, proxies.getServerUris());
     }
 
     RuleChain getRuleChain() {
