@@ -30,6 +30,7 @@ import org.awaitility.Duration;
 import org.junit.rules.ExternalResource;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -40,7 +41,6 @@ import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerMachine;
-import com.palantir.docker.compose.logging.LogCollector;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
@@ -56,7 +56,7 @@ public class Containers extends ExternalResource {
                     .build(CacheLoader.from(Containers::getDockerComposeFile));
 
     private static volatile DockerComposeRule dockerComposeRule;
-    private static volatile LogCollector currentLogCollector;
+    private static volatile InterruptibleFileLogCollector currentLogCollector;
     private static volatile boolean shutdownHookAdded;
     private static volatile boolean dockerProxyRuleStarted;
 
@@ -88,6 +88,7 @@ public class Containers extends ExternalResource {
 
             setupLogCollectorForLogDirectory();
             setupDockerComposeRule();
+            startCollectingLogs();
 
             ensureDockerProxyRuleRunning();
 
@@ -104,7 +105,7 @@ public class Containers extends ExternalResource {
         if (currentLogCollector != null) {
             currentLogCollector.stopCollecting();
         }
-        currentLogCollector = InterruptibleFileLogCollector.fromPath(logDirectory);
+        currentLogCollector = new InterruptibleFileLogCollector(new File(logDirectory));
     }
 
     private void setupDockerComposeRule() throws InterruptedException, IOException {
@@ -130,6 +131,11 @@ public class Containers extends ExternalResource {
                 .build();
 
         dockerComposeRule.before();
+    }
+
+    private void startCollectingLogs() throws IOException, InterruptedException {
+        Preconditions.checkNotNull(currentLogCollector, "Collector should not be null");
+        currentLogCollector.startCollecting(containersToStart.size() + containersStarted.size());
     }
 
     private static void setupShutdownHook() {

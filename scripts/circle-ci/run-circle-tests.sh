@@ -22,7 +22,7 @@ CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:ch
 
 CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
-CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest')
+CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest' ':timelock-server:suiteTest')
 
 CONTAINER_7=('compileJava' 'compileTestJava')
 
