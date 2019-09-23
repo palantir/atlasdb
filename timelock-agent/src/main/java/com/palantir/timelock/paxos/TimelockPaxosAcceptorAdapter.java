@@ -21,43 +21,51 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 
-
-public final class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {
+public final class TimelockPaxosAcceptorAdapter implements PaxosAcceptor {
+    private final PaxosUseCase paxosUseCase;
     private final String client;
-    private final ClientAwarePaxosAcceptor clientAwarePaxosAcceptor;
+    private final TimelockPaxosAcceptorRpcClient timelockPaxosAcceptorRpcClient;
 
-    private ClientAwarePaxosAcceptorAdapter(Client client, ClientAwarePaxosAcceptor clientAwarePaxosAcceptor) {
+    private TimelockPaxosAcceptorAdapter(
+            PaxosUseCase paxosUseCase,
+            Client client,
+            TimelockPaxosAcceptorRpcClient timelockPaxosAcceptorRpcClient) {
+        this.paxosUseCase = paxosUseCase;
         this.client = client.value();
-        this.clientAwarePaxosAcceptor = clientAwarePaxosAcceptor;
+        this.timelockPaxosAcceptorRpcClient = timelockPaxosAcceptorRpcClient;
     }
 
     @Override
     public PaxosPromise prepare(long seq, PaxosProposalId pid) {
-        return clientAwarePaxosAcceptor.prepare(client, seq, pid);
+        return timelockPaxosAcceptorRpcClient.prepare(paxosUseCase, client, seq, pid);
     }
 
     @Override
     public BooleanPaxosResponse accept(long seq, PaxosProposal proposal) {
-        return clientAwarePaxosAcceptor.accept(client, seq, proposal);
+        return timelockPaxosAcceptorRpcClient.accept(paxosUseCase, client, seq, proposal);
     }
 
     @Override
     public long getLatestSequencePreparedOrAccepted() {
-        return clientAwarePaxosAcceptor.getLatestSequencePreparedOrAccepted(client);
+        return timelockPaxosAcceptorRpcClient.getLatestSequencePreparedOrAccepted(paxosUseCase, client);
     }
 
     /**
-     * Given a list of {@link ClientAwarePaxosAcceptor}s, returns a function allowing for injection of the client name.
+     * Given a list of {@link TimelockPaxosAcceptorRpcClient}s, returns a function allowing for injection of the client
+     * name.
      */
-    public static Function<Client, List<PaxosAcceptor>> wrap(List<ClientAwarePaxosAcceptor> acceptors) {
+    public static Function<Client, List<PaxosAcceptor>> wrap(
+            PaxosUseCase paxosUseCase,
+            List<TimelockPaxosAcceptorRpcClient> acceptors) {
         return client -> acceptors.stream()
-                .map(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
+                .map(acceptor -> new TimelockPaxosAcceptorAdapter(paxosUseCase, client, acceptor))
                 .collect(Collectors.toList());
     }
 }

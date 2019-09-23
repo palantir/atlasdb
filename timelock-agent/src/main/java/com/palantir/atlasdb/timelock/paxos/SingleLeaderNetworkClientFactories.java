@@ -28,10 +28,10 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
-import com.palantir.timelock.paxos.ClientAwarePaxosAcceptor;
-import com.palantir.timelock.paxos.ClientAwarePaxosAcceptorAdapter;
-import com.palantir.timelock.paxos.ClientAwarePaxosLearner;
-import com.palantir.timelock.paxos.ClientAwarePaxosLearnerAdapter;
+import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapter;
+import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
+import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapter;
+import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
 
 @Value.Immutable
 abstract class SingleLeaderNetworkClientFactories {
@@ -42,12 +42,13 @@ abstract class SingleLeaderNetworkClientFactories {
     abstract PaxosComponents components();
 
     NetworkClientFactories factories() {
-        List<ClientAwarePaxosAcceptor> remoteClientAwareAcceptors = proxyFactories()
-                .createRemoteProxies(ClientAwarePaxosAcceptor.class, "timestamp-bound-store.acceptor");
+        List<TimelockPaxosAcceptorRpcClient> remoteClientAwareAcceptors = proxyFactories()
+                .createRemoteProxies(TimelockPaxosAcceptorRpcClient.class, "timestamp-bound-store.acceptor");
 
         Factory<PaxosAcceptorNetworkClient> acceptorClientFactory = client -> {
-            List<PaxosAcceptor> remoteAcceptors =
-                    ClientAwarePaxosAcceptorAdapter.wrap(remoteClientAwareAcceptors).apply(client);
+            List<PaxosAcceptor> remoteAcceptors = TimelockPaxosAcceptorAdapter
+                    .wrap(PaxosUseCase.TIMESTAMP, remoteClientAwareAcceptors)
+                    .apply(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
             LocalAndRemotes<PaxosAcceptor> allAcceptors =
                     proxyFactories().instrumentLocalAndRemotesFor(PaxosAcceptor.class, localAcceptor, remoteAcceptors);
@@ -57,12 +58,13 @@ abstract class SingleLeaderNetworkClientFactories {
                     allAcceptors.withSharedExecutor(sharedExecutor()));
         };
 
-        List<ClientAwarePaxosLearner> remoteClientAwareLearners = proxyFactories()
-                .createRemoteProxies(ClientAwarePaxosLearner.class, "timestamp-bound-store.learner");
+        List<TimelockPaxosLearnerRpcClient> remoteClientAwareLearners = proxyFactories()
+                .createRemoteProxies(TimelockPaxosLearnerRpcClient.class, "timestamp-bound-store.learner");
 
         Factory<PaxosLearnerNetworkClient> learnerClientFactory = client -> {
-            List<PaxosLearner> remoteLearners =
-                    ClientAwarePaxosLearnerAdapter.wrap(remoteClientAwareLearners).apply(client);
+            List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapter
+                    .wrap(PaxosUseCase.TIMESTAMP, remoteClientAwareLearners)
+                    .apply(client);
             PaxosLearner localLearner = components().learner(client);
             LocalAndRemotes<PaxosLearner> allLearners =
                     proxyFactories().instrumentLocalAndRemotesFor(PaxosLearner.class, localLearner, remoteLearners);
