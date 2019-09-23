@@ -34,7 +34,6 @@ import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ThreadingOptions;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.LatencyAwarePolicy;
@@ -55,16 +54,17 @@ public final class CqlClientFactory {
 
     }
 
-    public static CqlClient constructClient(CassandraKeyValueServiceConfig config) {
+    public static CqlClient constructClient(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         return config.servers().visitCql((maybeCqlServers, proxy) ->
-                maybeCqlServers.map(cqlServers -> createClient(config, cqlServers, proxy))
+                maybeCqlServers.map(cqlServers -> createClient(config, cqlServers, proxy, initializeAsync))
                         .orElseGet(ThrowingCqlClientImpl::new));
     }
 
     private static CqlClient createClient(
             CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers,
-            Optional<SocketAddress> proxy) {
+            Optional<SocketAddress> proxy,
+            boolean initializeAsync) {
 
         Cluster.Builder clusterBuilder = Cluster.builder()
                 .addContactPointsWithPorts(servers)
@@ -81,13 +81,13 @@ public final class CqlClientFactory {
 
         sslOptions(config).ifPresent(clusterBuilder::withSSL);
 
-        Session session = clusterBuilder.build().connect();
+        Cluster cluster = clusterBuilder.build();
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat(session.getCluster().getClusterName() + "-session" + "-%d")
+                .setNameFormat(cluster.getClusterName() + "-session" + "-%d")
                 .build();
 
-        return CqlClientImpl.create(session, Executors.newCachedThreadPool(threadFactory));
+        return CqlClientImpl.create(cluster, Executors.newCachedThreadPool(threadFactory), initializeAsync);
     }
 
     private static Optional<RemoteEndpointAwareJdkSSLOptions> sslOptions(CassandraKeyValueServiceConfig config) {

@@ -29,16 +29,52 @@ import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.logsafe.Preconditions;
 
-public final class CqlClientImpl implements CqlClient {
+@SuppressWarnings("checkstyle:FinalClass")
+public class CqlClientImpl implements CqlClient {
+    private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
+        private final Cluster cluster;
+        private final Executor executor;
+        private CqlClientImpl internalImpl;
+
+        InitializingWrapper(Cluster cluster, Executor executor) {
+            this.cluster = cluster;
+            this.executor = executor;
+        }
+
+        @Override
+        public CqlClient delegate() {
+            checkInitialized();
+            return internalImpl;
+        }
+
+        @Override
+        public CqlQueryBuilder<Object> queryBuilder() {
+            return internalImpl.queryBuilder();
+        }
+
+        @Override
+        protected void tryInitialize() {
+            internalImpl = new CqlClientImpl(cluster.connect(), executor);
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return "CqlClient";
+        }
+    }
 
     private final Session session;
     private final Executor executor;
 
-    public static CqlClient create(Session session,
-            Executor executor) {
-        return new CqlClientImpl(session, executor);
+    public static CqlClient create(Cluster cluster,
+            Executor executor, boolean initializeAsync) {
+        if (initializeAsync) {
+            return new InitializingWrapper(cluster, executor);
+        }
+        return new CqlClientImpl(cluster.connect(), executor);
     }
 
     private CqlClientImpl(Session session, Executor executor) {

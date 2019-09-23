@@ -360,7 +360,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            CqlClient cqlClient = CqlClientFactory.constructClient(config);
+            CqlClient cqlClient = CqlClientFactory.constructClient(config, initializeAsync);
 
             return createAndInitialize(
                     metricsManager,
