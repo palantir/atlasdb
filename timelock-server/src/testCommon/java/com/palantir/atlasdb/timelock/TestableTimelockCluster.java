@@ -232,7 +232,7 @@ public class TestableTimelockCluster implements TestRule {
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return namespaceAwareClient().deprecatedStartTransaction(request).toStartTransactionResponse();
+        return namespacedClient().deprecatedStartTransaction(request).toStartTransactionResponse();
     }
 
     private TimestampService timestampService() {
@@ -262,10 +262,10 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     <T> CompletableFuture<T> runWithRpcClientAsync(Function<NamespacedTimelockRpcClient, T> function) {
-        return CompletableFuture.supplyAsync(() -> function.apply(namespaceAwareClient()));
+        return CompletableFuture.supplyAsync(() -> function.apply(namespacedClient()));
     }
 
-    NamespacedTimelockRpcClient namespaceAwareClient() {
+    NamespacedTimelockRpcClient namespacedClient() {
         return new NamespacedTimelockRpcClient(timelockRpcClient(), client);
     }
 

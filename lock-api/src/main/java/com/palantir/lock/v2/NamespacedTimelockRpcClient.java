@@ -25,7 +25,6 @@ import com.palantir.timestamp.TimestampRange;
  * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a
  * parameter.
  */
-
 public class NamespacedTimelockRpcClient {
     private final TimelockRpcClient timelockRpcClient;
     private final String namespace;

@@ -924,10 +924,10 @@ public abstract class TransactionManagers {
         LockService lockService = creator.createServiceWithNamespacedUris(LockService.class, timelockNamespace);
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
-        NamespacedTimelockRpcClient namespaceAwareTimelockRpcClient
+        NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
-                = RemoteTimelockServiceAdapter.create(namespaceAwareTimelockRpcClient);
+                = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient);
         TimestampManagementService timestampManagementService
                 = creator.createServiceWithNamespacedUris(TimestampManagementService.class, timelockNamespace);
 
