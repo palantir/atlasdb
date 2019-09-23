@@ -29,42 +29,54 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.common.annotation.Inclusive;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
 /**
- * This interface is used internally to allow creating a single feign proxy where different clients can be injected
- * using {@link ClientAwarePaxosLearner} to create {@link PaxosLearner}s instead of creating a proxy per client. This
- * reduces the resource allocation when a new timelock node becomes the leader.
+ * This interface is used internally by timelock to allow creating a single feign proxy where different clients and
+ * different paxos use cases can be injected using {@link TimelockPaxosLearnerAdapter} to create
+ * {@link PaxosLearner}s instead of creating a proxy per client and per use case. This reduces the resource allocation
+ * when a new timelock node becomes the leader.
  */
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
-        + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
+        + "/{useCase}"
         + "/{client}"
         + "/learner")
-public interface ClientAwarePaxosLearner {
+public interface TimelockPaxosLearnerRpcClient {
     @POST
     @Path("learn/{seq}")
     @Consumes(MediaType.APPLICATION_JSON)
-    void learn(@PathParam("client") String client, @PathParam("seq") long seq, PaxosValue val);
+    void learn(
+            @PathParam("useCase") PaxosUseCase paxosUseCase,
+            @PathParam("client") String client,
+            @PathParam("seq") long seq,
+            PaxosValue val);
 
     @Nullable
     @GET
     @Path("learned-value/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
-    PaxosValue getLearnedValue(@PathParam("client") String client, @PathParam("seq") long seq);
+    PaxosValue getLearnedValue(
+            @PathParam("useCase") PaxosUseCase paxosUseCase,
+            @PathParam("client") String client,
+            @PathParam("seq") long seq);
 
     @Nullable
     @GET
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
-    PaxosValue getGreatestLearnedValue(@PathParam("client") String client);
+    PaxosValue getGreatestLearnedValue(
+            @PathParam("useCase") PaxosUseCase paxosUseCase,
+            @PathParam("client") String client);
 
     @Nonnull
     @GET
     @Path("learned-values-since/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     Collection<PaxosValue> getLearnedValuesSince(
+            @PathParam("useCase") PaxosUseCase paxosUseCase,
             @PathParam("client") String client,
             @PathParam("seq") @Inclusive long seq);
 }

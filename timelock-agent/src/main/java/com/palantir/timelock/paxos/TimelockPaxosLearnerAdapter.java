@@ -25,47 +25,55 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
-public final class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
+public final class TimelockPaxosLearnerAdapter implements PaxosLearner {
+    private final PaxosUseCase paxosUseCase;
     private final String client;
-    private final ClientAwarePaxosLearner clientAwarePaxosLearner;
+    private final TimelockPaxosLearnerRpcClient clientAwarePaxosLearner;
 
-    private ClientAwarePaxosLearnerAdapter(Client client, ClientAwarePaxosLearner clientAwarePaxosLearner) {
+    private TimelockPaxosLearnerAdapter(
+            PaxosUseCase paxosUseCase,
+            Client client,
+            TimelockPaxosLearnerRpcClient clientAwarePaxosLearner) {
+        this.paxosUseCase = paxosUseCase;
         this.client = client.value();
         this.clientAwarePaxosLearner = clientAwarePaxosLearner;
     }
 
     @Override
     public void learn(long seq, PaxosValue val) {
-        clientAwarePaxosLearner.learn(client, seq, val);
+        clientAwarePaxosLearner.learn(paxosUseCase, client, seq, val);
     }
 
     @Nullable
     @Override
     public PaxosValue getLearnedValue(long seq) {
-        return clientAwarePaxosLearner.getLearnedValue(client, seq);
+        return clientAwarePaxosLearner.getLearnedValue(paxosUseCase, client, seq);
     }
 
     @Nullable
     @Override
     public PaxosValue getGreatestLearnedValue() {
-        return clientAwarePaxosLearner.getGreatestLearnedValue(client);
+        return clientAwarePaxosLearner.getGreatestLearnedValue(paxosUseCase, client);
     }
 
     @Nonnull
     @Override
     public Collection<PaxosValue> getLearnedValuesSince(long seq) {
-        return clientAwarePaxosLearner.getLearnedValuesSince(client, seq);
+        return clientAwarePaxosLearner.getLearnedValuesSince(paxosUseCase, client, seq);
     }
 
     /**
-     * Given a list of {@link ClientAwarePaxosLearner}s, returns a function allowing for injection of the client name.
+     * Given a list of {@link TimelockPaxosLearnerRpcClient}s, returns a function allowing for injection of the client name.
      */
-    public static Function<Client, List<PaxosLearner>> wrap(List<ClientAwarePaxosLearner> learners) {
+    public static Function<Client, List<PaxosLearner>> wrap(
+            PaxosUseCase paxosUseCase,
+            List<TimelockPaxosLearnerRpcClient> learners) {
         return client -> learners.stream()
-                .map(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
+                .map(learner -> new TimelockPaxosLearnerAdapter(paxosUseCase, client, learner))
                 .collect(Collectors.toList());
     }
 }
