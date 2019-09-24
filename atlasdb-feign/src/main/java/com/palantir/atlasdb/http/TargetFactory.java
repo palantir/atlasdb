@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -32,29 +33,25 @@ public interface TargetFactory {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize);
+            AuxiliaryRemotingParameters clientParameters);
 
     <T> T createProxy(
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize);
+            AuxiliaryRemotingParameters parameters);
 
     <T> T createProxyWithFailover(
             Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize);
+            AuxiliaryRemotingParameters parameters);
 
     <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload);
+            AuxiliaryRemotingParameters parameters);
 }

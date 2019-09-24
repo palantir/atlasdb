@@ -14,21 +14,26 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.http;
+package com.palantir.atlasdb.config;
+
+import java.util.function.Supplier;
+
+import org.immutables.value.Value;
 
 import com.palantir.conjure.java.api.config.service.UserAgent;
 
-public final class AtlasDbRemotingConstants {
-    public static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
-    public static final AtlasDbHttpProtocolVersion CURRENT_CLIENT_PROTOCOL_VERSION
-            = AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME;
-    public static final UserAgent.Agent ATLASDB_HTTP_CLIENT_AGENT
-            = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, CURRENT_CLIENT_PROTOCOL_VERSION.getProtocolVersionString());
+/**
+ * Additional parameters for clients to specify when connecting to remote services.
+ */
+@Value.Immutable
+public interface AuxiliaryRemotingParameters {
+    UserAgent userAgent();
 
-    public static final UserAgent DEFAULT_USER_AGENT = UserAgent.of(
-            UserAgent.Agent.of("unknown", UserAgent.Agent.DEFAULT_VERSION));
+    boolean shouldLimitPayload();
 
-    private AtlasDbRemotingConstants() {
-        // constants
+    Supplier<RemotingClientConfig> remotingClientConfig();
+
+    static ImmutableAuxiliaryRemotingParameters.Builder builder() {
+        return ImmutableAuxiliaryRemotingParameters.builder();
     }
 }

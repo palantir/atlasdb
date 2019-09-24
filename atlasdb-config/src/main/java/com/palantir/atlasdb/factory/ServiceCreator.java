@@ -29,11 +29,14 @@ import java.util.function.Supplier;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
@@ -41,24 +44,27 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
-    private final String userAgent;
     private final Supplier<ServerListConfig> servers;
-    private final boolean limitPayload;
+    private final AuxiliaryRemotingParameters parameters;
 
-    private ServiceCreator(MetricsManager metricsManager, String userAgent, Supplier<ServerListConfig> servers,
-            boolean limitPayload) {
+    private ServiceCreator(MetricsManager metricsManager,
+            Supplier<ServerListConfig> servers,
+            AuxiliaryRemotingParameters parameters) {
         this.metricsManager = metricsManager;
-        this.userAgent = userAgent;
         this.servers = servers;
-        this.limitPayload = limitPayload;
+        this.parameters = parameters;
     }
 
     /**
      * Creates clients without client-side restrictions on payload size.
      */
-    public static ServiceCreator noPayloadLimiter(MetricsManager metrics, String agent,
-            Supplier<ServerListConfig> serverList) {
-        return new ServiceCreator(metrics, agent, serverList, false);
+    public static ServiceCreator noPayloadLimiter(
+            MetricsManager metrics,
+            Supplier<ServerListConfig> serverList,
+            UserAgent userAgent,
+            Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
+        return new ServiceCreator(
+                metrics, serverList, toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, false));
     }
 
     /**
@@ -66,9 +72,13 @@ public final class ServiceCreator {
      * {@link com.palantir.atlasdb.http.AtlasDbInterceptors#MAX_PAYLOAD_SIZE} bytes. This ServiceCreator should be used
      * for clients to servers that impose payload limits.
      */
-    public static ServiceCreator withPayloadLimiter(MetricsManager metrics, String agent,
-            Supplier<ServerListConfig> serverList) {
-        return new ServiceCreator(metrics, agent, serverList, true);
+    public static ServiceCreator withPayloadLimiter(
+            MetricsManager metrics,
+            Supplier<ServerListConfig> serverList,
+            UserAgent userAgent,
+            Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
+        return new ServiceCreator(
+                metrics, serverList, toAuxiliaryRemotingParameters(userAgent, remotingClientConfigSupplier, true));
     }
 
     public <T> T createService(Class<T> serviceClass) {
@@ -78,8 +88,7 @@ public final class ServiceCreator {
                 SslSocketFactories::createTrustContext,
                 ServiceCreator::createProxySelector,
                 serviceClass,
-                userAgent,
-                limitPayload);
+                parameters);
     }
 
     /**
@@ -96,16 +105,14 @@ public final class ServiceCreator {
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 metricsManager.getTaggedRegistry(),
                 serverListConfigSupplier,
                 trustContextCreator,
                 proxySelectorCreator,
                 type,
-                userAgent,
-                limitPayload);
+                parameters);
     }
 
     public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {
@@ -146,6 +153,17 @@ public final class ServiceCreator {
             @Override
             public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {}
         };
+    }
 
+
+    private static AuxiliaryRemotingParameters toAuxiliaryRemotingParameters(
+            UserAgent userAgent,
+            Supplier<RemotingClientConfig> remotingClientConfigSupplier,
+            boolean shouldLimitPayload) {
+        return AuxiliaryRemotingParameters.builder()
+                .remotingClientConfig(remotingClientConfigSupplier)
+                .userAgent(userAgent)
+                .shouldLimitPayload(shouldLimitPayload)
+                .build();
     }
 }

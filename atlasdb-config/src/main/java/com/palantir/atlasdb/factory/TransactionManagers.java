@@ -62,6 +62,7 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
+import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.ShouldRunBackgroundSweepSupplier;
@@ -74,7 +75,7 @@ import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
-import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -134,6 +135,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.time.Clock;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -210,6 +213,11 @@ public abstract class TransactionManagers {
 
     abstract String userAgent();
 
+    @Value.Default
+    UserAgent structuredUserAgent() {
+        return UserAgents.tryParse(userAgent());
+    }
+
     abstract MetricRegistry globalMetricsRegistry();
 
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
@@ -258,10 +266,11 @@ public abstract class TransactionManagers {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return builder()
                 .config(config)
-                .userAgent(UserAgents.DEFAULT_USER_AGENT)
+                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT.toString())
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .addAllSchemas(schemas)
+                .structuredUserAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .build()
                 .serializable();
     }
@@ -321,7 +330,7 @@ public abstract class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions()),
                 managedTimestampSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
-                userAgent());
+                structuredUserAgent());
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -765,7 +774,7 @@ public abstract class TransactionManagers {
                         lock,
                         time,
                         invalidator,
-                        userAgent);
+                        UserAgents.tryParse(userAgent));
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -784,7 +793,7 @@ public abstract class TransactionManagers {
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
-            String userAgent) {
+            UserAgent userAgent) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -852,13 +861,13 @@ public abstract class TransactionManagers {
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
-            String userAgent) {
+            UserAgent userAgent) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
             return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
-            return createRawRemoteServices(metricsManager, config, userAgent);
+            return createRawRemoteServices(metricsManager, config, runtimeConfigSupplier, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
             return createRawServicesFromTimeLock(metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
@@ -888,14 +897,19 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TimestampStoreInvalidator invalidator,
-            String userAgent) {
+            UserAgent userAgent) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
         String timelockNamespace = OptionalResolver.resolve(
                 config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
         LockAndTimestampServices lockAndTimestampServices =
-                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent, timelockNamespace);
+                getLockAndTimestampServices(
+                        metricsManager,
+                        serverListConfigSupplier,
+                        () -> runtimeConfigSupplier.get().remotingClient(),
+                        userAgent,
+                        timelockNamespace);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.timestampManagement(),
@@ -922,9 +936,11 @@ public abstract class TransactionManagers {
     private static LockAndTimestampServices getLockAndTimestampServices(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
-            String userAgent,
+            Supplier<RemotingClientConfig> remotingConfigSupplier,
+            UserAgent userAgent,
             String timelockNamespace) {
-        ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
+        ServiceCreator creator = ServiceCreator.withPayloadLimiter(
+                metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
         LockService lockService = RemoteLockServiceAdapter.create(
                 creator.createService(LockRpcClient.class), timelockNamespace);
 
@@ -951,7 +967,7 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
-            String userAgent) {
+            UserAgent userAgent) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
@@ -959,7 +975,7 @@ public abstract class TransactionManagers {
                 env,
                 leaderConfig,
                 () -> defaultRuntime,
-                userAgent);
+                userAgent.toString());
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.createInstrumentedService(
                 metricsManager.getRegistry(),
@@ -987,7 +1003,8 @@ public abstract class TransactionManagers {
                 .servers(leaderConfig.leaders())
                 .sslConfiguration(leaderConfig.sslConfiguration())
                 .build();
-        ServiceCreator creator = ServiceCreator.noPayloadLimiter(metricsManager, userAgent, () -> serverListConfig);
+        ServiceCreator creator = ServiceCreator.noPayloadLimiter(
+                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfig.DEFAULT);
         LockService remoteLock = creator.createService(LockService.class);
         TimestampService remoteTime = creator.createService(TimestampService.class);
         TimestampManagementService remoteManagement = creator.createService(TimestampManagementService.class);
@@ -1005,7 +1022,7 @@ public abstract class TransactionManagers {
                     ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
-                    userAgent);
+                    userAgent.toString());
 
             // Determine asynchronously whether the remote services are talking to our local services.
             CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
@@ -1055,8 +1072,15 @@ public abstract class TransactionManagers {
     }
 
     private static LockAndTimestampServices createRawRemoteServices(
-            MetricsManager metricsManager, AtlasDbConfig config, String userAgent) {
-        ServiceCreator creator = ServiceCreator.noPayloadLimiter(metricsManager, userAgent, () -> config.lock().get());
+            MetricsManager metricsManager,
+            AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            UserAgent userAgent) {
+        ServiceCreator creator = ServiceCreator.noPayloadLimiter(
+                metricsManager,
+                () -> config.lock().get(),
+                userAgent,
+                () -> runtimeConfigSupplier.get().remotingClient());
         LockService lockService = creator.createService(LockService.class);
         TimestampService timeService = creator.createService(TimestampService.class);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
