@@ -32,25 +32,29 @@ abstract class BatchingNetworkClientFactories {
     public NetworkClientFactories factories() {
         // TODO(fdesouza): pass these in, as they become use case aware
         List<BatchPaxosAcceptorRpcClient> remoteBatchAcceptors = proxyFactories()
-                .createRemoteProxies(BatchPaxosAcceptorRpcClient.class, "timestamp-bound-store.batch-acceptor");
+                .createInstrumentedRemoteProxies(BatchPaxosAcceptorRpcClient.class, "batch-paxos-acceptor-rpc-client");
 
-        List<BatchPaxosAcceptor> allBatchAcceptors = proxyFactories().instrumentLocalAndRemotesFor(
-                BatchPaxosAcceptor.class,
-                resource().acceptor(PaxosUseCase.TIMESTAMP).asLocalBatchPaxosAcceptor(),
-                UseCaseAwareBatchPaxosAcceptorAdapter.wrap(PaxosUseCase.TIMESTAMP, remoteBatchAcceptors)).all();
+        List<BatchPaxosAcceptor> allBatchAcceptors = proxyFactories()
+                .instrumentLocalAndRemotesFor(
+                        BatchPaxosAcceptor.class,
+                        resource().acceptor(PaxosUseCase.TIMESTAMP).asLocalBatchPaxosAcceptor(),
+                        UseCaseAwareBatchPaxosAcceptorAdapter.wrap(PaxosUseCase.TIMESTAMP, remoteBatchAcceptors),
+                        "batch-paxos-acceptor")
+                .all();
 
         AutobatchingPaxosAcceptorNetworkClientFactory acceptorFactory =
                 AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
 
         // TODO(fdesouza): pass these in as they become use case aware
         List<BatchPaxosLearnerRpcClient> remoteBatchLearners = proxyFactories()
-                .createRemoteProxies(BatchPaxosLearnerRpcClient.class, "timestamp-bound-store.batch-learner");
+                .createInstrumentedRemoteProxies(BatchPaxosLearnerRpcClient.class, "batch-paxos-learner-rpc-client");
 
         List<BatchPaxosLearner> allBatchLearners = proxyFactories()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
-                        resource().learner(PaxosUseCase.TIMESTAMP),
-                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(PaxosUseCase.TIMESTAMP, remoteBatchLearners))
+                        resource().learner(PaxosUseCase.TIMESTAMP).asLocalBatchPaxosLearner(),
+                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(PaxosUseCase.TIMESTAMP, remoteBatchLearners),
+                        "batch-paxos-learner")
                 .all();
 
         AutobatchingPaxosLearnerNetworkClientFactory learnerFactory =

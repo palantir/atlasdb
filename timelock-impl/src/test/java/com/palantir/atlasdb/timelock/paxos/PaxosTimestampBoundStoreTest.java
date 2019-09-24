@@ -107,8 +107,7 @@ public class PaxosTimestampBoundStoreTest {
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getRoot().getAbsolutePath();
             PaxosComponents components = new PaxosComponents(
-                    SharedTaggedMetricRegistries.getSingleton(),
-                    "test",
+                    TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, SharedTaggedMetricRegistries.getSingleton()),
                     Paths.get(root, Integer.toString(i)));
 
             AtomicBoolean failureController = new AtomicBoolean(false);
@@ -133,7 +132,7 @@ public class PaxosTimestampBoundStoreTest {
                     failureController,
                     EXCEPTION));
 
-            BatchPaxosLearner batchLearner = new BatchPaxosLearnerResource(components);
+            BatchPaxosLearner batchLearner = new LocalBatchPaxosLearner(components);
             batchPaxosLearners.add(ToggleableExceptionProxy.newProxyInstance(
                     BatchPaxosLearner.class,
                     batchLearner,

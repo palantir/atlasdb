@@ -43,15 +43,19 @@ abstract class SingleLeaderNetworkClientFactories {
 
     NetworkClientFactories factories() {
         List<TimelockPaxosAcceptorRpcClient> remoteClientAwareAcceptors = proxyFactories()
-                .createRemoteProxies(TimelockPaxosAcceptorRpcClient.class, "timestamp-bound-store.acceptor");
+                .createInstrumentedRemoteProxies(TimelockPaxosAcceptorRpcClient.class, "paxos-acceptor-rpc-client");
 
         Factory<PaxosAcceptorNetworkClient> acceptorClientFactory = client -> {
             List<PaxosAcceptor> remoteAcceptors = TimelockPaxosAcceptorAdapter
                     .wrap(PaxosUseCase.TIMESTAMP, remoteClientAwareAcceptors)
                     .apply(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
-            LocalAndRemotes<PaxosAcceptor> allAcceptors =
-                    proxyFactories().instrumentLocalAndRemotesFor(PaxosAcceptor.class, localAcceptor, remoteAcceptors);
+            LocalAndRemotes<PaxosAcceptor> allAcceptors = proxyFactories().instrumentLocalAndRemotesFor(
+                    PaxosAcceptor.class,
+                    localAcceptor,
+                    remoteAcceptors,
+                    "paxos-acceptor",
+                    client);
             return new SingleLeaderAcceptorNetworkClient(
                     allAcceptors.all(),
                     quorumSize(),
@@ -59,15 +63,19 @@ abstract class SingleLeaderNetworkClientFactories {
         };
 
         List<TimelockPaxosLearnerRpcClient> remoteClientAwareLearners = proxyFactories()
-                .createRemoteProxies(TimelockPaxosLearnerRpcClient.class, "timestamp-bound-store.learner");
+                .createInstrumentedRemoteProxies(TimelockPaxosLearnerRpcClient.class, "paxos-learner-rpc-client");
 
         Factory<PaxosLearnerNetworkClient> learnerClientFactory = client -> {
             List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapter
                     .wrap(PaxosUseCase.TIMESTAMP, remoteClientAwareLearners)
                     .apply(client);
             PaxosLearner localLearner = components().learner(client);
-            LocalAndRemotes<PaxosLearner> allLearners =
-                    proxyFactories().instrumentLocalAndRemotesFor(PaxosLearner.class, localLearner, remoteLearners);
+            LocalAndRemotes<PaxosLearner> allLearners = proxyFactories().instrumentLocalAndRemotesFor(
+                    PaxosLearner.class,
+                    localLearner,
+                    remoteLearners,
+                    "paxos-learner",
+                    client);
             return new SingleLeaderLearnerNetworkClient(
                     allLearners.local(),
                     allLearners.remotes(),

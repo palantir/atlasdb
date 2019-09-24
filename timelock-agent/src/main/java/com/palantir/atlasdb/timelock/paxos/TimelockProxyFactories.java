@@ -23,8 +23,6 @@ import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
@@ -35,26 +33,37 @@ import com.palantir.timelock.paxos.PaxosRemotingUtils;
 public abstract class TimelockProxyFactories {
 
     abstract TimeLockInstallConfiguration install();
-    abstract MetricRegistry metrics();
+    abstract TimelockPaxosMetrics metrics();
 
-    <T> List<T> createRemoteProxies(Class<T> clazz, String userAgent) {
+    <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, String name) {
         Set<String> remoteUris = PaxosRemotingUtils.getRemoteServerPaths(install());
-        Optional<TrustContext> trustContext = PaxosRemotingUtils.getSslConfigurationOptional(install())
+        Optional<TrustContext> trustContext = PaxosRemotingUtils
+                .getSslConfigurationOptional(install())
                 .map(SslSocketFactories::createTrustContext);
         return remoteUris.stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(
-                        metrics(),
+                .map(uri -> AtlasDbHttpClients.DEFAULT_TARGET_FACTORY.createProxy(
                         trustContext,
                         uri,
                         clazz,
-                        userAgent,
+                        name,
                         false))
+                .map(proxy -> metrics().instrument(clazz, proxy, name))
                 .collect(Collectors.toList());
     }
 
-    <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(Class<T> clazz, T local, List<T> remotes) {
+    <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(Class<T> clazz, T local, List<T> remotes, String name) {
         return LocalAndRemotes.of(local, remotes)
-                .map(instance -> ServiceCreator.createInstrumentedService(metrics(), instance, clazz));
+                .map(instance -> metrics().instrument(clazz, instance, name));
+    }
+
+    <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(
+            Class<T> clazz,
+            T local,
+            List<T> remotes,
+            String name,
+            Client client) {
+        return LocalAndRemotes.of(local, remotes)
+                .map(instance -> metrics().instrument(clazz, instance, name, client));
     }
 
 }

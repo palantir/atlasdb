@@ -39,7 +39,7 @@ import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.PaxosValue;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BatchPaxosLearnerResourceTests {
+public class LocalBatchPaxosLearnerTests {
 
     private static final Client CLIENT_1 = Client.of("client1");
     private static final Client CLIENT_2 = Client.of("client2");
@@ -47,11 +47,11 @@ public class BatchPaxosLearnerResourceTests {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private PaxosComponents paxosComponents;
 
-    private BatchPaxosLearnerResource resource;
+    private BatchPaxosLearner resource;
 
     @Before
     public void before() {
-        resource = new BatchPaxosLearnerResource(paxosComponents);
+        resource = new LocalBatchPaxosLearner(paxosComponents);
     }
 
     @Test

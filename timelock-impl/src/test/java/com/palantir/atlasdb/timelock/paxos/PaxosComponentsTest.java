@@ -54,7 +54,9 @@ public class PaxosComponentsTest {
     @Before
     public void setUp() throws IOException {
         logDirectory = TEMPORARY_FOLDER.newFolder().toPath();
-        paxosComponents = new PaxosComponents(new DefaultTaggedMetricRegistry(), "test", logDirectory);
+        paxosComponents = new PaxosComponents(
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, new DefaultTaggedMetricRegistry()),
+                logDirectory);
     }
 
     @Test

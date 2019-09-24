@@ -30,7 +30,7 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class AtlasDbHttpClients {
-    private static final TargetFactory DEFAULT_TARGET_FACTORY = AtlasDbFeignTargetFactory.DEFAULT;
+    public static final TargetFactory DEFAULT_TARGET_FACTORY = AtlasDbFeignTargetFactory.DEFAULT;
     private static final TargetFactory TESTING_TARGET_FACTORY = AtlasDbFeignTargetFactory.FAST_FAIL_FOR_TESTING;
 
     private AtlasDbHttpClients() {

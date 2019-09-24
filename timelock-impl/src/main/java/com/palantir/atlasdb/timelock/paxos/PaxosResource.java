@@ -20,7 +20,6 @@ import javax.ws.rs.PathParam;
 
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
@@ -30,10 +29,6 @@ public final class PaxosResource {
 
     PaxosResource(PaxosComponents paxosComponents) {
         this.paxosComponents = paxosComponents;
-    }
-
-    public static PaxosResource create(TaggedMetricRegistry metricRegistry, java.nio.file.Path logDirectory) {
-        return new PaxosResource(new PaxosComponents(metricRegistry, "bound-store", logDirectory));
     }
 
     @Path("/learner")
