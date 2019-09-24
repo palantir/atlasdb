@@ -22,12 +22,12 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.base.Preconditions;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
         property = "type",
         defaultImpl = DefaultClusterConfiguration.class)
 @JsonSubTypes({
@@ -45,9 +45,37 @@ public interface ClusterConfiguration {
 
     List<String> clusterMembers();
 
+    @Value.Default
+    default boolean enableNonstandardAndPossiblyDangerousTopology() {
+        return false;
+    }
+
     @Value.Check
-    default void check() {
-        Preconditions.checkState(clusterMembers().contains(localServer()),
-                "The localServer '%s' must be included in the server entries: %s.", localServer(), clusterMembers());
+    default void checkClusterMembersIncludesLocalServer() {
+        Preconditions.checkArgument(
+                clusterMembers().contains(localServer()),
+                "The localServer must be included in the server entries.",
+                SafeArg.of("localServer", localServer()),
+                SafeArg.of("clusterMembers", clusterMembers()));
+    }
+
+    @Value.Check
+    default void checkTopologyOffersHighAvailability() {
+        if (enableNonstandardAndPossiblyDangerousTopology()) {
+            return;
+        }
+
+        Preconditions.checkArgument(clusterMembers().size() >= 3,
+                "This TimeLock cluster is set up to use an insufficient (< 3) number of servers, which is not a"
+                        + " standard configuration! With fewer than three servers, your service will not have high"
+                        + " availability. In the event a node goes down, timelock will become unresponsive, meaning"
+                        + " that ALL your AtlasDB clients will become unable to perform transactions. Furthermore, if"
+                        + " 1-node, your TimeLock  cluster has NO resilience to failures of the underlying storage"
+                        + " layer; if your disks fail, the timestamp information may be IRRECOVERABLY COMPROMISED,"
+                        + " meaning that your AtlasDB deployments may become completely unusable."
+                        + " If you know what you are doing and you want to run in this configuration, you must set"
+                        + " 'enableNonstandardAndPossiblyDangerousTopology' to true.",
+                SafeArg.of("clusterSize", clusterMembers().size()),
+                SafeArg.of("minimumClusterSize", 3));
     }
 }

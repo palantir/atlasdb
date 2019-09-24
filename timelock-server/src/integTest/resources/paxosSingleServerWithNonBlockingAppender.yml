@@ -13,6 +13,7 @@ install:
       uris:
       - "localhost:9030"
     local-server: "localhost:9030"
+    enableNonstandardAndPossiblyDangerousTopology: true
   timestampBoundPersistence:
 
 runtime:
