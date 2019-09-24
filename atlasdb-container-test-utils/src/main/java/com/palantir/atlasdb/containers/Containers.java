@@ -30,7 +30,6 @@ import org.awaitility.Duration;
 import org.junit.rules.ExternalResource;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -103,7 +102,7 @@ public class Containers extends ExternalResource {
 
     private void setupLogCollectorForLogDirectory() throws InterruptedException {
         if (currentLogCollector != null) {
-            currentLogCollector.stopCollecting();
+            currentLogCollector.stopExecutor();
         }
         currentLogCollector = new InterruptibleFileLogCollector(new File(logDirectory));
     }
@@ -133,9 +132,8 @@ public class Containers extends ExternalResource {
         dockerComposeRule.before();
     }
 
-    private void startCollectingLogs() throws IOException, InterruptedException {
-        Preconditions.checkNotNull(currentLogCollector, "Collector should not be null");
-        currentLogCollector.startCollecting(containersToStart.size() + containersStarted.size());
+    private void startCollectingLogs() {
+        currentLogCollector.initializeExecutor(Sets.union(containersToStart, containersStarted).size());
     }
 
     private static void setupShutdownHook() {

@@ -18,7 +18,11 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
@@ -31,17 +35,19 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
-@SuppressWarnings("checkstyle:FinalClass")
-public class CqlClientImpl implements CqlClient {
+public final class CqlClientImpl implements CqlClient {
     private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
         private final Cluster cluster;
-        private final Executor executor;
-        private CqlClientImpl internalImpl;
+        private final ExecutorService executor;
+        private final Logger log;
+        private volatile CqlClientImpl internalImpl;
 
-        InitializingWrapper(Cluster cluster, Executor executor) {
+        InitializingWrapper(Cluster cluster, ExecutorService executor, Logger log) {
             this.cluster = cluster;
             this.executor = executor;
+            this.log = log;
         }
 
         @Override
@@ -52,12 +58,13 @@ public class CqlClientImpl implements CqlClient {
 
         @Override
         public CqlQueryBuilder<Object> queryBuilder() {
+            checkInitialized();
             return internalImpl.queryBuilder();
         }
 
         @Override
         protected void tryInitialize() {
-            internalImpl = new CqlClientImpl(cluster.connect(), executor);
+            internalImpl = new CqlClientImpl(cluster.connect(), executor, log);
         }
 
         @Override
@@ -74,23 +81,29 @@ public class CqlClientImpl implements CqlClient {
     }
 
     private final Session session;
-    private final Executor executor;
+    private final ExecutorService executorService;
+    private final Logger log;
 
-    public static CqlClient create(Cluster cluster,
-            Executor executor, boolean initializeAsync) {
+    public static CqlClient create(Cluster cluster, ExecutorService executor, boolean initializeAsync) {
         if (initializeAsync) {
-            return new InitializingWrapper(cluster, executor);
+            return new InitializingWrapper(cluster, executor, LoggerFactory.getLogger(CqlClient.class));
         }
-        return new CqlClientImpl(cluster.connect(), executor);
+        return new CqlClientImpl(cluster.connect(), executor, LoggerFactory.getLogger(CqlClient.class));
     }
 
-    private CqlClientImpl(Session session, Executor executor) {
+    private CqlClientImpl(Session session, ExecutorService executorService, Logger log) {
         this.session = session;
-        this.executor = executor;
+        this.executorService = executorService;
+        this.log = log;
     }
 
     @Override
     public void close() {
+        try {
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.warn("CqlClient executor service did not terminate properly.", e);
+        }
         Cluster cluster = session.getCluster();
         session.close();
         cluster.close();
@@ -117,9 +130,15 @@ public class CqlClientImpl implements CqlClient {
             this.rowStreamAccumulator = rowStreamAccumulator;
         }
 
-        final AsyncFunction<ResultSet, R> iterate() {
+        /**
+         * This method is implemented to process only the currently available data page. After each page is processed we
+         * asynchronously request more data and process it. That way no thread is blocked waiting to retrieve the next
+         * page.
+         * @return {@code AsyncFunction} which will transform the {@code Future} containing the {@code resultSet}
+         */
+        private AsyncFunction<ResultSet, R> iterate() {
             return resultSet -> {
-                Preconditions.checkArgument(resultSet != null, "ResultSet should not be null when iterating");
+                Preconditions.checkNotNull(resultSet, "ResultSet should not be null when iterating");
 
                 rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
                         .limit(resultSet.getAvailableWithoutFetching()));
@@ -129,14 +148,14 @@ public class CqlClientImpl implements CqlClient {
                     return Futures.immediateFuture(rowStreamAccumulator.result());
                 } else {
                     ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
-                    return Futures.transformAsync(future, iterate(), executor);
+                    return Futures.transformAsync(future, iterate(), executorService);
                 }
             };
         }
 
         @Override
         public ListenableFuture<R> execute() {
-            return Futures.transformAsync(session.executeAsync(boundStatement), iterate(), executor);
+            return Futures.transformAsync(session.executeAsync(boundStatement), iterate(), executorService);
         }
     }
 
@@ -171,8 +190,9 @@ public class CqlClientImpl implements CqlClient {
 
             Object[] argsArray = new Object[args.size()];
             for (int i = 0; i < args.size(); i++) {
-                Preconditions.checkState(this.args.keySet().contains(statement.getVariables().getName(i)),
-                        "Set argument is not expected");
+                Preconditions.checkState(this.args.containsKey(statement.getVariables().getName(i)),
+                        "Expected argument is not set",
+                        SafeArg.of("name", statement.getVariables().getName(i)));
                 argsArray[i] = args.get(statement.getVariables().getName(i));
             }
 

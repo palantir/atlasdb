@@ -1667,7 +1667,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             log.info("Trying to close a CQL client");
             cqlClient.close();
         } catch (Exception e) {
-            log.info("Closing of CQL client failed");
+            log.info("Closing of CQL client failed", e);
         }
         super.close();
     }

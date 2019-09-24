@@ -21,9 +21,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -33,6 +30,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
@@ -44,6 +42,25 @@ public final class CassandraServersConfigs {
     private static final String SERVER_FORMAT_ERROR = "each server must specify a port ([host]:[port])";
     private static final String PORT_NUMBER_ERROR = "%s port number should be a positive number";
 
+    public interface Visitor<T> {
+        T visit(DefaultConfig defaultConfig);
+
+        T visit(CqlCapableConfig cqlCapableConfig);
+    }
+
+    public static final class ThriftHostsExtractingVisitor implements Visitor<Set<InetSocketAddress>> {
+
+        @Override
+        public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
+            return defaultConfig.thriftHosts();
+        }
+
+        @Override
+        public Set<InetSocketAddress> visit(CqlCapableConfig cqlCapableConfig) {
+            return cqlCapableConfig.thriftHosts();
+        }
+    }
+
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = ImmutableDefaultConfig.class)
     @JsonSubTypes({
@@ -51,9 +68,7 @@ public final class CassandraServersConfigs {
             @JsonSubTypes.Type(value = ImmutableCqlCapableConfig.class, name = CqlCapableConfig.TYPE)})
     public interface CassandraServersConfig {
 
-        <T> T visitThrift(Function<Set<InetSocketAddress>, T> visitor);
-
-        <T> T visitCql(BiFunction<Optional<Set<InetSocketAddress>>, Optional<SocketAddress>, T> visitor);
+        <T> T accept(Visitor<T> visitor);
 
         int numberOfHosts();
     }
@@ -66,28 +81,23 @@ public final class CassandraServersConfigs {
         static final String TYPE = "default";
 
         @JsonValue
-        abstract Set<InetSocketAddress> thrift();
+        public abstract Set<InetSocketAddress> thriftHosts();
 
         @Override
         public int numberOfHosts() {
-            return thrift().size();
+            return thriftHosts().size();
         }
 
         @Value.Check
         final void check() {
-            for (InetSocketAddress address : thrift()) {
+            for (InetSocketAddress address : thriftHosts()) {
                 Preconditions.checkState(address.getPort() > 0, SERVER_FORMAT_ERROR);
             }
         }
 
         @Override
-        public <T> T visitThrift(Function<Set<InetSocketAddress>, T> visitor) {
-            return visitor.apply(thrift());
-        }
-
-        @Override
-        public <T> T visitCql(BiFunction<Optional<Set<InetSocketAddress>>, Optional<SocketAddress>, T> visitor) {
-            return visitor.apply(Optional.empty(), Optional.empty());
+        public <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
         }
     }
 
@@ -104,11 +114,25 @@ public final class CassandraServersConfigs {
 
         abstract int cqlPort();
 
-        abstract Optional<SocketAddress> socksProxy();
+        public abstract Optional<SocketAddress> socksProxy();
 
         @Override
         public final int numberOfHosts() {
             return hosts().size();
+        }
+
+        @Value.Derived
+        public Set<InetSocketAddress> thriftHosts() {
+            ImmutableSet.Builder<InetSocketAddress> builder = ImmutableSet.builder();
+            hosts().forEach(host -> builder.add(new InetSocketAddress(host, thriftPort())));
+            return builder.build();
+        }
+
+        @Value.Derived
+        public Set<InetSocketAddress> cqlHosts() {
+            ImmutableSet.Builder<InetSocketAddress> builder = ImmutableSet.builder();
+            hosts().forEach(host -> builder.add(new InetSocketAddress(host, cqlPort())));
+            return builder.build();
         }
 
         @Value.Check
@@ -118,16 +142,8 @@ public final class CassandraServersConfigs {
         }
 
         @Override
-        public <T> T visitThrift(Function<Set<InetSocketAddress>, T> visitor) {
-            return visitor.apply(hosts().stream()
-                    .map(host -> InetSocketAddress.createUnresolved(host, thriftPort()))
-                    .collect(Collectors.toSet()));
-        }
-
-        @Override
-        public <T> T visitCql(BiFunction<Optional<Set<InetSocketAddress>>, Optional<SocketAddress>, T> visitor) {
-            return visitor.apply(Optional.of(hosts().stream()
-                    .map(host -> new InetSocketAddress(host, cqlPort())).collect(Collectors.toSet())), socksProxy());
+        public <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
         }
     }
 }

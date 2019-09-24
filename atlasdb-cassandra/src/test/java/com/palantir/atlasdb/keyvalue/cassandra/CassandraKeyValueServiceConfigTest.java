@@ -42,7 +42,7 @@ public class CassandraKeyValueServiceConfigTest {
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .servers(
                             ImmutableDefaultConfig
-                                    .builder().addThrift(SERVER_ADDRESS).build())
+                                    .builder().addThriftHosts(SERVER_ADDRESS).build())
                     .replicationFactor(1)
                     .keyspace("atlasdb")
                     .credentials(CREDENTIALS)

@@ -59,11 +59,11 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
         when(config.servers()).thenReturn(
                 ImmutableDefaultConfig
-                        .builder().addAllThrift(FIVE_SERVERS).build());
+                        .builder().addAllThriftHosts(FIVE_SERVERS).build());
         when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
         when(waitingConfig.servers())
                 .thenReturn(ImmutableDefaultConfig
-                        .builder().addAllThrift(FIVE_SERVERS).build());
+                        .builder().addAllThriftHosts(FIVE_SERVERS).build());
     }
 
     @Test

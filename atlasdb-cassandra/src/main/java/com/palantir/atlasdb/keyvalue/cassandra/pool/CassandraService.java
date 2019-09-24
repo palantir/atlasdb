@@ -43,6 +43,7 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -144,8 +145,8 @@ public class CassandraService implements AutoCloseable {
         }
 
         InetAddress resolvedHost = InetAddress.getByName(host);
-        Set<InetSocketAddress> allKnownHosts = config.servers().visitThrift(
-                thrift -> Sets.union(currentPools.keySet(), thrift));
+        Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(),
+                config.servers().accept(new ThriftHostsExtractingVisitor()));
 
         for (InetSocketAddress address : allKnownHosts) {
             if (Objects.equals(address.getAddress(), resolvedHost)) {
@@ -288,9 +289,11 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void cacheInitialCassandraHosts() {
-        cassandraHosts = config.servers().visitThrift(thrift -> thrift.stream()
+        Set<InetSocketAddress> thriftSocket = config.servers().accept(new ThriftHostsExtractingVisitor());
+
+        cassandraHosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(InetSocketAddress::toString))
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
         cassandraHosts.forEach(this::addPool);
     }
 

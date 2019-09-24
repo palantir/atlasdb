@@ -23,7 +23,9 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -31,6 +33,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -50,7 +53,7 @@ public class CassandraContainer extends Container {
             .leaders(ImmutableSet.of("localhost"))
             .build());
 
-    private final CassandraKeyValueServiceConfig config;
+    private final Supplier<CassandraKeyValueServiceConfig> configSupplier;
     private final String dockerComposeFile;
     private final String name;
 
@@ -60,23 +63,27 @@ public class CassandraContainer extends Container {
 
     private CassandraContainer(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
-        this.config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableCqlCapableConfig.builder()
-                        .addHosts(name)
-                        .cqlPort(CASSANDRA_CQL_PORT)
-                        .thriftPort(CASSANDRA_THRIFT_PORT)
-                        .build())
-                .keyspace(keyspace)
-                .credentials(ImmutableCassandraCredentialsConfig.builder()
-                        .username(USERNAME)
-                        .password(PASSWORD)
-                        .build())
-                .poolSize(20)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
-                .replicationFactor(1)
-                .build();
+        this.configSupplier = Suppliers.memoize(() -> {
+            Proxy proxy = retrieveProxy();
+            return ImmutableCassandraKeyValueServiceConfig.builder()
+                    .servers(ImmutableCqlCapableConfig.builder()
+                            .addHosts(name)
+                            .cqlPort(CASSANDRA_CQL_PORT)
+                            .thriftPort(CASSANDRA_THRIFT_PORT)
+                            .socksProxy(proxy.address())
+                            .build())
+                    .keyspace(keyspace)
+                    .credentials(ImmutableCassandraCredentialsConfig.builder()
+                            .username(USERNAME)
+                            .password(PASSWORD)
+                            .build())
+                    .poolSize(20)
+                    .mutationBatchCount(10000)
+                    .mutationBatchSizeBytes(10000000)
+                    .fetchBatchCount(1000)
+                    .replicationFactor(1)
+                    .build();
+        });
         this.dockerComposeFile = dockerComposeFile;
         this.name = name;
     }
@@ -97,8 +104,8 @@ public class CassandraContainer extends Container {
 
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
-        return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.createForTesting(getConfig())
-                .isInitialized());
+        CassandraKeyValueService cassandraKeyValueService = CassandraKeyValueServiceImpl.createForTesting(getConfig());
+        return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);
     }
 
     @Override
@@ -113,31 +120,34 @@ public class CassandraContainer extends Container {
     }
 
     public CassandraKeyValueServiceConfig getConfig() {
-        try {
-            return ProxySelector.getDefault()
-                    .select(new URI("tcp", name, null, null)).stream()
-                    .filter(proxy -> proxy.type() == Proxy.Type.SOCKS)
-                    .findFirst()
-                    .map(proxy -> (CassandraKeyValueServiceConfig) ImmutableCassandraKeyValueServiceConfig.builder()
-                            .from(config)
-                            .servers(ImmutableCqlCapableConfig.builder()
-                                    .addHosts(name)
-                                    .cqlPort(CASSANDRA_CQL_PORT)
-                                    .thriftPort(CASSANDRA_THRIFT_PORT)
-                                    .socksProxy(proxy.address())
-                                    .build())
-                            .build())
-                    .orElse(config);
-        } catch (URISyntaxException e) {
-            return config;
-        }
+        return configSupplier.get();
     }
 
     String getServiceName() {
         return name;
     }
 
-    private static InetSocketAddress forService(String name) {
+    private Proxy retrieveProxy() {
+        try {
+            URI uri = new URI("tcp", name, null, null);
+            while (true) {
+                if (ProxySelector.getDefault()
+                        .select(uri)
+                        .stream()
+                        .anyMatch(proxy -> proxy.type() == Proxy.Type.SOCKS)) {
+                    break;
+                }
+            }
+
+            return ProxySelector.getDefault()
+                    .select(uri).stream()
+                    .filter(proxy -> proxy.type() == Proxy.Type.SOCKS).findFirst().get();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static InetSocketAddress forThriftServices(String name) {
         return new InetSocketAddress(name, CASSANDRA_THRIFT_PORT);
     }
 }

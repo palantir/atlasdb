@@ -18,8 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -43,6 +41,7 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 
 import io.netty.channel.socket.SocketChannel;
@@ -55,9 +54,21 @@ public final class CqlClientFactory {
     }
 
     public static CqlClient constructClient(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
-        return config.servers().visitCql((maybeCqlServers, proxy) ->
-                maybeCqlServers.map(cqlServers -> createClient(config, cqlServers, proxy, initializeAsync))
-                        .orElseGet(ThrowingCqlClientImpl::new));
+        return config.servers().accept(new CassandraServersConfigs.Visitor<CqlClient>() {
+            @Override
+            public CqlClient visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
+                return new ThrowingCqlClientImpl();
+            }
+
+            @Override
+            public CqlClient visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
+                return createClient(
+                        config,
+                        cqlCapableConfig.cqlHosts(),
+                        cqlCapableConfig.socksProxy(),
+                        initializeAsync);
+            }
+        });
     }
 
     private static CqlClient createClient(
@@ -96,11 +107,10 @@ public final class CqlClientFactory {
             return Optional.of(RemoteEndpointAwareJdkSSLOptions.builder()
                     .withSSLContext(sslContext)
                     .build());
-        } else if (config.ssl().isPresent() && config.ssl().get()) {
+        } else if (config.ssl().orElse(false)) {
             return Optional.of(RemoteEndpointAwareJdkSSLOptions.builder().build());
-        } else {
-            return Optional.empty();
         }
+        return Optional.empty();
     }
 
     private static PoolingOptions poolingOptions(CassandraKeyValueServiceConfig config) {
@@ -141,14 +151,6 @@ public final class CqlClientFactory {
 
         SocksProxyNettyOptions(SocketAddress proxyAddress) {
             this.proxyAddress = proxyAddress;
-        }
-
-        private static URI makeUri(String hostString) {
-            try {
-                return new URI("tcp", hostString, null, null);
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
         }
 
         @Override

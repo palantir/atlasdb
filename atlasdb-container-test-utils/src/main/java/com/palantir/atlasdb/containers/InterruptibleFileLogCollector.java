@@ -57,12 +57,11 @@ public class InterruptibleFileLogCollector implements LogCollector {
         return new InterruptibleFileLogCollector(new File(path));
     }
 
-    synchronized void startCollecting(int numberOfContainers) {
+    synchronized void initializeExecutor(int numberOfContainers) {
         if (executor != null) {
             throw new SafeRuntimeException("Cannot start collecting the same logs twice");
         }
         executor = Executors.newFixedThreadPool(numberOfContainers);
-
     }
 
     @Override
@@ -75,12 +74,12 @@ public class InterruptibleFileLogCollector implements LogCollector {
                     try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
                         dockerCompose.writeLogs(container, outputStream);
                     } catch (IOException e) {
-                        throw new SafeRuntimeException("Error reading log", e);
+                        throw new SafeRuntimeException("Error writing log", e);
                     }
                 }));
     }
 
-    synchronized void stopCollecting() throws InterruptedException {
+    synchronized void stopExecutor() throws InterruptedException {
         if (executor == null) {
             return;
         }
