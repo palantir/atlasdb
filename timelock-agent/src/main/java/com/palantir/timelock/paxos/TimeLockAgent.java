@@ -15,10 +15,14 @@
  */
 package com.palantir.timelock.paxos;
 
+import java.net.URL;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
@@ -28,6 +32,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
@@ -50,6 +55,8 @@ import com.palantir.timestamp.ManagedTimestampService;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
+    private static final Logger log = LoggerFactory.getLogger(TimeLockAgent.class);
+
     private static final Long SCHEMA_VERSION = 1L;
 
     private final MetricsManager metricsManager;
@@ -200,7 +207,11 @@ public class TimeLockAgent {
 
     private void registerExceptionMappers() {
         registrar.accept(new BlockingTimeoutExceptionMapper());
-        registrar.accept(new NotCurrentLeaderExceptionMapper());
+
+        URL localServer = PaxosRemotingUtils.convertAddressToUrl(install, install.cluster().localServer());
+        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(install, install.cluster().clusterMembers());
+        registrar.accept(new NotCurrentLeaderExceptionMapper(RedirectRetryTargeter.create(localServer, clusterUrls)));
+
         registrar.accept(new TooManyRequestsExceptionMapper());
     }
 

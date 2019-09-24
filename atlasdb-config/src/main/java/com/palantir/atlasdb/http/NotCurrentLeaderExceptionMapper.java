@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.util.Optional;
+
 import javax.ws.rs.core.Response;
 
 import com.palantir.conjure.java.api.errors.QosException;
@@ -30,6 +32,16 @@ import com.palantir.leader.NotCurrentLeaderException;
  * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMapper<NotCurrentLeaderException> {
+    private final Optional<RedirectRetryTargeter> redirectRetryTargeter;
+
+    public NotCurrentLeaderExceptionMapper() {
+        this.redirectRetryTargeter = Optional.empty();
+    }
+
+    public NotCurrentLeaderExceptionMapper(RedirectRetryTargeter redirectRetryTargeter) {
+        this.redirectRetryTargeter = Optional.of(redirectRetryTargeter);
+    }
+
     @Override
     Response handleLegacyOrUnknownVersion(NotCurrentLeaderException exception) {
         return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
@@ -37,7 +49,7 @@ public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMappe
 
     @Override
     QosException handleConjureJavaRuntime(NotCurrentLeaderException exception) {
-        // TODO (jkong): Change 503s to 308s
-        return QosException.unavailable();
+        return redirectRetryTargeter.<QosException>map(targeter -> QosException.retryOther(targeter.redirectRequest()))
+                .orElseGet(QosException::unavailable);
     }
 }
