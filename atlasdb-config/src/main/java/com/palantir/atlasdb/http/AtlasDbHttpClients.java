@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
@@ -60,7 +61,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxy(trustContext, uri, type, userAgent, limitPayloadSize),
+                DEFAULT_TARGET_FACTORY.createProxy(trustContext, uri, type, null), // TODO (jkong)
                 MetricRegistry.name(type));
     }
 
@@ -74,7 +75,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxyWithoutRetrying(trustContext, uri, type, userAgent, limitPayloadSize),
+                DEFAULT_TARGET_FACTORY.createProxyWithoutRetrying(trustContext, uri, type, null), // TODO (jkong)
                 MetricRegistry.name(type));
     }
 
@@ -100,8 +101,7 @@ public final class AtlasDbHttpClients {
                         proxySelector,
                         endpointUris,
                         type,
-                        userAgent,
-                        false),
+                        null), // TODO (jkong)
                 MetricRegistry.name(type));
     }
 
@@ -111,8 +111,7 @@ public final class AtlasDbHttpClients {
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
+            AuxiliaryRemotingParameters clientParameters) {
         return VersionSelectingClients.createVersionSelectingClient(
                 taggedMetricRegistry,
                 // TODO (jkong): Replace the new client with the CJR one; also I wish there was a way to curry stuff
@@ -121,18 +120,28 @@ public final class AtlasDbHttpClients {
                         trustContextCreator,
                         proxySelectorCreator,
                         type,
+<<<<<<< HEAD
                         userAgent,
                         limitPayload),
                         DEFAULT_TARGET_FACTORY.getClientVersion()),
                 ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+=======
+                        clientParameters),
+                DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+>>>>>>> d602d17... checkpoint i
                         serverListConfigSupplier,
                         trustContextCreator,
                         proxySelectorCreator,
                         type,
+<<<<<<< HEAD
                         userAgent,
                         limitPayload),
                         DEFAULT_TARGET_FACTORY.getClientVersion()),
                 () -> 0.0,
+=======
+                        clientParameters),
+                () -> clientParameters.remotingClientConfig().get().maximumV2Probability(),
+>>>>>>> d602d17... checkpoint i
                 type);
     }
 
@@ -152,8 +161,7 @@ public final class AtlasDbHttpClients {
                         trustContextCreator,
                         proxySelectorCreator,
                         type,
-                        userAgent,
-                        false),
+                        null), // TODO (jkong)
                 MetricRegistry.name(type));
     }
 
@@ -172,8 +180,7 @@ public final class AtlasDbHttpClients {
                         proxySelector,
                         endpointUris,
                         type,
-                        UserAgents.DEFAULT_USER_AGENT,
-                        false),
+                        null), // TODO (jkong)
                 MetricRegistry.name(type, "atlasdb-testing"));
     }
 }

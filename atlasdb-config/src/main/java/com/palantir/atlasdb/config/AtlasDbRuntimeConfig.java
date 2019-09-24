@@ -103,6 +103,11 @@ public abstract class AtlasDbRuntimeConfig {
         return StreamStorePersistenceConfiguration.DEFAULT_CONFIG;
     }
 
+    @Value.Default
+    public RemotingClientConfig remotingClient() {
+        return ImmutableRemotingClientConfig.builder().build();
+    }
+
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
         return ImmutableAtlasDbRuntimeConfig.builder().build();
     }

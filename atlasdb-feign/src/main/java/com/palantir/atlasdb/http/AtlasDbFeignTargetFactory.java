@@ -26,9 +26,11 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.reflect.Reflection;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
@@ -87,15 +89,14 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
+            AuxiliaryRemotingParameters parameters) {
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(Retryer.NEVER_RETRY)
-                .client(createClient(trustContext, userAgent, limitPayloadSize))
+                .client(createClient(trustContext, parameters))
                 .target(type, uri);
     }
 
@@ -104,15 +105,14 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
+            AuxiliaryRemotingParameters parameters) {
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
-                .client(createClient(trustContext, userAgent, limitPayloadSize))
+                .client(createClient(trustContext, parameters))
                 .target(type, uri);
     }
 
@@ -122,11 +122,10 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
+            AuxiliaryRemotingParameters parameters) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
+                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, parameters));
 
         return Feign.builder()
                 .contract(contract)
@@ -145,8 +144,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
+            AuxiliaryRemotingParameters parameters) {
         PollingRefreshable<ServerListConfig> configPollingRefreshable =
                 PollingRefreshable.create(serverListConfigSupplier);
         return Reflection.newProxy(
@@ -160,8 +158,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
                                         serverListConfig.proxyConfiguration().map(proxySelectorCreator),
                                         serverListConfig.servers(),
                                         type,
-                                        userAgent,
-                                        limitPayload);
+                                        parameters);
                             }
                             return createProxyForZeroNodes(type);
                         }));
@@ -182,15 +179,16 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(createClient(trustContext, userAgent, false))
+                .client(createClient(trustContext, AuxiliaryRemotingParameters.builder()
+                        .userAgent(UserAgents.tryParse(userAgent))
+                        .build()))
                 .target(type, uri);
     }
 
     private static Client createClient(
             Optional<TrustContext> trustContext,
-            String userAgent,
-            boolean limitPayload) {
-        return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
+            AuxiliaryRemotingParameters parameters) {
+        return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), parameters);
     }
 
     private static <T> T createProxyForZeroNodes(Class<T> type) {
