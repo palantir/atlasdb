@@ -34,12 +34,12 @@ import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapter;
 @Value.Immutable
 abstract class SingleLeaderNetworkClientFactories {
 
-    abstract TimelockProxyFactories proxyFactories();
+    abstract PaxosUseCase useCase();
+    abstract TimelockPaxosMetrics metrics();
     abstract ClientPaxosResourceFactory.PaxosRemoteClients remoteClients();
+    abstract PaxosComponents components();
     abstract int quorumSize();
     abstract ExecutorService sharedExecutor();
-    abstract PaxosComponents components();
-    abstract PaxosUseCase useCase();
 
     NetworkClientFactories factories() {
         Factory<PaxosAcceptorNetworkClient> acceptorClientFactory = client -> {
@@ -47,7 +47,7 @@ abstract class SingleLeaderNetworkClientFactories {
                     .wrap(useCase(), remoteClients().nonBatchAcceptor())
                     .apply(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
-            LocalAndRemotes<PaxosAcceptor> allAcceptors = proxyFactories().instrumentLocalAndRemotesFor(
+            LocalAndRemotes<PaxosAcceptor> allAcceptors = metrics().instrumentLocalAndRemotesFor(
                     PaxosAcceptor.class,
                     localAcceptor,
                     remoteAcceptors,
@@ -64,7 +64,7 @@ abstract class SingleLeaderNetworkClientFactories {
                     .wrap(useCase(), remoteClients().nonBatchLearner())
                     .apply(client);
             PaxosLearner localLearner = components().learner(client);
-            LocalAndRemotes<PaxosLearner> allLearners = proxyFactories().instrumentLocalAndRemotesFor(
+            LocalAndRemotes<PaxosLearner> allLearners = metrics().instrumentLocalAndRemotesFor(
                     PaxosLearner.class,
                     localLearner,
                     remoteLearners,

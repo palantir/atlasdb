@@ -42,8 +42,8 @@ public final class ClientPaxosResourceFactory {
             MetricsManager metrics,
             TimeLockInstallConfiguration install,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            ExecutorService sharedExecutor, PaxosUseCase useCase) {
-
+            ExecutorService sharedExecutor,
+            PaxosUseCase useCase) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(useCase, metrics.getTaggedRegistry());
 
@@ -78,21 +78,21 @@ public final class ClientPaxosResourceFactory {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(proxyFactories);
 
         SingleLeaderNetworkClientFactories singleClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
-                .proxyFactories(proxyFactories)
+                .useCase(useCase)
+                .metrics(timelockMetrics)
+                .remoteClients(remoteClients)
                 .components(paxosComponents)
                 .quorumSize(quorumSize)
                 .sharedExecutor(sharedExecutor)
-                .remoteClients(remoteClients)
-                .useCase(useCase)
                 .build();
 
         BatchingNetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
-                .proxyFactories(proxyFactories)
-                .quorumSize(quorumSize)
-                .resource(batchPaxosResource)
-                .sharedExecutor(sharedExecutor)
-                .remoteClients(remoteClients)
                 .useCase(useCase)
+                .metrics(timelockMetrics)
+                .remoteClients(remoteClients)
+                .resource(batchPaxosResource)
+                .quorumSize(quorumSize)
+                .sharedExecutor(sharedExecutor)
                 .build();
 
         return ImmutableClientResources.builder()

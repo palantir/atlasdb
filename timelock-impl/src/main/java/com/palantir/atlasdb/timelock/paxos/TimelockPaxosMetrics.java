@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -54,6 +55,21 @@ public abstract class TimelockPaxosMetrics {
     public <T, U extends T> T instrument(Class<T> clazz, U instance, String name, Client client) {
         Map<String, String> tags = ImmutableMap.of("client", client.value());
         return AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, instance, name, _context -> tags);
+    }
+
+    public <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(Class<T> clazz, T local, List<T> remotes, String name) {
+        return LocalAndRemotes.of(local, remotes)
+                .map(instance -> instrument(clazz, instance, name));
+    }
+
+    public <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(
+            Class<T> clazz,
+            T local,
+            List<T> remotes,
+            String name,
+            Client client) {
+        return LocalAndRemotes.of(local, remotes)
+                .map(instance -> instrument(clazz, instance, name, client));
     }
 
 }

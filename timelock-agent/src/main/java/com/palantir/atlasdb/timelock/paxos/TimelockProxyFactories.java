@@ -51,19 +51,4 @@ public abstract class TimelockProxyFactories {
                 .collect(Collectors.toList());
     }
 
-    <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(Class<T> clazz, T local, List<T> remotes, String name) {
-        return LocalAndRemotes.of(local, remotes)
-                .map(instance -> metrics().instrument(clazz, instance, name));
-    }
-
-    <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(
-            Class<T> clazz,
-            T local,
-            List<T> remotes,
-            String name,
-            Client client) {
-        return LocalAndRemotes.of(local, remotes)
-                .map(instance -> metrics().instrument(clazz, instance, name, client));
-    }
-
 }

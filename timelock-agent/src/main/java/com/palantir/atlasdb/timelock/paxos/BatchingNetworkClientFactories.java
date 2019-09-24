@@ -24,15 +24,15 @@ import org.immutables.value.Value;
 @Value.Immutable
 abstract class BatchingNetworkClientFactories {
 
-    abstract TimelockProxyFactories proxyFactories();
+    abstract PaxosUseCase useCase();
+    abstract TimelockPaxosMetrics metrics();
     abstract ClientPaxosResourceFactory.PaxosRemoteClients remoteClients();
     abstract UseCaseAwareBatchPaxosResource resource();
-    abstract ExecutorService sharedExecutor();
     abstract int quorumSize();
-    abstract PaxosUseCase useCase();
+    abstract ExecutorService sharedExecutor();
 
     public NetworkClientFactories factories() {
-        List<BatchPaxosAcceptor> allBatchAcceptors = proxyFactories()
+        List<BatchPaxosAcceptor> allBatchAcceptors = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosAcceptor.class,
                         resource().acceptor(useCase()).asLocalBatchPaxosAcceptor(),
@@ -43,7 +43,7 @@ abstract class BatchingNetworkClientFactories {
         AutobatchingPaxosAcceptorNetworkClientFactory acceptorFactory =
                 AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
 
-        List<BatchPaxosLearner> allBatchLearners = proxyFactories()
+        List<BatchPaxosLearner> allBatchLearners = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
                         resource().learner(useCase()).asLocalBatchPaxosLearner(),
