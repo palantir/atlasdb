@@ -36,7 +36,8 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraContainer extends Container {
-    static final int CASSANDRA_PORT = 9160;
+    static final int CASSANDRA_CQL_PORT = 9042;
+    static final int CASSANDRA_THRIFT_PORT = 9160;
     static final String USERNAME = "cassandra";
     static final String PASSWORD = "cassandra";
     private static final String CONTAINER_NAME = "cassandra";
@@ -60,8 +61,11 @@ public class CassandraContainer extends Container {
     private CassandraContainer(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableCqlCapableConfig
-                        .builder().addHosts(name).cqlPort(9042).thriftPort(9160).build())
+                .servers(ImmutableCqlCapableConfig.builder()
+                        .addHosts(name)
+                        .cqlPort(CASSANDRA_CQL_PORT)
+                        .thriftPort(CASSANDRA_THRIFT_PORT)
+                        .build())
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username(USERNAME)
@@ -117,8 +121,12 @@ public class CassandraContainer extends Container {
                     .map(proxy -> (CassandraKeyValueServiceConfig) ImmutableCassandraKeyValueServiceConfig.builder()
                             .from(config)
                             .servers(ImmutableCqlCapableConfig.builder()
-                                    .addHosts(name).cqlPort(9042).thriftPort(9160)
-                                    .socksProxy(proxy.address()).build()).build())
+                                    .addHosts(name)
+                                    .cqlPort(CASSANDRA_CQL_PORT)
+                                    .thriftPort(CASSANDRA_THRIFT_PORT)
+                                    .socksProxy(proxy.address())
+                                    .build())
+                            .build())
                     .orElse(config);
         } catch (URISyntaxException e) {
             return config;
@@ -130,6 +138,6 @@ public class CassandraContainer extends Container {
     }
 
     private static InetSocketAddress forService(String name) {
-        return new InetSocketAddress(name, CASSANDRA_PORT);
+        return new InetSocketAddress(name, CASSANDRA_THRIFT_PORT);
     }
 }
