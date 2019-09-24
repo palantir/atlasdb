@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.factory;
+package com.palantir.common.proxy;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -26,23 +26,23 @@ import org.slf4j.LoggerFactory;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.exception.NotInitializedException;
 
-public final class DynamicDecoratingProxy<T> extends AbstractInvocationHandler {
-    private final T decoratedService;
-    private final T defaultService;
-    private final Supplier<Boolean> shouldDecorate;
+public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
+    private final T firstService;
+    private final T secondService;
+    private final Supplier<Boolean> shouldUseFirstService;
 
-    private static final Logger log = LoggerFactory.getLogger(DynamicDecoratingProxy.class);
+    private static final Logger log = LoggerFactory.getLogger(PredicateSwitchedProxy.class);
 
-    private DynamicDecoratingProxy(T decoratedService, T defaultService, Supplier<Boolean> shouldDecorate) {
-        this.decoratedService = decoratedService;
-        this.defaultService = defaultService;
-        this.shouldDecorate = shouldDecorate;
+    private PredicateSwitchedProxy(T firstService, T secondService, Supplier<Boolean> shouldUseFirstService) {
+        this.firstService = firstService;
+        this.secondService = secondService;
+        this.shouldUseFirstService = shouldUseFirstService;
     }
 
     public static <T> T newProxyInstance(
             T decoratedService, T defaultService, Supplier<Boolean> shouldDecorate, Class<T> clazz) {
-        DynamicDecoratingProxy<T> service =
-                new DynamicDecoratingProxy<>(decoratedService, defaultService, shouldDecorate);
+        PredicateSwitchedProxy<T> service =
+                new PredicateSwitchedProxy<>(decoratedService, defaultService, shouldDecorate);
         return (T) Proxy.newProxyInstance(
                 clazz.getClassLoader(),
                 new Class[] { clazz },
@@ -51,7 +51,7 @@ public final class DynamicDecoratingProxy<T> extends AbstractInvocationHandler {
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        Object target = shouldDecorate.get() ? decoratedService : defaultService;
+        Object target = shouldUseFirstService.get() ? firstService : secondService;
         try {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {
