@@ -32,6 +32,8 @@ import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
+import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
 
 public final class ClientPaxosResourceFactory {
 
@@ -71,11 +73,15 @@ public final class ClientPaxosResourceFactory {
                 .metrics(timelockMetrics)
                 .build();
 
+        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(proxyFactories);
+
         SingleLeaderNetworkClientFactories singleClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
                 .proxyFactories(proxyFactories)
                 .components(paxosComponents)
                 .quorumSize(quorumSize)
                 .sharedExecutor(sharedExecutor)
+                .remoteClients(remoteClients)
+                .useCase(PaxosUseCase.TIMESTAMP)
                 .build();
 
         BatchingNetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
@@ -83,6 +89,8 @@ public final class ClientPaxosResourceFactory {
                 .quorumSize(quorumSize)
                 .resource(batchPaxosResource)
                 .sharedExecutor(sharedExecutor)
+                .remoteClients(remoteClients)
+                .useCase(PaxosUseCase.TIMESTAMP)
                 .build();
 
         return ImmutableClientResources.builder()
@@ -130,6 +138,41 @@ public final class ClientPaxosResourceFactory {
         @Value.Derived
         default List<Closeable> closeables() {
             return networkClientFactories().closeables();
+        }
+    }
+
+    @Value.Immutable
+    public interface PaxosRemoteClients {
+
+        @Value.Parameter
+        TimelockProxyFactories factories();
+
+        @Value.Derived
+        default List<TimelockPaxosAcceptorRpcClient> nonBatchAcceptor() {
+            return factories().createInstrumentedRemoteProxies(
+                    TimelockPaxosAcceptorRpcClient.class,
+                    "paxos-acceptor-rpc-client");
+        }
+
+        @Value.Derived
+        default List<TimelockPaxosLearnerRpcClient> nonBatchLearner() {
+            return factories().createInstrumentedRemoteProxies(
+                    TimelockPaxosLearnerRpcClient.class,
+                    "paxos-learner-rpc-client");
+        }
+
+        @Value.Derived
+        default List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
+            return factories().createInstrumentedRemoteProxies(
+                    BatchPaxosAcceptorRpcClient.class,
+                    "batch-paxos-acceptor-rpc-client");
+        }
+
+        @Value.Derived
+        default List<BatchPaxosLearnerRpcClient> batchLearner() {
+            return factories().createInstrumentedRemoteProxies(
+                    BatchPaxosLearnerRpcClient.class,
+                    "batch-paxos-learner-rpc-client");
         }
     }
 
