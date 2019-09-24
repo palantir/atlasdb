@@ -25,8 +25,8 @@ import java.util.function.Supplier;
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
-import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;

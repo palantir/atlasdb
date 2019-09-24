@@ -32,7 +32,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
  * Please note that your clients will run independently; if there are stateful invariants that need to be enforced
  * across individual clients, you may need to share state appropriately.
  */
-class VersionSelectingClients {
+final class VersionSelectingClients {
     private static final String CLIENT_VERSION = "clientVersion";
     private static final Map<String, String> NEW_CLIENT_TAG = ImmutableMap.of(CLIENT_VERSION, "new");
     private static final Map<String, String> LEGACY_CLIENT_TAG = ImmutableMap.of(CLIENT_VERSION, "legacy");
