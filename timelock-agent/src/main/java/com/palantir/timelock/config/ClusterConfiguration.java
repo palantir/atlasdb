@@ -15,7 +15,6 @@
  */
 package com.palantir.timelock.config;
 
-import java.net.URI;
 import java.util.List;
 
 import org.immutables.value.Value;
@@ -78,13 +77,5 @@ public interface ClusterConfiguration {
                         + " 'enableNonstandardAndPossiblyDangerousTopology' to true.",
                 SafeArg.of("clusterSize", clusterMembers().size()),
                 SafeArg.of("minimumClusterSize", 3));
-    }
-
-    @Value.Check
-    default void checkServersAreWellFormed() {
-        clusterMembers().forEach(server -> {
-            URI uri = URI.create(server);
-            Preconditions.checkArgument(uri.getPort() >= 0, "Port not present", SafeArg.of("server", server));
-        });
     }
 }
