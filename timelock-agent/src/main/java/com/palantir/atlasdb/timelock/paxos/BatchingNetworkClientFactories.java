@@ -27,7 +27,7 @@ abstract class BatchingNetworkClientFactories {
     abstract PaxosUseCase useCase();
     abstract TimelockPaxosMetrics metrics();
     abstract ClientPaxosResourceFactory.PaxosRemoteClients remoteClients();
-    abstract UseCaseAwareBatchPaxosResource resource();
+    abstract BatchPaxosResources resource();
     abstract int quorumSize();
     abstract ExecutorService sharedExecutor();
 
@@ -35,7 +35,7 @@ abstract class BatchingNetworkClientFactories {
         List<BatchPaxosAcceptor> allBatchAcceptors = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosAcceptor.class,
-                        resource().acceptor(useCase()).asLocalBatchPaxosAcceptor(),
+                        resource().batchAcceptor().asLocalBatchPaxosAcceptor(),
                         UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor()),
                         "batch-paxos-acceptor")
                 .all();
@@ -46,7 +46,7 @@ abstract class BatchingNetworkClientFactories {
         List<BatchPaxosLearner> allBatchLearners = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
-                        resource().learner(useCase()).asLocalBatchPaxosLearner(),
+                        resource().batchLearner().asLocalBatchPaxosLearner(),
                         UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()),
                         "batch-paxos-learner")
                 .all();

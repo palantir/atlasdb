@@ -54,6 +54,8 @@ public final class ClientPaxosResourceFactory {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(useCase, metrics.getTaggedRegistry());
 
+        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, timelockMetrics);
+
         PaxosComponents paxosComponents = new PaxosComponents(
                 timelockMetrics,
                 useCase.logDirectoryRelativeToDataDirectory(install.dataDirectory()));
@@ -72,10 +74,8 @@ public final class ClientPaxosResourceFactory {
                 "local-batch-paxos-learner");
         BatchPaxosLearnerResource clientLearnerResource = new BatchPaxosLearnerResource(localBatchPaxosLearner);
 
-        UseCaseAwareBatchPaxosResource batchPaxosResource =
-                new UseCaseAwareBatchPaxosResource(clientAcceptorResource, clientLearnerResource);
-
-        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, timelockMetrics);
+        BatchPaxosResources batchPaxosResources =
+                ImmutableBatchPaxosResources.of(clientAcceptorResource, clientLearnerResource);
 
         SingleLeaderNetworkClientFactories singleClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
                 .useCase(useCase)
@@ -90,7 +90,7 @@ public final class ClientPaxosResourceFactory {
                 .useCase(useCase)
                 .metrics(timelockMetrics)
                 .remoteClients(remoteClients)
-                .resource(batchPaxosResource)
+                .resource(batchPaxosResources)
                 .quorumSize(install.quorumSize())
                 .sharedExecutor(sharedExecutor)
                 .build();
@@ -99,7 +99,7 @@ public final class ClientPaxosResourceFactory {
                 .quorumSize(install.quorumSize())
                 .components(paxosComponents)
                 .nonBatchedResource(new PaxosResource(paxosComponents))
-                .batchedResource(batchPaxosResource)
+                .batchedResource(new UseCaseAwareBatchPaxosResource(clientAcceptorResource, clientLearnerResource))
                 .networkClientFactories(factories(paxosRuntime, singleClientFactories, batchClientFactories))
                 .build();
     }
