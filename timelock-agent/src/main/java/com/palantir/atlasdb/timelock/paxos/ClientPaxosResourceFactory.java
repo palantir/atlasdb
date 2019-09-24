@@ -43,7 +43,8 @@ public final class ClientPaxosResourceFactory {
             TimeLockInstallConfiguration install,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor) {
-        TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
+        TimelockPaxosMetrics timelockMetrics =
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
         PaxosComponents paxosComponents = new PaxosComponents(timelockMetrics, logDirectory);
 
         AcceptorCache acceptorCache = timelockMetrics
