@@ -99,8 +99,13 @@ public final class ServiceCreator {
             String userAgent,
             boolean limitPayload) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                metricsManager.getRegistry(),
-                serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload);
+                metricsManager.getTaggedRegistry(),
+                serverListConfigSupplier,
+                trustContextCreator,
+                proxySelectorCreator,
+                type,
+                userAgent,
+                limitPayload);
     }
 
     public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {
