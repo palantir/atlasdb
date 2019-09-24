@@ -27,7 +27,7 @@ import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @Value.Immutable
-public abstract class TimelockMetrics {
+public abstract class TimelockPaxosMetrics {
 
     abstract PaxosUseCase paxosUseCase();
 
@@ -36,8 +36,8 @@ public abstract class TimelockMetrics {
         return new SlidingWindowTaggedMetricRegistry(35, TimeUnit.SECONDS);
     }
 
-    public static TimelockMetrics of(PaxosUseCase paxosUseCase, TaggedMetricRegistry parentRegistry) {
-        TimelockMetrics metrics = ImmutableTimelockMetrics.builder().paxosUseCase(paxosUseCase).build();
+    public static TimelockPaxosMetrics of(PaxosUseCase paxosUseCase, TaggedMetricRegistry parentRegistry) {
+        TimelockPaxosMetrics metrics = ImmutableTimelockPaxosMetrics.builder().paxosUseCase(paxosUseCase).build();
         metrics.attachToParentMetricRegistry(parentRegistry);
         return metrics;
     }

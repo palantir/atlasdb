@@ -29,11 +29,11 @@ import com.palantir.paxos.PaxosLearnerImpl;
 
 public class PaxosComponents {
 
-    private final TimelockMetrics metrics;
+    private final TimelockPaxosMetrics metrics;
     private final Path logDirectory;
     private final Map<Client, Components> componentsByClient = Maps.newConcurrentMap();
 
-    PaxosComponents(TimelockMetrics metrics, Path logDirectory) {
+    PaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory) {
         this.metrics = metrics;
         this.logDirectory = logDirectory;
     }

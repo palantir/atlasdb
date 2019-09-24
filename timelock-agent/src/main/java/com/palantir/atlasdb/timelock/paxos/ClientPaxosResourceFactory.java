@@ -43,20 +43,22 @@ public final class ClientPaxosResourceFactory {
             TimeLockInstallConfiguration install,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor) {
-        TimelockMetrics timelockMetrics = TimelockMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
+        TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
         PaxosComponents paxosComponents = new PaxosComponents(timelockMetrics, logDirectory);
 
         AcceptorCache acceptorCache = timelockMetrics
                 .instrument(AcceptorCache.class, new AcceptorCacheImpl(), "acceptor-cache");
-        BatchPaxosAcceptorResource clientAcceptorResource = timelockMetrics.instrument(
-                BatchPaxosAcceptorResource.class,
-                new BatchPaxosAcceptorResource(new LocalBatchPaxosAcceptor(paxosComponents, acceptorCache)),
-                "batch-paxos-acceptor-resource");
+        BatchPaxosAcceptor localBatchPaxosAcceptor = timelockMetrics.instrument(
+                BatchPaxosAcceptor.class,
+                new LocalBatchPaxosAcceptor(paxosComponents, acceptorCache),
+                "local-batch-paxos-acceptor");
+        BatchPaxosAcceptorResource clientAcceptorResource = new BatchPaxosAcceptorResource(localBatchPaxosAcceptor);
 
-        BatchPaxosLearnerResource clientLearnerResource = timelockMetrics.instrument(
-                BatchPaxosLearnerResource.class,
-                new BatchPaxosLearnerResource(paxosComponents),
-                "batch-paxos-learner-resource");
+        BatchPaxosLearner localBatchPaxosLearner = timelockMetrics.instrument(
+                BatchPaxosLearner.class,
+                new LocalBatchPaxosLearner(paxosComponents),
+                "local-batch-paxos-learner");
+        BatchPaxosLearnerResource clientLearnerResource = new BatchPaxosLearnerResource(localBatchPaxosLearner);
 
         UseCaseAwareBatchPaxosResource batchPaxosResource =
                 new UseCaseAwareBatchPaxosResource(clientAcceptorResource, clientLearnerResource);

@@ -52,7 +52,7 @@ abstract class BatchingNetworkClientFactories {
         List<BatchPaxosLearner> allBatchLearners = proxyFactories()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
-                        resource().learner(PaxosUseCase.TIMESTAMP),
+                        resource().learner(PaxosUseCase.TIMESTAMP).asLocalBatchPaxosLearner(),
                         UseCaseAwareBatchPaxosLearnerAdapter.wrap(PaxosUseCase.TIMESTAMP, remoteBatchLearners),
                         "batch-paxos-learner")
                 .all();
