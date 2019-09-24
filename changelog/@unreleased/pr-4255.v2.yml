@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Lower test projects' dropwizard version to ``1.2.9`` and dropwizard.metrics
+    version  to ``3.2.6``, making these projects more easily depended on in repositories
+    that cannot upgrade dropwizard.metrics to ``4.x``
+  links:
+  - https://github.com/palantir/atlasdb/pull/4255
