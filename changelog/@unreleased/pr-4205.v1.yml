@@ -2,4 +2,4 @@ type: improvement
 improvement:
   description:  "`NotCurrentLeaderExceptionMapper` now returns 308s correctly if dealing with v2 AtlasDB remoting clients."
   links:
-    - https://github.com/palantir/atlasdb/pull/4205
+  - https://github.com/palantir/atlasdb/pull/4205
