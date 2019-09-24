@@ -41,6 +41,7 @@ import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory;
 import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.ClientResources;
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PaxosLeaderElectionService;
@@ -82,10 +83,10 @@ public class TimeLockAgent {
         ExecutorService executor = createSharedExecutor(metricsManager);
         ClientResources clientPaxosResources = ClientPaxosResourceFactory.create(
                 metricsManager,
-                install.paxos().dataDirectory().toPath(),
                 install,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                executor);
+                executor,
+                PaxosUseCase.TIMESTAMP);
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,

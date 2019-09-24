@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.io.Closeable;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -41,13 +40,16 @@ public final class ClientPaxosResourceFactory {
 
     public static ClientResources create(
             MetricsManager metrics,
-            Path logDirectory,
             TimeLockInstallConfiguration install,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            ExecutorService sharedExecutor) {
+            ExecutorService sharedExecutor, PaxosUseCase useCase) {
+
         TimelockPaxosMetrics timelockMetrics =
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
-        PaxosComponents paxosComponents = new PaxosComponents(timelockMetrics, logDirectory);
+                TimelockPaxosMetrics.of(useCase, metrics.getTaggedRegistry());
+
+        PaxosComponents paxosComponents = new PaxosComponents(
+                timelockMetrics,
+                useCase.logDirectoryRelativeToDataDirectory(install.paxos().dataDirectory().toPath()));
 
         AcceptorCache acceptorCache = timelockMetrics
                 .instrument(AcceptorCache.class, new AcceptorCacheImpl(), "acceptor-cache");
@@ -81,7 +83,7 @@ public final class ClientPaxosResourceFactory {
                 .quorumSize(quorumSize)
                 .sharedExecutor(sharedExecutor)
                 .remoteClients(remoteClients)
-                .useCase(PaxosUseCase.TIMESTAMP)
+                .useCase(useCase)
                 .build();
 
         BatchingNetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
@@ -90,7 +92,7 @@ public final class ClientPaxosResourceFactory {
                 .resource(batchPaxosResource)
                 .sharedExecutor(sharedExecutor)
                 .remoteClients(remoteClients)
-                .useCase(PaxosUseCase.TIMESTAMP)
+                .useCase(useCase)
                 .build();
 
         return ImmutableClientResources.builder()
