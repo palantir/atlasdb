@@ -113,7 +113,7 @@ public final class AtlasDbHttpClients {
             Class<T> type,
             String userAgent,
             boolean limitPayload) {
-        return VersionSelectingHttpClients.createVersionSelectingClient(
+        return VersionSelectingClients.createVersionSelectingClient(
                 taggedMetricRegistry,
                 // TODO (jkong): Replace the new client with the CJR one; also I wish there was a way to curry stuff
                 ThrowingTargetFactory.INSTANCE.createLiveReloadingProxyWithFailover(

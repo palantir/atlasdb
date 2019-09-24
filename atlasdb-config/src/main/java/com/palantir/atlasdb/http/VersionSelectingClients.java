@@ -26,16 +26,16 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class VersionSelectingHttpClients {
+class VersionSelectingClients {
     private static final String CLIENT_VERSION = "clientVersion";
     private static final Map<String, String> NEW_CLIENT_TAG = ImmutableMap.of(CLIENT_VERSION, "new");
     private static final Map<String, String> LEGACY_CLIENT_TAG = ImmutableMap.of(CLIENT_VERSION, "legacy");
 
-    private VersionSelectingHttpClients() {
+    private VersionSelectingClients() {
         // No, nein, etc.
     }
 
-    public static <T> T createVersionSelectingClient(
+    static <T> T createVersionSelectingClient(
             TaggedMetricRegistry taggedMetricRegistry,
             T uninstrumentedNewClient,
             T uninstrumentedLegacyClient,
