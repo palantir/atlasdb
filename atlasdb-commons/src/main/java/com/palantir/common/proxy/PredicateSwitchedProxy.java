@@ -40,9 +40,9 @@ public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
     }
 
     public static <T> T newProxyInstance(
-            T decoratedService, T defaultService, Supplier<Boolean> shouldDecorate, Class<T> clazz) {
+            T firstService, T secondService, Supplier<Boolean> shouldUseFirstService, Class<T> clazz) {
         PredicateSwitchedProxy<T> service =
-                new PredicateSwitchedProxy<>(decoratedService, defaultService, shouldDecorate);
+                new PredicateSwitchedProxy<>(firstService, secondService, shouldUseFirstService);
         return (T) Proxy.newProxyInstance(
                 clazz.getClassLoader(),
                 new Class[] { clazz },
