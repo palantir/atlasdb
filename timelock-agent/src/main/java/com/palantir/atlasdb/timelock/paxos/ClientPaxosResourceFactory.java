@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
@@ -47,6 +48,7 @@ import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class ClientPaxosResourceFactory {
 
@@ -57,10 +59,13 @@ public final class ClientPaxosResourceFactory {
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor) {
+        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics.getTaggedRegistry());
+
         Supplier<Boolean> useBatchPaxosForTimestamps = Suppliers.compose(
                 runtime -> runtime.timestampPaxos().useBatchPaxos(), paxosRuntime::get);
         PaxosUseCaseContext timestampContext = useCaseSpecificContext(
                 install,
+                remoteClients,
                 metrics,
                 PaxosUseCase.TIMESTAMP,
                 sharedExecutor,
@@ -74,12 +79,12 @@ public final class ClientPaxosResourceFactory {
 
     private static PaxosUseCaseContext useCaseSpecificContext(
             TimelockPaxosInstallationContext install,
+            PaxosRemoteClients remoteClients,
             MetricsManager metrics,
             PaxosUseCase useCase,
             ExecutorService sharedExecutor,
             Supplier<Boolean> useBatchPaxos) {
         TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(useCase, metrics.getTaggedRegistry());
-        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, timelockMetrics);
 
         PaxosComponents paxosComponents = new PaxosComponents(
                 timelockMetrics,
@@ -226,7 +231,7 @@ public final class ClientPaxosResourceFactory {
         public abstract TimelockPaxosInstallationContext context();
 
         @Value.Parameter
-        public abstract TimelockPaxosMetrics metrics();
+        public abstract TaggedMetricRegistry metrics();
 
         @Value.Derived
         public List<TimelockPaxosAcceptorRpcClient> nonBatchAcceptor() {
@@ -260,7 +265,12 @@ public final class ClientPaxosResourceFactory {
                             clazz,
                             name,
                             false))
-                    .map(proxy -> metrics().instrument(clazz, proxy, name))
+                    .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
+                            metrics(),
+                            clazz,
+                            proxy,
+                            name,
+                            _unused -> ImmutableMap.of()))
                     .collect(Collectors.toList());
         }
     }
