@@ -36,8 +36,8 @@ public class VersionSelectingClientsTest {
     private final TimestampService oldService = mock(TimestampService.class);
     private final TimestampService selectingService = VersionSelectingClients.createVersionSelectingClient(
             SharedTaggedMetricRegistries.getSingleton(),
-            newService,
-            oldService,
+            ImmutableInstanceAndVersion.of(newService, "new"),
+            ImmutableInstanceAndVersion.of(oldService, "old"),
             probability::get,
             TimestampService.class);
 

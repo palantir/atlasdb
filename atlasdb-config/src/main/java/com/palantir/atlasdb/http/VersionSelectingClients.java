@@ -16,9 +16,10 @@
 
 package com.palantir.atlasdb.http;
 
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleSupplier;
+
+import org.immutables.value.Value;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
@@ -34,8 +35,6 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
  */
 final class VersionSelectingClients {
     private static final String CLIENT_VERSION = "clientVersion";
-    private static final Map<String, String> NEW_CLIENT_TAG = ImmutableMap.of(CLIENT_VERSION, "new");
-    private static final Map<String, String> LEGACY_CLIENT_TAG = ImmutableMap.of(CLIENT_VERSION, "legacy");
 
     private VersionSelectingClients() {
         // No, nein, etc.
@@ -43,14 +42,14 @@ final class VersionSelectingClients {
 
     static <T> T createVersionSelectingClient(
             TaggedMetricRegistry taggedMetricRegistry,
-            T newClient,
-            T legacyClient,
+            InstanceAndVersion<T> newClient,
+            InstanceAndVersion<T> legacyClient,
             DoubleSupplier newClientProbabilitySupplier,
             Class<T> clazz) {
         T instrumentedNewClient = instrumentWithClientVersionTag(
-                taggedMetricRegistry, newClient, clazz, NEW_CLIENT_TAG);
+                taggedMetricRegistry, newClient, clazz);
         T instrumentedLegacyClient = instrumentWithClientVersionTag(
-                taggedMetricRegistry, legacyClient, clazz, LEGACY_CLIENT_TAG);
+                taggedMetricRegistry, legacyClient, clazz);
 
         return PredicateSwitchedProxy.newProxyInstance(
                 instrumentedNewClient,
@@ -61,14 +60,22 @@ final class VersionSelectingClients {
 
     private static <T> T instrumentWithClientVersionTag(
             TaggedMetricRegistry taggedMetricRegistry,
-            T uninstrumentedLegacyClient,
-            Class<T> clazz,
-            Map<String, String> tagToApply) {
+            InstanceAndVersion<T> client,
+            Class<T> clazz) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 taggedMetricRegistry,
                 clazz,
-                uninstrumentedLegacyClient,
+                client.client(),
                 MetricRegistry.name(clazz),
-                $ -> tagToApply);
+                $ -> ImmutableMap.of(CLIENT_VERSION, client.version()));
+    }
+
+    @Value.Immutable
+    interface InstanceAndVersion<T> {
+        @Value.Parameter
+        T client();
+
+        @Value.Parameter
+        String version();
     }
 }
