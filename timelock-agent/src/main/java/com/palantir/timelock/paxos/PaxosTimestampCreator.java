@@ -23,6 +23,7 @@ import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.PaxosUseCa
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
@@ -45,15 +46,21 @@ public class PaxosTimestampCreator implements TimestampCreator {
         NetworkClientFactories clientFactories = context.networkClientFactories();
         PaxosAcceptorNetworkClient acceptorNetworkClient = clientFactories.acceptor().create(client);
         PaxosLearnerNetworkClient learnerNetworkClient = clientFactories.learner().create(client);
-
         PaxosProposer proposer = context.proposerFactory().create(client);
+        PaxosLearner learner = context.components().learner(client);
 
-        return () -> createManagedPaxosTimestampService(proposer, client, acceptorNetworkClient, learnerNetworkClient);
+        return () -> createManagedPaxosTimestampService(
+                proposer,
+                client,
+                learner,
+                acceptorNetworkClient,
+                learnerNetworkClient);
     }
 
     private ManagedTimestampService createManagedPaxosTimestampService(
             PaxosProposer proposer,
             Client client,
+            PaxosLearner knowledge,
             PaxosAcceptorNetworkClient acceptorNetworkClient,
             PaxosLearnerNetworkClient learnerNetworkClient) {
         // TODO (jkong): live reload ping
@@ -61,7 +68,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
                 TimestampBoundStore.class,
                 new PaxosTimestampBoundStore(
                         proposer,
-                        context.components().learner(client),
+                        knowledge,
                         acceptorNetworkClient,
                         learnerNetworkClient,
                         paxosRuntimeConfig.get().maximumWaitBeforeProposalMs()),
