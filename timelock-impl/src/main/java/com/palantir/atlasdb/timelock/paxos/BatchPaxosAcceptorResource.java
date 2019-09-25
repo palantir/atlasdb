@@ -101,10 +101,6 @@ public class BatchPaxosAcceptorResource {
         }
     }
 
-    BatchPaxosAcceptor asLocalBatchPaxosAcceptor() {
-        return batchPaxosAcceptor;
-    }
-
     private static final class Errors {
         static ServiceException invalidCacheKeyException(AcceptorCacheKey cacheKey) {
             return new ServiceException(CACHE_KEY_NOT_FOUND, SafeArg.of("cacheKey", cacheKey));
