@@ -412,35 +412,6 @@ public class PaxosTimeLockServerIntegrationTest {
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
     }
 
-    @Test
-    // TODO(nziebart): test remote service instrumentation - we need a multi-node server config for this
-    public void instrumentationSmokeTest() throws IOException {
-        getTimestampService(CLIENT_1).getFreshTimestamp();
-        getLockService(CLIENT_1).currentTimeMillis();
-        getTimelockService(CLIENT_1).lock(newLockV2Request(LOCK_1)).getToken();
-
-        MetricsOutput metrics = getMetricsOutput();
-
-        // Note that time/lock services are logged to the tagged metrics registry, which isn't a thing in Dropwizard.
-
-        // local leader election classes
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.learn");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
-        metrics.assertContainsTimer("com.palantir.leader.PingableLeader.ping");
-        metrics.assertContainsTimer("com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
-
-        // local timestamp bound classes
-        metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.getUpperLimit");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.getGreatestLearnedValue");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
-
-        // async lock
-        // TODO(nziebart): why does this flake on circle?
-        //assertContainsTimer(metrics, "lock.blocking-time");
-    }
-
     private static String getFastForwardUriForClientOne() {
         return getRootUriForClient(CLIENT_1) + "/timestamp-management/fast-forward";
     }
