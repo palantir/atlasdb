@@ -131,7 +131,7 @@ public class TransactionManagersTest {
             MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
-    private static final Map<String, String> LEGACY_CLIENT_TAGS = ImmutableMap.of("clientVersion", "feign");
+    private static final Map<String, String> LEGACY_CLIENT_TAGS = ImmutableMap.of("clientVersion", "AtlasDB-Feign");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));

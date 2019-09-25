@@ -169,7 +169,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
 
     @Override
     public String getClientVersion() {
-        return "feign";
+        return "AtlasDB-Feign";
     }
 
     public static <T> T createRsProxy(
