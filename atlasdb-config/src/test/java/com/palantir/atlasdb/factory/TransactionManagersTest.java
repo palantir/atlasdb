@@ -65,6 +65,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -113,6 +114,7 @@ import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
@@ -129,6 +131,7 @@ public class TransactionManagersTest {
             MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
+    private static final Map<String, String> LEGACY_CLIENT_TAGS = ImmutableMap.of("clientVersion", "AtlasDB-Feign");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
@@ -449,16 +452,20 @@ public class TransactionManagersTest {
         setUpForRemoteServices();
         setUpLeaderBlockInConfig();
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                LOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsWithTagsAreRecorded(
+                TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                LOCK_SERVICE_CURRENT_TIME_METRIC,
+                LEGACY_CLIENT_TAGS);
     }
 
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingTimelockService() {
         setUpTimeLockBlockInInstallConfig();
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
-                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsWithTagsAreRecorded(
+                TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
+                TIMELOCK_SERVICE_CURRENT_TIME_METRIC,
+                LEGACY_CLIENT_TAGS);
     }
 
     @Test
@@ -658,6 +665,28 @@ public class TransactionManagersTest {
 
         assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(1L)));
         assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(1L)));
+    }
+
+    private void assertThatTimeAndLockMetricsWithTagsAreRecorded(
+            String timestampMetric, String lockMetric, Map<String, String> tags) {
+        MetricName timestampMetricName = MetricName.builder()
+                .safeName(timestampMetric)
+                .putAllSafeTags(tags)
+                .build();
+        MetricName lockMetricName = MetricName.builder()
+                .safeName(lockMetric)
+                .putAllSafeTags(tags)
+                .build();
+
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount(), is(equalTo(0L)));
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.timelock().currentTimeMillis();
+
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount(), is(equalTo(1L)));
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount(), is(equalTo(1L)));
     }
 
     private void setUpForLocalServices() throws IOException {

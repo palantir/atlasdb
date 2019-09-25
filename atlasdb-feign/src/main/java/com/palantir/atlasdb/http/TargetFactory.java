@@ -57,4 +57,6 @@ public interface TargetFactory {
             Class<T> type,
             String userAgent,
             boolean limitPayload);
+
+    String getClientVersion();
 }

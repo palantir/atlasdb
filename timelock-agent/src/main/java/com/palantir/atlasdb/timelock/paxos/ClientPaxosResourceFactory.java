@@ -25,8 +25,8 @@ import java.util.function.Supplier;
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.factory.DynamicDecoratingProxy;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
@@ -104,12 +104,12 @@ public final class ClientPaxosResourceFactory {
         NetworkClientFactories batchNetworkClientFactories = batchClientFactories.factories();
         NetworkClientFactories singleLeaderNetworkClientFactories = singleClientFactories.factories();
         return ImmutableNetworkClientFactories.builder()
-                .acceptor(client -> DynamicDecoratingProxy.newProxyInstance(
+                .acceptor(client -> PredicateSwitchedProxy.newProxyInstance(
                         batchNetworkClientFactories.acceptor().create(client),
                         singleLeaderNetworkClientFactories.acceptor().create(client),
                         useBatchPaxos,
                         PaxosAcceptorNetworkClient.class))
-                .learner(client -> DynamicDecoratingProxy.newProxyInstance(
+                .learner(client -> PredicateSwitchedProxy.newProxyInstance(
                         batchNetworkClientFactories.learner().create(client),
                         singleLeaderNetworkClientFactories.learner().create(client),
                         useBatchPaxos,

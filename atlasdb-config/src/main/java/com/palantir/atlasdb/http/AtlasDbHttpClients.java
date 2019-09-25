@@ -28,6 +28,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AtlasDbHttpClients {
     public static final TargetFactory DEFAULT_TARGET_FACTORY = AtlasDbFeignTargetFactory.DEFAULT;
@@ -105,24 +106,34 @@ public final class AtlasDbHttpClients {
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
-            MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent,
             boolean limitPayload) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                type,
-                DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+        return VersionSelectingClients.createVersionSelectingClient(
+                taggedMetricRegistry,
+                // TODO (jkong): Replace the new client with the CJR one; also I wish there was a way to curry stuff
+                ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         trustContextCreator,
                         proxySelectorCreator,
                         type,
                         userAgent,
                         limitPayload),
-                MetricRegistry.name(type));
+                        DEFAULT_TARGET_FACTORY.getClientVersion()),
+                ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+                        serverListConfigSupplier,
+                        trustContextCreator,
+                        proxySelectorCreator,
+                        type,
+                        userAgent,
+                        limitPayload),
+                        DEFAULT_TARGET_FACTORY.getClientVersion()),
+                () -> 0.0,
+                type);
     }
 
     @VisibleForTesting
