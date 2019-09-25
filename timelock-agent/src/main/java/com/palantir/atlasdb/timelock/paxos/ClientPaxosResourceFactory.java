@@ -155,8 +155,7 @@ public final class ClientPaxosResourceFactory {
         public abstract PaxosUseCaseContext timestamp();
         // TODO(fdesouza): make non optional when ready to implement
         public abstract Optional<PaxosUseCaseContext> leadership();
-        public abstract List<Object> resources();
-        public abstract TimelockPaxosInstallationContext installContext();
+        abstract List<Object> resources();
 
         @Value.Derived
         public List<Object> allResources() {
