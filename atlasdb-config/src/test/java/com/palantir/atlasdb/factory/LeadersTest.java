@@ -34,7 +34,7 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
@@ -55,7 +55,7 @@ public class LeadersTest {
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
                 PaxosLearner.class,
-                UserAgents.DEFAULT_USER_AGENT);
+                AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
         MatcherAssert.assertThat(paxosLearners.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
         paxosLearners.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
@@ -75,7 +75,7 @@ public class LeadersTest {
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
                 PaxosAcceptor.class,
-                UserAgents.DEFAULT_USER_AGENT);
+                AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
         paxosAcceptors.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
@@ -96,7 +96,7 @@ public class LeadersTest {
                 ImmutableSet.of(),
                 Optional.empty(),
                 PaxosAcceptor.class,
-                UserAgents.DEFAULT_USER_AGENT);
+                AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(1));
 
@@ -115,7 +115,7 @@ public class LeadersTest {
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
                 BigInteger.class,
-                UserAgents.DEFAULT_USER_AGENT);
+                AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
     }
 
     @Test(expected = NullPointerException.class)
@@ -128,6 +128,6 @@ public class LeadersTest {
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
                 null,
-                UserAgents.DEFAULT_USER_AGENT);
+                AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
     }
 }
