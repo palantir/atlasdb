@@ -167,6 +167,11 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
                         }));
     }
 
+    @Override
+    public String getClientVersion() {
+        return "feign";
+    }
+
     public static <T> T createRsProxy(
             Optional<TrustContext> trustContext,
             String uri,

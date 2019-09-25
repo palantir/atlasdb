@@ -123,7 +123,7 @@ public final class AtlasDbHttpClients {
                         type,
                         userAgent,
                         limitPayload),
-                        "feign"),
+                        DEFAULT_TARGET_FACTORY.getClientVersion()),
                 ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         trustContextCreator,
@@ -131,7 +131,7 @@ public final class AtlasDbHttpClients {
                         type,
                         userAgent,
                         limitPayload),
-                        "feign"),
+                        DEFAULT_TARGET_FACTORY.getClientVersion()),
                 () -> 0.0,
                 type);
     }
