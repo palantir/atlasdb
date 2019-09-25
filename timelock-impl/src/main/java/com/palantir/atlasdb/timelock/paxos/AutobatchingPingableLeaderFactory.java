@@ -27,13 +27,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.streams.KeyedStream;
@@ -46,13 +43,13 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
 
     private final Collection<? extends Closeable> closeables;
     private final DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidToRemoteAutobatcher;
-    private final Map<ClientAwarePingableLeader, ExecutorService> executors;
+    private final Map<? extends ClientAwarePingableLeader, ExecutorService> executors;
     private final Duration leaderPingResponseWait;
 
     private AutobatchingPingableLeaderFactory(
             Collection<? extends Closeable> closeables,
             DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidAutobatcher,
-            Map<ClientAwarePingableLeader, ExecutorService> executors,
+            Map<? extends ClientAwarePingableLeader, ExecutorService> executors,
             Duration leaderPingResponseWait) {
         this.closeables = closeables;
         this.uuidToRemoteAutobatcher = uuidAutobatcher;
@@ -64,24 +61,17 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
             Map<BatchPingableLeader, ExecutorService> executors,
             Duration leaderPingResponseWait,
             UUID localUuid) {
-        BiMap<BatchPingableLeader, ClientAwarePingableLeaderImpl> correspondence = KeyedStream.of(
-                executors.keySet())
-                .map(ClientAwarePingableLeaderImpl::create)
-                .collectTo(HashBiMap::create);
+        Map<ClientAwarePingableLeader, ExecutorService> clientAwarePingableExecutors = KeyedStream.stream(executors)
+                .<ClientAwarePingableLeader>mapKeys(ClientAwarePingableLeaderImpl::create)
+                .collectToMap();
 
-        Map<ClientAwarePingableLeader, ExecutorService> clientAwarePingableExecutors =
-                KeyedStream.stream(correspondence.inverse())
-                        .<ClientAwarePingableLeader>mapKeys(Function.identity())
-                        .map(executors::get)
-                        .collectToMap();
-
-        DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidAutobatcher =
-                Autobatchers.independent(new GetSuspectedLeaderWithUuid(clientAwarePingableExecutors, localUuid, leaderPingResponseWait))
+        DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidAutobatcher = Autobatchers.independent(
+                new GetSuspectedLeaderWithUuid(clientAwarePingableExecutors, localUuid, leaderPingResponseWait))
                 .safeLoggablePurpose("batch-paxos-pingable-leader.uuid")
                 .build();
 
         return new AutobatchingPingableLeaderFactory(
-                correspondence.values(),
+                clientAwarePingableExecutors.keySet(),
                 uuidAutobatcher,
                 clientAwarePingableExecutors,
                 leaderPingResponseWait);
@@ -103,7 +93,7 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
         return new AutobatchingLeaderPinger(client);
     }
 
-    private static final class ClientAwarePingableLeaderImpl implements ClientAwarePingableLeader, Closeable {
+    private static final class ClientAwarePingableLeaderImpl implements ClientAwarePingableLeader {
 
         private final DisruptorAutobatcher<Client, Boolean> pingAutobatcher;
         private final BatchPingableLeader remoteClient;

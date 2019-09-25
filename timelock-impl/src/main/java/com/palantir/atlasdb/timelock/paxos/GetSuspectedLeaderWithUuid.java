@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import static java.util.stream.Collectors.toSet;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,7 +81,8 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
         KeyedStream.of(uuidsToRequests.keySet())
                 .filterKeys(cache::containsKey)
                 .map(cache::get)
-                .forEach((cachedUuid, pingable) -> completeRequest(uuidsToRequests, cachedUuid, Optional.of(pingable)));
+                .forEach((cachedUuid, pingable) ->
+                        completeRequest(uuidsToRequests.get(cachedUuid), Optional.of(pingable)));
 
         Set<UUID> uncachedUuids = uuidsToRequests.keySet().stream()
                 .filter(uuid -> !cache.containsKey(uuid))
@@ -105,21 +107,20 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
 
             ClientAwarePingableLeader oldCachedEntry = cache.putIfAbsent(uuid, pingable);
             throwIfInvalidSetup(oldCachedEntry, pingable, uuid);
-            completeRequest(uuidsToRequests, uuid, Optional.of(pingable));
+            completeRequest(uuidsToRequests.get(uuid), Optional.of(pingable));
         }
 
         Set<UUID> missingUuids = Sets.difference(
                 uncachedUuids,
                 results.withoutRemotes().stream().map(PaxosContainer::get).collect(toSet()));
 
-        missingUuids.forEach(missingUuid -> completeRequest(uuidsToRequests, missingUuid, Optional.empty()));
+        missingUuids.forEach(missingUuid -> completeRequest(uuidsToRequests.get(missingUuid), Optional.empty()));
     }
 
     private static void completeRequest(
-            Multimap<UUID, SettableFuture<Optional<ClientAwarePingableLeader>>> uuidsToRequests,
-            UUID uuid,
+            Collection<SettableFuture<Optional<ClientAwarePingableLeader>>> futures,
             Optional<ClientAwarePingableLeader> outcome) {
-        uuidsToRequests.get(uuid).forEach(result -> result.set(outcome));
+        futures.forEach(result -> result.set(outcome));
     }
 
     private void throwIfInvalidSetup(
