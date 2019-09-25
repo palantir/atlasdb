@@ -26,6 +26,7 @@ public final class PaxosTimeLockConstants {
     public static final String BATCH_INTERNAL_NAMESPACE = ".batch";
     public static final String LEADER_PAXOS_NAMESPACE = "leaderPaxos";
     public static final String CLIENT_PAXOS_NAMESPACE = "clientPaxos";
+    public static final String MULTI_LEADER_PAXOS_NAMESPACE = "multiLeaderPaxos";
 
     private PaxosTimeLockConstants() {
     }

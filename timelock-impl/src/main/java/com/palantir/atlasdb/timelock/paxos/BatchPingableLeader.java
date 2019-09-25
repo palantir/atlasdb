@@ -27,7 +27,10 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.leader.PingableLeader;
 
-@Path("/batch/leader")
+@Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+        + "/" + PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE
+        + "/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
+        + "/leader")
 public interface BatchPingableLeader {
 
     /**
