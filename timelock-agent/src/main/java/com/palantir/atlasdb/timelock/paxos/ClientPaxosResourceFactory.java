@@ -18,7 +18,9 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.io.Closeable;
 import java.nio.file.Path;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -28,6 +30,8 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
@@ -45,12 +49,29 @@ public final class ClientPaxosResourceFactory {
 
     private ClientPaxosResourceFactory() { }
 
-    public static ClientResources create(
+    public static Resources create(
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             PaxosUseCase useCase,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor) {
+        Supplier<Boolean> useBatchPaxosForTimestamps = Suppliers.compose(
+                runtime -> runtime.timestampPaxos().useBatchPaxos(), paxosRuntime::get);
+        PaxosUseCaseContext timestampContext =
+                useCaseSpecificContext(install, metrics, useCase, sharedExecutor, useBatchPaxosForTimestamps);
+
+        return ImmutableResources.builder()
+                .timestamp(timestampContext)
+                .addResources(new PaxosResource(timestampContext.components()))
+                .build();
+    }
+
+    private static PaxosUseCaseContext useCaseSpecificContext(
+            TimelockPaxosInstallationContext install,
+            MetricsManager metrics,
+            PaxosUseCase useCase,
+            ExecutorService sharedExecutor,
+            Supplier<Boolean> useBatchPaxos) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(useCase, metrics.getTaggedRegistry());
 
@@ -59,23 +80,6 @@ public final class ClientPaxosResourceFactory {
         PaxosComponents paxosComponents = new PaxosComponents(
                 timelockMetrics,
                 useCase.logDirectoryRelativeToDataDirectory(install.dataDirectory()));
-
-        AcceptorCache acceptorCache = timelockMetrics
-                .instrument(AcceptorCache.class, new AcceptorCacheImpl(), "acceptor-cache");
-        BatchPaxosAcceptor localBatchPaxosAcceptor = timelockMetrics.instrument(
-                BatchPaxosAcceptor.class,
-                new LocalBatchPaxosAcceptor(paxosComponents, acceptorCache),
-                "local-batch-paxos-acceptor");
-        BatchPaxosAcceptorResource clientAcceptorResource = new BatchPaxosAcceptorResource(localBatchPaxosAcceptor);
-
-        BatchPaxosLearner localBatchPaxosLearner = timelockMetrics.instrument(
-                BatchPaxosLearner.class,
-                new LocalBatchPaxosLearner(paxosComponents),
-                "local-batch-paxos-learner");
-        BatchPaxosLearnerResource clientLearnerResource = new BatchPaxosLearnerResource(localBatchPaxosLearner);
-
-        BatchPaxosResources batchPaxosResources =
-                ImmutableBatchPaxosResources.of(clientAcceptorResource, clientLearnerResource);
 
         SingleLeaderNetworkClientFactories singleClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
                 .useCase(useCase)
@@ -90,30 +94,14 @@ public final class ClientPaxosResourceFactory {
                 .useCase(useCase)
                 .metrics(timelockMetrics)
                 .remoteClients(remoteClients)
-                .resource(batchPaxosResources)
+                .components(paxosComponents)
                 .quorumSize(install.quorumSize())
                 .sharedExecutor(sharedExecutor)
                 .build();
 
-        return ImmutableClientResources.builder()
-                .quorumSize(install.quorumSize())
-                .components(paxosComponents)
-                .nonBatchedResource(new PaxosResource(paxosComponents))
-                .batchedResource(new UseCaseAwareBatchPaxosResource(clientAcceptorResource, clientLearnerResource))
-                .networkClientFactories(factories(paxosRuntime, singleClientFactories, batchClientFactories))
-                .build();
-    }
-
-    private static NetworkClientFactories factories(
-            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            SingleLeaderNetworkClientFactories singleClientFactories,
-            BatchingNetworkClientFactories batchClientFactories) {
-        Supplier<Boolean> useBatchPaxos = Suppliers.compose(
-                runtime -> runtime.timestampPaxos().useBatchPaxos(), paxosRuntime::get);
-
         NetworkClientFactories batchNetworkClientFactories = batchClientFactories.factories();
         NetworkClientFactories singleLeaderNetworkClientFactories = singleClientFactories.factories();
-        return ImmutableNetworkClientFactories.builder()
+        NetworkClientFactories delegatingNetworkClientFactories = ImmutableNetworkClientFactories.builder()
                 .acceptor(client -> PredicateSwitchedProxy.newProxyInstance(
                         batchNetworkClientFactories.acceptor().create(client),
                         singleLeaderNetworkClientFactories.acceptor().create(client),
@@ -127,6 +115,48 @@ public final class ClientPaxosResourceFactory {
                 .addAllCloseables(batchNetworkClientFactories.closeables())
                 .addAllCloseables(singleLeaderNetworkClientFactories.closeables())
                 .build();
+
+        return ImmutablePaxosUseCaseContext.builder()
+                .components(paxosComponents)
+                .networkClientFactories(delegatingNetworkClientFactories)
+                .build();
+    }
+
+
+    @Value.Immutable
+    public interface PaxosUseCaseContext {
+        PaxosComponents components();
+        NetworkClientFactories networkClientFactories();
+    }
+
+    @Value.Immutable
+    public abstract static class Resources {
+        public abstract PaxosUseCaseContext timestamp();
+        // TODO(fdesouza): make non optional when ready to implement
+        public abstract Optional<PaxosUseCaseContext> leadership();
+        public abstract List<Object> resources();
+        public abstract TimelockPaxosInstallationContext installContext();
+
+        @Value.Derived
+        public List<Object> allResources() {
+            Map<PaxosUseCase, BatchPaxosResources> resources = ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
+                    .put(PaxosUseCase.TIMESTAMP, batchResourcesForUseCase(timestamp()))
+                    .build();
+            UseCaseAwareBatchPaxosResource combinedBatchResource =
+                    new UseCaseAwareBatchPaxosResource(new EnumMap<>(resources));
+
+            return ImmutableList.builder()
+                    .addAll(resources())
+                    .add(combinedBatchResource)
+                    .build();
+        }
+
+        private static BatchPaxosResources batchResourcesForUseCase(PaxosUseCaseContext useCaseContext) {
+            PaxosComponents components = useCaseContext.components();
+            BatchPaxosAcceptorResource acceptorResource = new BatchPaxosAcceptorResource(components.batchAcceptor());
+            BatchPaxosLearnerResource learnerResource = new BatchPaxosLearnerResource(components.batchLearner());
+            return ImmutableBatchPaxosResources.of(acceptorResource, learnerResource);
+        }
     }
 
     @Value.Immutable

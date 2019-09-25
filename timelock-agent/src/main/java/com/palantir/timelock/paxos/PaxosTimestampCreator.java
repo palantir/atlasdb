@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.ClientResources;
+import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.PaxosUseCaseContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -36,29 +36,33 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 public class PaxosTimestampCreator implements TimestampCreator {
     private final MetricRegistry metricRegistry;
-    private final ClientResources clientResources;
+    private final PaxosUseCaseContext context;
     private final Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig;
+    private final int quorumSize;
 
     PaxosTimestampCreator(
             MetricRegistry metricRegistry,
-            ClientResources clientResources,
-            Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig) {
+            PaxosUseCaseContext context,
+            Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig,
+            int quorumSize) {
         this.metricRegistry = metricRegistry;
-        this.clientResources = clientResources;
+        this.context = context;
         this.paxosRuntimeConfig = paxosRuntimeConfig;
+        this.quorumSize = quorumSize;
     }
 
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig unused) {
-        NetworkClientFactories clientFactories = clientResources.networkClientFactories();
+        NetworkClientFactories clientFactories = context.networkClientFactories();
         PaxosAcceptorNetworkClient acceptorNetworkClient = clientFactories.acceptor().create(client);
         PaxosLearnerNetworkClient learnerNetworkClient = clientFactories.learner().create(client);
 
-        PaxosProposer proposer = instrument(PaxosProposer.class,
+        PaxosProposer proposer = instrument(
+                PaxosProposer.class,
                 PaxosProposerImpl.newProposer(
                         acceptorNetworkClient,
                         learnerNetworkClient,
-                        clientResources.quorumSize(),
+                        quorumSize,
                         UUID.randomUUID()),
                 client);
 
@@ -75,7 +79,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
                 TimestampBoundStore.class,
                 new PaxosTimestampBoundStore(
                         proposer,
-                        clientResources.components().learner(client),
+                        context.components().learner(client),
                         acceptorNetworkClient,
                         learnerNetworkClient,
                         paxosRuntimeConfig.get().maximumWaitBeforeProposalMs()),

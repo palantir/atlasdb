@@ -22,20 +22,10 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-import com.google.common.collect.ImmutableMap;
-
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE)
 public class UseCaseAwareBatchPaxosResource {
 
     private final EnumMap<PaxosUseCase, BatchPaxosResources> resourcesByUseCase;
-
-    UseCaseAwareBatchPaxosResource(
-            BatchPaxosAcceptorResource clientPaxosAcceptor,
-            BatchPaxosLearnerResource clientPaxosLearner) {
-        this(new EnumMap<>(ImmutableMap.<PaxosUseCase, BatchPaxosResources>of(
-                PaxosUseCase.TIMESTAMP,
-                ImmutableBatchPaxosResources.of(clientPaxosAcceptor, clientPaxosLearner))));
-    }
 
     UseCaseAwareBatchPaxosResource(EnumMap<PaxosUseCase, BatchPaxosResources> resourcesByUseCase) {
         this.resourcesByUseCase = resourcesByUseCase;

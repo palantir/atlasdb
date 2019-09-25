@@ -40,7 +40,7 @@ import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory;
-import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.ClientResources;
+import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.Resources;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -65,7 +65,7 @@ public class TimeLockAgent {
     private final TimeLockInstallConfiguration install;
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
-    private final ClientResources clientResources;
+    private final Resources resources;
     private final PaxosLeadershipCreator leadershipCreator;
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
@@ -82,7 +82,7 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar) {
         ExecutorService executor = createSharedExecutor(metricsManager);
-        ClientResources clientPaxosResources = ClientPaxosResourceFactory.create(
+        Resources resources = ClientPaxosResourceFactory.create(
                 ImmutableTimelockPaxosInstallationContext.of(install),
                 metricsManager,
                 PaxosUseCase.TIMESTAMP,
@@ -96,7 +96,7 @@ public class TimeLockAgent {
                 threadPoolSize,
                 blockingTimeoutMs,
                 registrar,
-                clientPaxosResources);
+                resources);
         agent.createAndRegisterResources();
         return agent;
     }
@@ -107,12 +107,12 @@ public class TimeLockAgent {
             int threadPoolSize,
             long blockingTimeoutMs,
             Consumer<Object> registrar,
-            ClientResources clientResources) {
+            Resources resources) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
         this.registrar = registrar;
-        this.clientResources = clientResources;
+        this.resources = resources;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.leadershipCreator = new PaxosLeadershipCreator(metricsManager, install, runtime, registrar);
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
@@ -152,8 +152,9 @@ public class TimeLockAgent {
     private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
         return new PaxosTimestampCreator(
                 metrics,
-                clientResources,
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
+                resources.timestamp(),
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
+                resources.installContext().quorumSize());
     }
 
     private void createAndRegisterResources() {
@@ -203,8 +204,7 @@ public class TimeLockAgent {
 
     // No runtime configuration at the moment.
     private void registerPaxosResource() {
-        registrar.accept(clientResources.nonBatchedResource());
-        registrar.accept(clientResources.batchedResource());
+        resources.resources().forEach(registrar::accept);
     }
 
     private void registerExceptionMappers() {
