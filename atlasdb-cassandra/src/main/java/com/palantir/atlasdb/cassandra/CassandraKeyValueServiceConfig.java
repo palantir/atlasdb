@@ -130,10 +130,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     /**
      * This increases the likelihood of selecting an instance that is hosted in the same data centre as the process.
-     * weighting is a multiplier, so 1 is random, and >1 makes it linearly more likely to select a local data centre.
+     * Weighting is a ratio from 0 to 1, where 0 disables the feature and 1 forces the same data centre if possible.
      */
     @Value.Default
-    default int localHostWeighting() { return 1; }
+    default int localHostWeighting() { return 0; }
 
     @JsonIgnore
     @Value.Lazy
