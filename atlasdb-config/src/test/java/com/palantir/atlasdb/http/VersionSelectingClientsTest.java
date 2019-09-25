@@ -43,6 +43,7 @@ public class VersionSelectingClientsTest {
 
     @Test
     public void probabilityZeroAlwaysGoesToOldService() {
+        probability.set(0.0);
         IntStream.range(0, 100)
                 .forEach($ -> selectingService.getFreshTimestamp());
         verify(oldService, times(100)).getFreshTimestamp();

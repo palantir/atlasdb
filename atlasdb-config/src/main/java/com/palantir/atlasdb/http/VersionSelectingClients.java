@@ -43,14 +43,14 @@ final class VersionSelectingClients {
 
     static <T> T createVersionSelectingClient(
             TaggedMetricRegistry taggedMetricRegistry,
-            T uninstrumentedNewClient,
-            T uninstrumentedLegacyClient,
+            T newClient,
+            T legacyClient,
             DoubleSupplier newClientProbabilitySupplier,
             Class<T> clazz) {
         T instrumentedNewClient = instrumentWithClientVersionTag(
-                taggedMetricRegistry, uninstrumentedNewClient, clazz, NEW_CLIENT_TAG);
+                taggedMetricRegistry, newClient, clazz, NEW_CLIENT_TAG);
         T instrumentedLegacyClient = instrumentWithClientVersionTag(
-                taggedMetricRegistry, uninstrumentedLegacyClient, clazz, LEGACY_CLIENT_TAG);
+                taggedMetricRegistry, legacyClient, clazz, LEGACY_CLIENT_TAG);
 
         return PredicateSwitchedProxy.newProxyInstance(
                 instrumentedNewClient,

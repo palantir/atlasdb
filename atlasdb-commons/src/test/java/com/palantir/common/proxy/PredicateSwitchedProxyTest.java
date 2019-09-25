@@ -21,58 +21,36 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.IntConsumer;
 
 import org.junit.Test;
 
 public class PredicateSwitchedProxyTest {
-    private final TestInterface decorated = mock(TestInterface.class);
-    private final TestInterface delegate = mock(TestInterface.class);
+    private final IntConsumer decorated = mock(IntConsumer.class);
+    private final IntConsumer delegate = mock(IntConsumer.class);
 
     private final AtomicBoolean atomicBoolean = new AtomicBoolean(false);
 
-    private final TestInterface testInterface = PredicateSwitchedProxy.newProxyInstance(
+    private final IntConsumer consumer = PredicateSwitchedProxy.newProxyInstance(
             decorated,
             delegate,
             atomicBoolean::get,
-            TestInterface.class);
-
-    @Test
-    public void dynamicallySwitchesCorrectlyForNoArgMethods() throws Exception {
-        testInterface.noArgumentMethod();
-        verify(decorated, never()).noArgumentMethod();
-        verify(delegate, times(1)).noArgumentMethod();
-
-        atomicBoolean.set(true);
-        testInterface.noArgumentMethod();
-        verify(decorated, times(1)).noArgumentMethod();
-        verify(delegate, times(1)).noArgumentMethod();
-
-        atomicBoolean.set(false);
-        testInterface.noArgumentMethod();
-        verify(decorated, times(1)).noArgumentMethod();
-        verify(delegate, times(2)).noArgumentMethod();
-    }
+            IntConsumer.class);
 
     @Test
     public void dynamicallySwitchesCorrectlyForMethodsWithArguments() throws Exception {
-        testInterface.methodWithArgument(10);
-        verify(decorated, never()).methodWithArgument(10);
-        verify(delegate, times(1)).methodWithArgument(10);
+        consumer.accept(10);
+        verify(decorated, never()).accept(10);
+        verify(delegate, times(1)).accept(10);
 
         atomicBoolean.set(true);
-        testInterface.methodWithArgument(20);
-        verify(decorated, times(1)).methodWithArgument(20);
-        verify(delegate, never()).methodWithArgument(20);
+        consumer.accept(20);
+        verify(decorated, times(1)).accept(20);
+        verify(delegate, never()).accept(20);
 
         atomicBoolean.set(false);
-        testInterface.methodWithArgument(30);
-        verify(decorated, never()).methodWithArgument(30);
-        verify(delegate, times(1)).methodWithArgument(30);
-    }
-
-    interface TestInterface {
-        void noArgumentMethod();
-
-        void methodWithArgument(int argument);
+        consumer.accept(30);
+        verify(decorated, never()).accept(30);
+        verify(delegate, times(1)).accept(30);
     }
 }
