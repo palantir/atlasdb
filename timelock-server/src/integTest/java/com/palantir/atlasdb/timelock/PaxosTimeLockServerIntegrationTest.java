@@ -198,7 +198,7 @@ public class PaxosTimeLockServerIntegrationTest {
             for (int i = 0; i < numRequestsPerClient; i++) {
                 int currentTrial = i;
                 futures.add(executorService.submit(() ->
-                        lockService.lock(CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT))
+                        lockService.lock(CLIENT_2 + currentTrial, REQUEST_LOCK_WITH_LONG_TIMEOUT))
                 );
             }
         }
@@ -410,20 +410,6 @@ public class PaxosTimeLockServerIntegrationTest {
         String uriWithParam = getFastForwardUriForClientOne() + "?newMinimum=1200";
         Response response = makeEmptyPostToUri(uriWithParam);
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
-    }
-
-    @Test
-    public void leadershipEventsSmokeTest() throws IOException {
-        MetricsOutput metrics = getMetricsOutput();
-
-        metrics.assertContainsMeter("leadership.gained");
-        metrics.assertContainsMeter("leadership.lost");
-        metrics.assertContainsMeter("leadership.proposed");
-        metrics.assertContainsMeter("leadership.no-quorum");
-        metrics.assertContainsMeter("leadership.proposed.failure");
-
-        assertThat(metrics.getMeter("leadership.gained").get("count").intValue()).isEqualTo(1);
-        assertThat(metrics.getMeter("leadership.proposed").get("count").intValue()).isEqualTo(1);
     }
 
     @Test
