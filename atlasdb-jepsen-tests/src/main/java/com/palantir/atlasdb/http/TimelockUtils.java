@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
@@ -43,6 +44,7 @@ public final class TimelockUtils {
                 Optional.empty(),
                 Optional.empty(),
                 endpointUris,
-                type);
+                type,
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
     }
 }

@@ -32,8 +32,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -188,8 +188,8 @@ public abstract class EteSetup {
                 NO_SSL,
                 Optional.empty(),
                 uris,
-                UserAgents.DEFAULT_USER_AGENT,
-                clazz);
+                clazz,
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
     }
 
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {

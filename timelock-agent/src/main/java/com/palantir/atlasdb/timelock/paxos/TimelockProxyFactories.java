@@ -23,7 +23,9 @@ import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -40,13 +42,18 @@ public abstract class TimelockProxyFactories {
         Optional<TrustContext> trustContext = PaxosRemotingUtils
                 .getSslConfigurationOptional(install())
                 .map(SslSocketFactories::createTrustContext);
+
+        AuxiliaryRemotingParameters parameters = AuxiliaryRemotingParameters.builder()
+                .shouldLimitPayload(false)
+                .userAgent(UserAgent.of(UserAgent.Agent.of(name, UserAgent.Agent.DEFAULT_VERSION)))
+                .build();
+
         return remoteUris.stream()
                 .map(uri -> AtlasDbHttpClients.DEFAULT_TARGET_FACTORY.createProxy(
                         trustContext,
                         uri,
                         clazz,
-                        name,
-                        false))
+                        parameters))
                 .map(proxy -> metrics().instrument(clazz, proxy, name))
                 .collect(Collectors.toList());
     }

@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -78,8 +78,8 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 Optional.empty(),
                 uris,
-                UserAgents.DEFAULT_USER_AGENT,
-                serviceInterface));
+                serviceInterface,
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT));
     }
 
     public List<String> getServerUris() {

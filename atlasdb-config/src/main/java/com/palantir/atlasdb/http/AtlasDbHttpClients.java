@@ -48,7 +48,12 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type) {
-        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT, false);
+        return createProxy(
+                metricRegistry,
+                trustContext,
+                uri,
+                type,
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
     }
 
     public static <T> T createProxy(
@@ -56,12 +61,11 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxy(trustContext, uri, type, null), // TODO (jkong)
+                DEFAULT_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters),
                 MetricRegistry.name(type));
     }
 
@@ -70,12 +74,11 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxyWithoutRetrying(trustContext, uri, type, null), // TODO (jkong)
+                DEFAULT_TARGET_FACTORY.createProxyWithoutRetrying(trustContext, uri, type, parameters),
                 MetricRegistry.name(type));
     }
 
@@ -91,8 +94,8 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
-            String userAgent,
-            Class<T> type) {
+            Class<T> type,
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
@@ -101,7 +104,7 @@ public final class AtlasDbHttpClients {
                         proxySelector,
                         endpointUris,
                         type,
-                        null), // TODO (jkong)
+                        parameters),
                 MetricRegistry.name(type));
     }
 
@@ -152,7 +155,7 @@ public final class AtlasDbHttpClients {
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent) {
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
@@ -161,7 +164,7 @@ public final class AtlasDbHttpClients {
                         trustContextCreator,
                         proxySelectorCreator,
                         type,
-                        null), // TODO (jkong)
+                        parameters),
                 MetricRegistry.name(type));
     }
 
@@ -171,7 +174,8 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
-            Class<T> type) {
+            Class<T> type,
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
@@ -180,7 +184,7 @@ public final class AtlasDbHttpClients {
                         proxySelector,
                         endpointUris,
                         type,
-                        null), // TODO (jkong)
+                        parameters),
                 MetricRegistry.name(type, "atlasdb-testing"));
     }
 }

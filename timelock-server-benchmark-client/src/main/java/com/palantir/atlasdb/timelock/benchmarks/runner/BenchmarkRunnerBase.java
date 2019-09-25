@@ -30,12 +30,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class BenchmarkRunnerBase {
 
+    private static final UserAgent BENCHMARK_CLIENT_USER_AGENT = UserAgent.of(
+            UserAgent.Agent.of("benchmarks", UserAgent.Agent.DEFAULT_VERSION));
     private static final String BENCHMARK_SERVER = readBenchmarkServerUri();
     private static final int BENCHMARK_SERVER_PORT = 9425;
 
@@ -68,8 +72,10 @@ public class BenchmarkRunnerBase {
                 Optional.empty(),
                 ImmutableSet.of(BENCHMARK_SERVER),
                 BenchmarksService.class,
-                "benchmarks",
-                false);
+                AuxiliaryRemotingParameters.builder()
+                        .userAgent(BENCHMARK_CLIENT_USER_AGENT)
+                        .shouldLimitPayload(false)
+                        .build());
     }
 
     private static String readBenchmarkServerUri() {
