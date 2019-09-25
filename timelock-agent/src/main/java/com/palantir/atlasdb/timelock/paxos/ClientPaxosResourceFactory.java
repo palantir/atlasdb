@@ -134,8 +134,10 @@ public final class ClientPaxosResourceFactory {
         };
 
         return ImmutablePaxosUseCaseContext.builder()
+                .metrics(timelockMetrics)
                 .components(paxosComponents)
                 .networkClientFactories(combinedNetworkClientFactories)
+                .proposerFactory(proposerFactory)
                 .build();
     }
 
