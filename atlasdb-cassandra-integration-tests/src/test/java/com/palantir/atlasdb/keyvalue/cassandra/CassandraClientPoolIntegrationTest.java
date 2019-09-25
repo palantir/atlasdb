@@ -83,6 +83,11 @@ public class CassandraClientPoolIntegrationTest {
     }
 
     @Test
+    public void test() {
+        System.out.println("dosomethig");
+    }
+
+    @Test
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
         clientPool.run(client -> {
             try {

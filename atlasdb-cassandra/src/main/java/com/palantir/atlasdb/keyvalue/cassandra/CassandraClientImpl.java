@@ -208,6 +208,11 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public String describe_snitch() throws TException {
+        return client.describe_snitch();
+    }
+
+    @Override
     public String describe_version() throws TException {
         return executeHandlingExceptions(() -> client.describe_version());
     }

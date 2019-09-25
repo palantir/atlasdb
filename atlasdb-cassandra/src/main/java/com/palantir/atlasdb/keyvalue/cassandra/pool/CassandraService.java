@@ -69,6 +69,8 @@ public class CassandraService implements AutoCloseable {
 
     private List<InetSocketAddress> cassandraHosts;
 
+    private Optional<List<TokenRange>> previousTokenRanges = Optional.empty();
+
     public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
         this.metricsManager = metricsManager;
         this.config = config;
@@ -88,6 +90,8 @@ public class CassandraService implements AutoCloseable {
 
             // grab latest token ring view from a random node in the cluster
             List<TokenRange> tokenRanges = getTokenRanges();
+            this.previousTokenRanges = Optional.of(tokenRanges);
+            System.out.println("pass");
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -224,7 +228,7 @@ public class CassandraService implements AutoCloseable {
             return Optional.empty();
         }
 
-        return Optional.of(WeightedHosts.create(matchingPools).getRandomHost());
+        return Optional.of(WeightedHosts.create(matchingPools, this.previousTokenRanges).getRandomHost());
     }
 
     public void debugLogStateOfPool() {
