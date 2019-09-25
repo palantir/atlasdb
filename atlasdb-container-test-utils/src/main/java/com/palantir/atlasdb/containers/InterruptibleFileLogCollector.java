@@ -79,14 +79,20 @@ public class InterruptibleFileLogCollector implements LogCollector {
                 }));
     }
 
-    synchronized void stopExecutor() throws InterruptedException {
+    synchronized void stopExecutor() {
         if (executor == null) {
             return;
         }
         executor.shutdown();
-        if (!executor.awaitTermination(STOP_TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS)) {
-            log.warn("docker containers were still running when log collection stopped");
-            executor.shutdownNow();
+        try {
+            if (!executor.awaitTermination(STOP_TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS)) {
+                log.warn("docker containers were still running when log collection stopped");
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            log.warn("Thread was interrupted while waiting for executor to terminate.", e);
+        } catch (Exception e) {
+            log.warn("Exception was raised while shutting down the executor", e);
         }
     }
 }

@@ -25,6 +25,9 @@ import java.util.concurrent.ThreadFactory;
 
 import javax.net.ssl.SSLContext;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.NettyOptions;
@@ -43,11 +46,14 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.logsafe.SafeArg;
 
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.proxy.Socks5ProxyHandler;
 
 public final class CqlClientFactory {
+
+    private static final Logger logger = LoggerFactory.getLogger(CqlClientFactory.class);
 
     private CqlClientFactory() {
 
@@ -155,6 +161,7 @@ public final class CqlClientFactory {
 
         @Override
         public void afterChannelInitialized(SocketChannel channel) {
+            logger.info("Adding a proxy for channel with hash: {}", SafeArg.of("channel", channel.id()));
             channel.pipeline().addFirst(new Socks5ProxyHandler(proxyAddress));
         }
     }

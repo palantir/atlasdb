@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +84,7 @@ public final class CqlClientImpl implements CqlClient {
     private final Session session;
     private final ExecutorService executorService;
     private final Logger log;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     public static CqlClient create(Cluster cluster, ExecutorService executor, boolean initializeAsync) {
         if (initializeAsync) {
@@ -99,14 +101,26 @@ public final class CqlClientImpl implements CqlClient {
 
     @Override
     public void close() {
-        try {
-            executorService.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            log.warn("CqlClient executor service did not terminate properly.", e);
+        if (closed.compareAndSet(false, true)) {
+            try {
+                executorService.shutdown();
+                if (executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+                    log.info("CqlClient executor service terminated properly.");
+                } else {
+                    log.warn("CqlClient executor service timed out before shutting down, shutting down forcefully");
+                    executorService.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                log.warn("Thread was interrupted while waiting for CqlClient to terminate.", e);
+            } catch (Exception e) {
+                log.warn("CqlClient exception on executor service termination", e);
+            }
+            Cluster cluster = session.getCluster();
+            session.close();
+            cluster.close();
+        } else {
+            log.info("CqlClient was already closed.");
         }
-        Cluster cluster = session.getCluster();
-        session.close();
-        cluster.close();
     }
 
     @Override

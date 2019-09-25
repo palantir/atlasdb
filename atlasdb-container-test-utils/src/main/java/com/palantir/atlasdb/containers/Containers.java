@@ -40,6 +40,7 @@ import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerMachine;
+import com.palantir.docker.compose.execution.DockerCompose;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
@@ -78,6 +79,10 @@ public class Containers extends ExternalResource {
         synchronized (Containers.class) {
             return dockerComposeRule.containers().container(containerName);
         }
+    }
+
+    public DockerCompose getDockerCompose() {
+        return dockerComposeRule.dockerCompose();
     }
 
     @Override
@@ -183,6 +188,7 @@ public class Containers extends ExternalResource {
             dockerComposeRule = null;
             currentLogCollector = null;
             containersStarted.clear();
+            currentLogCollector.stopExecutor();
         }
     }
 }
