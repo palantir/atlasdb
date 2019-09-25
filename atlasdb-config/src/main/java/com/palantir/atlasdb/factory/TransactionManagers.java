@@ -975,7 +975,7 @@ public abstract class TransactionManagers {
                 env,
                 leaderConfig,
                 () -> defaultRuntime,
-                userAgent.toString());
+                userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.createInstrumentedService(
                 metricsManager.getRegistry(),

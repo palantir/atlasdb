@@ -53,6 +53,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
@@ -138,9 +139,13 @@ public class AtlasDbHttpClientsTest {
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(new MetricRegistry(),
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(
+                new MetricRegistry(),
                 NO_SSL,
-                Optional.empty(), bothUris, UserAgents.DEFAULT_USER_AGENT, TestResource.class);
+                Optional.empty(),
+                bothUris,
+                TestResource.class,
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
         int response = client.getTestNumber();
 
         assertThat(response, equalTo(TEST_NUMBER));
@@ -168,8 +173,8 @@ public class AtlasDbHttpClientsTest {
                 NO_SSL,
                 directProxySelector,
                 ImmutableSet.of(getUriForPort(availablePort)),
-                UserAgents.DEFAULT_USER_AGENT,
-                TestResource.class);
+                TestResource.class,
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
         clientWithDirectCall.getTestNumber();
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 
@@ -186,8 +191,8 @@ public class AtlasDbHttpClientsTest {
                 NO_SSL,
                 httpProxySelector,
                 ImmutableSet.of(getUriForPort(availablePort)),
-                UserAgents.DEFAULT_USER_AGENT,
-                TestResource.class);
+                TestResource.class,
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
         clientWithHttpProxy.getTestNumber();
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 
@@ -210,7 +215,7 @@ public class AtlasDbHttpClientsTest {
                 SslSocketFactories::createTrustContext,
                 unused -> ProxySelector.getDefault(),
                 TestResource.class,
-                "user (123)");
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
 
         // actually a Feign RetryableException but that's not on our classpath
         assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
@@ -232,7 +237,7 @@ public class AtlasDbHttpClientsTest {
                 SslSocketFactories::createTrustContext,
                 proxyConfiguration -> ProxySelector.getDefault(),
                 TestResource.class,
-                UserAgents.DEFAULT_VALUE);
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
 
         assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
     }
@@ -247,7 +252,7 @@ public class AtlasDbHttpClientsTest {
                 SslSocketFactories::createTrustContext,
                 proxyConfiguration -> ProxySelector.getDefault(),
                 TestResource.class,
-                UserAgents.DEFAULT_VALUE);
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
 
         // At this point, there are zero nodes in the config, so we should get ServiceNotAvailable.
         assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);

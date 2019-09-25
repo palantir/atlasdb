@@ -169,14 +169,16 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             String uri,
             Class<T> type,
             String userAgent) {
+        AuxiliaryRemotingParameters remotingParameters = AuxiliaryRemotingParameters.builder()
+                .userAgent(UserAgents.tryParse(userAgent))
+                .shouldLimitPayload(false) // Only used for leader blocks
+                .build();
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(createClient(trustContext, AuxiliaryRemotingParameters.builder()
-                        .userAgent(UserAgents.tryParse(userAgent))
-                        .build()))
+                .client(createClient(trustContext, remotingParameters))
                 .target(type, uri);
     }
 
