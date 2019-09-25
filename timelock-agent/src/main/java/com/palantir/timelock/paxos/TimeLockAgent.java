@@ -42,7 +42,6 @@ import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory;
 import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.Resources;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
-import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PaxosLeaderElectionService;
@@ -85,7 +84,6 @@ public class TimeLockAgent {
         Resources resources = ClientPaxosResourceFactory.create(
                 ImmutableTimelockPaxosInstallationContext.of(install),
                 metricsManager,
-                PaxosUseCase.TIMESTAMP,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
                 executor);
 
@@ -115,7 +113,7 @@ public class TimeLockAgent {
         this.resources = resources;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.leadershipCreator = new PaxosLeadershipCreator(metricsManager, install, runtime, registrar);
-        this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
+        this.timestampCreator = getTimestampCreator();
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
 
@@ -136,10 +134,10 @@ public class TimeLockAgent {
                 MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator", "executor"));
     }
 
-    private TimestampCreator getTimestampCreator(MetricRegistry metrics) {
+    private TimestampCreator getTimestampCreator() {
         TsBoundPersisterConfiguration timestampBoundPersistence = install.timestampBoundPersistence();
         if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
-            return getPaxosTimestampCreator(metrics);
+            return getPaxosTimestampCreator();
         } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
             return new DbBoundTimestampCreator(
                     ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
@@ -149,12 +147,10 @@ public class TimeLockAgent {
                 timestampBoundPersistence.getClass()));
     }
 
-    private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
+    private PaxosTimestampCreator getPaxosTimestampCreator() {
         return new PaxosTimestampCreator(
-                metrics,
                 resources.timestamp(),
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                resources.installContext().quorumSize());
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
     }
 
     private void createAndRegisterResources() {
