@@ -76,6 +76,7 @@ public final class CqlClientFactory {
                         config,
                         cqlCapableConfig.cqlHosts(),
                         cqlCapableConfig.socksProxy(),
+                        cqlCapableConfig.tuning().preparedStatementCacheSize(),
                         initializeAsync);
             }
         });
@@ -86,6 +87,7 @@ public final class CqlClientFactory {
             CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers,
             Optional<SocketAddress> proxy,
+            int cacheSize,
             boolean initializeAsync) {
 
         Cluster.Builder clusterBuilder = Cluster.builder()
@@ -113,6 +115,7 @@ public final class CqlClientFactory {
                 taggedMetricRegistry,
                 cluster,
                 Executors.newCachedThreadPool(threadFactory),
+                cacheSize,
                 initializeAsync);
     }
 

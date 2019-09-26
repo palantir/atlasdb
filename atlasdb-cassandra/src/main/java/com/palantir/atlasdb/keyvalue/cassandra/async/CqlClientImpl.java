@@ -44,15 +44,17 @@ public final class CqlClientImpl implements CqlClient {
         private final ExecutorService executor;
         private final Logger log;
         private final TaggedMetricRegistry taggedMetricRegistry;
+        private final int cacheSize;
         private volatile CqlClient internalImpl;
 
         InitializingWrapper(
                 TaggedMetricRegistry taggedMetricRegistry,
                 Cluster cluster, ExecutorService executor,
-                Logger log) {
+                int cacheSize, Logger log) {
             this.taggedMetricRegistry = taggedMetricRegistry;
             this.cluster = cluster;
             this.executor = executor;
+            this.cacheSize = cacheSize;
             this.log = log;
         }
 
@@ -69,7 +71,7 @@ public final class CqlClientImpl implements CqlClient {
 
         @Override
         protected void tryInitialize() {
-            internalImpl = CqlClientImpl.createWithCache(taggedMetricRegistry, cluster, executor, log);
+            internalImpl = CqlClientImpl.createWithCache(taggedMetricRegistry, cluster, executor, cacheSize, log);
         }
 
         @Override
@@ -94,12 +96,14 @@ public final class CqlClientImpl implements CqlClient {
             TaggedMetricRegistry taggedMetricRegistry,
             Cluster cluster,
             ExecutorService executorService,
+            int cacheSize,
             boolean initializeAsync) {
         if (initializeAsync) {
             return new InitializingWrapper(
                     taggedMetricRegistry,
                     cluster,
                     executorService,
+                    cacheSize,
                     LoggerFactory.getLogger(CqlClient.class));
         }
 
@@ -107,6 +111,7 @@ public final class CqlClientImpl implements CqlClient {
                 taggedMetricRegistry,
                 cluster,
                 executorService,
+                cacheSize,
                 LoggerFactory.getLogger(CqlClient.class));
     }
 
@@ -114,12 +119,13 @@ public final class CqlClientImpl implements CqlClient {
             TaggedMetricRegistry taggedMetricRegistry,
             Cluster cluster,
             ExecutorService executorService,
+            int cacheSize,
             Logger log) {
         Session session = cluster.connect();
         QueryCache<PreparedStatement> queryCache = QueryCache.create(
                 (key) -> session.prepare(key.formatQueryString()),
                 taggedMetricRegistry,
-                100);
+                cacheSize);
 
         return new CqlClientImpl(session, executorService, queryCache, log);
     }
