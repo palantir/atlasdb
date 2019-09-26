@@ -21,15 +21,17 @@ import java.util.stream.Stream;
 import com.datastax.driver.core.Row;
 
 /**
- * Interface for accumulators to process results returned by the queries to Cassandra.
+ * {@code RowStreamAccumulator} defines an interface which should be implemented to process {@code Stream} of
+ * {@code Rows} retrieved from Cassandra. The implementation does not guarantee that the {@code accumulateRowStream}
+ * operation will be non-blocking if the the supplied can block.
  * @param <R> type of the result of accumulating all rows
  */
 public interface RowStreamAccumulator<R> {
 
     /**
      * Processes each row and updates the internal state of the instance. After each invocation of this method calling
-     * {@code result} should return the accumulated result rows processed up to know. Implementations should assume that
-     * processing the stream will not block the running thread.
+     * {@code result} should return the accumulated result of rows processed up to that moment. Implementations should
+     * assume that processing the stream will not block the running thread.
      * @param rowStream of available rows without blocking
      */
     void accumulateRowStream(Stream<Row> rowStream);

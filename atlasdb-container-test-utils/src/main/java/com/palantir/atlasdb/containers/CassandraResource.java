@@ -62,7 +62,7 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
         containers.before();
         try {
             socksProxy = containerInstance.getSocksProxy();
-        } catch (URISyntaxException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

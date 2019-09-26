@@ -101,15 +101,9 @@ public class CassandraContainer extends Container {
 
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
-        Proxy proxy;
-        try {
-            proxy = getSocksProxy();
-        } catch (Exception e) {
-            return SuccessOrFailure.failure("Could not retrieve socks proxy");
-        }
-
-        try (CassandraKeyValueService cassandraKeyValueService
-                = CassandraKeyValueServiceImpl.createForTesting(getConfigWithProxy(proxy.address()))) {
+        try (CassandraKeyValueService cassandraKeyValueService =
+                CassandraKeyValueServiceImpl.createForTesting(
+                        getConfigWithProxy(getSocksProxy().address()))) {
             return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);
         } catch (Exception e) {
             return SuccessOrFailure.failure(e.getMessage());

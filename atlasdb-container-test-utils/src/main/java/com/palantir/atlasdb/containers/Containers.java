@@ -101,11 +101,16 @@ public class Containers extends ExternalResource {
         }
     }
 
+    @Override
+    protected void after() {
+        currentLogCollector.stopExecutor();
+    }
+
     public String getLogDirectory() {
         return logDirectory;
     }
 
-    private void setupLogCollectorForLogDirectory() throws InterruptedException {
+    private void setupLogCollectorForLogDirectory() {
         if (currentLogCollector != null) {
             currentLogCollector.stopExecutor();
         }
@@ -188,7 +193,6 @@ public class Containers extends ExternalResource {
             dockerComposeRule = null;
             currentLogCollector = null;
             containersStarted.clear();
-            currentLogCollector.stopExecutor();
         }
     }
 }
