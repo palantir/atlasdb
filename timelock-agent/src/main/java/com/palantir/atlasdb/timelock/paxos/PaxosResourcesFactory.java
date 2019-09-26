@@ -114,33 +114,36 @@ public final class PaxosResourcesFactory {
                 .addAllCloseables(singleLeaderNetworkClientFactories.closeables())
                 .build();
 
-        Factory<PaxosProposer> proposerFactory = client -> {
-            PaxosAcceptorNetworkClient acceptorNetworkClient = combinedNetworkClientFactories.acceptor().create(client);
-            PaxosLearnerNetworkClient learnerNetworkClient = combinedNetworkClientFactories.learner().create(client);
-
-            PaxosProposer paxosProposer = PaxosProposerImpl.newProposer(
-                    acceptorNetworkClient,
-                    learnerNetworkClient,
-                    install.nodeUuid());
-
-            return timelockMetrics.instrument(PaxosProposer.class, paxosProposer, "paxos-proposer", client);
-        };
-
         return ImmutablePaxosUseCaseContext.builder()
+                .install(install)
                 .metrics(timelockMetrics)
                 .components(paxosComponents)
                 .networkClientFactories(combinedNetworkClientFactories)
-                .proposerFactory(proposerFactory)
                 .build();
     }
 
 
     @Value.Immutable
     public interface PaxosUseCaseContext {
+        TimelockPaxosInstallationContext install();
         TimelockPaxosMetrics metrics();
         PaxosComponents components();
         NetworkClientFactories networkClientFactories();
-        Factory<PaxosProposer> proposerFactory();
+
+        @Value.Derived
+        default Factory<PaxosProposer> proposerFactory() {
+            return client -> {
+                PaxosAcceptorNetworkClient acceptorNetworkClient = networkClientFactories().acceptor().create(client);
+                PaxosLearnerNetworkClient learnerNetworkClient = networkClientFactories().learner().create(client);
+
+                PaxosProposer paxosProposer = PaxosProposerImpl.newProposer(
+                        acceptorNetworkClient,
+                        learnerNetworkClient,
+                        install().nodeUuid());
+
+                return metrics().instrument(PaxosProposer.class, paxosProposer, "paxos-proposer", client);
+            };
+        }
     }
 
     @Value.Immutable
