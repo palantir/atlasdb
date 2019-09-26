@@ -54,7 +54,7 @@ import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
-import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -98,7 +98,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final int FORTY_TWO = 42;
 
     private static final String LOCK_CLIENT_NAME = "remoteLock-client-name";
-    public static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
+    private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
     private static final File TIMELOCK_CONFIG_TEMPLATE =
@@ -389,10 +389,10 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwsOnQueryingTimestampWithWithInvalidClientName() {
+    public void throwsOnQueryingTimestampWithInvalidClientName() {
         TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining("Unexpected char 0x08");
+                .hasMessageContaining("NOT_FOUND");
     }
 
     @Test
@@ -520,7 +520,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static AuxiliaryRemotingParameters remotingParametersForClient(String client) {
         return AuxiliaryRemotingParameters.builder()
                 .shouldLimitPayload(true)
-                .userAgent(UserAgent.of(UserAgent.Agent.of(client, UserAgent.Agent.DEFAULT_VERSION)))
+                .userAgent(UserAgents.tryParse(client))
                 .build();
     }
 

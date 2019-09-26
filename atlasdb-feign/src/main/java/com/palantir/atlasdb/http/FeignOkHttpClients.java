@@ -26,7 +26,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 import feign.Client;
@@ -39,10 +39,6 @@ import okhttp3.TlsVersion;
 public final class FeignOkHttpClients {
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
-
-    private static final UserAgent.Agent FEIGN_HTTP_CLIENT_AGENT = UserAgent.Agent.of(
-            AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT,
-            AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN.getProtocolVersionString());
 
     /**
      * @deprecated Do not use; this method may be removed at any time. It is purely for internal benchmarking, which
@@ -108,7 +104,8 @@ public final class FeignOkHttpClients {
                 () -> newOkHttpClient(
                         trustContext,
                         proxySelector,
-                        parameters.userAgent().addAgent(FEIGN_HTTP_CLIENT_AGENT).toString(),
+                        UserAgents.format(parameters.userAgent().addAgent(
+                                AtlasDbRemotingConstants.LEGACY_ATLASDB_HTTP_CLIENT_AGENT)),
                         parameters.shouldLimitPayload()));
 
         return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
