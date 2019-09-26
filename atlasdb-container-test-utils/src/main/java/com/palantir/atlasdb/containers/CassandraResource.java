@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.containers;
 
 import java.net.Proxy;
-import java.net.URISyntaxException;
 import java.util.Optional;
 import java.util.function.Supplier;
 
