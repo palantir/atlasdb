@@ -19,8 +19,8 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.PaxosUseCaseContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
+import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory.PaxosUseCaseContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;

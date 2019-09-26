@@ -17,24 +17,16 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.nio.file.Path;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
@@ -46,15 +38,12 @@ import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
-import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
-import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public final class ClientPaxosResourceFactory {
+public final class PaxosResourcesFactory {
 
-    private ClientPaxosResourceFactory() { }
+    private PaxosResourcesFactory() { }
 
-    public static Resources create(
+    public static PaxosResources create(
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
@@ -71,7 +60,7 @@ public final class ClientPaxosResourceFactory {
                 sharedExecutor,
                 useBatchPaxosForTimestamps);
 
-        return ImmutableResources.builder()
+        return ImmutablePaxosResources.builder()
                 .timestamp(timestampContext)
                 .addResources(new PaxosResource(timestampContext.components()))
                 .build();
@@ -156,35 +145,6 @@ public final class ClientPaxosResourceFactory {
     }
 
     @Value.Immutable
-    public abstract static class Resources {
-        public abstract PaxosUseCaseContext timestamp();
-        // TODO(fdesouza): make non optional when ready to implement
-        public abstract Optional<PaxosUseCaseContext> leadership();
-        abstract List<Object> resources();
-
-        @Value.Derived
-        public List<Object> allResources() {
-            Map<PaxosUseCase, BatchPaxosResources> resources = ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
-                    .put(PaxosUseCase.TIMESTAMP, batchResourcesForUseCase(timestamp()))
-                    .build();
-            UseCaseAwareBatchPaxosResource combinedBatchResource =
-                    new UseCaseAwareBatchPaxosResource(new EnumMap<>(resources));
-
-            return ImmutableList.builder()
-                    .addAll(resources())
-                    .add(combinedBatchResource)
-                    .build();
-        }
-
-        private static BatchPaxosResources batchResourcesForUseCase(PaxosUseCaseContext useCaseContext) {
-            PaxosComponents components = useCaseContext.components();
-            BatchPaxosAcceptorResource acceptorResource = new BatchPaxosAcceptorResource(components.batchAcceptor());
-            BatchPaxosLearnerResource learnerResource = new BatchPaxosLearnerResource(components.batchLearner());
-            return ImmutableBatchPaxosResources.of(acceptorResource, learnerResource);
-        }
-    }
-
-    @Value.Immutable
     public interface TimelockPaxosInstallationContext {
 
         @Value.Parameter
@@ -197,11 +157,11 @@ public final class ClientPaxosResourceFactory {
 
         @Value.Derived
         default int quorumSize() {
-            return PaxosRemotingUtils.getQuorumSize(clusterAddress());
+            return PaxosRemotingUtils.getQuorumSize(clusterAddresses());
         }
 
         @Value.Derived
-        default Set<String> clusterAddress() {
+        default Set<String> clusterAddresses() {
             return PaxosRemotingUtils.getClusterAddresses(install());
         }
 
@@ -222,57 +182,6 @@ public final class ClientPaxosResourceFactory {
                     .map(SslSocketFactories::createTrustContext);
         }
 
-    }
-
-    @Value.Immutable
-    public abstract static class PaxosRemoteClients {
-
-        @Value.Parameter
-        public abstract TimelockPaxosInstallationContext context();
-
-        @Value.Parameter
-        public abstract TaggedMetricRegistry metrics();
-
-        @Value.Derived
-        public List<TimelockPaxosAcceptorRpcClient> nonBatchAcceptor() {
-            return createInstrumentedRemoteProxies(TimelockPaxosAcceptorRpcClient.class, "paxos-acceptor-rpc-client");
-        }
-
-        @Value.Derived
-        public List<TimelockPaxosLearnerRpcClient> nonBatchLearner() {
-            return createInstrumentedRemoteProxies(TimelockPaxosLearnerRpcClient.class, "paxos-learner-rpc-client");
-        }
-
-        @Value.Derived
-        public List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
-            return createInstrumentedRemoteProxies(
-                    BatchPaxosAcceptorRpcClient.class,
-                    "batch-paxos-acceptor-rpc-client");
-        }
-
-        @Value.Derived
-        public List<BatchPaxosLearnerRpcClient> batchLearner() {
-            return createInstrumentedRemoteProxies(
-                    BatchPaxosLearnerRpcClient.class,
-                    "batch-paxos-learner-rpc-client");
-        }
-
-        private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, String name) {
-            return context().remoteUris().stream()
-                    .map(uri -> AtlasDbHttpClients.DEFAULT_TARGET_FACTORY.createProxy(
-                            context().trustContext(),
-                            uri,
-                            clazz,
-                            name,
-                            false))
-                    .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
-                            metrics(),
-                            clazz,
-                            proxy,
-                            name,
-                            _unused -> ImmutableMap.of()))
-                    .collect(Collectors.toList());
-        }
     }
 
 }
