@@ -14,27 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.cassandra;
 
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-
-@Value.Immutable
-public interface CqlQuerySpec<R> {
-
-    String keySpace();
-
-    TableReference tableReference();
-
-    SupportedQuery supportedQuery();
-
-    @Value.Auxiliary
-    Supplier<RowStreamAccumulator<R>> rowStreamAccumulatorFactory();
-
-    default String formatQueryString() {
-        return supportedQuery().formQueryString(keySpace(), tableReference());
-    }
+public class CqlCapableConfigTuning {
 }

@@ -116,6 +116,8 @@ public final class CassandraServersConfigs {
 
         public abstract Optional<SocketAddress> socksProxy();
 
+        Optional<CqlCapableConfigTuning> tuning;
+
         @Override
         public final int numberOfHosts() {
             return hosts().size();
