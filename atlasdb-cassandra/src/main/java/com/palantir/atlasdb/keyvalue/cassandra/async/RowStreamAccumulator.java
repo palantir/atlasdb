@@ -23,7 +23,7 @@ import com.datastax.driver.core.Row;
 /**
  * {@code RowStreamAccumulator} defines an interface which should be implemented to process {@code Stream} of
  * {@code Rows} retrieved from Cassandra. The implementation does not guarantee that the {@code accumulateRowStream}
- * operation will be non-blocking if the the supplied can block.
+ * operation will be non-blocking if the supplied {@code Stream} can block.
  * @param <R> type of the result of accumulating all rows
  */
 public interface RowStreamAccumulator<R> {
