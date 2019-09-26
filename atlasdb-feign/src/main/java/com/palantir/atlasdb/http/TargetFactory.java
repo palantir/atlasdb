@@ -54,4 +54,6 @@ public interface TargetFactory {
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
+
+    String getClientVersion();
 }

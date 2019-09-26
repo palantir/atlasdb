@@ -123,28 +123,16 @@ public final class AtlasDbHttpClients {
                         trustContextCreator,
                         proxySelectorCreator,
                         type,
-<<<<<<< HEAD
-                        userAgent,
-                        limitPayload),
+                        clientParameters),
                         DEFAULT_TARGET_FACTORY.getClientVersion()),
                 ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
-=======
-                        clientParameters),
-                DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
->>>>>>> d602d17... checkpoint i
                         serverListConfigSupplier,
                         trustContextCreator,
                         proxySelectorCreator,
                         type,
-<<<<<<< HEAD
-                        userAgent,
-                        limitPayload),
-                        DEFAULT_TARGET_FACTORY.getClientVersion()),
-                () -> 0.0,
-=======
                         clientParameters),
+                        DEFAULT_TARGET_FACTORY.getClientVersion()),
                 () -> clientParameters.remotingClientConfig().get().maximumV2Probability(),
->>>>>>> d602d17... checkpoint i
                 type);
     }
 

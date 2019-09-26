@@ -63,8 +63,7 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                "junit-test",
-                false));
+                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {

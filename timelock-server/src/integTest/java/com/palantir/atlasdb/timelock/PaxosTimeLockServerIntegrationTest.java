@@ -48,11 +48,13 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -503,8 +505,7 @@ public class PaxosTimeLockServerIntegrationTest {
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getGenericRootUri(),
                 clazz,
-                client,
-                true);
+                remotingParametersForClient(client));
     }
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
@@ -513,8 +514,14 @@ public class PaxosTimeLockServerIntegrationTest {
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
                 clazz,
-                client,
-                true);
+                remotingParametersForClient(client));
+    }
+
+    private static AuxiliaryRemotingParameters remotingParametersForClient(String client) {
+        return AuxiliaryRemotingParameters.builder()
+                .shouldLimitPayload(true)
+                .userAgent(UserAgent.of(UserAgent.Agent.of(client, UserAgent.Agent.DEFAULT_VERSION)))
+                .build();
     }
 
     private static String getGenericRootUri() {
