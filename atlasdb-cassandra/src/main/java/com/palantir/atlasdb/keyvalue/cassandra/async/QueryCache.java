@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
@@ -26,8 +27,10 @@ public final class QueryCache<R> {
         R createEntry(CqlQuerySpec querySpec);
     }
 
-    private static final String CACHE_NAME_PREFIX =
-            "com.palantir.atlasdb.keyvalue.cassandra.async.query.spec.cache.statements";
+    private static final String CACHE_NAME_PREFIX = MetricRegistry.name(
+            QueryCache.class,
+            "prepared",
+            "statements");
 
     public static <R> QueryCache<R> create(
             EntryCreator<R> entryCreator,
