@@ -35,9 +35,10 @@ public abstract class PaxosResources {
 
     @Value.Derived
     public List<Object> resourcesForRegistration() {
-        Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase = ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
-                .put(PaxosUseCase.TIMESTAMP, batchResourcesForUseCase(timestamp()))
-                .build();
+        Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase =
+                ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
+                        .put(PaxosUseCase.TIMESTAMP, batchResourcesForUseCase(timestamp()))
+                        .build();
         UseCaseAwareBatchPaxosResource combinedBatchResource =
                 new UseCaseAwareBatchPaxosResource(new EnumMap<>(batchPaxosResourcesByUseCase));
 
