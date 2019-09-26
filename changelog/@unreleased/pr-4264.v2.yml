@@ -1,0 +1,17 @@
+type: break
+break:
+  description: |-
+    `AtlasDbHttpClients` now expects an `AuxiliaryRemotingParameters` struct which encapsulates information about whether to use payload limiting, the user agent, and any additional remoting client configuration (such as that that may be provided by the AtlasDB library). These were previously expected as primitives.
+
+    To replicate previous behaviour, users should create an `AuxiliaryRemotingParameters` struct, possibly as:
+
+    ```
+    AuxiliaryRemotingParameters.builder()
+            .userAgent(UserAgents.tryParse(userAgentString))
+            .shouldLimitPayload(false)
+            .remotingClientConfig(remotingClientConfigSupplier);
+    ```
+
+    `userAgent` and `remotingClientConfig` are optional; `shouldLimitPayload` is compulsory.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4264
