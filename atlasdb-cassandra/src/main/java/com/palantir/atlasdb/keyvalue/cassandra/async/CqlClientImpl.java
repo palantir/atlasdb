@@ -36,21 +36,23 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class CqlClientImpl implements CqlClient {
     private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
         private final Cluster cluster;
         private final ExecutorService executor;
-        private final QueryCache<PreparedStatement> cache;
         private final Logger log;
-        private volatile CqlClientImpl internalImpl;
+        private final TaggedMetricRegistry taggedMetricRegistry;
+        private volatile CqlClient internalImpl;
 
-        InitializingWrapper(Cluster cluster, ExecutorService executor,
-                QueryCache<PreparedStatement> queryCache,
+        InitializingWrapper(
+                TaggedMetricRegistry taggedMetricRegistry,
+                Cluster cluster, ExecutorService executor,
                 Logger log) {
+            this.taggedMetricRegistry = taggedMetricRegistry;
             this.cluster = cluster;
             this.executor = executor;
-            this.cache = queryCache;
             this.log = log;
         }
 
@@ -67,7 +69,7 @@ public final class CqlClientImpl implements CqlClient {
 
         @Override
         protected void tryInitialize() {
-            internalImpl = new CqlClientImpl(cluster.connect(), executor, cache, log);
+            internalImpl = CqlClientImpl.createWithCache(taggedMetricRegistry, cluster, executor, log);
         }
 
         @Override
@@ -76,7 +78,7 @@ public final class CqlClientImpl implements CqlClient {
         }
 
         @Override
-        public void close() {
+        public void close() throws Exception {
             if (internalImpl != null) {
                 internalImpl.close();
             }
@@ -88,20 +90,38 @@ public final class CqlClientImpl implements CqlClient {
     private final Logger log;
     private final QueryCache<PreparedStatement> cache;
 
-    public static CqlClient create(Cluster cluster,
-            ExecutorService executorService, QueryCache<PreparedStatement> queryCache, boolean initializeAsync) {
+    public static CqlClient create(
+            TaggedMetricRegistry taggedMetricRegistry,
+            Cluster cluster,
+            ExecutorService executorService,
+            boolean initializeAsync) {
         if (initializeAsync) {
             return new InitializingWrapper(
+                    taggedMetricRegistry,
                     cluster,
                     executorService,
-                    queryCache,
                     LoggerFactory.getLogger(CqlClient.class));
         }
-        return new CqlClientImpl(
-                cluster.connect(),
+
+        return createWithCache(
+                taggedMetricRegistry,
+                cluster,
                 executorService,
-                queryCache,
                 LoggerFactory.getLogger(CqlClient.class));
+    }
+
+    private static CqlClient createWithCache(
+            TaggedMetricRegistry taggedMetricRegistry,
+            Cluster cluster,
+            ExecutorService executorService,
+            Logger log) {
+        Session session = cluster.connect();
+        QueryCache<PreparedStatement> queryCache = QueryCache.create(
+                (key) -> session.prepare(key.formatQueryString()),
+                taggedMetricRegistry,
+                100);
+
+        return new CqlClientImpl(session, executorService, queryCache, log);
     }
 
     private CqlClientImpl(Session session, ExecutorService executor, QueryCache<PreparedStatement> cache, Logger log) {
@@ -202,8 +222,7 @@ public final class CqlClientImpl implements CqlClient {
         @Override
         public CqlQuery<R> build() {
             Preconditions.checkNotNull(cqlQuerySpec, "Empty query spec");
-            PreparedStatement statement = cache.cacheQuerySpec(cqlQuerySpec, () ->
-                    session.prepare(cqlQuerySpec.formatQueryString()));
+            PreparedStatement statement = cache.cacheQuerySpec(cqlQuerySpec);
 
             Object[] argsArray = new Object[args.size()];
             for (int i = 0; i < args.size(); i++) {

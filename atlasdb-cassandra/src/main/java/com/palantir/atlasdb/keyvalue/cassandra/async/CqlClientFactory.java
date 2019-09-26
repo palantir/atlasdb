@@ -32,7 +32,6 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.NettyOptions;
 import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
@@ -73,20 +72,20 @@ public final class CqlClientFactory {
             @Override
             public CqlClient visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
                 return createClient(
+                        taggedMetricRegistry,
                         config,
                         cqlCapableConfig.cqlHosts(),
                         cqlCapableConfig.socksProxy(),
-                        QueryCache.create(taggedMetricRegistry, 100),
                         initializeAsync);
             }
         });
     }
 
     private static CqlClient createClient(
+            TaggedMetricRegistry taggedMetricRegistry,
             CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers,
             Optional<SocketAddress> proxy,
-            QueryCache<PreparedStatement> queryCache,
             boolean initializeAsync) {
 
         Cluster.Builder clusterBuilder = Cluster.builder()
@@ -110,7 +109,10 @@ public final class CqlClientFactory {
                 .setNameFormat(cluster.getClusterName() + "-session" + "-%d")
                 .build();
 
-        return CqlClientImpl.create(cluster, Executors.newCachedThreadPool(threadFactory), queryCache,
+        return CqlClientImpl.create(
+                taggedMetricRegistry,
+                cluster,
+                Executors.newCachedThreadPool(threadFactory),
                 initializeAsync);
     }
 

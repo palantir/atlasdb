@@ -16,30 +16,37 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.function.Supplier;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class QueryCache<R> {
-
-    private static final String CACHE_NAME_PREFIX = "query.spec.cache.statements";
-
-    public static <R> QueryCache<R> create(TaggedMetricRegistry taggedMetricRegistry, int cacheSize) {
-        Cache<CqlQuerySpec, R> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
-        CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, CACHE_NAME_PREFIX);
-        return new QueryCache<>(cache);
+    public interface EntryCreator<R> {
+        R createEntry(CqlQuerySpec querySpec);
     }
 
+    private static final String CACHE_NAME_PREFIX =
+            "com.palantir.atlasdb.keyvalue.cassandra.async.query.spec.cache.statements";
+
+    public static <R> QueryCache<R> create(
+            EntryCreator<R> entryCreator,
+            TaggedMetricRegistry taggedMetricRegistry,
+            int cacheSize) {
+        Cache<CqlQuerySpec, R> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
+        CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, CACHE_NAME_PREFIX);
+        return new QueryCache<>(entryCreator, cache);
+    }
+
+    private final EntryCreator<R> entryCreator;
     private final Cache<CqlQuerySpec, R> cache;
 
-    private QueryCache(Cache<CqlQuerySpec, R> cache) {
+    private QueryCache(EntryCreator<R> entryCreator, Cache<CqlQuerySpec, R> cache) {
+        this.entryCreator = entryCreator;
         this.cache = cache;
     }
 
-    R cacheQuerySpec(CqlQuerySpec spec, Supplier<R> valueSupplier) {
-        return cache.get(spec, key -> valueSupplier.get());
+    R cacheQuerySpec(CqlQuerySpec spec) {
+        return cache.get(spec, entryCreator::createEntry);
     }
 }
