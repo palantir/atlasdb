@@ -44,9 +44,9 @@ class LeadershipEvents {
     private final Meter leaderPingFailure;
     private final Meter leaderPingTimeout;
     private final Meter leaderPingReturnedFalse;
-    private final Object[] safeArgs;
+    private final Object[] contextArgs;
 
-    LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<Object>> safeArgs) {
+    LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<Object>> contextArgs) {
         gainedLeadership = metrics.meter(withName("leadership.gained"));
         lostLeadership = metrics.meter(withName("leadership.lost"));
         noQuorum = metrics.meter(withName("leadership.no-quorum"));
@@ -55,43 +55,43 @@ class LeadershipEvents {
         leaderPingFailure = metrics.meter(withName("leadership.ping-leader.failure"));
         leaderPingTimeout = metrics.meter(withName("leadership.ping-leader.timeout"));
         leaderPingReturnedFalse = metrics.meter(withName("leadership.ping-leader.returned-false"));
-        this.safeArgs = safeArgs.toArray(new Object[0]);
+        this.contextArgs = contextArgs.toArray(new Object[0]);
     }
 
     void proposedLeadershipFor(long round) {
-        leaderLog.info("Proposing leadership for {}", withArgs(SafeArg.of("round", round)));
+        leaderLog.info("Proposing leadership for {}", withContextArgs(SafeArg.of("round", round)));
         proposedLeadership.mark();
     }
 
     void gainedLeadershipFor(PaxosValue value) {
-        leaderLog.info("Gained leadership for {}", withArgs(SafeArg.of("value", value)));
+        leaderLog.info("Gained leadership for {}", withContextArgs(SafeArg.of("value", value)));
         gainedLeadership.mark();
     }
 
     void lostLeadershipFor(PaxosValue value) {
-        leaderLog.info("Lost leadership for {}", withArgs(SafeArg.of("value", value)));
+        leaderLog.info("Lost leadership for {}", withContextArgs(SafeArg.of("value", value)));
         lostLeadership.mark();
     }
 
     void noQuorum(PaxosValue value) {
         leaderLog.warn("The most recent known information says this server is the leader,"
                         + " but there is no quorum right now. The paxos value is {}",
-                withArgs(SafeArg.of("value", value)));
+                withContextArgs(SafeArg.of("value", value)));
         noQuorum.mark();
     }
 
     void leaderPingFailure(Throwable error) {
-        leaderLog.warn("Failed to ping the current leader", withArgs(error));
+        leaderLog.warn("Failed to ping the current leader", withContextArgs(error));
         leaderPingFailure.mark();
     }
 
     void leaderPingTimeout() {
-        leaderLog.warn("Timed out while attempting to ping the current leader", safeArgs);
+        leaderLog.warn("Timed out while attempting to ping the current leader", contextArgs);
         leaderPingTimeout.mark();
     }
 
     void leaderPingReturnedFalse() {
-        leaderLog.info("We contacted the suspected leader, but it reported that it was no longer leading", safeArgs);
+        leaderLog.info("We contacted the suspected leader, but it reported that it was no longer leading", contextArgs);
         leaderPingReturnedFalse.mark();
     }
 
@@ -100,15 +100,15 @@ class LeadershipEvents {
                         + "We should recover automatically. If this recurs often, try to \n"
                         + "  (1) ensure that most other nodes are reachable over the network, and \n"
                         + "  (2) increase the randomWaitBeforeProposingLeadershipMs timeout in your configuration.",
-                withArgs(paxosException));
+                withContextArgs(paxosException));
         proposalFailure.mark();
     }
 
-    private Object[] withArgs(Object arg) {
-        if (safeArgs.length == 0) {
+    private Object[] withContextArgs(Object arg) {
+        if (contextArgs.length == 0) {
             return new Object[] { arg };
         } else {
-            return ArrayUtils.add(safeArgs, arg);
+            return ArrayUtils.add(contextArgs, arg);
         }
     }
 
