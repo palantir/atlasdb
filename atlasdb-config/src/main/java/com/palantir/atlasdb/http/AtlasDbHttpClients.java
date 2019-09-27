@@ -74,7 +74,6 @@ public final class AtlasDbHttpClients {
             AuxiliaryRemotingParameters clientParameters) {
         return VersionSelectingClients.createVersionSelectingClient(
                 taggedMetricRegistry,
-                // TODO (jkong): Replace the new client with the CJR one; also I wish there was a way to curry stuff
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,

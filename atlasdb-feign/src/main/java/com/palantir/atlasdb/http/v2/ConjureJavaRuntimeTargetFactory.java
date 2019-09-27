@@ -16,11 +16,8 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import java.net.ProxySelector;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -31,15 +28,12 @@ import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.ImmutableInstanceAndVersion;
 import com.palantir.atlasdb.http.PollingRefreshable;
 import com.palantir.atlasdb.http.TargetFactory;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.ext.refresh.Refreshable;
 import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     private static final HostMetricsRegistry HOST_METRICS_REGISTRY = new HostMetricsRegistry();
@@ -49,23 +43,6 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
 
     private ConjureJavaRuntimeTargetFactory() {
         // Use the instances.
-    }
-
-    @Override
-    public <T> InstanceAndVersion<T> createProxyWithoutRetrying(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            AuxiliaryRemotingParameters clientParameters) {
-        ClientConfiguration clientConfiguration = ClientOptions.DEFAULT_NO_RETRYING.create(
-                ImmutableList.of(uri),
-                Optional.empty(),
-                trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
-        return wrapWithVersion(JaxRsClient.create(
-                type,
-                addAtlasDbRemotingAgent(clientParameters.userAgent()),
-                HOST_METRICS_REGISTRY,
-                clientConfiguration));
     }
 
     @Override
