@@ -240,7 +240,7 @@ public final class Leaders {
          */
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients.createProxyWithoutRetrying(
+            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(
                     metricsManager.getRegistry(),
                     trustContext,
                     endpoint,
@@ -248,6 +248,7 @@ public final class Leaders {
                     AuxiliaryRemotingParameters.builder() // TODO (jkong): Configurable remoting client config.
                             .shouldLimitPayload(false)
                             .userAgent(userAgent)
+                            .shouldRetry(false)
                             .build());
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);

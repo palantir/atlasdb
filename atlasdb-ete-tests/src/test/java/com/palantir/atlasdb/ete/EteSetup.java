@@ -32,8 +32,9 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -185,15 +186,18 @@ public abstract class EteSetup {
 
         return AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                NO_SSL,
-                Optional.empty(),
-                uris,
+                ImmutableServerListConfig.builder().addAllServers(uris).build(),
                 clazz,
-                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
     }
 
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
-        return AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, uri, clazz);
+        return AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
+                NO_SSL,
+                uri,
+                clazz,
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
     }
 }

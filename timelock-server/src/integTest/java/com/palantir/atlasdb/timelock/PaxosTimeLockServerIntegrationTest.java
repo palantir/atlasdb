@@ -51,6 +51,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
+import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
@@ -130,7 +131,8 @@ public class PaxosTimeLockServerIntegrationTest {
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
-                PingableLeader.class);
+                PingableLeader.class,
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)

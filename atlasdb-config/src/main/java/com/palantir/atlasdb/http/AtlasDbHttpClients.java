@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.ProxySelector;
-import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
@@ -26,8 +23,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -37,23 +32,6 @@ public final class AtlasDbHttpClients {
 
     private AtlasDbHttpClients() {
         // Utility class
-    }
-
-    /**
-     * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and the
-     * default Feign HTTP client.
-     */
-    public static <T> T createProxy(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type) {
-        return createProxy(
-                metricRegistry,
-                trustContext,
-                uri,
-                type,
-                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
     }
 
     public static <T> T createProxy(
@@ -69,19 +47,6 @@ public final class AtlasDbHttpClients {
                 MetricRegistry.name(type));
     }
 
-    public static <T> T createProxyWithoutRetrying(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                type,
-                DEFAULT_TARGET_FACTORY.createProxyWithoutRetrying(trustContext, uri, type, parameters),
-                MetricRegistry.name(type));
-    }
-
     /**
      * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
      * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
@@ -91,28 +56,19 @@ public final class AtlasDbHttpClients {
      */
     public static <T> T createProxyWithFailover(
             MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
+            ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxyWithFailover(
-                        trustContext,
-                        proxySelector,
-                        endpointUris,
-                        type,
-                        parameters),
+                DEFAULT_TARGET_FACTORY.createProxyWithFailover(serverListConfig, type, parameters),
                 MetricRegistry.name(type));
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
             TaggedMetricRegistry taggedMetricRegistry,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             AuxiliaryRemotingParameters clientParameters) {
         return VersionSelectingClients.createVersionSelectingClient(
@@ -120,15 +76,11 @@ public final class AtlasDbHttpClients {
                 // TODO (jkong): Replace the new client with the CJR one; also I wish there was a way to curry stuff
                 ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
-                        trustContextCreator,
-                        proxySelectorCreator,
                         type,
                         clientParameters),
                         DEFAULT_TARGET_FACTORY.getClientVersion()),
                 ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
-                        trustContextCreator,
-                        proxySelectorCreator,
                         type,
                         clientParameters),
                         DEFAULT_TARGET_FACTORY.getClientVersion()),
@@ -140,8 +92,6 @@ public final class AtlasDbHttpClients {
     static <T> T createLiveReloadingProxyWithQuickFailoverForTesting(
             MetricRegistry metricRegistry,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
@@ -149,8 +99,6 @@ public final class AtlasDbHttpClients {
                 type,
                 TESTING_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
-                        trustContextCreator,
-                        proxySelectorCreator,
                         type,
                         parameters),
                 MetricRegistry.name(type));
@@ -159,18 +107,14 @@ public final class AtlasDbHttpClients {
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
             MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
+            ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
                 TESTING_TARGET_FACTORY.createProxyWithFailover(
-                        trustContext,
-                        proxySelector,
-                        endpointUris,
+                        serverListConfig,
                         type,
                         parameters),
                 MetricRegistry.name(type, "atlasdb-testing"));

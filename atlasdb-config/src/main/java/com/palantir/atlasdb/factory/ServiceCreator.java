@@ -15,32 +15,20 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.ProxySelector;
-import java.net.SocketAddress;
-import java.net.URI;
-import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableList;
-import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
@@ -82,13 +70,7 @@ public final class ServiceCreator {
     }
 
     public <T> T createService(Class<T> serviceClass) {
-        return create(
-                metricsManager,
-                servers,
-                SslSocketFactories::createTrustContext,
-                ServiceCreator::createProxySelector,
-                serviceClass,
-                parameters);
+        return create(metricsManager, servers, serviceClass, parameters);
     }
 
     /**
@@ -102,15 +84,11 @@ public final class ServiceCreator {
     private static <T> T create(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 metricsManager.getTaggedRegistry(),
                 serverListConfigSupplier,
-                trustContextCreator,
-                proxySelectorCreator,
                 type,
                 parameters);
     }
@@ -122,39 +100,6 @@ public final class ServiceCreator {
                 service,
                 MetricRegistry.name(serviceClass));
     }
-
-    /**
-     * The code below is copied from http-remoting and should be removed when we switch the clients to use remoting.
-     */
-    public static ProxySelector createProxySelector(ProxyConfiguration proxyConfig) {
-        switch (proxyConfig.type()) {
-            case DIRECT:
-                return fixedProxySelectorFor(Proxy.NO_PROXY);
-            case HTTP:
-                HostAndPort hostAndPort = HostAndPort.fromString(proxyConfig.hostAndPort()
-                        .orElseThrow(() -> new SafeIllegalArgumentException(
-                                "Expected to find proxy hostAndPort configuration for HTTP proxy")));
-                InetSocketAddress addr = new InetSocketAddress(hostAndPort.getHost(), hostAndPort.getPort());
-                return fixedProxySelectorFor(new Proxy(Proxy.Type.HTTP, addr));
-            default:
-                // fall through
-        }
-
-        throw new IllegalStateException("Failed to create ProxySelector for proxy configuration: " + proxyConfig);
-    }
-
-    private static ProxySelector fixedProxySelectorFor(Proxy proxy) {
-        return new ProxySelector() {
-            @Override
-            public List<Proxy> select(URI uri) {
-                return ImmutableList.of(proxy);
-            }
-
-            @Override
-            public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {}
-        };
-    }
-
 
     private static AuxiliaryRemotingParameters toAuxiliaryRemotingParameters(
             UserAgent userAgent,

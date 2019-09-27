@@ -20,7 +20,6 @@ import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 
 /**
@@ -28,19 +27,15 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
  */
 @Value.Immutable
 public interface AuxiliaryRemotingParameters {
-    AuxiliaryRemotingParameters DEFAULT_NO_PAYLOAD_LIMIT = AuxiliaryRemotingParameters.builder()
-            .shouldLimitPayload(false)
-            .build();
-    AuxiliaryRemotingParameters DEFAULT_WITH_PAYLOAD_LIMIT = AuxiliaryRemotingParameters.builder()
-            .shouldLimitPayload(true)
-            .build();
-
-    @Value.Default
-    default UserAgent userAgent() {
-        return AtlasDbRemotingConstants.DEFAULT_USER_AGENT;
-    }
+    UserAgent userAgent();
 
     boolean shouldLimitPayload();
+
+    /**
+     * Whether clients should retry in the event of connection failures.
+     * This value may be ignored and assumed to be true for proxies that implement failover.
+     */
+    boolean shouldRetry();
 
     @Value.Default
     default Supplier<RemotingClientConfig> remotingClientConfig() {

@@ -16,25 +16,14 @@
 
 package com.palantir.atlasdb.http;
 
-import java.net.ProxySelector;
-import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public interface TargetFactory {
-    <T> T createProxyWithoutRetrying(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            AuxiliaryRemotingParameters clientParameters);
-
     <T> T createProxy(
             Optional<TrustContext> trustContext,
             String uri,
@@ -42,16 +31,12 @@ public interface TargetFactory {
             AuxiliaryRemotingParameters parameters);
 
     <T> T createProxyWithFailover(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
+            ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
 
     <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
 

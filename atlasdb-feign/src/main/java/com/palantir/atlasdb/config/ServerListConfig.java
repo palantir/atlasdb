@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
 @JsonDeserialize(as = ImmutableServerListConfig.class)
 @JsonSerialize(as = ImmutableServerListConfig.class)
@@ -34,6 +36,11 @@ public interface ServerListConfig {
     Optional<SslConfiguration> sslConfiguration();
 
     Optional<ProxyConfiguration> proxyConfiguration();
+
+    @Value.Derived
+    default Optional<TrustContext> trustContext() {
+        return sslConfiguration().map(SslSocketFactories::createTrustContext);
+    }
 
     default boolean hasAtLeastOneServer() {
         return servers().size() >= 1;

@@ -16,11 +16,12 @@
 package com.palantir.atlasdb.http;
 
 import java.util.List;
-import java.util.Optional;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
@@ -41,10 +42,12 @@ public final class TimelockUtils {
     private static <T> T createFromUris(MetricRegistry metricRegistry, List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 metricRegistry,
-                Optional.empty(),
-                Optional.empty(),
-                endpointUris,
+                ImmutableServerListConfig.builder().addAllServers(endpointUris).build(),
                 type,
-                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT);
+                AuxiliaryRemotingParameters.builder()
+                        .shouldRetry(true)
+                        .shouldLimitPayload(false)
+                        .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", UserAgent.Agent.DEFAULT_VERSION)))
+                        .build());
     }
 }
