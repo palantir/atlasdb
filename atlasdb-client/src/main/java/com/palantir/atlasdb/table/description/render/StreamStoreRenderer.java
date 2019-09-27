@@ -572,19 +572,29 @@ public class StreamStoreRenderer {
                         line("return StreamMetadata.newBuilder(metadata)");
                         line("        .setHash(ByteString.copyFrom(digest.digest()))");
                         line("        .build();");
-                    } line("} catch (IOException e) {"); {
-                        line("throw new RuntimeException(e);");
+                    } line("} catch (Exception e) {"); {
+                        line("throw Throwables.rewrapAndThrowUncheckedException(\"Error in creating compression stream\", e);");
                     } line("}");
                 } line("}");
+            }
+
+            private void closeStreamWithExceptionLogging(String streamVarName, String streamId) {
+                line("try {"); {
+                    line(streamVarName + ".close();");
+                } line("} catch (IOException streamCloseExc) {"); {
+                        line("log.error(\"Error closing stream id {}\", " + streamId + ", streamCloseExc);");
+                } line ("}");
             }
 
             private void loadStreamWithCompression() {
                 line("@Override");
                 line("public InputStream loadStream(Transaction t, final ", StreamId, " id) {"); {
+                    line("InputStream in = super.loadStream(t, id);");
                     line("try {"); {
                         line("return new " + clientSideCompression.inputClass + "(super.loadStream(t, id));");
-                    } line("} catch (IOException e) {"); {
-                        line("throw new RuntimeException(e);");
+                    } line("} catch (Exception e) {"); {
+                        closeStreamWithExceptionLogging("in", "id");
+                        line("throw Throwables.rewrapAndThrowUncheckedException(\"Error in creating compression stream\", e);");
                     } line("}");
                 } line("}");
             }
@@ -598,10 +608,10 @@ public class StreamStoreRenderer {
                         line("try {"); {
                             line("return new " + clientSideCompression.inputClass + "(s);");
                         } line("} catch (IOException e) {"); {
-                            line("throw new RuntimeException(e);");
+                            closeStreamWithExceptionLogging("s", "id");
+                            line("throw Throwables.rewrapAndThrowUncheckedException(\"Error in creating compression stream\", e);");
                         } line("}");
-                    }
-                    line("});");
+                    } line("});");
                 } line("}");
             }
 
@@ -609,13 +619,20 @@ public class StreamStoreRenderer {
                 line("@Override");
                 line("public Map<", StreamId, ", InputStream> loadStreams(Transaction t, Set<", StreamId, "> ids) {"); {
                     line("Map<", StreamId, ", InputStream> compressedStreams = super.loadStreams(t, ids);");
-                    line("return Maps.transformValues(compressedStreams, stream -> {"); {
-                        line("try {"); {
-                            line("return new " + clientSideCompression.inputClass + "(stream);");
-                        } line("} catch (IOException e) {"); {
-                            line("throw new RuntimeException(e);");
-                        } line("}");
-                    } line("});");
+                    line("try {"); {
+                        line("return Maps.transformValues(compressedStreams, stream -> {"); {
+                            line("try {"); {
+                                line("return new " + clientSideCompression.inputClass + "(stream);");
+                            } line("} catch (IOException e) {"); {
+                                line("throw Throwables.rewrapAndThrowUncheckedException(\"Error in creating compression stream\", e);");
+                            } line("}");
+                        } line("});");
+                    } line("} catch (Exception exc) {"); {
+                        line("compressedStreams.entrySet().forEach(e -> {"); {
+                            closeStreamWithExceptionLogging("e.getValue()", "e.getKey()");
+                        } line ("});");
+                        line("throw exc;");
+                    } line("}");
                 } line("}");
             }
 

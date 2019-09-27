@@ -20,6 +20,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.zip.Checksum;
 
+import com.google.common.io.ByteStreams;
+import com.palantir.logsafe.Preconditions;
+
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
@@ -32,39 +35,112 @@ import net.jpountz.xxhash.XXHashFactory;
  * InputStream, write the uncompressed data through the OutputStream, then
  * serve the read from the resulting compressed buffer.
  */
-public final class LZ4CompressingInputStream extends AbstractCompressingInputStream {
+public final class LZ4CompressingInputStream extends BufferedDelegateInputStream {
 
-    private final LZ4BlockOutputStream compressingStream;
-    private static LZ4Compressor compressor = LZ4Factory.fastestInstance().fastCompressor();
+    private static final LZ4Compressor COMPRESSOR = LZ4Factory.fastestInstance().fastCompressor();
     private static final int DEFAULT_SEED = 0x9747b28c;
     private static final int DEFAULT_BLOCK_SIZE = 1 << 16; // 64 KB
     private static final int LZ4_HEADER_SIZE = 21;
+
+    private final LZ4BlockOutputStream compressingStream;
+    private final int blockSize;
+    private final byte[] uncompressedBuffer;
+
+    // Position in the compressed buffer while writing
+    private int writeBufferPosition;
+    // Flag to indicate whether this stream has been exhausted.
+    private boolean finished;
 
     public LZ4CompressingInputStream(InputStream delegate) throws IOException {
         this(delegate, DEFAULT_BLOCK_SIZE);
     }
 
-    public LZ4CompressingInputStream(InputStream delegate, boolean highCompression) throws IOException {
-        this(delegate, DEFAULT_BLOCK_SIZE);
-        if (highCompression)
-            compressor = LZ4Factory.fastestInstance().highCompressor();
-    }
-
     public LZ4CompressingInputStream(InputStream delegate, int blockSize) throws IOException {
-        super(delegate, blockSize, LZ4_HEADER_SIZE + compressor.maxCompressedLength(blockSize));
+        super(delegate, LZ4_HEADER_SIZE + COMPRESSOR.maxCompressedLength(blockSize));
+        this.blockSize = blockSize;
+        this.uncompressedBuffer = new byte[blockSize];
         Checksum checksum = XXHashFactory.fastestInstance().newStreamingHash32(DEFAULT_SEED).asChecksum();
         OutputStream delegateOutputStream = new InternalByteArrayOutputStream();
-        this.compressingStream = new LZ4BlockOutputStream(delegateOutputStream, blockSize, compressor, checksum, true);
+        this.compressingStream = new LZ4BlockOutputStream(delegateOutputStream, blockSize, COMPRESSOR, checksum, true);
+        this.finished = false;
     }
 
     @Override
-    protected OutputStream getCompressionOutputStream() {
-        return this.compressingStream;
+    protected int refill() throws IOException {
+        if (finished) {
+            return 0;
+        }
+        writeBufferPosition = 0;
+
+        // Read a block of data from the delegate input stream.
+        int bytesRead = ByteStreams.read(delegate, uncompressedBuffer, BUFFER_START, blockSize);
+        if (bytesRead == 0) {
+            // The delegate input stream has been exhausted, so we notify
+            // the compressing stream that there are no remaining bytes.
+            // Lastly, we flush the LZ4 footer into the internal buffer.
+            compressingStream.finish();
+            compressingStream.flush();
+            finished = true;
+        } else {
+            // Write the bytes to the compressing stream and flush it.
+            compressingStream.write(uncompressedBuffer, BUFFER_START, bytesRead);
+            compressingStream.flush();
+        }
+
+        return writeBufferPosition;
+    }
+
+    private void write(int b) throws IOException {
+        ensureCapacity(writeBufferPosition + 1);
+        buffer[writeBufferPosition] = (byte) b;
+        writeBufferPosition++;
+    }
+
+    private void write(byte b[], int off, int len) throws IOException {
+        Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
+        if ((off < 0) || (len < 0) || (off + len > b.length)) {
+            throw new IndexOutOfBoundsException();
+        }
+        if (len == 0) {
+            return;
+        }
+        ensureCapacity(writeBufferPosition + len);
+        System.arraycopy(b, off, buffer, writeBufferPosition, len);
+        writeBufferPosition += len;
+    }
+
+    // Since the internal buffer size doesn't change, we throw if
+    // someone tries to write past the end of the buffer.
+    private void ensureCapacity(int size) {
+        Preconditions.checkState(buffer.length >= size, "Internal buffer overflow");
     }
 
     @Override
-    protected void finishOutputStream() throws IOException {
-        compressingStream.finish();
+    public void close() throws IOException {
+        delegate.close();
+        compressingStream.close();
+    }
+
+    /**
+     * Internal {@link OutputStream} that wraps the pre-existing buffer. This
+     * is an inner class since LZ4CompressingInputStream cannot extend both
+     * {@link BufferedDelegateInputStream} and {@link OutputStream}.
+     */
+    private final class InternalByteArrayOutputStream extends OutputStream {
+
+        public InternalByteArrayOutputStream() {
+            super();
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            LZ4CompressingInputStream.this.write(b);
+        }
+
+        @Override
+        public void write(byte b[], int off, int len) throws IOException {
+            LZ4CompressingInputStream.this.write(b, off, len);
+        }
     }
 
 }

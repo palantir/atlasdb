@@ -39,12 +39,7 @@ public abstract class AbstractCompressionTests {
     protected InputStream decompressingStream;
 
 
-    @After
-    public void after() throws IOException {
-        uncompressedStream.close();
-        compressingStream.close();
-        decompressingStream.close();
-    }
+
 
     @Test
     public void testEmptyStream() throws IOException {

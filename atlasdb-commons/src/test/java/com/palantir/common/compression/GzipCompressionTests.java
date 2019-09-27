@@ -23,7 +23,7 @@ public class GzipCompressionTests extends AbstractCompressionTests {
 
     @Override
     protected void initializeCompressStreams() throws IOException {
-        compressingStream = new GzipCompressingInputStream(uncompressedStream);
+        compressingStream = new GzipCompressingInputStream(uncompressedStream, 512);
         decompressingStream = new GZIPInputStream(compressingStream);
     }
 }

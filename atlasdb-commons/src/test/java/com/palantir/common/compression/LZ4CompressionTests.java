@@ -17,6 +17,8 @@ package com.palantir.common.compression;
 
 import java.io.IOException;
 
+import org.junit.After;
+
 import net.jpountz.lz4.LZ4BlockInputStream;
 
 
@@ -26,5 +28,12 @@ public class LZ4CompressionTests extends AbstractCompressionTests {
     protected void initializeCompressStreams() throws IOException {
         compressingStream = new LZ4CompressingInputStream(uncompressedStream);
         decompressingStream = new LZ4BlockInputStream(compressingStream);
+    }
+
+    @After
+    public void after() throws IOException {
+        uncompressedStream.close();
+        compressingStream.close();
+        decompressingStream.close();
     }
 }
