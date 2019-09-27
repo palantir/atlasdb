@@ -28,6 +28,7 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.atlasdb.http.ImmutableInstanceAndVersion;
 import com.palantir.atlasdb.http.PollingRefreshable;
 import com.palantir.atlasdb.http.TargetFactory;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
@@ -44,13 +45,14 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     private static final HostMetricsRegistry HOST_METRICS_REGISTRY = new HostMetricsRegistry();
 
     public static final ConjureJavaRuntimeTargetFactory DEFAULT = new ConjureJavaRuntimeTargetFactory();
+    public static final String CLIENT_VERSION_STRING = "Conjure-Java-Runtime";
 
     private ConjureJavaRuntimeTargetFactory() {
         // Use the instances.
     }
 
     @Override
-    public <T> T createProxyWithoutRetrying(
+    public <T> InstanceAndVersion<T> createProxyWithoutRetrying(
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
@@ -59,71 +61,59 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 ImmutableList.of(uri),
                 Optional.empty(),
                 trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
-        return JaxRsClient.create(
+        return wrapWithVersion(JaxRsClient.create(
                 type,
                 addAtlasDbRemotingAgent(clientParameters.userAgent()),
-                new HostMetricsRegistry(),
-                clientConfiguration);
+                HOST_METRICS_REGISTRY,
+                clientConfiguration));
     }
 
     @Override
-    public <T> T createProxy(Optional<TrustContext> trustContext, String uri, Class<T> type,
+    public <T> InstanceAndVersion<T> createProxy(Optional<TrustContext> trustContext, String uri, Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         ClientConfiguration clientConfiguration = ClientOptions.DEFAULT_RETRYING.create(
                 ImmutableList.of(uri),
                 Optional.empty(),
                 trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
-        return JaxRsClient.create(
-                type,
-                addAtlasDbRemotingAgent(parameters.userAgent()),
-                new HostMetricsRegistry(),
-                clientConfiguration);
-    }
-
-    @Override
-    public <T> T createProxyWithFailover(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters) {
-        ClientConfiguration clientConfiguration = ClientOptions.FAST_RETRYING_FOR_TEST.create(
-                ImmutableList.copyOf(endpointUris),
-                proxySelector,
-                trustContext.orElseThrow(() -> new SafeIllegalStateException("CJR requires a trust context")));
-
-        return JaxRsClient.create(
+        return wrapWithVersion(JaxRsClient.create(
                 type,
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 HOST_METRICS_REGISTRY,
-                clientConfiguration);
+                clientConfiguration));
     }
 
     @Override
-    public <T> T createLiveReloadingProxyWithFailover(
-            Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+    public <T> InstanceAndVersion<T> createProxyWithFailover(
+            ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        // TODO (jkong): Thread leak for days. To be fair no regression from AtlasDbFeignTargetFactory
-        // TODO (jkong): Add RetryOtherRetryingProxy layer.
+        ClientConfiguration clientConfiguration = ClientOptions.DEFAULT_RETRYING.serverListToClient(serverListConfig);
+
+        return wrapWithVersion(JaxRsClient.create(
+                type,
+                addAtlasDbRemotingAgent(parameters.userAgent()),
+                HOST_METRICS_REGISTRY,
+                clientConfiguration));
+    }
+
+    @Override
+    public <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Class<T> type,
+            AuxiliaryRemotingParameters parameters) {
         Supplier<ServerListConfig> nonEmptyServerList = () -> injectDummyServer(serverListConfigSupplier);
+
+        // TODO (jkong): Thread leak for days. Though no regression over existing implementation in Feign.
         Refreshable<ClientConfiguration> refreshableConfig = PollingRefreshable
                 .createComposed(nonEmptyServerList,
                         Duration.ofSeconds(5L),
-                        ClientOptions.FAST_RETRYING_FOR_TEST::serverListToClient)
+                        ClientOptions.DEFAULT_RETRYING::serverListToClient)
                 .getRefreshable();
-        return JaxRsClient.create(
+        return wrapWithVersion(JaxRsClient.create(
                 type,
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 HOST_METRICS_REGISTRY,
-                refreshableConfig);
-    }
-
-    @Override
-    public String getClientVersion() {
-        return null;
+                refreshableConfig));
     }
 
     // TODO (gmaretic): This is a hack because CJR doesn't like configurations with 0 servers, yet we claim
@@ -140,5 +130,9 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
 
     private static UserAgent addAtlasDbRemotingAgent(UserAgent agent) {
         return agent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
+    }
+
+    private static <T> InstanceAndVersion<T> wrapWithVersion(T instance) {
+        return ImmutableInstanceAndVersion.of(instance, CLIENT_VERSION_STRING);
     }
 }

@@ -22,6 +22,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -74,7 +75,7 @@ public final class AtlasDbHttpClients {
         return VersionSelectingClients.createVersionSelectingClient(
                 taggedMetricRegistry,
                 // TODO (jkong): Replace the new client with the CJR one; also I wish there was a way to curry stuff
-                DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+                ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),

@@ -79,6 +79,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     private static final Decoder decoder = new TextDelegateDecoder(
             new OptionalAwareDecoder(new AtlasDbJacksonDecoder(mapper)));
     private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
+
     public static final String CLIENT_VERSION_STRING = "AtlasDB-Feign";
 
     private final int connectTimeout;
