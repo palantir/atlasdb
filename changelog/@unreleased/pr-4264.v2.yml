@@ -1,18 +1,26 @@
-type: break
-break:
-  description: |-
-    `AtlasDbHttpClients` now expects an `AuxiliaryRemotingParameters` struct which encapsulates information about whether to use payload limiting, the user agent, and any additional remoting client configuration (such as that that may be provided by the AtlasDB library). These were previously expected as primitives.
+changes:
+  - type: deprecation
+    deprecation:
+      description: "`TransactionManagers#userAgent()` is now deprecated. Users should specify a `structuredUserAgent()` as per Conjure service configuration standards."
+      links:
+        - https://github.com/palantir/atlasdb/pull/4264
+  - type: break
+    break:
+      description: |-
+        `AtlasDbHttpClients` now expects an `AuxiliaryRemotingParameters` struct which encapsulates information about whether to use payload limiting, the user agent, and any additional remoting client configuration (such as that that may be provided by the AtlasDB library). These were previously expected as primitives.
+        Whether the client should retry or not is also now embedded in this parameter object.
 
-    To replicate previous behaviour, users should create an `AuxiliaryRemotingParameters` struct, possibly as follows:
+        To replicate previous behaviour, users should create an `AuxiliaryRemotingParameters` struct, possibly as follows:
 
-    ```
-    AuxiliaryRemotingParameters.builder()
-            .userAgent(UserAgents.tryParse(userAgentString))
-            .shouldLimitPayload(false)
-            .remotingClientConfig(remotingClientConfigSupplier)
-            .build();
-    ```
+        ```
+        AuxiliaryRemotingParameters.builder()
+                .userAgent(UserAgents.tryParse(userAgentString))
+                .shouldLimitPayload(false)
+                .remotingClientConfig(remotingClientConfigSupplier)
+                .shouldRetry(true)
+                .build();
+        ```
 
-    `userAgent` and `remotingClientConfig` are optional; `shouldLimitPayload` is compulsory.
-  links:
-  - https://github.com/palantir/atlasdb/pull/4264
+        `userAgent` and `remotingClientConfig` are optional; `shouldLimitPayload` is compulsory.
+      links:
+        - https://github.com/palantir/atlasdb/pull/4264
