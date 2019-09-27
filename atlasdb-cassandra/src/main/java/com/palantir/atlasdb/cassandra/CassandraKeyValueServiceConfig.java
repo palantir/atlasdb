@@ -133,7 +133,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * Weighting is a ratio from 0 to 1, where 0 disables the feature and 1 forces the same data centre if possible.
      */
     @Value.Default
-    default int localHostWeighting() { return 0; }
+    default double localHostWeighting() { return 0.0; }
 
     @JsonIgnore
     @Value.Lazy

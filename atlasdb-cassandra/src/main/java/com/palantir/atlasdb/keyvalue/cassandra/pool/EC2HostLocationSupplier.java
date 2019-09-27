@@ -19,16 +19,17 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class AwsHostLocationSupplier implements Supplier<HostLocation> {
+public final class EC2HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
     @Override
-    public HostLocation get() {
+    public Optional<HostLocation> get() {
         OkHttpClient client = new OkHttpClient.Builder()
                 .build();
         try {
@@ -39,12 +40,11 @@ public class AwsHostLocationSupplier implements Supplier<HostLocation> {
                     .execute();
             checkState(response.isSuccessful(), "Getting AWS host metadata was not successful");
 
-            // todo - need to check that this is right
             String responseString = response.body().string();
             String datacentre = responseString.substring(0, responseString.length()-2);
             String rack = responseString.substring(responseString.length()-1);
 
-            return ImmutableHostLocation.builder().datacentre(datacentre).rack(rack).build();
+            return Optional.of(ImmutableHostLocation.builder().datacentre(datacentre).rack(rack).build());
         } catch (IOException e) {
             throw new RuntimeException("Could not communicate with AWS host metadata", e);
         }

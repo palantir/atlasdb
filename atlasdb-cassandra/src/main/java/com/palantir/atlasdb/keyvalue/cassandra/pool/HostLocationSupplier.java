@@ -16,13 +16,32 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
-public class AzureHostLocationSupplier implements Supplier<HostLocation> {
+public final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
-    // todo - add this supplier
+    private final String snitch;
+    private Optional<HostLocation> defaultLocation;
+
+
+    public HostLocationSupplier(String snitch, Optional<HostLocation> defaultLocation) {
+        this.snitch = snitch;
+        this.defaultLocation = defaultLocation;
+    }
+
+    public HostLocationSupplier(String snitch) {
+        this(snitch, Optional.empty());
+    }
+
     @Override
-    public HostLocation get() {
-        return null;
+    public Optional<HostLocation> get() {
+
+        switch (snitch) {
+            case "org.apache.cassandra.locator.EC2Snitch":
+                return new EC2HostLocationSupplier().get();
+            default:
+                return defaultLocation;
+        }
     }
 }
