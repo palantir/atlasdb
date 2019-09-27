@@ -48,7 +48,7 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldReturnAddressForSingleHostInPool() throws UnknownHostException {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1));
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
@@ -85,7 +85,7 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldReturnAbsentIfPredicateMatchesNoServers() {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1));
 
         Optional<CassandraClientPoolingContainer> container
                 = cassandra.getRandomGoodHostForPredicate(address -> false);
@@ -94,7 +94,7 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldOnlyReturnHostsMatchingPredicate() {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
 
         int numTrials = 50;
         for (int i = 0; i < numTrials; i++) {
@@ -106,7 +106,7 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
         blacklist.add(HOST_1);
         Optional<CassandraClientPoolingContainer> container
                 = cassandra.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
@@ -120,10 +120,6 @@ public class CassandraServiceTest {
     }
 
     private CassandraService clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
-        return clientPoolWith(servers, servers);
-    }
-
-    private CassandraService clientPoolWithServersInCurrentPool(ImmutableSet<InetSocketAddress> servers) {
         return clientPoolWith(servers, servers);
     }
 
