@@ -18,11 +18,12 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.stream.Stream;
+import java.nio.ByteBuffer;
+import java.util.Random;
 
 import org.junit.Test;
 
-import com.datastax.driver.core.Row;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.async.QueryCache.EntryCreator;
@@ -38,48 +39,50 @@ public class QueryCacheTest {
     private static final MetricsManager METRICS_MANAGER = MetricsManagers.createForTests();
     private static final TaggedMetricRegistry TAGGED_METRIC_REGISTRY = METRICS_MANAGER.getTaggedRegistry();
 
-    private static final String NAMESPACE = "foo";
+    private static final String KEYSPACE = "foo";
     private static final TableReference TABLE_REFERENCE =
             TableReference.create(Namespace.DEFAULT_NAMESPACE, "bar");
 
-    private static final RowStreamAccumulator<Object> firstAccumulator = new RowStreamAccumulator<Object>() {
-        @Override
-        public void accumulateRowStream(Stream<Row> rowStream) {
-        }
-
-        @Override
-        public Object result() {
-            return null;
-        }
-    };
-    private static final RowStreamAccumulator<Object> secondAccumulator = new RowStreamAccumulator<Object>() {
-        @Override
-        public void accumulateRowStream(Stream<Row> rowStream) {
-        }
-
-        @Override
-        public Object result() {
-            return null;
-        }
-    };
 
     @Test
-    public void testCacheNotBusted() {
+    public void testCacheNotBustedGetQuerySpec() {
         QueryCache<Integer> cache = QueryCache.create(
                 ALWAYS_INCREASING_ENTRY_CREATOR,
                 TAGGED_METRIC_REGISTRY,
                 100);
-        CqlQuerySpec firstSpec = ImmutableCqlQuerySpec.builder()
-                .keySpace(NAMESPACE)
-                .supportedQuery(SupportedQuery.GET)
-                .tableReference(TABLE_REFERENCE)
-                .rowStreamAccumulatorFactory(() -> firstAccumulator).build();
-        CqlQuerySpec secondSpec = ImmutableCqlQuerySpec.builder()
-                .keySpace(NAMESPACE)
-                .supportedQuery(SupportedQuery.GET)
-                .tableReference(TABLE_REFERENCE)
-                .rowStreamAccumulatorFactory(() -> secondAccumulator).build();
 
-        assertThat(cache.cacheQuerySpec(firstSpec)).isEqualTo(cache.cacheQuerySpec(secondSpec));
+        GetQuerySpec initialQuerySpec =
+                createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(10), PtBytes.toBytes(10), 3);
+
+        assertThat(cache.cacheQuerySpec(initialQuerySpec))
+                .isEqualTo(cache.cacheQuerySpec(
+                        createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(10), PtBytes.toBytes(10), 3)));
+
+        assertThat(cache.cacheQuerySpec(initialQuerySpec))
+                .isEqualTo(cache.cacheQuerySpec(
+                        createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(10), PtBytes.toBytes(10), 1)));
+
+        assertThat(cache.cacheQuerySpec(initialQuerySpec))
+                .isEqualTo(cache.cacheQuerySpec(
+                        createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(10), PtBytes.toBytes(7), 3)));
+
+        assertThat(cache.cacheQuerySpec(initialQuerySpec))
+                .isEqualTo(cache.cacheQuerySpec(
+                        createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(4), PtBytes.toBytes(10), 3)));
+    }
+
+    private static GetQuerySpec createGetQuerySpec(
+            String keyspace,
+            TableReference tableReference,
+            byte[] rowValue,
+            byte[] columnValue,
+            int timestamp) {
+        return ImmutableGetQuerySpec.builder()
+                .keySpace(keyspace)
+                .tableReference(tableReference)
+                .column(ByteBuffer.wrap(rowValue))
+                .row(ByteBuffer.wrap(columnValue))
+                .humanReadableTimestamp(timestamp)
+                .build();
     }
 }

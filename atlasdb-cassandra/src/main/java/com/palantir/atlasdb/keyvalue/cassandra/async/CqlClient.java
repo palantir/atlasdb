@@ -28,7 +28,7 @@ public interface CqlClient extends AutoCloseable {
         ListenableFuture<R> execute(Executor executor);
     }
 
-    interface CqlQuery<R> extends Executable<R>{
+    interface CqlQuery<R> extends Executable<R> {
         ListenableFuture<R> execute(Executor executor);
     }
 
@@ -38,5 +38,5 @@ public interface CqlClient extends AutoCloseable {
 
     CqlQueryBuilder asyncQueryBuilder();
 
-    public <R> ListenableFuture<R> execute(Executable<R> executable);
+    <R> ListenableFuture<R> execute(Executable<R> executable);
 }

@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,8 +99,9 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlQuerySpec;
-import com.palantir.atlasdb.keyvalue.cassandra.async.RowStreamAccumulators;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient.Executable;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -1939,34 +1939,37 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        CqlClient.Executable<Map<Cell, Value>> job = executor -> {
-            CqlQuerySpec<Optional<Value>> querySpec = ImmutableCqlQuerySpec.<Optional<Value>>builder()
-                    .rowStreamAccumulatorFactory(RowStreamAccumulators.GetQueryAccumulator::new)
-                    .supportedQuery(SupportedQuery.GET)
-                    .keySpace(config.getKeyspaceOrThrow())
-                    .tableReference(tableRef)
-                    .build();
+        CqlClient.CqlQueryBuilder cqlQueryBuilder = cqlClient.asyncQueryBuilder();
 
-            return Futures.transform(
-                    Futures.allAsList(
-                            KeyedStream.stream(timestampByCell).map((cell, timestamp) ->
-                                    cqlClient.execute(cqlClient.<Optional<Value>>asyncQueryBuilder()
-                                            .setQuerySpec(querySpec)
-                                            .setArg("row", ByteBuffer.wrap(cell.getRowName()))
-                                            .setArg("column", ByteBuffer.wrap(cell.getColumnName()))
-                                            .setArg("timestamp", ~timestamp)
-                                            .build()))
-                                    .entries()
-                                    .map(entry -> Futures.transform(entry.getValue(),
-                                            val -> new AbstractMap.SimpleEntry<>(entry.getKey(), val),
-                                            executor))
-                                    .collect(Collectors.toList())),
-                    resultList -> resultList.stream()
-                            .filter(entry -> entry.getValue().isPresent())
-                            .collect(Collectors.toMap(
-                                    AbstractMap.SimpleEntry::getKey,
-                                    entry -> entry.getValue().get())),
-                    executor);
+        Executable<Map<Cell, Value>> job = executor -> {
+            Map<Cell, ? extends ListenableFuture<? extends Optional<Value>>> cellsToFutureResults =
+                    KeyedStream.stream(timestampByCell)
+                            .map((cell, timestamp) ->
+                                    ImmutableGetQuerySpec.builder()
+                                            .tableReference(tableRef)
+                                            .keySpace(config.getKeyspaceOrThrow())
+                                            .row(ByteBuffer.wrap(cell.getRowName()))
+                                            .column(ByteBuffer.wrap(cell.getColumnName()))
+                                            .humanReadableTimestamp(timestamp)
+                                            .build()
+                                            .buildQuery(cqlQueryBuilder))
+                            .map(cqlClient::execute)
+                            .collectToMap();
+
+            return Futures.whenAllSucceed(cellsToFutureResults.values())
+                    .call(() -> KeyedStream.stream(cellsToFutureResults)
+                                    // using getDone is important, throws if not done, as opposed to blocking
+                                    .map(future -> {
+                                        try {
+                                            return future.get();
+                                        } catch (Exception e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    })
+                                    .filter(Optional::isPresent)
+                                    .map(Optional::get)
+                                    .collectToMap(),
+                            executor);
         };
 
         return cqlClient.execute(job);

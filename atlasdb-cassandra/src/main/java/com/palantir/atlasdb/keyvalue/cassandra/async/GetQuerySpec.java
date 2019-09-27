@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -25,11 +27,39 @@ import javax.annotation.concurrent.NotThreadSafe;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 
-public final class RowStreamAccumulators {
 
-    private RowStreamAccumulators() {
+@org.immutables.value.Value.Immutable
+public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
+    private static final String QUERY_FORMAT = "SELECT value, column2 FROM \"%s\".\"%s\" "
+                + "WHERE key = :row AND column1 = :column AND column2 > :timestamp;";
+
+    @org.immutables.value.Value.Auxiliary
+    public abstract ByteBuffer row();
+
+    @org.immutables.value.Value.Auxiliary
+    public abstract ByteBuffer column();
+
+    @org.immutables.value.Value.Auxiliary
+    public abstract long humanReadableTimestamp();
+
+    public final Supplier<RowStreamAccumulator<Optional<Value>>> rowStreamAccumulatorFactory() {
+        return GetQueryAccumulator::new;
+    }
+
+    long queryTimestamp() {
+        return ~humanReadableTimestamp();
+    }
+
+    public String formatQueryString() {
+        return String.format(QUERY_FORMAT, keySpace(), AbstractKeyValueService.internalTableName(tableReference()));
+    }
+
+    @Override
+    public CqlClient.CqlQuery<Optional<Value>> buildQuery(CqlClient.CqlQueryBuilder cqlQueryBuilder) {
+        return cqlQueryBuilder.build(this);
     }
 
     @NotThreadSafe

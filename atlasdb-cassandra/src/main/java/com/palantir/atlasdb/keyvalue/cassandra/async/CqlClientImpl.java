@@ -144,6 +144,7 @@ public final class CqlClientImpl implements CqlClient {
          * This method is implemented to process only the currently available data page. After each page is processed we
          * asynchronously request more data and process it. That way no thread is blocked waiting to retrieve the next
          * page.
+         *
          * @return {@code AsyncFunction} which will transform the {@code Future} containing the {@code resultSet}
          */
         private AsyncFunction<ResultSet, R> iterate(Executor executor) {
