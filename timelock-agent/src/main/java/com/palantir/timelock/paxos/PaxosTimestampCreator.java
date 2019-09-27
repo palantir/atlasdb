@@ -15,76 +15,66 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.UUID;
 import java.util.function.Supplier;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.ClientPaxosResourceFactory.ClientResources;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
+import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory.PaxosUseCaseContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class PaxosTimestampCreator implements TimestampCreator {
-    private final MetricRegistry metricRegistry;
-    private final ClientResources clientResources;
+
+    private final PaxosUseCaseContext context;
     private final Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig;
 
-    PaxosTimestampCreator(
-            MetricRegistry metricRegistry,
-            ClientResources clientResources,
-            Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig) {
-        this.metricRegistry = metricRegistry;
-        this.clientResources = clientResources;
+    PaxosTimestampCreator(PaxosUseCaseContext context, Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig) {
+        this.context = context;
         this.paxosRuntimeConfig = paxosRuntimeConfig;
     }
 
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig unused) {
-        NetworkClientFactories clientFactories = clientResources.networkClientFactories();
+        NetworkClientFactories clientFactories = context.networkClientFactories();
         PaxosAcceptorNetworkClient acceptorNetworkClient = clientFactories.acceptor().create(client);
         PaxosLearnerNetworkClient learnerNetworkClient = clientFactories.learner().create(client);
+        PaxosProposer proposer = context.proposerFactory().create(client);
+        PaxosLearner learner = context.components().learner(client);
 
-        PaxosProposer proposer = instrument(PaxosProposer.class,
-                PaxosProposerImpl.newProposer(
-                        acceptorNetworkClient,
-                        learnerNetworkClient,
-                        clientResources.quorumSize(),
-                        UUID.randomUUID()),
-                client);
-
-        return () -> createManagedPaxosTimestampService(proposer, client, acceptorNetworkClient, learnerNetworkClient);
+        return () -> createManagedPaxosTimestampService(
+                proposer,
+                client,
+                learner,
+                acceptorNetworkClient,
+                learnerNetworkClient);
     }
 
     private ManagedTimestampService createManagedPaxosTimestampService(
             PaxosProposer proposer,
             Client client,
+            PaxosLearner knowledge,
             PaxosAcceptorNetworkClient acceptorNetworkClient,
             PaxosLearnerNetworkClient learnerNetworkClient) {
         // TODO (jkong): live reload ping
-        TimestampBoundStore boundStore = instrument(
+        TimestampBoundStore boundStore = context.metrics().instrument(
                 TimestampBoundStore.class,
                 new PaxosTimestampBoundStore(
                         proposer,
-                        clientResources.components().learner(client),
+                        knowledge,
                         acceptorNetworkClient,
                         learnerNetworkClient,
                         paxosRuntimeConfig.get().maximumWaitBeforeProposalMs()),
+                "paxos-timestamp-bound-store",
                 client);
         return PersistentTimestampServiceImpl.create(boundStore);
     }
 
-    private <T> T instrument(Class<T> serviceClass, T service, Client client) {
-        // TODO(nziebart): tag with the client name, when tritium supports it
-        return AtlasDbMetrics.instrument(metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass));
-    }
 }

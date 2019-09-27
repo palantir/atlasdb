@@ -62,8 +62,4 @@ public class BatchPaxosLearnerResource {
         return batchPaxosLearner.getLearnedValuesSince(seqLowerBoundsByClient);
     }
 
-    BatchPaxosLearner asLocalBatchPaxosLearner() {
-        return batchPaxosLearner;
-    }
-
 }

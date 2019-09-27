@@ -16,12 +16,29 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.nio.file.Path;
+
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public enum PaxosUseCase {
-    LEADER_FOR_ALL_CLIENTS(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE),
-    LEADER_FOR_EACH_CLIENT(PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE),
-    TIMESTAMP(PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE);
+    LEADER_FOR_ALL_CLIENTS(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE) {
+        @Override
+        public Path logDirectoryRelativeToDataDirectory(Path dataDirectory) {
+            throw new UnsupportedOperationException();
+        }
+    },
+    LEADER_FOR_EACH_CLIENT(PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE) {
+        @Override
+        public Path logDirectoryRelativeToDataDirectory(Path dataDirectory) {
+            throw new UnsupportedOperationException();
+        }
+    },
+    TIMESTAMP(PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE) {
+        @Override
+        public Path logDirectoryRelativeToDataDirectory(Path dataDirectory) {
+            return dataDirectory;
+        }
+    };
 
     PaxosUseCase(String useCasePath) {
         this.useCasePath = useCasePath;
@@ -50,4 +67,6 @@ public enum PaxosUseCase {
     public String toString() {
         return useCasePath;
     }
+
+    public abstract Path logDirectoryRelativeToDataDirectory(Path dataDirectory);
 }
