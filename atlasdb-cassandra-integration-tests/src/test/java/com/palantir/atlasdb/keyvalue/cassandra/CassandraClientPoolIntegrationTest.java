@@ -82,10 +82,12 @@ public class CassandraClientPoolIntegrationTest {
         }
     }
 
+    // todo
     @Test
-    public void test() {
-        System.out.println("dosomethig");
+    public void testGetLocalHosts() {
+        assertTrue(true);
     }
+
 
     @Test
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
