@@ -127,7 +127,10 @@ public final class Leaders {
 
         AsyncLeadershipObserver leadershipObserver = AsyncLeadershipObserver.create();
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
-                metricsManager.getRegistry(), leaderUuid.toString(), leadershipObserver);
+                metricsManager.getTaggedRegistry(),
+                leaderUuid.toString(),
+                leadershipObserver,
+                ImmutableList.of());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PaxosAcceptor.class,

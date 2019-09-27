@@ -24,36 +24,30 @@ import org.immutables.value.Value;
 @Value.Immutable
 abstract class BatchingNetworkClientFactories {
 
-    abstract TimelockProxyFactories proxyFactories();
-    abstract UseCaseAwareBatchPaxosResource resource();
-    abstract ExecutorService sharedExecutor();
+    abstract PaxosUseCase useCase();
+    abstract TimelockPaxosMetrics metrics();
+    abstract PaxosRemoteClients remoteClients();
+    abstract PaxosComponents components();
     abstract int quorumSize();
+    abstract ExecutorService sharedExecutor();
 
     public NetworkClientFactories factories() {
-        // TODO(fdesouza): pass these in, as they become use case aware
-        List<BatchPaxosAcceptorRpcClient> remoteBatchAcceptors = proxyFactories()
-                .createInstrumentedRemoteProxies(BatchPaxosAcceptorRpcClient.class, "batch-paxos-acceptor-rpc-client");
-
-        List<BatchPaxosAcceptor> allBatchAcceptors = proxyFactories()
+        List<BatchPaxosAcceptor> allBatchAcceptors = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosAcceptor.class,
-                        resource().acceptor(PaxosUseCase.TIMESTAMP).asLocalBatchPaxosAcceptor(),
-                        UseCaseAwareBatchPaxosAcceptorAdapter.wrap(PaxosUseCase.TIMESTAMP, remoteBatchAcceptors),
+                        components().batchAcceptor(),
+                        UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor()),
                         "batch-paxos-acceptor")
                 .all();
 
         AutobatchingPaxosAcceptorNetworkClientFactory acceptorFactory =
                 AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
 
-        // TODO(fdesouza): pass these in as they become use case aware
-        List<BatchPaxosLearnerRpcClient> remoteBatchLearners = proxyFactories()
-                .createInstrumentedRemoteProxies(BatchPaxosLearnerRpcClient.class, "batch-paxos-learner-rpc-client");
-
-        List<BatchPaxosLearner> allBatchLearners = proxyFactories()
+        List<BatchPaxosLearner> allBatchLearners = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
-                        resource().learner(PaxosUseCase.TIMESTAMP).asLocalBatchPaxosLearner(),
-                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(PaxosUseCase.TIMESTAMP, remoteBatchLearners),
+                        components().batchLearner(),
+                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()),
                         "batch-paxos-learner")
                 .all();
 

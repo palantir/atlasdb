@@ -73,7 +73,7 @@ public class BenchmarkRunnerBase {
                         .userAgent(BENCHMARK_CLIENT_USER_AGENT)
                         .shouldLimitPayload(false)
                         .shouldRetry(true)
-                        .build());
+                        .build()).instance();
     }
 
     private static String readBenchmarkServerUri() {
