@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -30,7 +31,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
@@ -123,16 +123,18 @@ public final class CassandraServersConfigs {
 
         @Value.Derived
         public Set<InetSocketAddress> thriftHosts() {
-            ImmutableSet.Builder<InetSocketAddress> builder = ImmutableSet.builder();
-            hosts().forEach(host -> builder.add(new InetSocketAddress(host, thriftPort())));
-            return builder.build();
+            return constructHosts(thriftPort());
         }
 
         @Value.Derived
         public Set<InetSocketAddress> cqlHosts() {
-            ImmutableSet.Builder<InetSocketAddress> builder = ImmutableSet.builder();
-            hosts().forEach(host -> builder.add(new InetSocketAddress(host, cqlPort())));
-            return builder.build();
+            return constructHosts(cqlPort());
+        }
+
+        private Set<InetSocketAddress> constructHosts(int port) {
+            return hosts().stream()
+                    .map(host -> new InetSocketAddress(host, port))
+                    .collect(Collectors.toSet());
         }
 
         @Value.Check

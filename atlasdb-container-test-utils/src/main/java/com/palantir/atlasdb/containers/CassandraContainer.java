@@ -15,12 +15,7 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.ProxySelector;
 import java.net.SocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -103,7 +98,7 @@ public class CassandraContainer extends Container {
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         try (CassandraKeyValueService cassandraKeyValueService =
                 CassandraKeyValueServiceImpl.createForTesting(
-                        getConfigWithProxy(getSocksProxy().address()))) {
+                        getConfigWithProxy(Containers.getSocksProxy(name).address()))) {
             return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);
         } catch (Exception e) {
             return SuccessOrFailure.failure(e.getMessage());
@@ -140,23 +135,5 @@ public class CassandraContainer extends Container {
 
     String getServiceName() {
         return name;
-    }
-
-    Proxy getSocksProxy() throws URISyntaxException {
-        URI uri = new URI("tcp", name, null, null);
-        if (ProxySelector.getDefault()
-                .select(uri)
-                .stream()
-                .noneMatch(proxy -> proxy.type() == Proxy.Type.SOCKS)) {
-            throw new RuntimeException("Socks proxy has to exist");
-        }
-
-        return ProxySelector.getDefault()
-                .select(uri).stream()
-                .filter(proxy -> proxy.type() == Proxy.Type.SOCKS).findFirst().get();
-    }
-
-    private static InetSocketAddress forThriftServices(String name) {
-        return new InetSocketAddress(name, CASSANDRA_THRIFT_PORT);
     }
 }

@@ -32,7 +32,7 @@ public interface CqlClient extends AutoCloseable {
 
         CqlQueryBuilder<R> setArg(String argumentName, Object argument);
 
-        <T> CqlQueryBuilder<T> setResultSetVisitor(RowStreamAccumulator<T> rowStreamAccumulator);
+        <T> CqlQueryBuilder<T> setRowStreamAccumulator(RowStreamAccumulator<T> rowStreamAccumulator);
 
         CqlQuery<R> build();
     }

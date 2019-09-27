@@ -18,6 +18,10 @@ package com.palantir.atlasdb.containers;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Map;
@@ -108,6 +112,19 @@ public class Containers extends ExternalResource {
 
     public String getLogDirectory() {
         return logDirectory;
+    }
+
+    public static Proxy getSocksProxy(String name) {
+        try {
+            return ProxySelector.getDefault()
+                    .select(new URI("tcp", name, null, null))
+                    .stream()
+                    .filter(proxy -> proxy.type() == Proxy.Type.SOCKS)
+                    .findFirst()
+                    .orElseThrow(() ->  new RuntimeException("Socks proxy has to exist"));
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void setupLogCollectorForLogDirectory() {

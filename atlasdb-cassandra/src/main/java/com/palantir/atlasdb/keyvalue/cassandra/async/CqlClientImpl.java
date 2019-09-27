@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,12 +57,6 @@ public final class CqlClientImpl implements CqlClient {
         }
 
         @Override
-        public CqlQueryBuilder<Object> queryBuilder() {
-            checkInitialized();
-            return internalImpl.queryBuilder();
-        }
-
-        @Override
         protected void tryInitialize() {
             internalImpl = new CqlClientImpl(cluster.connect(), executor, log);
         }
@@ -84,7 +77,6 @@ public final class CqlClientImpl implements CqlClient {
     private final Session session;
     private final ExecutorService executorService;
     private final Logger log;
-    private final AtomicBoolean closed = new AtomicBoolean();
 
     public static CqlClient create(Cluster cluster, ExecutorService executor, boolean initializeAsync) {
         if (initializeAsync) {
@@ -101,26 +93,22 @@ public final class CqlClientImpl implements CqlClient {
 
     @Override
     public void close() {
-        if (closed.compareAndSet(false, true)) {
-            try {
-                executorService.shutdown();
-                if (executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-                    log.info("CqlClient executor service terminated properly.");
-                } else {
-                    log.warn("CqlClient executor service timed out before shutting down, shutting down forcefully");
-                    executorService.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                log.warn("Thread was interrupted while waiting for CqlClient to terminate.", e);
-            } catch (Exception e) {
-                log.warn("CqlClient exception on executor service termination", e);
+        try {
+            executorService.shutdown();
+            if (executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+                log.info("CqlClient executor service terminated properly.");
+            } else {
+                log.warn("CqlClient executor service timed out before shutting down, shutting down forcefully");
+                executorService.shutdownNow();
             }
-            Cluster cluster = session.getCluster();
-            session.close();
-            cluster.close();
-        } else {
-            log.info("CqlClient was already closed.");
+        } catch (InterruptedException e) {
+            log.warn("Thread was interrupted while waiting for CqlClient to terminate.", e);
+        } catch (Exception e) {
+            log.warn("CqlClient exception on executor service termination", e);
         }
+        Cluster cluster = session.getCluster();
+        session.close();
+        cluster.close();
     }
 
     @Override
@@ -152,8 +140,6 @@ public final class CqlClientImpl implements CqlClient {
          */
         private AsyncFunction<ResultSet, R> iterate() {
             return resultSet -> {
-                Preconditions.checkNotNull(resultSet, "ResultSet should not be null when iterating");
-
                 rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
                         .limit(resultSet.getAvailableWithoutFetching()));
 
@@ -192,7 +178,7 @@ public final class CqlClientImpl implements CqlClient {
         }
 
         @Override
-        public <T> CqlQueryBuilder<T> setResultSetVisitor(RowStreamAccumulator<T> visitor) {
+        public <T> CqlQueryBuilder<T> setRowStreamAccumulator(RowStreamAccumulator<T> visitor) {
             this.rowStreamAccumulator = (RowStreamAccumulator<R>) visitor;
             return (CqlQueryBuilder<T>) this;
         }

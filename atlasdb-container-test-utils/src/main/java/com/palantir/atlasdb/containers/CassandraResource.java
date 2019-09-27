@@ -59,11 +59,7 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     @Override
     public void before() throws Throwable {
         containers.before();
-        try {
-            socksProxy = containerInstance.getSocksProxy();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
     }
 
     @Override
@@ -96,9 +92,6 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     }
 
     public CassandraKeyValueServiceConfig getConfig() {
-        if (socksProxy == null) {
-            return containerInstance.getConfig();
-        }
         return containerInstance.getConfigWithProxy(socksProxy.address());
     }
 }

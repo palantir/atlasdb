@@ -18,13 +18,10 @@ package com.palantir.atlasdb.containers;
 
 import java.io.IOException;
 import java.net.Proxy;
-import java.net.URISyntaxException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 import org.junit.rules.ExternalResource;
 
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
@@ -38,7 +35,7 @@ public class UninitializedCassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = CassandraContainer.throwawayContainer();
     private final Containers containers;
 
-    private final Supplier<KeyValueService> kvs = Suppliers.memoize(this::createKvs);
+    private KeyValueService kvs;
 
     private AtomicBoolean initialized = new AtomicBoolean(false);
 
@@ -60,13 +57,10 @@ public class UninitializedCassandraResource extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         containers.before();
-        try {
-            socksProxy = containerInstance.getSocksProxy();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
         containers.getContainer(containerInstance.getServiceName()).kill();
         containers.getDockerCompose().rm();
+        kvs = createKvs();
     }
 
     @Override
@@ -75,7 +69,7 @@ public class UninitializedCassandraResource extends ExternalResource {
             return;
         }
         try {
-            kvs.get().close();
+            kvs.close();
             containers.getContainer(containerInstance.getServiceName()).kill();
         } catch (IOException | InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -83,7 +77,7 @@ public class UninitializedCassandraResource extends ExternalResource {
     }
 
     public KeyValueService getAsyncInitializeableKvs() {
-        return kvs.get();
+        return kvs;
     }
 
     private KeyValueService createKvs() {
