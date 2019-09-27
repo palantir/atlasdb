@@ -24,8 +24,9 @@ import java.util.stream.Collectors;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -34,8 +35,9 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public class TestProxies {
 
-    public static final TrustContext TRUST_CONTEXT =
-            SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
+    public static final SslConfiguration SSL_CONFIGURATION
+            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
     private final String baseUri;
     private final List<TimeLockServerHolder> servers;
@@ -63,7 +65,7 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT));
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {
@@ -74,11 +76,9 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                Optional.of(TRUST_CONTEXT),
-                Optional.empty(),
-                uris,
+                ImmutableServerListConfig.builder().addAllServers(uris).sslConfiguration(SSL_CONFIGURATION).build(),
                 serviceInterface,
-                AuxiliaryRemotingParameters.DEFAULT_NO_PAYLOAD_LIMIT));
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS));
     }
 
     public List<String> getServerUris() {

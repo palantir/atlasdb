@@ -144,7 +144,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
                         configPollingRefreshable.getRefreshable(),
                         serverListConfig -> {
                             if (serverListConfig.hasAtLeastOneServer()) {
-                                return createProxyWithFailover(serverListConfig, type, parameters);
+                                return createProxyWithFailover(serverListConfig, type, parameters).instance();
                             }
                             return createProxyForZeroNodes(type);
                         })));
@@ -158,6 +158,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
         AuxiliaryRemotingParameters remotingParameters = AuxiliaryRemotingParameters.builder()
                 .userAgent(userAgent)
                 .shouldLimitPayload(false) // Only used for leader blocks
+                .shouldRetry(true)
                 .build();
         return Feign.builder()
                 .contract(contract)

@@ -252,6 +252,7 @@ public final class Leaders {
                             .shouldLimitPayload(false)
                             .userAgent(userAgent)
                             .shouldRetry(false)
+                            .shouldLimitPayload(true)
                             .build());
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);

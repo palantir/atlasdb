@@ -109,6 +109,7 @@ public final class ServiceCreator {
                 .remotingClientConfig(remotingClientConfigSupplier)
                 .userAgent(userAgent)
                 .shouldLimitPayload(shouldLimitPayload)
+                .shouldRetry(true)
                 .build();
     }
 }

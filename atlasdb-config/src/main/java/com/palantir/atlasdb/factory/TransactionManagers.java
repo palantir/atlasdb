@@ -211,6 +211,9 @@ public abstract class TransactionManagers {
         return false;
     }
 
+    /**
+     * @deprecated Please specify a {@link #structuredUserAgent()} instead.
+     */
     @Deprecated
     abstract String userAgent();
 

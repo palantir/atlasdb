@@ -37,7 +37,7 @@ public interface ServerListConfig {
 
     Optional<ProxyConfiguration> proxyConfiguration();
 
-    @Value.Derived
+    @Value.Lazy
     default Optional<TrustContext> trustContext() {
         return sslConfiguration().map(SslSocketFactories::createTrustContext);
     }
