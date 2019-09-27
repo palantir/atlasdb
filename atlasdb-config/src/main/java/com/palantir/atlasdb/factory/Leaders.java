@@ -224,8 +224,16 @@ public final class Leaders {
 
         // TODO (jkong): Enable runtime config for leader election services.
         List<T> remotes = remoteUris.stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(metrics, trustContext, uri, clazz,
-                        AuxiliaryRemotingParameters.builder().userAgent(userAgent).shouldLimitPayload(false).build()))
+                .map(uri -> AtlasDbHttpClients.createProxy(
+                        metrics,
+                        trustContext,
+                        uri,
+                        clazz,
+                        AuxiliaryRemotingParameters.builder()
+                                .userAgent(userAgent)
+                                .shouldLimitPayload(false)
+                                .shouldRetry(true)
+                                .build()))
                 .collect(Collectors.toList());
 
         return ImmutableList.copyOf(Iterables.concat(
