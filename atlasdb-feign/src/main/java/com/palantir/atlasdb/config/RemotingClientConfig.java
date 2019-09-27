@@ -29,14 +29,15 @@ import com.palantir.logsafe.SafeArg;
 public interface RemotingClientConfig {
     RemotingClientConfig DEFAULT = ImmutableRemotingClientConfig.builder().build();
 
-    default double maximumV2Probability() {
+    default double maximumConjureRemotingProbability() {
         return 0.0;
     }
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(0.0 <= maximumV2Probability() && maximumV2Probability() <= 1.0,
+        Preconditions.checkState(0.0 <= maximumConjureRemotingProbability()
+                        && maximumConjureRemotingProbability() <= 1.0,
                 "Maximum probability of choosing v2 must be between 0.0 and 1.0 inclusive",
-                SafeArg.of("probability", maximumV2Probability()));
+                SafeArg.of("probability", maximumConjureRemotingProbability()));
     }
 }

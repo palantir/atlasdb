@@ -211,6 +211,7 @@ public abstract class TransactionManagers {
         return false;
     }
 
+    @Deprecated
     abstract String userAgent();
 
     @Value.Default
@@ -1022,7 +1023,7 @@ public abstract class TransactionManagers {
                     ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
-                    userAgent.toString());
+                    userAgent);
 
             // Determine asynchronously whether the remote services are talking to our local services.
             CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();

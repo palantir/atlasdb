@@ -36,7 +36,7 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -154,9 +154,9 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent) {
+            UserAgent userAgent) {
         AuxiliaryRemotingParameters remotingParameters = AuxiliaryRemotingParameters.builder()
-                .userAgent(UserAgents.tryParse(userAgent))
+                .userAgent(userAgent)
                 .shouldLimitPayload(false) // Only used for leader blocks
                 .build();
         return Feign.builder()
