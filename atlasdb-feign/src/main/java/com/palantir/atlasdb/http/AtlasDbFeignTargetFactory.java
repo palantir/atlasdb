@@ -79,6 +79,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     private static final Decoder decoder = new TextDelegateDecoder(
             new OptionalAwareDecoder(new AtlasDbJacksonDecoder(mapper)));
     private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
+    public static final String CLIENT_VERSION_STRING = "AtlasDB-Feign";
 
     private final int connectTimeout;
     private final int readTimeout;
@@ -91,23 +92,23 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     }
 
     @Override
-    public <T> T createProxy(
+    public <T> InstanceAndVersion<T> createProxy(
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return Feign.builder()
+        return wrapWithVersion(Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(parameters.shouldRetry() ? new InterruptHonoringRetryer() : Retryer.NEVER_RETRY)
                 .client(createClient(trustContext, parameters))
-                .target(type, uri);
+                .target(type, uri));
     }
 
     @Override
-    public <T> T createProxyWithFailover(
+    public <T> InstanceAndVersion<T> createProxyWithFailover(
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
@@ -119,7 +120,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
                         serverListConfig.proxyConfiguration().map(AtlasDbFeignTargetFactory::createProxySelector),
                         parameters));
 
-        return Feign.builder()
+        return wrapWithVersion(Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
@@ -127,17 +128,17 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
                 .client(client)
                 .retryer(failoverFeignTarget)
                 .options(new Request.Options(connectTimeout, readTimeout))
-                .target(failoverFeignTarget);
+                .target(failoverFeignTarget));
     }
 
     @Override
-    public <T> T createLiveReloadingProxyWithFailover(
+    public <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         PollingRefreshable<ServerListConfig> configPollingRefreshable =
                 PollingRefreshable.create(serverListConfigSupplier);
-        return Reflection.newProxy(
+        return wrapWithVersion(Reflection.newProxy(
                 type,
                 RefreshableProxyInvocationHandler.create(
                         configPollingRefreshable.getRefreshable(),
@@ -146,12 +147,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
                                 return createProxyWithFailover(serverListConfig, type, parameters);
                             }
                             return createProxyForZeroNodes(type);
-                        }));
-    }
-
-    @Override
-    public String getClientVersion() {
-        return "AtlasDB-Feign";
+                        })));
     }
 
     public static <T> T createRsProxy(
@@ -215,5 +211,9 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             @Override
             public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {}
         };
+    }
+
+    private static <T> InstanceAndVersion<T> wrapWithVersion(T instance) {
+        return ImmutableInstanceAndVersion.of(instance, CLIENT_VERSION_STRING);
     }
 }

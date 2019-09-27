@@ -19,8 +19,6 @@ package com.palantir.atlasdb.http;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleSupplier;
 
-import org.immutables.value.Value;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -42,8 +40,8 @@ final class VersionSelectingClients {
 
     static <T> T createVersionSelectingClient(
             TaggedMetricRegistry taggedMetricRegistry,
-            InstanceAndVersion<T> newClient,
-            InstanceAndVersion<T> legacyClient,
+            TargetFactory.InstanceAndVersion<T> newClient,
+            TargetFactory.InstanceAndVersion<T> legacyClient,
             DoubleSupplier newClientProbabilitySupplier,
             Class<T> clazz) {
         T instrumentedNewClient = instrumentWithClientVersionTag(
@@ -60,22 +58,14 @@ final class VersionSelectingClients {
 
     private static <T> T instrumentWithClientVersionTag(
             TaggedMetricRegistry taggedMetricRegistry,
-            InstanceAndVersion<T> client,
+            TargetFactory.InstanceAndVersion<T> client,
             Class<T> clazz) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 taggedMetricRegistry,
                 clazz,
-                client.client(),
+                client.instance(),
                 MetricRegistry.name(clazz),
                 $ -> ImmutableMap.of(CLIENT_VERSION, client.version()));
     }
 
-    @Value.Immutable
-    interface InstanceAndVersion<T> {
-        @Value.Parameter
-        T client();
-
-        @Value.Parameter
-        String version();
-    }
 }

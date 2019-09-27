@@ -19,26 +19,35 @@ package com.palantir.atlasdb.http;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import org.immutables.value.Value;
+
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public interface TargetFactory {
-    <T> T createProxy(
+    <T> InstanceAndVersion<T> createProxy(
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
 
-    <T> T createProxyWithFailover(
+    <T> InstanceAndVersion<T> createProxyWithFailover(
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
 
-    <T> T createLiveReloadingProxyWithFailover(
+    <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
 
-    String getClientVersion();
+    @Value.Immutable
+    interface InstanceAndVersion<T> {
+        @Value.Parameter
+        T instance();
+
+        @Value.Parameter
+        String version();
+    }
 }

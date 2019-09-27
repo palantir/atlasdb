@@ -43,7 +43,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters),
+                DEFAULT_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters).instance(),
                 MetricRegistry.name(type));
     }
 
@@ -62,7 +62,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxyWithFailover(serverListConfig, type, parameters),
+                DEFAULT_TARGET_FACTORY.createProxyWithFailover(serverListConfig, type, parameters).instance(),
                 MetricRegistry.name(type));
     }
 
@@ -74,16 +74,14 @@ public final class AtlasDbHttpClients {
         return VersionSelectingClients.createVersionSelectingClient(
                 taggedMetricRegistry,
                 // TODO (jkong): Replace the new client with the CJR one; also I wish there was a way to curry stuff
-                ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+                DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),
-                        DEFAULT_TARGET_FACTORY.getClientVersion()),
-                ImmutableInstanceAndVersion.of(DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+                DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),
-                        DEFAULT_TARGET_FACTORY.getClientVersion()),
                 () -> clientParameters.remotingClientConfig().get().maximumV2Probability(),
                 type);
     }
@@ -100,7 +98,7 @@ public final class AtlasDbHttpClients {
                 TESTING_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
-                        parameters),
+                        parameters).instance(),
                 MetricRegistry.name(type));
     }
 
@@ -116,7 +114,7 @@ public final class AtlasDbHttpClients {
                 TESTING_TARGET_FACTORY.createProxyWithFailover(
                         serverListConfig,
                         type,
-                        parameters),
+                        parameters).instance(),
                 MetricRegistry.name(type, "atlasdb-testing"));
     }
 }
