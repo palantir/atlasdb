@@ -1,0 +1,8 @@
+type: break
+break:
+  description: '`PollingRefreshable`s now support value transformations. Consequently,
+    they now use two type parameters. If you had a `PollingRefreshable<T>`, it now
+    needs to be changed to `PollingRefreshable<T, T>`. The old factory method remains
+    and will apply the identity transformation for you.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4265
