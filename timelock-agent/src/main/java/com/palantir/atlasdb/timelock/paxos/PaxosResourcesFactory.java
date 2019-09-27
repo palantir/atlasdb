@@ -115,7 +115,7 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor) {
         TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(useCase, metrics.getTaggedRegistry());
 
-        PaxosComponents paxosComponents = new PaxosComponents(
+        LocalPaxosComponents paxosComponents = new LocalPaxosComponents(
                 timelockMetrics,
                 useCase.logDirectoryRelativeToDataDirectory(install.dataDirectory()));
 
@@ -142,7 +142,7 @@ public final class PaxosResourcesFactory {
     public interface PaxosUseCaseContext {
         TimelockPaxosInstallationContext install();
         TimelockPaxosMetrics metrics();
-        PaxosComponents components();
+        LocalPaxosComponents components();
         NetworkClientFactories networkClientFactories();
 
         @Value.Derived

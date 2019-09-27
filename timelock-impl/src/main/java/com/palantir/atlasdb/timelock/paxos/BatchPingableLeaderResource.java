@@ -28,9 +28,9 @@ import com.palantir.paxos.PaxosValue;
 public class BatchPingableLeaderResource implements BatchPingableLeader {
 
     private final UUID leadershipUuid;
-    private final PaxosComponents components;
+    private final LocalPaxosComponents components;
 
-    public BatchPingableLeaderResource(UUID leadershipUuid, PaxosComponents components) {
+    public BatchPingableLeaderResource(UUID leadershipUuid, LocalPaxosComponents components) {
         this.leadershipUuid = leadershipUuid;
         this.components = components;
     }

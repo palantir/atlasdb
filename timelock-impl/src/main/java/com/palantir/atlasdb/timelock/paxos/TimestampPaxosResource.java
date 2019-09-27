@@ -25,9 +25,9 @@ import com.palantir.paxos.PaxosLearner;
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
         + "/{client: [a-zA-Z0-9_-]+}")
 public final class TimestampPaxosResource {
-    private final PaxosComponents paxosComponents;
+    private final LocalPaxosComponents paxosComponents;
 
-    TimestampPaxosResource(PaxosComponents paxosComponents) {
+    TimestampPaxosResource(LocalPaxosComponents paxosComponents) {
         this.paxosComponents = paxosComponents;
     }
 

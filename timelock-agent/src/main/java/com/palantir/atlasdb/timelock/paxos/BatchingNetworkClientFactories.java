@@ -27,7 +27,7 @@ abstract class BatchingNetworkClientFactories {
     abstract PaxosUseCase useCase();
     abstract TimelockPaxosMetrics metrics();
     abstract PaxosRemoteClients remoteClients();
-    abstract PaxosComponents components();
+    abstract LocalPaxosComponents components();
     abstract int quorumSize();
     abstract ExecutorService sharedExecutor();
 

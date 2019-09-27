@@ -29,7 +29,7 @@ import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 
-public class PaxosComponents {
+public class LocalPaxosComponents {
 
     private final TimelockPaxosMetrics metrics;
     private final Path logDirectory;
@@ -37,7 +37,7 @@ public class PaxosComponents {
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
 
-    PaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory) {
+    LocalPaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory) {
         this.metrics = metrics;
         this.logDirectory = logDirectory;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);

@@ -41,7 +41,7 @@ public class BatchPingableLeaderResourceTests {
     private static final UUID LEADER_UUID = UUID.randomUUID();
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private PaxosComponents components;
+    private LocalPaxosComponents components;
     private BatchPingableLeaderResource resource;
 
     @Before

@@ -48,7 +48,7 @@ public abstract class PaxosResources {
 
     private static BatchPaxosResources batchResourcesForUseCase(
             PaxosResourcesFactory.PaxosUseCaseContext useCaseContext) {
-        PaxosComponents components = useCaseContext.components();
+        LocalPaxosComponents components = useCaseContext.components();
         BatchPaxosAcceptorResource acceptorResource = new BatchPaxosAcceptorResource(components.batchAcceptor());
         BatchPaxosLearnerResource learnerResource = new BatchPaxosLearnerResource(components.batchLearner());
         return ImmutableBatchPaxosResources.of(acceptorResource, learnerResource);
