@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -29,21 +28,20 @@ import com.google.common.collect.ImmutableMap;
 @Value.Immutable
 public abstract class PaxosResources {
     public abstract PaxosResourcesFactory.PaxosUseCaseContext timestamp();
-    // TODO(fdesouza): make non optional when ready to implement
-    public abstract Optional<PaxosResourcesFactory.PaxosUseCaseContext> leadership();
-    abstract List<Object> resources();
+    abstract List<Object> adhocResources();
 
     @Value.Derived
     public List<Object> resourcesForRegistration() {
         Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase =
                 ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
-                        .put(PaxosUseCase.TIMESTAMP, batchResourcesForUseCase(timestamp()))
-                        .build();
+                .put(PaxosUseCase.TIMESTAMP, batchResourcesForUseCase(timestamp()))
+                .build();
+
         UseCaseAwareBatchPaxosResource combinedBatchResource =
                 new UseCaseAwareBatchPaxosResource(new EnumMap<>(batchPaxosResourcesByUseCase));
 
         return ImmutableList.builder()
-                .addAll(resources())
+                .addAll(adhocResources())
                 .add(combinedBatchResource)
                 .build();
     }

@@ -55,7 +55,7 @@ public final class PaxosResourcesFactory {
 
         return ImmutablePaxosResources.builder()
                 .timestamp(timestampContext)
-                .addResources(new TimestampPaxosResource(timestampContext.components()))
+                .addAdhocResources(new TimestampPaxosResource(timestampContext.components()))
                 .build();
     }
 
