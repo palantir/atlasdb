@@ -134,7 +134,7 @@ public class CassandraServiceTest {
                         .build())
                 .servers(
                         ImmutableDefaultConfig
-                                .builder().addAllThrift(servers).build())
+                                .builder().addAllThriftHosts(servers).build())
                 .build();
 
         blacklist = new Blacklist(config);

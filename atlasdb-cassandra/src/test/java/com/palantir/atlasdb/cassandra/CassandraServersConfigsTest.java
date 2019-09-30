@@ -37,7 +37,7 @@ public class CassandraServersConfigsTest {
             cqlCapable(44, 45, "bar", "foo");
 
     public static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
-        return ImmutableDefaultConfig.builder().addThrift(thriftServers).build();
+        return ImmutableDefaultConfig.builder().addThriftHosts(thriftServers).build();
     }
 
     public static CassandraServersConfigs.CqlCapableConfig cqlCapable(int thriftPort, int cqlPort, String... hosts) {

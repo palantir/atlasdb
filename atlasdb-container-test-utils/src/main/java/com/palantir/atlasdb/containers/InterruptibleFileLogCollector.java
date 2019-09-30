@@ -57,12 +57,11 @@ public class InterruptibleFileLogCollector implements LogCollector {
         return new InterruptibleFileLogCollector(new File(path));
     }
 
-    synchronized void startCollecting(int numberOfContainers) {
+    synchronized void initializeExecutor(int numberOfContainers) {
         if (executor != null) {
             throw new SafeRuntimeException("Cannot start collecting the same logs twice");
         }
         executor = Executors.newFixedThreadPool(numberOfContainers);
-
     }
 
     @Override
@@ -75,19 +74,25 @@ public class InterruptibleFileLogCollector implements LogCollector {
                     try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
                         dockerCompose.writeLogs(container, outputStream);
                     } catch (IOException e) {
-                        throw new SafeRuntimeException("Error reading log", e);
+                        throw new SafeRuntimeException("Error writing log", e);
                     }
                 }));
     }
 
-    synchronized void stopCollecting() throws InterruptedException {
+    synchronized void stopExecutor() {
         if (executor == null) {
             return;
         }
         executor.shutdown();
-        if (!executor.awaitTermination(STOP_TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS)) {
-            log.warn("docker containers were still running when log collection stopped");
-            executor.shutdownNow();
+        try {
+            if (!executor.awaitTermination(STOP_TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS)) {
+                log.warn("docker containers were still running when log collection stopped");
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            log.warn("Thread was interrupted while waiting for executor to terminate.", e);
+        } catch (Exception e) {
+            log.warn("Exception was raised while shutting down the executor", e);
         }
     }
 }

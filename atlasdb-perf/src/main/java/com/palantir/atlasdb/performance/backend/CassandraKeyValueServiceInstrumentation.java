@@ -35,7 +35,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(
                         ImmutableDefaultConfig
-                                .builder().addThrift(addr).build())
+                                .builder().addThriftHosts(addr).build())
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()

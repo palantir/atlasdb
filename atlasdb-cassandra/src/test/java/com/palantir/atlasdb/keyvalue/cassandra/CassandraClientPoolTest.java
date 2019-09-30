@@ -232,7 +232,7 @@ public class CassandraClientPoolTest {
     @Test
     public void attemptsShouldBeCountedPerHost() {
         when(config.servers()).thenReturn(ImmutableDefaultConfig
-                .builder().addThrift().build());
+                .builder().addThriftHosts().build());
         CassandraClientPoolImpl cassandraClientPool =
                 CassandraClientPoolImpl.createImplForTest(
                         MetricsManagers.of(metricRegistry, taggedMetricRegistry),
@@ -256,7 +256,7 @@ public class CassandraClientPoolTest {
         when(config.servers())
                 .thenReturn(
                         ImmutableDefaultConfig
-                                .builder().addThrift(HOST_1, HOST_2, HOST_3).build());
+                                .builder().addThriftHosts(HOST_1, HOST_2, HOST_3).build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1);
@@ -270,7 +270,7 @@ public class CassandraClientPoolTest {
         when(config.servers())
                 .thenReturn(
                         ImmutableDefaultConfig
-                                .builder().addThrift(HOST_1, HOST_2, HOST_3).build());
+                                .builder().addThriftHosts(HOST_1, HOST_2, HOST_3).build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1, HOST_2, HOST_3);
@@ -286,7 +286,7 @@ public class CassandraClientPoolTest {
     @Test
     public void hostIsAutomaticallyAddedOnStartup() {
         when(config.servers()).thenReturn(ImmutableDefaultConfig
-                .builder().addThrift(HOST_1).build());
+                .builder().addThriftHosts(HOST_1).build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1, HOST_2);
@@ -299,7 +299,7 @@ public class CassandraClientPoolTest {
     public void hostIsAutomaticallyAddedOnRefresh() {
         when(config.servers()).thenReturn(
                 ImmutableDefaultConfig
-                        .builder().addThrift(HOST_1, HOST_2).build());
+                        .builder().addThriftHosts(HOST_1, HOST_2).build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1, HOST_2);
@@ -316,7 +316,7 @@ public class CassandraClientPoolTest {
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
         when(config.servers()).thenReturn(
                 ImmutableDefaultConfig
-                        .builder().addThrift(HOST_1, HOST_2).build());
+                        .builder().addThriftHosts(HOST_1, HOST_2).build());
         when(config.autoRefreshNodes()).thenReturn(false);
 
         setCassandraServersTo(HOST_1);
@@ -332,7 +332,7 @@ public class CassandraClientPoolTest {
     public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
         when(config.servers()).thenReturn(
                 ImmutableDefaultConfig
-                        .builder().addThrift(HOST_1, HOST_2).build());
+                        .builder().addThriftHosts(HOST_1, HOST_2).build());
         when(config.autoRefreshNodes()).thenReturn(false);
 
         setCassandraServersTo(HOST_1);
@@ -436,7 +436,7 @@ public class CassandraClientPoolTest {
             Optional<Exception> failureMode) {
         when(config.servers()).thenReturn(
                 ImmutableDefaultConfig
-                        .builder().addAllThrift(servers).build());
+                        .builder().addAllThriftHosts(servers).build());
 
         CassandraClientPoolImpl cassandraClientPool =
                 CassandraClientPoolImpl.createImplForTest(

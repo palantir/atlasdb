@@ -18,6 +18,10 @@ package com.palantir.atlasdb.containers;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,7 +34,6 @@ import org.awaitility.Duration;
 import org.junit.rules.ExternalResource;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -41,6 +44,7 @@ import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerMachine;
+import com.palantir.docker.compose.execution.DockerCompose;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
@@ -81,6 +85,10 @@ public class Containers extends ExternalResource {
         }
     }
 
+    public DockerCompose getDockerCompose() {
+        return dockerComposeRule.dockerCompose();
+    }
+
     @Override
     public void before() throws Throwable {
         synchronized (Containers.class) {
@@ -97,13 +105,31 @@ public class Containers extends ExternalResource {
         }
     }
 
+    @Override
+    protected void after() {
+        currentLogCollector.stopExecutor();
+    }
+
     public String getLogDirectory() {
         return logDirectory;
     }
 
-    private void setupLogCollectorForLogDirectory() throws InterruptedException {
+    public static Proxy getSocksProxy(String name) {
+        try {
+            return ProxySelector.getDefault()
+                    .select(new URI("tcp", name, null, null))
+                    .stream()
+                    .filter(proxy -> proxy.type() == Proxy.Type.SOCKS)
+                    .findFirst()
+                    .orElseThrow(() ->  new RuntimeException("Socks proxy has to exist"));
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setupLogCollectorForLogDirectory() {
         if (currentLogCollector != null) {
-            currentLogCollector.stopCollecting();
+            currentLogCollector.stopExecutor();
         }
         currentLogCollector = new InterruptibleFileLogCollector(new File(logDirectory));
     }
@@ -133,9 +159,8 @@ public class Containers extends ExternalResource {
         dockerComposeRule.before();
     }
 
-    private void startCollectingLogs() throws IOException, InterruptedException {
-        Preconditions.checkNotNull(currentLogCollector, "Collector should not be null");
-        currentLogCollector.startCollecting(containersToStart.size() + containersStarted.size());
+    private void startCollectingLogs() {
+        currentLogCollector.initializeExecutor(Sets.union(containersToStart, containersStarted).size());
     }
 
     private static void setupShutdownHook() {

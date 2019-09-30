@@ -43,6 +43,7 @@ io.atomix:* = 1.0.0-rc9
 io.dropwizard.metrics:metrics-* = 3.2.3
 io.dropwizard.modules:* = 0.9.0-1
 io.dropwizard:* = 0.9.3
+io.netty:* = 4.1.39.Final
 javax.annotation:javax.annotation-api = 1.3.2
 javax.validation:validation-api = 1.1.0.Final
 javax.ws.rs:javax.ws.rs-api = 2.0.1

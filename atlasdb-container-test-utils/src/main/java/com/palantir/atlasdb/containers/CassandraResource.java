@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.containers;
 
+import java.net.Proxy;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -37,17 +38,19 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     private final Supplier<KeyValueService> supplier;
     private Containers containers;
     private TestResourceManager testResourceManager;
+    private Proxy socksProxy;
 
     public CassandraResource() {
         this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
-                containerInstance.getConfig());
+                getConfig());
     }
 
     public CassandraResource(Supplier<KeyValueService> supplier) {
         this.supplier = supplier;
     }
 
-    @Override public Statement apply(Statement base, Description description) {
+    @Override
+    public Statement apply(Statement base, Description description) {
         containers = new Containers(description.getTestClass()).with(containerInstance);
         testResourceManager = new TestResourceManager(supplier);
         return super.apply(base, description);
@@ -56,6 +59,7 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     @Override
     public void before() throws Throwable {
         containers.before();
+        socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
     }
 
     @Override
@@ -64,7 +68,8 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     }
 
     /**
-     * Returns the memoized instance of the {@link CassandraKeyValueService} given by the supplier from the constructor.
+     * Returns the memoized instance of the {@link CassandraKeyValueService} given by the supplier from the
+     * constructor.
      */
     @Override
     public CassandraKeyValueService getDefaultKvs() {
@@ -87,6 +92,6 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     }
 
     public CassandraKeyValueServiceConfig getConfig() {
-        return containerInstance.getConfig();
+        return containerInstance.getConfigWithProxy(socksProxy.address());
     }
 }

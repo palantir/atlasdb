@@ -17,10 +17,12 @@
 package com.palantir.atlasdb.containers;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.rules.ExternalResource;
 
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -33,9 +35,11 @@ public class UninitializedCassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = CassandraContainer.throwawayContainer();
     private final Containers containers;
 
-    private final KeyValueService kvs = createKvs();
+    private KeyValueService kvs;
 
     private AtomicBoolean initialized = new AtomicBoolean(false);
+
+    private Proxy socksProxy;
 
     public UninitializedCassandraResource(Class<?> classToSaveLogsFor) {
         containers = new Containers(classToSaveLogsFor).with(containerInstance);
@@ -44,10 +48,19 @@ public class UninitializedCassandraResource extends ExternalResource {
     public void initialize() {
         Preconditions.checkState(initialized.compareAndSet(false, true), "Cassandra was already initialized");
         try {
-            containers.before();
+            containers.getContainer(containerInstance.getServiceName()).up();
         } catch (Throwable th) {
             throw Throwables.rewrapAndThrowUncheckedException(th);
         }
+    }
+
+    @Override
+    protected void before() throws Throwable {
+        containers.before();
+        socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
+        containers.getContainer(containerInstance.getServiceName()).kill();
+        containers.getDockerCompose().rm();
+        kvs = createKvs();
     }
 
     @Override
@@ -68,9 +81,12 @@ public class UninitializedCassandraResource extends ExternalResource {
     }
 
     private KeyValueService createKvs() {
+        Preconditions.checkNotNull(socksProxy, "There has to be a defined proxy");
+        CassandraKeyValueServiceConfig config = containerInstance.getConfigWithProxy(socksProxy.address());
+
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
-                containerInstance.getConfig(),
+                config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 true);
