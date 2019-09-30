@@ -32,6 +32,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactoryImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
@@ -181,6 +183,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * The existence of this object overrides any configuration made via the ssl config value.
      */
     Optional<SslConfiguration> sslConfiguration();
+
+    @Value.Default
+    default CqlClientFactory cqlClientFactory() {
+        return CqlClientFactoryImpl.DEFAULT;
+    }
 
     int replicationFactor();
 
