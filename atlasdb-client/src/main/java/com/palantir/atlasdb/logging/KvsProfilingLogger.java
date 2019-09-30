@@ -23,7 +23,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,7 +157,7 @@ public class KvsProfilingLogger {
                     slowLogPredicate);
             Futures.addCallback(future, new FutureCallback<T>() {
                 @Override
-                public void onSuccess(@NullableDecl T result) {
+                public void onSuccess(T result) {
                     monitor.registerResult(result);
                     monitor.log();
                 }
