@@ -86,6 +86,11 @@ public class CassandraService implements AutoCloseable {
         this.rng = rng;
     }
 
+    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist,
+            Optional<HostLocation> myLocation) {
+        this(metricsManager, config, blacklist, myLocation, new Random());
+    }
+
     public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
         this(metricsManager, config, blacklist, Optional.empty(), new Random());
     }
@@ -169,8 +174,7 @@ public class CassandraService implements AutoCloseable {
             for (TokenRange tokenRange : tokenRanges) {
                 for (EndpointDetails details : tokenRange.getEndpoint_details()) {
                     if (details.isSetDatacenter() && details.isSetRack() && details.isSetHost() &&
-                            myLocation.get().equals(ImmutableHostLocation.builder().rack(details.getRack()).datacentre(
-                                    details.getDatacenter()).build())) {
+                            myLocation.get().equals(HostLocation.of(details.getDatacenter(), details.getRack()))) {
                         localHosts.add(getAddressForHostThrowUnchecked(details.getHost()));
                     }
                 }

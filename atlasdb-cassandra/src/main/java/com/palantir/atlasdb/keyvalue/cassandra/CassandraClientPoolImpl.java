@@ -30,6 +30,7 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.Host;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -47,6 +48,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
@@ -113,6 +115,26 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private ScheduledFuture<?> refreshPoolFuture;
+
+
+    @VisibleForTesting
+    static CassandraClientPoolImpl createImplForTest(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks,
+            Blacklist blacklist,
+            Optional<HostLocation> myLocation) {
+        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
+                metricsManager,
+                config,
+                startupChecks,
+                exceptionHandler,
+                blacklist,
+                myLocation);
+        cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return cassandraClientPool;
+    }
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
@@ -188,6 +210,25 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, blacklist));
+    }
+
+    private CassandraClientPoolImpl(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks,
+            CassandraRequestExceptionHandler exceptionHandler,
+            Blacklist blacklist,
+            Optional<HostLocation> myLocation) {
+        this(metricsManager,
+                config,
+                startupChecks,
+                PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
+                        .setDaemon(true)
+                        .setNameFormat("CassandraClientPoolRefresh-%d")
+                        .build()),
+                exceptionHandler,
+                blacklist,
+                new CassandraService(metricsManager, config, blacklist, myLocation));
     }
 
     private CassandraClientPoolImpl(

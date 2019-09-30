@@ -44,7 +44,7 @@ public final class EC2HostLocationSupplier implements Supplier<Optional<HostLoca
             String datacentre = responseString.substring(0, responseString.length()-2);
             String rack = responseString.substring(responseString.length()-1);
 
-            return Optional.of(ImmutableHostLocation.builder().datacentre(datacentre).rack(rack).build());
+            return Optional.of(HostLocation.of(datacentre, rack));
         } catch (IOException e) {
             throw new RuntimeException("Could not communicate with AWS host metadata", e);
         }

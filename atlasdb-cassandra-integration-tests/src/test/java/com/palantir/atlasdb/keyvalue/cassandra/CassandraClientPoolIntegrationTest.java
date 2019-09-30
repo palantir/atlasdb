@@ -26,6 +26,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
@@ -39,6 +41,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
@@ -51,6 +54,7 @@ public class CassandraClientPoolIntegrationTest {
 
     private int modifiedReplicationFactor;
     private Blacklist blacklist;
+    private Optional<HostLocation> myLocation = Optional.of(HostLocation.of("dc1", "rack1"));
     private CassandraClientPoolImpl clientPool;
 
     @Before
@@ -58,7 +62,7 @@ public class CassandraClientPoolIntegrationTest {
         blacklist = new Blacklist(CASSANDRA.getConfig());
         modifiedReplicationFactor = CASSANDRA.getConfig().replicationFactor() + 1;
         clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
-                CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+                CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist, myLocation);
     }
 
     @Test
@@ -82,10 +86,19 @@ public class CassandraClientPoolIntegrationTest {
         }
     }
 
-    // todo
     @Test
-    public void testGetLocalHosts() {
-        assertTrue(true);
+    public void testRefreshLocalHosts() {
+        // two tokenRanges, but both with same host
+        Set<InetSocketAddress> localHosts = clientPool.getLocalHosts();
+        assertTrue(localHosts.size() == 1);
+
+        myLocation = Optional.of(HostLocation.of("dc1", "rack2"));
+
+        CassandraClientPoolImpl clientPoolDifferentLocation = CassandraClientPoolImpl.createImplForTest(metricsManager,
+                CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist, myLocation);
+
+        localHosts = clientPoolDifferentLocation.getLocalHosts();
+        assertTrue(localHosts.size() == 0);
     }
 
 

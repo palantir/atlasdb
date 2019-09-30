@@ -17,11 +17,20 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import org.immutables.value.Value;
+import com.palantir.conjure.java.client.config.ImmutablesStyle;
 
 @Value.Immutable
+@ImmutablesStyle
 public interface HostLocation {
 
+    @Value.Parameter
     String datacentre();
+
+    @Value.Parameter
     String rack();
+
+    static HostLocation of(String datacentre, String rack) {
+        return ImmutableHostLocation.of(datacentre, rack);
+    }
 
 }
