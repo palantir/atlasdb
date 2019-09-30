@@ -41,6 +41,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -144,6 +145,7 @@ public class PaxosTimeLockServerIntegrationTest {
                         CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
+                        LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class).error("erreur!", t);
                         return false;
                     }
                 });
@@ -480,6 +482,7 @@ public class PaxosTimeLockServerIntegrationTest {
         return AuxiliaryRemotingParameters.builder()
                 .shouldLimitPayload(true)
                 .userAgent(UserAgents.tryParse(client))
+                .shouldRetry(true)
                 .build();
     }
 
