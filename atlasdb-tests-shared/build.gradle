@@ -6,7 +6,7 @@ schemas = [
 ]
 
 dependencies {
-  compile project(":atlasdb-impl-shared")
+  compile project(":atlasdb-config")
   testCompile project(":atlasdb-config")
 
   compile project(path: ":atlasdb-feign", configuration: "shadow")

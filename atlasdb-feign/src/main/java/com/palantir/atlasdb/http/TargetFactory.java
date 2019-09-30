@@ -16,47 +16,38 @@
 
 package com.palantir.atlasdb.http;
 
-import java.net.ProxySelector;
-import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.immutables.value.Value;
+
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public interface TargetFactory {
-    <T> T createProxyWithoutRetrying(
+    <T> InstanceAndVersion<T> createProxy(
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize);
+            AuxiliaryRemotingParameters parameters);
 
-    <T> T createProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
+    <T> InstanceAndVersion<T> createProxyWithFailover(
+            ServerListConfig serverListConfig,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize);
+            AuxiliaryRemotingParameters parameters);
 
-    <T> T createProxyWithFailover(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize);
-
-    <T> T createLiveReloadingProxyWithFailover(
+    <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload);
+            AuxiliaryRemotingParameters parameters);
 
-    String getClientVersion();
+    @Value.Immutable
+    interface InstanceAndVersion<T> {
+        @Value.Parameter
+        T instance();
+
+        @Value.Parameter
+        String version();
+    }
 }

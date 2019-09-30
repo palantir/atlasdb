@@ -22,8 +22,10 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -68,8 +70,11 @@ public abstract class PaxosRemoteClients {
                         context().trustContext(),
                         uri,
                         clazz,
-                        name,
-                        false))
+                        AuxiliaryRemotingParameters.builder()
+                                .userAgent(UserAgents.tryParse(name))
+                                .shouldLimitPayload(false)
+                                .shouldRetry(true)
+                                .build()).instance())
                 .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         metrics(),
                         clazz,

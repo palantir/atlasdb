@@ -41,6 +41,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,11 +49,14 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
+import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -96,7 +100,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final int FORTY_TWO = 42;
 
     private static final String LOCK_CLIENT_NAME = "remoteLock-client-name";
-    public static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
+    private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
     private static final File TIMELOCK_CONFIG_TEMPLATE =
@@ -128,7 +132,8 @@ public class PaxosTimeLockServerIntegrationTest {
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
-                PingableLeader.class);
+                PingableLeader.class,
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
@@ -140,6 +145,7 @@ public class PaxosTimeLockServerIntegrationTest {
                         CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
+                        LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class).error("erreur!", t);
                         return false;
                     }
                 });
@@ -387,10 +393,10 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwsOnQueryingTimestampWithWithInvalidClientName() {
+    public void throwsOnQueryingTimestampWithInvalidClientName() {
         TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining("Unexpected char 0x08");
+                .hasMessageContaining("NOT_FOUND");
     }
 
     @Test
@@ -460,8 +466,7 @@ public class PaxosTimeLockServerIntegrationTest {
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getGenericRootUri(),
                 clazz,
-                client,
-                true);
+                remotingParametersForClient(client));
     }
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
@@ -470,8 +475,15 @@ public class PaxosTimeLockServerIntegrationTest {
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
                 clazz,
-                client,
-                true);
+                remotingParametersForClient(client));
+    }
+
+    private static AuxiliaryRemotingParameters remotingParametersForClient(String client) {
+        return AuxiliaryRemotingParameters.builder()
+                .shouldLimitPayload(true)
+                .userAgent(UserAgents.tryParse(client))
+                .shouldRetry(true)
+                .build();
     }
 
     private static String getGenericRootUri() {

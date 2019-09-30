@@ -32,6 +32,7 @@ import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PingableLeader;
@@ -78,7 +79,7 @@ class PaxosLeadershipCreator {
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
-                "leader-election-service");
+                UserAgent.of(UserAgent.Agent.of("leader-election-service", UserAgent.Agent.DEFAULT_VERSION)));
         localPingableLeader = localPaxosServices.pingableLeader();
         leaderElectionService = localPaxosServices.leaderElectionService();
         leadershipObserver = localPaxosServices.leadershipObserver();
