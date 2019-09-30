@@ -22,9 +22,15 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.google.common.collect.Streams;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -150,5 +156,42 @@ public final class CqlClientImpl implements CqlClient {
     @Override
     public CqlQueryBuilder asyncQueryBuilder() {
         return new CqlQueryBuilder() {};
+    }
+
+    private class CqlQueryImpl<R> implements CqlQuery<R> {
+
+        private final RowStreamAccumulator<R> rowStreamAccumulator;
+        private final BoundStatement boundStatement;
+
+        CqlQueryImpl(BoundStatement boundStatement, RowStreamAccumulator<R> rowStreamAccumulator) {
+            this.boundStatement = boundStatement;
+            this.rowStreamAccumulator = rowStreamAccumulator;
+        }
+
+        /**
+         * This method is implemented to process only the currently available data page. After each page is processed we
+         * asynchronously request more data and process it. That way no thread is blocked waiting to retrieve the next
+         * page.
+         * @return {@code AsyncFunction} which will transform the {@code Future} containing the {@code resultSet}
+         */
+        private AsyncFunction<ResultSet, R> iterate() {
+            return resultSet -> {
+                rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
+                        .limit(resultSet.getAvailableWithoutFetching()));
+
+                boolean wasLastPage = resultSet.getExecutionInfo().getPagingState() == null;
+                if (wasLastPage) {
+                    return Futures.immediateFuture(rowStreamAccumulator.result());
+                } else {
+                    ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
+                    return Futures.transformAsync(future, iterate(), executorService);
+                }
+            };
+        }
+
+        @Override
+        public ListenableFuture<R> execute() {
+            return Futures.transformAsync(session.executeAsync(boundStatement), iterate(), executorService);
+        }
     }
 }
