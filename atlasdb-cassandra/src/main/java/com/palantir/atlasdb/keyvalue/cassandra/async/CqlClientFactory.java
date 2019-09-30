@@ -146,8 +146,8 @@ public final class CqlClientFactory {
 
         // also try and select coordinators who own the data we're talking about to avoid an extra hop,
         // but also shuffle which replica we talk to for a load balancing that comes at the expense
-        // of less effective caching
-        return new TokenAwarePolicy(policy, TokenAwarePolicy.ReplicaOrdering.RANDOM);
+        // of less effective caching, default to TokenAwarePolicy.ReplicaOrdering.RANDOM childPolicy
+        return new TokenAwarePolicy(policy);
     }
 
     private static final class SocksProxyNettyOptions extends NettyOptions {
