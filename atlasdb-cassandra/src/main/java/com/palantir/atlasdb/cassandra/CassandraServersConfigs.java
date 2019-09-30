@@ -61,7 +61,6 @@ public final class CassandraServersConfigs {
         }
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "tuning", defaultImpl = ImmutableCqlCapableConfigTuning.class)
     @JsonDeserialize(as = ImmutableCqlCapableConfigTuning.class)
     @JsonSerialize(as = ImmutableCqlCapableConfigTuning.class)
     @Value.Immutable
@@ -71,8 +70,6 @@ public final class CassandraServersConfigs {
             return 100;
         }
     }
-
-
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = ImmutableDefaultConfig.class)
     @JsonSubTypes({

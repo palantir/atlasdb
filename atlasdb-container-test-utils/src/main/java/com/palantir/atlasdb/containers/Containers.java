@@ -210,7 +210,6 @@ public class Containers extends ExternalResource {
             dockerComposeRule = null;
             currentLogCollector = null;
             containersStarted.clear();
-            currentLogCollector.stopExecutor();
         }
     }
 }

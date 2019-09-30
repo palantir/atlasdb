@@ -32,13 +32,16 @@ import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class CqlClientImpl implements CqlClient {
+
+    private static final Logger log = LoggerFactory.getLogger(CqlClientImpl.class);
+
     private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
         private final Cluster cluster;
         private final ExecutorService executor;
-        private final Logger log;
         private final TaggedMetricRegistry taggedMetricRegistry;
         private final int cacheSize;
         private volatile CqlClient internalImpl;
@@ -46,12 +49,11 @@ public final class CqlClientImpl implements CqlClient {
         InitializingWrapper(
                 TaggedMetricRegistry taggedMetricRegistry,
                 Cluster cluster, ExecutorService executor,
-                int cacheSize, Logger log) {
+                int cacheSize) {
             this.taggedMetricRegistry = taggedMetricRegistry;
             this.cluster = cluster;
             this.executor = executor;
             this.cacheSize = cacheSize;
-            this.log = log;
         }
 
         @Override
@@ -67,7 +69,7 @@ public final class CqlClientImpl implements CqlClient {
 
         @Override
         protected void tryInitialize() {
-            internalImpl = CqlClientImpl.createWithCache(taggedMetricRegistry, cluster, executor, cacheSize, log);
+            internalImpl = CqlClientImpl.create(taggedMetricRegistry, cluster, executor, cacheSize);
         }
 
         @Override
@@ -85,52 +87,47 @@ public final class CqlClientImpl implements CqlClient {
 
     private final Session session;
     private final ExecutorService executorService;
-    private final Logger log;
-    private final QueryCache<PreparedStatement> cache;
+    private final StatementPreparer statementPreparer;
 
     public static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
             Cluster cluster,
             ExecutorService executorService,
-            int cacheSize,
+            CqlCapableConfigTuning tuningConfig,
             boolean initializeAsync) {
         if (initializeAsync) {
             return new InitializingWrapper(
                     taggedMetricRegistry,
                     cluster,
                     executorService,
-                    cacheSize,
-                    LoggerFactory.getLogger(CqlClient.class));
+                    tuningConfig.preparedStatementCacheSize());
         }
 
-        return createWithCache(
+        return create(
                 taggedMetricRegistry,
                 cluster,
                 executorService,
-                cacheSize,
-                LoggerFactory.getLogger(CqlClient.class));
+                tuningConfig.preparedStatementCacheSize());
     }
 
-    private static CqlClient createWithCache(
+    private static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
             Cluster cluster,
             ExecutorService executorService,
-            int cacheSize,
-            Logger log) {
+            int preparedStatementCacheSize) {
         Session session = cluster.connect();
-        QueryCache<PreparedStatement> queryCache = QueryCache.create(
-                (key) -> session.prepare(key.formatQueryString()),
+        QueryCache queryCache = QueryCache.create(
+                key -> session.prepare(key.formatQueryString()),
                 taggedMetricRegistry,
-                cacheSize);
+                preparedStatementCacheSize);
 
-        return new CqlClientImpl(session, executorService, queryCache, log);
+        return new CqlClientImpl(session, executorService, queryCache);
     }
 
-    private CqlClientImpl(Session session, ExecutorService executor, QueryCache<PreparedStatement> cache, Logger log) {
+    private CqlClientImpl(Session session, ExecutorService executor, QueryCache statementPreparer) {
         this.session = session;
         this.executorService = executor;
-        this.cache = cache;
-        this.log = log;
+        this.statementPreparer = statementPreparer;
     }
 
     @Override
@@ -155,7 +152,7 @@ public final class CqlClientImpl implements CqlClient {
 
     @Override
     public CqlQueryBuilder asyncQueryBuilder() {
-        return new CqlQueryBuilder() {};
+        return new CqlQueryBuilderImpl();
     }
 
     private class CqlQueryImpl<R> implements CqlQuery<R> {
@@ -192,6 +189,18 @@ public final class CqlClientImpl implements CqlClient {
         @Override
         public ListenableFuture<R> execute() {
             return Futures.transformAsync(session.executeAsync(boundStatement), iterate(), executorService);
+        }
+    }
+
+    private class CqlQueryBuilderImpl implements CqlQueryBuilder {
+
+        @Override
+        public <R> CqlQuery<R> build(CqlQuerySpec<R> querySpec) {
+            PreparedStatement statement = statementPreparer.prepare(querySpec);
+
+            BoundStatement boundStatement = querySpec.bind(statement.bind());
+
+            return new CqlQueryImpl<>(boundStatement, querySpec.rowStreamAccumulatorFactory().get());
         }
     }
 }

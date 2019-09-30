@@ -45,7 +45,6 @@ public class CassandraServersConfigsTest {
                 .addHosts(hosts)
                 .cqlPort(cqlPort)
                 .thriftPort(thriftPort)
-                .tuning(ImmutableCqlCapableConfigTuning.builder().build())
                 .build();
     }
 

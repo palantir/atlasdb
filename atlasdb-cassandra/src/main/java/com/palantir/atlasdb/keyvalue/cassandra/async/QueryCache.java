@@ -17,39 +17,38 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import com.codahale.metrics.MetricRegistry;
+import com.datastax.driver.core.PreparedStatement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public final class QueryCache<R> {
-    public interface EntryCreator<R> {
-        R createEntry(CqlQuerySpec querySpec);
-    }
+public final class QueryCache implements StatementPreparer {
 
     private static final String CACHE_NAME_PREFIX = MetricRegistry.name(
             QueryCache.class,
             "prepared",
             "statements");
 
-    public static <R> QueryCache<R> create(
-            EntryCreator<R> entryCreator,
+    public static  QueryCache create(
+            StatementPreparer statementPreparer,
             TaggedMetricRegistry taggedMetricRegistry,
             int cacheSize) {
-        Cache<CqlQuerySpec, R> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
+        Cache<CqlQuerySpec, PreparedStatement> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
         CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, CACHE_NAME_PREFIX);
-        return new QueryCache<>(entryCreator, cache);
+        return new QueryCache(statementPreparer, cache);
     }
 
-    private final EntryCreator<R> entryCreator;
-    private final Cache<CqlQuerySpec, R> cache;
+    private final StatementPreparer statementPreparer;
+    private final Cache<CqlQuerySpec, PreparedStatement> cache;
 
-    private QueryCache(EntryCreator<R> entryCreator, Cache<CqlQuerySpec, R> cache) {
-        this.entryCreator = entryCreator;
+    private QueryCache(StatementPreparer statementPreparer, Cache<CqlQuerySpec, PreparedStatement> cache) {
+        this.statementPreparer = statementPreparer;
         this.cache = cache;
     }
 
-    R cacheQuerySpec(CqlQuerySpec spec) {
-        return cache.get(spec, entryCreator::createEntry);
+    @Override
+    public PreparedStatement prepare(CqlQuerySpec querySpec) {
+        return cache.get(querySpec, statementPreparer::prepare);
     }
 }

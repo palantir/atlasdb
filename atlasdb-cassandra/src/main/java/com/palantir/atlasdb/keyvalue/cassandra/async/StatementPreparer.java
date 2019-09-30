@@ -16,23 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.processors.AutoDelegate;
+import com.datastax.driver.core.PreparedStatement;
 
-@AutoDelegate
-public interface CqlClient extends AutoCloseable {
-
-    interface CqlQuery<R> {
-        ListenableFuture<R> execute();
-    }
-
-    /**
-     * Visitor style interface which declares methods for constructing {@code CqlQuery} based on the
-     * {@code CqlQuerySpec}.
-     */
-    interface CqlQueryBuilder {
-        <R> CqlQuery<R> build(CqlQuerySpec<R> querySpec);
-    }
-
-    CqlQueryBuilder asyncQueryBuilder();
+public interface StatementPreparer {
+    PreparedStatement prepare(CqlQuerySpec querySpec);
 }

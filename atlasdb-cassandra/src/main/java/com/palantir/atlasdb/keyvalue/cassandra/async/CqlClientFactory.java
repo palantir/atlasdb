@@ -20,13 +20,9 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import javax.net.ssl.SSLContext;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
@@ -45,6 +41,8 @@ import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -52,8 +50,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.proxy.Socks5ProxyHandler;
 
 public final class CqlClientFactory {
-
-    private static final Logger logger = LoggerFactory.getLogger(CqlClientFactory.class);
 
     private CqlClientFactory() {
 
@@ -76,7 +72,7 @@ public final class CqlClientFactory {
                         config,
                         cqlCapableConfig.cqlHosts(),
                         cqlCapableConfig.socksProxy(),
-                        cqlCapableConfig.tuning().preparedStatementCacheSize(),
+                        cqlCapableConfig.tuning(),
                         initializeAsync);
             }
         });
@@ -87,7 +83,7 @@ public final class CqlClientFactory {
             CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers,
             Optional<SocketAddress> proxy,
-            int cacheSize,
+            CqlCapableConfigTuning tuningConfig,
             boolean initializeAsync) {
 
         Cluster.Builder clusterBuilder = Cluster.builder()
@@ -114,8 +110,8 @@ public final class CqlClientFactory {
         return CqlClientImpl.create(
                 taggedMetricRegistry,
                 cluster,
-                Executors.newCachedThreadPool(threadFactory),
-                cacheSize,
+                PTExecutors.newCachedThreadPool(threadFactory),
+                tuningConfig,
                 initializeAsync);
     }
 

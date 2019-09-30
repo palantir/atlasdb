@@ -18,8 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.util.function.Supplier;
 
+import com.datastax.driver.core.BoundStatement;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient.CqlQueryBuilder;
 
 public interface CqlQuerySpec<R> {
 
@@ -31,5 +31,5 @@ public interface CqlQuerySpec<R> {
 
     String formatQueryString();
 
-    CqlClient.CqlQuery<R> buildQuery(CqlQueryBuilder cqlQueryBuilder);
+    BoundStatement bind(BoundStatement boundStatement);
 }
