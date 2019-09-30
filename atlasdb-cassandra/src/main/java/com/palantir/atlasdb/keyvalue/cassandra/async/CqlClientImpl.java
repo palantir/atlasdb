@@ -60,6 +60,11 @@ public final class CqlClientImpl implements CqlClient {
         }
 
         @Override
+        public <R> ListenableFuture<R> execute(Executable<R> executable) {
+            return internalImpl.execute(executable);
+        }
+
+        @Override
         protected void tryInitialize() {
             internalImpl = CqlClientImpl.create(taggedMetricRegistry, cqlResourceHandle, cacheSize);
         }

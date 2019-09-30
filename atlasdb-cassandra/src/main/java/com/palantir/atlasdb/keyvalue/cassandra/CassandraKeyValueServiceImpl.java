@@ -100,7 +100,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient.Executable;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -1951,9 +1950,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             .row(ByteBuffer.wrap(cell.getRowName()))
                                             .column(ByteBuffer.wrap(cell.getColumnName()))
                                             .humanReadableTimestamp(timestamp)
-                                            .build()
-                                            .buildQuery(cqlQueryBuilder))
-                            .map(cqlClient::execute)
+                                            .build())
+                            .map(spec -> cqlQueryBuilder.build(spec).execute(executor))
                             .collectToMap();
 
             return Futures.whenAllSucceed(cellsToFutureResults.values())

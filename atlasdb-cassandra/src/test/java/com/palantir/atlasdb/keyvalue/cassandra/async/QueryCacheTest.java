@@ -17,16 +17,16 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.nio.ByteBuffer;
-import java.util.Random;
 
 import org.junit.Test;
 
+import com.datastax.driver.core.PreparedStatement;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.async.QueryCache.EntryCreator;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -34,7 +34,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 public class QueryCacheTest {
 
     private static Integer counter = 0;
-    private static final EntryCreator<Integer> ALWAYS_INCREASING_ENTRY_CREATOR = querySpec -> counter = counter + 1;
+    private static final StatementPreparer ALWAYS_INCREASING_ENTRY_CREATOR = querySpec -> mock(PreparedStatement.class);
 
     private static final MetricsManager METRICS_MANAGER = MetricsManagers.createForTests();
     private static final TaggedMetricRegistry TAGGED_METRIC_REGISTRY = METRICS_MANAGER.getTaggedRegistry();
@@ -46,7 +46,7 @@ public class QueryCacheTest {
 
     @Test
     public void testCacheNotBustedGetQuerySpec() {
-        QueryCache<Integer> cache = QueryCache.create(
+        QueryCache cache = QueryCache.create(
                 ALWAYS_INCREASING_ENTRY_CREATOR,
                 TAGGED_METRIC_REGISTRY,
                 100);
@@ -54,20 +54,20 @@ public class QueryCacheTest {
         GetQuerySpec initialQuerySpec =
                 createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(10), PtBytes.toBytes(10), 3);
 
-        assertThat(cache.cacheQuerySpec(initialQuerySpec))
-                .isEqualTo(cache.cacheQuerySpec(
+        assertThat(cache.prepare(initialQuerySpec))
+                .isEqualTo(cache.prepare(
                         createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(10), PtBytes.toBytes(10), 3)));
 
-        assertThat(cache.cacheQuerySpec(initialQuerySpec))
-                .isEqualTo(cache.cacheQuerySpec(
+        assertThat(cache.prepare(initialQuerySpec))
+                .isEqualTo(cache.prepare(
                         createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(10), PtBytes.toBytes(10), 1)));
 
-        assertThat(cache.cacheQuerySpec(initialQuerySpec))
-                .isEqualTo(cache.cacheQuerySpec(
+        assertThat(cache.prepare(initialQuerySpec))
+                .isEqualTo(cache.prepare(
                         createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(10), PtBytes.toBytes(7), 3)));
 
-        assertThat(cache.cacheQuerySpec(initialQuerySpec))
-                .isEqualTo(cache.cacheQuerySpec(
+        assertThat(cache.prepare(initialQuerySpec))
+                .isEqualTo(cache.prepare(
                         createGetQuerySpec(KEYSPACE, TABLE_REFERENCE, PtBytes.toBytes(4), PtBytes.toBytes(10), 3)));
     }
 

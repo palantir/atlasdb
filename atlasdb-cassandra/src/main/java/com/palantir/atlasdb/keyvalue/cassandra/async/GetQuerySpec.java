@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -49,7 +50,7 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         return GetQueryAccumulator::new;
     }
 
-    long queryTimestamp() {
+    private long queryTimestamp() {
         return ~humanReadableTimestamp();
     }
 
@@ -58,8 +59,10 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     }
 
     @Override
-    public CqlClient.CqlQuery<Optional<Value>> buildQuery(CqlClient.CqlQueryBuilder cqlQueryBuilder) {
-        return cqlQueryBuilder.build(this);
+    public BoundStatement bind(BoundStatement boundStatement) {
+        return boundStatement.setBytes("row", row())
+                .setBytes("column", column())
+                .setLong("timestamp", queryTimestamp());
     }
 
     @NotThreadSafe
