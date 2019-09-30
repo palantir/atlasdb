@@ -61,6 +61,15 @@ public final class CassandraServersConfigs {
         }
     }
 
+    @JsonDeserialize(as = ImmutableCqlCapableConfigTuning.class)
+    @JsonSerialize(as = ImmutableCqlCapableConfigTuning.class)
+    @Value.Immutable
+    public static class CqlCapableConfigTuning {
+        @Value.Default
+        public int preparedStatementCacheSize() {
+            return 100;
+        }
+    }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = ImmutableDefaultConfig.class)
     @JsonSubTypes({
@@ -115,6 +124,11 @@ public final class CassandraServersConfigs {
         abstract int cqlPort();
 
         public abstract Optional<SocketAddress> socksProxy();
+
+        @Value.Default
+        public CqlCapableConfigTuning tuning() {
+            return ImmutableCqlCapableConfigTuning.builder().build();
+        }
 
         @Override
         public final int numberOfHosts() {

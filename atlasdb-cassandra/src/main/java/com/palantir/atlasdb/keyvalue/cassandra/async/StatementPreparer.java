@@ -16,15 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-class ThrowingCqlClientImpl implements CqlClient {
+import com.datastax.driver.core.PreparedStatement;
 
-    @Override
-    public void close() {
-
-    }
-
-    @Override
-    public CqlQueryBuilder asyncQueryBuilder() {
-        throw new UnsupportedOperationException("Not configured to use CQL client, check your KVS config file.");
-    }
+public interface StatementPreparer {
+    PreparedStatement prepare(CqlQuerySpec querySpec);
 }

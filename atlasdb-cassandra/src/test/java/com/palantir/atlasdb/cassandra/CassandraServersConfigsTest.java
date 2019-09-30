@@ -41,7 +41,11 @@ public class CassandraServersConfigsTest {
     }
 
     public static CassandraServersConfigs.CqlCapableConfig cqlCapable(int thriftPort, int cqlPort, String... hosts) {
-        return ImmutableCqlCapableConfig.builder().addHosts(hosts).cqlPort(cqlPort).thriftPort(thriftPort).build();
+        return ImmutableCqlCapableConfig.builder()
+                .addHosts(hosts)
+                .cqlPort(cqlPort)
+                .thriftPort(thriftPort)
+                .build();
     }
 
     @Test

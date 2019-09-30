@@ -20,13 +20,9 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import javax.net.ssl.SSLContext;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
@@ -45,20 +41,24 @@ import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.proxy.Socks5ProxyHandler;
 
 public final class CqlClientFactory {
 
-    private static final Logger logger = LoggerFactory.getLogger(CqlClientFactory.class);
-
     private CqlClientFactory() {
 
     }
 
-    public static CqlClient constructClient(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+    public static CqlClient constructClient(
+            TaggedMetricRegistry taggedMetricRegistry,
+            CassandraKeyValueServiceConfig config,
+            boolean initializeAsync) {
         return config.servers().accept(new CassandraServersConfigs.Visitor<CqlClient>() {
             @Override
             public CqlClient visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
@@ -68,18 +68,22 @@ public final class CqlClientFactory {
             @Override
             public CqlClient visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
                 return createClient(
+                        taggedMetricRegistry,
                         config,
                         cqlCapableConfig.cqlHosts(),
                         cqlCapableConfig.socksProxy(),
+                        cqlCapableConfig.tuning(),
                         initializeAsync);
             }
         });
     }
 
     private static CqlClient createClient(
+            TaggedMetricRegistry taggedMetricRegistry,
             CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers,
             Optional<SocketAddress> proxy,
+            CqlCapableConfigTuning tuningConfig,
             boolean initializeAsync) {
 
         Cluster.Builder clusterBuilder = Cluster.builder()
@@ -103,7 +107,12 @@ public final class CqlClientFactory {
                 .setNameFormat(cluster.getClusterName() + "-session" + "-%d")
                 .build();
 
-        return CqlClientImpl.create(cluster, Executors.newCachedThreadPool(threadFactory), initializeAsync);
+        return CqlClientImpl.create(
+                taggedMetricRegistry,
+                cluster,
+                PTExecutors.newCachedThreadPool(threadFactory),
+                tuningConfig,
+                initializeAsync);
     }
 
     private static Optional<RemoteEndpointAwareJdkSSLOptions> sslOptions(CassandraKeyValueServiceConfig config) {

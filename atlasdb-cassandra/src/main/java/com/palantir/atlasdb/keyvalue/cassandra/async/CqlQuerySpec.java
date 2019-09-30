@@ -14,10 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.query.forming;
+package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import java.util.function.Supplier;
+
+import com.datastax.driver.core.BoundStatement;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public interface QueryFormer {
-    String formQuery(SupportedQuery supportedQuery, String keySpace, TableReference tableReference);
+public interface CqlQuerySpec<R> {
+
+    String keySpace();
+
+    TableReference tableReference();
+
+    Supplier<RowStreamAccumulator<R>> rowStreamAccumulatorFactory();
+
+    String formatQueryString();
+
+    BoundStatement bind(BoundStatement boundStatement);
 }
