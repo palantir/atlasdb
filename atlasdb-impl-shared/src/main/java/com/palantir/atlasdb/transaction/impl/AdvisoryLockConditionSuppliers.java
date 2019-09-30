@@ -76,7 +76,16 @@ public final class AdvisoryLockConditionSuppliers {
             if (response == null) {
                 RuntimeException ex = new LockAcquisitionException(
                         "Failed to lock using the provided lock request: " + lockRequest);
-                log.warn("Could not lock successfully", ex);
+                switch (lockRequest.getBlockingMode()) {
+                    case DO_NOT_BLOCK:
+                        log.debug("Could not lock successfully", ex);
+                        break;
+                    case BLOCK_UNTIL_TIMEOUT:
+                    case BLOCK_INDEFINITELY:
+                    case BLOCK_INDEFINITELY_THEN_RELEASE:
+                        log.warn("Could not lock successfully", ex);
+                        break;
+                }
                 ++failureCount;
                 if (failureCount >= NUM_RETRIES) {
                     log.warn("Failing after {} tries", failureCount, ex);
