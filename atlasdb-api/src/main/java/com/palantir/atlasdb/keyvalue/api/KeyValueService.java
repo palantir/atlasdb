@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -632,4 +633,22 @@ public interface KeyValueService extends AutoCloseable {
     default boolean shouldTriggerCompactions() {
         return false;
     }
+
+    ////////////////////////////////////////////////////////////
+    // ASYNC API ENTRY POINTS
+    ////////////////////////////////////////////////////////////
+    /**
+     * Asynchronously gets values from the key-value store using.
+     *
+     * @param tableRef the name of the table to retrieve values from.
+     * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
+     *        retrieve that rows's value.
+     * @return map of retrieved values. Values which do not exist (either
+     *         because they were deleted or never created in the first place)
+     *         are simply not returned.
+     * @throws IllegalArgumentException if any of the requests were invalid
+     *         (e.g., attempting to retrieve values from a non-existent table).
+     */
+    @Idempotent
+    ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 }

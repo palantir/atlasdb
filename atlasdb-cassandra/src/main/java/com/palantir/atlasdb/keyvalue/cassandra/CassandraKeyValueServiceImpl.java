@@ -66,6 +66,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -1923,6 +1924,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public boolean performanceIsSensitiveToTombstones() {
         return true;
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        throw new UnsupportedOperationException("Async get API entry point is currently not supported");
     }
 
     private static class TableCellAndValue {
