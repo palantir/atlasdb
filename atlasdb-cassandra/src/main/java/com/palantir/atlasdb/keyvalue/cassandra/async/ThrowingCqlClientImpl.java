@@ -24,7 +24,7 @@ class ThrowingCqlClientImpl implements CqlClient {
     }
 
     @Override
-    public <R> CqlQueryBuilder<R> asyncQueryBuilder() {
+    public CqlQueryBuilder asyncQueryBuilder() {
         throw new UnsupportedOperationException("Not configured to use CQL client, check your KVS config file.");
     }
 }

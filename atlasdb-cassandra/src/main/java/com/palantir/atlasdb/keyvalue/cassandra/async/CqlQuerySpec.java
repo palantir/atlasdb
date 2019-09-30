@@ -18,23 +18,18 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.util.function.Supplier;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient.CqlQueryBuilder;
 
-@Value.Immutable
 public interface CqlQuerySpec<R> {
 
     String keySpace();
 
     TableReference tableReference();
 
-    SupportedQuery supportedQuery();
-
-    @Value.Auxiliary
     Supplier<RowStreamAccumulator<R>> rowStreamAccumulatorFactory();
 
-    default String formatQueryString() {
-        return supportedQuery().formQueryString(keySpace(), tableReference());
-    }
+    String formatQueryString();
+
+    CqlClient.CqlQuery<R> buildQuery(CqlQueryBuilder cqlQueryBuilder);
 }

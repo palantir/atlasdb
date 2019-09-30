@@ -26,16 +26,12 @@ public interface CqlClient extends AutoCloseable {
         ListenableFuture<R> execute();
     }
 
-    interface CqlQueryBuilder<R> {
-
-        CqlQueryBuilder<R> setQuerySpec(CqlQuerySpec<R> cqlQuerySpec);
-
-        CqlQueryBuilder<R> setArg(String argumentName, Object argument);
-
-        <T> CqlQueryBuilder<T> setRowStreamAccumulator(RowStreamAccumulator<T> rowStreamAccumulator);
-
-        CqlQuery<R> build();
+    /**
+     * Visitor style interface which declares methods for constructing {@code CqlQuery} based on the
+     * {@code CqlQuerySpec}.
+     */
+    interface CqlQueryBuilder {
     }
 
-    <R> CqlQueryBuilder<R> asyncQueryBuilder();
+    CqlQueryBuilder asyncQueryBuilder();
 }
