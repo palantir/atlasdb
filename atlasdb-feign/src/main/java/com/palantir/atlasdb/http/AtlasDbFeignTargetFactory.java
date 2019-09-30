@@ -147,7 +147,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Class<T> type,
             String userAgent,
             boolean limitPayload) {
-        PollingRefreshable<ServerListConfig, ServerListConfig> configPollingRefreshable =
+        PollingRefreshable<ServerListConfig> configPollingRefreshable =
                 PollingRefreshable.create(serverListConfigSupplier);
         return Reflection.newProxy(
                 type,
