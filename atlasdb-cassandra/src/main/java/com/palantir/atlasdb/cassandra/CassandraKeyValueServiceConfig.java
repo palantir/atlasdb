@@ -135,14 +135,18 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * Weighting is a ratio from 0 to 1, where 0 disables the feature and 1 forces the same data centre if possible.
      */
     @Value.Default
-    default double localHostWeighting() { return 0.0; }
+    default double localHostWeighting() {
+        return 0.0;
+    }
 
     /**
-     * Controls the behaviour of the host location supplier when the snitch description does not match
-     * any known snitches.
+     * Controls the behaviour of the host location supplier when the snitch description does not match any known
+     * snitches.
      */
     @Value.Default
-    default Supplier<Optional<HostLocation>> defaultHostLocationSupplier() { return () -> Optional.empty(); }
+    default Supplier<Optional<HostLocation>> defaultHostLocationSupplier() {
+        return () -> Optional.empty();
+    }
 
     @JsonIgnore
     @Value.Lazy

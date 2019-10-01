@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -36,6 +35,7 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
@@ -61,6 +61,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
@@ -78,8 +79,15 @@ public class CassandraService implements AutoCloseable {
     private Set<InetSocketAddress> localHosts;
     private HostLocationSupplier myLocationSupplier;
 
+    private final Counter randomHostsSelected;
+    private final Counter localHostsSelected;
+
     public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
         this.metricsManager = metricsManager;
+        this.randomHostsSelected = metricsManager.getTaggedRegistry().counter(
+                MetricName.builder().safeName("RandomHostsSelected").build());
+        this.localHostsSelected = metricsManager.getTaggedRegistry().counter(
+                MetricName.builder().safeName("LocalHostsSelected").build());
         this.config = config;
         this.blacklist = blacklist;
         this.myLocationSupplier = new HostLocationSupplier(config.defaultHostLocationSupplier());
@@ -273,9 +281,12 @@ public class CassandraService implements AutoCloseable {
         if (ThreadLocalRandom.current().nextDouble() < config.localHostWeighting()) {
             Set<InetSocketAddress> localFilteredHosts = Sets.intersection(localHosts, hosts);
             if (!localFilteredHosts.isEmpty()) {
+                localHostsSelected.inc();
                 return localFilteredHosts;
             }
         }
+
+        randomHostsSelected.inc();
         return hosts;
     }
 
