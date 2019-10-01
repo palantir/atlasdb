@@ -101,6 +101,8 @@ a transaction service a good one.
 2. **Compact Representation (CR)**: A good transactions service does not unnecessarily use excessive disk space.
    In addition to saving on disk usage, having a compact representation also improves the ability for query results to
    be cached in memory, and can improve time taken to execute queries if less data needs to be read through from disk.
+   Many key value services allow for caches with specified memory overhead; having compact timestamp representations
+   improves the ability of these caches to store more logical information, thus improving hit rates.
 3. **Range Scans (RS)**: A good transactions service supports range scans (without needing to read the entire table
    and post-filter it). This is used in various backup and restore workflows in AtlasDB, and it is important that we
    are able to execute restores in a timely fashion.
@@ -281,10 +283,10 @@ static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
 static final double NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE = 0.0001;
 ```
 
-As far as transactions2 is concerned, we observe that the number of partitions is very small, and thus we can go with
-a very low setting. We thus set ``bloom_filter_fp_chance`` to 0.0001. Empirically, we observed that for 1,000,000,000
-timestamps, the bloom filter we had for the ``_transactions2`` table even with this setting was about 15 KB, while that
-for ``_transactions`` was about 580 MB.
+As far as transactions2 is concerned, we observe that the number of partitions is very small, and thus we can afford
+a very low setting. We thus set ``bloom_filter_fp_chance`` to 0.0001. Empirically, we observed that with this setting,
+the bloom filter for the ``_transactions2`` table was about 15 KB after writing every timestamp from one to one billion.
+In contrast, the bloom filter for ``_transactions`` with AtlasDB's existing settings was 580 MB after doing this.
 
 #### Index Intervals
 
@@ -317,8 +319,8 @@ the ``stress`` tool to consume almost all of the free memory outside of Cassandr
 page caches). We also had to create fresh ``TransactionService``s on each benchmark run to circumvent application-level
 caching.
 
-These benchmarks were run with a 100% hit rate (every timestamp queried for corresponded to an existing transaction).
-We attempted to run the tests using various configurations of the optimisations discussed above:
+The following benchmarks were run with a 100% hit rate (every timestamp queried for corresponded to an existing
+transaction). We attempted to run the tests using various configurations of the optimisations discussed above:
 
 - ``tx1`` is simply the transactions1 algorithm.
 - ``tx2`` is the transactions2 algorithm, using standard AtlasDB table settings (that is, ``bloom_filter_fp_chance`` of
@@ -340,8 +342,8 @@ These results may be better visualised with a graph - for example, for 100 concu
 
 ![Graph reflecting response times for various Cassandra configurations](0016-cassandra-params.png)
 
-These benchmarks were run with a 50% hit rate. Note that this is rare in practice, as in practice after each miss we
-will try to roll back the transaction by inserting a -1 entry into the transactions table.
+The next set of benchmarks were run with a 50% hit rate. Note that this is rare in practice, as in practice after each
+miss we will try to roll back the transaction by inserting a -1 entry into the transactions table.
 
 | Concurrency | Metric |    tx1 |    tx2 | tx2 + BF | tx2 + BFII | tx2 + BFIICK[16] | tx2 + BFIICK[64] |
 |------------:|-------:|-------:|-------:|---------:|-----------:|-----------------:|-----------------:|
@@ -436,7 +438,8 @@ We still partition requests to load cells by column first. Thereafter,
 - if for a given column the number of cells is at least ``CC``, then the cells for that column will exclusively take up
   one or more batches, with no batch having size greater than ``SQ``.
 - otherwise, the cells may be combined with cells in other columns, in batches of size up to ``CC``. There is no
-  guarantee that all cells for a given column will be in the same batch.
+  guarantee that all cells for a given column will be in the same batch. However, we do guarantee this for columns
+  that are returned in a batch that are not the first or last column in that batch.
 
 In terms of implementation, we simply maintain a list of cells eligible for cross-column batching, and partition this
 list into contiguous groups of size ``CC``. In this way, no row key will be included more than twice. It may be possible
@@ -530,10 +533,10 @@ We also ran the benchmarks with 10 concurrent readers on the same workflows. Tim
 
 ![Graph reflecting p95 response times for each workflow and algorithm](0016-cellloader2-graph2.png)
 
-The magnitude by which full batching does not perform as well as CellLoader 2 is also much less, possibly because
-the worker pool has a finite size and even with the full batching algorithm in this case, each reader contributes
-one requesting thread, and although CellLoader2 also spins up many more requesting threads on the Cassandra side,
-the Cassandra cluster was unable to actually have these therads all do work concurrently.
+The magnitude by which full batching does not perform as well as CellLoader 2 is also much lower. This is possibly
+because the worker pool has a finite size and even with the full batching algorithm in this case, each reader
+contributes one requesting thread. Although CellLoader2 spins up many more requesting threads on the Cassandra side,
+the Cassandra cluster was unable to actually have these threads all do work concurrently.
 
 ### Live Migrations and the Coordination Service
 
