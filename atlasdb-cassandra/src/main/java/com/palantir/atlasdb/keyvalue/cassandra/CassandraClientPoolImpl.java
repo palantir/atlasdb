@@ -281,7 +281,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 .accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
 
         if (config.autoRefreshNodes()) {
-            setServersInPoolTo(Sets.union(cassandra.refreshTokenRangesAndGetServers(), resolvedConfigAddresses));
+            setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
             setServersInPoolTo(resolvedConfigAddresses);
         }
