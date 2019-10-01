@@ -981,7 +981,7 @@ public abstract class TransactionManagers {
                 () -> defaultRuntime,
                 userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
-        LockService localLock = ServiceCreator.createInstrumentedService(
+        LockService localLock = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
                 AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock::get, leader),
                 LockService.class);
@@ -989,12 +989,12 @@ public abstract class TransactionManagers {
         ManagedTimestampService managedTimestampProxy =
                 AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
 
-        TimestampService localTime = ServiceCreator.createInstrumentedService(
+        TimestampService localTime = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
                 managedTimestampProxy,
                 TimestampService.class);
 
-        TimestampManagementService localManagement = ServiceCreator.createInstrumentedService(
+        TimestampManagementService localManagement = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
                 managedTimestampProxy,
                 TimestampManagementService.class);
@@ -1102,14 +1102,14 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> managedTimestampServiceSupplier) {
-        LockService lockService = ServiceCreator.createInstrumentedService(
+        LockService lockService = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(), lock.get(), LockService.class);
 
         ManagedTimestampService managedTimestampService = managedTimestampServiceSupplier.get();
 
-        TimestampService timeService = ServiceCreator.createInstrumentedService(
+        TimestampService timeService = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(), managedTimestampService, TimestampService.class);
-        TimestampManagementService timestampManagementService = ServiceCreator.createInstrumentedService(
+        TimestampManagementService timestampManagementService = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(), managedTimestampService, TimestampManagementService.class);
 
         env.accept(lockService);
