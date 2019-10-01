@@ -79,17 +79,17 @@ public final class AdvisoryLockConditionSuppliers {
                 switch (lockRequest.getBlockingMode()) {
                     case DO_NOT_BLOCK:
                         log.debug("Could not lock successfully", ex);
-                        break;
+                        throw ex;
                     case BLOCK_UNTIL_TIMEOUT:
                     case BLOCK_INDEFINITELY:
                     case BLOCK_INDEFINITELY_THEN_RELEASE:
                         log.warn("Could not lock successfully", ex);
+                        ++failureCount;
+                        if (failureCount >= NUM_RETRIES) {
+                            log.warn("Failing after {} tries", failureCount, ex);
+                            throw ex;
+                        }
                         break;
-                }
-                ++failureCount;
-                if (failureCount >= NUM_RETRIES) {
-                    log.warn("Failing after {} tries", failureCount, ex);
-                    throw ex;
                 }
             } else {
                 return response;
