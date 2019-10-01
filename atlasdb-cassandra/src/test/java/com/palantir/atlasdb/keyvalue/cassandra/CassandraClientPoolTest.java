@@ -353,6 +353,19 @@ public class CassandraClientPoolTest {
         assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
     }
 
+    @Test
+    public void configHostsAreResolvedWhenAutoRefreshing() {
+        when(config.servers()).thenReturn(
+                ImmutableDefaultConfig
+                        .builder().addThriftHosts(HOST_1, HOST_2).build());
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(HOST_3);
+        createClientPool();
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2, HOST_3);
+
+    }
+
     private InetSocketAddress getInvocationAddress(InvocationOnMock invocation) {
         return (InetSocketAddress) invocation.getArguments()[0];
     }
