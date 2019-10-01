@@ -15,24 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
-
-import org.apache.cassandra.thrift.EndpointDetails;
-import org.apache.cassandra.thrift.TokenRange;
 
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.logsafe.Preconditions;
@@ -62,7 +50,6 @@ public final class WeightedHosts {
      * Every weight is guaranteed to be non-zero in size. That is, every key is guaranteed to be at least one larger
      * than the previous key.
      */
-
     private static NavigableMap<Integer, InetSocketAddress> buildHostsWeightedByActiveConnections(
             Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
 

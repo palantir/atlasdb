@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
@@ -39,9 +41,11 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.TestHostLocationSupplier;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
@@ -54,7 +58,6 @@ public class CassandraClientPoolIntegrationTest {
 
     private int modifiedReplicationFactor;
     private Blacklist blacklist;
-    private Optional<HostLocation> myLocation = Optional.of(HostLocation.of("dc1", "rack1"));
     private CassandraClientPoolImpl clientPool;
 
     @Before
@@ -62,7 +65,7 @@ public class CassandraClientPoolIntegrationTest {
         blacklist = new Blacklist(CASSANDRA.getConfig());
         modifiedReplicationFactor = CASSANDRA.getConfig().replicationFactor() + 1;
         clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
-                CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist, myLocation);
+                CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
     }
 
     @Test
@@ -88,17 +91,24 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testRefreshLocalHosts() {
-        // two tokenRanges, but both with same host
-        Set<InetSocketAddress> localHosts = clientPool.getLocalHosts();
-        assertTrue(localHosts.size() == 1);
+        HostLocation localLocation = HostLocation.of("dc1", "rack1");
+        HostLocation remoteLocation = HostLocation.of("dc1", "rack4");
 
-        myLocation = Optional.of(HostLocation.of("dc1", "rack2"));
+        assertEquals(getLocalHostsUsingLocation(localLocation).size(), 1);
+        assertEquals(getLocalHostsUsingLocation(remoteLocation).size(), 0);
+    }
 
-        CassandraClientPoolImpl clientPoolDifferentLocation = CassandraClientPoolImpl.createImplForTest(metricsManager,
-                CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist, myLocation);
+    private Set<InetSocketAddress> getLocalHostsUsingLocation(HostLocation hostLocation) {
+        Supplier<Optional<HostLocation>> locationSupplier = new TestHostLocationSupplier(
+                Optional.of(hostLocation));
 
-        localHosts = clientPoolDifferentLocation.getLocalHosts();
-        assertTrue(localHosts.size() == 0);
+        CassandraKeyValueServiceConfig configHostWithLocation = ImmutableCassandraKeyValueServiceConfig.builder().from(
+                CASSANDRA.getConfig()).defaultHostLocationSupplier(locationSupplier).build();
+
+        CassandraClientPoolImpl clientPoolWithLocation = CassandraClientPoolImpl.createImplForTest(metricsManager,
+                configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+
+        return clientPoolWithLocation.getLocalHosts();
     }
 
 

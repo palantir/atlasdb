@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThat;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
-import java.util.Random;
 
 import org.junit.Test;
 
@@ -48,23 +47,39 @@ public class CassandraServiceTest {
     private Blacklist blacklist;
 
     @Test
-    public void shouldReturnOnlyLocalHost() {
+    public void shouldOnlyReturnLocalHosts() {
         ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
         ImmutableSet<InetSocketAddress> localHosts = ImmutableSet.of(HOST_1);
-        Random rng = new Random(420);
 
-        CassandraService cassandra = clientPoolWithParams(
-                ImmutableSet.of(HOST_1, HOST_2),
-                hosts,
-                0.5,
-                Optional.empty(),
-                rng);
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 1.0);
 
         cassandra.setLocalHosts(localHosts);
 
-        // rng skips filter first time, and performs filter second time
-        assertThat(cassandra.filterHostsByDatacentre(hosts), equalTo(hosts));
-        assertThat(cassandra.filterHostsByDatacentre(hosts), equalTo(localHosts));
+        assertThat(cassandra.filterLocalHosts(hosts), equalTo(localHosts));
+    }
+
+    @Test
+    public void shouldReturnAllHostsBySkippingFilter() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
+        ImmutableSet<InetSocketAddress> localHosts = ImmutableSet.of(HOST_1);
+
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 0.0);
+
+        cassandra.setLocalHosts(localHosts);
+
+        assertThat(cassandra.filterLocalHosts(hosts), equalTo(hosts));
+    }
+
+    @Test
+    public void shouldReturnAllHostsAsNoIntersection() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
+        ImmutableSet<InetSocketAddress> localHosts = ImmutableSet.of();
+
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 0.0);
+
+        cassandra.setLocalHosts(localHosts);
+
+        assertThat(cassandra.filterLocalHosts(hosts), equalTo(hosts));
     }
 
     @Test
@@ -144,15 +159,18 @@ public class CassandraServiceTest {
         return clientPoolWith(servers, servers);
     }
 
+    private CassandraService clientPoolWithServersAndParams(ImmutableSet<InetSocketAddress> servers, double weighting) {
+        return clientPoolWithParams(servers, servers, weighting);
+    }
+
     private CassandraService clientPoolWith(
             ImmutableSet<InetSocketAddress> servers,
             ImmutableSet<InetSocketAddress> serversInPool) {
-        return clientPoolWithParams(servers, serversInPool, 0.0, Optional.empty(), new Random());
+        return clientPoolWithParams(servers, serversInPool, 0.0);
     }
 
     private CassandraService clientPoolWithParams(ImmutableSet<InetSocketAddress> servers,
-            ImmutableSet<InetSocketAddress> serversInPool, double weighting, Optional<HostLocation> hostLocation,
-            Random rng) {
+            ImmutableSet<InetSocketAddress> serversInPool, double weighting) {
         config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .replicationFactor(3)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -167,8 +185,7 @@ public class CassandraServiceTest {
 
         blacklist = new Blacklist(config);
 
-        CassandraService service = new CassandraService(MetricsManagers.createForTests(), config, blacklist,
-                hostLocation, rng);
+        CassandraService service = new CassandraService(MetricsManagers.createForTests(), config, blacklist);
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

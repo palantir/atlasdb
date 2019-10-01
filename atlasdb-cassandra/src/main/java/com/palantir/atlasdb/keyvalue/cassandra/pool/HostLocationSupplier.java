@@ -21,17 +21,17 @@ import java.util.function.Supplier;
 
 public final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
-    private final String snitch;
-    private Optional<HostLocation> defaultLocation;
+    private String snitch;
+    private final Supplier<Optional<HostLocation>> ec2Supplier;
+    private final Supplier<Optional<HostLocation>> defaultSupplier;
 
-
-    public HostLocationSupplier(String snitch, Optional<HostLocation> defaultLocation) {
-        this.snitch = snitch;
-        this.defaultLocation = defaultLocation;
+    public HostLocationSupplier(Supplier<Optional<HostLocation>> defaultSupplier) {
+        this.ec2Supplier = new EC2HostLocationSupplier();
+        this.defaultSupplier = defaultSupplier;
     }
 
-    public HostLocationSupplier(String snitch) {
-        this(snitch, Optional.empty());
+    public void setSnitch(String snitch) {
+        this.snitch = snitch;
     }
 
     @Override
@@ -39,9 +39,9 @@ public final class HostLocationSupplier implements Supplier<Optional<HostLocatio
 
         switch (snitch) {
             case "org.apache.cassandra.locator.EC2Snitch":
-                return new EC2HostLocationSupplier().get();
+                return ec2Supplier.get();
             default:
-                return defaultLocation;
+                return defaultSupplier.get();
         }
     }
 }

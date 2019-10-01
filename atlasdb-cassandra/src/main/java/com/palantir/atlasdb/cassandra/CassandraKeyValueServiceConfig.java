@@ -19,6 +19,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
@@ -31,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
@@ -134,6 +136,13 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     default double localHostWeighting() { return 0.0; }
+
+    /**
+     * Controls the behaviour of the host location supplier when the snitch description does not match
+     * any known snitches.
+     */
+    @Value.Default
+    default Supplier<Optional<HostLocation>> defaultHostLocationSupplier() { return () -> Optional.empty(); }
 
     @JsonIgnore
     @Value.Lazy

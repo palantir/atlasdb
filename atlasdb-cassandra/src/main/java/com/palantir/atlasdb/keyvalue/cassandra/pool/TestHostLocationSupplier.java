@@ -16,22 +16,23 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import org.immutables.value.Value;
+import java.util.Optional;
+import java.util.function.Supplier;
 
-import com.palantir.conjure.java.client.config.ImmutablesStyle;
+public final class TestHostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
-@Value.Immutable
-@ImmutablesStyle
-public interface HostLocation {
+    public final Optional<HostLocation> hostLocation;
 
-    @Value.Parameter
-    String datacentre();
-
-    @Value.Parameter
-    String rack();
-
-    static HostLocation of(String datacentre, String rack) {
-        return ImmutableHostLocation.of(datacentre, rack);
+    public TestHostLocationSupplier(Optional<HostLocation> hostLocation) {
+        this.hostLocation = hostLocation;
     }
 
+    public TestHostLocationSupplier() {
+        this.hostLocation = Optional.empty();
+    }
+
+    @Override
+    public Optional<HostLocation> get() {
+        return hostLocation;
+    }
 }

@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -26,27 +24,34 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+/**
+ * Returns the client's datacentre and rack derived from Cassandra's EC2Snitch.
+ * <p>
+ * AWS has an endpoint that returns the datacentre and rack (in Cassandra terms) - this request will fail if not on AWS.
+ * The reply comes in the form "datacentre"+"rack", e.g. "us-east-1a", where datacentre is "us-east-1" and rack is "a".
+ */
 public final class EC2HostLocationSupplier implements Supplier<Optional<HostLocation>> {
+
+    OkHttpClient client = new OkHttpClient.Builder().build();
 
     @Override
     public Optional<HostLocation> get() {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .build();
         try {
             Response response = client.newCall(new Request.Builder()
                     .get()
                     .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
                     .build())
                     .execute();
-            checkState(response.isSuccessful(), "Getting AWS host metadata was not successful");
+            com.palantir.logsafe.Preconditions.checkState(response.isSuccessful(),
+                    "Getting AWS host metadata was not successful");
 
             String responseString = response.body().string();
-            String datacentre = responseString.substring(0, responseString.length()-2);
-            String rack = responseString.substring(responseString.length()-1);
+            String datacentre = responseString.substring(0, responseString.length() - 2);
+            String rack = responseString.substring(responseString.length() - 1);
 
             return Optional.of(HostLocation.of(datacentre, rack));
         } catch (IOException e) {
-            throw new RuntimeException("Could not communicate with AWS host metadata", e);
+            return Optional.empty();
         }
     }
 }

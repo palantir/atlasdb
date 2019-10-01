@@ -25,9 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -38,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
@@ -74,25 +76,13 @@ public class CassandraService implements AutoCloseable {
     private List<InetSocketAddress> cassandraHosts;
 
     private Set<InetSocketAddress> localHosts;
-    private Optional<HostLocation> myLocation;
-    private Random rng;
+    private HostLocationSupplier myLocationSupplier;
 
-    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist,
-            Optional<HostLocation> myLocation, Random rng) {
+    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.blacklist = blacklist;
-        this.myLocation = myLocation;
-        this.rng = rng;
-    }
-
-    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist,
-            Optional<HostLocation> myLocation) {
-        this(metricsManager, config, blacklist, myLocation, new Random());
-    }
-
-    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
-        this(metricsManager, config, blacklist, Optional.empty(), new Random());
+        this.myLocationSupplier = new HostLocationSupplier(config.defaultHostLocationSupplier());
     }
 
     @Override
@@ -109,7 +99,7 @@ public class CassandraService implements AutoCloseable {
 
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
-            myLocation = new HostLocationSupplier(getSnitch(), myLocation).get();
+            myLocationSupplier.setSnitch(getSnitch());
             localHosts = refreshLocalHosts(tokenRanges);
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
@@ -167,21 +157,27 @@ public class CassandraService implements AutoCloseable {
     }
 
     private Set<InetSocketAddress> refreshLocalHosts(List<TokenRange> tokenRanges) {
+        Optional<HostLocation> myLocation = myLocationSupplier.get();
 
-        Set<InetSocketAddress> localHosts = Sets.newHashSet();
+        if (!myLocation.isPresent()) {
+            return ImmutableSet.of();
+        }
 
-        if (myLocation.isPresent()) {
-            for (TokenRange tokenRange : tokenRanges) {
-                for (EndpointDetails details : tokenRange.getEndpoint_details()) {
-                    if (details.isSetDatacenter() && details.isSetRack() && details.isSetHost() &&
-                            myLocation.get().equals(HostLocation.of(details.getDatacenter(), details.getRack()))) {
-                        localHosts.add(getAddressForHostThrowUnchecked(details.getHost()));
-                    }
+        Set<InetSocketAddress> newLocalHosts = Sets.newHashSet();
+        for (TokenRange tokenRange : tokenRanges) {
+            for (EndpointDetails details : tokenRange.getEndpoint_details()) {
+                if (isHostLocal(details, myLocation.get())) {
+                    newLocalHosts.add(getAddressForHostThrowUnchecked(details.getHost()));
                 }
             }
         }
 
-        return localHosts;
+        return newLocalHosts;
+    }
+
+    private boolean isHostLocal(EndpointDetails details, HostLocation myLocation) {
+        return details.isSetDatacenter() && details.isSetRack() && details.isSetHost()
+                && myLocation.equals(HostLocation.of(details.getDatacenter(), details.getRack()));
     }
 
     @VisibleForTesting
@@ -273,9 +269,8 @@ public class CassandraService implements AutoCloseable {
     }
 
     @VisibleForTesting
-    Set<InetSocketAddress> filterHostsByDatacentre(Set<InetSocketAddress> hosts) {
-        // only perform filter some of the time as decided by config
-        if (rng.nextDouble() < config.localHostWeighting()) {
+    Set<InetSocketAddress> filterLocalHosts(Set<InetSocketAddress> hosts) {
+        if (ThreadLocalRandom.current().nextDouble() < config.localHostWeighting()) {
             Set<InetSocketAddress> localFilteredHosts = Sets.intersection(localHosts, hosts);
             if (!localFilteredHosts.isEmpty()) {
                 return localFilteredHosts;
@@ -286,7 +281,7 @@ public class CassandraService implements AutoCloseable {
 
     private Optional<InetSocketAddress> getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
 
-        Set<InetSocketAddress> localFilteredHosts = filterHostsByDatacentre(desiredHosts);
+        Set<InetSocketAddress> localFilteredHosts = filterLocalHosts(desiredHosts);
 
         Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = Maps.filterKeys(currentPools,
                 localFilteredHosts::contains);
