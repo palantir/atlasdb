@@ -18,12 +18,15 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
+import com.palantir.leader.LocalPingableLeader;
+import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -33,13 +36,15 @@ public class LocalPaxosComponents {
 
     private final TimelockPaxosMetrics metrics;
     private final Path logDirectory;
+    private final UUID leaderUuid;
     private final Map<Client, Components> componentsByClient = Maps.newConcurrentMap();
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
 
-    LocalPaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory) {
+    LocalPaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory, UUID leaderUuid) {
         this.metrics = metrics;
         this.logDirectory = logDirectory;
+        this.leaderUuid = leaderUuid;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
     }
@@ -50,6 +55,10 @@ public class LocalPaxosComponents {
 
     public PaxosLearner learner(Client client) {
         return getOrCreateComponents(client).learner();
+    }
+
+    public PingableLeader pingableLeader(Client client) {
+        return getOrCreateComponents(client).pingableLeader();
     }
 
     public BatchPaxosAcceptor batchAcceptor() {
@@ -81,9 +90,16 @@ public class LocalPaxosComponents {
                 "paxos-acceptor",
                 client);
 
+        PingableLeader localPingableLeader = metrics.instrument(
+                PingableLeader.class,
+                new LocalPingableLeader(learner, leaderUuid),
+                "pingable-leader",
+                client);
+
         return ImmutableComponents.builder()
                 .acceptor(acceptor)
                 .learner(learner)
+                .pingableLeader(localPingableLeader)
                 .build();
     }
 
@@ -107,6 +123,7 @@ public class LocalPaxosComponents {
     interface Components {
         PaxosAcceptor acceptor();
         PaxosLearner learner();
+        PingableLeader pingableLeader();
     }
 
 }
