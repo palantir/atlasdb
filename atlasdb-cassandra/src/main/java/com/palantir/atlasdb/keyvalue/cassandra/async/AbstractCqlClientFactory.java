@@ -23,8 +23,6 @@ import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
-import org.slf4j.LoggerFactory;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.NettyOptions;
@@ -46,9 +44,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.proxy.Socks5ProxyHandler;
 
 public abstract class AbstractCqlClientFactory implements CqlClientFactory {
-
-    AbstractCqlClientFactory() {
-    }
 
     public CqlClient constructClient(
             TaggedMetricRegistry taggedMetricRegistry,
@@ -152,7 +147,6 @@ public abstract class AbstractCqlClientFactory implements CqlClientFactory {
 
         @Override
         public void afterChannelInitialized(SocketChannel channel) {
-            LoggerFactory.getLogger(SocksProxyNettyOptions.class).info("Proxy set up");
             channel.pipeline().addFirst(new Socks5ProxyHandler(proxyAddress));
         }
     }
