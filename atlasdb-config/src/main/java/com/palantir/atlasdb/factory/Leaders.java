@@ -121,11 +121,10 @@ public final class Leaders {
             Supplier<LeadershipObserver> leadershipObserverFactory) {
         UUID leaderUuid = UUID.randomUUID();
 
-        LeadershipObserver leadershipObserver = leadershipObserverFactory.get();
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
                 metricsManager.getTaggedRegistry(),
                 leaderUuid.toString(),
-                leadershipObserver,
+                leadershipObserverFactory.get(),
                 ImmutableList.of());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
@@ -198,7 +197,6 @@ public final class Leaders {
                 .ourLearner(ourLearner)
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .pingableLeader(pingableLeader)
-                .leadershipObserver(leadershipObserver)
                 .isCurrentSuspectedLeader(paxosLeaderElectionService::ping)
                 .build();
     }
