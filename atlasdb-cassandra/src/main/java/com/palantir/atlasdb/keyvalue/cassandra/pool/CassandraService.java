@@ -43,6 +43,7 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
@@ -121,8 +122,15 @@ public class CassandraService implements AutoCloseable {
                     SafeArg.of("poolRefreshIntervalSeconds", config.poolRefreshIntervalSeconds()),
                     e);
 
-            // return the set of servers we knew about last time we successfully constructed the tokenMap
-            return tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+            // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
+            // conditions where the entire pool becomes invalid between refreshes.
+            Set<InetSocketAddress> resolvedConfigAddresses = config.servers()
+                    .accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
+
+            Set<InetSocketAddress> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream().flatMap(
+                    Collection::stream).collect(Collectors.toSet());
+
+            return Sets.union(resolvedConfigAddresses, lastKnownAddresses);
         }
     }
 

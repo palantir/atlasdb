@@ -277,10 +277,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
+        Set<InetSocketAddress> resolvedConfigAddresses = config.servers()
+                .accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
+
         if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
-            setServersInPoolTo(config.servers().accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor()));
+            setServersInPoolTo(resolvedConfigAddresses);
         }
 
         cassandra.debugLogStateOfPool();
