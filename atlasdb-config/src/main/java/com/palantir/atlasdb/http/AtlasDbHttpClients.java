@@ -82,7 +82,7 @@ public final class AtlasDbHttpClients {
                         serverListConfigSupplier,
                         type,
                         clientParameters),
-                () -> clientParameters.remotingClientConfig().get().maximumConjureRemotingProbability(),
+                () -> 1.0,
                 type);
     }
 
