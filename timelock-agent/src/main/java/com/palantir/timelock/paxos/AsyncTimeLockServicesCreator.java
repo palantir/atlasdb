@@ -15,20 +15,15 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
@@ -38,14 +33,11 @@ import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateL
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockServicesCreator.class);
@@ -72,37 +64,22 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
-        AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
-                metricsManager.getTaggedRegistry(),
-                AsyncTimelockService.class,
+        AsyncTimelockService asyncTimelockService = leadershipCreator.wrapInLeadershipProxy(
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
+                AsyncTimelockService.class,
                 client);
         AsyncTimelockResource asyncTimelockResource = new AsyncTimelockResource(lockLog, asyncTimelockService);
 
-        LockService lockService = instrumentInLeadershipProxy(
-                metricsManager.getTaggedRegistry(),
-                LockService.class,
+        LockService lockService = leadershipCreator.wrapInLeadershipProxy(
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
+                LockService.class,
                 client);
-
-        leadershipCreator.executeWhenLostLeadership(() ->
-                metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(true)));
-
-        leadershipCreator.executeWhenGainedLeadership(() ->
-                metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(false)));
 
         return TimeLockServices.create(
                 asyncTimelockService,
                 lockService,
                 asyncTimelockResource,
                 asyncTimelockService);
-    }
-
-    private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
-        return metricName ->
-                Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
-                        .filter(x -> x.equals(String.valueOf(currentLeader)))
-                        .isPresent();
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
@@ -127,18 +104,4 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         return () -> lockControlConfigSupplier.get().rateLimitConfig(client);
     }
 
-    private <T> T instrumentInLeadershipProxy(TaggedMetricRegistry taggedMetrics, Class<T> serviceClass,
-            Supplier<T> serviceSupplier, String client) {
-        return instrument(taggedMetrics, serviceClass,
-                leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
-    }
-
-    private <T> T instrument(TaggedMetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass),
-                context -> ImmutableMap.of(
-                        AtlasDbMetricNames.TAG_CLIENT, client,
-                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(
-                                leadershipCreator.isCurrentSuspectedLeader())));
-    }
 }
