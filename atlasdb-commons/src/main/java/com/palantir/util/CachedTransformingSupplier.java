@@ -21,13 +21,13 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Transforms a Supplier by an output function, possibly to a different type. This Supplier caches results of
- * applying the output function to the last seen input. This is thus usually appropriate where the value of the input
- * does not change excessively frequently, and where the computation of the output function is expensive.
+ * Transforms a {@code Supplier} by an output function, possibly to a different type. This {@code Supplier} caches
+ * results of applying the output function to the last seen input. This is thus usually appropriate where the value
+ * of the input does not change excessively frequently, and where the computation of the output function is expensive.
  *
- * See also {@link CachedComposedSupplier}. However, that differs in that that Supplier implements periodic cache
- * invalidation, and also supports explicit versioning (in particular, for use cases where equals() comparison on
- * the input objects is also expensive).
+ * See also {@link CachedComposedSupplier}. However, that differs in that that {@code Supplier} implements periodic
+ * cache invalidation, and also supports explicit versioning (in particular, for use cases where {@code equals()}
+ * comparison on the input objects is also expensive).
  */
 public class CachedTransformingSupplier<T, U> implements Supplier<U> {
     private final Supplier<T> inputSupplier;
