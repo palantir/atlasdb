@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.atlasdb.migration;
 
-import java.util.Set;
+import org.immutables.value.Value;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.async.initializer.Callback;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public interface MigratingTableMapperService {
-    /**
-     * Returns the table that should be read from when attempting to read from startTable.
-     */
-    TableReference readTable(TableReference startTable);
+@Value.Immutable
+public interface KvsWithCallback extends AutoCloseable {
+    @Value.Parameter
+    KeyValueService kvs();
+    @Value.Parameter
+    Callback<TransactionManager> callback();
 
-    /**
-     * Returns a set of table that should all be written to when attempting to write to startTable.
-     */
-    Set<TableReference> writeTables(TableReference startTable);
+    @Override
+    default void close() {
+        kvs().close();
+    }
 }

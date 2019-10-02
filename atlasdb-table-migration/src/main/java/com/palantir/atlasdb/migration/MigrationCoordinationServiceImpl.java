@@ -38,6 +38,11 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
         this.migrationCoordinationStateTransformer = migrationCoordinationStateTransformer;
     }
 
+    public static MigrationCoordinationService create(CoordinationServiceImpl<TableMigrationStateMap> coordinator) {
+        return new MigrationCoordinationServiceImpl(coordinator, new MigrationCoordinationStateTransformer(
+                new MigrationStateTransitioner(), coordinator));
+    }
+
     @Override
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
         return migrationCoordinationStateTransformer.transformMigrationStateForTable(

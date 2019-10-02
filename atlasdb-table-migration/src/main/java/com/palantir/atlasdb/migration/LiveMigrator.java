@@ -19,8 +19,6 @@ package com.palantir.atlasdb.migration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -29,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Streams;
-import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -38,45 +35,32 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.AbortingVisitors;
 
-public class LiveMigrator implements CallbackInitializable<TransactionManager> {
+public class LiveMigrator {
     private static final Logger log = LoggerFactory.getLogger(LiveMigrator.class);
     private final TransactionManager transactionManager;
     private final TableReference startTable;
     private final TableReference targetTable;
     private final ProgressCheckPoint progressCheckPoint;
-    private final ScheduledExecutorService executor;
-    private Runnable callback;
     private volatile int batchSize = 1000;
 
     public LiveMigrator(TransactionManager transactionManager, TableReference startTable,
-            TableReference targetTable, ProgressCheckPoint progressCheckPoint, ScheduledExecutorService executor) {
+            TableReference targetTable, ProgressCheckPoint progressCheckPoint) {
         this.transactionManager = transactionManager;
         this.startTable = startTable;
         this.targetTable = targetTable;
         this.progressCheckPoint = progressCheckPoint;
-        this.executor = executor;
     }
 
-    public void startMigration(Runnable onFinish) {
-        this.callback = onFinish;
-        executor.submit(this::runOneIterationSafe);
-    }
-
-    private void runOneIterationSafe() {
-        try {
-            runOneIteration();
-        } catch (Throwable th) {
-            log.info("Encountered an error running the live migration. Will retry later.", th);
-            executor.schedule(this::runOneIterationSafe, 10, TimeUnit.SECONDS);
-
+    public void runMigration() throws InterruptedException {
+        while (runOneIteration()) {
+            Thread.sleep(10_000);
         }
     }
 
-    private void runOneIteration() {
+    private boolean runOneIteration() {
         Optional<byte[]> nextStartRow = progressCheckPoint.getNextStartRow();
         if (!nextStartRow.isPresent()) {
-            callback.run();
-            return;
+            return false;
         }
 
         RangeRequest request = RangeRequest.builder()
@@ -94,7 +78,7 @@ public class LiveMigrator implements CallbackInitializable<TransactionManager> {
         );
 
         progressCheckPoint.setNextStartRow(lastRead.map(RangeRequests::nextLexicographicName));
-        executor.schedule(this::runOneIterationSafe, 10, TimeUnit.SECONDS);
+        return true;
     }
 
     private Consumer<List<RowResult<byte[]>>> writeRows(Transaction transaction, AtomicReference<byte[]> lastReadRef) {
@@ -105,18 +89,5 @@ public class LiveMigrator implements CallbackInitializable<TransactionManager> {
         transaction.put(targetTable,
                 Streams.stream(row.getCells()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         lastReadRef.set(row.getRowName());
-    }
-
-    public void setBatchSize(int bla) {
-        batchSize = bla;
-    }
-
-    public boolean isDone() {
-        return false;
-    }
-
-    @Override
-    public void initialize(TransactionManager manager) {
-        // hook up here
     }
 }
