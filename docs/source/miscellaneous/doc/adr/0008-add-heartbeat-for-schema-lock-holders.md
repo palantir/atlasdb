@@ -6,6 +6,8 @@ Date: 27/09/2016
 
 Accepted
 
+Superseded by [PR #3620: Use CQL to create tables](https://github.com/palantir/atlasdb/pull/3620).
+
 ## Context
 
 As of version 0.16.0, anyone trying to acquire the a schema mutation lock that is already held by someone else

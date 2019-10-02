@@ -43,6 +43,7 @@ import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -185,7 +186,7 @@ public class AtlasDbPerfCli {
 
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
         if (cli.backends != null && cli.dbUris != null) {
-            throw new RuntimeException("Cannot specify both --backends and --db-uris");
+            throw new SafeRuntimeException("Cannot specify both --backends and --db-uris");
         }
         if (cli.backends != null) {
             cli.backends.forEach(backend -> {
@@ -199,7 +200,8 @@ public class AtlasDbPerfCli {
             try {
                 getDockerUris(cli);
             } catch (Exception e) {
-                throw new RuntimeException("Invalid dockerized database uri. Must be of the form [dbtype]@[host:port]");
+                throw new SafeRuntimeException(
+                        "Invalid dockerized database uri. Must be of the form [dbtype]@[host:port]");
             }
         }
         return true;

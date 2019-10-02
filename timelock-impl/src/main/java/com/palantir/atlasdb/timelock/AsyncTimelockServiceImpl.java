@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -23,23 +22,23 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
-import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.PartitionedTimestamps;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
@@ -179,7 +178,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         lockService.close();
     }
 }

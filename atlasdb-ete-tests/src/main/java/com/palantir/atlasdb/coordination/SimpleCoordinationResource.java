@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.TimestampService;
 
 public final class SimpleCoordinationResource implements CoordinationResource {
@@ -48,9 +49,10 @@ public final class SimpleCoordinationResource implements CoordinationResource {
         return new SimpleCoordinationResource(transactionManager,
                 new TransactionSchemaManager(
                         CoordinationServices.createDefault(
-                        transactionManager.getKeyValueService(),
-                        transactionManager.getTimestampService(),
-                        false)));
+                                transactionManager.getKeyValueService(),
+                                transactionManager.getTimestampService(),
+                                MetricsManagers.createForTests(),
+                                false)));
     }
 
     @Override

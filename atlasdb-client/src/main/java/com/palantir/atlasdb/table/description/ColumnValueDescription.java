@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
 import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.Descriptors.Descriptor;
@@ -47,6 +46,8 @@ import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistables;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @Immutable
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
@@ -113,7 +114,7 @@ public final class ColumnValueDescription {
 
     public static ColumnValueDescription forPersistable(Class<? extends Persistable> clazz,
                                                         Compression compression) {
-        Validate.notNull(Persistables.getHydrator(clazz), "Not a valid persistable class because it has no hydrator");
+        Preconditions.checkNotNull(Persistables.getHydrator(clazz), "Not a valid persistable class because it has no hydrator");
         return new ColumnValueDescription(Format.PERSISTABLE, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
@@ -160,7 +161,7 @@ public final class ColumnValueDescription {
         this.format = Preconditions.checkNotNull(format);
         Validate.notEmpty(className, "className should not be empty");
         Validate.notEmpty(canonicalClassName, "canonicalClassName should not be empty");
-        Validate.isTrue(format != Format.VALUE_TYPE);
+        Preconditions.checkArgument(format != Format.VALUE_TYPE);
         this.canonicalClassName = Preconditions.checkNotNull(canonicalClassName);
         this.className = Preconditions.checkNotNull(className);
         this.protoDescriptor = protoDescriptor;
@@ -256,7 +257,7 @@ public final class ColumnValueDescription {
     public byte[] persistJsonToBytes(ClassLoader classLoader, String str) throws ParseException {
         final byte[] bytes;
         if (format == Format.PERSISTABLE) {
-            throw new IllegalArgumentException("Tried to pass json into a persistable type.");
+            throw new SafeIllegalArgumentException("Tried to pass json into a persistable type.");
         } else if (format == Format.PERSISTER) {
             Persister<?> persister = getPersister();
             if (JsonNode.class == persister.getPersistingClassType()) {
@@ -267,7 +268,7 @@ public final class ColumnValueDescription {
                     throw Throwables.throwUncheckedException(e);
                 }
             } else {
-                throw new IllegalArgumentException("Tried to write json to a Persister that isn't for JsonNode.");
+                throw new SafeIllegalArgumentException("Tried to write json to a Persister that isn't for JsonNode.");
             }
         } else if (format == Format.PROTO) {
             Message.Builder builder = createBuilder(classLoader);
@@ -381,7 +382,7 @@ public final class ColumnValueDescription {
             return new ColumnValueDescription(type, compression);
         }
 
-        Validate.isTrue(type == ValueType.BLOB);
+        Preconditions.checkArgument(type == ValueType.BLOB);
         if (message.hasFormat()) {
             try {
                 Format format = Format.hydrateFromProto(message.getFormat());

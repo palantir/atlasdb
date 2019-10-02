@@ -1,0 +1,7 @@
+type: break
+break:
+  description: The `TimelockRpcClient` interface has changed to require users to provide
+    their TimeLock namespace. If you are using AtlasDB directly, or `TimelockService`
+    through an AtlasDB transaction manager, this should not affect you.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4225

@@ -1,0 +1,6 @@
+type: cqlCapable
+hosts:
+  - foo
+  - bar
+thriftPort: 44
+cqlPort: 45

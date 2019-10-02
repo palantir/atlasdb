@@ -29,6 +29,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 /**
  * Executes multiple {@link TransactionManagerConsistencyCheck}s in sequence, aggregating the
@@ -42,7 +43,7 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private static final Logger log = LoggerFactory.getLogger(ConsistencyCheckRunner.class);
 
-    private static final RuntimeException UNKNOWN = new RuntimeException("unknown");
+    private static final RuntimeException UNKNOWN = new SafeRuntimeException("unknown");
 
     private final List<TransactionManagerConsistencyCheck> consistencyChecks;
 

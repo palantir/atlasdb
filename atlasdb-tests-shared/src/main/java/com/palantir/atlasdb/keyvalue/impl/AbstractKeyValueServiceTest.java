@@ -69,6 +69,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -168,7 +169,7 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, Value> rows4 = keyValueService.getRows(
                 TEST_TABLE,
                 ImmutableSet.of(cell1.getRowName()),
-                ColumnSelection.create(ImmutableList.<byte[]>of()),
+                ColumnSelection.create(ImmutableList.of()),
                 1);
 
         // This has changed recently - now empty column set means
@@ -199,7 +200,7 @@ public abstract class AbstractKeyValueServiceTest {
                 .findFirst()
                 .map(Entry::getValue)
                 .map(value -> Iterators.limit(value, number))
-                .orElse(Collections.emptyIterator());
+                .orElseGet(Collections::emptyIterator);
 
         while (it.hasNext()) {
             Entry<Cell, Value> result = it.next();
@@ -940,9 +941,10 @@ public abstract class AbstractKeyValueServiceTest {
         }
     }
 
-    private List<RowResult<Value>> getExpectedResultForRangePagingWithColumnSelectionTest(int numRows,
-                                                                                          int numColsInSelection,
-                                                                                          boolean reverse) {
+    private static List<RowResult<Value>> getExpectedResultForRangePagingWithColumnSelectionTest(
+            int numRows,
+            int numColsInSelection,
+            boolean reverse) {
         List<RowResult<Value>> expected = new ArrayList<>();
         for (long row = 1; row <= numRows; ++row) {
             ImmutableSortedMap.Builder<byte[], Value> builder = ImmutableSortedMap.orderedBy(
@@ -1084,6 +1086,42 @@ public abstract class AbstractKeyValueServiceTest {
         setupTestRowsZeroOneAndTwoAndDeleteFrom(PtBytes.toBytes("a"),
                 PtBytes.toBytes("a"));
         checkThatTableIsNowOnly(row(0), row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsWithNothing() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of());
+        checkThatTableIsNowOnly(row(0), row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsDeletesOneRow() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0)));
+        checkThatTableIsNowOnly(row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsDeletesMultipleRows() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(2), row(1)));
+        checkThatTableIsNowOnly();
+    }
+
+    @Test
+    public void deleteRowsDeletesMultipleNoncontiguousRows() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(2)));
+        checkThatTableIsNowOnly(row(1));
+    }
+
+    @Test
+    public void deleteRowsIgnoresRowsThatDoNotExist() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(5), row(7)));
+        checkThatTableIsNowOnly(row(0), row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsResilientToDuplicates() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(0), row(0), row(0)));
+        checkThatTableIsNowOnly(row(1), row(2));
     }
 
     @Test
@@ -1298,6 +1336,12 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.deleteRange(TEST_TABLE, range);
     }
 
+    private void setupTestRowsZeroOneAndTwoAndDeleteSpecific(List<byte[]> rows) {
+        putTestDataForRowsZeroOneAndTwo();
+
+        keyValueService.deleteRows(TEST_TABLE, rows);
+    }
+
     private void checkThatTableIsNowOnly(byte[]... rows) {
         List<byte[]> keys = Lists.newArrayList();
         keyValueService.getRange(TEST_TABLE, RangeRequest.all(), AtlasDbConstants.MAX_TS)
@@ -1414,7 +1458,7 @@ public abstract class AbstractKeyValueServiceTest {
         try {
             putTestDataForSingleTimestamp();
         } catch (AtlasDbDependencyException e) {
-            if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
+            if (e.getCause() instanceof KeyAlreadyExistsException) {
                 Assert.fail("Must not throw when overwriting with same value!");
             }
         }
@@ -1431,7 +1475,7 @@ public abstract class AbstractKeyValueServiceTest {
                             TEST_CELL,
                             Value.create(val(0, 0), TEST_TIMESTAMP + 1)));
         } catch (AtlasDbDependencyException e) {
-            if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
+            if (e.getCause() instanceof KeyAlreadyExistsException) {
                 Assert.fail("Must not throw when overwriting with same value!");
             }
         }
@@ -1519,15 +1563,18 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
-    public void putUnlessExistsThrowsExceptionContainingExistingCellIfNoConcurrentOperations() {
+    public void putUnlessExistsDecodesCellsCorrectlyIfSupported() {
         Assume.assumeTrue(checkAndSetSupported());
 
         keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
 
+        // Exact message is KVS specific so not asserting on that
         assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0))))
                 .isInstanceOf(KeyAlreadyExistsException.class)
-                .satisfies(exception -> Assertions.assertThat(((KeyAlreadyExistsException) exception).getExistingKeys())
-                        .containsExactly(TEST_CELL));
+                .satisfies(exception -> {
+                    KeyAlreadyExistsException keyAlreadyExistsException = (KeyAlreadyExistsException) exception;
+                    assertThat(keyAlreadyExistsException.getExistingKeys(), contains(TEST_CELL));
+                });
     }
 
     @Test
@@ -1784,11 +1831,11 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(getOnlyItemInTableRange(), is(originalData));
     }
 
-    private void modifyValue(byte[] retrievedValue) {
+    private static void modifyValue(byte[] retrievedValue) {
         retrievedValue[0] = (byte) 50;
     }
 
-    private byte[] copyOf(byte[] contents) {
+    private static byte[] copyOf(byte[] contents) {
         return Arrays.copyOf(contents, contents.length);
     }
 
@@ -1933,7 +1980,7 @@ public abstract class AbstractKeyValueServiceTest {
         return PtBytes.toBytes("value" + row + col);
     }
 
-    private byte[] dynamicColumn(long columnId) {
+    private static byte[] dynamicColumn(long columnId) {
         return PtBytes.toBytes(columnId);
     }
 

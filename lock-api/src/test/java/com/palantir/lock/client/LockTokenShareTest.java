@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
@@ -40,7 +41,7 @@ public class LockTokenShareTest {
 
     @Test
     public void allSharedTokensShouldHaveDifferentIds() {
-        List<LockToken> tokens = LockTokenShare.share(LOCK_TOKEN, 3);
+        Stream<LockToken> tokens = LockTokenShare.share(LOCK_TOKEN, 3);
         assertThat(tokens)
                 .extracting(LockToken::getRequestId)
                 .doesNotHaveDuplicates()
@@ -93,7 +94,7 @@ public class LockTokenShareTest {
     }
 
     private static List<LockTokenShare> getSharedLockTokens(LockToken token, int numberOfReferences) {
-        return LockTokenShare.share(LOCK_TOKEN, numberOfReferences).stream()
+        return LockTokenShare.share(LOCK_TOKEN, numberOfReferences)
                 .map(LockTokenShare.class::cast)
                 .collect(Collectors.toList());
     }

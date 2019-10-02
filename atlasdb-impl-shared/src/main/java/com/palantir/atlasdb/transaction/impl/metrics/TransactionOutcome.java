@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
+
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;

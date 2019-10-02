@@ -16,57 +16,53 @@
 
 package com.palantir.paxos;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PaxosResponses<T extends PaxosResponse> {
-    private final int totalRequests;
-    private final int quorum;
-    private final boolean shortcut;
-    private List<T> responses = new ArrayList<>();
-    private int successes = 0;
-    private int failures = 0;
+import org.immutables.value.Value;
 
-    PaxosResponses(int totalRequests, int quorum, boolean shortcut) {
-        this.totalRequests = totalRequests;
-        this.quorum = quorum;
-        this.shortcut = shortcut;
-    }
+@Value.Immutable
+public abstract class PaxosResponses<T extends PaxosResponse> {
+    abstract int quorum();
+    abstract List<T> responses();
 
-    public boolean hasMoreRequests() {
-        return successes + failures < totalRequests;
-    }
-
-    boolean shouldProcessNextRequest() {
-        return !hasQuorum() && !shouldGiveUpOnAchievingQuorum();
-    }
-
-    public void add(T response) {
-        if (response.isSuccessful()) {
-            successes++;
-        } else {
-            failures++;
-        }
-        responses.add(response);
-    }
-
-    void markFailure() {
-        failures++;
+    public static <T extends PaxosResponse> PaxosResponses<T> of(int quorum, List<T> responses) {
+        return ImmutablePaxosResponses.<T>builder()
+                .quorum(quorum)
+                .addAllResponses(responses)
+                .build();
     }
 
     public List<T> get() {
-        return responses;
+        return responses();
     }
 
     public Stream<T> stream() {
-        return responses.stream();
+        return responses().stream();
     }
 
+    public <U extends PaxosResponse> PaxosResponses<U> map(Function<T, U> mapper) {
+        return of(quorum(), responses().stream().map(mapper).collect(Collectors.toList()));
+    }
+
+    @Value.Derived
+    int successes() {
+        return (int) responses().stream().filter(PaxosResponse::isSuccessful).count();
+    }
+
+    @Value.Derived
     public boolean hasQuorum() {
-        return successes >= quorum;
+        return successes() >= quorum();
     }
 
+    @Value.Derived
+    public int numberOfResponses() {
+        return responses().size();
+    }
+
+    @Value.Derived
     PaxosQuorumStatus getQuorumResult() {
         if (hasQuorum()) {
             return PaxosQuorumStatus.QUORUM_AGREED;
@@ -76,11 +72,9 @@ public class PaxosResponses<T extends PaxosResponse> {
         return PaxosQuorumStatus.NO_QUORUM;
     }
 
-    private boolean shouldGiveUpOnAchievingQuorum() {
-        return shortcut && failures > totalRequests - quorum;
+    @Value.Derived
+    protected boolean thereWereDisagreements() {
+        return responses().stream().anyMatch(response -> !response.isSuccessful());
     }
 
-    private boolean thereWereDisagreements() {
-        return responses.stream().anyMatch(response -> !response.isSuccessful());
-    }
 }

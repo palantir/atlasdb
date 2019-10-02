@@ -15,29 +15,41 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestRule;
 
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
+import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.containers.CassandraResource;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
-import com.palantir.exception.NotInitializedException;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.WriteBatchingTransactionService;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.TimestampManagementService;
 
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
-    private final Supplier<KeyValueService> kvsSupplier = Suppliers.memoize(this::createAndRegisterKeyValueService);
+    private static final Supplier<KeyValueService> KVS_SUPPLIER =
+            Suppliers.memoize(CassandraKeyValueServiceTransactionIntegrationTest::createAndRegisterKeyValueService);
 
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource();
+    public static final CassandraResource CASSANDRA = new CassandraResource(KVS_SUPPLIER);
 
     // This constant exists so that fresh timestamps are always greater than the write timestamps of values used in the
     // test.
@@ -55,22 +67,36 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
         ((TimestampManagementService) timestampService).fastForwardTimestamp(ONE_BILLION);
     }
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return kvsSupplier.get();
+    @Test
+    public void canUntangleHighlyConflictingPutUnlessExists() {
+        TransactionTables.createTables(keyValueService);
+        TransactionTables.truncateTables(keyValueService);
+        SimpleTransactionService v2TransactionService = SimpleTransactionService.createV2(keyValueService);
+        TransactionService transactionService = WriteBatchingTransactionService.create(v2TransactionService);
+        ExecutorService executorService = Executors.newCachedThreadPool();
+
+        int numTransactionPutters = 100;
+        List<Future<?>> futures = LongStream.range(1, numTransactionPutters)
+                .mapToObj(timestamp -> executorService.submit(() -> {
+                    tryPutTimestampPermittingExceptions(transactionService, timestamp);
+                    tryPutTimestampPermittingExceptions(transactionService, timestamp + 1);
+                }))
+                .collect(Collectors.toList());
+        futures.forEach(Futures::getUnchecked);
     }
 
-    private KeyValueService createAndRegisterKeyValueService() {
-        KeyValueService kvs = CassandraKeyValueServiceImpl.create(
-                metricsManager,
-                CASSANDRA.getConfig(),
-                CassandraMutationTimestampProviders.singleLongSupplierBacked(
-                        () -> {
-                            if (timestampService == null) {
-                                throw new NotInitializedException("timestamp service");
-                            }
-                            return timestampService.getFreshTimestamp();
-                        }));
+    private void tryPutTimestampPermittingExceptions(
+            TransactionService transactionService,
+            long timestamp) {
+        try {
+            transactionService.putUnlessExists(timestamp, timestamp + 1);
+        } catch (KeyAlreadyExistsException ex) {
+            // OK
+        }
+    }
+
+    private static KeyValueService createAndRegisterKeyValueService() {
+        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(CASSANDRA.getConfig());
         CASSANDRA.registerKvs(kvs);
         return kvs;
     }

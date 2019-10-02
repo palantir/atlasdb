@@ -25,12 +25,12 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Performance benchmarks for KVS put operations.

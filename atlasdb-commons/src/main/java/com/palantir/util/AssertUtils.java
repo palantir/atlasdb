@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class AssertUtils {
 
@@ -78,7 +79,8 @@ public class AssertUtils {
     }
 
     public static Exception getDebuggingException() {
-        return new Exception("This stack trace is not from a thrown exception. It's provided just for debugging this error.");
+        return new SafeRuntimeException(
+                "This stack trace is not from a thrown exception. It's provided just for debugging this error.");
     }
 
     public static void assertAndLog(Logger log, boolean cheapTest, String format, Object... args) {

@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Users must now declare that their configuration is non-standard and
+    that they accept the attendant risks if running with fewer than three nodes. Specifically,
+    they must set the `enableNonstandardAndPossiblyDangerousTopology` flag in their
+    `ClusterConfiguration` to true.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4111

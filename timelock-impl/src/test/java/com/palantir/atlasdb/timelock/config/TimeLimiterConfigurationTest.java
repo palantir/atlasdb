@@ -22,9 +22,9 @@ import org.junit.Test;
 
 public class TimeLimiterConfigurationTest {
     @Test
-    public void defaultConfigurationHasTimeLimitingDisabled() {
+    public void defaultConfigurationHasTimeLimitingEnabled() {
         TimeLimiterConfiguration defaultConfiguration = TimeLimiterConfiguration.getDefaultConfiguration();
-        assertThat(defaultConfiguration.enableTimeLimiting()).isFalse();
+        assertThat(defaultConfiguration.enableTimeLimiting()).isTrue();
     }
 
     @Test

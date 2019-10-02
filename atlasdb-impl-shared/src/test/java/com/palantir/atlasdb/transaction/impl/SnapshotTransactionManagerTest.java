@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,7 +36,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -49,6 +50,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class SnapshotTransactionManagerTest {
@@ -80,7 +82,7 @@ public class SnapshotTransactionManagerTest {
             false,
             TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-            TimestampCache.createForTests(),
+            DefaultTimestampCache.createForTests(),
             MultiTableSweepQueueWriter.NO_OP,
             executorService,
             true,
@@ -127,7 +129,7 @@ public class SnapshotTransactionManagerTest {
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                TimestampCache.createForTests(),
+                DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 executorService,
                 true,
@@ -174,5 +176,55 @@ public class SnapshotTransactionManagerTest {
                 .contains(FINISH_TASK_METRIC_NAME);
         assertThat(registry.getTimers().get(SETUP_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
         assertThat(registry.getTimers().get(FINISH_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    public void callsStartTransactionForReadOnlyTransactionsIfFlagIsSet() throws InterruptedException {
+        TimelockService timelockService =
+                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
+        when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
+        SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, true);
+
+        transactionManager.runTaskReadOnly(tx -> "ignored");
+        verify(timelockService).startIdentifiedAtlasDbTransaction();
+
+        transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
+        verify(timelockService, times(2)).startIdentifiedAtlasDbTransaction();
+    }
+
+    @Test
+    public void doesNotCallStartTransactionForReadOnlyTransactionsIfFlagIsNotSet() {
+        TimelockService timelockService =
+                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
+        SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
+
+        transactionManager.runTaskReadOnly(tx -> "ignored");
+        transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
+        verify(timelockService, never()).startIdentifiedAtlasDbTransaction();
+    }
+
+    private SnapshotTransactionManager createSnapshotTransactionManager(
+            TimelockService timelockService, boolean grabImmutableTsLockOnReads) {
+        return new SnapshotTransactionManager(
+                metricsManager,
+                keyValueService,
+                timelockService,
+                timestampService,
+                mock(LockService.class), // not closeable
+                mock(TransactionService.class),
+                () -> null,
+                null,
+                null,
+                cleaner,
+                false,
+                TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
+                TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
+                DefaultTimestampCache.createForTests(),
+                MultiTableSweepQueueWriter.NO_OP,
+                executorService,
+                true,
+                () -> ImmutableTransactionConfig.builder()
+                        .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
+                        .build());
     }
 }

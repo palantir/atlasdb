@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -46,13 +47,19 @@ public class CassandraClientPoolIntegrationTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    private static final int MODIFIED_REPLICATION_FACTOR = CASSANDRA.getConfig().replicationFactor() + 1;
-
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
-    private Blacklist blacklist = new Blacklist(CASSANDRA.getConfig());
-    private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
-            CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+    private int modifiedReplicationFactor;
+    private Blacklist blacklist;
+    private CassandraClientPoolImpl clientPool;
+
+    @Before
+    public void setUp() {
+        blacklist = new Blacklist(CASSANDRA.getConfig());
+        modifiedReplicationFactor = CASSANDRA.getConfig().replicationFactor() + 1;
+        clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
+                CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+    }
 
     @Test
     public void testTokenMapping() {
@@ -94,7 +101,7 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
                         ImmutableCassandraKeyValueServiceConfig.copyOf(
                                 CASSANDRA.getConfig()).withReplicationFactor(
-                                MODIFIED_REPLICATION_FACTOR));
+                                modifiedReplicationFactor));
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);
@@ -105,7 +112,7 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorOnCassandra() throws TException {
-        changeReplicationFactor(MODIFIED_REPLICATION_FACTOR);
+        changeReplicationFactor(modifiedReplicationFactor);
         clientPool.run(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CASSANDRA.getConfig());

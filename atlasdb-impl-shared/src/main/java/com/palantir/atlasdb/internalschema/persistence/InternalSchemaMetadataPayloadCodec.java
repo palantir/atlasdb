@@ -18,6 +18,7 @@ package com.palantir.atlasdb.internalschema.persistence;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -57,16 +58,21 @@ public final class InternalSchemaMetadataPayloadCodec {
      * @return common representation of schema metadata
      */
     static InternalSchemaMetadata decode(VersionedInternalSchemaMetadata versionedInternalSchemaMetadata) {
+        return tryDecode(versionedInternalSchemaMetadata)
+                .orElseThrow(() -> new SafeIllegalStateException("Could not decode persisted internal schema metadata -"
+                        + " unrecognized version. This may occur transiently during upgrades, but if it persists please"
+                        + " contact support.",
+                        SafeArg.of("internalSchemaMetadata", versionedInternalSchemaMetadata),
+                        SafeArg.of("knownVersions", SUPPORTED_DECODERS.keySet())));
+    }
+
+    static Optional<InternalSchemaMetadata> tryDecode(VersionedInternalSchemaMetadata versionedInternalSchemaMetadata) {
         Function<byte[], InternalSchemaMetadata> targetDeserializer
                 = SUPPORTED_DECODERS.get(versionedInternalSchemaMetadata.version());
         if (targetDeserializer == null) {
-            throw new SafeIllegalStateException("Could not decode persisted internal schema metadata -"
-                    + " unrecognized version. This may occur transiently during upgrades, but if it persists please"
-                    + " contact support.",
-                    SafeArg.of("internalSchemaMetadata", versionedInternalSchemaMetadata),
-                    SafeArg.of("knownVersions", SUPPORTED_DECODERS.keySet()));
+            return Optional.empty();
         }
-        return targetDeserializer.apply(versionedInternalSchemaMetadata.payload());
+        return Optional.of(targetDeserializer.apply(versionedInternalSchemaMetadata.payload()));
     }
 
     /**

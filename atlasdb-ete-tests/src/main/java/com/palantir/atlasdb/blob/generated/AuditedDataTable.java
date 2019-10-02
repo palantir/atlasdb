@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -23,7 +24,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -546,6 +546,20 @@ public final class AuditedDataTable implements
         });
     }
 
+    @Override
+    public Map<AuditedDataRow, Iterator<AuditedDataNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<AuditedDataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<AuditedDataRow, Iterator<AuditedDataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            AuditedDataRow row = AuditedDataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<AuditedDataNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<AuditedDataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -657,5 +671,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "q9Ur/tVv9Zy8v6wnnmNG6A==";
+    static String __CLASS_HASH = "EGnx5lzRwirDKf6FLStpYQ==";
 }

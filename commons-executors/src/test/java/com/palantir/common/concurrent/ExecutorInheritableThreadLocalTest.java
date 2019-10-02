@@ -15,6 +15,8 @@
  */
 package com.palantir.common.concurrent;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -34,7 +36,7 @@ import com.google.common.util.concurrent.Callables;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class ExecutorInheritableThreadLocalTest extends Assert {
+public class ExecutorInheritableThreadLocalTest {
     private static final String orig = "Yo";
     private static List<Integer> outputList = Lists.newLinkedList();
     private final ExecutorService exec = PTExecutors.newCachedThreadPool();

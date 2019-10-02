@@ -25,20 +25,21 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings("MethodTypeParameterName")
@@ -76,9 +77,10 @@ public final class PaxosQuorumChecker {
      * @param remoteRequestTimeout timeout for the call
      * @return a list responses
      */
-    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponses<RESPONSE> collectQuorumResponses(
+    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
+            collectQuorumResponses(
             ImmutableList<SERVICE> remotes,
-            final Function<SERVICE, RESPONSE> request,
+            Function<SERVICE, RESPONSE> request,
             int quorumSize,
             ExecutorService executorService,
             Duration remoteRequestTimeout) {
@@ -88,14 +90,15 @@ public final class PaxosQuorumChecker {
                 quorumSize,
                 mapToSingleExecutorService(remotes, executorService),
                 remoteRequestTimeout,
-                true);
+                quorumShortcutPredicate(quorumSize));
     }
 
-    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponses<RESPONSE> collectQuorumResponses(
+    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
+            collectQuorumResponses(
             ImmutableList<SERVICE> remotes,
-            final Function<SERVICE, RESPONSE> request,
+            Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            Map<SERVICE, ExecutorService> executors,
+            Map<? extends SERVICE, ExecutorService> executors,
             Duration remoteRequestTimeout) {
         Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
                 "Each remote should have an executor.");
@@ -105,7 +108,13 @@ public final class PaxosQuorumChecker {
                 quorumSize,
                 executors,
                 remoteRequestTimeout,
-                true);
+                quorumShortcutPredicate(quorumSize));
+    }
+
+    private static <SERVICE, RESPONSE> Predicate<InProgressResponseState<SERVICE, RESPONSE>>
+            quorumShortcutPredicate(int quorum) {
+        return currentState -> currentState.successes() >= quorum
+                || currentState.failures() > currentState.totalRequests() - quorum;
     }
 
     /**
@@ -117,9 +126,10 @@ public final class PaxosQuorumChecker {
      * @param executorService runs the requests
      * @return a list of responses
      */
-    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponses<RESPONSE> collectAsManyResponsesAsPossible(
+    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponses<RESPONSE>
+            collectAsManyResponsesAsPossible(
             ImmutableList<SERVICE> remotes,
-            final Function<SERVICE, RESPONSE> request,
+            Function<SERVICE, RESPONSE> request,
             ExecutorService executorService,
             Duration remoteRequestTimeout) {
         return collectResponses(
@@ -128,7 +138,22 @@ public final class PaxosQuorumChecker {
                 remotes.size(),
                 mapToSingleExecutorService(remotes, executorService),
                 remoteRequestTimeout,
-                false);
+                $ -> false).withoutRemotes();
+    }
+
+    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE> collectUntil(
+            ImmutableList<SERVICE> remotes,
+            Function<SERVICE, RESPONSE> request,
+            Map<SERVICE, ExecutorService> executors,
+            Duration remoteRequestTimeout,
+            Predicate<InProgressResponseState<SERVICE, RESPONSE>> predicate) {
+        return collectResponses(
+                remotes,
+                request,
+                remotes.size(),
+                executors,
+                remoteRequestTimeout,
+                predicate);
     }
 
     private static <SERVICE> Map<SERVICE, ExecutorService> mapToSingleExecutorService(
@@ -139,30 +164,34 @@ public final class PaxosQuorumChecker {
 
     /**
      * Collects a list of responses from remote services.
-     * This method may short-circuit if a quorum can no longer be obtained (depending on the
-     * shortcircuitIfQuorumImpossible parameter) and cancels pending requests once a quorum has been obtained.
+     * This method may short-circuit depending on the {@code shouldSkipNextRequest} predicate parameter and cancels
+     * pending requests once the predicate is satisfied.
      *
      * @param remotes a list of endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
      * @param quorumSize number of acknowledge requests after termination
      * @param executors run the requests
+     * @param shouldSkipNextRequest whether or not the next request should be skipped
      * @return a list of responses
      */
-    private static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponses<RESPONSE> collectResponses(
+    private static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
+            collectResponses(
             ImmutableList<SERVICE> remotes,
-            final Function<SERVICE, RESPONSE> request,
+            Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            Map<SERVICE, ExecutorService> executors,
+            Map<? extends SERVICE, ExecutorService> executors,
             Duration remoteRequestTimeout,
-            boolean shortcircuitIfQuorumImpossible) {
+            Predicate<InProgressResponseState<SERVICE, RESPONSE>> shouldSkipNextRequest) {
         MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService =
                 MultiplexingCompletionService.create(executors);
 
-        PaxosResponses<RESPONSE> receivedResponses = new PaxosResponses<>(remotes.size(), quorumSize,
-                shortcircuitIfQuorumImpossible);
+        PaxosResponseAccumulator<SERVICE, RESPONSE> receivedResponses = PaxosResponseAccumulator.newResponse(
+                remotes.size(),
+                quorumSize,
+                shouldSkipNextRequest);
         // kick off all the requests
-        List<Future<RESPONSE>> allFutures = Lists.newArrayList();
-        for (final SERVICE remote : remotes) {
+        List<Future<Map.Entry<SERVICE, RESPONSE>>> allFutures = Lists.newArrayList();
+        for (SERVICE remote : remotes) {
             try {
                 allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
             } catch (RejectedExecutionException e) {
@@ -182,13 +211,13 @@ public final class PaxosQuorumChecker {
             long deadline = System.nanoTime() + remoteRequestTimeout.toNanos();
             while (receivedResponses.hasMoreRequests() && receivedResponses.shouldProcessNextRequest()) {
                 try {
-                    Future<RESPONSE> responseFuture = responseCompletionService.poll(
+                    Future<Map.Entry<SERVICE, RESPONSE>> responseFuture = responseCompletionService.poll(
                             deadline - System.nanoTime(),
                             TimeUnit.NANOSECONDS);
                     if (timedOut(responseFuture)) {
                         break;
                     }
-                    receivedResponses.add(responseFuture.get());
+                    receivedResponses.add(responseFuture.get().getKey(), responseFuture.get().getValue());
                 } catch (ExecutionException e) {
                     receivedResponses.markFailure();
                     encounteredErrors.add(e.getCause());
@@ -208,15 +237,15 @@ public final class PaxosQuorumChecker {
                 encounteredErrors.forEach(throwable -> log.warn(PAXOS_MESSAGE_ERROR, throwable));
             }
         }
-        return receivedResponses;
+        return receivedResponses.collect();
     }
 
     private static boolean timedOut(Future<?> responseFuture) {
         return responseFuture == null;
     }
 
-    private static <RESPONSE extends PaxosResponse> void cancelOutstandingRequestsAfterTimeout(
-            List<Future<RESPONSE>> responseFutures) {
+    private static <SERVICE, RESPONSE extends PaxosResponse> void cancelOutstandingRequestsAfterTimeout(
+            List<Future<Map.Entry<SERVICE, RESPONSE>>> responseFutures) {
         boolean areAllRequestsComplete = responseFutures.stream().allMatch(Future::isDone);
         if (areAllRequestsComplete) {
             return;

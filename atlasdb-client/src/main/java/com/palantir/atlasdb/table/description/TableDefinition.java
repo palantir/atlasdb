@@ -35,6 +35,7 @@ import com.palantir.atlasdb.table.description.constraints.RowConstraintMetadata;
 import com.palantir.atlasdb.table.description.constraints.TableConstraint;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 /**
  * Defines a table for a schema.
@@ -71,9 +72,9 @@ public class TableDefinition extends AbstractDefinition {
      * values of both SAFE and UNSAFE).
      */
     public void tableNameLogSafety(LogSafety logSafety) {
-        Preconditions.checkState(!(logSafetyDeclared && tableNameSafety != logSafety),
+        com.palantir.logsafe.Preconditions.checkState(!(logSafetyDeclared && tableNameSafety != logSafety),
                 "This table name's safety for logging has already been declared.");
-        Preconditions.checkState(state == State.NONE, "Specifying a table name is safe or unsafe should be done outside"
+        com.palantir.logsafe.Preconditions.checkState(state == State.NONE, "Specifying a table name is safe or unsafe should be done outside"
                 + " of the subscopes of TableDefinition.");
         logSafetyDeclared = true;
         tableNameSafety = logSafety;
@@ -89,7 +90,7 @@ public class TableDefinition extends AbstractDefinition {
      * Note that this DOES NOT make the values of either the rows or the columns safe for logging.
      */
     public void namedComponentsSafeByDefault() {
-        Preconditions.checkState(state == State.NONE, "Specifying components are safe by default should be done outside"
+        com.palantir.logsafe.Preconditions.checkState(state == State.NONE, "Specifying components are safe by default should be done outside"
                 + " of the subscopes of TableDefinition.");
         defaultNamedComponentLogSafety = LogSafety.SAFE;
     }
@@ -148,15 +149,15 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     private void checkStateForNamedColumnDefinition() {
-        Preconditions.checkState(state == State.DEFINING_COLUMNS,
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_COLUMNS,
                 "Can only define named columns when in the columns scope.");
-        Preconditions.checkState(!noColumns, "Cannot define named columns if noColumns() was already indicated");
+        com.palantir.logsafe.Preconditions.checkState(!noColumns, "Cannot define named columns if noColumns() was already indicated");
     }
 
     public void noColumns() {
-        Preconditions.checkState(state != State.DEFINING_COLUMNS,
+        com.palantir.logsafe.Preconditions.checkState(state != State.DEFINING_COLUMNS,
                 "Cannot declare noColumns() inside the column scope.");
-        Preconditions.checkState(fixedColumns.isEmpty(),
+        com.palantir.logsafe.Preconditions.checkState(fixedColumns.isEmpty(),
                 "Cannot declare noColumns() if columns have already been declared.");
         fixedColumns.add(new NamedColumnDescription("e", "exists", ColumnValueDescription.forType(ValueType.VAR_LONG)));
         noColumns = true;
@@ -190,7 +191,7 @@ public class TableDefinition extends AbstractDefinition {
      * If using prefix range requests, the components that are hashed must also be specified in the prefix.
      */
     public void hashFirstNRowComponents(int numberOfComponents) {
-        Preconditions.checkState(numberOfComponents >= 0,
+        com.palantir.logsafe.Preconditions.checkState(numberOfComponents >= 0,
                 "Need to specify a non-negative number of components to hash.");
         checkHashRowComponentsPreconditions("hashFirstNRowComponents");
         numberOfComponentsHashed = numberOfComponents;
@@ -218,7 +219,7 @@ public class TableDefinition extends AbstractDefinition {
 
     public void rowComponent(
             String componentName, ValueType valueType, ValueByteOrder valueByteOrder, LogSafety rowNameLoggable) {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_NAME,
                 "Can only declare a row component inside the rowName scope.");
         rowNameComponents.add(
                 new NameComponentDescription.Builder()
@@ -262,7 +263,7 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     private void checkStateForPartitioner() {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_NAME,
                 "Can only define a partitioner inside the rowName scope.");
     }
 
@@ -271,7 +272,7 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void columnComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
-        Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN,
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN,
                 "Can only define a dynamic column component inside the dynamicColumns scope.");
         dynamicColumnNameComponents.add(new NameComponentDescription.Builder()
                 .componentName(componentName)
@@ -298,7 +299,7 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     private void checkStateForDynamicColumnValues() {
-        Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN,
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN,
                 "Can only define a value inside the dynamicColumns scope.");
     }
 
@@ -318,7 +319,7 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     private void checkStateForTableConstraints() {
-        Preconditions.checkState(state == State.DEFINING_CONSTRAINTS,
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_CONSTRAINTS,
                 "Can only define a constraint inside the constraints scope.");
     }
 
@@ -363,7 +364,7 @@ public class TableDefinition extends AbstractDefinition {
     public void validate() {
         toTableMetadata();
         getConstraintMetadata();
-        Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
+        com.palantir.logsafe.Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
         validateFirstRowComp(rowNameComponents.get(0));
     }
 
@@ -397,7 +398,7 @@ public class TableDefinition extends AbstractDefinition {
     private boolean v2TableEnabled = false;
 
     public TableMetadata toTableMetadata() {
-        Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
+        com.palantir.logsafe.Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
 
         if (explicitCompressionRequested && explicitCompressionBlockSizeKb == 0) {
             if (rangeScanAllowed) {
@@ -423,12 +424,12 @@ public class TableDefinition extends AbstractDefinition {
 
     private ColumnMetadataDescription getColumnMetadataDescription() {
         if (!fixedColumns.isEmpty()) {
-            Preconditions.checkState(
+            com.palantir.logsafe.Preconditions.checkState(
                     dynamicColumnNameComponents.isEmpty(),
                     "Cannot define both dynamic and fixed columns.");
             return new ColumnMetadataDescription(fixedColumns);
         } else {
-            Preconditions.checkState(
+            com.palantir.logsafe.Preconditions.checkState(
                     !dynamicColumnNameComponents.isEmpty() && dynamicColumnValue != null,
                     "Columns not properly defined.");
             return new ColumnMetadataDescription(
@@ -450,7 +451,7 @@ public class TableDefinition extends AbstractDefinition {
         } else if (Persistable.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forPersistable(protoOrPersistable, compression);
         } else {
-            throw new IllegalArgumentException("Expected either protobuf or Persistable class.");
+            throw new SafeIllegalArgumentException("Expected either protobuf or Persistable class.");
         }
     }
 

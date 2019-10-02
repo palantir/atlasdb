@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Random;
 
 import com.google.common.io.BaseEncoding;
+import com.palantir.logsafe.exceptions.SafeIoException;
 
 public final class TempFileUtils {
     private TempFileUtils() {/**/
@@ -51,10 +52,10 @@ public final class TempFileUtils {
     public static File createTempDirectory(final String prefix, final String suffix) throws IOException {
         final File tempFile = createTempFile(prefix, suffix);
         if (tempFile.exists() && !tempFile.delete()) {
-            throw new IOException("Unable to delete file to create directory.");
+            throw new SafeIoException("Unable to delete file to create directory.");
         }
         if (!tempFile.mkdir()) {
-            throw new IOException("Unable to create directory.");
+            throw new SafeIoException("Unable to create directory.");
         }
         return tempFile;
     }

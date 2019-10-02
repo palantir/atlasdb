@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ import com.palantir.processors.AutoDelegate;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 @AutoDelegate
-public interface CassandraClient {
+public interface CassandraClient extends Closeable {
     /**
      * Checks if the client has a valid connection to Cassandra cluster. Can be used by a client pool
      * to eliminate clients in bad state.
@@ -159,4 +160,6 @@ public interface CassandraClient {
     void truncate(String cfname)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
+    @Override
+    void close();
 }

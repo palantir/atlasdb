@@ -15,21 +15,37 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
-@JsonDeserialize(as = ImmutableCombinedTimeLockServerConfiguration.class)
-@JsonSerialize(as = ImmutableCombinedTimeLockServerConfiguration.class)
-@Value.Immutable
-public interface CombinedTimeLockServerConfiguration {
-    TimeLockInstallConfiguration install();
+import io.dropwizard.Configuration;
 
-    TimeLockRuntimeConfiguration runtime();
+public class CombinedTimeLockServerConfiguration extends Configuration {
+    private final TimeLockInstallConfiguration install;
+    private final TimeLockRuntimeConfiguration runtime;
 
-    TimeLockDeprecatedConfiguration deprecated();
+    public CombinedTimeLockServerConfiguration(
+            @JsonProperty(value = "install", required = true) TimeLockInstallConfiguration install,
+            @JsonProperty(value = "runtime", required = true) TimeLockRuntimeConfiguration runtime) {
+        this.install = install;
+        this.runtime = runtime;
+    }
+
+    public TimeLockInstallConfiguration install() {
+        return install;
+    }
+
+    public TimeLockRuntimeConfiguration runtime() {
+        return runtime;
+    }
+
+    public static int threadPoolSize() {
+        return 128;
+    }
+
+    public static long blockingTimeoutMs() {
+        return (long) (HumanReadableDuration.minutes(1).toMilliseconds() * 0.8);
+    }
 }

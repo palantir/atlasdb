@@ -26,8 +26,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.base.Throwables;
@@ -58,8 +60,11 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     static TransactionStarter create(LockLeaseService lockLeaseService) {
-        return new TransactionStarter(DisruptorAutobatcher.create(
-                consumer(lockLeaseService)),
+        DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher = Autobatchers
+                .independent(consumer(lockLeaseService))
+                .safeLoggablePurpose("transaction-starter")
+                .build();
+        return new TransactionStarter(autobatcher,
                 lockLeaseService);
     }
 
@@ -102,12 +107,12 @@ final class TransactionStarter implements AutoCloseable {
         Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(toRefresh);
         Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
 
-        Set<LockToken> resultLockTokenShares = lockTokenShares.stream()
-                .filter(t -> unlocked.contains(t.sharedLockToken()) || refreshed.contains(t.sharedLockToken()))
-                .collect(Collectors.toSet());
-        Set<LockToken> resultLockTokens = lockTokens.stream().filter(unlocked::contains).collect(Collectors.toSet());
+        Set<LockTokenShare> resultLockTokenShares = Sets.filter(
+                lockTokenShares,
+                t -> unlocked.contains(t.sharedLockToken()) || refreshed.contains(t.sharedLockToken()));
+        Set<LockToken> resultLockTokens = Sets.intersection(lockTokens, unlocked);
 
-        return Sets.union(resultLockTokenShares, resultLockTokens);
+        return ImmutableSet.copyOf(Sets.union(resultLockTokenShares, resultLockTokens));
     }
 
     /**
@@ -120,10 +125,10 @@ final class TransactionStarter implements AutoCloseable {
      */
     private static Set<LockToken> getLockTokensToRefresh(
             Set<LockTokenShare> lockTokenShares, Set<LockToken> sharedTokensToUnlock) {
-        Set<LockToken> referencedTokens = lockTokenShares.stream()
+        return lockTokenShares.stream()
                 .map(LockTokenShare::sharedLockToken)
+                .filter(token -> !sharedTokensToUnlock.contains(token))
                 .collect(Collectors.toSet());
-        return Sets.difference(referencedTokens, sharedTokensToUnlock);
     }
 
     @Override
@@ -164,7 +169,6 @@ final class TransactionStarter implements AutoCloseable {
 
         Stream<LockImmutableTimestampResponse> immutableTsAndLocks =
                 LockTokenShare.share(immutableTsLock, partitionedTimestamps.count())
-                        .stream()
                         .map(tokenShare -> LockImmutableTimestampResponse.of(
                                 immutableTs,
                                 tokenShare));

@@ -63,6 +63,13 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection) {
+        return delegate().getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
+    }
+
+    @Override
     public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
                                                             Iterable<byte[]> rows,
                                                             ColumnRangeSelection columnRangeSelection,
@@ -162,5 +169,10 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public TransactionType getTransactionType() {
         return delegate().getTransactionType();
+    }
+
+    @Override
+    public void disableReadWriteConflictChecking(TableReference tableRef) {
+        delegate().disableReadWriteConflictChecking(tableRef);
     }
 }

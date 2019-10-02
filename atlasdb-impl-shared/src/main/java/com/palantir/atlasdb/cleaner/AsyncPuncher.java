@@ -15,14 +15,19 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Supplier;
+import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
@@ -37,9 +42,13 @@ import com.palantir.logsafe.SafeArg;
 public final class AsyncPuncher implements Puncher {
     private static final Logger log = LoggerFactory.getLogger(AsyncPuncher.class);
     private static final long INVALID_TIMESTAMP = -1L;
+    private static final Duration SEED_TIME_LIMIT = Duration.ofSeconds(1);
 
-    public static AsyncPuncher create(Puncher delegate, long interval) {
-        AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval);
+    public static AsyncPuncher create(
+            Puncher delegate,
+            long interval,
+            Optional<LongSupplier> seedTimestampSupplier) {
+        AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval, seedTimestampSupplier);
         asyncPuncher.start();
         return asyncPuncher;
     }
@@ -49,11 +58,13 @@ public final class AsyncPuncher implements Puncher {
 
     private final Puncher delegate;
     private final long interval;
-    private final AtomicLong lastTimestamp = new AtomicLong(INVALID_TIMESTAMP);
+    private final AtomicLong lastTimestamp;
 
-    private AsyncPuncher(Puncher delegate, long interval) {
+    private AsyncPuncher(Puncher delegate, long interval, Optional<LongSupplier> seedTimestampSupplier) {
         this.delegate = delegate;
         this.interval = interval;
+        this.lastTimestamp = new AtomicLong(
+                seedTimestampSupplier.map(this::getInitialTimestamp).orElse(INVALID_TIMESTAMP));
     }
 
     private void start() {
@@ -104,5 +115,20 @@ public final class AsyncPuncher implements Puncher {
                     + " to access a key value service after the key value service closes. This shouldn't"
                     + " cause any problems, but may result in some scary looking error messages.");
         }
+    }
+
+    private long getInitialTimestamp(LongSupplier seedTimestampSupplier) {
+        try {
+            return SimpleTimeLimiter.create(service)
+                    .callWithTimeout(seedTimestampSupplier::getAsLong,
+                            SEED_TIME_LIMIT.getSeconds(), TimeUnit.SECONDS);
+        } catch (TimeoutException timeout) {
+            log.info("Unable to acquire a seed timestamp in {}, continuing",
+                    SafeArg.of("timeLimit", SEED_TIME_LIMIT),
+                    timeout);
+        } catch (Exception e) {
+            log.info("Error occurred when trying to acquire a seed timestamp. Continuing without seeding.", e);
+        }
+        return INVALID_TIMESTAMP;
     }
 }

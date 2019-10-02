@@ -17,9 +17,9 @@ package com.palantir.util.paging;
 
 import java.util.Iterator;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * This class only requires two methods {@link #getFirstPage()} and

@@ -32,9 +32,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.blob.BlobSchema;
-import com.palantir.atlasdb.cas.CheckAndSetClient;
-import com.palantir.atlasdb.cas.CheckAndSetSchema;
-import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -63,7 +60,8 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
@@ -77,7 +75,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 60;
     private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
-            CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema(),
             BlobSchema.getSchema());
     private static final Follower FOLLOWER = CleanupFollower.create(ETE_SCHEMAS);
@@ -96,7 +93,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        TaggedMetricRegistry taggedMetrics = new DefaultTaggedMetricRegistry();
+        TaggedMetricRegistry taggedMetrics = SharedTaggedMetricRegistries.getSingleton();
         TransactionManager txManager = tryToCreateTransactionManager(config, environment, taggedMetrics);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() ->
                 getSweepTaskRunner(txManager, environment.metrics(), taggedMetrics));
@@ -107,7 +104,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 sweepTaskRunner,
                 sweeperSupplier)));
         environment.jersey().register(SimpleCoordinationResource.create(txManager));
-        environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(txManager)));
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
@@ -145,6 +141,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     private TargetedSweeper initializeAndGet(TargetedSweeper sweeper, TransactionManager txManager) {
+        // Intentionally providing the immutable timestamp instead of unreadable to avoid the delay
         sweeper.initializeWithoutRunning(
                 new SpecialTimestampsSupplier(txManager::getImmutableTimestamp, txManager::getImmutableTimestamp),
                 txManager.getTimelockService(),
@@ -171,7 +168,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
             }
         }
-        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
+        throw new SafeIllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

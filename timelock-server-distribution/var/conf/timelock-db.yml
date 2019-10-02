@@ -1,20 +1,20 @@
-clients:
-  - test
-  - test2
-  - atlasete
+install:
+  paxos:
+    data-directory: "var/data/paxos"
+    is-new-service: false
+  cluster:
+    cluster:
+      uris:
+      - "localhost:8421"
+    local-server: "localhost:8421"
+    enableNonstandardAndPossiblyDangerousTopology: true
+  timestampBoundPersistence:
+    type: database
+    key-value-service:
+      type: "memory"
 
-cluster:
-  localServer: localhost:8421
-  servers:
-    - localhost:8421
-
-algorithm:
-  type: paxos
-
-timestampBoundPersister:
-  type: database
-  key-value-service:
-      type: memory
+runtime:
+  paxos:
 
 server:
   applicationConnectors:

@@ -56,3 +56,10 @@ include ":timelock-server-distribution"
 include ":timestamp-api"
 include ":timestamp-client"
 include ":timestamp-impl"
+
+boolean isCiServer = System.getenv().containsKey('CI')
+buildCache {
+    local {
+        enabled = !isCiServer
+    }
+}

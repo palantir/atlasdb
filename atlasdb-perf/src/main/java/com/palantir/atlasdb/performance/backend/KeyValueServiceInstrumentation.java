@@ -104,7 +104,7 @@ public abstract class KeyValueServiceInstrumentation {
      * The --backend parameter and the [dbtype] of the --db-uri parameter must match the return value of the
      * impementation of this method for your class.
      */
-    public abstract String toString();
+    @Override public abstract String toString();
 
     public String getClassName() {
         return this.getClass().toString().split(" ")[1];

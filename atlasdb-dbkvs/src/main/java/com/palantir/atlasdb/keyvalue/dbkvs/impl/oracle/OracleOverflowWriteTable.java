@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -157,7 +156,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     public void putSentinels(Iterable<Cell> cells) {
         byte[] value = new byte[0];
         long ts = Value.INVALID_VALUE_TIMESTAMP;
-        for (List<Cell> batch : Iterables.partition(Ordering.natural().immutableSortedCopy(cells), 1000)) {
+        for (List<Cell> batch : Lists.partition(Ordering.natural().immutableSortedCopy(cells), 1000)) {
             List<Object[]> args = Lists.newArrayListWithCapacity(batch.size());
             for (Cell cell : batch) {
                 args.add(new Object[] {cell.getRowName(), cell.getColumnName(), ts, value, null,
@@ -225,7 +224,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         SqlConnection conn = conns.get();
         try {
-            log.info("Got connection for delete on table {}: {}, autocommit={}",
+            log.debug("Got connection for delete on table {}: {}, autocommit={}",
                     shortTableName,
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
@@ -308,7 +307,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         SqlConnection conn = conns.get();
         try {
-            log.info("Got connection for deleteAllTimestamps on table {}: {}, autocommit={}",
+            log.debug("Got connection for deleteAllTimestamps on table {}: {}, autocommit={}",
                     shortTableName,
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
@@ -321,7 +320,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                         + " WHERE m.row_name = ? "
                         + "  AND m.col_name = ? "
                         + "  AND m.ts >= ? "
-                        + "  AND m.ts < ?",
+                        + "  AND m.ts <= ?",
                 args);
     }
 
@@ -380,7 +379,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 + "                  WHERE i.row_name = ? "
                 + "                    AND i.col_name = ? "
                 + "                    AND i.ts >= ? "
-                + "                    AND i.ts < ? "
+                + "                    AND i.ts <= ? "
                 + "                    AND i.overflow IS NOT NULL)",
                 args);
     }

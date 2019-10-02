@@ -47,7 +47,6 @@ import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
-import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata.Builder;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
 import com.palantir.atlasdb.stream.BlockConsumingInputStream;
 import com.palantir.atlasdb.stream.BlockGetter;
@@ -132,7 +131,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
         StreamTestStreamMetadataTable.StreamTestStreamMetadataRow row = StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(id);
         StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();
         Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks: %s", id);
-        Builder builder = StreamMetadata.newBuilder(metadata);
+        StreamMetadata.Builder builder = StreamMetadata.newBuilder(metadata);
         builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);
         metaTable.putMetadata(row, builder.build());
     }
@@ -388,7 +387,6 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
      * {@link BlockGetter}
      * {@link BlockLoader}
      * {@link BufferedInputStream}
-     * {@link Builder}
      * {@link ByteArrayIOStream}
      * {@link ByteArrayInputStream}
      * {@link ByteStreams}

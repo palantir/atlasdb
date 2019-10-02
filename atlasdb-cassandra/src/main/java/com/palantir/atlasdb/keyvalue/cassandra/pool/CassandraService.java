@@ -43,6 +43,8 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -52,6 +54,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
@@ -119,8 +122,15 @@ public class CassandraService implements AutoCloseable {
                     SafeArg.of("poolRefreshIntervalSeconds", config.poolRefreshIntervalSeconds()),
                     e);
 
-            // return the set of servers we knew about last time we successfully constructed the tokenMap
-            return tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+            // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
+            // conditions where the entire pool becomes invalid between refreshes.
+            Set<InetSocketAddress> resolvedConfigAddresses = config.servers()
+                    .accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
+
+            Set<InetSocketAddress> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream().flatMap(
+                    Collection::stream).collect(Collectors.toSet());
+
+            return Sets.union(resolvedConfigAddresses, lastKnownAddresses);
         }
     }
 
@@ -143,7 +153,9 @@ public class CassandraService implements AutoCloseable {
         }
 
         InetAddress resolvedHost = InetAddress.getByName(host);
-        Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
+        Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(),
+                config.servers().accept(new ThriftHostsExtractingVisitor()));
+
         for (InetSocketAddress address : allKnownHosts) {
             if (Objects.equals(address.getAddress(), resolvedHost)) {
                 return address;
@@ -190,7 +202,7 @@ public class CassandraService implements AutoCloseable {
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
         return getRandomGoodHostForPredicate(address -> true).orElseThrow(
-                () -> new IllegalStateException("No hosts available."));
+                () -> new SafeIllegalStateException("No hosts available."));
     }
 
     private String getRingViewDescription() {
@@ -256,9 +268,10 @@ public class CassandraService implements AutoCloseable {
         }
 
         log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
-                + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
-                + " Current host blacklist is {}."
-                + " Current state logged at TRACE",
+                        + "live hosts that claim ownership of the given range."
+                        + " Falling back to choosing a random live node."
+                        + " Current host blacklist is {}."
+                        + " Current state logged at TRACE",
                 SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
         log.trace("Current ring view is: {}.",
                 SafeArg.of("tokenMap", getRingViewDescription()));
@@ -284,7 +297,9 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void cacheInitialCassandraHosts() {
-        cassandraHosts = config.servers().stream()
+        Set<InetSocketAddress> thriftSocket = config.servers().accept(new ThriftHostsExtractingVisitor());
+
+        cassandraHosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(InetSocketAddress::toString))
                 .collect(Collectors.toList());
         cassandraHosts.forEach(this::addPool);

@@ -197,19 +197,28 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
             return timeLimiter.callWithTimeout(callable, blockingTimeLimitMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             // In this case, the thread was interrupted for some other reason, perhaps because we lost leadership.
-            log.info("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
-                    SafeArg.of("method", specification.method()),
-                    SafeArg.of("client", specification.client()),
-                    UnsafeArg.of("lockRequest", specification.lockRequest()),
-                    e);
+            logInterrupted(specification, e);
             throw e;
         } catch (TimeoutException e) {
             // This is the legitimate timeout case we're trying to catch.
             throw logAndHandleTimeout(specification);
         } catch (Exception e) {
             // We don't know, and would prefer not to throw checked exceptions apart from InterruptedException.
+            Throwable cause = e.getCause();
+            if (cause instanceof InterruptedException) {
+                logInterrupted(specification, (InterruptedException) cause);
+                throw (InterruptedException) cause;
+            }
             throw Throwables.propagate(e);
         }
+    }
+
+    private static void logInterrupted(LockRequestSpecification specification, InterruptedException e) {
+        log.info("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
+                SafeArg.of("method", specification.method()),
+                SafeArg.of("client", specification.client()),
+                UnsafeArg.of("lockRequest", specification.lockRequest()),
+                e);
     }
 
     private BlockingTimeoutException logAndHandleTimeout(LockRequestSpecification specification) {

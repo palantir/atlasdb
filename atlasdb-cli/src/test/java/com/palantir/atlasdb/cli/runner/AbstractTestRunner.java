@@ -27,6 +27,7 @@ import com.palantir.atlasdb.cli.command.SingleBackendCommand;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public abstract class AbstractTestRunner<S extends AtlasDbServices> implements SingleBackendCliTestRunner {
 
@@ -74,7 +75,7 @@ public abstract class AbstractTestRunner<S extends AtlasDbServices> implements S
         return StandardStreamUtilities.wrapSystemOut(() -> {
             int ret = cmd.execute(services);
             if (ret != 0 && failOnNonZeroExit) {
-                throw new RuntimeException("CLI returned with nonzero exit code");
+                throw new SafeRuntimeException("CLI returned with nonzero exit code");
             }
         }, singleLine);
     }

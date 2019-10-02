@@ -6,7 +6,9 @@ Date: 18/07/2016
 
 Accepted
 
-Supercedes [4. Create schema lock table via a one off CLI command](0004-create-schema-lock-table-via-a-one-off-cli-command.md)
+Supersedes [4. Create schema lock table via a one off CLI command](0004-create-schema-lock-table-via-a-one-off-cli-command.md)
+
+Superseded by [PR #3620: Use CQL to create tables](https://github.com/palantir/atlasdb/pull/3620).
 
 ## Context
 

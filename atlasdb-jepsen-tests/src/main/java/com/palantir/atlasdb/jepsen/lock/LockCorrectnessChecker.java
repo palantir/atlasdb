@@ -35,6 +35,7 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.Pair;
 
 /**
@@ -132,7 +133,7 @@ public class LockCorrectnessChecker implements Checker {
                         }
                     }
                     break;
-                default: throw new IllegalStateException("Not an OkEvent type supported by this checker!");
+                default: throw new SafeIllegalStateException("Not an OkEvent type supported by this checker!");
             }
         }
 

@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.io.Closeable;
+import java.util.function.Supplier;
 
-import com.google.common.base.Supplier;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.SqlConnection;
 

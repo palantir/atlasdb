@@ -24,6 +24,8 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 
@@ -72,12 +74,14 @@ public final class TransactionServices {
     public static TransactionService createRaw(
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         CoordinationService<InternalSchemaMetadata> coordinationService
-                = CoordinationServices.createDefault(keyValueService, timestampService, initializeAsync);
+                = CoordinationServices.createDefault(
+                        keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
         return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
-            KeyValueService keyValueService) {
+            KeyValueService keyValueService,
+            MetricsManager metricsManager) {
         if (keyValueService.supportsCheckAndSet()) {
             CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                     keyValueService,
@@ -86,6 +90,7 @@ public final class TransactionServices {
                                 + " transaction service! This is probably a product bug. Please contact"
                                 + " support.");
                     },
+                    metricsManager,
                     false);
             ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager
                     = new ReadOnlyTransactionSchemaManager(coordinationService);

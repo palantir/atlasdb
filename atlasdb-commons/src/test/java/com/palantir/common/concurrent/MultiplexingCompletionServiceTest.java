@@ -18,6 +18,7 @@ package com.palantir.common.concurrent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -31,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 public class MultiplexingCompletionServiceTest {
     private static final String KEY_1 = "key_1";
@@ -54,8 +56,8 @@ public class MultiplexingCompletionServiceTest {
         executor1.runUntilIdle();
         executor2.runUntilIdle();
 
-        assertThat(completionService.poll().get()).isEqualTo(31);
-        assertThat(completionService.poll().get()).isEqualTo(41);
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_1, 31));
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_2, 41));
     }
 
     @Test
@@ -68,9 +70,9 @@ public class MultiplexingCompletionServiceTest {
         executor2.runUntilIdle();
 
         // 42 is before 11, because executor 1 finishes its tasks first
-        assertThat(completionService.poll().get()).isEqualTo(5);
-        assertThat(completionService.poll().get()).isEqualTo(42);
-        assertThat(completionService.poll().get()).isEqualTo(11);
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_1, 5));
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_1, 42));
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_2, 11));
         assertThat(completionService.poll()).isNull();
     }
 
@@ -85,7 +87,7 @@ public class MultiplexingCompletionServiceTest {
 
         executor1.runUntilIdle();
         executor2.runUntilIdle();
-        assertThat(service.poll().get()).isEqualTo(5);
+        assertThat(service.poll().get()).isEqualTo(Maps.immutableEntry(KEY_1, 5));
         assertThatThrownBy(() -> service.poll().get())
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(IllegalArgumentException.class)
@@ -109,19 +111,19 @@ public class MultiplexingCompletionServiceTest {
         // executor1 does not run any of its tasks
         executor2.runUntilIdle();
 
-        assertThat(completionService.poll().get()).isEqualTo(11);
-        assertThat(completionService.poll().get()).isEqualTo(18);
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_2, 11));
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_2, 18));
         assertThat(completionService.poll()).isNull();
 
         executor1.runUntilIdle();
 
-        assertThat(completionService.poll().get()).isEqualTo(5);
-        assertThat(completionService.poll().get()).isEqualTo(42);
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_1, 5));
+        assertThat(completionService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_1, 42));
         assertThat(completionService.poll()).isNull();
     }
 
     @Test
-    public void rejectsExecutionsIfUnderlyingExecutorRejects() throws InterruptedException, ExecutionException {
+    public void rejectsExecutionsIfUnderlyingExecutorRejects() {
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
                 ImmutableMap.of(KEY_1, createBoundedExecutor(1)));
 
@@ -151,7 +153,7 @@ public class MultiplexingCompletionServiceTest {
 
         boundedService.submit(KEY_2, getSleepCallable(1));
 
-        assertThat(boundedService.poll(1, TimeUnit.SECONDS).get()).isEqualTo(1);
+        assertThat(boundedService.poll(1, TimeUnit.SECONDS).get()).isEqualTo(Maps.immutableEntry(KEY_2, 1));
     }
 
     @Test
@@ -159,12 +161,12 @@ public class MultiplexingCompletionServiceTest {
         DeterministicScheduler scheduler = new DeterministicScheduler();
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
                 ImmutableMap.of(KEY_1, scheduler));
-        Future<Integer> returnedFuture = boundedService.submit(KEY_1, () -> 1234567);
+        Future<Map.Entry<String, Integer>> returnedFuture = boundedService.submit(KEY_1, () -> 1234567);
 
         scheduler.runUntilIdle();
 
-        assertThat(returnedFuture.get()).isEqualTo(1234567);
-        assertThat(boundedService.poll().get()).isEqualTo(1234567);
+        assertThat(returnedFuture.get()).isEqualTo(Maps.immutableEntry(KEY_1, 1234567));
+        assertThat(boundedService.poll().get()).isEqualTo(Maps.immutableEntry(KEY_1, 1234567));
     }
 
     private static Callable<Integer> getSleepCallable(int durationMillis) {

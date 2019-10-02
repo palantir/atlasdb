@@ -18,18 +18,21 @@ public final class GenericTestSchemaTableFactory {
 
     private final Namespace namespace;
 
-    private GenericTestSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    private GenericTestSchemaTableFactory(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static GenericTestSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static GenericTestSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new GenericTestSchemaTableFactory(sharedTriggers, namespace);
     }
 
-    public static GenericTestSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static GenericTestSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new GenericTestSchemaTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -56,12 +59,14 @@ public final class GenericTestSchemaTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putGenericRangeScanTest(Multimap<GenericRangeScanTestTable.GenericRangeScanTestRow, ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue> newRows) {
+        public void putGenericRangeScanTest(
+                Multimap<GenericRangeScanTestTable.GenericRangeScanTestRow, ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putRangeScanTest(Multimap<RangeScanTestTable.RangeScanTestRow, ? extends RangeScanTestTable.RangeScanTestNamedColumnValue<?>> newRows) {
+        public void putRangeScanTest(
+                Multimap<RangeScanTestTable.RangeScanTestRow, ? extends RangeScanTestTable.RangeScanTestNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

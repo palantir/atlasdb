@@ -61,6 +61,11 @@ public interface TodoResource {
     void storeSnapshot(String snapshot);
 
     @POST
+    @Path("/unmarked-snapshot")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void storeUnmarkedSnapshot(String snapshot);
+
+    @POST
     @Path("/targeted-sweep")
     void runIterationOfTargetedSweep();
 
