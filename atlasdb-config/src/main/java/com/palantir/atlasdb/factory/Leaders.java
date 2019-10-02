@@ -44,7 +44,6 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -75,16 +74,6 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and registers appropriate endpoints for that
      * service.
      */
-    public static LeaderElectionService create(MetricsManager metricsManager,
-            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime) {
-        return create(metricsManager, env, config, runtime, AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
-    }
-
-    public static LeaderElectionService create(MetricsManager metricsManager,
-            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, UserAgent userAgent) {
-        return createAndRegisterLocalServices(metricsManager, env, config, runtime, userAgent).leaderElectionService();
-    }
-
     public static LocalPaxosServices createAndRegisterLocalServices(
             MetricsManager metricsManager,
             Consumer<Object> env,
@@ -114,7 +103,13 @@ public final class Leaders {
                 .remoteAcceptorUris(remoteLeaderUris)
                 .remoteLearnerUris(remoteLeaderUris)
                 .build();
-        return createInstrumentedLocalServices(metricsManager, config, runtime, remotePaxosServerSpec, userAgent);
+        return createInstrumentedLocalServices(
+                metricsManager,
+                config,
+                runtime,
+                remotePaxosServerSpec,
+                userAgent,
+                AsyncLeadershipObserver::create);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
@@ -122,14 +117,14 @@ public final class Leaders {
             LeaderConfig config,
             Supplier<LeaderRuntimeConfig> runtime,
             RemotePaxosServerSpec remotePaxosServerSpec,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            Supplier<LeadershipObserver> leadershipObserverFactory) {
         UUID leaderUuid = UUID.randomUUID();
 
-        AsyncLeadershipObserver leadershipObserver = AsyncLeadershipObserver.create();
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
                 metricsManager.getTaggedRegistry(),
                 leaderUuid.toString(),
-                leadershipObserver,
+                leadershipObserverFactory.get(),
                 ImmutableList.of());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
@@ -202,7 +197,6 @@ public final class Leaders {
                 .ourLearner(ourLearner)
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .pingableLeader(pingableLeader)
-                .leadershipObserver(leadershipObserver)
                 .isCurrentSuspectedLeader(paxosLeaderElectionService::ping)
                 .build();
     }
@@ -274,7 +268,6 @@ public final class Leaders {
         PaxosLearner ourLearner();
         LeaderElectionService leaderElectionService();
         PingableLeader pingableLeader();
-        LeadershipObserver leadershipObserver();
         Supplier<Boolean> isCurrentSuspectedLeader();
     }
 
