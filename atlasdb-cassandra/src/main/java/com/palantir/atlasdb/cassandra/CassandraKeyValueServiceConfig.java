@@ -144,9 +144,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * snitches.
      */
     @Value.Default
-    default Supplier<Optional<HostLocation>> defaultHostLocationSupplier() {
-        return () -> Optional.empty();
+    default Optional<HostLocation> defaultHostLocation () {
+        return Optional.empty();
     }
+
 
     @JsonIgnore
     @Value.Lazy
@@ -333,5 +334,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
+
+        Preconditions.checkArgument(localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
+                "'localHostWeighting' must be between 0 and 1 inclusive");
     }
 }

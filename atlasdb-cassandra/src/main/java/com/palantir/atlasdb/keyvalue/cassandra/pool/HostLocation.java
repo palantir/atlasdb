@@ -18,20 +18,24 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.conjure.java.client.config.ImmutablesStyle;
 
-@Value.Immutable
+@JsonDeserialize(as = ImmutableHostLocation.class)
+@JsonSerialize(as = ImmutableHostLocation.class)
 @ImmutablesStyle
+@Value.Immutable
 public interface HostLocation {
 
     @Value.Parameter
-    String datacentre();
+    String datacenter();
 
     @Value.Parameter
     String rack();
 
-    static HostLocation of(String datacentre, String rack) {
-        return ImmutableHostLocation.of(datacentre, rack);
+    static HostLocation of(String datacenter, String rack) {
+        return ImmutableHostLocation.of(datacenter, rack);
     }
 
 }

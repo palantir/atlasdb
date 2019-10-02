@@ -26,8 +26,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.logsafe.Preconditions;
 
 /**
- * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to pick a
- * random host
+ * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to
+ * pick a random host
  */
 public final class WeightedHosts {
     final NavigableMap<Integer, InetSocketAddress> hosts;

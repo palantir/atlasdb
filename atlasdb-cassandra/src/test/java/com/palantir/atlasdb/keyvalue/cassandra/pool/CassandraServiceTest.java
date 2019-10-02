@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -55,7 +54,7 @@ public class CassandraServiceTest {
 
         cassandra.setLocalHosts(localHosts);
 
-        assertThat(cassandra.filterLocalHosts(hosts), equalTo(localHosts));
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(localHosts);
     }
 
     @Test
@@ -67,7 +66,7 @@ public class CassandraServiceTest {
 
         cassandra.setLocalHosts(localHosts);
 
-        assertThat(cassandra.filterLocalHosts(hosts), equalTo(hosts));
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
     }
 
     @Test
@@ -79,7 +78,7 @@ public class CassandraServiceTest {
 
         cassandra.setLocalHosts(localHosts);
 
-        assertThat(cassandra.filterLocalHosts(hosts), equalTo(hosts));
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
     }
 
     @Test
@@ -88,7 +87,7 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost, equalTo(HOST_1));
+        assertThat(resolvedHost).isEqualTo(HOST_1);
     }
 
     @Test
@@ -97,7 +96,7 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost, equalTo(HOST_1));
+        assertThat(resolvedHost).isEqualTo(HOST_1);
     }
 
     @Test
@@ -106,7 +105,7 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_3);
 
-        assertThat(resolvedHost, equalTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT)));
+        assertThat(resolvedHost).isEqualTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT));
     }
 
 
@@ -125,7 +124,7 @@ public class CassandraServiceTest {
 
         Optional<CassandraClientPoolingContainer> container
                 = cassandra.getRandomGoodHostForPredicate(address -> false);
-        assertThat(container.isPresent(), is(false));
+        assertThat(container).isNotPresent();
     }
 
     @Test
@@ -151,8 +150,8 @@ public class CassandraServiceTest {
 
     @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
     private void assertContainerHasHostOne(Optional<CassandraClientPoolingContainer> container) {
-        assertThat(container.isPresent(), is(true));
-        assertThat(container.get().getHost(), equalTo(HOST_1));
+        assertThat(container).isPresent();
+        assertThat(container.get().getHost()).isEqualTo(HOST_1);
     }
 
     private CassandraService clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {

@@ -15,19 +15,25 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -76,8 +82,8 @@ public class CassandraService implements AutoCloseable {
 
     private List<InetSocketAddress> cassandraHosts;
 
-    private Set<InetSocketAddress> localHosts;
-    private HostLocationSupplier myLocationSupplier;
+    private volatile Set<InetSocketAddress> localHosts;
+    private final Supplier<Optional<HostLocation>> myLocationSupplier;
 
     private final Counter randomHostsSelected;
     private final Counter localHostsSelected;
@@ -85,12 +91,13 @@ public class CassandraService implements AutoCloseable {
     public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
         this.metricsManager = metricsManager;
         this.randomHostsSelected = metricsManager.getTaggedRegistry().counter(
-                MetricName.builder().safeName("RandomHostsSelected").build());
+                MetricName.builder().safeName("randomHostsSelected").build());
         this.localHostsSelected = metricsManager.getTaggedRegistry().counter(
-                MetricName.builder().safeName("LocalHostsSelected").build());
+                MetricName.builder().safeName("localHostsSelected").build());
         this.config = config;
         this.blacklist = blacklist;
-        this.myLocationSupplier = new HostLocationSupplier(config.defaultHostLocationSupplier());
+        this.localHosts = ImmutableSet.of();
+        this.myLocationSupplier = new HostLocationSupplier(this::getSnitch, config::defaultHostLocation);
     }
 
     @Override
@@ -107,7 +114,6 @@ public class CassandraService implements AutoCloseable {
 
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
-            myLocationSupplier.setSnitch(getSnitch());
             localHosts = refreshLocalHosts(tokenRanges);
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
@@ -119,7 +125,7 @@ public class CassandraService implements AutoCloseable {
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
                     List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
-                            .map(this::getAddressForHostThrowUnchecked).collect(Collectors.toList());
+                            .map(this::getAddressForHostThrowUnchecked).collect(toList());
 
                     servers.addAll(hosts);
 
@@ -159,9 +165,15 @@ public class CassandraService implements AutoCloseable {
         return getRandomGoodHost().runWithPooledResource(CassandraUtils.getDescribeRing(config));
     }
 
-    private String getSnitch() throws Exception {
-        return getRandomGoodHost().runWithPooledResource(
-                (FunctionCheckedException<CassandraClient, String, Exception>) CassandraClient::describe_snitch);
+    private String getSnitch() {
+        String snitch = "";
+        try {
+            snitch = getRandomGoodHost().runWithPooledResource(
+                    (FunctionCheckedException<CassandraClient, String, Exception>) CassandraClient::describe_snitch);
+        } catch (Exception e) {
+            log.info("Failed to retrieve snitch description", e);
+        }
+        return snitch;
     }
 
     private Set<InetSocketAddress> refreshLocalHosts(List<TokenRange> tokenRanges) {
@@ -171,19 +183,16 @@ public class CassandraService implements AutoCloseable {
             return ImmutableSet.of();
         }
 
-        Set<InetSocketAddress> newLocalHosts = Sets.newHashSet();
-        for (TokenRange tokenRange : tokenRanges) {
-            for (EndpointDetails details : tokenRange.getEndpoint_details()) {
-                if (isHostLocal(details, myLocation.get())) {
-                    newLocalHosts.add(getAddressForHostThrowUnchecked(details.getHost()));
-                }
-            }
-        }
-
-        return newLocalHosts;
+        return tokenRanges.stream()
+                .map(TokenRange::getEndpoint_details)
+                .flatMap(Collection::stream)
+                .filter(details -> isHostLocal(details, myLocation.get()))
+                .map(EndpointDetails::getHost)
+                .map(this::getAddressForHostThrowUnchecked)
+                .collect(toSet());
     }
 
-    private boolean isHostLocal(EndpointDetails details, HostLocation myLocation) {
+    private static boolean isHostLocal(EndpointDetails details, HostLocation myLocation) {
         return details.isSetDatacenter() && details.isSetRack() && details.isSetHost()
                 && myLocation.equals(HostLocation.of(details.getDatacenter(), details.getRack()));
     }
@@ -223,7 +232,7 @@ public class CassandraService implements AutoCloseable {
 
         Set<Integer> allKnownPorts = allKnownHosts.stream()
                 .map(InetSocketAddress::getPort)
-                .collect(Collectors.toSet());
+                .collect(toSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
             return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(allKnownPorts));
@@ -242,7 +251,7 @@ public class CassandraService implements AutoCloseable {
 
         Set<InetSocketAddress> filteredHosts = pools.keySet().stream()
                 .filter(predicate)
-                .collect(Collectors.toSet());
+                .collect(toSet());
         if (filteredHosts.isEmpty()) {
             log.info("No hosts match the provided predicate.");
             return Optional.empty();
@@ -277,8 +286,8 @@ public class CassandraService implements AutoCloseable {
     }
 
     @VisibleForTesting
-    Set<InetSocketAddress> filterLocalHosts(Set<InetSocketAddress> hosts) {
-        if (ThreadLocalRandom.current().nextDouble() < config.localHostWeighting()) {
+    Set<InetSocketAddress> maybeFilterLocalHosts(Set<InetSocketAddress> hosts) {
+        if (new Random().nextDouble() < config.localHostWeighting()) {
             Set<InetSocketAddress> localFilteredHosts = Sets.intersection(localHosts, hosts);
             if (!localFilteredHosts.isEmpty()) {
                 localHostsSelected.inc();
@@ -292,7 +301,7 @@ public class CassandraService implements AutoCloseable {
 
     private Optional<InetSocketAddress> getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
 
-        Set<InetSocketAddress> localFilteredHosts = filterLocalHosts(desiredHosts);
+        Set<InetSocketAddress> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
 
         Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = Maps.filterKeys(currentPools,
                 localFilteredHosts::contains);
@@ -377,7 +386,7 @@ public class CassandraService implements AutoCloseable {
 
         cassandraHosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(InetSocketAddress::toString))
-                .collect(Collectors.toList());
+                .collect(toList());
         cassandraHosts.forEach(this::addPool);
     }
 

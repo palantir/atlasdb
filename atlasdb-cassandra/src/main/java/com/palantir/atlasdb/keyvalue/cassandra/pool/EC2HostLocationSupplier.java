@@ -16,23 +16,31 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import static com.palantir.logsafe.Preconditions.checkState;
+
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * Returns the client's datacentre and rack derived from Cassandra's EC2Snitch.
+ * Returns the client's datacenter and rack derived from Cassandra's EC2Snitch.
  * <p>
- * AWS has an endpoint that returns the datacentre and rack (in Cassandra terms) - this request will fail if not on AWS.
- * The reply comes in the form "datacentre"+"rack", e.g. "us-east-1a", where datacentre is "us-east-1" and rack is "a".
+ * AWS has an endpoint that returns the datacenter and rack (in Cassandra terms) - this request will fail if not on AWS.
+ * The reply comes in the form "datacenter"+"rack", e.g. "us-east-1a", where datacenter is "us-east-1" and rack is "a".
  */
 public final class EC2HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
-    OkHttpClient client = new OkHttpClient.Builder().build();
+    private static final OkHttpClient client = new OkHttpClient.Builder().build();
+    private static final Logger log = LoggerFactory.getLogger(EC2HostLocationSupplier.class);
 
     @Override
     public Optional<HostLocation> get() {
@@ -42,15 +50,16 @@ public final class EC2HostLocationSupplier implements Supplier<Optional<HostLoca
                     .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
                     .build())
                     .execute();
-            com.palantir.logsafe.Preconditions.checkState(response.isSuccessful(),
+            checkState(response.isSuccessful(),
                     "Getting AWS host metadata was not successful");
 
             String responseString = response.body().string();
-            String datacentre = responseString.substring(0, responseString.length() - 2);
+            String datacenter = responseString.substring(0, responseString.length() - 2);
             String rack = responseString.substring(responseString.length() - 1);
 
-            return Optional.of(HostLocation.of(datacentre, rack));
-        } catch (IOException e) {
+            return Optional.of(HostLocation.of(datacenter, rack));
+        } catch (IOException | SafeIllegalStateException e) {
+            log.info("Could not retrieve location information from AWS", e);
             return Optional.empty();
         }
     }

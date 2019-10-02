@@ -56,12 +56,19 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
- * Feature breakdown: - Pooling - Token Aware Mapping / Query Routing / Data partitioning - Retriable Queries - Pool
- * member error tracking / blacklisting* - Pool refreshing - Pool node autodiscovery - Pool member health checking*
- * <p>
+ * Feature breakdown:
+ * - Pooling
+ * - Token Aware Mapping / Query Routing / Data partitioning
+ * - Retriable Queries
+ * - Pool member error tracking / blacklisting
+ * - Pool refreshing
+ * - Pool node autodiscovery
+ * - Pool member health checking
+ *
  * *entirely new features
- * <p>
- * By our old system, this would be a RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
+ *
+ * By our old system, this would be a
+ * RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
  * ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
