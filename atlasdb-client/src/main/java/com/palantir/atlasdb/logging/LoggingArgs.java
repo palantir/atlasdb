@@ -59,7 +59,7 @@ public final class LoggingArgs {
     }
 
     private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
-    private static volatile Optional<Boolean> allSafeForLogging = Optional.empty();
+    private static Optional<Boolean> allSafeForLogging = Optional.empty();
 
     private LoggingArgs() {
         // no
@@ -69,7 +69,8 @@ public final class LoggingArgs {
         logArbitrator = SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
     }
 
-    public static synchronized void setAllSafeForLogging(boolean isNewKeyValueServiceAllSafeForLogging) {
+    public static synchronized void combineAndSetNewAllSafeForLoggingFlag(
+            boolean isNewKeyValueServiceAllSafeForLogging) {
         if (!allSafeForLogging.isPresent()) {
             // if allSafeForLogging is never set, set it to the new keyValueService's allSafeForLogging setting
             allSafeForLogging = Optional.of(isNewKeyValueServiceAllSafeForLogging);
@@ -89,11 +90,6 @@ public final class LoggingArgs {
     @VisibleForTesting
     static synchronized void setLogArbitrator(KeyValueServiceLogArbitrator arbitrator) {
         logArbitrator = arbitrator;
-    }
-
-    @VisibleForTesting
-    static KeyValueServiceLogArbitrator getLogArbitrator() {
-        return logArbitrator;
     }
 
     public static Arg<String> internalTableName(TableReference tableReference) {

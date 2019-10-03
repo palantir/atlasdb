@@ -46,17 +46,17 @@ public class KeyValueServiceLogArbitratorTest {
     }
 
     @Test
-    public void allSafeArbitratorMarksTableNamesAsUnsafe() {
+    public void allSafeArbitratorMarksTableNamesAsSafe() {
         assertThat(ALL_SAFE.isTableReferenceSafe(TABLE_REFERENCE)).isTrue();
     }
 
     @Test
-    public void allSafeArbitratorMarksRowNamesAsUnsafe() {
+    public void allSafeArbitratorMarksRowNamesAsSafe() {
         assertThat(ALL_SAFE.isRowComponentNameSafe(TABLE_REFERENCE, ROW_NAME)).isTrue();
     }
 
     @Test
-    public void allSafeArbitratorMarksColumnNamesAsUnsafe() {
+    public void allSafeArbitratorMarksColumnNamesAsSafe() {
         assertThat(ALL_SAFE.isColumnNameSafe(TABLE_REFERENCE, COLUMN_NAME)).isTrue();
     }
 }

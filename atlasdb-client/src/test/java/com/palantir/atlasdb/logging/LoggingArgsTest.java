@@ -312,18 +312,18 @@ public class LoggingArgsTest {
         assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
 
         // If the initial allSafeForLogging is true, use ALL_SAFE log arbitrator
-        LoggingArgs.setAllSafeForLogging(ALL_SAFE_FOR_LOGGING);
+        LoggingArgs.combineAndSetNewAllSafeForLoggingFlag(ALL_SAFE_FOR_LOGGING);
         assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
         assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isTrue();
 
         // If a new keyValueService is not all safe for logging, take the safe data info during hydrate
-        LoggingArgs.setAllSafeForLogging(NOT_ALL_SAFE_FOR_LOGGING);
+        LoggingArgs.combineAndSetNewAllSafeForLoggingFlag(NOT_ALL_SAFE_FOR_LOGGING);
         LoggingArgs.hydrate(TABLE_REF_TO_METADATA);
         assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
         assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
 
         // Even if a new keyValueService is all safe for logging now, if won't change the safe data info
-        LoggingArgs.setAllSafeForLogging(ALL_SAFE_FOR_LOGGING);
+        LoggingArgs.combineAndSetNewAllSafeForLoggingFlag(ALL_SAFE_FOR_LOGGING);
         assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
         assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
 
