@@ -83,6 +83,9 @@ public class LoggingArgsTest {
     private static final BatchColumnRangeSelection MIXED_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
             MIXED_COLUMN_RANGE, 1);
 
+    public static final boolean ALL_SAFE_FOR_LOGGING = true;
+    public static final boolean NOT_ALL_SAFE_FOR_LOGGING = false;
+
     private static final KeyValueServiceLogArbitrator arbitrator = Mockito.mock(KeyValueServiceLogArbitrator.class);
 
     @BeforeClass
@@ -288,7 +291,9 @@ public class LoggingArgsTest {
 
     @Test
     public void hydrateDoesNotThrowOnInvalidMetadata() {
-        LoggingArgs.hydrate(ImmutableMap.of(SAFE_TABLE_REFERENCE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+        LoggingArgs.hydrate(
+                ImmutableMap.of(SAFE_TABLE_REFERENCE, AtlasDbConstants.EMPTY_TABLE_METADATA),
+                ALL_SAFE_FOR_LOGGING);
         LoggingArgs.setLogArbitrator(arbitrator);
     }
 }

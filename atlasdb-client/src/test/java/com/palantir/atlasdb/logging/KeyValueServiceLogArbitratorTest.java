@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class KeyValueServiceLogArbitratorTest {
     private static final KeyValueServiceLogArbitrator ALL_UNSAFE = KeyValueServiceLogArbitrator.ALL_UNSAFE;
+    private static final KeyValueServiceLogArbitrator ALL_SAFE = KeyValueServiceLogArbitrator.ALL_SAFE;
 
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
 
@@ -42,5 +43,20 @@ public class KeyValueServiceLogArbitratorTest {
     @Test
     public void allUnsafeArbitratorMarksColumnNamesAsUnsafe() {
         assertThat(ALL_UNSAFE.isColumnNameSafe(TABLE_REFERENCE, COLUMN_NAME)).isFalse();
+    }
+
+    @Test
+    public void allSafeArbitratorMarksTableNamesAsUnsafe() {
+        assertThat(ALL_SAFE.isTableReferenceSafe(TABLE_REFERENCE)).isTrue();
+    }
+
+    @Test
+    public void allSafeArbitratorMarksRowNamesAsUnsafe() {
+        assertThat(ALL_SAFE.isRowComponentNameSafe(TABLE_REFERENCE, ROW_NAME)).isTrue();
+    }
+
+    @Test
+    public void allSafeArbitratorMarksColumnNamesAsUnsafe() {
+        assertThat(ALL_SAFE.isColumnNameSafe(TABLE_REFERENCE, COLUMN_NAME)).isTrue();
     }
 }

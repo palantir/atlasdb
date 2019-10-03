@@ -218,6 +218,11 @@ public abstract class TransactionManagers {
     abstract String userAgent();
 
     @Value.Default
+    boolean allSafeForLogging() {
+        return false;
+    }
+
+    @Value.Default
     UserAgent structuredUserAgent() {
         return UserAgents.tryParse(userAgent());
     }
@@ -365,7 +370,7 @@ public abstract class TransactionManagers {
         }, closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService, schemas(), config().initializeAsync());
+                keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 

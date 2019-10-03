@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
@@ -58,18 +59,39 @@ public final class LoggingArgs {
     }
 
     private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
+    private static volatile Optional<Boolean> allSafeForLogging = Optional.empty();
 
     private LoggingArgs() {
         // no
     }
 
-    public static synchronized void hydrate(Map<TableReference, byte[]> tableRefToMetadata) {
-        logArbitrator = SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
+    public static synchronized void hydrate(
+            Map<TableReference, byte[]> tableRefToMetadata,
+            boolean isNewKeyValueServiceAllSafeForLogging) {
+        if (!allSafeForLogging.isPresent()) {
+            // if allSafeForLogging is never set, set it to the new keyValueService's allSafeForLogging setting
+            allSafeForLogging = Optional.of(isNewKeyValueServiceAllSafeForLogging);
+        } else {
+            // if allSafeForLogging is currently safe, but the newKeyValueService is not allSafeForLogging by default
+            // set the global allSafeForLogging flag to false
+            if (!isNewKeyValueServiceAllSafeForLogging) {
+                allSafeForLogging = Optional.of(isNewKeyValueServiceAllSafeForLogging);
+            }
+        }
+
+        logArbitrator = allSafeForLogging.get()
+                ? KeyValueServiceLogArbitrator.ALL_SAFE
+                : SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
     }
 
     @VisibleForTesting
     static synchronized void setLogArbitrator(KeyValueServiceLogArbitrator arbitrator) {
         logArbitrator = arbitrator;
+    }
+
+    @VisibleForTesting
+    static KeyValueServiceLogArbitrator getLogArbitrator() {
+        return logArbitrator;
     }
 
     public static Arg<String> internalTableName(TableReference tableReference) {

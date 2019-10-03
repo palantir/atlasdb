@@ -30,20 +30,24 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
 
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
+    private final boolean allSafeForLogging;
 
     public static TransactionManagersInitializer createInitialTables(
             KeyValueService keyValueService,
             Set<Schema> schemas,
-            boolean initializeAsync) {
-        TransactionManagersInitializer initializer = new TransactionManagersInitializer(keyValueService, schemas);
+            boolean initializeAsync,
+            boolean allSafeForLogging) {
+        TransactionManagersInitializer initializer =
+                new TransactionManagersInitializer(keyValueService, schemas, allSafeForLogging);
         initializer.initialize(initializeAsync);
         return initializer;
     }
 
     @VisibleForTesting
-    TransactionManagersInitializer(KeyValueService keyValueService, Set<Schema> schemas) {
+    TransactionManagersInitializer(KeyValueService keyValueService, Set<Schema> schemas, boolean allSafeForLogging) {
         this.keyValueService = keyValueService;
         this.schemas = schemas;
+        this.allSafeForLogging = allSafeForLogging;
     }
 
     @Override
@@ -63,7 +67,7 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
 
     private void populateLoggingContext() {
         // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
-        LoggingArgs.hydrate(keyValueService.getMetadataForTables());
+        LoggingArgs.hydrate(keyValueService.getMetadataForTables(), allSafeForLogging);
     }
 
     @Override
