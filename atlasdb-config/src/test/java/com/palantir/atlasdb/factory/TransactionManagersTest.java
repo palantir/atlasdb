@@ -306,7 +306,7 @@ public class TransactionManagersTest {
                 .build();
         TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .structuredUserAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -340,7 +340,7 @@ public class TransactionManagersTest {
                 .build();
         KeyValueService kvs = TransactionManagers.builder()
                 .config(inMemoryNoQueueWrites)
-                .userAgent(EXPECTED_USER_AGENT_STRING)
+                .structuredUserAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .build()
@@ -367,7 +367,7 @@ public class TransactionManagersTest {
 
         TransactionManager manager = TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .structuredUserAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -387,7 +387,7 @@ public class TransactionManagersTest {
         MetricRegistry metrics = new MetricRegistry();
         TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .structuredUserAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -437,7 +437,7 @@ public class TransactionManagersTest {
 
         return TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .structuredUserAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -569,7 +569,7 @@ public class TransactionManagersTest {
 
         TransactionManager manager = TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .structuredUserAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -625,7 +625,7 @@ public class TransactionManagersTest {
 
         TransactionManager manager = TransactionManagers.builder()
                 .config(installConfig)
-                .userAgent("test")
+                .structuredUserAgent(UserAgent.of(UserAgent.Agent.of("test", "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)

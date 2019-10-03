@@ -211,21 +211,12 @@ public abstract class TransactionManagers {
         return false;
     }
 
-    /**
-     * @deprecated Please specify a {@link #structuredUserAgent()} instead.
-     */
-    @Deprecated
-    abstract String userAgent();
-
     @Value.Default
     boolean allSafeForLogging() {
         return false;
     }
 
-    @Value.Default
-    UserAgent structuredUserAgent() {
-        return UserAgents.tryParse(userAgent());
-    }
+    abstract UserAgent structuredUserAgent();
 
     abstract MetricRegistry globalMetricsRegistry();
 
@@ -275,11 +266,10 @@ public abstract class TransactionManagers {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return builder()
                 .config(config)
-                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT.toString())
+                .structuredUserAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .addAllSchemas(schemas)
-                .structuredUserAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .build()
                 .serializable();
     }

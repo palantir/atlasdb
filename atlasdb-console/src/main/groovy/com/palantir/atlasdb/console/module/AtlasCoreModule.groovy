@@ -31,6 +31,7 @@ import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
 import com.palantir.atlasdb.transaction.api.TransactionManager
+import com.palantir.conjure.java.api.config.service.UserAgent
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
@@ -217,7 +218,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
     private setupConnection(AtlasDbConfig config) {
         TransactionManager tm = TransactionManagers.builder()
                 .config(config)
-                .userAgent("atlasdb console")
+                .structuredUserAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-console", "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .allowHiddenTableAccess(true)

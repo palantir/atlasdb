@@ -28,6 +28,7 @@ import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
@@ -56,7 +57,7 @@ public final class TimeLockTestUtils {
                 .build();
         return TransactionManagers.builder()
                 .config(config)
-                .userAgent(agent)
+                .structuredUserAgent(UserAgent.of(UserAgent.Agent.of("u" + agent, "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .build()
