@@ -60,9 +60,6 @@ public class LoggingArgsTest {
             SAFE_TABLE_REFERENCE, SAFE_TABLE_METADATA,
             UNSAFE_TABLE_REFERENCE, UNSAFE_TABLE_METADATA);
 
-    public static final boolean ALL_SAFE_FOR_LOGGING = true;
-    public static final boolean NOT_ALL_SAFE_FOR_LOGGING = false;
-
     private static final String SAFE_ROW_NAME = "saferow";
     private static final String UNSAFE_ROW_NAME = "row";
     private static final String SAFE_COLUMN_NAME = "safecolumn";
@@ -96,6 +93,9 @@ public class LoggingArgsTest {
             UNSAFE_COLUMN_RANGE, 1);
     private static final BatchColumnRangeSelection MIXED_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
             MIXED_COLUMN_RANGE, 1);
+
+    public static final boolean ALL_SAFE_FOR_LOGGING = true;
+    public static final boolean NOT_ALL_SAFE_FOR_LOGGING = false;
 
     private static final KeyValueServiceLogArbitrator arbitrator = Mockito.mock(KeyValueServiceLogArbitrator.class);
 
@@ -301,22 +301,30 @@ public class LoggingArgsTest {
     }
 
     @Test
-    public void hydrateSetsLoggingArgsAndDoesNotThrowOnInvalidMetadata() {
-        LoggingArgs.setLogArbitrator(KeyValueServiceLogArbitrator.ALL_UNSAFE);
+    public void hydrateDoesNotThrowOnInvalidMetadata() {
+        LoggingArgs.hydrate(ImmutableMap.of(SAFE_TABLE_REFERENCE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+        LoggingArgs.setLogArbitrator(arbitrator);
+    }
 
-        LoggingArgs.hydrate(TABLE_REF_TO_METADATA, ALL_SAFE_FOR_LOGGING);
-        assertThat(LoggingArgs.getLogArbitrator()).isEqualTo(KeyValueServiceLogArbitrator.ALL_SAFE);
-
-        LoggingArgs.hydrate(TABLE_REF_TO_METADATA, NOT_ALL_SAFE_FOR_LOGGING);
+    @Test
+    public void allSafeForLoggingIsOnlyTrueWhenAllKeyValueServicesAreTrue() {
         assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
         assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
 
-        LoggingArgs.hydrate(TABLE_REF_TO_METADATA, ALL_SAFE_FOR_LOGGING);
+        // If the initial allSafeForLogging is true, use ALL_SAFE log arbitrator
+        LoggingArgs.setAllSafeForLogging(ALL_SAFE_FOR_LOGGING);
+        assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
+        assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isTrue();
+
+        // If a new keyValueService is not all safe for logging, take the safe data info during hydrate
+        LoggingArgs.setAllSafeForLogging(NOT_ALL_SAFE_FOR_LOGGING);
+        LoggingArgs.hydrate(TABLE_REF_TO_METADATA);
         assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
         assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
 
-        LoggingArgs.hydrate(ImmutableMap.of(UNSAFE_TABLE_REFERENCE, UNSAFE_TABLE_METADATA), NOT_ALL_SAFE_FOR_LOGGING);
-        assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isFalse();
+        // Even if a new keyValueService is all safe for logging now, if won't change the safe data info
+        LoggingArgs.setAllSafeForLogging(ALL_SAFE_FOR_LOGGING);
+        assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
         assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
 
         LoggingArgs.setLogArbitrator(arbitrator);

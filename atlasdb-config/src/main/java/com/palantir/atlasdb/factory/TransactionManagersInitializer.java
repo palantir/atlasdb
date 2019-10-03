@@ -67,7 +67,10 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
 
     private void populateLoggingContext() {
         // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
-        LoggingArgs.hydrate(keyValueService.getMetadataForTables(), allSafeForLogging);
+        LoggingArgs.setAllSafeForLogging(allSafeForLogging);
+        if (!allSafeForLogging) {
+            LoggingArgs.hydrate(keyValueService.getMetadataForTables());
+        }
     }
 
     @Override

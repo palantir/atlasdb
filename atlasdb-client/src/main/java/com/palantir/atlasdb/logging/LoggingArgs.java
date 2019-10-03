@@ -65,9 +65,11 @@ public final class LoggingArgs {
         // no
     }
 
-    public static synchronized void hydrate(
-            Map<TableReference, byte[]> tableRefToMetadata,
-            boolean isNewKeyValueServiceAllSafeForLogging) {
+    public static synchronized void hydrate(Map<TableReference, byte[]> tableRefToMetadata) {
+        logArbitrator = SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
+    }
+
+    public static synchronized void setAllSafeForLogging(boolean isNewKeyValueServiceAllSafeForLogging) {
         if (!allSafeForLogging.isPresent()) {
             // if allSafeForLogging is never set, set it to the new keyValueService's allSafeForLogging setting
             allSafeForLogging = Optional.of(isNewKeyValueServiceAllSafeForLogging);
@@ -79,9 +81,9 @@ public final class LoggingArgs {
             }
         }
 
-        logArbitrator = allSafeForLogging.get()
-                ? KeyValueServiceLogArbitrator.ALL_SAFE
-                : SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
+        if (allSafeForLogging.get()) {
+            logArbitrator = KeyValueServiceLogArbitrator.ALL_SAFE;
+        }
     }
 
     @VisibleForTesting
