@@ -25,7 +25,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -41,13 +40,13 @@ public class PollingRefreshableTest {
 
     @Test
     public void refreshableIsInitializedWithTheSupplierValue() {
-        PollingRefreshable<Long, Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(() -> 1L);
+        PollingRefreshable<Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(() -> 1L);
         assertRefreshableContainsAndClear(pollingRefreshable.getRefreshable(), 1L);
     }
 
     @Test
     public void refreshableIsNotRepopulatedWithStaleSupplierValuesEvenAfterTheRefreshInterval() {
-        PollingRefreshable<Long, Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(() -> 1L);
+        PollingRefreshable<Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(() -> 1L);
         assertRefreshableContainsAndClear(pollingRefreshable.getRefreshable(), 1L);
         scheduler.tick(REFRESH_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
         assertThat(pollingRefreshable.getRefreshable().getAndClear()).isNotPresent();
@@ -56,7 +55,7 @@ public class PollingRefreshableTest {
     @Test
     public void refreshableIsRepopulatedWithNewSupplierValuesAfterTheRefreshIntervalPasses() {
         AtomicLong atomicLong = new AtomicLong();
-        PollingRefreshable<Long, Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(
+        PollingRefreshable<Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(
                 atomicLong::incrementAndGet);
         Refreshable<Long> refreshable = pollingRefreshable.getRefreshable();
 
@@ -70,7 +69,7 @@ public class PollingRefreshableTest {
     @Test
     public void refreshableIsPopulatedWithTheFreshestValueAfterTheRefreshIntervalPasses() {
         AtomicLong atomicLong = new AtomicLong();
-        PollingRefreshable<Long, Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(atomicLong::get);
+        PollingRefreshable<Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(atomicLong::get);
         Refreshable<Long> refreshable = pollingRefreshable.getRefreshable();
 
         assertRefreshableContainsAndClear(refreshable, 0L);
@@ -84,7 +83,7 @@ public class PollingRefreshableTest {
     @Test
     public void refreshableIsNotRepopulatedWithNewSupplierValuesBeforeTheRefreshIntervalPasses() {
         AtomicLong atomicLong = new AtomicLong();
-        PollingRefreshable<Long, Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(
+        PollingRefreshable<Long> pollingRefreshable = createPollingRefreshableWithTestScheduler(
                 atomicLong::incrementAndGet);
         Refreshable<Long> refreshable = pollingRefreshable.getRefreshable();
 
@@ -117,79 +116,17 @@ public class PollingRefreshableTest {
     }
 
     @Test
-    public void canRecoverFromTransformThrowingExceptionsInitially() {
-        AtomicLong atomicLong = new AtomicLong();
-
-        Refreshable<Long> refreshable = PollingRefreshable
-                .createWithPoller(
-                        atomicLong::incrementAndGet,
-                        REFRESH_INTERVAL,
-                        PollingRefreshableTest::doubleOrThrowOnOne,
-                        scheduler)
-                .getRefreshable();
-
-        assertThat(refreshable.getAndClear()).isEmpty();
-        scheduler.tick(REFRESH_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
-        assertRefreshableContainsAndClear(refreshable, 4L);
-    }
-
-    @Test
-    public void canRecoverFromTransformThrowingExceptionsLater() {
-        AtomicLong atomicLong = new AtomicLong(-1L);
-
-        Refreshable<Long> refreshable = PollingRefreshable
-                .createWithPoller(
-                        atomicLong::incrementAndGet,
-                        REFRESH_INTERVAL,
-                        PollingRefreshableTest::doubleOrThrowOnOne,
-                        scheduler)
-                .getRefreshable();
-
-        assertRefreshableContainsAndClear(refreshable, 0L);
-
-        // This execution will throw a RuntimeException.
-        scheduler.tick(REFRESH_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
-        assertThat(refreshable.getAndClear()).isEmpty();
-
-        scheduler.tick(REFRESH_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
-        assertRefreshableContainsAndClear(refreshable, 4L);
-    }
-
-    @Test
-    public void failingTransformIsNotRetriedOnNoChange() {
-        AtomicLong counter = new AtomicLong();
-        Function<Long, Long> failingTransform = ignore -> {
-            counter.incrementAndGet();
-            throw new RuntimeException();
-        };
-
-        Refreshable<Long> refreshable = PollingRefreshable
-                .createWithPoller(() -> 1L, REFRESH_INTERVAL, failingTransform, scheduler)
-                .getRefreshable();
-
-        assertThat(refreshable.getAndClear()).isEmpty();
-
-        scheduler.tick(REFRESH_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
-        assertThat(refreshable.getAndClear()).isEmpty();
-
-        scheduler.tick(REFRESH_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
-        assertThat(refreshable.getAndClear()).isEmpty();
-
-        assertThat(counter.get()).isEqualTo(1L);
-    }
-
-    @Test
     public void shutsDownExecutorWhenClosed() {
         ScheduledExecutorService scheduledExecutor = mock(ScheduledExecutorService.class);
-        PollingRefreshable<Long, Long> pollingRefreshable = PollingRefreshable.createWithPoller(
-                () -> 1L, REFRESH_INTERVAL, Function.identity(), scheduledExecutor);
+        PollingRefreshable<Long> pollingRefreshable = PollingRefreshable.createWithSpecificPoller(
+                () -> 1L, REFRESH_INTERVAL, scheduledExecutor);
         pollingRefreshable.close();
         verify(scheduledExecutor).shutdown();
     }
 
     @Test
     public void canCloseMultipleTimes() {
-        PollingRefreshable<Long, Long> pollingRefreshable = PollingRefreshable.create(() -> 1L);
+        PollingRefreshable<Long> pollingRefreshable = PollingRefreshable.create(() -> 1L);
         pollingRefreshable.close();
         pollingRefreshable.close();
     }
@@ -198,8 +135,8 @@ public class PollingRefreshableTest {
     public void canConfigureRefreshInterval() {
         Duration doubleRefreshInterval = REFRESH_INTERVAL.multipliedBy(2L);
         AtomicLong atomicLong = new AtomicLong();
-        PollingRefreshable<Long, Long> lessFrequentlyPollingRefreshable = PollingRefreshable.createWithPoller(
-                atomicLong::incrementAndGet, doubleRefreshInterval, Function.identity(), scheduler);
+        PollingRefreshable<Long> lessFrequentlyPollingRefreshable = PollingRefreshable.createWithSpecificPoller(
+                atomicLong::incrementAndGet, doubleRefreshInterval, scheduler);
         Refreshable<Long> refreshable = lessFrequentlyPollingRefreshable.getRefreshable();
 
         assertRefreshableContainsAndClear(refreshable, 1L);
@@ -225,8 +162,8 @@ public class PollingRefreshableTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    private <T> PollingRefreshable<T, T> createPollingRefreshableWithTestScheduler(Supplier<T> supplier) {
-        return PollingRefreshable.createWithPoller(supplier, REFRESH_INTERVAL, Function.identity(), scheduler);
+    private <T> PollingRefreshable<T> createPollingRefreshableWithTestScheduler(Supplier<T> supplier) {
+        return PollingRefreshable.createWithSpecificPoller(supplier, REFRESH_INTERVAL, scheduler);
     }
 
     private <T> void assertRefreshableContainsAndClear(Refreshable<T> refreshable, T expectedValue) {
@@ -235,7 +172,7 @@ public class PollingRefreshableTest {
 
     private Refreshable<Long> getIncrementingLongRefreshableThrowingOnSpecificValue(long badValue) {
         AtomicLong atomicLong = new AtomicLong();
-        PollingRefreshable<Long, Long> pollingRefreshable = PollingRefreshable.createWithPoller(
+        PollingRefreshable<Long> pollingRefreshable = PollingRefreshable.createWithSpecificPoller(
                 () -> {
                     long newValue = atomicLong.incrementAndGet();
                     if (newValue == badValue) {
@@ -244,15 +181,7 @@ public class PollingRefreshableTest {
                     return newValue;
                 },
                 REFRESH_INTERVAL,
-                Function.identity(),
                 scheduler);
         return pollingRefreshable.getRefreshable();
-    }
-
-    private static long doubleOrThrowOnOne(long input) {
-        if (input == 1L) {
-            throw new RuntimeException("ONE!!11!!2");
-        }
-        return input * 2;
     }
 }

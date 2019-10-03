@@ -137,7 +137,7 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        PollingRefreshable<ServerListConfig, ServerListConfig> configPollingRefreshable =
+        PollingRefreshable<ServerListConfig> configPollingRefreshable =
                 PollingRefreshable.create(serverListConfigSupplier);
         return wrapWithVersion(Reflection.newProxy(
                 type,
