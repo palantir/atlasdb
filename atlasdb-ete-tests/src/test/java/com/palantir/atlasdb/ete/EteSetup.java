@@ -192,7 +192,7 @@ public abstract class EteSetup {
                 new MetricRegistry(),
                 ImmutableServerListConfig.builder()
                         .addAllServers(uris)
-                        .sslConfiguration(SslConfiguration.of(Paths.get("var/security/truststore.jks")))
+                        .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
                         .build(),
                 clazz,
                 TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
