@@ -16,17 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import static com.palantir.logsafe.Preconditions.checkState;
-
 import java.io.IOException;
-import java.util.Optional;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.Preconditions;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -50,7 +43,7 @@ public final class EC2HostLocationSupplier implements Supplier<HostLocation> {
                     .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
                     .build())
                     .execute();
-            checkState(response.isSuccessful(),
+            Preconditions.checkState(response.isSuccessful(),
                     "Getting AWS host metadata was not successful");
 
             String responseString = response.body().string();

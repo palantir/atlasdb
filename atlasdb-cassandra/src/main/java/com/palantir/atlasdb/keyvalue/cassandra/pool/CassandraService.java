@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import static java.util.stream.Collectors.toSet;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -189,7 +187,7 @@ public class CassandraService implements AutoCloseable {
                 .filter(details -> isHostLocal(details, myLocation.get()))
                 .map(EndpointDetails::getHost)
                 .map(this::getAddressForHostThrowUnchecked)
-                .collect(toSet());
+                .collect(Collectors.toSet());
 
         if (newLocalHosts.isEmpty()) {
             log.warn("No local hosts found");
