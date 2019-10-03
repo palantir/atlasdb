@@ -183,17 +183,6 @@ public class CassandraService implements AutoCloseable {
             return ImmutableSet.of();
         }
 
-        if (randomHostsSelected.getCount() + localHostsSelected.getCount() > 1000) {
-            double expectedLocalHostsSelected = (config.localHostWeighting() * randomHostsSelected.getCount())
-                    / (double) (1 - config.localHostWeighting());
-
-            if (expectedLocalHostsSelected < 0.9 * localHostsSelected.getCount()) {
-                log.warn("Local hosts selected less frequently than expected");
-            } else if (expectedLocalHostsSelected > 1.1 * localHostsSelected.getCount()) {
-                log.warn("Local hosts selected more frequently than expected");
-            }
-        }
-
         Set<InetSocketAddress> newLocalHosts = tokenRanges.stream()
                 .map(TokenRange::getEndpoint_details)
                 .flatMap(Collection::stream)

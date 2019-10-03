@@ -41,7 +41,6 @@ import okhttp3.Response;
 public final class EC2HostLocationSupplier implements Supplier<HostLocation> {
 
     private static final OkHttpClient client = new OkHttpClient.Builder().build();
-    private static final Logger log = LoggerFactory.getLogger(EC2HostLocationSupplier.class);
 
     @Override
     public HostLocation get() {
@@ -59,8 +58,7 @@ public final class EC2HostLocationSupplier implements Supplier<HostLocation> {
             String rack = responseString.substring(responseString.length() - 1);
 
             return HostLocation.of(datacenter, rack);
-        } catch (IOException | SafeIllegalArgumentException e) {
-            log.warn("Could not retrieve location information from AWS", e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

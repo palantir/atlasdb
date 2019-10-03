@@ -60,7 +60,7 @@ public final class HostLocationSupplier implements Supplier<Optional<HostLocatio
                     return Optional.empty();
             }
         } catch (RuntimeException e) {
-            log.warn("Host location supplier failed to retrieve the host location");
+            log.warn("Host location supplier failed to retrieve the host location", e);
             return Optional.empty();
         }
     }
