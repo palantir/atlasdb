@@ -78,13 +78,13 @@ public class CassandraService implements AutoCloseable {
 
     private List<InetSocketAddress> cassandraHosts;
 
-    private volatile Set<InetSocketAddress> localHosts;
+    private volatile Set<InetSocketAddress> localHosts = ImmutableSet.of();
     private final Supplier<Optional<HostLocation>> myLocationSupplier;
 
     private final Counter randomHostsSelected;
     private final Counter localHostsSelected;
 
-    private final Random random;
+    private final Random random = new Random();
 
     public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
         this.metricsManager = metricsManager;
@@ -93,10 +93,8 @@ public class CassandraService implements AutoCloseable {
         this.localHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
                 .safeName(MetricRegistry.name(CassandraService.class, "localHostsSelected")).build());
         this.config = config;
-        this.blacklist = blacklist;
-        this.localHosts = ImmutableSet.of();
         this.myLocationSupplier = new HostLocationSupplier(this::getSnitch, config.overrideHostLocation());
-        this.random = new Random();
+        this.blacklist = blacklist;
     }
 
     @Override
@@ -169,7 +167,6 @@ public class CassandraService implements AutoCloseable {
             return getRandomGoodHost().runWithPooledResource(
                     (FunctionCheckedException<CassandraClient, String, Exception>) CassandraClient::describe_snitch);
         } catch (Exception e) {
-            log.warn("Failed to retrieve snitch description", e);
             throw new RuntimeException(e);
         }
     }
