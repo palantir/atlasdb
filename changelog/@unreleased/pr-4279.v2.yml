@@ -1,0 +1,8 @@
+type: break
+break:
+  description: '`TransactionManagers#structuredUserAgent` has been renamed to just
+    `userAgent`. Also, we have fixed the ABI break so legacy-style `TransactionManagers`
+    builders are now ABI compatible with the current version, which is important for
+    services using other libraries that export transaction managers.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4279
