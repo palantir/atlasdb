@@ -211,16 +211,7 @@ public abstract class TransactionManagers {
         return false;
     }
 
-    /**
-     * @deprecated Please specify a {@link #structuredUserAgent()} instead.
-     */
-    @Deprecated
-    abstract String userAgent();
-
-    @Value.Default
-    UserAgent structuredUserAgent() {
-        return UserAgents.tryParse(userAgent());
-    }
+    abstract UserAgent structuredUserAgent()
 
     abstract MetricRegistry globalMetricsRegistry();
 
