@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -36,6 +37,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -48,6 +51,17 @@ public class LoggingArgsTest {
             SAFE_TABLE_REFERENCE,
             UNSAFE_TABLE_REFERENCE
     );
+    private static final byte[] SAFE_TABLE_METADATA = AtlasDbConstants.GENERIC_TABLE_METADATA;
+    private static final byte[] UNSAFE_TABLE_METADATA = TableMetadata.builder()
+            .nameLogSafety(TableMetadataPersistence.LogSafety.UNSAFE)
+            .build()
+            .persistToBytes();
+    private static final Map<TableReference, byte[]> TABLE_REF_TO_METADATA = ImmutableMap.of(
+            SAFE_TABLE_REFERENCE, SAFE_TABLE_METADATA,
+            UNSAFE_TABLE_REFERENCE, UNSAFE_TABLE_METADATA);
+
+    public static final boolean ALL_SAFE_FOR_LOGGING = true;
+    public static final boolean NOT_ALL_SAFE_FOR_LOGGING = false;
 
     private static final String SAFE_ROW_NAME = "saferow";
     private static final String UNSAFE_ROW_NAME = "row";
@@ -82,9 +96,6 @@ public class LoggingArgsTest {
             UNSAFE_COLUMN_RANGE, 1);
     private static final BatchColumnRangeSelection MIXED_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
             MIXED_COLUMN_RANGE, 1);
-
-    public static final boolean ALL_SAFE_FOR_LOGGING = true;
-    public static final boolean NOT_ALL_SAFE_FOR_LOGGING = false;
 
     private static final KeyValueServiceLogArbitrator arbitrator = Mockito.mock(KeyValueServiceLogArbitrator.class);
 
@@ -290,10 +301,24 @@ public class LoggingArgsTest {
     }
 
     @Test
-    public void hydrateDoesNotThrowOnInvalidMetadata() {
-        LoggingArgs.hydrate(
-                ImmutableMap.of(SAFE_TABLE_REFERENCE, AtlasDbConstants.EMPTY_TABLE_METADATA),
-                ALL_SAFE_FOR_LOGGING);
+    public void hydrateSetsLoggingArgsAndDoesNotThrowOnInvalidMetadata() {
+        LoggingArgs.setLogArbitrator(KeyValueServiceLogArbitrator.ALL_UNSAFE);
+
+        LoggingArgs.hydrate(TABLE_REF_TO_METADATA, ALL_SAFE_FOR_LOGGING);
+        assertThat(LoggingArgs.getLogArbitrator()).isEqualTo(KeyValueServiceLogArbitrator.ALL_SAFE);
+
+        LoggingArgs.hydrate(TABLE_REF_TO_METADATA, NOT_ALL_SAFE_FOR_LOGGING);
+        assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
+        assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
+
+        LoggingArgs.hydrate(TABLE_REF_TO_METADATA, ALL_SAFE_FOR_LOGGING);
+        assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isTrue();
+        assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
+
+        LoggingArgs.hydrate(ImmutableMap.of(UNSAFE_TABLE_REFERENCE, UNSAFE_TABLE_METADATA), NOT_ALL_SAFE_FOR_LOGGING);
+        assertThat(LoggingArgs.isSafe(SAFE_TABLE_REFERENCE)).isFalse();
+        assertThat(LoggingArgs.isSafe(UNSAFE_TABLE_REFERENCE)).isFalse();
+
         LoggingArgs.setLogArbitrator(arbitrator);
     }
 }
