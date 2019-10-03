@@ -27,7 +27,6 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;

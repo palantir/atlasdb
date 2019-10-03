@@ -61,7 +61,6 @@ public final class WeightedHosts {
             totalOpenRequests += openRequests;
         }
 
-
         int lowerBoundInclusive = 0;
         NavigableMap<Integer, InetSocketAddress> weightedHosts = new TreeMap<>();
         for (Map.Entry<InetSocketAddress, Integer> entry : openRequestsByHost.entrySet()) {

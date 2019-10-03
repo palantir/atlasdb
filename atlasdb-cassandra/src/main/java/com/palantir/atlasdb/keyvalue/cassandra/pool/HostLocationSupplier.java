@@ -19,33 +19,49 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import javax.swing.text.html.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Suppliers;
 
 public final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
     private final Supplier<String> snitchSupplier;
-    private final Supplier<Optional<HostLocation>> ec2Supplier;
-    private final Supplier<Optional<HostLocation>> defaultSupplier;
+    private final Supplier<HostLocation> ec2Supplier;
+    private final Optional<HostLocation> overrideLocation;
+
+    private static final Logger log = LoggerFactory.getLogger(HostLocationSupplier.class);
+
 
     public HostLocationSupplier(Supplier<String> snitchSupplier,
-            Supplier<Optional<HostLocation>> defaultSupplier) {
-        this.snitchSupplier = snitchSupplier;
-        this.ec2Supplier = new EC2HostLocationSupplier();
-        this.defaultSupplier = defaultSupplier;
+            Supplier<HostLocation> ec2Supplier,
+            Optional<HostLocation> overrideLocation) {
+        this.snitchSupplier = Suppliers.memoize(snitchSupplier::get);
+        this.ec2Supplier = Suppliers.memoize(ec2Supplier::get);
+        this.overrideLocation = overrideLocation;
+    }
+
+    public HostLocationSupplier(Supplier<String> snitchSupplier,
+            Optional<HostLocation> overrideLocation) {
+        this(snitchSupplier, new EC2HostLocationSupplier(), overrideLocation);
     }
 
     @Override
     public Optional<HostLocation> get() {
-        Optional<HostLocation> defaultHostLocation = defaultSupplier.get();
-        if(defaultHostLocation.isPresent()) {
-            return defaultHostLocation;
-        }
+        try {
+            if (overrideLocation.isPresent()) {
+                return overrideLocation;
+            }
 
-        switch (snitchSupplier.get()) {
-            case "org.apache.cassandra.locator.EC2Snitch":
-                return ec2Supplier.get();
-            default:
-                return Optional.empty();
+            switch (snitchSupplier.get()) {
+                case "org.apache.cassandra.locator.EC2Snitch":
+                    return Optional.of(ec2Supplier.get());
+                default:
+                    return Optional.empty();
+            }
+        } catch (RuntimeException e) {
+            log.warn("Host location supplier failed to retrieve the host location");
+            return Optional.empty();
         }
     }
 }

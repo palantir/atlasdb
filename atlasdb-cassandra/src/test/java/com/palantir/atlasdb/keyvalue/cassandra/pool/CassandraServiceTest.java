@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import static org.hamcrest.Matchers.is;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;

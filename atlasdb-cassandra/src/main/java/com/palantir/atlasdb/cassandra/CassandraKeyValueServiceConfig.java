@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
@@ -140,11 +139,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * Controls the behaviour of the host location supplier when the snitch description does not match any known
-     * snitches.
+     * Overrides the behaviour of the host location supplier
      */
     @Value.Default
-    default Optional<HostLocation> defaultHostLocation () {
+    default Optional<HostLocation> overrideHostLocation () {
         return Optional.empty();
     }
 

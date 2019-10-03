@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 import okhttp3.OkHttpClient;
@@ -37,13 +38,13 @@ import okhttp3.Response;
  * AWS has an endpoint that returns the datacenter and rack (in Cassandra terms) - this request will fail if not on AWS.
  * The reply comes in the form "datacenter"+"rack", e.g. "us-east-1a", where datacenter is "us-east-1" and rack is "a".
  */
-public final class EC2HostLocationSupplier implements Supplier<Optional<HostLocation>> {
+public final class EC2HostLocationSupplier implements Supplier<HostLocation> {
 
     private static final OkHttpClient client = new OkHttpClient.Builder().build();
     private static final Logger log = LoggerFactory.getLogger(EC2HostLocationSupplier.class);
 
     @Override
-    public Optional<HostLocation> get() {
+    public HostLocation get() {
         try {
             Response response = client.newCall(new Request.Builder()
                     .get()
@@ -57,10 +58,10 @@ public final class EC2HostLocationSupplier implements Supplier<Optional<HostLoca
             String datacenter = responseString.substring(0, responseString.length() - 2);
             String rack = responseString.substring(responseString.length() - 1);
 
-            return Optional.of(HostLocation.of(datacenter, rack));
-        } catch (IOException | SafeIllegalStateException e) {
-            log.info("Could not retrieve location information from AWS", e);
-            return Optional.empty();
+            return HostLocation.of(datacenter, rack);
+        } catch (IOException | SafeIllegalArgumentException e) {
+            log.warn("Could not retrieve location information from AWS", e);
+            throw new RuntimeException(e);
         }
     }
 }

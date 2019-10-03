@@ -88,13 +88,13 @@ public class CassandraClientPoolIntegrationTest {
         HostLocation localLocation = HostLocation.of("dc1", "rack1");
         HostLocation remoteLocation = HostLocation.of("dc1", "rack4");
 
-        assertThat(getLocalHostsUsingLocation(localLocation)).hasSize(1);
-        assertThat(getLocalHostsUsingLocation(remoteLocation)).hasSize(0);
+        assertThat(getLocalHostsUsingLocation(localLocation)).isNotEmpty();
+        assertThat(getLocalHostsUsingLocation(remoteLocation)).isEmpty();
     }
 
     private Set<InetSocketAddress> getLocalHostsUsingLocation(HostLocation hostLocation) {
         CassandraKeyValueServiceConfig configHostWithLocation = ImmutableCassandraKeyValueServiceConfig.builder().from(
-                CASSANDRA.getConfig()).defaultHostLocation(Optional.of(hostLocation)).build();
+                CASSANDRA.getConfig()).overrideHostLocation(Optional.of(hostLocation)).build();
 
         CassandraClientPoolImpl clientPoolWithLocation = CassandraClientPoolImpl.createImplForTest(metricsManager,
                 configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);

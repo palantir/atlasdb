@@ -57,19 +57,19 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Feature breakdown:
- * - Pooling
- * - Token Aware Mapping / Query Routing / Data partitioning
- * - Retriable Queries
- * - Pool member error tracking / blacklisting
- * - Pool refreshing
- * - Pool node autodiscovery
- * - Pool member health checking
+ *   - Pooling
+ *   - Token Aware Mapping / Query Routing / Data partitioning
+ *   - Retriable Queries
+ *   - Pool member error tracking / blacklisting*
+ *   - Pool refreshing
+ *   - Pool node autodiscovery
+ *   - Pool member health checking*
  *
- * *entirely new features
+ *   *entirely new features
  *
- * By our old system, this would be a
- * RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
- * ... this is one of the reasons why there is a new system.
+ *   By our old system, this would be a
+ *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
+ *   ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
@@ -114,25 +114,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private ScheduledFuture<?> refreshPoolFuture;
-
-
-    @VisibleForTesting
-    static CassandraClientPoolImpl createImplForTest(
-            MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks,
-            Blacklist blacklist,
-            Optional<HostLocation> myLocation) {
-        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
-                metricsManager,
-                config,
-                startupChecks,
-                exceptionHandler,
-                blacklist);
-        cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-        return cassandraClientPool;
-    }
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
