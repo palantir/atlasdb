@@ -37,7 +37,7 @@ atlasDbRuntime:
   timelockRuntime:
     serversList:
       servers:
-        - 'https://timelock:8421'
+        - 'http://timelock:8421'
       sslConfiguration:
         keyStorePath: "var/security/keyStore.jks"
         keyStorePassword: "keystore"
