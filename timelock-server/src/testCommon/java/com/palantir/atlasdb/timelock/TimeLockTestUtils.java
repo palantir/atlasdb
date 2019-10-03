@@ -57,7 +57,7 @@ public final class TimeLockTestUtils {
                 .build();
         return TransactionManagers.builder()
                 .config(config)
-                .structuredUserAgent(UserAgent.of(UserAgent.Agent.of(agent.replace("-", "_"), "0.0.0")))
+                .structuredUserAgent(UserAgent.of(UserAgent.Agent.of("u" + agent, "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .build()
