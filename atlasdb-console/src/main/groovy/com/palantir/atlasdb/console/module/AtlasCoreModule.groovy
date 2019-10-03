@@ -218,7 +218,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
     private setupConnection(AtlasDbConfig config) {
         TransactionManager tm = TransactionManagers.builder()
                 .config(config)
-                .structuredUserAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-console", "0.0.0")))
+                .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-console", "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .allowHiddenTableAccess(true)
