@@ -266,11 +266,10 @@ public abstract class TransactionManagers {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return builder()
                 .config(config)
-                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT.toString())
+                .structuredUserAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .addAllSchemas(schemas)
-                .structuredUserAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .build()
                 .serializable();
     }
