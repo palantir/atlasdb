@@ -1032,9 +1032,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         immutableTs = 11;
         unreadableTs = 11;
         spiedKvs.truncateTable(TABLE_CONS);
-        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
+        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isExhausted();
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
+        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isExhausted();
     }
 
     @Test

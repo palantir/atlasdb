@@ -77,7 +77,7 @@ public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
         RowResult<Value> expectedRowResult = RowResult.create(FIRST_ROW,
                 ImmutableSortedMap.copyOf(expectedColumns, UnsignedBytes.lexicographicalComparator()));
 
-        assertThat(resultIterator).containsExactlyElementsOf(ImmutableList.of(expectedRowResult));
+        assertThat(resultIterator).toIterable().containsExactlyElementsOf(ImmutableList.of(expectedRowResult));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
                 .getRowsColumnRange(TEST_TABLE, ImmutableList.of(FIRST_ROW), rangeSelection, Long.MAX_VALUE);
 
         assertThat(Iterables.getOnlyElement(rowsColumnRange.keySet())).isEqualTo(FIRST_ROW);
-        assertThat(rowsColumnRange.get(FIRST_ROW)).containsExactlyElementsOf(expectedRowEntries);
+        assertThat(rowsColumnRange.get(FIRST_ROW)).toIterable().containsExactlyElementsOf(expectedRowEntries);
     }
 
     @Test
