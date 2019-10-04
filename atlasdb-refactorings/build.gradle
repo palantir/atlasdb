@@ -1,0 +1,8 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    implementation 'com.google.errorprone:error_prone_refaster'
+    implementation project(":atlasdb-config")
+
+    testImplementation 'com.palantir.baseline:baseline-refaster-testing'
+}
