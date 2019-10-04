@@ -728,12 +728,16 @@ Now, we can consider how multiple client service versions interact:
 #### Implementing Safe Upgrades
 
 To do rolling or blue/green upgrades from C1s or C2s to C4s, we thus recommend a checkpointing process that ensures that
-C1s (and C2s) never run concurrently with C4s.
+C1s (and C2s) never run concurrently with C4s, and that one cannot rollback to C1s or C2s once transactions2 has been
+used.
 
 1. Upgrade the version of AtlasDB to an A3 version.
 2. Release your product (this is a C3), making this a *checkpoint release* - that is, all upgrades to subsequent
    versions must go through this version.
-3. Enable transactions2, and release your product (this is a C4).
+3. Enable transactions2, and, if possible, prevent downgrades back to C1 or C2 versions once transactions2 has been
+   used. It may be easier to perform an overapproximation and generally prevent downgrades from your current version
+   back to a C1 or C2 version (even though this is more heavy-handed than strictly required).
+4. Release your product (this is a C4).
 
 #### Downgrading from Transactions2
 
