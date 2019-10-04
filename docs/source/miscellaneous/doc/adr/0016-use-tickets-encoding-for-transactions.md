@@ -603,8 +603,19 @@ C1s (and C2s) never run concurrently with C4s.
 
 #### Downgrading from Transactions2
 
-Generally, as long as we ensure that all nodes remain on versions that are C2s, C3s or C4s (though C2s are ill-advised)
+Generally, as long as we ensure that all nodes remain on versions that are C3s and C4s, it is safe to downgrade from
+transactions2 to transactions1 simply by configuring AtlasDB to set the target schema version to 1. In this case,
+AtlasDB service nodes will attempt to run a transform that reverts to version 1. However, note that because we normally
+maintain validity bounds to be 5 million timestamps ahead of a fresh timestamp, we need to wait for those 5 million
+timestamps to be used up before services fully revert to using transactions1. If this wait is unacceptable, users should
+fast-forward TimeLock to a fresh timestamp plus 5 million.
 
+It is safe from an AtlasDB data integrity perspective to downgrade to C2 versions, though this is ill-advised as the C2
+versions will loudly fail to read any data that was committed under the transactions2 scheme.
+
+It is worth reiterating that users **MUST NOT** downgrade to C1 versions once transactions2 has been used for
+**ANY** transactions. Any data committed under the transactions2 scheme will be treated as uncommitted, which could
+lead to **SEVERE DATA CORRUPTION**.
 
 ## Consequences
 
