@@ -34,6 +34,9 @@ do
     CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x $task"
 done
 
+# refaster runs with errorprone which patches the bootClasspath, need to ensure we run only on the errorprone container
+CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-refactorings:test'"
+
 # Short circuit the build if it's docs only
 if ./scripts/circle-ci/check-only-docs-changes.sh; then
     if [ $CIRCLE_NODE_INDEX -eq 0 ]; then
