@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,8 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
@@ -52,7 +55,10 @@ import com.palantir.docker.proxy.DockerProxyRule;
 public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle TIMELOCK_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
-    private static final Optional<TrustContext> NO_SSL = Optional.empty();
+
+    private static final SslConfiguration SSL_CONFIGURATION
+            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
     private static final short SERVER_PORT = 3828;
 
@@ -186,7 +192,10 @@ public abstract class EteSetup {
 
         return AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                ImmutableServerListConfig.builder().addAllServers(uris).build(),
+                ImmutableServerListConfig.builder()
+                        .addAllServers(uris)
+                        .sslConfiguration(SSL_CONFIGURATION)
+                        .build(),
                 clazz,
                 TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
     }
@@ -195,7 +204,7 @@ public abstract class EteSetup {
         String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                NO_SSL,
+                Optional.of(TRUST_CONTEXT),
                 uri,
                 clazz,
                 TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
