@@ -93,7 +93,7 @@ public final class ServiceCreator {
                 parameters);
     }
 
-    public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {
+    public static <T> T instrumentService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 serviceClass,

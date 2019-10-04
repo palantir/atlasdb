@@ -1,0 +1,14 @@
+type: break
+break:
+  description: "User agents must now be passed in structured format. Specifically,
+    the `userAgent` stage of the staged builder for `TransactionManagers` is now called
+    `structuredUserAgent`, and it accepts a `UserAgent` object as expressed in Conjure
+    Java API configuration.\n\nIn other words, code that previously read\n\n```\nreturn
+    TransactionManagers.builder()\n        .config(config)\n        .userAgent(UserAgents.format(someAgent))\n
+    \       /* snip */  \n```\n\nshould now read\n\n```\nreturn TransactionManagers.builder()\n
+    \       .config(config)\n        .structuredUserAgent(someAgent)\n        /* snip
+    */  \n```\n\nYou may need to create a fresh `UserAgent` if you were previously
+    passing a raw `String`. Please contact the AtlasDB team if you need more detailed
+    help.\n"
+  links:
+  - https://github.com/palantir/atlasdb/pull/4277

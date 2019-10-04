@@ -169,7 +169,12 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
 
-@Value.Immutable
+/*
+ * This is commented out because we need to support two methods for the user agent parameter. It will revert to being
+ * generated again once we've switched people over. If you edit any of the methods that affects generation, you need to
+ * apply the change for user agents again until we've switched people over to use the new thing.
+ */
+//@Value.Immutable
 @Value.Style(stagedBuilder = true)
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
@@ -211,16 +216,12 @@ public abstract class TransactionManagers {
         return false;
     }
 
-    /**
-     * @deprecated Please specify a {@link #structuredUserAgent()} instead.
-     */
-    @Deprecated
-    abstract String userAgent();
-
     @Value.Default
-    UserAgent structuredUserAgent() {
-        return UserAgents.tryParse(userAgent());
+    boolean allSafeForLogging() {
+        return false;
     }
+
+    abstract UserAgent userAgent();
 
     abstract MetricRegistry globalMetricsRegistry();
 
@@ -270,11 +271,10 @@ public abstract class TransactionManagers {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return builder()
                 .config(config)
-                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT.toString())
+                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .addAllSchemas(schemas)
-                .structuredUserAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .build()
                 .serializable();
     }
@@ -334,7 +334,7 @@ public abstract class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions()),
                 managedTimestampSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
-                structuredUserAgent());
+                userAgent());
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -365,7 +365,7 @@ public abstract class TransactionManagers {
         }, closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService, schemas(), config().initializeAsync());
+                keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 
@@ -981,7 +981,7 @@ public abstract class TransactionManagers {
                 () -> defaultRuntime,
                 userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
-        LockService localLock = ServiceCreator.createInstrumentedService(
+        LockService localLock = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
                 AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock::get, leader),
                 LockService.class);
@@ -989,12 +989,12 @@ public abstract class TransactionManagers {
         ManagedTimestampService managedTimestampProxy =
                 AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time::get, leader);
 
-        TimestampService localTime = ServiceCreator.createInstrumentedService(
+        TimestampService localTime = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
                 managedTimestampProxy,
                 TimestampService.class);
 
-        TimestampManagementService localManagement = ServiceCreator.createInstrumentedService(
+        TimestampManagementService localManagement = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(),
                 managedTimestampProxy,
                 TimestampManagementService.class);
@@ -1102,14 +1102,14 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> managedTimestampServiceSupplier) {
-        LockService lockService = ServiceCreator.createInstrumentedService(
+        LockService lockService = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(), lock.get(), LockService.class);
 
         ManagedTimestampService managedTimestampService = managedTimestampServiceSupplier.get();
 
-        TimestampService timeService = ServiceCreator.createInstrumentedService(
+        TimestampService timeService = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(), managedTimestampService, TimestampService.class);
-        TimestampManagementService timestampManagementService = ServiceCreator.createInstrumentedService(
+        TimestampManagementService timestampManagementService = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(), managedTimestampService, TimestampManagementService.class);
 
         env.accept(lockService);

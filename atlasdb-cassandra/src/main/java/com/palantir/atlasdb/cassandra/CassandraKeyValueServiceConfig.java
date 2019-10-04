@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
@@ -127,6 +128,24 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     default int gcGraceSeconds() {
         return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
     }
+
+    /**
+     * This increases the likelihood of selecting an instance that is hosted in the same data centre as the process.
+     * Weighting is a ratio from 0 to 1, where 0 disables the feature and 1 forces the same data centre if possible.
+     */
+    @Value.Default
+    default double localHostWeighting() {
+        return 0.0;
+    }
+
+    /**
+     * Overrides the behaviour of the host location supplier.
+     */
+    @Value.Default
+    default Optional<HostLocation> overrideHostLocation() {
+        return Optional.empty();
+    }
+
 
     @JsonIgnore
     @Value.Lazy
@@ -313,5 +332,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
+
+        Preconditions.checkArgument(localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
+                "'localHostWeighting' must be between 0 and 1 inclusive");
     }
 }
