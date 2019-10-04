@@ -34,6 +34,7 @@ import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.ext.refresh.Refreshable;
 import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
+import com.palantir.util.CachedTransformingSupplier;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     private static final HostMetricsRegistry HOST_METRICS_REGISTRY = new HostMetricsRegistry();
@@ -46,9 +47,15 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     }
 
     @Override
-    public <T> InstanceAndVersion<T> createProxy(Optional<TrustContext> trustContext, String uri, Class<T> type,
+    public <T> InstanceAndVersion<T> createProxy(
+            Optional<TrustContext> trustContext,
+            String uri,
+            Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        ClientConfiguration clientConfiguration = ClientOptions.DEFAULT_RETRYING.create(
+        ClientOptions relevantOptions = parameters.shouldRetry()
+                ? ClientOptions.DEFAULT_RETRYING
+                : ClientOptions.DEFAULT_NO_RETRYING;
+        ClientConfiguration clientConfiguration = relevantOptions.create(
                 ImmutableList.of(uri),
                 Optional.empty(),
                 trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
@@ -82,9 +89,10 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
 
         // TODO (jkong): Thread leak for days. Though no regression over existing implementation in Feign.
         Refreshable<ClientConfiguration> refreshableConfig = PollingRefreshable
-                .createComposed(nonEmptyServerList,
-                        Duration.ofSeconds(5L),
-                        ClientOptions.DEFAULT_RETRYING::serverListToClient)
+                .create(
+                        new CachedTransformingSupplier<>(
+                                nonEmptyServerList, ClientOptions.DEFAULT_RETRYING::serverListToClient),
+                        Duration.ofSeconds(5L))
                 .getRefreshable();
         return wrapWithVersion(JaxRsClient.create(
                 type,
