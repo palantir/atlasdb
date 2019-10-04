@@ -45,7 +45,7 @@ public class BenchmarksResource implements BenchmarksService {
     public BenchmarksResource(AtlasDbConfig config) {
         this.txnManager = TransactionManagers.builder()
                 .config(config)
-                .structuredUserAgent(UserAgent.of(UserAgent.Agent.of("benchmarks", "0.0.0")))
+                .userAgent(UserAgent.of(UserAgent.Agent.of("benchmarks", "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(SharedTaggedMetricRegistries.getSingleton())
                 .addSchemas(BenchmarksSchema.SCHEMA)
