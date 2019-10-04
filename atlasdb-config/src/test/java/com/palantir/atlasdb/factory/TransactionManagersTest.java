@@ -39,6 +39,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +102,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
@@ -163,6 +165,9 @@ public class TransactionManagersTest {
     private static final String TIMELOCK_FF_PATH
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
     private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
+
+    private static final SslConfiguration SSL_CONFIGURATION
+            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
 
     private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
     private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
@@ -231,6 +236,7 @@ public class TransactionManagersTest {
         mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
+                .sslConfiguration(SSL_CONFIGURATION)
                 .build();
     }
 
@@ -718,10 +724,14 @@ public class TransactionManagersTest {
     }
 
     private void setUpTimeLockBlockInRuntimeConfig() {
-        when(runtimeConfig.timelockRuntime()).thenReturn(
-                Optional.of(ImmutableTimeLockRuntimeConfig.builder()
-                        .serversList(rawRemoteServerConfig)
+        when(runtimeConfig.timelockRuntime())
+                .thenReturn(Optional.of(ImmutableTimeLockRuntimeConfig.builder()
+                        .serversList(ImmutableServerListConfig.builder()
+                                .addServers(getUriForPort(availablePort))
+                                .sslConfiguration(SSL_CONFIGURATION)
+                                .build())
                         .build()));
+
     }
 
     private void setUpRemoteTimestampAndLockBlocksInConfig() {
@@ -736,6 +746,7 @@ public class TransactionManagersTest {
                 .acceptorLogDir(temporaryFolder.newFolder())
                 .learnerLogDir(temporaryFolder.newFolder())
                 .quorumSize(1)
+                .sslConfiguration(SSL_CONFIGURATION)
                 .build()));
     }
 
@@ -802,6 +813,7 @@ public class TransactionManagersTest {
                 .client(CLIENT)
                 .serversList(ImmutableServerListConfig.builder()
                         .addAllServers(servers)
+                        .sslConfiguration(SSL_CONFIGURATION)
                         .build())
                 .build();
     }
