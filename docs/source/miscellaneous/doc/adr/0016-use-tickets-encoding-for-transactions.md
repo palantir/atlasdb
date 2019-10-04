@@ -415,8 +415,9 @@ Effectively, we want to define an internal schema version for AtlasDB, and imple
 transitions while ensuring nodes that want to commit transactions agree on the state of the world - or at least,
 agree sufficiently that they won't contradict one another.
 
-For a given start timestamp, we want to be able to decide what mechanism to use to find the commit timestamp (or,
-alternatively, if the transaction was aborted).
+For a given start timestamp, we want to be able to decide what mechanism to use to find the commit timestamp (or
+lack thereof, i.e., it may have neither committed nor aborted at this point - in which case we may want to roll it
+back).
 
 #### Coordination Service
 
@@ -437,9 +438,6 @@ public interface CoordinationService<T> {
     Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp);
 
     CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform);
-
-    // ONLY FOR METRICS AND MONITORING - NOT FOR PRODUCTION DECISIONS.
-    Optional<ValueAndBound<T>> getLastKnownLocalValue();
 }
 ```
 
@@ -502,9 +500,9 @@ Recall that for dynamic columns in Cassandra, ``key`` corresponds to the row, ``
 
 The sequence IDs are encoded as a ``STRING``. The column IDs are ``VAR_LONG`` encoded.
 
-A consequence of this in Cassandra KVS is that all entries for a single coordination sequence will be stored in the
-same replication group. However, this is expected to be acceptable as we don't range scan this table, and the number
-of values to be written is small.
+A consequence of this in Cassandra KVS is that all entries for a single coordination sequence are stored in the same
+row (partition key), and thus will be stored in the same replication group. However, this is expected to be acceptable
+as we don't range scan this table, and the number of values to be written is small.
 
 #### Determining Transaction Schema Versions
 
@@ -520,7 +518,8 @@ This is a range map, as we want to support rollbacks easily. The map also is gua
 ranges ``[1, +∞)`` and be connected; note that this does not mean future behaviour is fixed, since in practice this map
 is read together with a validity bound. Thus, even though the map will contain as a key some range ``[C, +∞)`` for a
 constant ``C``, it should be valid up to some point ``V > C`` - and behaviour at timestamps after ``V`` may subsequently
-be changed.
+be changed. The reason for doing this is because the transaction schema version changes much less frequently than the
+validity bound; this scheme allows us to not have to update the map each time the bound changes.
 
 Note that the ranges are based on the start timestamp; since we accessed the original ``TransactionService`` via the
 start timestamp, we will use the start timestamp against the range map to find out the behaviour at that point.
@@ -532,7 +531,9 @@ transactions that started later may have already written to schema version 2 - i
 We attempt to read the latest version of the range map, and if our timestamp falls within the validity bound, we
 retrieve the version. If it does not, we submit an identity transformation, which extends the validity bound of the
 current value. We then read the value again, and keep trying until we know what version to use. If we read a version
-we don't support yet, we throw (presumably, this is part of a rolling upgrade and should resolve itself soon).
+we don't support yet, we throw (presumably, this is part of a rolling upgrade and should resolve itself soon). Our
+transform may be rejected if another transform has taken place and changed the value from underneath us; however,
+because all transforms push the bound forward, we will eventually have a value that is valid for our timestamp.
 
 #### Changing Transaction Schema Versions
 
@@ -575,9 +576,12 @@ We can thus similarly partition them:
 
 Now, we can consider how multiple client service versions interact:
 
-- Any sets of versions that don't include C4s are safely interoperable, because in these versions transactions2 is never
-  installed anyway, so we always use transactions1. Even C1s and C3s can safely interoperate, since although C1s never
-  read the coordination table, their effective assumption that it contains everything mapping to 1 is correct.
+- Provided that transactions2 has never been used, any sets of versions that don't include C4s are safely interoperable.
+  In these versions, transactions2 won't be installed, so we always use transactions1. Even C1s and C3s can safely
+  interoperate, since although C1s never read the coordination table, their effective assumption that it contains
+  everything mapping to 1 is correct. Note that if transactions2 has been used at some point in the past, then
+  rolling back to C1s may result in **SEVERE DATA CORRUPTION** (even if these are never run concurrently with any other
+  versions) as values committed in transactions2 will be treated as though they were never committed.
 - C1s and C4s running concurrently can lead to **SEVERE DATA CORRUPTION**, since the C4s might install transactions2
   and read/write from transactions2, while the C1s will continue to read/write from transactions1. This means that
   values committed by C1s once transactions2 became active will show as uncommitted to C4s, and vice versa.
@@ -596,6 +600,11 @@ C1s (and C2s) never run concurrently with C4s.
 2. Release your product (this is a C3), making this a *checkpoint release* - that is, all upgrades to subsequent
    versions must go through this version.
 3. Enable transactions2, and release your product (this is a C4).
+
+#### Downgrading from Transactions2
+
+Generally, as long as we ensure that all nodes remain on versions that are C2s, C3s or C4s (though C2s are ill-advised)
+
 
 ## Consequences
 
