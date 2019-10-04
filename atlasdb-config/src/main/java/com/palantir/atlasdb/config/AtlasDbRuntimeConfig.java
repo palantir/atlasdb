@@ -36,6 +36,9 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 @Value.Immutable
 public abstract class AtlasDbRuntimeConfig {
 
+    /**
+     * Live reloadable configurations for background / legacy sweep.
+     */
     @Value.Default
     public SweepConfig sweep() {
         return SweepConfig.defaultSweepConfig();
@@ -98,6 +101,11 @@ public abstract class AtlasDbRuntimeConfig {
     @Value.Default
     public StreamStorePersistenceConfiguration streamStorePersistence() {
         return StreamStorePersistenceConfiguration.DEFAULT_CONFIG;
+    }
+
+    @Value.Default
+    public RemotingClientConfig remotingClient() {
+        return ImmutableRemotingClientConfig.builder().build();
     }
 
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {

@@ -15,12 +15,9 @@
  */
 package com.palantir.atlasdb.containers;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +30,8 @@ import com.palantir.docker.compose.connection.ContainerName;
 import com.palantir.docker.compose.execution.DockerCompose;
 import com.palantir.docker.compose.logging.FileLogCollector;
 import com.palantir.docker.compose.logging.LogCollector;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -47,7 +46,7 @@ public class InterruptibleFileLogCollector implements LogCollector {
     private ExecutorService executor = null;
 
     public InterruptibleFileLogCollector(File logDirectory) {
-        checkArgument(!logDirectory.isFile(), "Log directory cannot be a file");
+        Preconditions.checkArgument(!logDirectory.isFile(), "Log directory cannot be a file");
         if (!logDirectory.exists()) {
             Validate.isTrue(logDirectory.mkdirs(), "Error making log directory: " + logDirectory.getAbsolutePath());
         }
@@ -58,42 +57,42 @@ public class InterruptibleFileLogCollector implements LogCollector {
         return new InterruptibleFileLogCollector(new File(path));
     }
 
-    @Override
-    public synchronized void startCollecting(DockerCompose dockerCompose) throws IOException, InterruptedException {
+    synchronized void initializeExecutor(int numberOfContainers) {
         if (executor != null) {
-            throw new RuntimeException("Cannot start collecting the same logs twice");
+            throw new SafeRuntimeException("Cannot start collecting the same logs twice");
         }
-        List<ContainerName> containerNames = dockerCompose.ps();
-        if (containerNames.size() == 0) {
-            return;
-        }
-        executor = Executors.newFixedThreadPool(containerNames.size());
-        containerNames.stream()
-                .map(ContainerName::semanticName)
-                .forEachOrdered(container -> this.collectLogs(container, dockerCompose));
-    }
-
-    private void collectLogs(String container, DockerCompose dockerCompose)  {
-        executor.submit(() -> {
-            File outputFile = new File(logDirectory, container + ".log");
-            log.info("Writing logs for container '{}' to '{}'", container, outputFile.getAbsolutePath());
-            try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
-                dockerCompose.writeLogs(container, outputStream);
-            } catch (IOException e) {
-                throw new RuntimeException("Error reading log", e);
-            }
-        });
+        executor = Executors.newFixedThreadPool(numberOfContainers);
     }
 
     @Override
-    public synchronized void stopCollecting() throws InterruptedException {
+    public void collectLogs(DockerCompose dockerCompose) throws IOException, InterruptedException {
+        dockerCompose.ps().stream()
+                .map(ContainerName::semanticName)
+                .forEachOrdered(container -> executor.execute(() -> {
+                    File outputFile = new File(logDirectory, container + ".log");
+                    log.info("Writing logs for container '{}' to '{}'", container, outputFile.getAbsolutePath());
+                    try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
+                        dockerCompose.writeLogs(container, outputStream);
+                    } catch (IOException e) {
+                        throw new SafeRuntimeException("Error writing log", e);
+                    }
+                }));
+    }
+
+    synchronized void stopExecutor() {
         if (executor == null) {
             return;
         }
         executor.shutdown();
-        if (!executor.awaitTermination(STOP_TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS)) {
-            log.warn("docker containers were still running when log collection stopped");
-            executor.shutdownNow();
+        try {
+            if (!executor.awaitTermination(STOP_TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS)) {
+                log.warn("docker containers were still running when log collection stopped");
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            log.warn("Thread was interrupted while waiting for executor to terminate.", e);
+        } catch (Exception e) {
+            log.warn("Exception was raised while shutting down the executor", e);
         }
     }
 }

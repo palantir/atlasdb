@@ -15,23 +15,31 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.ProxySelector;
-import java.util.Collection;
+import java.net.SocketAddress;
+import java.net.URI;
+import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.collect.ImmutableList;
+import com.google.common.net.HostAndPort;
 import com.google.common.reflect.Reflection;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 import feign.Client;
 import feign.Contract;
@@ -41,135 +49,130 @@ import feign.Retryer;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
 import feign.codec.ErrorDecoder;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
-public final class AtlasDbFeignTargetFactory {
+public final class AtlasDbFeignTargetFactory implements TargetFactory {
+    // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,
+    // and we don't want it to exactly align with the feign timeout
+    private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 10_000;
+    private static final int DEFAULT_READ_TIMEOUT_MILLIS = 65_000;
+
+    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
+    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
+
+    // TODO (jkong): Decide what to do with usage in benchmarking infrastructure
+    public static final TargetFactory DEFAULT = new AtlasDbFeignTargetFactory(
+            DEFAULT_CONNECT_TIMEOUT_MILLIS,
+            DEFAULT_READ_TIMEOUT_MILLIS,
+            FailoverFeignTarget.DEFAULT_MAX_BACKOFF.toMillis());
+    static final TargetFactory FAST_FAIL_FOR_TESTING = new AtlasDbFeignTargetFactory(
+            QUICK_FEIGN_TIMEOUT_MILLIS,
+            QUICK_FEIGN_TIMEOUT_MILLIS,
+            QUICK_MAX_BACKOFF_MILLIS);
 
     private static final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new Jdk8Module())
             .registerModule(new JavaTimeModule())
             .registerModule(new GuavaModule());
     private static final Contract contract = new JAXRSContract();
-    private static final Encoder encoder = new JacksonEncoder(mapper);
+    private static final Encoder encoder = new AtlasDbJacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(
-            new OptionalAwareDecoder(new JacksonDecoder(mapper)));
+            new OptionalAwareDecoder(new AtlasDbJacksonDecoder(mapper)));
     private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
+    public static final String CLIENT_VERSION_STRING = "AtlasDB-Feign";
 
-    private AtlasDbFeignTargetFactory() {
-        // factory
+    private final int connectTimeout;
+    private final int readTimeout;
+    private final long maxBackoffMillis;
+
+    private AtlasDbFeignTargetFactory(int connectTimeout, int readTimeout, long maxBackoffMillis) {
+        this.connectTimeout = connectTimeout;
+        this.readTimeout = readTimeout;
+        this.maxBackoffMillis = maxBackoffMillis;
     }
 
-    public static <T> T createProxyWithoutRetrying(
+    @Override
+    public <T> InstanceAndVersion<T> createProxy(
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
-        return Feign.builder()
+            AuxiliaryRemotingParameters parameters) {
+        return wrapWithVersion(Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
-                .retryer(Retryer.NEVER_RETRY)
-                .client(createClient(trustContext, userAgent, limitPayloadSize))
-                .target(type, uri);
+                .retryer(parameters.shouldRetry() ? new InterruptHonoringRetryer() : Retryer.NEVER_RETRY)
+                .client(createClient(trustContext, parameters))
+                .target(type, uri));
     }
 
-    public static <T> T createProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
+    @Override
+    public <T> InstanceAndVersion<T> createProxyWithFailover(
+            ServerListConfig serverListConfig,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .retryer(new InterruptHonoringRetryer())
-                .client(createClient(trustContext, userAgent, limitPayloadSize))
-                .target(type, uri);
-    }
-
-    public static <T> T createRsProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            String userAgent) {
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(new RsErrorDecoder())
-                .client(createClient(trustContext, userAgent, false))
-                .target(type, uri);
-    }
-
-    public static <T> T createProxyWithFailover(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            int feignConnectTimeout,
-            int feignReadTimeout,
-            long maxBackoffMillis,
-            Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
-        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
+            AuxiliaryRemotingParameters parameters) {
+        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(
+                serverListConfig.servers(), maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
+                FeignOkHttpClients.newRefreshingOkHttpClient(
+                        serverListConfig.trustContext(),
+                        serverListConfig.proxyConfiguration().map(AtlasDbFeignTargetFactory::createProxySelector),
+                        parameters));
 
-        return Feign.builder()
+        return wrapWithVersion(Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .client(client)
                 .retryer(failoverFeignTarget)
-                .options(new Request.Options(feignConnectTimeout, feignReadTimeout))
-                .target(failoverFeignTarget);
+                .options(new Request.Options(connectTimeout, readTimeout))
+                .target(failoverFeignTarget));
     }
 
-    static <T> T createLiveReloadingProxyWithFailover(
+    @Override
+    public <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
-            int feignConnectTimeout,
-            int feignReadTimeout,
-            long maxBackoffMillis,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
+            AuxiliaryRemotingParameters parameters) {
         PollingRefreshable<ServerListConfig> configPollingRefreshable =
                 PollingRefreshable.create(serverListConfigSupplier);
-        return Reflection.newProxy(
+        return wrapWithVersion(Reflection.newProxy(
                 type,
                 RefreshableProxyInvocationHandler.create(
                         configPollingRefreshable.getRefreshable(),
                         serverListConfig -> {
                             if (serverListConfig.hasAtLeastOneServer()) {
-                                return createProxyWithFailover(
-                                        serverListConfig.sslConfiguration().map(trustContextCreator),
-                                        serverListConfig.proxyConfiguration().map(proxySelectorCreator),
-                                        serverListConfig.servers(),
-                                        feignConnectTimeout,
-                                        feignReadTimeout,
-                                        maxBackoffMillis,
-                                        type,
-                                        userAgent,
-                                        limitPayload);
+                                return createProxyWithFailover(serverListConfig, type, parameters).instance();
                             }
                             return createProxyForZeroNodes(type);
-                        }));
+                        })));
+    }
+
+    public static <T> T createRsProxy(
+            Optional<TrustContext> trustContext,
+            String uri,
+            Class<T> type,
+            UserAgent userAgent) {
+        AuxiliaryRemotingParameters remotingParameters = AuxiliaryRemotingParameters.builder()
+                .userAgent(userAgent)
+                .shouldLimitPayload(false) // Only used for leader blocks
+                .shouldRetry(true)
+                .build();
+        return Feign.builder()
+                .contract(contract)
+                .encoder(encoder)
+                .decoder(decoder)
+                .errorDecoder(new RsErrorDecoder())
+                .client(createClient(trustContext, remotingParameters))
+                .target(type, uri);
     }
 
     private static Client createClient(
             Optional<TrustContext> trustContext,
-            String userAgent,
-            boolean limitPayload) {
-        return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
+            AuxiliaryRemotingParameters parameters) {
+        return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), parameters);
     }
 
     private static <T> T createProxyForZeroNodes(Class<T> type) {
@@ -177,5 +180,41 @@ public final class AtlasDbFeignTargetFactory {
             throw new ServiceNotAvailableException("The " + type.getSimpleName() + " is currently unavailable,"
                     + " because configuration contains zero servers.");
         });
+    }
+
+    /**
+     * The code below is copied from http-remoting and should be removed when we switch the clients to use remoting.
+     */
+    private static ProxySelector createProxySelector(ProxyConfiguration proxyConfig) {
+        switch (proxyConfig.type()) {
+            case DIRECT:
+                return fixedProxySelectorFor(Proxy.NO_PROXY);
+            case HTTP:
+                HostAndPort hostAndPort = HostAndPort.fromString(proxyConfig.hostAndPort()
+                        .orElseThrow(() -> new SafeIllegalArgumentException(
+                                "Expected to find proxy hostAndPort configuration for HTTP proxy")));
+                InetSocketAddress addr = new InetSocketAddress(hostAndPort.getHost(), hostAndPort.getPort());
+                return fixedProxySelectorFor(new Proxy(Proxy.Type.HTTP, addr));
+            default:
+                // fall through
+        }
+
+        throw new IllegalStateException("Failed to create ProxySelector for proxy configuration: " + proxyConfig);
+    }
+
+    private static ProxySelector fixedProxySelectorFor(Proxy proxy) {
+        return new ProxySelector() {
+            @Override
+            public List<Proxy> select(URI uri) {
+                return ImmutableList.of(proxy);
+            }
+
+            @Override
+            public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {}
+        };
+    }
+
+    private static <T> InstanceAndVersion<T> wrapWithVersion(T instance) {
+        return ImmutableInstanceAndVersion.of(instance, CLIENT_VERSION_STRING);
     }
 }

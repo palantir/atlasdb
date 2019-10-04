@@ -52,6 +52,7 @@ public class MetricsManager {
     private final Set<MetricName> registeredTaggedMetrics;
     private final Predicate<TableReference> isSafeToLog;
     private final ReadWriteLock lock;
+    private final MetricNameCache metricNameCache;
 
     public MetricsManager(MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry,
@@ -62,6 +63,7 @@ public class MetricsManager {
         this.registeredTaggedMetrics = ConcurrentHashMap.newKeySet();
         this.isSafeToLog = isSafeToLog;
         this.lock = new ReentrantReadWriteLock();
+        this.metricNameCache = new MetricNameCache();
     }
 
     public MetricRegistry getRegistry() {
@@ -97,11 +99,8 @@ public class MetricsManager {
         }
     }
 
-    private static MetricName getTaggedMetricName(Class clazz, String metricName, Map<String, String> tags) {
-        return MetricName.builder()
-                .safeName(MetricRegistry.name(clazz, metricName))
-                .safeTags(tags)
-                .build();
+    private MetricName getTaggedMetricName(Class clazz, String metricName, Map<String, String> tags) {
+        return metricNameCache.get(clazz, metricName, tags);
     }
 
     public Map<String, String> getTableNameTagFor(@Nullable TableReference tableRef) {
@@ -217,6 +216,8 @@ public class MetricsManager {
 
             registeredTaggedMetrics.forEach(taggedMetricRegistry::remove);
             registeredTaggedMetrics.clear();
+
+            metricNameCache.invalidate();
         } finally {
             lock.writeLock().unlock();
         }
@@ -230,6 +231,9 @@ public class MetricsManager {
                     .collect(Collectors.toList());
 
             metricsToRemove.forEach(taggedMetricRegistry::remove);
+
+            // Don't be clever, invalidate everything. This should be relatively uncommon.
+            metricNameCache.invalidate();
         } finally {
             lock.writeLock().unlock();
         }

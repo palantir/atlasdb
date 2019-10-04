@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description:
+    Updated versions of Cassandra driver and tracing lib.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4187

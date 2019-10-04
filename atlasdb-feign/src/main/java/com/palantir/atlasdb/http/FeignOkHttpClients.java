@@ -25,6 +25,8 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 import feign.Client;
@@ -97,10 +99,14 @@ public final class FeignOkHttpClients {
     public static Client newRefreshingOkHttpClient(
             Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
-            String userAgent,
-            boolean limitPayloadSize) {
+            AuxiliaryRemotingParameters parameters) {
         Supplier<Client> clientSupplier = () -> CounterBackedRefreshingClient.createRefreshingClient(
-                () -> newOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
+                () -> newOkHttpClient(
+                        trustContext,
+                        proxySelector,
+                        UserAgents.format(parameters.userAgent().addAgent(
+                                AtlasDbRemotingConstants.LEGACY_ATLASDB_HTTP_CLIENT_AGENT)),
+                        parameters.shouldLimitPayload()));
 
         return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
     }

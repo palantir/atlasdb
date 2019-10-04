@@ -6,6 +6,7 @@ install:
     cluster:
       uris:
       - "localhost:8421"
+    enableNonstandardAndPossiblyDangerousTopology: true
     local-server: "localhost:8421"
   timestampBoundPersistence:
     type: database

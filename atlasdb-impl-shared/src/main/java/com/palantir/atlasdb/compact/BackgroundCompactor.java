@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -35,6 +34,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundCompactor implements AutoCloseable {

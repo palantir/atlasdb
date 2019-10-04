@@ -17,6 +17,7 @@ package com.palantir.lock.client;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -24,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.ForwardingRemoteLockService;
 import com.palantir.lock.HeldLocksToken;
@@ -67,7 +67,7 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
 
     private LockRefreshingRemoteLockService(RemoteLockService delegate) {
         this.delegate = delegate;
-        toRefresh = Sets.newConcurrentHashSet();
+        toRefresh = ConcurrentHashMap.newKeySet();
         exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
     }
 

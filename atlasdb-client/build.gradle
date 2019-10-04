@@ -1,7 +1,4 @@
-apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
-
-apply plugin: 'org.inferred.processors'
 
 repositories {
     mavenCentral()
@@ -31,7 +28,7 @@ idea {
 
 libsDirName = file('build/artifacts')
 
-task myTestJar(type: Jar) {
+task clientTestJar(type: Jar) {
     from sourceSets.test.output
     classifier = 'tests'
 }
@@ -41,7 +38,7 @@ configurations {
 }
 
 artifacts {
-    testArtifacts myTestJar
+    testArtifacts clientTestJar
 }
 
 dependencies {
@@ -81,7 +78,8 @@ dependencies {
   compile group: 'com.palantir.common', name: 'streams'
   compile group: 'com.github.rholder', name: 'guava-retrying'
 
-  processor group: 'org.immutables', name: 'value'
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
@@ -94,6 +92,6 @@ dependencies {
 
   integrationInputCompile project(":atlasdb-client")
 
-  integrationInputCompile group: 'org.immutables', name: 'value'
-
+  integrationInputAnnotationProcessor group: 'org.immutables', name: 'value'
+  integrationInputCompileOnly 'org.immutables:value::annotations'
 }

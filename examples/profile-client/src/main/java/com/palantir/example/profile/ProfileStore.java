@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -91,7 +90,7 @@ public class ProfileStore {
 
     public void updateImage(UUID userId, Sha256Hash hash, InputStream imageData) {
         UserProfile userData = getUserData(userId);
-        Preconditions.checkNotNull(userData, "userData cannot be null");
+        com.palantir.logsafe.Preconditions.checkNotNull(userData, "userData cannot be null");
 
         UserPhotosStreamStore streamStore = UserPhotosStreamStore.of(txnMgr, tables);
         Long oldStreamId = getPhotoStreamId(userId);

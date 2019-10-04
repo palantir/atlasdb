@@ -1,5 +1,3 @@
-apply from: "../gradle/publish-jars.gradle"
-apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
 
@@ -24,15 +22,21 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
-    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk7'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
 
     // This is added so that AtlasDB clients can specify the javaAgent as a JVM argument to load jars needed for HTTP/2
     // in the boot classpath
     runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
 
-    processor group: 'org.immutables', name: 'value'
-    processor 'com.google.auto.service:auto-service:1.0-rc2'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'com.google.auto.service:auto-service'
+    compileOnly 'com.google.auto.service:auto-service'
+
+    testAnnotationProcessor 'com.google.auto.service:auto-service'
+    testCompileOnly 'com.google.auto.service:auto-service'
+    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testCompileOnly 'org.immutables:value::annotations'
 
     testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
     testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock

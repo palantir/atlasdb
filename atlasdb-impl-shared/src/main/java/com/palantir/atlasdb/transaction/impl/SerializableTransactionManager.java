@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -47,6 +48,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -116,10 +118,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         private void assertOpen() {
             if (status == State.CLOSED) {
-                throw new IllegalStateException("Operations cannot be performed on closed TransactionManager.");
+                throw new SafeIllegalStateException("Operations cannot be performed on closed TransactionManager.");
             }
             if (status == State.CLOSED_BY_CALLBACK_FAILURE) {
-                throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
+                throw new SafeIllegalStateException("Operations cannot be performed on closed TransactionManager."
                         + " Closed due to a callback failure.", callbackThrowable);
             }
         }
@@ -420,7 +422,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                new TimestampCache(metricsManager.getRegistry(), () -> 1000L),
+                new DefaultTimestampCache(metricsManager.getRegistry(), () -> 1000L),
                 false,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,

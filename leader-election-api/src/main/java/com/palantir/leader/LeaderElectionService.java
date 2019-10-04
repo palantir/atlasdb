@@ -19,8 +19,6 @@ import java.io.Serializable;
 import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.net.HostAndPort;
-
 public interface LeaderElectionService {
     interface LeadershipToken extends Serializable {
         boolean sameAs(LeadershipToken token);
@@ -36,6 +34,18 @@ public interface LeaderElectionService {
          */
         NO_QUORUM
     }
+
+    /**
+     * Indicates that this node should no longer try to nominate itself for leadership in the context of
+     * this leader election service.
+     *
+     * <b>Note</b> This only affects future elections, does not cause any change in leadership if this node is
+     * currently leader. If this node has proposed leadership in an ongoing election,
+     * that proposal still stands and the node could subsequently gain leadership.
+     *
+     * @see #stepDown()
+     */
+    void markNotEligibleForLeadership();
 
     /**
      * This method will block until this node becomes the leader and is supported by a quorum of nodes.
@@ -60,14 +70,6 @@ public interface LeaderElectionService {
      * @return LEADING if the token is still the leader
      */
     StillLeadingStatus isStillLeading(LeadershipToken token);
-
-    /**
-     * Cheaply get the network location of the currently suspected leader. This will not do any network
-     * calls and is meant to be callable without major performance implications. The value it returns
-     * is only a hint and may be unreliable. It can also return nothing if it doesn't suspect any
-     * leader or can't cheaply find one.
-     */
-    Optional<HostAndPort> getSuspectedLeaderInMemory();
 
     /**
      * Get the set of potential leaders known by this leader election service. This will not do any network

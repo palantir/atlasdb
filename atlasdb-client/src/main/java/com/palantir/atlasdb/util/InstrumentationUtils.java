@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.util;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
@@ -40,8 +41,12 @@ final class InstrumentationUtils {
         return new Timer(new SlidingTimeWindowArrayReservoir(35, TimeUnit.SECONDS));
     }
 
+    static String getBaseMetricName(Method method, String serviceName) {
+        return MetricRegistry.name(serviceName, method.getName());
+    }
+
     static String getBaseMetricName(InvocationContext context, String serviceName) {
-        return MetricRegistry.name(serviceName, context.getMethod().getName());
+        return getBaseMetricName(context.getMethod(), serviceName);
     }
 
     static String getFailuresMetricName(InvocationContext context, String serviceName) {

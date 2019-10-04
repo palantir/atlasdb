@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
@@ -45,6 +44,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;

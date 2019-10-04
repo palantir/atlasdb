@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.streams.KeyedStream;
 
 public class AcceptorCacheImplTests {
 
@@ -156,8 +157,9 @@ public class AcceptorCacheImplTests {
     private static AcceptorCache cache(Map<Client, Long> latestSequencesForClients) {
         AcceptorCacheImpl acceptorCache = new AcceptorCacheImpl();
 
-        Set<WithSeq<Client>> clientsAndSeq = latestSequencesForClients.entrySet().stream()
-                .map(clientAndSeq -> WithSeq.of(clientAndSeq.getKey(), clientAndSeq.getValue()))
+        Set<WithSeq<Client>> clientsAndSeq = KeyedStream.stream(latestSequencesForClients)
+                .map(WithSeq::of)
+                .values()
                 .collect(Collectors.toSet());
         acceptorCache.updateSequenceNumbers(clientsAndSeq);
         return acceptorCache;

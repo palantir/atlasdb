@@ -52,7 +52,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -97,6 +96,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -126,6 +127,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -205,6 +207,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
+    private final CqlClient cqlClient;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
 
@@ -232,6 +235,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config,
                 CassandraClientPoolImpl.StartupChecks.RUN,
                 new Blacklist(config));
+
         return createOrShutdownClientPool(metricsManager, config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 clientPool,
@@ -305,6 +309,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config,
                 runtimeConfigSupplier,
                 initializeAsync);
+
         return createOrShutdownClientPool(
                 metricsManager,
                 config,
@@ -324,7 +329,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            return createAndInitialize(
+            return createWithCqlClient(
                     metricsManager,
                     config,
                     runtimeConfigSupplier,
@@ -345,7 +350,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private static CassandraKeyValueService createAndInitialize(
+    private static CassandraKeyValueService createWithCqlClient(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
@@ -353,10 +358,42 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
+        try {
+            CqlClient cqlClient = CqlClientFactory.constructClient(
+                    metricsManager.getTaggedRegistry(),
+                    config,
+                    initializeAsync);
+
+            return createAndInitialize(
+                    metricsManager,
+                    config,
+                    runtimeConfigSupplier,
+                    clientPool,
+                    cqlClient,
+                    mutationTimestampProvider,
+                    log,
+                    initializeAsync);
+        } catch (Exception e) {
+            log.warn("CqlClient creation exception", e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+
+    }
+
+    private static CassandraKeyValueService createAndInitialize(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            CassandraClientPool clientPool,
+            CqlClient cqlClient,
+            CassandraMutationTimestampProvider mutationTimestampProvider,
+            Logger log,
+            boolean initializeAsync) {
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 metricsManager,
                 config,
+                cqlClient,
                 runtimeConfigSupplier,
                 clientPool,
                 mutationTimestampProvider);
@@ -368,6 +405,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            CqlClient cqlClient,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
@@ -376,6 +414,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.metricsManager = metricsManager;
         this.config = config;
         this.clientPool = clientPool;
+        this.cqlClient = cqlClient;
         this.mutationTimestampProvider = mutationTimestampProvider;
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
@@ -402,7 +441,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             MetricRegistry registry) {
         return new InstrumentedExecutorService(
                 createFixedThreadPool("Atlas Cassandra KVS",
-                        config.poolSize() * config.servers().size()),
+                        config.poolSize() * config.servers().numberOfHosts()),
                 registry,
                 MetricRegistry.name(CassandraKeyValueService.class, "executorService"));
     }
@@ -691,7 +730,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
-     *        contains duplicates (as defined by {@link java.util.Arrays#equals(byte[], byte[])}).
+     *        contains duplicates (as defined by {@link Arrays#equals(byte[], byte[])}).
      * @param batchColumnRangeSelection specifies the column range and the per-row batchSize to fetch.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's value.
      *
@@ -1604,7 +1643,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private Map<String, List<Mutation>> keyMutationMapByColumnFamily(TableReference tableRef,
+    private static Map<String, List<Mutation>> keyMutationMapByColumnFamily(TableReference tableRef,
             Mutation mutation) {
         return ImmutableMap.of(AbstractKeyValueService.internalTableName(tableRef), ImmutableList.of(mutation));
     }
@@ -1626,6 +1665,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
+        try {
+            log.info("Trying to close a CQL client");
+            cqlClient.close();
+        } catch (Exception e) {
+            log.info("Closing of CQL client failed", e);
+        }
         super.close();
     }
 
@@ -1759,7 +1804,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     /**
      * Performs a check-and-set into the key-value store.
      * Please see {@link CheckAndSetRequest} for information about how to create this request,
-     * and {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} for more detailed documentation.
+     * and {@link KeyValueService} for more detailed documentation.
      * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *

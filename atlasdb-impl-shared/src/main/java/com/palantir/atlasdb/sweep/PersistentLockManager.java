@@ -24,13 +24,13 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?

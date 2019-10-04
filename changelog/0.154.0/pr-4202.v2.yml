@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: 'Added more general support for server configuration for Cassandra. It is now possible to specify both
+    Thrift and CQL capable servers. Currently there are no API points that support CQL servers however this is a
+    prerequisite.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4202

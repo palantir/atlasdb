@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -31,6 +34,18 @@ public interface WithSeq<T> {
 
     @Value.Parameter
     T value();
+
+    default <U> WithSeq<U> map(BiFunction<T, Long, U> mapper) {
+        return WithSeq.of(mapper.apply(value(), seq()), seq());
+    }
+
+    default <U> WithSeq<U> map(Function<T, U> mapper) {
+        return WithSeq.of(mapper.apply(value()), seq());
+    }
+
+    default <U> WithSeq<U> withNewValue(U newValue) {
+        return WithSeq.of(newValue, seq());
+    }
 
     static <T> WithSeq<T> of(T value, long seq) {
         return ImmutableWithSeq.of(seq, value);

@@ -63,6 +63,7 @@ import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.JdbcHandler.BlobHandler;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.ResourceCreationLocation;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
@@ -169,7 +170,7 @@ public abstract class BasicSQL {
             // Using #available is only okay for ByteArrayInputStream,
             // not for a generic InputStream
             PreparedStatements.setBinaryStream(ps, i, bais, bais.available());
-        } else if (obj instanceof org.joda.time.DateTime) {
+        } else if (obj instanceof DateTime) {
             setDateTime(c, ps, i, (DateTime)obj);
         } else if (obj instanceof Boolean) {
             // TODO: gross hack because our code abuses the distinction between
@@ -327,7 +328,7 @@ public abstract class BasicSQL {
         }
 
         private BlobCleanupPreparedStatement(PreparedStatement ps, Collection<BlobHandler> toCleanup) {
-            Validate.notNull(ps);
+            Preconditions.checkNotNull(ps);
             Validate.noNullElements(toCleanup);
             this.ps = ps;
             this.toCleanup = ImmutableList.copyOf(toCleanup);

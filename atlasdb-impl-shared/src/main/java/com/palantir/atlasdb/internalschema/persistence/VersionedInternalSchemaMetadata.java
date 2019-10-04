@@ -26,10 +26,10 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 
 /**
- * A serialized form of {@link com.palantir.atlasdb.internalschema.InternalSchemaMetadata} that includes both a
+ * A serialized form of {@link InternalSchemaMetadata} that includes both a
  * version of the wire-format as well as a payload.
  *
- * Note that additive changes may be made to {@link com.palantir.atlasdb.internalschema.InternalSchemaMetadata}
+ * Note that additive changes may be made to {@link InternalSchemaMetadata}
  * without requiring an increase in the version number; increases are only needed when wire-compatibility would be
  * broken, or it is not possible to assign a sensible default value for events occurring in the past.
  *

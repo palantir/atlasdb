@@ -15,29 +15,31 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.fail;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
@@ -46,19 +48,25 @@ public class CassandraClientPoolIntegrationTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    private static final int MODIFIED_REPLICATION_FACTOR = CASSANDRA.getConfig().replicationFactor() + 1;
-
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
-    private Blacklist blacklist = new Blacklist(CASSANDRA.getConfig());
-    private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
-            CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+    private int modifiedReplicationFactor;
+    private Blacklist blacklist;
+    private CassandraClientPoolImpl clientPool;
+
+    @Before
+    public void setUp() {
+        blacklist = new Blacklist(CASSANDRA.getConfig());
+        modifiedReplicationFactor = CASSANDRA.getConfig().replicationFactor() + 1;
+        clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
+                CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+    }
 
     @Test
     public void testTokenMapping() {
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
                 clientPool.getTokenMap().asMapOfRanges();
-        assertFalse(mapOfRanges.isEmpty());
+        assertThat(mapOfRanges).isNotEmpty();
         for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry :
                 mapOfRanges.entrySet()) {
             Range<LightweightOppToken> tokenRange = entry.getKey();
@@ -67,13 +75,33 @@ public class CassandraClientPoolIntegrationTest {
             clientPool.getRandomHostForKey("A".getBytes(StandardCharsets.UTF_8));
 
             if (tokenRange.hasLowerBound()) {
-                assertTrue(hosts.contains(clientPool.getRandomHostForKey(tokenRange.lowerEndpoint().bytes)));
+                assertThat(hosts).contains(clientPool.getRandomHostForKey(tokenRange.lowerEndpoint().bytes));
             }
             if (tokenRange.hasUpperBound()) {
-                assertTrue(hosts.contains(clientPool.getRandomHostForKey(tokenRange.upperEndpoint().bytes)));
+                assertThat(hosts).contains(clientPool.getRandomHostForKey(tokenRange.upperEndpoint().bytes));
             }
         }
     }
+
+    @Test
+    public void testRefreshLocalHosts() {
+        HostLocation localLocation = HostLocation.of("dc1", "rack1");
+        HostLocation remoteLocation = HostLocation.of("dc1", "rack4");
+
+        assertThat(getLocalHostsUsingLocation(localLocation)).isNotEmpty();
+        assertThat(getLocalHostsUsingLocation(remoteLocation)).isEmpty();
+    }
+
+    private Set<InetSocketAddress> getLocalHostsUsingLocation(HostLocation hostLocation) {
+        CassandraKeyValueServiceConfig configHostWithLocation = ImmutableCassandraKeyValueServiceConfig.builder().from(
+                CASSANDRA.getConfig()).overrideHostLocation(Optional.of(hostLocation)).build();
+
+        CassandraClientPoolImpl clientPoolWithLocation = CassandraClientPoolImpl.createImplForTest(metricsManager,
+                configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+
+        return clientPoolWithLocation.getLocalHosts();
+    }
+
 
     @Test
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
@@ -94,7 +122,7 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
                         ImmutableCassandraKeyValueServiceConfig.copyOf(
                                 CASSANDRA.getConfig()).withReplicationFactor(
-                                MODIFIED_REPLICATION_FACTOR));
+                                modifiedReplicationFactor));
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);
@@ -105,7 +133,7 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorOnCassandra() throws TException {
-        changeReplicationFactor(MODIFIED_REPLICATION_FACTOR);
+        changeReplicationFactor(modifiedReplicationFactor);
         clientPool.run(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CASSANDRA.getConfig());
@@ -131,11 +159,11 @@ public class CassandraClientPoolIntegrationTest {
     }
 
     private void assertReplicationFactorMismatchError(Exception ex) {
-        assertThat(ex.getMessage(), is("Your current Cassandra keyspace ("
+        assertThat(ex.getMessage()).isEqualTo("Your current Cassandra keyspace ("
                 + CASSANDRA.getConfig().getKeyspaceOrThrow()
                 + ") has a replication factor not matching your Atlas Cassandra configuration. Change them to match, "
                 + "but be mindful of what steps you'll need to take to correctly repair or cleanup existing data in "
-                + "your cluster."));
+                + "your cluster.");
     }
 
     private void changeReplicationFactor(int replicationFactor) throws TException {

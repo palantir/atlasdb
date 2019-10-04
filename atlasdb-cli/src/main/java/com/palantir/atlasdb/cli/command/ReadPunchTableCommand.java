@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -53,10 +54,10 @@ public class ReadPunchTableCommand extends SingleBackendCommand {
     @Override
     public int execute(AtlasDbServices services) {
         if (epochTime == null) {
-            throw new IllegalArgumentException("Required option '-e' is missing");
+            throw new SafeIllegalArgumentException("Required option '-e' is missing");
         }
         if (epochTime < 0) {
-            throw new IllegalArgumentException("Option '-e' should be a positive long, as epoch time"
+            throw new SafeIllegalArgumentException("Option '-e' should be a positive long, as epoch time"
                     + " is never negative.");
         }
 

@@ -36,11 +36,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.ByteArrayIOStream;
 
 public abstract class AbstractGenericStreamStore<T> implements GenericStreamStore<T> {
@@ -60,7 +62,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
         return StreamMetadata.newBuilder()
             .setStatus(Status.STORING)
             .setLength(0L)
-            .setHash(com.google.protobuf.ByteString.EMPTY)
+            .setHash(ByteString.EMPTY)
             .build();
     }
 
@@ -175,7 +177,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             throw new IllegalArgumentException("Unable to load stream " + id + " because it was never stored.");
         } else if (metadata.getStatus() != Status.STORED) {
             log.error("Error loading stream {} because it has status {}", id, metadata.getStatus());
-            throw new IllegalArgumentException("Could not get stream because it was not fully stored.");
+            throw new SafeIllegalArgumentException("Could not get stream because it was not fully stored.");
         }
     }
 

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -110,6 +111,7 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -120,9 +122,9 @@ public class TableRenderer {
     private final OptionalType optionalType;
 
     public TableRenderer(String packageName, Namespace namespace, OptionalType optionalType) {
-        this.packageName = Preconditions.checkNotNull(packageName);
-        this.namespace = Preconditions.checkNotNull(namespace);
-        this.optionalType = Preconditions.checkNotNull(optionalType, "Must specify optionalType");
+        this.packageName = com.palantir.logsafe.Preconditions.checkNotNull(packageName);
+        this.namespace = com.palantir.logsafe.Preconditions.checkNotNull(namespace);
+        this.optionalType = com.palantir.logsafe.Preconditions.checkNotNull(optionalType, "Must specify optionalType");
     }
 
     public String getClassName(String rawTableName, TableDefinition table) {
@@ -1203,10 +1205,10 @@ public class TableRenderer {
                 classes.add(com.google.common.base.Optional.class);
                 break;
             case JAVA8:
-                classes.add(java.util.Optional.class);
+                classes.add(Optional.class);
                 break;
             default:
-                throw new IllegalArgumentException("Unknown optionalType!");
+                throw new SafeIllegalArgumentException("Unknown optionalType!");
         }
         return classes;
     }

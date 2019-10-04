@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.api;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * <pre>

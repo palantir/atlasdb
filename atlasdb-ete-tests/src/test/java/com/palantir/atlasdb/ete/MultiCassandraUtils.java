@@ -18,6 +18,8 @@ package com.palantir.atlasdb.ete;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
+
 import com.google.common.base.Throwables;
 import com.palantir.docker.compose.connection.Container;
 
@@ -48,7 +50,7 @@ public final class MultiCassandraUtils {
     }
 
     private static void waitForCassandraContainer(Container container) {
-        org.awaitility.Awaitility.await()
+        Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
                 .until(() -> {

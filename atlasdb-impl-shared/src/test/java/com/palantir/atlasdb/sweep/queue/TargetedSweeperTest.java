@@ -127,6 +127,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Before
+    @Override
     public void setup() {
         super.setup();
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
@@ -148,6 +149,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @After
+    @Override
     public void tearDown() {
         // This is required because of JUnit memory issues
         sweepQueue = null;
@@ -1030,9 +1032,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         immutableTs = 11;
         unreadableTs = 11;
         spiedKvs.truncateTable(TABLE_CONS);
-        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
+        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isExhausted();
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
+        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isExhausted();
     }
 
     @Test

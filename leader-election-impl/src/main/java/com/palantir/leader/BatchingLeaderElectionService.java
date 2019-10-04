@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -35,6 +34,11 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
         this.batcher = Autobatchers.independent(this::processBatch)
                 .safeLoggablePurpose("leader-election-service")
                 .build();
+    }
+
+    @Override
+    public void markNotEligibleForLeadership() {
+        delegate.markNotEligibleForLeadership();
     }
 
     @Override
@@ -58,11 +62,6 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
         return delegate.isStillLeading(token);
-    }
-
-    @Override
-    public Optional<HostAndPort> getSuspectedLeaderInMemory() {
-        return delegate.getSuspectedLeaderInMemory();
     }
 
     @Override

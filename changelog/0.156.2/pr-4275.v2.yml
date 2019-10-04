@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: 'An additional config `allSafeForLogging` is now added during TransactionManager creation time.
+    If all the initialized transaction managers all have this `allSafeForLogging` field set to true, all the
+    tableReferences, columnNames and rowNames defined in this transactionManager will be considered safe.
+    Otherwise the newest initialized transaction manager will determine what components are safe and/or unsafe like
+    the current behavior.'
+
+  links:
+  - https://github.com/palantir/atlasdb/pull/4275

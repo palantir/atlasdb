@@ -66,7 +66,7 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
      */
     public abstract int getNumUncommittedValuesPerCell();
 
-    public int getNumCols() {
+    @Override public int getNumCols() {
         return getNumColsCommitted() + getNumColsCommittedAndNewerUncommitted() + getNumColsUncommitted();
     }
 
@@ -74,13 +74,13 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
         return getNumColsCommitted() + getNumColsCommittedAndNewerUncommitted();
     }
 
-    public abstract boolean isPersistent();
+    @Override public abstract boolean isPersistent();
 
-    public Map<Cell, Long> getFirstCellAtMaxTimestampAsMap() {
+    @Override public Map<Cell, Long> getFirstCellAtMaxTimestampAsMap() {
         throw new UnsupportedOperationException("not implemented");
     }
 
-    public Set<Cell> getFirstCellAsSet() {
+    @Override public Set<Cell> getFirstCellAsSet() {
         throw new UnsupportedOperationException("not implemented");
     }
 

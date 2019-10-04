@@ -33,6 +33,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -110,7 +111,7 @@ public class TimeLockResource {
                             + "increased via the maximum-number-of-clients runtime config property.",
                     SafeArg.of("client", namespace),
                     SafeArg.of("maxNumberOfClients", getMaxNumberOfClients()));
-            throw new IllegalStateException("Maximum number of clients exceeded");
+            throw new SafeIllegalStateException("Maximum number of clients exceeded");
         }
 
         TimeLockServices services = clientServicesFactory.apply(namespace);

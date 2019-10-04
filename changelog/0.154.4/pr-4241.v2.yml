@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Revert "A quick hack to see the viability of table level conflict handling.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4241

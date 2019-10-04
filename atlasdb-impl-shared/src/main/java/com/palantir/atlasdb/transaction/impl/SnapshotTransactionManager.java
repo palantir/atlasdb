@@ -29,7 +29,6 @@ import java.util.function.Supplier;
 import javax.validation.constraints.NotNull;
 
 import com.codahale.metrics.Timer;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -57,6 +56,8 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -319,7 +320,7 @@ import com.palantir.timestamp.TimestampService;
             metricsManager.deregisterMetrics();
 
             if (!suppressedExceptions.isEmpty()) {
-                RuntimeException closeFailed = new RuntimeException(
+                RuntimeException closeFailed = new SafeRuntimeException(
                         "Close failed. Please inspect the code and fix wherever shutdown hooks throw exceptions");
                 suppressedExceptions.forEach(closeFailed::addSuppressed);
                 throw closeFailed;

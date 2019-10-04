@@ -36,7 +36,7 @@ public abstract class InvokeEvent implements Event {
     @Override
     public abstract long time();
 
-    public abstract int process();
+    @Override public abstract int process();
 
     @JsonProperty("f")
     public abstract String function();

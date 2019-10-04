@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -38,8 +38,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimplifyingLockService;
 
-@SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
-public class LockRefreshingLockService extends SimplifyingLockService {
+public final class LockRefreshingLockService extends SimplifyingLockService {
     public static final int REFRESH_BATCH_SIZE = 500_000;
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
 
@@ -74,7 +73,7 @@ public class LockRefreshingLockService extends SimplifyingLockService {
 
     private LockRefreshingLockService(LockService delegate) {
         this.delegate = delegate;
-        toRefresh = Sets.newConcurrentHashSet();
+        toRefresh = ConcurrentHashMap.newKeySet();
         exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
     }
 

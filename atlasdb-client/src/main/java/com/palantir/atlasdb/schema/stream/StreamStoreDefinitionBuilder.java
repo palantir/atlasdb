@@ -71,7 +71,7 @@ public class StreamStoreDefinitionBuilder {
     }
 
     private StreamStoreDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
-        Preconditions.checkArgument(numberOfComponentsHashed <= 2,
+        com.palantir.logsafe.Preconditions.checkArgument(numberOfComponentsHashed <= 2,
                 "The number of components specified must be less than two as "
                         + "StreamStore internal tables use at most two row components.");
         streamTables.forEach((tableName, streamTableBuilder) ->
@@ -115,7 +115,7 @@ public class StreamStoreDefinitionBuilder {
         Map<String, TableDefinition> tablesToCreate = streamTables.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build()));
 
-        Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
+        com.palantir.logsafe.Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
         Preconditions.checkArgument(inMemoryThreshold <= StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD,
                 "inMemoryThreshold cannot be greater than %s", StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
 

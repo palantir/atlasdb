@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -46,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -118,7 +118,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+    @Override public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("compactInternally({})", tableRef)) {
             delegate().compactInternally(tableRef, inMaintenanceMode);

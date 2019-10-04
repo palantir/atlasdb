@@ -20,6 +20,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+
 /**
  * Ensure that only a single method is ever called.  Throw {@link IllegalStateException} on all subsequent calls.
  */
@@ -41,7 +43,7 @@ public class SingleCallProxy implements DelegatingInvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (!hasBeenCalled.compareAndSet(false, true)) {
-            throw new IllegalStateException("This class has already been called once before");
+            throw new SafeIllegalStateException("This class has already been called once before");
         }
 
         try {

@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
@@ -35,6 +34,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.MetadataTable;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A base class for implementing range scan benchmarks. A primary function of this class is to store metadata

@@ -64,6 +64,10 @@ v0.151.0
     *    - Type
          - Change
 
+    *    - |improved|
+         - Upgraded gradle-baseline to improve compile time static analysis checks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3974>`__)
+
     *    - |devbreak|
          - ``KeyValueService`` implementations now have a new endpoint ``deleteRows()`` that allows row-level deletes to be performed.
            Users who extend ``KeyValueService`` will need to implement this method, but can refer to ``AbstractKeyValueService`` for a functional implementation (as this method can be written in terms of ``deleteRange()``).

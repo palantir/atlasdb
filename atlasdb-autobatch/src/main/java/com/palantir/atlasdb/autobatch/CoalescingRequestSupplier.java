@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
 
 public final class CoalescingRequestSupplier<T> implements CoalescingRequestFunction<Autobatchers.SupplierKey, T> {
 

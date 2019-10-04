@@ -40,6 +40,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
@@ -184,7 +185,9 @@ public final class CassandraVerifier {
     }
 
     private static boolean attemptToCreateKeyspace(CassandraKeyValueServiceConfig config) {
-        return config.servers().stream().anyMatch(host -> attemptToCreateIfNotExists(config, host));
+        Set<InetSocketAddress> thriftHosts = config.servers().accept(new ThriftHostsExtractingVisitor());
+
+        return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(config, host));
     }
 
     private static boolean attemptToCreateIfNotExists(CassandraKeyValueServiceConfig config, InetSocketAddress host) {

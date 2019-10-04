@@ -16,115 +16,92 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import static java.util.stream.Collectors.toSet;
+import static com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient.CACHE_KEY_NOT_FOUND;
 
 import java.util.Optional;
 import java.util.Set;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.SetMultimap;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.conjure.java.api.errors.ServiceException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.BooleanPaxosResponse;
-import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 
-public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
+@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
+        + "/acceptor")
+public class BatchPaxosAcceptorResource {
 
     private static final Logger log = LoggerFactory.getLogger(BatchPaxosAcceptorResource.class);
 
-    @VisibleForTesting
-    static final ErrorType CACHE_KEY_NOT_FOUND =
-            ErrorType.create(ErrorType.Code.NOT_FOUND, "TimelockBatchPaxosAcceptor:CacheKeyNotFound");
+    private final BatchPaxosAcceptor batchPaxosAcceptor;
 
-    private final AcceptorCache acceptorCache;
-    private final PaxosComponents paxosComponents;
-
-    public BatchPaxosAcceptorResource(PaxosComponents paxosComponents, AcceptorCache acceptorCache) {
-        this.paxosComponents = paxosComponents;
-        this.acceptorCache = acceptorCache;
+    BatchPaxosAcceptorResource(BatchPaxosAcceptor batchPaxosAcceptor) {
+        this.batchPaxosAcceptor = batchPaxosAcceptor;
     }
 
-    @Override
+    @POST
+    @Path("prepare")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     public SetMultimap<Client, WithSeq<PaxosPromise>> prepare(
             SetMultimap<Client, WithSeq<PaxosProposalId>> promiseWithSeqRequestsByClient) {
-        SetMultimap<Client, WithSeq<PaxosPromise>> results = KeyedStream.stream(
-                promiseWithSeqRequestsByClient)
-                .map((client, paxosProposalIdWithSeq) -> {
-                    PaxosPromise promise = paxosComponents.acceptor(client)
-                            .prepare(paxosProposalIdWithSeq.seq(), paxosProposalIdWithSeq.value());
-                    return WithSeq.of(promise, paxosProposalIdWithSeq.seq());
-                })
-                .collectToSetMultimap();
-        primeCache(promiseWithSeqRequestsByClient.keySet());
-        return results;
+        return batchPaxosAcceptor.prepare(promiseWithSeqRequestsByClient);
     }
 
-    @Override
+    @POST
+    @Path("accept")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     public SetMultimap<Client, WithSeq<BooleanPaxosResponse>> accept(
             SetMultimap<Client, PaxosProposal> proposalRequestsByClient) {
-        SetMultimap<Client, WithSeq<BooleanPaxosResponse>> results = KeyedStream.stream(proposalRequestsByClient)
-                .map((client, paxosProposal) -> {
-                    long seq = paxosProposal.getValue().getRound();
-                    BooleanPaxosResponse ack = paxosComponents.acceptor(client)
-                            .accept(seq, paxosProposal);
-                    return WithSeq.of(ack, seq);
-                })
-                .collectToSetMultimap();
-        primeCache(proposalRequestsByClient.keySet());
-        return results;
+        return batchPaxosAcceptor.accept(proposalRequestsByClient);
     }
 
-    @Override
+    @POST
+    @Path("latest-sequences-prepared-or-accepted")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     public AcceptorCacheDigest latestSequencesPreparedOrAccepted(
-            Optional<AcceptorCacheKey> maybeCacheKey,
+            @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> maybeCacheKey,
             Set<Client> clients) {
-        primeCache(clients);
-        if (!maybeCacheKey.isPresent()) {
-            return acceptorCache.getAllUpdates();
-        }
-
-        AcceptorCacheKey cacheKey = maybeCacheKey.get();
-        return latestSequencesPreparedOrAcceptedCached(cacheKey)
-                .orElseGet(() -> emptyDigest(cacheKey));
-    }
-
-    @Override
-    public Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(AcceptorCacheKey cacheKey) {
         try {
-            return acceptorCache.updatesSinceCacheKey(cacheKey);
+            return batchPaxosAcceptor.latestSequencesPreparedOrAccepted(maybeCacheKey, clients);
         } catch (InvalidAcceptorCacheKeyException e) {
             log.info("Cache key is invalid", e);
-            throw Errors.invalidCacheKeyException(cacheKey);
+            throw Errors.invalidCacheKeyException(e.cacheKey());
         }
     }
 
-    private static AcceptorCacheDigest emptyDigest(AcceptorCacheKey cacheKey) {
-        return ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(cacheKey)
-                .build();
-    }
-
-    private void primeCache(Set<Client> clients) {
-        Set<WithSeq<Client>> latestSequences = KeyedStream.of(clients)
-                .map(paxosComponents::acceptor)
-                .map(PaxosAcceptor::getLatestSequencePreparedOrAccepted)
-                .map((client, latestSeq) -> WithSeq.of(client, latestSeq))
-                .values()
-                .collect(toSet());
-
-        acceptorCache.updateSequenceNumbers(latestSequences);
+    @POST
+    @Path("latest-sequences-prepared-or-accepted/cached")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(
+            @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> cacheKey) {
+        if (!cacheKey.isPresent()) {
+            throw Errors.invalidCacheKeyException(null);
+        }
+        try {
+            return batchPaxosAcceptor.latestSequencesPreparedOrAcceptedCached(cacheKey.get());
+        } catch (InvalidAcceptorCacheKeyException e) {
+            log.info("Cache key is invalid", e);
+            throw Errors.invalidCacheKeyException(e.cacheKey());
+        }
     }
 
     private static final class Errors {
-
         static ServiceException invalidCacheKeyException(AcceptorCacheKey cacheKey) {
             return new ServiceException(CACHE_KEY_NOT_FOUND, SafeArg.of("cacheKey", cacheKey));
         }

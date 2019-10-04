@@ -37,7 +37,7 @@ public final class CloseableTrace implements AutoCloseable {
     @Override
     public void close() {
         if (trace != null) {
-            Tracer.completeSpan();
+            Tracer.fastCompleteSpan();
         }
     }
 

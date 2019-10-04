@@ -50,7 +50,7 @@ public class TracingPrefsConfig implements Runnable {
     public void run() {
         try {
             final File tracingPrefsFile = new File(
-                    System.getProperty("user.dir") + java.io.File.separatorChar + TRACING_PREF_FILENAME);
+                    System.getProperty("user.dir") + File.separatorChar + TRACING_PREF_FILENAME);
 
             if (tracingPrefsFile.exists()) {
                 try (FileInputStream fileStream = new FileInputStream(tracingPrefsFile)) {

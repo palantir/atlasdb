@@ -27,6 +27,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -114,7 +115,7 @@ public class AcceptorCacheImpl implements AcceptorCache {
     }
 
     @Override
-    public Optional<AcceptorCacheDigest> updatesSinceCacheKey(AcceptorCacheKey cacheKey)
+    public Optional<AcceptorCacheDigest> updatesSinceCacheKey(@Nonnull AcceptorCacheKey cacheKey)
             throws InvalidAcceptorCacheKeyException {
         lock.readLock().lock();
         try {

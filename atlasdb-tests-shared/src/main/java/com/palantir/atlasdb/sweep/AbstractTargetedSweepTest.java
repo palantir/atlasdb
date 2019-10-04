@@ -57,6 +57,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     }
 
     @Before
+    @Override
     public void setup() {
         super.setup();
 

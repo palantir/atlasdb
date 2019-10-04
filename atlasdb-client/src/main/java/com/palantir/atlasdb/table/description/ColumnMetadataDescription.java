@@ -20,13 +20,12 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.apache.commons.lang3.Validate;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder;
+import com.palantir.logsafe.Preconditions;
 
 @Immutable
 public class ColumnMetadataDescription {
@@ -92,7 +91,7 @@ public class ColumnMetadataDescription {
 
     public static ColumnMetadataDescription hydrateFromProto(TableMetadataPersistence.ColumnMetadataDescription msg) {
         if (msg.hasDynamicColumn()) {
-            Validate.isTrue(msg.getNamedColumnsCount() == 0);
+            Preconditions.checkArgument(msg.getNamedColumnsCount() == 0);
             return new ColumnMetadataDescription(DynamicColumnDescription.hydrateFromProto(msg.getDynamicColumn()));
         } else {
             List<NamedColumnDescription> list = Lists.newArrayList();

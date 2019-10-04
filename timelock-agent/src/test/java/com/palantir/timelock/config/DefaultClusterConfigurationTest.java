@@ -30,13 +30,16 @@ public class DefaultClusterConfigurationTest {
 
     @Test
     public void shouldThrowIfLocalServerNotSpecified() {
-        assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()::build)
+        assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()
+                .enableNonstandardAndPossiblyDangerousTopology(true)
+                ::build)
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldThrowIfNoServersSpecified() {
         assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()
+                .enableNonstandardAndPossiblyDangerousTopology(true)
                 .localServer(ADDRESS_1)
                 ::build)
                 .isInstanceOf(IllegalStateException.class);
@@ -46,8 +49,9 @@ public class DefaultClusterConfigurationTest {
     public void shouldThrowIfLocalServerNotInServers() {
         assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()
                 .localServer(ADDRESS_1)
+                .enableNonstandardAndPossiblyDangerousTopology(true)
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(ADDRESS_2), Optional.empty()))
                 ::build)
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -52,6 +51,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})

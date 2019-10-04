@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue.id;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.util.Collections;
 import java.util.Optional;
 
@@ -29,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepNameToIdTable.SweepNameToIdNamedColumn;
 import com.palantir.atlasdb.schema.generated.SweepNameToIdTable.SweepNameToIdRow;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.logsafe.Preconditions;
 
 class NamesToIds {
     private static final TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();
@@ -80,7 +79,7 @@ class NamesToIds {
             kvs.checkAndSet(request);
         } catch (CheckAndSetException e) {
             SweepTableIdentifier actual = currentMapping(table).get();
-            checkState(newValue.equals(actual), "Unexpectedly we state changed from pending(id) to "
+            Preconditions.checkState(newValue.equals(actual), "Unexpectedly we state changed from pending(id) to "
                     + "not(identified(id)) after identifying id as the correct value");
         }
     }

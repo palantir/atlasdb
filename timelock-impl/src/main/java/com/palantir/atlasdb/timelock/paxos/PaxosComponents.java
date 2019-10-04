@@ -18,37 +18,46 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-class PaxosComponents {
+public class PaxosComponents {
 
-    private final TaggedMetricRegistry metrics;
-    private final String useCase;
+    private final TimelockPaxosMetrics metrics;
     private final Path logDirectory;
     private final Map<Client, Components> componentsByClient = Maps.newConcurrentMap();
+    private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
+    private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
 
-    PaxosComponents(TaggedMetricRegistry metrics, String useCase, Path logDirectory) {
+    PaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory) {
         this.metrics = metrics;
-        this.useCase = useCase;
         this.logDirectory = logDirectory;
+        this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
+        this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
     }
 
-    PaxosAcceptor acceptor(Client client) {
+    public PaxosAcceptor acceptor(Client client) {
         return getOrCreateComponents(client).acceptor();
     }
 
-    PaxosLearner learner(Client client) {
+    public PaxosLearner learner(Client client) {
         return getOrCreateComponents(client).learner();
+    }
+
+    public BatchPaxosAcceptor batchAcceptor() {
+        return memoizedBatchAcceptor.get();
+    }
+
+    public BatchPaxosLearner batchLearner() {
+        return memoizedBatchLearner.get();
     }
 
     private Components getOrCreateComponents(Client client) {
@@ -59,17 +68,17 @@ class PaxosComponents {
         Path clientDirectory = logDirectory.resolve(client.value());
         Path learnerLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
 
-        PaxosLearner learner = instrument(
+        PaxosLearner learner = metrics.instrument(
                 PaxosLearner.class,
                 PaxosLearnerImpl.newLearner(learnerLogDir.toString()),
-                "timelock.paxos-learner",
+                "paxos-learner",
                 client);
 
         Path acceptorLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
-        PaxosAcceptor acceptor = instrument(
+        PaxosAcceptor acceptor = metrics.instrument(
                 PaxosAcceptor.class,
                 PaxosAcceptorImpl.newAcceptor(acceptorLogDir.toString()),
-                "timelock.paxos-acceptor",
+                "paxos-acceptor",
                 client);
 
         return ImmutableComponents.builder()
@@ -78,17 +87,20 @@ class PaxosComponents {
                 .build();
     }
 
-    private <T, U extends T> T instrument(Class<T> clazz, U instance, String name, Client client) {
-        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
-                .put("client", client.value())
-                .put("useCase", useCase)
-                .build();
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metrics,
-                clazz,
-                instance,
-                name,
-                unused -> tags);
+    private BatchPaxosAcceptor createBatchAcceptor() {
+        AcceptorCache acceptorCache = metrics
+                .instrument(AcceptorCache.class, new AcceptorCacheImpl(), "acceptor-cache");
+        return metrics.instrument(
+                BatchPaxosAcceptor.class,
+                new LocalBatchPaxosAcceptor(this, acceptorCache),
+                "local-batch-paxos-acceptor");
+    }
+
+    private BatchPaxosLearner createBatchLearner() {
+        return metrics.instrument(
+                BatchPaxosLearner.class,
+                new LocalBatchPaxosLearner(this),
+                "local-batch-paxos-learner");
     }
 
     @Value.Immutable

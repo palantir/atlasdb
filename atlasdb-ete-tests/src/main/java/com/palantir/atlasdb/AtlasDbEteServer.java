@@ -59,7 +59,9 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -167,7 +169,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
             }
         }
-        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
+        throw new SafeIllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -176,7 +178,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             TaggedMetricRegistry taggedMetricRegistry) {
         return TransactionManagers.builder()
                 .config(config)
-                .userAgent("ete test")
+                .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-ete-test", "0.0.0")))
                 .globalMetricsRegistry(environment.metrics())
                 .globalTaggedMetricRegistry(taggedMetricRegistry)
                 .registrar(environment.jersey()::register)

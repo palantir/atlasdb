@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * A MultiplexingCompletionService is much like a {@link java.util.concurrent.ExecutorCompletionService}, but
@@ -67,7 +68,7 @@ public class MultiplexingCompletionService<K, V> {
     public Future<Map.Entry<K, V>> submit(K key, Callable<V> task) {
         ExecutorService targetExecutor = executors.get(key);
         if (targetExecutor == null) {
-            throw new IllegalStateException("The key provided to the multiplexing completion service doesn't exist!");
+            throw new SafeIllegalStateException("The key provided to the multiplexing completion service doesn't exist!");
         }
         return submitAndPrepareForQueueing(targetExecutor, key, task);
     }
