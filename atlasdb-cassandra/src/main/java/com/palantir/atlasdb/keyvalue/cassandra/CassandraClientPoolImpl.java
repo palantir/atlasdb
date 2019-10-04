@@ -274,6 +274,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandra.getTokenMap();
     }
 
+    @VisibleForTesting
+    Set<InetSocketAddress> getLocalHosts() {
+        return cassandra.getLocalHosts();
+    }
+
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
