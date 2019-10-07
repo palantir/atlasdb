@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Add check for one datacenter being a prefix of the other
+  links:
+  - https://github.com/palantir/atlasdb/pull/4286
