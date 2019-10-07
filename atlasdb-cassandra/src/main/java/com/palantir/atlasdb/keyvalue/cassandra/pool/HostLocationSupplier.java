@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Suppliers;
+import com.palantir.logsafe.SafeArg;
 
 public final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
@@ -43,7 +44,7 @@ public final class HostLocationSupplier implements Supplier<Optional<HostLocatio
 
     public HostLocationSupplier(Supplier<String> snitchSupplier,
             Optional<HostLocation> overrideLocation) {
-        this(snitchSupplier, new EC2HostLocationSupplier(), overrideLocation);
+        this(snitchSupplier, new Ec2HostLocationSupplier(), overrideLocation);
     }
 
     @Override
@@ -53,8 +54,11 @@ public final class HostLocationSupplier implements Supplier<Optional<HostLocatio
                 return overrideLocation;
             }
 
-            switch (snitchSupplier.get()) {
-                case "org.apache.cassandra.locator.EC2Snitch":
+            String snitch = snitchSupplier.get();
+            log.info("Snitch successfully detected:", SafeArg.of("snitch", snitch));
+
+            switch (snitch) {
+                case "org.apache.cassandra.locator.Ec2Snitch":
                     return Optional.of(ec2Supplier.get());
                 default:
                     return Optional.empty();

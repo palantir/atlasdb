@@ -26,12 +26,12 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * Returns the client's datacenter and rack derived from Cassandra's EC2Snitch.
+ * Returns the client's datacenter and rack derived from Cassandra's Ec2Snitch.
  * <p>
  * AWS has an endpoint that returns the datacenter and rack (in Cassandra terms) - this request will fail if not on AWS.
  * The reply comes in the form "datacenter"+"rack", e.g. "us-east-1a", where datacenter is "us-east-1" and rack is "a".
  */
-public final class EC2HostLocationSupplier implements Supplier<HostLocation> {
+public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
 
     private static final OkHttpClient client = new OkHttpClient.Builder().build();
 
