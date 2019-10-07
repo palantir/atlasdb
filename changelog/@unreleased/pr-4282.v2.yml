@@ -1,0 +1,21 @@
+type: improvement
+improvement:
+  description: |-
+    Upgrade jackson to fix flaking MNPTSITest
+
+    **Goals (and why)**:
+    Fix annoying flaking test
+
+    **Implementation Description (bullets)**:
+    Seems like we've been hitting the race condition in jackson deserialization https://github.com/FasterXML/jackson-modules-base/issues/49
+
+    **Concerns (what feedback would you like?)**:
+    Any potential problems with the bump?
+
+    **Where should we start reviewing?**:
+    Circle
+
+    **Priority (whenever / two weeks / yesterday)**:
+    ASAP
+  links:
+  - https://github.com/palantir/atlasdb/pull/4282
