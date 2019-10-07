@@ -26,7 +26,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.reflect.AbstractInvocationHandler;
 
 /**
- * Allows you to intercept and override methods in {@link javax.sql.DataSource}.
+ * Allows you to intercept and override methods in {@link DataSource}.
  * <p/>
  * We only care about {@link DataSource#getConnection()}().
  * Its partner, getConnection(String username, String password), is never used since we pre-configure the data sources.
@@ -34,7 +34,7 @@ import com.google.common.reflect.AbstractInvocationHandler;
  * We use this to run SQL against a connection to prepare it for use before placing it in a pool.
  * (i.e., create temporary tables on PostgreSQL, etc.)
  * <p/>
- * See {@link com.palantir.nexus.db.pool.HikariCPConnectionManager#init} to see this in action.
+ * See {@link HikariCPConnectionManager#init} to see this in action.
  */
 public abstract class InterceptorDataSource {
     private final AbstractInvocationHandler handler;

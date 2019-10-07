@@ -21,19 +21,27 @@ import javax.annotation.CheckReturnValue;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.WritableAssertionInfo;
+import org.assertj.core.data.Offset;
+import org.assertj.core.internal.Doubles;
+import org.assertj.core.internal.LongArrays;
 import org.assertj.core.internal.Objects;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Snapshot;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
     private final MetricsManager metrics;
     private final Objects objects = Objects.instance();
+    private final LongArrays arrays = LongArrays.instance();
+    private final Doubles doubles = Doubles.instance();
     private final WritableAssertionInfo info = new WritableAssertionInfo();
 
     public SweepMetricsAssert(MetricsManager actual) {
@@ -102,27 +110,43 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
     }
 
+    public void containsEntriesReadInBatchConservative(long... outcomes) {
+        arrays.assertContainsExactlyInAnyOrder(info, getBatchSizeSnapshotConservative().getValues(), outcomes);
+    }
+
+    public void containsEntriesReadInBatchThorough(long... outcomes) {
+        arrays.assertContainsExactlyInAnyOrder(info, getBatchSizeSnapshotThorough().getValues(), outcomes);
+    }
+
+    public void hasEntriesReadInBatchMeanConservativeEqualTo(double value) {
+        doubles.assertIsCloseTo(info, getEntriesReadInBatchMeanConservative(), value, Offset.offset(0.1));
+    }
+
+    public void hasEntriesReadInBatchMeanThoroughEqualTo(double value) {
+        doubles.assertIsCloseTo(info, getEntriesReadInBatchMeanThorough(), value, Offset.offset(0.1));
+    }
+
     public void hasLegacyOutcomeEqualTo(SweepOutcome outcome, long value) {
         objects.assertEqual(info, getGaugeForLegacyOutcome(outcome).getValue(), value);
     }
 
-    public void hasTargetedOutcomeEqualTo(SweepOutcome outcome, Long value) {
-        objects.assertEqual(info, getGaugeForTargetedOutcome(outcome).getValue(), value);
+    public void hasTargetedOutcomeEqualTo(SweepStrategy strategy, SweepOutcome outcome, Long value) {
+        objects.assertEqual(info, getGaugeForTargetedOutcome(strategy, outcome).getValue(), value);
     }
 
-    public void hasNotRegisteredTargetedOutcome(SweepOutcome outcome) {
-        objects.assertNull(info, getGaugeForTargetedOutcome(outcome));
+    public void hasNotRegisteredTargetedOutcome(SweepStrategy strategy, SweepOutcome outcome) {
+        objects.assertNull(info, getGaugeForTargetedOutcome(strategy, outcome));
     }
 
-    private Gauge<Long> getGaugeConservative(String name) {
+    private <N> Gauge<N> getGaugeConservative(String name) {
         return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_CONSERVATIVE, name);
     }
 
-    private Gauge<Long> getGaugeThorough(String name) {
+    private <N> Gauge<N> getGaugeThorough(String name) {
         return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_THOROUGH, name);
     }
 
-    private Gauge<Long> getGaugeForTargetedSweep(String strategy, String name) {
+    private <N> Gauge<N> getGaugeForTargetedSweep(String strategy, String name) {
         Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
         return getGauge(TargetedSweepMetrics.class, name, tag);
     }
@@ -132,17 +156,48 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
                 ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
     }
 
-    private Gauge<Long> getGaugeForTargetedOutcome(SweepOutcome outcome) {
+    private Gauge<Long> getGaugeForTargetedOutcome(SweepStrategy strategy, SweepOutcome outcome) {
         return getGauge(TargetedSweepMetrics.class, AtlasDbMetricNames.SWEEP_OUTCOME,
-                ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
+                ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name(),
+                        AtlasDbMetricNames.TAG_STRATEGY, getTagForStrategy(strategy)));
     }
 
-    private <T> Gauge<Long> getGauge(Class<T> metricClass, String name, Map<String, String> tag) {
-        MetricName metricName = MetricName.builder()
+    private Double getEntriesReadInBatchMeanConservative() {
+        Gauge<Double> gauge = getGaugeConservative(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return gauge.getValue();
+    }
+
+    private Double getEntriesReadInBatchMeanThorough() {
+        Gauge<Double> gauge = getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return gauge.getValue();
+    }
+
+    private Snapshot getBatchSizeSnapshotConservative() {
+        Gauge<Double> gauge = getGaugeConservative(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return ((SlidingWindowMeanGauge) gauge).getSnapshot();
+    }
+
+    private Snapshot getBatchSizeSnapshotThorough() {
+        Gauge<Double> gauge = getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return ((SlidingWindowMeanGauge) gauge).getSnapshot();
+    }
+
+    private static String getTagForStrategy(SweepStrategy strategy) {
+        return strategy == SweepStrategy.CONSERVATIVE
+                ? AtlasDbMetricNames.TAG_CONSERVATIVE
+                : AtlasDbMetricNames.TAG_THOROUGH;
+    }
+
+    private <T, N> Gauge<N> getGauge(Class<T> metricClass, String name, Map<String, String> tag) {
+        MetricName metricName = getMetricName(metricClass, name, tag);
+
+        return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);
+    }
+
+    private <T> MetricName getMetricName(Class<T> metricClass, String name, Map<String, String> tag) {
+        return MetricName.builder()
                 .safeName(MetricRegistry.name(metricClass, name))
                 .safeTags(tag)
                 .build();
-
-        return (Gauge<Long>) metrics.getTaggedRegistry().getMetrics().get(metricName);
     }
 }

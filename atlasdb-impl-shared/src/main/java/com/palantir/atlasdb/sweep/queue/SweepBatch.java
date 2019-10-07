@@ -29,6 +29,12 @@ public interface SweepBatch {
     List<WriteInfo> writes();
     DedicatedRows dedicatedRows();
     long lastSweptTimestamp();
+    boolean hasNext();
+
+    @Value.Default
+    default long entriesRead() {
+        return writes().size();
+    }
 
     default boolean isEmpty() {
         return writes().isEmpty();
@@ -38,6 +44,19 @@ public interface SweepBatch {
         return ImmutableSweepBatch.builder()
                 .writes(writes)
                 .dedicatedRows(dedicatedRows)
-                .lastSweptTimestamp(timestamp).build();
+                .lastSweptTimestamp(timestamp)
+                .hasNext(true)
+                .build();
+    }
+
+    static SweepBatch of(Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp, boolean next,
+            long entriesRead) {
+        return ImmutableSweepBatch.builder()
+                .writes(writes)
+                .dedicatedRows(dedicatedRows)
+                .lastSweptTimestamp(timestamp)
+                .hasNext(next)
+                .entriesRead(entriesRead)
+                .build();
     }
 }

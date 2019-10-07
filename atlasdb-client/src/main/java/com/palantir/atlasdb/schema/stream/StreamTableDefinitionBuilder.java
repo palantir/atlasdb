@@ -17,7 +17,6 @@ package com.palantir.atlasdb.schema.stream;
 
 import static java.lang.Math.min;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
@@ -25,6 +24,8 @@ import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamTableDefinitionBuilder {
@@ -183,7 +184,7 @@ public class StreamTableDefinitionBuilder {
             }};
 
         default:
-            throw new IllegalStateException("Incorrectly supplied stream table type");
+            throw new SafeIllegalStateException("Incorrectly supplied stream table type");
         }
     }
 

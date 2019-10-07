@@ -16,17 +16,26 @@
 package com.palantir.atlasdb.http;
 
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 
+import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.exception.NotInitializedException;
 
 /**
- * Maps a {@link NotInitializedException} to a 503 status code.
+ * Converts {@link NotInitializedException}s into appropriate status responses, depending on the user's
+ * {@link AtlasDbHttpProtocolVersion}. The intention is that clients may retry on an arbitrary node of the service,
+ * and they should backoff, as that node of the cluster is still starting up.
+ *
+ * This is a 503 without a {@code Retry-After} header and with a message body corresponding to
+ * {@link NotInitializedException} in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  */
-public class NotInitializedExceptionMapper implements ExceptionMapper<NotInitializedException> {
+public class NotInitializedExceptionMapper extends ProtocolAwareExceptionMapper<NotInitializedException> {
+    @Override
+    Response handleLegacyOrUnknownVersion(NotInitializedException exception) {
+        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+    }
 
     @Override
-    public Response toResponse(NotInitializedException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+    QosException handleConjureJavaRuntime(NotInitializedException exception) {
+        return QosException.throttle();
     }
 }

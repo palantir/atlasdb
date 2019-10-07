@@ -48,7 +48,7 @@ public class LockCheckingTransactionTask<T, E extends Exception> implements Tran
         this.immutableTsLock = immutableTsLock;
     }
 
-    public T execute(Transaction transaction) throws E {
+    @Override public T execute(Transaction transaction) throws E {
         try {
             return delegate.execute(transaction);
         } catch (Exception ex) {

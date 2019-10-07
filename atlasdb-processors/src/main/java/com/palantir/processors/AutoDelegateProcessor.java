@@ -83,7 +83,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         if (registeredProcessors.putIfAbsent(processingEnv, this) != null) {
             messager.printMessage(
                     Diagnostic.Kind.NOTE, "AutoDelegate processor registered twice; disabling duplicate instance");
-            abortProcessing.set(Boolean.TRUE);
+            abortProcessing.set(true);
         }
     }
 
@@ -99,7 +99,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        if (abortProcessing.get() == Boolean.TRUE) {
+        if (abortProcessing.get()) {
             // Another instance of AutoDelegateProcessor is running in the current processing environment.
             return false;
         }
@@ -107,9 +107,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         Set<String> generatedTypes = new HashSet<>();
         for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(AutoDelegate.class)) {
             try {
-                validateAnnotatedElement(annotatedElement);
-                TypeElement typeElement = (TypeElement) annotatedElement;
-
+                TypeElement typeElement = validateAnnotatedElement(annotatedElement);
                 TypeToExtend typeToExtend = createTypeToExtend(typeElement);
 
                 if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
@@ -131,12 +129,14 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         return false;
     }
 
-    private void validateAnnotatedElement(Element annotatedElement) throws ProcessingException {
+    private static TypeElement validateAnnotatedElement(Element annotatedElement) throws ProcessingException {
         ElementKind kind = annotatedElement.getKind();
-        if (kind != ElementKind.INTERFACE && kind != ElementKind.CLASS) {
-            throw new ProcessingException(annotatedElement, "Only classes or interfaces can be annotated with @%s",
+        if (kind != ElementKind.INTERFACE) {
+            throw new ProcessingException(annotatedElement, "Only interfaces can be annotated with @%s",
                     AutoDelegate.class.getSimpleName());
         }
+
+        return (TypeElement) annotatedElement;
     }
 
     private TypeToExtend createTypeToExtend(TypeElement annotatedElement) throws ProcessingException {
@@ -150,30 +150,8 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             throw new ProcessingException(annotatedElement, "Trying to extend final type %s", annotatedElement);
         }
 
-        List<TypeElement> superTypes = fetchSuperTypes(annotatedElement);
+        List<TypeElement> superTypes = fetchSuperinterfaces(annotatedElement);
         return new TypeToExtend(typePackage, annotatedElement, superTypes.toArray(new TypeElement[0]));
-    }
-
-    private List<TypeElement> fetchSuperTypes(TypeElement baseType) {
-        if (baseType.getKind() == ElementKind.INTERFACE) {
-            return fetchSuperinterfaces(baseType);
-        } else {
-            return fetchSuperclasses(baseType);
-        }
-    }
-
-    private List<TypeElement> fetchSuperclasses(TypeElement baseClass) {
-        List<TypeElement> superclasses = new ArrayList<>();
-
-        TypeMirror superclass = baseClass.getSuperclass();
-        TypeElement classIterator;
-        while (superclass.getKind() != TypeKind.NONE) {
-            classIterator = ProcessorUtils.extractType(typeUtils, superclass);
-            superclasses.add(classIterator);
-            superclass = classIterator.getSuperclass();
-        }
-
-        return superclasses;
     }
 
     private List<TypeElement> fetchSuperinterfaces(TypeElement baseInterface) {
@@ -188,7 +166,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
             List<TypeMirror> newInterfaces = superinterfaceType.getInterfaces()
                     .stream()
-                    .filter((newInteface) -> !interfacesSet.contains(newInteface))
+                    .filter(newInterface -> !interfacesSet.contains(newInterface))
                     .collect(Collectors.toList());
             interfacesSet.addAll(newInterfaces);
             interfacesQueue.addAll(newInterfaces);
@@ -199,12 +177,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
     private void generateCode(TypeToExtend typeToExtend) throws IOException {
         String newTypeName = PREFIX + typeToExtend.getSimpleName();
-        TypeSpec.Builder typeBuilder;
-        if (typeToExtend.isInterface()) {
-            typeBuilder = TypeSpec.interfaceBuilder(newTypeName);
-        } else {
-            typeBuilder = TypeSpec.classBuilder(newTypeName);
-        }
+        TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(newTypeName);
         typeBuilder.addTypeVariables(typeToExtend.getTypeParameterElements()
                 .stream()
                 .map(TypeVariableName::get)
@@ -215,22 +188,8 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         if (typeToExtend.isPublic()) {
             typeBuilder.addModifiers(Modifier.PUBLIC);
         }
-        if (typeToExtend.isInterface()) {
-            typeBuilder.addSuperinterface(TypeName.get(typeMirror));
-        } else {
-            typeBuilder.superclass(TypeName.get(typeMirror)).addModifiers(Modifier.ABSTRACT);
-        }
 
-        // Add constructors
-        for (ExecutableElement constructor : typeToExtend.getConstructors()) {
-            MethodSpec.Builder constructorBuilder = MethodSpec
-                    .constructorBuilder()
-                    .addModifiers(constructor.getModifiers())
-                    .addParameters(ProcessorUtils.extractParameters(constructor))
-                    .addStatement("super($L)", constructor.getParameters());
-
-            typeBuilder.addMethod(constructorBuilder.build());
-        }
+        typeBuilder.addSuperinterface(TypeName.get(typeMirror));
 
         // Add delegate method
         MethodSpec.Builder delegateMethod = MethodSpec
@@ -255,9 +214,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             MethodSpec.Builder method = MethodSpec
                     .overriding(methodElement)
                     .addStatement(callFormat, callArgs);
-            if (typeToExtend.isInterface()) {
-                method.addModifiers(Modifier.DEFAULT);
-            }
+            method.addModifiers(Modifier.DEFAULT);
 
             typeBuilder.addMethod(method.build());
         }

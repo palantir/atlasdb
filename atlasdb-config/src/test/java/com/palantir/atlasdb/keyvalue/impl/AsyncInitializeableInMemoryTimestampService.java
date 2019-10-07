@@ -16,16 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
-import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.AutoDelegate_TimestampService;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public final class AsyncInitializeableInMemoryTimestampService extends AsyncInitializer
-        implements AutoDelegate_TimestampService, TimestampManagementService {
+        implements AutoDelegate_TimestampService, ManagedTimestampService {
     private final KeyValueService kvs;
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
 

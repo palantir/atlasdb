@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -152,6 +153,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 delete(tableRef, cellsToDelete);
             }
         }
+    }
+
+    @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        rows.forEach(row -> deleteRange(tableRef, RangeRequests.ofSingleRow(row)));
     }
 
     @Override

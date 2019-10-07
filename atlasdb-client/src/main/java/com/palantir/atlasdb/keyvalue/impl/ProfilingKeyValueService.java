@@ -27,6 +27,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -132,6 +133,19 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.durationMillis(stopwatch));
     }
 
+    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRows(String method,
+            TableReference tableRef,
+            Iterable<byte[]> rows) {
+        long startTime = System.currentTimeMillis();
+        return (logger, stopwatch) ->
+                logger.log("Call to KVS.{} at time {}, on table {} for (estimated) {} rows took {} ms.",
+                        LoggingArgs.method(method),
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.rowCount(Ints.saturatedCast(rows.spliterator().estimateSize())),
+                        LoggingArgs.durationMillis(stopwatch));
+    }
+
     private static BiConsumer<LoggingFunction, Map<Cell, Value>> logCellResultSize(long overhead) {
         return (logger, result) -> {
             long sizeInBytes = 0;
@@ -178,6 +192,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         maybeLog(() -> delegate.deleteRange(tableRef, range),
                 logTimeAndTableRange("deleteRange", tableRef, range));
+    }
+
+    @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        maybeLog(() -> delegate.deleteRows(tableRef, rows),
+                logTimeAndTableRows("deleteRows", tableRef, rows));
     }
 
     @Override

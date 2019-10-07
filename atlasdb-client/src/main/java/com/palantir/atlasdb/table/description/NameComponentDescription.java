@@ -20,12 +20,11 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.apache.commons.lang3.Validate;
-
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
+import com.palantir.logsafe.Preconditions;
 
 @Immutable
 public final class NameComponentDescription {
@@ -90,8 +89,8 @@ public final class NameComponentDescription {
         }
 
         public NameComponentDescription build() {
-            Validate.notNull(componentName, "componentName must be set when building a NameComponentDescription");
-            Validate.notNull(type, "type must be set when building a NameComponentDescription");
+            Preconditions.checkNotNull(componentName, "componentName must be set when building a NameComponentDescription");
+            Preconditions.checkNotNull(type, "type must be set when building a NameComponentDescription");
 
             if (uniformPartitioner == null && !uniformPartitionerExplicitlyNull) {
                 uniformPartitioner = new UniformRowNamePartitioner(type);

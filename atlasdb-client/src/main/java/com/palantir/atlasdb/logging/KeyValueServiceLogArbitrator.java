@@ -40,6 +40,28 @@ interface KeyValueServiceLogArbitrator {
         }
     };
 
+    KeyValueServiceLogArbitrator ALL_SAFE = new KeyValueServiceLogArbitrator() {
+        @Override
+        public boolean isTableReferenceSafe(TableReference tableReference) {
+            return true;
+        }
+
+        @Override
+        public boolean isInternalTableReferenceSafe(String internalTableReference) {
+            return true;
+        }
+
+        @Override
+        public boolean isRowComponentNameSafe(TableReference tableReference, String rowComponentName) {
+            return true;
+        }
+
+        @Override
+        public boolean isColumnNameSafe(TableReference tableReference, String longNameForColumn) {
+            return true;
+        }
+    };
+
     boolean isTableReferenceSafe(TableReference tableReference);
 
     boolean isInternalTableReferenceSafe(String internalTableReference);

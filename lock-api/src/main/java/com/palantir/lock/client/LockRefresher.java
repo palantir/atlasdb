@@ -17,6 +17,7 @@ package com.palantir.lock.client;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -24,9 +25,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 
 public class LockRefresher implements AutoCloseable {
 
@@ -34,7 +37,7 @@ public class LockRefresher implements AutoCloseable {
 
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;
-    private final Set<LockToken> tokensToRefresh = Sets.newConcurrentHashSet();
+    private final Set<LockToken> tokensToRefresh = ConcurrentHashMap.newKeySet();
 
     public LockRefresher(
             ScheduledExecutorService executor,
@@ -61,8 +64,18 @@ public class LockRefresher implements AutoCloseable {
                 return;
             }
 
-            Set<LockToken> refreshed = timelockService.refreshLockLeases(toRefresh);
-            tokensToRefresh.removeAll(Sets.difference(toRefresh, refreshed));
+            Set<LockToken> successfullyRefreshedTokens = timelockService.refreshLockLeases(toRefresh);
+            Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
+            tokensToRefresh.removeAll(refreshFailures);
+            if (!refreshFailures.isEmpty()) {
+                log.info("Successfully refreshed {}, but failed to refresh {} lock tokens, "
+                                + "most likely because they were lost on the server."
+                                + " The first (up to) 20 of these were {}.",
+                        SafeArg.of("successfullyRefreshed", successfullyRefreshedTokens.size()),
+                        SafeArg.of("numLockTokens", refreshFailures.size()),
+                        SafeArg.of("firstFailures",
+                                Iterables.transform(Iterables.limit(refreshFailures, 20), LockToken::getRequestId)));
+            }
         } catch (Throwable error) {
             log.warn("Error while refreshing locks. Trying again on next iteration", error);
         }

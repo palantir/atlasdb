@@ -28,10 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.BadRequestException;
-
-import org.assertj.core.api.ThrowableAssert;
-import org.eclipse.jetty.http.HttpStatus;
 import org.junit.After;
 import org.junit.Test;
 
@@ -39,7 +35,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -118,22 +113,22 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 UUID.randomUUID(),
                 123);
 
-        LockImmutableTimestampResponse response1 = cluster.timelockRpcClient()
+        LockImmutableTimestampResponse response1 = cluster.namespacedClient()
                 .startTransactions(request)
                 .immutableTimestamp();
 
-        LockImmutableTimestampResponse response2 = cluster.timelockRpcClient()
+        LockImmutableTimestampResponse response2 = cluster.namespacedClient()
                 .startTransactions(request)
                 .immutableTimestamp();
 
         long immutableTs = cluster.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
 
-        cluster.timelockRpcClient().unlock(ImmutableSet.of(response1.getLock()));
+        cluster.namespacedClient().unlock(ImmutableSet.of(response1.getLock()));
 
         assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
 
-        cluster.timelockRpcClient().unlock(ImmutableSet.of(response2.getLock()));
+        cluster.namespacedClient().unlock(ImmutableSet.of(response2.getLock()));
 
     }
 
@@ -333,7 +328,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void lockRequestsToRpcClientAreIdempotent() {
         IdentifiedLockRequest firstRequest = IdentifiedLockRequest.from(requestFor(LOCK_A));
 
-        LockToken token = getToken(cluster.timelockRpcClient().lock(firstRequest));
+        LockToken token = getToken(cluster.namespacedClient().lock(firstRequest));
 
         IdentifiedLockRequest secondRequest = IdentifiedLockRequest.from(requestFor(LOCK_A));
         CompletableFuture<LockResponseV2> responseFuture =
@@ -341,13 +336,13 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         CompletableFuture<LockResponseV2> duplicateResponseFuture =
                 cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(secondRequest));
 
-        cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
+        cluster.namespacedClient().unlock(ImmutableSet.of(token));
 
         LockResponseV2 response = responseFuture.join();
         LockResponseV2 duplicateResponse = duplicateResponseFuture.join();
         assertThat(response).isEqualTo(duplicateResponse);
 
-        cluster.timelockRpcClient().unlock(ImmutableSet.of(getToken(response)));
+        cluster.namespacedClient().unlock(ImmutableSet.of(getToken(response)));
     }
 
     private LockToken getToken(LockResponseV2 responseV2) {
@@ -449,18 +444,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
-    }
-
-    private static void assertBadRequest(ThrowableAssert.ThrowingCallable throwingCallable) {
-        assertThatThrownBy(throwingCallable)
-                .isInstanceOf(AtlasDbRemoteException.class)
-                .satisfies(remoteException -> {
-                    AtlasDbRemoteException atlasDbRemoteException = (AtlasDbRemoteException) remoteException;
-                    assertThat(atlasDbRemoteException.getErrorName())
-                            .isEqualTo(BadRequestException.class.getCanonicalName());
-                    assertThat(atlasDbRemoteException.getStatus())
-                            .isEqualTo(HttpStatus.BAD_REQUEST_400);
-                });
     }
 
     private void unlock(HeldLocksToken... tokens) {

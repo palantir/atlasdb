@@ -29,25 +29,47 @@ public interface PaxosRuntimeConfiguration {
     @JsonProperty("ping-rate-in-ms")
     @Value.Default
     default long pingRateMs() {
-        return 5000L;
+        return 50L;
     }
 
     @JsonProperty("maximum-wait-before-proposal-in-ms")
     @Value.Default
     default long maximumWaitBeforeProposalMs() {
-        return 1000L;
+        return 300L;
     }
 
     @JsonProperty("leader-ping-response-wait-in-ms")
     @Value.Default
     default long leaderPingResponseWaitMs() {
-        return 5000L;
+        return 2000L;
     }
 
     @JsonProperty("only-log-on-quorum-failure")
     @Value.Default
     default boolean onlyLogOnQuorumFailure() {
         return true;
+    }
+
+    @Value.Default
+    @JsonProperty("timestamp-paxos")
+    default TimestampPaxosConfig timestampPaxos() {
+        return TimestampPaxosConfig.defaultConfig();
+    }
+
+    @Value.Immutable
+    @JsonDeserialize(as = ImmutableTimestampPaxosConfig.class)
+    @JsonSerialize(as = ImmutableTimestampPaxosConfig.class)
+    interface TimestampPaxosConfig {
+
+        @Value.Default
+        @JsonProperty("use-batch-paxos")
+        default boolean useBatchPaxos() {
+            return false;
+        }
+
+        static TimestampPaxosConfig defaultConfig() {
+            return ImmutableTimestampPaxosConfig.builder().build();
+        }
     }
 
     @Value.Check

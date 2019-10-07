@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -23,7 +24,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -602,6 +602,22 @@ public final class StreamTestStreamIdxTable implements
         });
     }
 
+    @Override
+    public Map<StreamTestStreamIdxRow, Iterator<StreamTestStreamIdxColumnValue>> getRowsColumnRangeIterator(Iterable<StreamTestStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestStreamIdxRow, Iterator<StreamTestStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            StreamTestStreamIdxRow row = StreamTestStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<StreamTestStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                StreamTestStreamIdxColumn col = StreamTestStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = StreamTestStreamIdxColumnValue.hydrateValue(result.getValue());
+                return StreamTestStreamIdxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<StreamTestStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -713,5 +729,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lgn8+RrwnRD+ORztxbl9ww==";
+    static String __CLASS_HASH = "VX0leMxkkXhGYMjqZplERA==";
 }

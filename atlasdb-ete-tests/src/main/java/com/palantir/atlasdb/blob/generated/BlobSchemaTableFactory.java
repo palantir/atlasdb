@@ -18,18 +18,21 @@ public final class BlobSchemaTableFactory {
 
     private final Namespace namespace;
 
-    private BlobSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    private BlobSchemaTableFactory(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static BlobSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static BlobSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new BlobSchemaTableFactory(sharedTriggers, namespace);
     }
 
-    public static BlobSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static BlobSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new BlobSchemaTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -91,47 +94,56 @@ public final class BlobSchemaTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putAuditedData(Multimap<AuditedDataTable.AuditedDataRow, ? extends AuditedDataTable.AuditedDataNamedColumnValue<?>> newRows) {
+        public void putAuditedData(
+                Multimap<AuditedDataTable.AuditedDataRow, ? extends AuditedDataTable.AuditedDataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putDataStreamHashAidx(Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, ? extends DataStreamHashAidxTable.DataStreamHashAidxColumnValue> newRows) {
+        public void putDataStreamHashAidx(
+                Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, ? extends DataStreamHashAidxTable.DataStreamHashAidxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putDataStreamIdx(Multimap<DataStreamIdxTable.DataStreamIdxRow, ? extends DataStreamIdxTable.DataStreamIdxColumnValue> newRows) {
+        public void putDataStreamIdx(
+                Multimap<DataStreamIdxTable.DataStreamIdxRow, ? extends DataStreamIdxTable.DataStreamIdxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putDataStreamMetadata(Multimap<DataStreamMetadataTable.DataStreamMetadataRow, ? extends DataStreamMetadataTable.DataStreamMetadataNamedColumnValue<?>> newRows) {
+        public void putDataStreamMetadata(
+                Multimap<DataStreamMetadataTable.DataStreamMetadataRow, ? extends DataStreamMetadataTable.DataStreamMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putDataStreamValue(Multimap<DataStreamValueTable.DataStreamValueRow, ? extends DataStreamValueTable.DataStreamValueNamedColumnValue<?>> newRows) {
+        public void putDataStreamValue(
+                Multimap<DataStreamValueTable.DataStreamValueRow, ? extends DataStreamValueTable.DataStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putHotspottyDataStreamHashAidx(Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, ? extends HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue> newRows) {
+        public void putHotspottyDataStreamHashAidx(
+                Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, ? extends HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putHotspottyDataStreamIdx(Multimap<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, ? extends HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue> newRows) {
+        public void putHotspottyDataStreamIdx(
+                Multimap<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, ? extends HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putHotspottyDataStreamMetadata(Multimap<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, ? extends HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataNamedColumnValue<?>> newRows) {
+        public void putHotspottyDataStreamMetadata(
+                Multimap<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, ? extends HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putHotspottyDataStreamValue(Multimap<HotspottyDataStreamValueTable.HotspottyDataStreamValueRow, ? extends HotspottyDataStreamValueTable.HotspottyDataStreamValueNamedColumnValue<?>> newRows) {
+        public void putHotspottyDataStreamValue(
+                Multimap<HotspottyDataStreamValueTable.HotspottyDataStreamValueRow, ? extends HotspottyDataStreamValueTable.HotspottyDataStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

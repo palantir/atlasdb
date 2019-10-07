@@ -17,9 +17,6 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +41,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,22 +49,31 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
+import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
+import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.RemoteTimestampManagementAdapter;
+import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -86,22 +93,18 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
     private static final String INVALID_CLIENT = "test2\b";
 
-    private static final int MAX_SERVER_THREADS = 100;
-    private static final int SELECTOR_THREADS = 8;
-    private static final int ACCEPTOR_THREADS = 4;
-    private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - SELECTOR_THREADS - ACCEPTOR_THREADS - 1;
-    private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS;
+    private static final int MAX_CONCURRENT_LOCK_REQUESTS = CombinedTimeLockServerConfiguration.threadPoolSize();
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
     private static final int FORTY_TWO = 42;
 
     private static final String LOCK_CLIENT_NAME = "remoteLock-client-name";
-    public static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
+    private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
     private static final File TIMELOCK_CONFIG_TEMPLATE =
-            new File(ResourceHelpers.resourceFilePath("paxosSingleServerWithAsyncLock.yml"));
+            new File(ResourceHelpers.resourceFilePath("paxosSingleServer.yml"));
 
     private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
@@ -129,7 +132,8 @@ public class PaxosTimeLockServerIntegrationTest {
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
-                PingableLeader.class);
+                PingableLeader.class,
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
@@ -141,6 +145,7 @@ public class PaxosTimeLockServerIntegrationTest {
                         CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
+                        LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class).error("erreur!", t);
                         return false;
                     }
                 });
@@ -150,8 +155,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void singleClientCanUseLocalAndSharedThreads() throws Exception {
         List<LockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockService, SHARED_TC_LIMIT))
-                .isEqualTo(0);
+        assertThat(lockAndUnlockAndCountExceptions(lockService, MAX_CONCURRENT_LOCK_REQUESTS)).isEqualTo(0);
     }
 
     @Test
@@ -159,8 +163,7 @@ public class PaxosTimeLockServerIntegrationTest {
         List<LockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, SHARED_TC_LIMIT / 3))
-                .isEqualTo(0);
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, MAX_CONCURRENT_LOCK_REQUESTS / 3)).isEqualTo(0);
     }
 
     @Test
@@ -168,7 +171,7 @@ public class PaxosTimeLockServerIntegrationTest {
         List<LockService> lockServiceList = ImmutableList.of(getLockService(CLIENT_1));
 
         int exceedingRequests = 10;
-        int maxRequestsForOneClient = SHARED_TC_LIMIT;
+        int maxRequestsForOneClient = MAX_CONCURRENT_LOCK_REQUESTS;
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, exceedingRequests + maxRequestsForOneClient))
                 .isEqualTo(exceedingRequests);
@@ -179,10 +182,10 @@ public class PaxosTimeLockServerIntegrationTest {
         List<LockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2));
         int exceedingRequests = 10;
-        int requestsPerClient = (SHARED_TC_LIMIT + exceedingRequests) / 2;
+        int requestsPerClient = (MAX_CONCURRENT_LOCK_REQUESTS + exceedingRequests) / 2;
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
-                .isEqualTo(exceedingRequests - 1);
+                .isEqualTo(exceedingRequests);
     }
 
     private int lockAndUnlockAndCountExceptions(List<LockService> lockServices, int numRequestsPerClient)
@@ -192,7 +195,7 @@ public class PaxosTimeLockServerIntegrationTest {
         Map<LockService, LockRefreshToken> tokenMap = new HashMap<>();
         for (LockService service : lockServices) {
             LockRefreshToken token = service.lock(CLIENT_1, REQUEST_LOCK_WITH_LONG_TIMEOUT);
-            assertNotNull(token);
+            assertThat(token).isNotNull();
             tokenMap.put(service, token);
         }
 
@@ -201,7 +204,7 @@ public class PaxosTimeLockServerIntegrationTest {
             for (int i = 0; i < numRequestsPerClient; i++) {
                 int currentTrial = i;
                 futures.add(executorService.submit(() ->
-                        lockService.lock(CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT))
+                        lockService.lock(CLIENT_2 + currentTrial, REQUEST_LOCK_WITH_LONG_TIMEOUT))
                 );
             }
         }
@@ -212,7 +215,7 @@ public class PaxosTimeLockServerIntegrationTest {
         AtomicInteger exceptionCounter = new AtomicInteger(0);
         futures.forEach(future -> {
             try {
-                assertNull(future.get());
+                assertThat(future.get()).isNull();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 assertThat(cause.getClass().getName()).contains("RetryableException");
@@ -223,7 +226,7 @@ public class PaxosTimeLockServerIntegrationTest {
             }
         });
 
-        tokenMap.forEach((service, token) -> assertTrue(service.unlock(token)));
+        tokenMap.forEach((service, token) -> assertThat(service.unlock(token)).isTrue());
 
         return exceptionCounter.get();
     }
@@ -390,10 +393,10 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwsOnQueryingTimestampWithWithInvalidClientName() {
+    public void throwsOnQueryingTimestampWithInvalidClientName() {
         TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining("Unexpected char 0x08");
+                .hasMessageContaining("NOT_FOUND");
     }
 
     @Test
@@ -413,49 +416,6 @@ public class PaxosTimeLockServerIntegrationTest {
         String uriWithParam = getFastForwardUriForClientOne() + "?newMinimum=1200";
         Response response = makeEmptyPostToUri(uriWithParam);
         assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
-    }
-
-    @Test
-    public void leadershipEventsSmokeTest() throws IOException {
-        MetricsOutput metrics = getMetricsOutput();
-
-        metrics.assertContainsMeter("leadership.gained");
-        metrics.assertContainsMeter("leadership.lost");
-        metrics.assertContainsMeter("leadership.proposed");
-        metrics.assertContainsMeter("leadership.no-quorum");
-        metrics.assertContainsMeter("leadership.proposed.failure");
-
-        assertThat(metrics.getMeter("leadership.gained").get("count").intValue()).isEqualTo(1);
-        assertThat(metrics.getMeter("leadership.proposed").get("count").intValue()).isEqualTo(1);
-    }
-
-    @Test
-    // TODO(nziebart): test remote service instrumentation - we need a multi-node server config for this
-    public void instrumentationSmokeTest() throws IOException {
-        getTimestampService(CLIENT_1).getFreshTimestamp();
-        getLockService(CLIENT_1).currentTimeMillis();
-        getTimelockService(CLIENT_1).lock(newLockV2Request(LOCK_1)).getToken();
-
-        MetricsOutput metrics = getMetricsOutput();
-
-        // Note that time/lock services are logged to the tagged metrics registry, which isn't a thing in Dropwizard.
-
-        // local leader election classes
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.learn");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
-        metrics.assertContainsTimer("com.palantir.leader.PingableLeader.ping");
-        metrics.assertContainsTimer("com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
-
-        // local timestamp bound classes
-        metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.getUpperLimit");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.getGreatestLearnedValue");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
-
-        // async lock
-        // TODO(nziebart): why does this flake on circle?
-        //assertContainsTimer(metrics, "lock.blocking-time");
     }
 
     private static String getFastForwardUriForClientOne() {
@@ -481,11 +441,13 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static TimelockService getTimelockService(String client) {
-        return RemoteTimelockServiceAdapter.create(getProxyForService(client, TimelockRpcClient.class));
+        return RemoteTimelockServiceAdapter.create(
+                new NamespacedTimelockRpcClient(getProxyForRootService(client, TimelockRpcClient.class), client));
     }
 
     private static LockService getLockService(String client) {
-        return getProxyForService(client, LockService.class);
+        LockRpcClient lockRpcClient = getProxyForRootService(client, LockRpcClient.class);
+        return RemoteLockServiceAdapter.create(lockRpcClient, client);
     }
 
     private static TimestampService getTimestampService(String client) {
@@ -493,7 +455,18 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static TimestampManagementService getTimestampManagementService(String client) {
-        return getProxyForService(client, TimestampManagementService.class);
+        return new RemoteTimestampManagementAdapter(
+                getProxyForRootService(client, TimestampManagementRpcClient.class),
+                client);
+    }
+
+    private static <T> T getProxyForRootService(String client, Class<T> clazz) {
+        return AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
+                Optional.of(TestProxies.TRUST_CONTEXT),
+                getGenericRootUri(),
+                clazz,
+                remotingParametersForClient(client));
     }
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
@@ -502,8 +475,19 @@ public class PaxosTimeLockServerIntegrationTest {
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
                 clazz,
-                client,
-                true);
+                remotingParametersForClient(client));
+    }
+
+    private static AuxiliaryRemotingParameters remotingParametersForClient(String client) {
+        return AuxiliaryRemotingParameters.builder()
+                .shouldLimitPayload(true)
+                .userAgent(UserAgents.tryParse(client))
+                .shouldRetry(true)
+                .build();
+    }
+
+    private static String getGenericRootUri() {
+        return String.format("https://localhost:%d", TIMELOCK_SERVER_HOLDER.getTimelockPort());
     }
 
     private static String getRootUriForClient(String client) {

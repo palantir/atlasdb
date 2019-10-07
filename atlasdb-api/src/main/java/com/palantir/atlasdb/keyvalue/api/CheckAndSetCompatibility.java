@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+
 /**
  * Indicates whether a {@link KeyValueService} supports check and set (CAS) and put unless exists (PUE) operations, and
  * if so the granularity with which it can provide feedback.
@@ -49,6 +51,6 @@ public enum CheckAndSetCompatibility {
         return Stream.of(NOT_SUPPORTED, SUPPORTED_NO_DETAIL_ON_FAILURE, SUPPORTED_DETAIL_ON_FAILURE)
                 .filter(presentCompatibilities::contains)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("min requires at least 1 element, but 0 provided"));
+                .orElseThrow(() -> new SafeIllegalArgumentException("min requires at least 1 element, but 0 provided"));
     }
 }

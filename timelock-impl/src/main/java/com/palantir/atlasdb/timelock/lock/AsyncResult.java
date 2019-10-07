@@ -22,7 +22,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 import net.jcip.annotations.ThreadSafe;
 
@@ -194,7 +195,7 @@ public class AsyncResult<T> {
     private Throwable getExceptionInternal() {
         try {
             future.join();
-            throw new IllegalStateException("This result is not failed.");
+            throw new SafeIllegalStateException("This result is not failed.");
         } catch (CompletionException e) {
             return e.getCause();
         }

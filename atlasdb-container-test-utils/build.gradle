@@ -1,5 +1,3 @@
-apply from: "../gradle/publish-jars.gradle"
-apply plugin: 'org.inferred.processors'
 
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
@@ -11,10 +9,12 @@ dependencies {
 
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
     compile group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule'
     compile group: 'org.awaitility', name: 'awaitility'
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'com.github.stefanbirkner', name: 'system-rules'
     testCompile group: 'org.assertj', name: 'assertj-core'

@@ -18,9 +18,10 @@ package com.palantir.common.base;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * This abstract class will implement the required methods in {@link BatchingVisitable}
@@ -83,7 +84,7 @@ public abstract class AbstractBatchingVisitable<T> implements BatchingVisitable<
         @Override
         public boolean visit(List<T> list) throws K {
             if (!visitorAlwaysReturnedTrue) {
-                throw new IllegalStateException("Cannot keep visiting if visitor returns false.");
+                throw new SafeIllegalStateException("Cannot keep visiting if visitor returns false.");
             }
 
             if (buffer.isEmpty() && list.size() == batchSize) {

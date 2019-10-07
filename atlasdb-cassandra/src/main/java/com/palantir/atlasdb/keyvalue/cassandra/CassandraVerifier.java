@@ -40,6 +40,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
@@ -184,7 +185,9 @@ public final class CassandraVerifier {
     }
 
     private static boolean attemptToCreateKeyspace(CassandraKeyValueServiceConfig config) {
-        return config.servers().stream().anyMatch(host -> attemptToCreateIfNotExists(config, host));
+        Set<InetSocketAddress> thriftHosts = config.servers().accept(new ThriftHostsExtractingVisitor());
+
+        return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(config, host));
     }
 
     private static boolean attemptToCreateIfNotExists(CassandraKeyValueServiceConfig config, InetSocketAddress host) {
@@ -205,8 +208,7 @@ public final class CassandraVerifier {
     // swallows the expected TException subtype NotFoundException, throws connection problem related ones
     private static boolean keyspaceAlreadyExists(InetSocketAddress host, CassandraKeyValueServiceConfig config)
             throws TException {
-        try {
-            CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
+        try (CassandraClient client = CassandraClientFactory.getClientInternal(host, config)) {
             client.describe_keyspace(config.getKeyspaceOrThrow());
             CassandraKeyValueServices.waitForSchemaVersions(config, client,
                     "while checking if schemas diverged on startup");
@@ -218,8 +220,7 @@ public final class CassandraVerifier {
 
     private static boolean attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraKeyValueServiceConfig config)
             throws TException {
-        try {
-            CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
+        try (CassandraClient client = CassandraClientFactory.getClientInternal(host, config)) {
             KsDef ksDef = createKsDefForFresh(client, config);
             client.system_add_keyspace(ksDef);
             log.info("Created keyspace: {}", SafeArg.of("keyspace", config.getKeyspaceOrThrow()));
@@ -227,7 +228,16 @@ public final class CassandraVerifier {
                     "after adding the initial empty keyspace");
             return true;
         } catch (InvalidRequestException e) {
-            return keyspaceAlreadyExists(host, config);
+            boolean keyspaceAlreadyExists = keyspaceAlreadyExists(host, config);
+            if (!keyspaceAlreadyExists) {
+                log.info("Encountered an invalid request exception {} when attempting to create a keyspace"
+                        + " on a given Cassandra host {}, but the keyspace doesn't seem to exist yet. This may"
+                        + " cause issues if it recurs persistently, so logging for debugging purposes.",
+                        SafeArg.of("host", CassandraLogHelper.host(host)),
+                        UnsafeArg.of("exceptionMessage", e.toString()));
+                log.debug("Specifically, creating the keyspace failed with the following stack trace", e);
+            }
+            return keyspaceAlreadyExists;
         }
     }
 

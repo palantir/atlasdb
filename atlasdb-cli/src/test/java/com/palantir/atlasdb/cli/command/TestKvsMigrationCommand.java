@@ -58,10 +58,10 @@ public class TestKvsMigrationCommand {
 
     @Test
     public void doesNotSweepDuringMigration() {
-        assertThat(fromServices.getAtlasDbRuntimeConfig().sweep().enabled()).isFalse();
+        assertThat(fromServices.getAtlasDbRuntimeConfig().sweep().enabled()).contains(false);
         assertThat(fromServices.getAtlasDbRuntimeConfig().targetedSweep().enabled()).isFalse();
 
-        assertThat(toServices.getAtlasDbRuntimeConfig().sweep().enabled()).isFalse();
+        assertThat(toServices.getAtlasDbRuntimeConfig().sweep().enabled()).contains(false);
         assertThat(toServices.getAtlasDbRuntimeConfig().targetedSweep().enabled()).isFalse();
     }
 

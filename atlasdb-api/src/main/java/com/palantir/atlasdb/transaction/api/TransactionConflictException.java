@@ -27,8 +27,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 /**
  * Thrown if there is a conflict detected when a transaction is committed.
  * If two concurrent transactions make calls to
- * {@link Transaction#put(com.palantir.atlasdb.keyvalue.api.TableReference, java.util.Map)} or
- * {@link Transaction#delete(com.palantir.atlasdb.keyvalue.api.TableReference, Set)} for the same <code>Cell</code>,
+ * {@link Transaction#put(TableReference, java.util.Map)} or
+ * {@link Transaction#delete(TableReference, Set)} for the same <code>Cell</code>,
  * then this is a write-write conflict.
  * <p>
  * The error message should be detailed about what caused the failure and what other transaction

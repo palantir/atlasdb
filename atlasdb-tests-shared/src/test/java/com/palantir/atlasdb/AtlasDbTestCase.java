@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -67,6 +68,7 @@ public class AtlasDbTestCase {
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected TargetedSweeper sweepQueue;
+    protected SpecialTimestampsSupplier sweepTimestampSupplier;
     protected int sweepQueueShards = 128;
 
     @Before
@@ -99,6 +101,8 @@ public class AtlasDbTestCase {
 
         sweepQueue.initialize(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
+        sweepTimestampSupplier = new SpecialTimestampsSupplier(
+                () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
     }
 
     protected KeyValueService getBaseKeyValueService() {

@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |
+    Allow disabling read-write conflict checking on a per transaction basis.
+    This feature may be dangerous and could result in SEVERE DATA CORRUPTION; 
+    if you don't know what you are doing please talk to the AtlasDB team first.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4188

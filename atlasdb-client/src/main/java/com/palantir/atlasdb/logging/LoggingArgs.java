@@ -19,12 +19,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -57,6 +59,7 @@ public final class LoggingArgs {
     }
 
     private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
+    private static Optional<Boolean> allSafeForLogging = Optional.empty();
 
     private LoggingArgs() {
         // no
@@ -64,6 +67,24 @@ public final class LoggingArgs {
 
     public static synchronized void hydrate(Map<TableReference, byte[]> tableRefToMetadata) {
         logArbitrator = SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
+    }
+
+    public static synchronized void combineAndSetNewAllSafeForLoggingFlag(
+            boolean isNewKeyValueServiceAllSafeForLogging) {
+        if (!allSafeForLogging.isPresent()) {
+            // if allSafeForLogging is never set, set it to the new keyValueService's allSafeForLogging setting
+            allSafeForLogging = Optional.of(isNewKeyValueServiceAllSafeForLogging);
+        } else {
+            // if allSafeForLogging is currently safe, but the newKeyValueService is not allSafeForLogging by default
+            // set the global allSafeForLogging flag to false
+            if (!isNewKeyValueServiceAllSafeForLogging) {
+                allSafeForLogging = Optional.of(isNewKeyValueServiceAllSafeForLogging);
+            }
+        }
+
+        if (allSafeForLogging.get()) {
+            logArbitrator = KeyValueServiceLogArbitrator.ALL_SAFE;
+        }
     }
 
     @VisibleForTesting
@@ -95,7 +116,7 @@ public final class LoggingArgs {
 
     public static Iterable<TableReference> safeTablesOrPlaceholder(Collection<TableReference> tables) {
         //noinspection StaticPseudoFunctionalStyleMethod - Use lazy iterator.
-        return Iterables.transform(tables, LoggingArgs::safeTableOrPlaceholder);
+        return Collections2.transform(tables, LoggingArgs::safeTableOrPlaceholder);
     }
 
     /**

@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -23,7 +24,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -616,6 +616,22 @@ public final class DataStreamIdxTable implements
         });
     }
 
+    @Override
+    public Map<DataStreamIdxRow, Iterator<DataStreamIdxColumnValue>> getRowsColumnRangeIterator(Iterable<DataStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<DataStreamIdxRow, Iterator<DataStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            DataStreamIdxRow row = DataStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<DataStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                DataStreamIdxColumn col = DataStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = DataStreamIdxColumnValue.hydrateValue(result.getValue());
+                return DataStreamIdxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<DataStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -727,5 +743,5 @@ public final class DataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "akfc3RwqwCN9ne8saSTh2A==";
+    static String __CLASS_HASH = "I+ahTX+7gCXRdlNNelaHEA==";
 }

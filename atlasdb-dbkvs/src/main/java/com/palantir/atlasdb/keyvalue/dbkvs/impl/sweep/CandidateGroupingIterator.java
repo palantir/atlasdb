@@ -22,12 +22,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
+import com.palantir.logsafe.Preconditions;
 
 import gnu.trove.list.TLongList;
 import gnu.trove.list.array.TLongArrayList;

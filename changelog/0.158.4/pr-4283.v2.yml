@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: Modify Ec2HostLocationSupplier to emulate Cassandra's Ec2Snitch logic.
+    Previously, Ec2HostLocationSupplier may have produced results inconsistent with
+    Cassandra's Ec2Snitch, meaning that our feature to send more traffic to local
+    nodes wouldn't work properly
+  links:
+  - https://github.com/palantir/atlasdb/pull/4283

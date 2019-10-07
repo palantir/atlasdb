@@ -31,6 +31,7 @@ import com.palantir.atlasdb.cli.command.SingleBackendCommand;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
@@ -64,10 +65,10 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
 
     private void initialize() {
         if (!requireTimestamp() && timestamp != null) {
-            throw new IllegalArgumentException("This command does not require an input timestamp"
+            throw new SafeIllegalArgumentException("This command does not require an input timestamp"
                     + " but you specified one.");
         } else if (requireTimestamp() && ((timestamp == null && file == null) || (timestamp != null && file != null))) {
-            throw new IllegalArgumentException("This command requires an input timestamp, "
+            throw new SafeIllegalArgumentException("This command requires an input timestamp, "
                     + "so you must specify one and only one (either directly or via a file).");
         } else if (requireTimestamp() && file != null) {
             timestamp = readTimestampFromFile();

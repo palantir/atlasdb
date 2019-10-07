@@ -26,16 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -209,17 +208,17 @@ public class Schema {
                     !idxName.endsWith(type.getIndexSuffix()),
                     "Index name cannot end with '%s'.", type.getIndexSuffix());
             String indexName = idxName + type.getIndexSuffix();
-            Preconditions.checkArgument(
+            com.palantir.logsafe.Preconditions.checkArgument(
                     !tableDefinitions.containsKey(indexName) && !indexDefinitions.containsKey(indexName),
                     "Table already defined.");
         }
-        Preconditions.checkArgument(
+        com.palantir.logsafe.Preconditions.checkArgument(
                 tableDefinitions.containsKey(definition.getSourceTable()),
                 "Index source table undefined.");
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(idxName),
                 "Invalid table name %s", idxName);
-        Preconditions.checkArgument(
+        com.palantir.logsafe.Preconditions.checkArgument(
                 !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns()
                         || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
@@ -264,22 +263,22 @@ public class Schema {
             for (IndexComponent c : Iterables.concat(indexMetadata.getRowComponents(),
                     indexMetadata.getColumnComponents())) {
                 if (c.rowComponentName != null) {
-                    Validate.isTrue(rowNames.contains(c.rowComponentName),
+                    com.palantir.logsafe.Preconditions.checkArgument(rowNames.contains(c.rowComponentName),
                             "In index, a componentFromRow must reference an existing row component");
                 }
             }
 
             if (indexMetadata.getColumnNameToAccessData() != null) {
-                Validate.isTrue(tableMetadata.getColumns().getDynamicColumn() == null,
+                com.palantir.logsafe.Preconditions.checkArgument(tableMetadata.getColumns().getDynamicColumn() == null,
                         "Indexes accessing columns not supported for tables with dynamic columns.");
                 Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
                         NamedColumnDescription::getLongName);
-                Validate.isTrue(columnNames.contains(indexMetadata.getColumnNameToAccessData()),
+                com.palantir.logsafe.Preconditions.checkArgument(columnNames.contains(indexMetadata.getColumnNameToAccessData()),
                         "In index, a component derived from column must reference an existing column");
             }
 
             if (indexMetadata.getIndexType().equals(IndexType.CELL_REFERENCING)) {
-                Validate.isTrue(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.getConflictHandler()),
+                com.palantir.logsafe.Preconditions.checkArgument(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.getConflictHandler()),
                         "Nonadditive indexes require write-write conflicts on their tables");
             }
         }
@@ -305,8 +304,8 @@ public class Schema {
      * @param srcDir root source directory where code generation is performed.
      */
     public void renderTables(File srcDir) throws IOException {
-        Preconditions.checkNotNull(name, "schema name not set");
-        Preconditions.checkNotNull(packageName, "package name not set");
+        com.palantir.logsafe.Preconditions.checkNotNull(name, "schema name not set");
+        com.palantir.logsafe.Preconditions.checkNotNull(packageName, "package name not set");
 
         TableRenderer tableRenderer = new TableRenderer(packageName, namespace, optionalType);
         TableRendererV2 tableRendererV2 = new TableRendererV2(packageName, namespace);
@@ -316,7 +315,7 @@ public class Schema {
             ImmutableSortedSet.Builder<IndexMetadata> indices = ImmutableSortedSet.orderedBy(
                     Ordering.natural().onResultOf((Function<IndexMetadata, String>) IndexMetadata::getIndexName));
             if (table.getGenericTableName() != null) {
-                Preconditions.checkState(!indexesByTable.containsKey(rawTableName),
+                com.palantir.logsafe.Preconditions.checkState(!indexesByTable.containsKey(rawTableName),
                         "Generic tables cannot have indices");
             } else {
                 for (String indexName : indexesByTable.get(rawTableName)) {

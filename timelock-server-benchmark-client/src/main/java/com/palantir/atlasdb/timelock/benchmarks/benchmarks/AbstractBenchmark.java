@@ -83,7 +83,7 @@ public abstract class AbstractBenchmark {
 
     private void scheduleTests() {
         for (int i = 0; i < numClients; i++) {
-            executor.submit(this::runTestForSingleClient);
+            executor.execute(this::runTestForSingleClient);
         }
     }
 

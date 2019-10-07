@@ -18,8 +18,8 @@ package com.palantir.lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A descriptor for a {@link ReadWriteLock}, identified by a lock ID (a unique

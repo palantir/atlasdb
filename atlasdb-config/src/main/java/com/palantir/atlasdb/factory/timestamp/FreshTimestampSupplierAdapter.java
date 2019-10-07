@@ -17,8 +17,8 @@ package com.palantir.atlasdb.factory.timestamp;
 
 import java.util.function.LongSupplier;
 
-import com.google.common.base.Preconditions;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampService;
 
 public class FreshTimestampSupplierAdapter implements LongSupplier {

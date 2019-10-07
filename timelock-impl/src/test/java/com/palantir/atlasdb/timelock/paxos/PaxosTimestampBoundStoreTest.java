@@ -15,49 +15,61 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import static java.util.stream.Collectors.toList;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.io.File;
-import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosAcceptorImpl;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosLearnerImpl;
+import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.PaxosRoundFailureException;
+import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
+import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
+@RunWith(Parameterized.class)
 public class PaxosTimestampBoundStoreTest {
     private static final int NUM_NODES = 5;
+    private static final int QUORUM_SIZE = NUM_NODES / 2 + 1;
+    private static final boolean UNBATCHED = false;
+    private static final boolean BATCHED = true;
 
-    private static final String LOG_DIR = "testlogs/";
-    private static final String LEARNER_DIR_PREFIX = LOG_DIR + "learner/";
-    private static final String ACCEPTOR_DIR_PREFIX = LOG_DIR + "acceptor/";
+    private static final Client CLIENT = Client.of("client");
     private static final long TIMESTAMP_1 = 100000;
     private static final long TIMESTAMP_2 = 200000;
     private static final long TIMESTAMP_3 = 300000;
@@ -68,45 +80,101 @@ public class PaxosTimestampBoundStoreTest {
     private static final RuntimeException EXCEPTION = new RuntimeException("exception");
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
-    private final List<PaxosAcceptor> acceptors = Lists.newArrayList();
     private final List<PaxosLearner> learners = Lists.newArrayList();
     private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
 
+    @Parameterized.Parameters
+    public static Iterable<Boolean> data() {
+        return ImmutableList.of(UNBATCHED, BATCHED);
+    }
+
+    @Parameterized.Parameter
+    public boolean useBatch;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private PaxosAcceptorNetworkClient acceptorClient;
+    private List<PaxosLearnerNetworkClient> learnerClientsByNode;
     private PaxosTimestampBoundStore store;
 
     @Before
     public void setUp() {
+        List<PaxosAcceptor> acceptors = Lists.newArrayList();
+        List<BatchPaxosAcceptor> batchPaxosAcceptors = Lists.newArrayList();
+        List<BatchPaxosLearner> batchPaxosLearners = Lists.newArrayList();
+
         for (int i = 0; i < NUM_NODES; i++) {
+            String root = temporaryFolder.getRoot().getAbsolutePath();
+            PaxosComponents components = new PaxosComponents(
+                    TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, SharedTaggedMetricRegistries.getSingleton()),
+                    Paths.get(root, Integer.toString(i)));
+
             AtomicBoolean failureController = new AtomicBoolean(false);
-            PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(ACCEPTOR_DIR_PREFIX + i);
-            acceptors.add(ToggleableExceptionProxy.newProxyInstance(
-                    PaxosAcceptor.class,
-                    acceptor,
-                    failureController,
-                    EXCEPTION));
-            PaxosLearner learner = PaxosLearnerImpl.newLearner(LEARNER_DIR_PREFIX + i);
+            failureToggles.add(failureController);
+
             learners.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosLearner.class,
-                    learner,
+                    components.learner(CLIENT),
                     failureController,
                     EXCEPTION));
-            failureToggles.add(failureController);
+
+            acceptors.add(ToggleableExceptionProxy.newProxyInstance(
+                    PaxosAcceptor.class,
+                    components.acceptor(CLIENT),
+                    failureController,
+                    EXCEPTION));
+
+            BatchPaxosAcceptor batchAcceptor = new LocalBatchPaxosAcceptor(components, new AcceptorCacheImpl());
+            batchPaxosAcceptors.add(ToggleableExceptionProxy.newProxyInstance(
+                    BatchPaxosAcceptor.class,
+                    batchAcceptor,
+                    failureController,
+                    EXCEPTION));
+
+            BatchPaxosLearner batchLearner = new LocalBatchPaxosLearner(components);
+            batchPaxosLearners.add(ToggleableExceptionProxy.newProxyInstance(
+                    BatchPaxosLearner.class,
+                    batchLearner,
+                    failureController,
+                    EXCEPTION));
+        }
+
+        if (useBatch) {
+            acceptorClient = AutobatchingPaxosAcceptorNetworkClientFactory.create(
+                    batchPaxosAcceptors, executor, QUORUM_SIZE)
+                    .paxosAcceptorForClient(CLIENT);
+
+            PaxosLearnerNetworkClient batchLearnerClient = AutobatchingPaxosLearnerNetworkClientFactory.create(
+                    batchPaxosLearners, executor, QUORUM_SIZE)
+                    .paxosLearnerForClient(CLIENT);
+
+            learnerClientsByNode = Stream.generate(() -> batchLearnerClient)
+                    .limit(NUM_NODES)
+                    .collect(toList());
+        } else {
+            acceptorClient = new SingleLeaderAcceptorNetworkClient(
+                    acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor));
+
+            learnerClientsByNode = learners.stream()
+                    .map(learner -> new SingleLeaderLearnerNetworkClient(
+                            learner,
+                            learners.stream().filter(otherLearners -> otherLearners != learner).collect(toList()),
+                            QUORUM_SIZE,
+                            Maps.toMap(learners, $ -> executor)))
+                    .collect(toList());
         }
 
         store = createPaxosTimestampBoundStore(0);
     }
 
     @After
-    public void tearDown() throws InterruptedException, IOException {
-        try {
-            executor.shutdownNow();
-            boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
-            if (!terminated) {
-                throw new IllegalStateException(
-                        "Some threads are still hanging around! Can't proceed or they might corrupt future tests.");
-            }
-        } finally {
-            FileUtils.deleteDirectory(new File(LOG_DIR));
+    public void tearDown() throws InterruptedException {
+        executor.shutdownNow();
+        boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
+        if (!terminated) {
+            throw new IllegalStateException(
+                    "Some threads are still hanging around! Can't proceed or they might corrupt future tests.");
         }
     }
 
@@ -150,7 +218,7 @@ public class PaxosTimestampBoundStoreTest {
         store = createPaxosTimestampBoundStore(0, wrapper);
         store.storeUpperLimit(TIMESTAMP_1);
         assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-        verify(wrapper, times(2)).propose(anyLong(), anyObject());
+        verify(wrapper, times(2)).propose(anyLong(), any());
     }
 
     @Test
@@ -280,19 +348,17 @@ public class PaxosTimestampBoundStoreTest {
         return new PaxosTimestampBoundStore(
                 proposer,
                 learners.get(nodeIndex),
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
+                acceptorClient,
+                learnerClientsByNode.get(nodeIndex),
                 1000L);
     }
 
     private PaxosProposer createPaxosProposer(int nodeIndex) {
         return PaxosProposerImpl.newProposer(
-                learners.get(nodeIndex),
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                NUM_NODES / 2 + 1,
-                UUID.randomUUID(),
-                executor);
+                acceptorClient,
+                learnerClientsByNode.get(nodeIndex),
+                QUORUM_SIZE,
+                UUID.randomUUID());
     }
 
     private static class OnceFailingPaxosProposer implements PaxosProposer {
@@ -307,6 +373,15 @@ public class PaxosTimestampBoundStoreTest {
         public byte[] propose(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException {
             if (hasFailed) {
                 return delegate.propose(seq, proposalValue);
+            }
+            hasFailed = true;
+            throw new PaxosRoundFailureException("paxos fail");
+        }
+
+        @Override
+        public byte[] proposeAnonymously(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException {
+            if (hasFailed) {
+                return delegate.proposeAnonymously(seq, proposalValue);
             }
             hasFailed = true;
             throw new PaxosRoundFailureException("paxos fail");

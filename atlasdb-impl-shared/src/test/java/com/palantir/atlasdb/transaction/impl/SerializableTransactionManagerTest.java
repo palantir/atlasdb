@@ -39,7 +39,7 @@ import org.junit.Test;
 
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -232,7 +232,7 @@ public class SerializableTransactionManagerTest {
         manager = getManagerWithCallback(true, blockingCallback, executorService);
 
         ExecutorService tickerThread = PTExecutors.newSingleThreadExecutor(true);
-        tickerThread.submit(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
+        tickerThread.execute(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
 
         Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(blockingCallback::wasInvoked);
         assertFalse(manager.isInitialized());
@@ -249,7 +249,7 @@ public class SerializableTransactionManagerTest {
         manager = getManagerWithCallback(true, blockingCallback, executorService);
 
         ExecutorService tickerThread = PTExecutors.newSingleThreadExecutor(true);
-        tickerThread.submit(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
+        tickerThread.execute(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
 
         Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(blockingCallback::wasInvoked);
         verify(mockKvs, atLeast(1)).getClusterAvailabilityStatus();
@@ -279,7 +279,7 @@ public class SerializableTransactionManagerTest {
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 initializeAsync,
-                TimestampCache.createForTests(),
+                DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 callBack,
                 executor,
@@ -322,14 +322,14 @@ public class SerializableTransactionManagerTest {
         public void init(TransactionManager transactionManager) {
             successfullyInvoked =
                     transactionManager.getKeyValueServiceStatus() == KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
-            if (block) {
-                throw new RuntimeException();
+            while (block) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
             }
-        }
-
-        @Override
-        public void cleanup(TransactionManager transactionManager, Throwable initException) {
-            // suppress
         }
     }
 

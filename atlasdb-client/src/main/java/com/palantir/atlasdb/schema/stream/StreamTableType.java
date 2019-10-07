@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.render.Renderers;
+import com.palantir.logsafe.Preconditions;
 
 public enum StreamTableType { // WARNING: do not change these without an upgrade task!
     METADATA("_stream_metadata", "StreamMetadata"),

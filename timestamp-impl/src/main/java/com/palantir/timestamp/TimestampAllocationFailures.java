@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 @ThreadSafe
 public class TimestampAllocationFailures {
@@ -58,7 +59,7 @@ public class TimestampAllocationFailures {
             return (ServiceNotAvailableException) newFailure;
         }
 
-        return new RuntimeException("Could not allocate more timestamps", newFailure);
+        return new SafeRuntimeException("Could not allocate more timestamps", newFailure);
     }
 
     public void verifyWeShouldIssueMoreTimestamps() {

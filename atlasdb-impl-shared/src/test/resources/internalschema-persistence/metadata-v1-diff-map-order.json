@@ -1,0 +1,1 @@
+{"timestampToTransactionsTableSchemaVersion":{"timestampMappings":[{"longRange":{"lowerEndpoint":1000,"lowerBoundType":"CLOSED"},"value":2},{"longRange":{"lowerEndpoint":1,"lowerBoundType":"CLOSED","upperEndpoint":1000,"upperBoundType":"OPEN"},"value":1}]}}

@@ -32,6 +32,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class ReadTransaction extends ForwardingTransaction {
 
@@ -109,6 +111,13 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(TableReference tableRef,
+            Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+        checkTableName(tableRef);
+        return delegate().getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
+    }
+
+    @Override
     public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection, int batchHint) {
         checkTableName(tableRef);
@@ -118,19 +127,19 @@ public class ReadTransaction extends ForwardingTransaction {
     private void checkTableName(TableReference tableRef) {
         SweepStrategy sweepStrategy = sweepStrategies.get().get(tableRef);
         if (sweepStrategy == SweepStrategy.THOROUGH) {
-            throw new IllegalStateException(
+            throw new SafeIllegalStateException(
                     "Cannot read from a table with a thorough sweep strategy in a read only transaction.");
         }
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        throw new IllegalArgumentException("This is a read only transaction.");
+        throw new SafeIllegalArgumentException("This is a read only transaction.");
     }
 
     @Override
     public void delete(TableReference tableRef, Set<Cell> keys) {
-        throw new IllegalArgumentException("This is a read only transaction.");
+        throw new SafeIllegalArgumentException("This is a read only transaction.");
     }
 
 }

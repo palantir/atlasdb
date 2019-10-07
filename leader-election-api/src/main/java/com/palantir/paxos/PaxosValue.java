@@ -23,13 +23,13 @@ import javax.annotation.Nullable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Defaults;
-import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 
 @Immutable

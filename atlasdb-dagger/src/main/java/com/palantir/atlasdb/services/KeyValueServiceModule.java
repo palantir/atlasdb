@@ -112,8 +112,9 @@ public class KeyValueServiceModule {
     public CoordinationService<InternalSchemaMetadata> provideMetadataCoordinationService(
             @Named("kvs") KeyValueService kvs,
             TimestampService ts,
-            ServicesConfig config) {
-        return CoordinationServices.createDefault(kvs, ts, config.atlasDbConfig().initializeAsync());
+            ServicesConfig config,
+            MetricsManager metricsManager) {
+        return CoordinationServices.createDefault(kvs, ts, metricsManager, config.atlasDbConfig().initializeAsync());
     }
 
 }

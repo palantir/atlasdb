@@ -59,8 +59,8 @@ public final class Cell implements Serializable, Comparable<Cell> {
     }
 
     private void validateNameValid(byte[] name) {
-        Preconditions.checkNotNull(name, "name cannot be null");
-        Preconditions.checkArgument(name.length > 0, "name must be non-empty");
+        com.palantir.logsafe.Preconditions.checkNotNull(name, "name cannot be null");
+        com.palantir.logsafe.Preconditions.checkArgument(name.length > 0, "name must be non-empty");
 
         try {
             Preconditions.checkArgument(

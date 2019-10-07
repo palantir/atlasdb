@@ -24,13 +24,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +42,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -104,9 +105,11 @@ public final class CassandraKeyValueServices {
                     version.getValue());
         }
 
+        Set<InetSocketAddress> thriftHosts = config.servers().accept(new ThriftHostsExtractingVisitor());
+
         String configNodes = addNodeInformation(new StringBuilder(),
                 "Nodes specified in config file:",
-                config.servers().stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
+                thriftHosts.stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
                 .toString();
 
         String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions, %s. %s"
@@ -142,7 +145,7 @@ public final class CassandraKeyValueServices {
             return false;
         }
 
-        int numberOfServers = config.servers().size();
+        int numberOfServers = config.servers().numberOfHosts();
         int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
 
         return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
@@ -231,10 +234,10 @@ public final class CassandraKeyValueServices {
         composite.get(colName);
 
         short shouldBeZero = composite.getShort();
-        Validate.isTrue(shouldBeZero == 0);
+        com.palantir.logsafe.Preconditions.checkArgument(shouldBeZero == 0);
 
         byte shouldBe8 = composite.get();
-        Validate.isTrue(shouldBe8 == 8);
+        com.palantir.logsafe.Preconditions.checkArgument(shouldBe8 == 8);
         long ts = composite.getLong();
 
         return Pair.create(colName, ~ts);

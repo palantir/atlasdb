@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -38,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;

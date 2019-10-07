@@ -15,29 +15,12 @@
  */
 package com.palantir.paxos;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-
 public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
-    private static final Logger log = LoggerFactory.getLogger(PaxosLatestRoundVerifierImpl.class);
-    private static final double SAMPLE_RATE = 0.01;
 
-    private final ImmutableList<PaxosAcceptor> acceptors;
-    private final int quorumSize;
-    private final Map<PaxosAcceptor, ExecutorService> executors;
+    private final PaxosAcceptorNetworkClient acceptorClient;
 
-    public PaxosLatestRoundVerifierImpl(
-            List<PaxosAcceptor> acceptors, int quorumSize,
-            Map<PaxosAcceptor, ExecutorService> executors) {
-        this.acceptors = ImmutableList.copyOf(acceptors);
-        this.quorumSize = quorumSize;
-        this.executors = executors;
+    public PaxosLatestRoundVerifierImpl(PaxosAcceptorNetworkClient acceptorClient) {
+        this.acceptorClient = acceptorClient;
     }
 
     @Override
@@ -46,26 +29,14 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
     }
 
     private PaxosResponses<PaxosResponse> collectResponses(long round) {
-        return PaxosQuorumChecker.collectQuorumResponses(
-                acceptors,
-                acceptor -> new PaxosResponseImpl(acceptorAgreesIsLatestRound(acceptor, round)),
-                quorumSize,
-                executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+        return acceptorClient.getLatestSequencePreparedOrAccepted()
+                .map(paxosLong -> acceptorAgreesIsLatestRound(paxosLong, round));
     }
 
-    private static boolean acceptorAgreesIsLatestRound(PaxosAcceptor acceptor, long round) {
-        try {
-            return round >= acceptor.getLatestSequencePreparedOrAccepted();
-        } catch (Exception e) {
-            if (log.isDebugEnabled() && shouldLog()) {
-                log.debug("failed to get latest sequence", e);
-            }
-            throw e;
-        }
+    private static BooleanPaxosResponse acceptorAgreesIsLatestRound(
+            PaxosLong latestRoundFromAcceptor,
+            long roundInQuestion) {
+        return new BooleanPaxosResponse(roundInQuestion >= latestRoundFromAcceptor.getValue());
     }
 
-    private static boolean shouldLog() {
-        return Math.random() < SAMPLE_RATE;
-    }
 }

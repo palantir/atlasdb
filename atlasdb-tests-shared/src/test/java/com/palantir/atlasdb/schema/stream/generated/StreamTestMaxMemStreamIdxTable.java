@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -23,7 +24,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -602,6 +602,22 @@ public final class StreamTestMaxMemStreamIdxTable implements
         });
     }
 
+    @Override
+    public Map<StreamTestMaxMemStreamIdxRow, Iterator<StreamTestMaxMemStreamIdxColumnValue>> getRowsColumnRangeIterator(Iterable<StreamTestMaxMemStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestMaxMemStreamIdxRow, Iterator<StreamTestMaxMemStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            StreamTestMaxMemStreamIdxRow row = StreamTestMaxMemStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<StreamTestMaxMemStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                StreamTestMaxMemStreamIdxColumn col = StreamTestMaxMemStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = StreamTestMaxMemStreamIdxColumnValue.hydrateValue(result.getValue());
+                return StreamTestMaxMemStreamIdxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<StreamTestMaxMemStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -713,5 +729,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "KcJ0j6ecliQFnp5AXn9sPg==";
+    static String __CLASS_HASH = "aGzDLu7wk6Ls77bUD0X4tA==";
 }

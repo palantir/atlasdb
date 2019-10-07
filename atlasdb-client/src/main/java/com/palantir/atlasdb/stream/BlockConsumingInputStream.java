@@ -86,7 +86,7 @@ public final class BlockConsumingInputStream extends InputStream {
 
     @Override
     public int read(byte[] bytes, int off, int len) throws IOException {
-        Preconditions.checkNotNull(bytes, "Cannot read into a null array!");
+        com.palantir.logsafe.Preconditions.checkNotNull(bytes, "Cannot read into a null array!");
         if (off < 0 || len < 0 || len > bytes.length - off) {
             throw new IndexOutOfBoundsException();
         }

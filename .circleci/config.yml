@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/openjdk:8u171-jdk-node
+      - image: circleci/openjdk:8u212-jdk-stretch-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -31,16 +31,15 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: [ . ]
-      - run: scripts/circle-ci/pr-changelog-status-check.sh
 
   test:
     parallelism: 8
     docker:
-      - image: circleci/openjdk:8u171-jdk-node
+      - image: circleci/openjdk:8u212-jdk-stretch-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /home/circleci/junit
       CIRCLE_ARTIFACTS: /home/circleci/artifacts
 
@@ -51,11 +50,15 @@ jobs:
       - restore_cache:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
       - setup_remote_docker
+      - run: mkdir -p $CIRCLE_ARTIFACTS
       - run:
           command: ./scripts/circle-ci/pull-all-images.sh
           background: true
       - run:
           command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
           background: true
       - run: ./scripts/circle-ci/download-moreutils.sh
       - run:
@@ -79,7 +82,7 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/openjdk:8u171-jdk-node
+      - image: circleci/openjdk:8u212-jdk-stretch-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false

@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Attempting to acquire advisory locks with locking mode `DO_NOT_BLOCK`
+    will now log at `DEBUG` instead of `WARN`. In this mode we are generally _trying_
+    the lock, so failure is by no means indicative of a problem.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4269

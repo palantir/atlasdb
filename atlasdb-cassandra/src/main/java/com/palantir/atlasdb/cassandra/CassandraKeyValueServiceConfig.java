@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.immutables.value.Value;
 
@@ -28,12 +27,15 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.processors.AutoDelegate;
 
 @AutoService(KeyValueServiceConfig.class)
@@ -42,67 +44,66 @@ import com.palantir.processors.AutoDelegate;
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
 @AutoDelegate
 @Value.Immutable
-public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceConfig {
+public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
-    public static final String TYPE = "cassandra";
+    String TYPE = "cassandra";
 
-    public abstract Set<InetSocketAddress> servers();
+    CassandraServersConfigs.CassandraServersConfig servers();
 
     @Value.Default
-    public Map<String, InetSocketAddress> addressTranslation() {
+    default Map<String, InetSocketAddress> addressTranslation() {
         return ImmutableMap.of();
     }
 
     @Override
     @JsonIgnore
     @Value.Derived
-    public Optional<String> namespace() {
+    default Optional<String> namespace() {
         return keyspace();
     }
 
     @Value.Default
-    public int poolSize() {
+    default int poolSize() {
         return 30;
     }
 
     /**
-     * The cap at which the connection pool is able to grow over the {@link #poolSize()}
-     * given high request load. When load is depressed, the pool will shrink back to its
-     * idle {@link #poolSize()} value.
+     * The cap at which the connection pool is able to grow over the {@link #poolSize()} given high request load. When
+     * load is depressed, the pool will shrink back to its idle {@link #poolSize()} value.
      */
     @Value.Default
-    public int maxConnectionBurstSize() {
+    default int maxConnectionBurstSize() {
         return 100;
     }
 
     /**
-     * The proportion of {@link #poolSize()} connections that are checked approximately
-     * every {@link #timeBetweenConnectionEvictionRunsSeconds()} seconds to see if has been idle at least
-     * {@link #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the
-     * the default values, 0.1 * 30 = 3 connections will be checked approximately every 20 seconds and will
-     * be evicted from the pool if it has been idle for at least 10 minutes.
+     * The proportion of {@link #poolSize()} connections that are checked approximately every {@link
+     * #timeBetweenConnectionEvictionRunsSeconds()} seconds to see if has been idle at least {@link
+     * #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the the default
+     * values, 0.1 * 30 = 3 connections will be checked approximately every 20 seconds and will be evicted from the pool
+     * if it has been idle for at least 10 minutes.
      */
     @Value.Default
-    public double proportionConnectionsToCheckPerEvictionRun() {
+    default double proportionConnectionsToCheckPerEvictionRun() {
         return 0.1;
     }
 
     @Value.Default
-    public int idleConnectionTimeoutSeconds() {
+    default int idleConnectionTimeoutSeconds() {
         return 10 * 60;
     }
 
     @Value.Default
-    public int timeBetweenConnectionEvictionRunsSeconds() {
+    default int timeBetweenConnectionEvictionRunsSeconds() {
         return 20;
     }
 
     /**
-     * The period between refreshing the Cassandra client pools.
-     * At every refresh, we check the health of the current blacklisted nodes — if they're healthy, we whitelist them.
+     * The period between refreshing the Cassandra client pools. At every refresh, we check the health of the current
+     * blacklisted nodes — if they're healthy, we whitelist them.
      */
     @Value.Default
-    public int poolRefreshIntervalSeconds() {
+    default int poolRefreshIntervalSeconds() {
         return 2 * 60;
     }
 
@@ -115,55 +116,73 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public int unresponsiveHostBackoffTimeSeconds() {
+    default int unresponsiveHostBackoffTimeSeconds() {
         return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
     }
 
     /**
-     * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra
-     * as data marked with a tombstone is removed during the normal compaction process every gc_grace_seconds.
+     * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra as data
+     * marked with a tombstone is removed during the normal compaction process every gc_grace_seconds.
      */
     @Value.Default
-    public int gcGraceSeconds() {
+    default int gcGraceSeconds() {
         return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
     }
 
+    /**
+     * This increases the likelihood of selecting an instance that is hosted in the same data centre as the process.
+     * Weighting is a ratio from 0 to 1, where 0 disables the feature and 1 forces the same data centre if possible.
+     */
+    @Value.Default
+    default double localHostWeighting() {
+        return 0.0;
+    }
+
+    /**
+     * Overrides the behaviour of the host location supplier.
+     */
+    @Value.Default
+    default Optional<HostLocation> overrideHostLocation() {
+        return Optional.empty();
+    }
+
+
     @JsonIgnore
     @Value.Lazy
-    public String getKeyspaceOrThrow() {
-        return keyspace().orElseThrow(() -> new IllegalStateException(
+    default String getKeyspaceOrThrow() {
+        return keyspace().orElseThrow(() -> new SafeIllegalStateException(
                 "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
     }
 
     /**
      * Note that when the keyspace is read, this field must be present.
+     *
      * @deprecated Use the AtlasDbConfig#namespace to specify it instead.
      */
     @Deprecated
-    public abstract Optional<String> keyspace();
+    Optional<String> keyspace();
 
-    public abstract Optional<CassandraCredentialsConfig> credentials();
+    CassandraCredentialsConfig credentials();
 
     /**
-     * A boolean declaring whether or not to use ssl to communicate with cassandra.
-     * This configuration value is deprecated in favor of using sslConfiguration.  If
-     * true, read in trust and key store information from system properties unless
-     * the sslConfiguration object is specified.
+     * A boolean declaring whether or not to use ssl to communicate with cassandra. This configuration value is
+     * deprecated in favor of using sslConfiguration.  If true, read in trust and key store information from system
+     * properties unless the sslConfiguration object is specified.
      *
      * @deprecated Use {@link #sslConfiguration()} instead.
      */
     @Deprecated
-    public abstract Optional<Boolean> ssl();
+    Optional<Boolean> ssl();
 
     /**
-     * An object for specifying ssl configuration details.  The lack of existence of this
-     * object implies ssl is not to be used to connect to cassandra.
-     *
+     * An object for specifying ssl configuration details.  The lack of existence of this object implies ssl is not to
+     * be used to connect to cassandra.
+     * <p>
      * The existence of this object overrides any configuration made via the ssl config value.
      */
-    public abstract Optional<SslConfiguration> sslConfiguration();
+    Optional<SslConfiguration> sslConfiguration();
 
-    public abstract int replicationFactor();
+    int replicationFactor();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
@@ -172,7 +191,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public int mutationBatchCount() {
+    default int mutationBatchCount() {
         return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
     }
 
@@ -183,7 +202,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public int mutationBatchSizeBytes() {
+    default int mutationBatchSizeBytes() {
         return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
     }
 
@@ -194,73 +213,72 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public int fetchBatchCount() {
+    default int fetchBatchCount() {
         return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
     }
 
     @Value.Default
-    public boolean ignoreNodeTopologyChecks() {
+    default boolean ignoreNodeTopologyChecks() {
         return false;
     }
 
     @Value.Default
-    public boolean ignoreInconsistentRingChecks() {
+    default boolean ignoreInconsistentRingChecks() {
         return false;
     }
 
     @Value.Default
-    public boolean ignoreDatacenterConfigurationChecks() {
+    default boolean ignoreDatacenterConfigurationChecks() {
         return false;
     }
 
     @Value.Default
-    public boolean ignorePartitionerChecks() {
+    default boolean ignorePartitionerChecks() {
         return false;
     }
 
     @Value.Default
-    public boolean autoRefreshNodes() {
+    default boolean autoRefreshNodes() {
         return true;
     }
 
     @Value.Default
-    public boolean clusterMeetsNormalConsistencyGuarantees() {
+    default boolean clusterMeetsNormalConsistencyGuarantees() {
         return true;
     }
 
     /**
-     * This is how long we will wait when we first open a socket to the cassandra server.
-     * This should be long enough to enough to handle cross data center latency, but short enough
-     * that it will fail out quickly if it is clear we can't reach that server.
+     * This is how long we will wait when we first open a socket to the cassandra server. This should be long enough to
+     * enough to handle cross data center latency, but short enough that it will fail out quickly if it is clear we
+     * can't reach that server.
      */
     @Value.Default
-    public int socketTimeoutMillis() {
+    default int socketTimeoutMillis() {
         return 2 * 1000;
     }
 
     /**
-     * Socket timeout is a java side concept.  This the maximum time we will block on a network
-     * read without the server sending us any bytes.  After this time a {@link SocketTimeoutException}
-     * will be thrown.  All cassandra reads time out at less than this value so we shouldn't see
-     * it very much (10s by default).
+     * Socket timeout is a java side concept.  This the maximum time we will block on a network read without the server
+     * sending us any bytes.  After this time a {@link SocketTimeoutException} will be thrown.  All cassandra reads time
+     * out at less than this value so we shouldn't see it very much (10s by default).
      */
     @Value.Default
-    public int socketQueryTimeoutMillis() {
+    default int socketQueryTimeoutMillis() {
         return 62 * 1000;
     }
 
     @Value.Default
-    public int cqlPoolTimeoutMillis() {
+    default int cqlPoolTimeoutMillis() {
         return 20 * 1000;
     }
 
     @Value.Default
-    public int schemaMutationTimeoutMillis() {
+    default int schemaMutationTimeoutMillis() {
         return 120 * 1000;
     }
 
     @Value.Default
-    public int rangesConcurrency() {
+    default int rangesConcurrency() {
         return 32;
     }
 
@@ -272,7 +290,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed") // Used by immutable copy of this file
     @Value.Default
     @Deprecated
-    public Integer timestampsGetterBatchSize() {
+    default Integer timestampsGetterBatchSize() {
         return 1_000;
     }
 
@@ -283,37 +301,39 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public Integer sweepReadThreads() {
+    default Integer sweepReadThreads() {
         return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
-    public abstract Optional<CassandraJmxCompactionConfig> jmx();
+    Optional<CassandraJmxCompactionConfig> jmx();
 
     @Override
-    public final String type() {
+    default String type() {
         return TYPE;
     }
 
     @Override
     @Value.Default
-    public int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().size();
+    default int concurrentGetRangesThreadPoolSize() {
+        return poolSize() * servers().numberOfHosts();
     }
 
     @JsonIgnore
     @Value.Derived
-    public boolean usingSsl() {
-        return ssl().orElse(sslConfiguration().isPresent());
+    default boolean usingSsl() {
+        return ssl().orElseGet(sslConfiguration()::isPresent);
     }
 
     @Value.Check
-    protected final void check() {
-        Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
-        for (InetSocketAddress addr : servers()) {
-            Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
-        }
+    default void check() {
+        Preconditions.checkState(!servers().accept(new ThriftHostsExtractingVisitor()).isEmpty(),
+                "'servers' must have at least one defined host");
+
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
+
+        Preconditions.checkArgument(localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
+                "'localHostWeighting' must be between 0 and 1 inclusive");
     }
 }

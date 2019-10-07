@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.KsDef;
@@ -46,7 +48,7 @@ import com.palantir.processors.AutoDelegate;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 @AutoDelegate
-public interface CassandraClient {
+public interface CassandraClient extends Closeable {
     /**
      * Checks if the client has a valid connection to Cassandra cluster. Can be used by a client pool
      * to eliminate clients in bad state.
@@ -55,10 +57,19 @@ public interface CassandraClient {
      */
     boolean isValid();
 
+    String describe_snitch() throws org.apache.thrift.TException;
+
     Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
             TableReference tableRef,
             List<ByteBuffer> keys,
-            SlicePredicate predicate, ConsistencyLevel consistency_level)
+            SlicePredicate predicate,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+
+    Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(String kvsMethodName,
+            TableReference tableRef,
+            List<KeyPredicate> keyPredicates,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
     List<KeySlice> get_range_slices(String kvsMethodName,
@@ -151,4 +162,6 @@ public interface CassandraClient {
     void truncate(String cfname)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
+    @Override
+    void close();
 }

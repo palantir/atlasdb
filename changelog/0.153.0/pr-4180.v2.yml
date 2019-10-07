@@ -1,0 +1,13 @@
+changes:
+  - type: break
+    break:
+      description:  Public factory method for AsyncPuncher now requires an optional timestamp seed, projects depending
+        on it have to be updated.
+      links:
+      - https://github.com/palantir/atlasdb/pull/4180
+  - type: improvement
+    improvement:
+      description: AsyncPuncher is now intialized with a seed timestamp if a quorum is present. As a result metrics
+        related to unreadable timestamps on individual stacks with low volume become more accurate.
+      links:
+      - https://github.com/palantir/atlasdb/pull/4180
