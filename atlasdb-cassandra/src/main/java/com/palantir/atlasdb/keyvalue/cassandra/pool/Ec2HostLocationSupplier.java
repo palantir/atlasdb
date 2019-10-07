@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import java.io.IOException;
 import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.Preconditions;
 
 import okhttp3.OkHttpClient;
@@ -46,13 +47,31 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
             Preconditions.checkState(response.isSuccessful(),
                     "Getting AWS host metadata was not successful");
 
-            String responseString = response.body().string();
-            String datacenter = responseString.substring(0, responseString.length() - 2);
-            String rack = responseString.substring(responseString.length() - 1);
-
-            return HostLocation.of(datacenter, rack);
+            return parseHostLocation(response.body().string());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @VisibleForTesting
+    static HostLocation parseHostLocation(String az) {
+        // Code is copied from Cassandra's Ec2Snitch. The result of this parsing must match Cassandra's as closely as
+        // possible, as the strings are later matched exactly.
+
+        String ec2region;
+        String ec2zone;
+
+        // Split "us-east-1a" or "asia-1a" into "us-east"/"1a" and "asia"/"1a".
+        String[] splits = az.split("-");
+        ec2zone = splits[splits.length - 1];
+
+        // hack for CASSANDRA-4026
+        ec2region = az.substring(0, az.length() - 1);
+        if (ec2region.endsWith("1"))
+            ec2region = az.substring(0, az.length() - 3);
+
+        return HostLocation.of(ec2region, ec2zone);
+
+
     }
 }
