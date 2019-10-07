@@ -195,7 +195,7 @@ public class CassandraService implements AutoCloseable {
 
     private static boolean isHostLocal(EndpointDetails details, HostLocation myLocation) {
         return details.isSetDatacenter() && details.isSetRack() && details.isSetHost()
-                && myLocation.equals(HostLocation.of(details.getDatacenter(), details.getRack()));
+                && myLocation.isProbablySameRackAs(details.getDatacenter(), details.getRack());
     }
 
     @VisibleForTesting
