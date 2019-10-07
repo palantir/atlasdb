@@ -67,8 +67,9 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
 
         // hack for CASSANDRA-4026
         ec2region = az.substring(0, az.length() - 1);
-        if (ec2region.endsWith("1"))
+        if (ec2region.endsWith("1")) {
             ec2region = az.substring(0, az.length() - 3);
+        }
 
         return HostLocation.of(ec2region, ec2zone);
 
