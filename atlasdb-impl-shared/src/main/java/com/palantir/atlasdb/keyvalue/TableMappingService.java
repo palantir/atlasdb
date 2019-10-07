@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.common.exception.TableMappingNotFoundException;
 
 public interface TableMappingService {
     /**

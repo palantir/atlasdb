@@ -209,6 +209,17 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void sweepDoesntErrorOnDroppedTableWithSentinelsEnqueued() {
+        useOneSweepQueueShard();
+        Long startTimestamp = putWriteAndFailOnPreCommitConditionReturningStartTimestamp(SINGLE_WRITE);
+
+        keyValueService.dropTable(TABLE_CONS);
+
+        serializableTxManager.setUnreadableTimestamp(startTimestamp + 1);
+        sweepNextBatch(ShardAndStrategy.conservative(0));
+    }
+
+    @Test
     public void sweepHandlesEmptyNamespace() {
         useOneSweepQueueShard();
         WriteReference write = WriteReference.write(TABLE_NONAMESPACE, TEST_CELL);

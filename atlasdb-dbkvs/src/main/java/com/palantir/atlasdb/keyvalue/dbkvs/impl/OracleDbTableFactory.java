@@ -26,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleWriteTable;
-import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.DBType;
 
 public class OracleDbTableFactory implements DbTableFactory {

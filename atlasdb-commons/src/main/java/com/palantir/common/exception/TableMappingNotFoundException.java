@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.common.exception;
 
 public class TableMappingNotFoundException extends Exception {
     public TableMappingNotFoundException(String msg) {
