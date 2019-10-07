@@ -376,7 +376,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             log.warn("CqlClient creation exception", e);
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
-
     }
 
     private static CassandraKeyValueService createAndInitialize(

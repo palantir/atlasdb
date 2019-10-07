@@ -17,32 +17,39 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.net.ssl.SSLContext;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.NettyOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.QueryOptions;
+import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.ThreadingOptions;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
+import com.datastax.driver.core.policies.LatencyAwarePolicy;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
+import com.datastax.driver.core.policies.RoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
+import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public final class CqlClientFactoryImpl extends AbstractCqlClientFactory {
+import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.proxy.Socks5ProxyHandler;
+
+public final class CqlClientFactoryImpl implements CqlClientFactory {
 
     public static final CqlClientFactory DEFAULT = new CqlClientFactoryImpl();
 
@@ -50,8 +57,44 @@ public final class CqlClientFactoryImpl extends AbstractCqlClientFactory {
         // Use instance
     }
 
-    @Override
-    protected Cluster buildCluster(
+    public CqlClient constructClient(
+            TaggedMetricRegistry taggedMetricRegistry,
+            CassandraKeyValueServiceConfig config,
+            boolean initializeAsync) {
+        return config.servers().accept(new CassandraServersConfigs.Visitor<CqlClient>() {
+            @Override
+            public CqlClient visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
+                return ThrowingCqlClientImpl.SINGLETON;
+            }
+
+            @Override
+            public CqlClient visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
+                Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
+
+                Cluster cluster = buildCluster(
+                        config,
+                        servers,
+                        loadBalancingPolicy(config, servers),
+                        poolingOptions(config),
+                        queryOptions(config),
+                        cqlCapableConfig.socksProxy().map(SocksProxyNettyOptions::new),
+                        sslOptions(config));
+
+                ThreadFactory threadFactory = new ThreadFactoryBuilder()
+                        .setNameFormat(cluster.getClusterName() + "-session" + "-%d")
+                        .build();
+
+                return CqlClientImpl.create(
+                        taggedMetricRegistry,
+                        cluster,
+                        PTExecutors.newCachedThreadPool(threadFactory),
+                        cqlCapableConfig.tuning(),
+                        initializeAsync);
+            }
+        });
+    }
+
+    private Cluster buildCluster(
             CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers,
             LoadBalancingPolicy loadBalancingPolicy,
@@ -77,94 +120,61 @@ public final class CqlClientFactoryImpl extends AbstractCqlClientFactory {
         return clusterBuilder.build();
     }
 
-    @Override
-    protected CqlResourceHandle openResources(
-            CassandraKeyValueServiceConfig config,
-            Cluster cluster,
-            boolean asyncResource) {
-        ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat(cluster.getClusterName() + "-session" + "-%d")
-                .build();
-        return CqlResourceHandleImpl.create(PTExecutors.newCachedThreadPool(threadFactory), cluster, asyncResource);
+    private static Optional<SSLOptions> sslOptions(CassandraKeyValueServiceConfig config) {
+        if (config.sslConfiguration().isPresent()) {
+            SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
+            return Optional.of(RemoteEndpointAwareJdkSSLOptions.builder()
+                    .withSSLContext(sslContext)
+                    .build());
+        } else if (config.ssl().orElse(false)) {
+            return Optional.of(RemoteEndpointAwareJdkSSLOptions.builder().build());
+        }
+        return Optional.empty();
     }
 
-    private static final class CqlResourceHandleImpl implements CqlResourceHandle {
+    private static PoolingOptions poolingOptions(CassandraKeyValueServiceConfig config) {
+        return new PoolingOptions()
+                .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
+                .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
+                .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
+    }
 
-        private static final class InitializingWrapper extends AsyncInitializer
-                implements AutoDelegate_CqlResourceHandle {
+    private static QueryOptions queryOptions(CassandraKeyValueServiceConfig config) {
+        return new QueryOptions().setFetchSize(config.fetchBatchCount());
+    }
 
-            private volatile CqlResourceHandle cqlResourceHandle;
-            private final Cluster cluster;
-            private final ExecutorService executorService;
+    private static LoadBalancingPolicy loadBalancingPolicy(CassandraKeyValueServiceConfig config,
+            Set<InetSocketAddress> servers) {
+        // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
+        // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
+        // Note we are being purposely datacenter-irreverent here, instead relying on latency alone
+        // to approximate what DCAwareRR would do;
+        // this is because DCs for Atlas are always quite latency-close and should be used this way,
+        // not as if we have some cross-country backup DC.
+        LoadBalancingPolicy policy = LatencyAwarePolicy.builder(new RoundRobinPolicy()).build();
 
-            InitializingWrapper(ExecutorService executorService, Cluster cluster) {
-                this.executorService = executorService;
-                this.cluster = cluster;
-            }
-
-            @Override
-            protected void tryInitialize() {
-                cqlResourceHandle = new CqlResourceHandleImpl(executorService, cluster.connect());
-            }
-
-            @Override
-            protected String getInitializingClassName() {
-                return "CqlResourceHandle";
-            }
-
-            @Override
-            public CqlResourceHandle delegate() {
-                isInitialized();
-                return cqlResourceHandle;
-            }
+        // If user wants, do not automatically add in new nodes to pool (useful during DC migrations / rebuilds)
+        if (!config.autoRefreshNodes()) {
+            policy = new WhiteListPolicy(policy, servers);
         }
 
-        private static final Logger log = LoggerFactory.getLogger(CqlResourceHandleImpl.class);
+        // also try and select coordinators who own the data we're talking about to avoid an extra hop,
+        // but also shuffle which replica we talk to for a load balancing that comes at the expense
+        // of less effective caching, default to TokenAwarePolicy.ReplicaOrdering.RANDOM childPolicy
+        return new TokenAwarePolicy(policy);
+    }
 
-        private final ExecutorService executorService;
-        private final Session session;
+    private static final class SocksProxyNettyOptions extends NettyOptions {
 
-        static CqlResourceHandle create(ExecutorService executorService, Cluster cluster, boolean initializeAsync) {
-            if (initializeAsync) {
-                return new InitializingWrapper(executorService, cluster);
-            }
-            return new CqlResourceHandleImpl(executorService, cluster.connect());
-        }
+        private final SocketAddress proxyAddress;
 
-        private CqlResourceHandleImpl(ExecutorService executorService, Session session) {
-            this.executorService = executorService;
-            this.session = session;
+        SocksProxyNettyOptions(SocketAddress proxyAddress) {
+            this.proxyAddress = proxyAddress;
         }
 
         @Override
-        public Session session() {
-            return session;
-        }
-
-        @Override
-        public Executor executor() {
-            return executorService;
-        }
-
-        @Override
-        public void close() {
-            try {
-                executorService.shutdown();
-                if (executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-                    log.info("Executor service terminated properly.");
-                } else {
-                    log.warn("Executor service timed out before shutting down, shutting down forcefully");
-                    executorService.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                log.warn("Thread was interrupted while waiting for executor service to terminate.", e);
-            } catch (Exception e) {
-                log.warn("Exception on executor service termination", e);
-            }
-            Cluster cluster = session.getCluster();
-            session.close();
-            cluster.close();
-            log.info("Resource handle successfully closed");
+        public void afterChannelInitialized(SocketChannel channel) {
+            channel.pipeline().addFirst(new Socks5ProxyHandler(proxyAddress));
         }
     }
 }

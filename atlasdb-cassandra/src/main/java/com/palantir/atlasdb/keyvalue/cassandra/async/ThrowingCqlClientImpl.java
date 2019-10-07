@@ -16,7 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-class ThrowingCqlClientImpl implements CqlClient {
+public final class ThrowingCqlClientImpl implements CqlClient {
+    public static final ThrowingCqlClientImpl SINGLETON = new ThrowingCqlClientImpl();
+
+    private ThrowingCqlClientImpl() {
+        // Use SINGLETON
+    }
 
     @Override
     public void close() {

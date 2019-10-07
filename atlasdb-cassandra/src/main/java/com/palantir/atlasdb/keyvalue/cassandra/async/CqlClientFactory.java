@@ -16,20 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.concurrent.Executor;
-
-import com.datastax.driver.core.Session;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public interface CqlClientFactory {
-    @AutoDelegate
-    interface CqlResourceHandle extends AutoCloseable {
-        Session session();
-        Executor executor();
-    }
-
     CqlClient constructClient(
             TaggedMetricRegistry taggedMetricRegistry,
             CassandraKeyValueServiceConfig config,

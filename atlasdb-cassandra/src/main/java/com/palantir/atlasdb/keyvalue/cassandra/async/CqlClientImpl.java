@@ -16,33 +16,43 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory.CqlResourceHandle;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class CqlClientImpl implements CqlClient {
 
-    private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
+    private static final Logger log = LoggerFactory.getLogger(CqlClientImpl.class);
 
+    private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
+        private final Cluster cluster;
+        private final ExecutorService executor;
         private final TaggedMetricRegistry taggedMetricRegistry;
         private final int cacheSize;
-        private final CqlResourceHandle cqlResourceHandle;
         private volatile CqlClient internalImpl;
 
         InitializingWrapper(
                 TaggedMetricRegistry taggedMetricRegistry,
-                CqlResourceHandle cqlResourceHandle,
+                Cluster cluster, ExecutorService executor,
                 int cacheSize) {
             this.taggedMetricRegistry = taggedMetricRegistry;
-            this.cqlResourceHandle = cqlResourceHandle;
+            this.cluster = cluster;
+            this.executor = executor;
             this.cacheSize = cacheSize;
         }
 
@@ -59,7 +69,7 @@ public final class CqlClientImpl implements CqlClient {
 
         @Override
         protected void tryInitialize() {
-            internalImpl = CqlClientImpl.create(taggedMetricRegistry, cqlResourceHandle, cacheSize);
+            internalImpl = CqlClientImpl.create(taggedMetricRegistry, cluster, executor, cacheSize);
         }
 
         @Override
@@ -75,47 +85,69 @@ public final class CqlClientImpl implements CqlClient {
         }
     }
 
-    private final CqlResourceHandle resourceHandle;
+    private final Session session;
+    private final ExecutorService executorService;
     private final StatementPreparer statementPreparer;
 
     public static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
-            CqlResourceHandle cqlResourceHandle,
+            Cluster cluster,
+            ExecutorService executorService,
             CqlCapableConfigTuning tuningConfig,
             boolean initializeAsync) {
         if (initializeAsync) {
             return new InitializingWrapper(
                     taggedMetricRegistry,
-                    cqlResourceHandle,
+                    cluster,
+                    executorService,
                     tuningConfig.preparedStatementCacheSize());
         }
 
         return create(
                 taggedMetricRegistry,
-                cqlResourceHandle,
+                cluster,
+                executorService,
                 tuningConfig.preparedStatementCacheSize());
     }
 
     private static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
-            CqlResourceHandle cqlResourceHandle,
+            Cluster cluster,
+            ExecutorService executorService,
             int preparedStatementCacheSize) {
+        Session session = cluster.connect();
         QueryCache queryCache = QueryCache.create(
-                key -> cqlResourceHandle.session().prepare(key.formatQueryString()),
+                key -> session.prepare(key.formatQueryString()),
                 taggedMetricRegistry,
                 preparedStatementCacheSize);
 
-        return new CqlClientImpl(cqlResourceHandle, queryCache);
+        return new CqlClientImpl(session, executorService, queryCache);
     }
 
-    private CqlClientImpl(CqlResourceHandle cqlResourceHandle, QueryCache statementPreparer) {
-        this.resourceHandle = cqlResourceHandle;
+    private CqlClientImpl(Session session, ExecutorService executor, QueryCache statementPreparer) {
+        this.session = session;
+        this.executorService = executor;
         this.statementPreparer = statementPreparer;
     }
 
     @Override
-    public void close() throws Exception {
-        this.resourceHandle.close();
+    public void close() {
+        try {
+            executorService.shutdown();
+            if (executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+                log.info("CqlClient executor service terminated properly.");
+            } else {
+                log.warn("CqlClient executor service timed out before shutting down, shutting down forcefully");
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            log.warn("Thread was interrupted while waiting for CqlClient to terminate.", e);
+        } catch (Exception e) {
+            log.warn("CqlClient exception on executor service termination", e);
+        }
+        Cluster cluster = session.getCluster();
+        session.close();
+        cluster.close();
     }
 
     @Override
@@ -149,17 +181,14 @@ public final class CqlClientImpl implements CqlClient {
                     return Futures.immediateFuture(rowStreamAccumulator.result());
                 } else {
                     ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
-                    return Futures.transformAsync(future, iterate(), resourceHandle.executor());
+                    return Futures.transformAsync(future, iterate(), executorService);
                 }
             };
         }
 
         @Override
         public ListenableFuture<R> execute() {
-            return Futures.transformAsync(
-                    resourceHandle.session().executeAsync(boundStatement),
-                    iterate(),
-                    resourceHandle.executor());
+            return Futures.transformAsync(session.executeAsync(boundStatement), iterate(), executorService);
         }
     }
 
