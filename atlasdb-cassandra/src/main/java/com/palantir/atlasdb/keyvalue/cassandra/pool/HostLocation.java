@@ -38,4 +38,7 @@ public interface HostLocation {
         return ImmutableHostLocation.of(datacenter, rack);
     }
 
+    default boolean isProbablySameRackAs(String datacenter, String rack) {
+        return rack().equals(rack) && datacenter.startsWith(datacenter());
+    }
 }
