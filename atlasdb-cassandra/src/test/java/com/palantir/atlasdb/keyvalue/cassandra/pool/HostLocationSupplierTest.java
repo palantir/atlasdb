@@ -25,7 +25,7 @@ import org.junit.Test;
 
 public class HostLocationSupplierTest {
 
-    private static final Supplier<String> ec2SnitchSupplier = () -> "org.apache.cassandra.locator.EC2Snitch";
+    private static final Supplier<String> ec2SnitchSupplier = () -> "org.apache.cassandra.locator.Ec2Snitch";
     private static final Supplier<HostLocation> ec2LocationSupplier = () -> HostLocation.of("dc2", "rack2");
 
     @Test
@@ -39,7 +39,7 @@ public class HostLocationSupplierTest {
     }
 
     @Test
-    public void shouldReturnEC2Location() {
+    public void shouldReturnEc2Location() {
         Supplier<Optional<HostLocation>> hostLocationSupplier = new HostLocationSupplier(ec2SnitchSupplier,
                 ec2LocationSupplier, Optional.empty());
 
@@ -70,7 +70,7 @@ public class HostLocationSupplierTest {
     }
 
     @Test
-    public void shouldReturnEmptyLocationFromEC2Exception() {
+    public void shouldReturnEmptyLocationFromEc2Exception() {
         Supplier<HostLocation> ec2BadLocationSupplier = () -> {
             throw new RuntimeException();
         };
