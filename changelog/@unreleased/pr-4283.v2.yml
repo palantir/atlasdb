@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: fix
+fix:
   description: |-
     Fix Ec2HostLocationSupplier using a different format to Cassandra
 
