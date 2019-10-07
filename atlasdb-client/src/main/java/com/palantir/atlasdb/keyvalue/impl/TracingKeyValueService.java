@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -41,10 +40,12 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -117,7 +118,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+    @Override public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("compactInternally({})", tableRef)) {
             delegate().compactInternally(tableRef, inMaintenanceMode);
@@ -166,12 +167,20 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("deleteRows({})",
+                LoggingArgs.safeTableOrPlaceholder(tableRef))) {
+            delegate().deleteRows(tableRef, rows);
+        }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("deleteAllTimestamps({})",
                 LoggingArgs.safeTableOrPlaceholder(tableRef))) {
-            delegate().deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
+            delegate().deleteAllTimestamps(tableRef, deletes);
         }
     }
 

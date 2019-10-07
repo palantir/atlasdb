@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
@@ -54,6 +53,8 @@ public abstract class SweepQueueTable {
         Map<Cell, byte[]> referencesToDedicatedCells = new HashMap<>();
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
         Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(allWrites);
+
+        SweepQueueUtils.validateNumberOfCellsWritten(partitionedWrites.values());
 
         partitionedWrites.forEach((partitionInfo, writes) -> {
             referencesToDedicatedCells.putAll(populateReferences(partitionInfo, writes));
@@ -116,7 +117,7 @@ public abstract class SweepQueueTable {
                 SweepQueueUtils.READ_TS).values().stream();
     }
 
-    void deleteRange(RangeRequest request) {
-        kvs.deleteRange(tableRef, request);
+    void deleteRows(Iterable<byte[]> rows) {
+        kvs.deleteRows(tableRef, rows);
     }
 }

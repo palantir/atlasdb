@@ -63,6 +63,10 @@ public class CassandraRequestExceptionHandlerTest {
             .flatMap(Collection::stream)
             .collect(Collectors.toSet());
 
+    private static final Set<Exception> NOT_IMPLICATING_NODES_EXCEPTIONS = ImmutableSet.of(
+            new InsufficientConsistencyException(MESSAGE),
+            new NoSuchElementException());
+
     private boolean currentMode = true;
     private CassandraRequestExceptionHandler handlerLegacy;
     private CassandraRequestExceptionHandler handlerConservative;
@@ -304,6 +308,22 @@ public class CassandraRequestExceptionHandlerTest {
                     handlerConservative.shouldRetryOnDifferentHost(
                             ex, MAX_RETRIES_PER_HOST + 1, handlerLegacy.getStrategy()));
         }
+    }
+
+    @Test
+    public void nonImplicatingExceptionsShouldNeverBlacklist() {
+        NOT_IMPLICATING_NODES_EXCEPTIONS.forEach(ex -> {
+            assertFalse(handlerConservative.shouldBlacklist(ex, MAX_RETRIES_PER_HOST + 1));
+            assertFalse(handlerLegacy.shouldBlacklist(ex, MAX_RETRIES_PER_HOST + 1));
+        });
+    }
+
+    @Test
+    public void nonImplicatingExceptionWithConnectionAsCauseShouldNeverBlacklist() {
+        Exception ex = new InsufficientConsistencyException("insufficient consistency",
+                new SocketTimeoutException());
+        assertFalse(handlerConservative.shouldBlacklist(ex, MAX_RETRIES_PER_HOST + 1));
+        assertFalse(handlerLegacy.shouldBlacklist(ex, MAX_RETRIES_PER_HOST + 1));
     }
 
     private boolean mutableMode() {

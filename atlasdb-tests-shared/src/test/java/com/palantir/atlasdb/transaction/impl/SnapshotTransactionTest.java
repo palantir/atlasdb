@@ -39,6 +39,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +54,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -70,7 +72,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -78,11 +79,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -138,9 +141,9 @@ import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
-    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+    private TransactionConfig transactionConfig;
 
-    protected final TimestampCache timestampCache = new TimestampCache(
+    protected final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     protected final int defaultGetRangesConcurrency = 2;
@@ -203,7 +206,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     static final TableReference TABLE1 = TableReference.createFromFullyQualifiedName("default.table1");
     static final TableReference TABLE2 = TableReference.createFromFullyQualifiedName("default.table2");
 
-    static final TableReference TABLE_SWEPT_THOROUGH = TableReference.createFromFullyQualifiedName("default.table2");
+    static final TableReference TABLE_SWEPT_THOROUGH = TableReference.createFromFullyQualifiedName("default.table3");
+    static final TableReference TABLE_SWEPT_CONSERVATIVE =
+            TableReference.createFromFullyQualifiedName("default.table4");
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
@@ -211,12 +216,18 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+
+        transactionConfig = ImmutableTransactionConfig.builder().build();
+
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(
                 TABLE_SWEPT_THOROUGH,
                 getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
+        keyValueService.createTable(
+                TABLE_SWEPT_CONSERVATIVE,
+                getTableMetadataForSweepStrategy(SweepStrategy.CONSERVATIVE).persistToBytes());
     }
 
     @Test
@@ -297,7 +308,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> transactionConfig);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -363,7 +374,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> transactionConfig);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -662,8 +673,19 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, ColumnRangeSelection, int)",
                 (t, heldLocks) -> {
-                    t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
-                            new ColumnRangeSelection(null, null), batchHint);
+                    Iterators.getLast(
+                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                                    new ColumnRangeSelection(null, null), batchHint));
+                    return null;
+                }));
+
+        tasks.add(Pair.of("getRowsColumnRangeIterator",
+                (t, heldLocks) -> {
+                    Collection<Iterator<Map.Entry<Cell, byte[]>>> results =
+                            t.getRowsColumnRangeIterator(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                                    BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
+                                    .values();
+                    results.forEach(Iterators::getLast);
                     return null;
                 }));
 
@@ -1208,6 +1230,36 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(txn.get(TABLE, ImmutableSet.of(cell)), is(ImmutableMap.of()));
     }
 
+    @Test
+    public void checkImmutableTsLockAfterReadsForConservativeIfFlagIsSet() {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp();
+
+        setTransactionConfig(ImmutableTransactionConfig.builder()
+                .lockImmutableTsOnReadOnlyTransactions(true)
+                .build());
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                true);
+
+        transaction.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL));
+        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        
+        transaction.commit();
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+    }
+
+    private void setTransactionConfig(TransactionConfig config) {
+        transactionConfig = config;
+    }
+
     private SnapshotTransaction getSnapshotTransactionWith(
             TimelockService timelockService,
             Supplier<Long> startTs,
@@ -1250,7 +1302,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 validateLocksOnReads,
-                () -> TRANSACTION_CONFIG);
+                () -> transactionConfig);
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {

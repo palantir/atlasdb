@@ -23,9 +23,9 @@ import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Represents a batch to load in {@link com.palantir.atlasdb.keyvalue.api.KeyValueService#getRowsColumnRange(

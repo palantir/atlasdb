@@ -17,10 +17,6 @@ package com.palantir.atlasdb.table.description;
 
 import static java.util.stream.Collectors.toSet;
 
-import static com.google.common.collect.ImmutableSet.toImmutableSet;
-import static com.google.common.collect.Maps.immutableEntry;
-import static com.palantir.logsafe.Preconditions.checkState;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -30,20 +26,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
@@ -51,14 +45,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
@@ -66,9 +57,6 @@ import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.table.description.render.TableRendererV2;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 /**
  * Defines a schema.
@@ -97,8 +85,6 @@ public class Schema {
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
-
-    private final Set<String> deprecatedTableNames = Sets.newHashSet();
 
     /** Creates a new schema, using Guava Optionals. */
     public Schema(Namespace namespace) {
@@ -202,24 +188,6 @@ public class Schema {
     }
 
     /**
-     * Registers old tables referred to by {@code deprecatedTableNames} to be dropped from backing store on startup.
-     *
-     * If running in a multi-node configuration, you must ensure that tables added in one version are not being
-     * read/written to in the other running version to avoid consistency problems.
-     *
-     * @param deprecatedTableNames old tables that should be dropped
-     */
-    public void addDeprecatedTables(String... deprecatedTableNames) {
-        this.deprecatedTableNames.addAll(ImmutableList.copyOf(deprecatedTableNames));
-    }
-
-    public Set<TableReference> getDeprecatedTables() {
-        return deprecatedTableNames.stream()
-                .map(tableName -> TableReference.create(namespace, tableName))
-                .collect(toImmutableSet());
-    }
-
-    /**
      * Adds the given stream store to your schema.
      *
      * @param streamStoreDefinition You probably want to use a @{StreamStoreDefinitionBuilder} for convenience.
@@ -240,17 +208,17 @@ public class Schema {
                     !idxName.endsWith(type.getIndexSuffix()),
                     "Index name cannot end with '%s'.", type.getIndexSuffix());
             String indexName = idxName + type.getIndexSuffix();
-            Preconditions.checkArgument(
+            com.palantir.logsafe.Preconditions.checkArgument(
                     !tableDefinitions.containsKey(indexName) && !indexDefinitions.containsKey(indexName),
                     "Table already defined.");
         }
-        Preconditions.checkArgument(
+        com.palantir.logsafe.Preconditions.checkArgument(
                 tableDefinitions.containsKey(definition.getSourceTable()),
                 "Index source table undefined.");
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(idxName),
                 "Invalid table name %s", idxName);
-        Preconditions.checkArgument(
+        com.palantir.logsafe.Preconditions.checkArgument(
                 !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns()
                         || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
@@ -295,44 +263,25 @@ public class Schema {
             for (IndexComponent c : Iterables.concat(indexMetadata.getRowComponents(),
                     indexMetadata.getColumnComponents())) {
                 if (c.rowComponentName != null) {
-                    Validate.isTrue(rowNames.contains(c.rowComponentName),
+                    com.palantir.logsafe.Preconditions.checkArgument(rowNames.contains(c.rowComponentName),
                             "In index, a componentFromRow must reference an existing row component");
                 }
             }
 
             if (indexMetadata.getColumnNameToAccessData() != null) {
-                Validate.isTrue(tableMetadata.getColumns().getDynamicColumn() == null,
+                com.palantir.logsafe.Preconditions.checkArgument(tableMetadata.getColumns().getDynamicColumn() == null,
                         "Indexes accessing columns not supported for tables with dynamic columns.");
                 Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
                         NamedColumnDescription::getLongName);
-                Validate.isTrue(columnNames.contains(indexMetadata.getColumnNameToAccessData()),
+                com.palantir.logsafe.Preconditions.checkArgument(columnNames.contains(indexMetadata.getColumnNameToAccessData()),
                         "In index, a component derived from column must reference an existing column");
             }
 
             if (indexMetadata.getIndexType().equals(IndexType.CELL_REFERENCING)) {
-                Validate.isTrue(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.getConflictHandler()),
+                com.palantir.logsafe.Preconditions.checkArgument(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.getConflictHandler()),
                         "Nonadditive indexes require write-write conflicts on their tables");
             }
         }
-
-        validateDeprecatedTables();
-    }
-
-    private void validateDeprecatedTables() {
-        Map<TableReference, TableMetadata> allTablesAndIndexMetadata = getAllTablesAndIndexMetadata();
-        Set<TableReference> invalidTables =
-                Sets.intersection(allTablesAndIndexMetadata.keySet(), getDeprecatedTables());
-
-        SetMultimap<LogSafety, TableReference> referencesByLogSafety = KeyedStream.stream(
-                allTablesAndIndexMetadata)
-                .filterKeys(invalidTables::contains)
-                .mapEntries((reference, metadata) -> immutableEntry(metadata.getNameLogSafety(), reference))
-                .collectToSetMultimap();
-
-        checkState(invalidTables.isEmpty(),
-                "A deprecated table cannot also be part of your schema. Check logs for any unsafe table names.",
-                SafeArg.of("invalidDeprecatedTables_safe", referencesByLogSafety.get(LogSafety.SAFE)),
-                UnsafeArg.of("invalidDeprecatedTables_unsafe", referencesByLogSafety.get(LogSafety.UNSAFE)));
     }
 
     public Map<TableReference, TableDefinition> getTableDefinitions() {
@@ -355,8 +304,8 @@ public class Schema {
      * @param srcDir root source directory where code generation is performed.
      */
     public void renderTables(File srcDir) throws IOException {
-        Preconditions.checkNotNull(name, "schema name not set");
-        Preconditions.checkNotNull(packageName, "package name not set");
+        com.palantir.logsafe.Preconditions.checkNotNull(name, "schema name not set");
+        com.palantir.logsafe.Preconditions.checkNotNull(packageName, "package name not set");
 
         TableRenderer tableRenderer = new TableRenderer(packageName, namespace, optionalType);
         TableRendererV2 tableRendererV2 = new TableRendererV2(packageName, namespace);
@@ -366,7 +315,7 @@ public class Schema {
             ImmutableSortedSet.Builder<IndexMetadata> indices = ImmutableSortedSet.orderedBy(
                     Ordering.natural().onResultOf((Function<IndexMetadata, String>) IndexMetadata::getIndexName));
             if (table.getGenericTableName() != null) {
-                Preconditions.checkState(!indexesByTable.containsKey(rawTableName),
+                com.palantir.logsafe.Preconditions.checkState(!indexesByTable.containsKey(rawTableName),
                         "Generic tables cannot have indices");
             } else {
                 for (String indexName : indexesByTable.get(rawTableName)) {

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -76,7 +77,7 @@ public abstract class TransactionTestSetup {
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
 
-    protected final TimestampCache timestampCache = new TimestampCache(
+    protected final TimestampCache timestampCache = new DefaultTimestampCache(
             new MetricRegistry(),
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 

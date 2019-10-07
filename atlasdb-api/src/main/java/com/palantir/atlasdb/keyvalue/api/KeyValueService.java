@@ -330,17 +330,38 @@ public interface KeyValueService extends AutoCloseable {
     void deleteRange(TableReference tableRef, RangeRequest range);
 
     /**
-     * For each cell, deletes all timestamps prior to the associated maximum timestamp. Depending on the
-     * implementation, this may result in a range tombstone in the underlying KVS.
+     * Deletes multiple complete rows from the key-value store.
      *
-     * @param tableRef the name of the table to delete the timestamps in.
-     * @param maxTimestampExclusiveByCell exclusive maximum timestamp to delete for each cell.
-     * @param deleteSentinels if true, this method will also delete garbage collection sentinels.
+     * Does not guarantee atomicity in any way (deletes may be partial within *any* of the rows provided, and
+     * there is no guarantee of any correlation or lack thereof between success of the deletes for each of the rows
+     * provided).
+     *
+     * Some systems may require more nodes to be up to ensure that a delete is successful. If this is the case then
+     * this method may throw if the delete can't be completed on all nodes. Please be aware that if it does throw,
+     * some deletes may have been applied on some nodes.
+     *
+     * This method MAY require linearly many calls to the database in the number of rows, so should be used with
+     * caution.
+     *
+     * @param tableRef the name of the table to delete values from.
+     * @param rows rows to delete
      */
     @Idempotent
-    void deleteAllTimestamps(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels);
+    void deleteRows(TableReference tableRef, Iterable<byte[]> rows);
+
+    /**
+     * For each cell, deletes all timestamps prior to the associated maximum timestamp. If this
+     * operation fails, it's acceptable for this method to leave an inconsistent state, however
+     * implementations of this method <b>must</b> guarantee that, for each cell, if a value at the
+     * associated timestamp is inconsistently deleted, then all other values of that cell in the
+     * relevant range must have already been consistently deleted.
+     *
+     * @param tableRef the name of the table to delete the timestamps in.
+     * @param deletes cells to be deleted, and the ranges of timestamps to delete for each cell
+     */
+    @Idempotent
+    void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes)
+            throws InsufficientConsistencyException;
 
     /**
      * Truncate a table in the key-value store.
@@ -577,7 +598,7 @@ public interface KeyValueService extends AutoCloseable {
      * Products that use AtlasDB only for reads and writes (no schema mutations or deletes, including having sweep and
      * scrub disabled) can also treat {@link ClusterAvailabilityStatus#QUORUM_AVAILABLE} as healthy.
      * <p>
-     * If you have access to a {@link com.palantir.atlasdb.transaction.api.TransactionManager}, then it is recommended
+     * If you have access to a {@link TransactionManager}, then it is recommended
      * to use its availability indicator, {@link TransactionManager#getKeyValueServiceStatus()}, instead of this one.
      * <p>
      * This call must be implemented so that it completes synchronously.

@@ -17,8 +17,8 @@ package com.palantir.nexus.db;
 
 import java.io.Closeable;
 import java.sql.Connection;
+import java.util.function.Supplier;
 
-import com.google.common.base.Supplier;
 import com.palantir.exception.PalantirSqlException;
 
 public interface ConnectionSupplier extends Supplier<Connection>, Closeable {
@@ -36,7 +36,7 @@ public interface ConnectionSupplier extends Supplier<Connection>, Closeable {
     /**
      * Closes this connection supplier and releases any resources it may hold.
      *
-     * @see java.io.Closeable#close()
+     * @see Closeable#close()
      * @throws PalantirSqlException if an error occurs while closing
      */
     @Override

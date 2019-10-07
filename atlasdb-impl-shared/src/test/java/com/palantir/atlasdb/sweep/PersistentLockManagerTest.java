@@ -279,7 +279,7 @@ public class PersistentLockManagerTest {
             throw new CheckAndSetException("foo");
         });
 
-        executor.submit(manager::acquirePersistentLockWithRetry);
+        executor.execute(manager::acquirePersistentLockWithRetry);
         acquireStarted.await();
 
         manager.shutdown();

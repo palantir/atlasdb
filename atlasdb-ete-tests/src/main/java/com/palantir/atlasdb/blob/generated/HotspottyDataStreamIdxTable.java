@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -23,7 +24,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -602,6 +602,22 @@ public final class HotspottyDataStreamIdxTable implements
         });
     }
 
+    @Override
+    public Map<HotspottyDataStreamIdxRow, Iterator<HotspottyDataStreamIdxColumnValue>> getRowsColumnRangeIterator(Iterable<HotspottyDataStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<HotspottyDataStreamIdxRow, Iterator<HotspottyDataStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            HotspottyDataStreamIdxRow row = HotspottyDataStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<HotspottyDataStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                HotspottyDataStreamIdxColumn col = HotspottyDataStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = HotspottyDataStreamIdxColumnValue.hydrateValue(result.getValue());
+                return HotspottyDataStreamIdxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<HotspottyDataStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -713,5 +729,5 @@ public final class HotspottyDataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "G2byjrwUZEphtaXrSUazqA==";
+    static String __CLASS_HASH = "AkTSV79XttyqF86psjxGvA==";
 }

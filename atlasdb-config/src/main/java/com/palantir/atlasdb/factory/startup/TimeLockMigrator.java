@@ -15,13 +15,8 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
-import java.util.function.Supplier;
-
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.factory.ServiceCreator;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
@@ -43,24 +38,16 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     public static TimeLockMigrator create(
-            MetricsManager metricsManager,
-            ServerListConfig serverListConfig,
-            TimestampStoreInvalidator invalidator,
-            String userAgent) {
-        return create(metricsManager, () -> serverListConfig, invalidator,
-                userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+            TimestampManagementService timestampManagementService,
+            TimestampStoreInvalidator invalidator) {
+        return create(timestampManagementService, invalidator, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimeLockMigrator create(
-            MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfigSupplier,
+            TimestampManagementService timestampManagementService,
             TimestampStoreInvalidator invalidator,
-            String userAgent,
             boolean initializeAsync) {
-        TimestampManagementService remoteTimestampManagementService =
-                createRemoteManagementService(
-                        metricsManager, serverListConfigSupplier, userAgent);
-        return new TimeLockMigrator(invalidator, remoteTimestampManagementService, initializeAsync);
+        return new TimeLockMigrator(invalidator, timestampManagementService, initializeAsync);
     }
 
     /**
@@ -79,14 +66,6 @@ public class TimeLockMigrator extends AsyncInitializer {
     @Idempotent
     public void migrate() {
         initialize(initializeAsync);
-    }
-
-    private static TimestampManagementService createRemoteManagementService(
-            MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfig,
-            String userAgent) {
-        return ServiceCreator.noPayloadLimiter(metricsManager, userAgent, serverListConfig)
-                .createService(TimestampManagementService.class);
     }
 
     @Override

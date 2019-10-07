@@ -25,7 +25,6 @@ import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponseImpl;
-import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
@@ -125,13 +124,24 @@ public class ProtobufTest {
         PaxosResponse actual;
 
         expected = new PaxosResponseImpl(true);
-        persisted = PaxosResponses.toProto(expected);
-        actual = PaxosResponses.fromProto(persisted);
+        persisted = toProto(expected);
+        actual = fromProto(persisted);
         assertEquals(expected, actual);
 
         expected = new PaxosResponseImpl(false);
-        persisted = PaxosResponses.toProto(expected);
-        actual = PaxosResponses.fromProto(persisted);
+        persisted = toProto(expected);
+        actual = fromProto(persisted);
         assertEquals(expected, actual);
+    }
+
+    private static PaxosAcceptorPersistence.PaxosResponse toProto(PaxosResponse result) {
+        return PaxosAcceptorPersistence.PaxosResponse.newBuilder()
+                .setAck(result.isSuccessful())
+                .build();
+    }
+
+    private static PaxosResponse fromProto(PaxosAcceptorPersistence.PaxosResponse proto) {
+        boolean ack = proto.getAck();
+        return new PaxosResponseImpl(ack);
     }
 }

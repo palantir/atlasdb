@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -29,12 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.tritium.api.functions.BooleanSupplier;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
-import com.palantir.tritium.event.InstrumentationProperties;
 import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -47,7 +43,6 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
  * MetricsInvocationEventHandler.
  */
 public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEventHandler<InvocationContext> {
-
     private static final Logger logger = LoggerFactory.getLogger(TaggedMetricsInvocationEventHandler.class);
 
     private final TaggedMetricRegistry taggedMetricRegistry;
@@ -57,26 +52,12 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
 
     public TaggedMetricsInvocationEventHandler(
             TaggedMetricRegistry taggedMetricRegistry,
-            String serviceName) {
-        this(taggedMetricRegistry, serviceName, unused -> ImmutableMap.of());
-    }
-
-    public TaggedMetricsInvocationEventHandler(
-            TaggedMetricRegistry taggedMetricRegistry,
             String serviceName,
             Function<InvocationContext, Map<String, String>> tagFunction) {
-        super(getEnabledSupplier(serviceName));
-        this.taggedMetricRegistry = checkNotNull(taggedMetricRegistry, "metricRegistry");
-        this.serviceName = checkNotNull(serviceName, "serviceName");
+        super(InstrumentationUtils.getEnabledSupplier(serviceName));
+        this.taggedMetricRegistry = Preconditions.checkNotNull(taggedMetricRegistry, "metricRegistry");
+        this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName");
         this.tagFunction = tagFunction;
-    }
-
-    private static String failuresMetricName() {
-        return "failures";
-    }
-
-    private static BooleanSupplier getEnabledSupplier(final String serviceName) {
-        return InstrumentationProperties.getSystemPropertySupplier(serviceName);
     }
 
     @Override
@@ -96,8 +77,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
                 .safeName(MetricRegistry.name(serviceName, context.getMethod().getName()))
                 .putAllSafeTags(tagFunction.apply(context))
                 .build();
-        taggedMetricRegistry.timer(finalMetricName)
-                .update(nanos, TimeUnit.NANOSECONDS);
+        taggedMetricRegistry.timer(finalMetricName).update(nanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -110,7 +90,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
             return;
         }
 
-        String failuresMetricName = MetricRegistry.name(getBaseMetricName(context), failuresMetricName());
+        String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
         taggedMetricRegistry.meter(MetricName.builder().safeName(failuresMetricName).build()).mark();
         taggedMetricRegistry.meter(MetricName.builder().safeName(
                 MetricRegistry.name(failuresMetricName, cause.getClass().getName())).build())
@@ -118,11 +98,10 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
 
     }
 
-    private String getBaseMetricName(InvocationContext context) {
-        return MetricRegistry.name(serviceName, context.getMethod().getName());
-    }
-
     private void markGlobalFailure() {
-        taggedMetricRegistry.meter(MetricName.builder().safeName(failuresMetricName()).build()).mark();
+        taggedMetricRegistry.meter(MetricName.builder()
+                .safeName(InstrumentationUtils.FAILURES_METRIC_NAME)
+                .build())
+                .mark();
     }
 }

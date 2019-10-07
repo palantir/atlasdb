@@ -21,13 +21,13 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -134,7 +134,7 @@ public class DbKvsGetRanges {
         Map<Cell, Value> cells = kvs.getRows(tableRef, rowsForBatches.values(),
                 ColumnSelection.all(), timestamp);
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(cells);
-        log.info("getRange actualRowsReturned: {}", cellsByRow.size());
+        log.debug("getRange actualRowsReturned: {}", cellsByRow.size());
         return breakUpByBatch(requests, rowsForBatches, cellsByRow);
     }
 

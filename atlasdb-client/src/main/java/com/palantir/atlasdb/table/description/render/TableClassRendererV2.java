@@ -283,7 +283,7 @@ public class TableClassRendererV2 {
 
 
     private MethodSpec renderNamedGetSeveralRows(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+        com.palantir.logsafe.Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
@@ -367,7 +367,7 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedGetRangeColumn(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+        com.palantir.logsafe.Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
@@ -408,7 +408,7 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedGetRangeStartEnd(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+        com.palantir.logsafe.Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
@@ -435,7 +435,7 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedGetRangeColumnLimit(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+        com.palantir.logsafe.Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))

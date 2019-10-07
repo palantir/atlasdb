@@ -22,7 +22,8 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @JsonSerialize(as = ImmutableTimeLockClientConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
@@ -39,7 +40,7 @@ public abstract class TimeLockClientConfig {
     @JsonIgnore
     @Value.Lazy
     public String getClientOrThrow() {
-        return client().orElseThrow(() -> new IllegalStateException(
+        return client().orElseThrow(() -> new SafeIllegalStateException(
                 "Tried to read a client from a TimeLockClientConfig, but it hadn't been initialised."));
     }
 

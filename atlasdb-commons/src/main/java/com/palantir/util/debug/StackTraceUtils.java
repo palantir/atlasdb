@@ -38,6 +38,8 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+
 @SuppressWarnings("checkstyle")
 // WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great
 // and we lack tests, however this is covered by testing in the internal product
@@ -57,12 +59,12 @@ public final class StackTraceUtils {
         try {
             THREAD_MXBEAN = new ObjectName(ManagementFactory.THREAD_MXBEAN_NAME);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize thread MXBean name.");
+            throw new SafeIllegalStateException("Failed to initialize thread MXBean name.");
         }
         try {
             MEMORY_MXBEAN = new ObjectName(ManagementFactory.MEMORY_MXBEAN_NAME);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize memory MXBean name.");
+            throw new SafeIllegalStateException("Failed to initialize memory MXBean name.");
         }
 
     }

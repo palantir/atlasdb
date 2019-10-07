@@ -31,8 +31,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Represents the result of calling {@link LockService#lockWithFullLockResponse(LockClient, LockRequest)} on

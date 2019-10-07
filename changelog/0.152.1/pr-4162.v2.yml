@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: |
+    TimeLock no longer leaks threads when an async lock service is shut down (e.g. as part of a leader election). Previously we would not shut the lock request timeout thread down, leading to (number of clients) many threads left in limbo after each time a node loses leadership.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4162

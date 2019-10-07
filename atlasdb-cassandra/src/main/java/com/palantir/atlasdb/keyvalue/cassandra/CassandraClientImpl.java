@@ -36,6 +36,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.KsDef;
@@ -49,11 +50,13 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolException;
+import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
@@ -84,6 +87,18 @@ public class CassandraClientImpl implements CassandraClient {
         ColumnParent colFam = getColumnParent(tableRef);
 
         return executeHandlingExceptions(() -> client.multiget_slice(keys, colFam, predicate, consistency_level));
+    }
+
+    @Override
+    public Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
+            String kvsMethodName,
+            TableReference tableRef,
+            List<KeyPredicate> keyPredicates,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        ColumnParent colFam = getColumnParent(tableRef);
+
+        return executeHandlingExceptions(() -> client.multiget_multislice(keyPredicates, colFam, consistency_level));
     }
 
     @Override
@@ -193,6 +208,11 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public String describe_snitch() throws TException {
+        return client.describe_snitch();
+    }
+
+    @Override
     public String describe_version() throws TException {
         return executeHandlingExceptions(() -> client.describe_version());
     }
@@ -264,6 +284,17 @@ public class CassandraClientImpl implements CassandraClient {
         return executeHandlingExceptions(() -> client.execute_cql3_query(queryBytes, compression, consistency));
     }
 
+    @Override
+    public void close() {
+        TProtocol inputProtocol = getInputProtocol();
+        TProtocol outputProtocol = getOutputProtocol();
+        try (TTransport inputTransport = inputProtocol.getTransport();
+                TTransport outputTransport = outputProtocol.getTransport()) {
+            inputProtocol.reset();
+            outputProtocol.reset();
+        }
+    }
+
     private ColumnParent getColumnParent(TableReference tableRef) {
         return new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
     }
@@ -323,7 +354,7 @@ public class CassandraClientImpl implements CassandraClient {
     private void checkIfValidClient() {
         Throwable localInvalidated = invalidated.get();
         if (localInvalidated != null) {
-            throw new IllegalStateException("Method execution on invalid client", localInvalidated);
+            throw new SafeIllegalStateException("Method execution on invalid client", localInvalidated);
         }
     }
 }

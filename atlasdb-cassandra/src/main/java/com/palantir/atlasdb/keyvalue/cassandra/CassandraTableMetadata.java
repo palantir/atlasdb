@@ -32,6 +32,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
@@ -99,18 +100,23 @@ public class CassandraTableMetadata {
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 CassandraKeyValueServices.metadataRangeRequestForTable(tableRef),
                 Long.MAX_VALUE)) {
-            Map<Cell, Long> cellsToDelete = range.stream()
+            Map<Cell, TimestampRangeDelete> cellsToDelete = range.stream()
                     .map(RowResult::getCells)
                     .map(Iterables::getOnlyElement)
                     .map(Map.Entry::getKey)
                     .map(Cell::getRowName)
                     .map(CassandraKeyValueServices::tableReferenceFromBytes)
                     .filter(candidate -> nonNullMatchingIgnoreCase(candidate, tableRef))
-                    .collect(Collectors.toMap(CassandraKeyValueServices::getOldMetadataCell, ignore -> Long.MAX_VALUE));
+                    .collect(Collectors.toMap(CassandraKeyValueServices::getOldMetadataCell,
+                            ignore -> new TimestampRangeDelete.Builder()
+                                    .timestamp(Long.MAX_VALUE)
+                                    .endInclusive(false) // true won't work, since we are deleting at Long.MAX_VALUE.
+                                    .deleteSentinels(true)
+                                    .build()));
 
             new CellRangeDeleter(clientPool, wrappingQueryRunner, CassandraKeyValueServiceImpl.DELETE_CONSISTENCY,
                     no -> System.currentTimeMillis())
-                    .deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellsToDelete, true);
+                    .deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellsToDelete);
         } catch (AtlasDbDependencyException e) {
             log.info("Failed to delete old table metadata for table {} because not all Cassandra nodes are up.",
                     LoggingArgs.tableRef(tableRef), e);

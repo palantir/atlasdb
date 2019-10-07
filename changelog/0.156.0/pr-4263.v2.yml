@@ -1,0 +1,6 @@
+type: break
+break:
+  description: '`PaxosLeadershipEventRecorder` now takes in a `TaggedMetricRegistry`
+    instead of a `MetricRegistry`. The names of the metrics remain the same.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4263

@@ -55,8 +55,8 @@ Committing a write transaction is a multi-stage process:
 6. Get the commit timestamp.
 7. For serializable transactions, check that the state of the world at commit time is same as that at start time.
    Please see :ref:`Isolation Levels<isolation-levels>` for more details.
-8. Verify that locks are still valid.
-9. Verify user-specified pre-commit conditions (if applicable).
+8. Verify user-specified pre-commit conditions (if applicable).
+9. Verify that locks are still valid.
 10. Atomically putUnlessExists into the transactions table.
 
 After we have successfully written to the transactions table, the transaction is considered committed.
@@ -88,9 +88,12 @@ The ordering of these steps is important:
    in between our start and commit, and someone else deleted the value after our commit. If we pass our lock check, but
    then lose our locks and have a very long GC, Thorough Sweep might clear all evidence of the conflict, meaning that
    we miss a read-write conflict. This would be safe for conservative sweep because of the deletion sentinel.
-8. The lock check may be run in parallel with pre-commit condition checks, though it must strictly be run before writing
-   to the transactions table, as we cannot finish our commit if we can't be certain we still have locks.
-9. We need to check that the pre-commit conditions still hold before we can finish committing.
+8. We need to check that the pre-commit conditions, if any, still hold. Given that these checks are user defined and
+   could involve transactional reads to the database, they require the same protections as the read-write conflict
+   checks in the prior step. An alternative implementation of those checks could be done as a pre-commit condition, for
+   example, so it is important that we handle this before the final lock check.
+9. The lock check must be run strictly before writing to the transactions table, as we cannot finish our commit if
+   we can't be certain we still have locks.
 
 Read-Only Variant
 ~~~~~~~~~~~~~~~~~

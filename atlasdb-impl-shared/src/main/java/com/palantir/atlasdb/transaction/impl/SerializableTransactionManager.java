@@ -20,11 +20,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -46,6 +48,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -68,7 +71,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
             this.executorService = initializer;
-            runCallbackIfInitializedOrScheduleForLater(this::attemptCallbackSynchronously);
+            scheduleInitializationCheckAndCallback();
         }
 
         @Override
@@ -115,11 +118,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         private void assertOpen() {
             if (status == State.CLOSED) {
-                throw new IllegalStateException("Operations cannot be performed on closed TransactionManager.");
+                throw new SafeIllegalStateException("Operations cannot be performed on closed TransactionManager.");
             }
             if (status == State.CLOSED_BY_CALLBACK_FAILURE) {
-                throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
-                            + " Closed due to a callback failure.", callbackThrowable);
+                throw new SafeIllegalStateException("Operations cannot be performed on closed TransactionManager."
+                        + " Closed due to a callback failure.", callbackThrowable);
             }
         }
 
@@ -150,18 +153,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     && txManager.getTimestampService().isInitialized()
                     && txManager.getCleaner().isInitialized()
                     && initializationPrerequisite.get();
-        }
-
-        private void attemptCallbackSynchronously() {
-            try {
-                if (callback.runOnceOnly(txManager)) {
-                    changeStateToReady();
-                } else {
-                    scheduleInitializationCheckAndCallback();
-                }
-            } catch (Throwable e) {
-                changeStateToCallbackFailure(e);
-            }
         }
 
         private void runCallbackWithRetry() {
@@ -207,7 +198,55 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
     }
 
-    public static TransactionManager create(MetricsManager metricsManager,
+    public static TransactionManager createInstrumented(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            Supplier<Boolean> initializationPrerequisite,
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            boolean initializeAsync,
+            TimestampCache timestampCache,
+            MultiTableSweepQueueWriter sweepQueueWriter,
+            Callback<TransactionManager> callback,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig) {
+
+        return create(metricsManager,
+                keyValueService,
+                timelockService,
+                timestampManagementService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                initializationPrerequisite,
+                allowHiddenTableAccess,
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency,
+                initializeAsync,
+                timestampCache,
+                sweepQueueWriter,
+                callback,
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
+                validateLocksOnReads,
+                transactionConfig,
+                true);
+    }
+
+    public static TransactionManager create(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
             TimestampManagementService timestampManagementService,
@@ -252,7 +291,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig);
     }
 
-    public static TransactionManager create(MetricsManager metricsManager,
+    public static TransactionManager create(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
             TimestampManagementService timestampManagementService,
@@ -273,6 +313,54 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig) {
+        return create(
+                metricsManager,
+                keyValueService,
+                timelockService,
+                timestampManagementService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                initializationPrerequisite,
+                allowHiddenTableAccess,
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency,
+                initializeAsync,
+                timestampCache,
+                sweepQueueWriter,
+                callback,
+                initializer,
+                validateLocksOnReads,
+                transactionConfig,
+                false);
+    }
+
+    private static TransactionManager create(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            Supplier<Boolean> initializationPrerequisite,
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            boolean initializeAsync,
+            TimestampCache timestampCache,
+            MultiTableSweepQueueWriter sweepQueueWriter,
+            Callback<TransactionManager> callback,
+            ScheduledExecutorService initializer,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig,
+            boolean shouldInstrument) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -289,9 +377,16 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                PTExecutors.newSingleThreadExecutor(true),
+                DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
                 transactionConfig);
+
+        if (shouldInstrument) {
+            transactionManager = AtlasDbMetrics.instrument(
+                    metricsManager.getRegistry(),
+                    TransactionManager.class,
+                    transactionManager);
+        }
 
         if (!initializeAsync) {
             callback.runWithRetry(transactionManager);
@@ -327,12 +422,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                new TimestampCache(metricsManager.getRegistry(), () -> 1000L),
+                new DefaultTimestampCache(metricsManager.getRegistry(), () -> 1000L),
                 false,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                PTExecutors.newSingleThreadExecutor(true),
+                DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 true,
                 () -> ImmutableTransactionConfig.builder().build());
     }

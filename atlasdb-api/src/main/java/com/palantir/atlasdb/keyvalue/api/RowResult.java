@@ -23,7 +23,7 @@ import java.util.SortedMap;
 
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -32,6 +32,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.collect.Maps2;
+import com.palantir.logsafe.Preconditions;
 
 public final class RowResult<T> implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -99,7 +100,7 @@ public final class RowResult<T> implements Serializable {
     }
 
     public Iterable<Map.Entry<Cell, T>> getCells() {
-        return Iterables.transform(columns.entrySet(),
+        return Collections2.transform(columns.entrySet(),
                 from -> Maps.immutableEntry(Cell.create(row, from.getKey()), from.getValue()));
     }
 

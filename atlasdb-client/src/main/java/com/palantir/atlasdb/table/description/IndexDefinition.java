@@ -27,6 +27,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Defines a secondary index for a schema.
@@ -69,9 +70,9 @@ public class IndexDefinition extends AbstractDefinition {
      * values of both SAFE and UNSAFE).
      */
     public void indexNameLogSafety(TableMetadataPersistence.LogSafety logSafety) {
-        Preconditions.checkState(!(logSafetyDeclared && tableNameSafety != logSafety),
+        com.palantir.logsafe.Preconditions.checkState(!(logSafetyDeclared && tableNameSafety != logSafety),
                 "This table name's safety for logging has already been declared.");
-        Preconditions.checkState(state == IndexDefinition.State.NONE, "Specifying a table name is safe or unsafe should be done outside"
+        com.palantir.logsafe.Preconditions.checkState(state == IndexDefinition.State.NONE, "Specifying a table name is safe or unsafe should be done outside"
                 + " of the subscopes of TableDefinition.");
         logSafetyDeclared = true;
         tableNameSafety = logSafety;
@@ -87,7 +88,7 @@ public class IndexDefinition extends AbstractDefinition {
      * Note that this DOES NOT make the values of either the rows or the columns safe for logging.
      */
     public void namedComponentsSafeByDefault() {
-        Preconditions.checkState(state == IndexDefinition.State.NONE, "Specifying components are safe by default should be done outside"
+        com.palantir.logsafe.Preconditions.checkState(state == IndexDefinition.State.NONE, "Specifying components are safe by default should be done outside"
                 + " of the subscopes of TableDefinition.");
         defaultNamedComponentLogSafety = TableMetadataPersistence.LogSafety.SAFE;
     }
@@ -213,7 +214,7 @@ public class IndexDefinition extends AbstractDefinition {
      * If using prefix range requests, the components that are hashed must also be specified in the prefix.
      */
     public void hashFirstNRowComponents(int numberOfComponents) {
-        Preconditions.checkState(numberOfComponents >= 0,
+        com.palantir.logsafe.Preconditions.checkState(numberOfComponents >= 0,
                 "Need to specify a non-negative number of components to hash.");
         checkHashRowComponentsPreconditions("hashFirstNRowComponents");
         numberOfComponentsHashed = numberOfComponents;
@@ -221,19 +222,19 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public void partition(RowNamePartitioner... partitioners) {
-        Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
         IndexComponent last = rowComponents.get(rowComponents.size() - 1);
         rowComponents.set(rowComponents.size() - 1, last.withPartitioners(partitioners));
     }
 
     public ExplicitRowNamePartitioner explicit(String... componentValues) {
-        Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
         return new ExplicitRowNamePartitioner(rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType(),
                 ImmutableSet.copyOf(componentValues));
     }
 
     public ExplicitRowNamePartitioner explicit(long... componentValues) {
-        Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
         Set<String> set = Sets.newHashSet();
         for (long l : componentValues) {
             set.add(Long.toString(l));
@@ -242,7 +243,7 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public UniformRowNamePartitioner uniform() {
-        Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
+        com.palantir.logsafe.Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
         return new UniformRowNamePartitioner(rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType());
     }
 
@@ -314,7 +315,7 @@ public class IndexDefinition extends AbstractDefinition {
         } else if (state == State.DEFINING_COLUMN_COMPONENTS) {
             colComponents.add(component);
         } else {
-            throw new IllegalStateException("Can only specify components when defining row or column names.");
+            throw new SafeIllegalStateException("Can only specify components when defining row or column names.");
         }
     }
 
@@ -348,7 +349,7 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public void validate() {
-        Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
+        com.palantir.logsafe.Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
         validateFirstRowComp(rowComponents.get(0).getRowKeyDescription());
     }
 
@@ -396,8 +397,8 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public IndexMetadata toIndexMetadata(String indexTableName) {
-        Preconditions.checkState(indexTableName != null, "No index table name specified.");
-        Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
+        com.palantir.logsafe.Preconditions.checkState(indexTableName != null, "No index table name specified.");
+        com.palantir.logsafe.Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
         if (explicitCompressionRequested && explicitCompressionBlockSizeKb == 0) {
             explicitCompressionBlockSizeKb = AtlasDbConstants.DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB;
         }

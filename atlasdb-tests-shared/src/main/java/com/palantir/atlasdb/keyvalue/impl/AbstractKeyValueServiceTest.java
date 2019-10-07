@@ -66,6 +66,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -78,6 +79,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -164,7 +166,7 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, Value> rows4 = keyValueService.getRows(
                 TEST_TABLE,
                 ImmutableSet.of(cell1.getRowName()),
-                ColumnSelection.create(ImmutableList.<byte[]>of()),
+                ColumnSelection.create(ImmutableList.of()),
                 1);
 
         // This has changed recently - now empty column set means
@@ -195,7 +197,7 @@ public abstract class AbstractKeyValueServiceTest {
                 .findFirst()
                 .map(Entry::getValue)
                 .map(value -> Iterators.limit(value, number))
-                .orElse(Collections.emptyIterator());
+                .orElseGet(Collections::emptyIterator);
 
         while (it.hasNext()) {
             Entry<Cell, Value> result = it.next();
@@ -936,9 +938,10 @@ public abstract class AbstractKeyValueServiceTest {
         }
     }
 
-    private List<RowResult<Value>> getExpectedResultForRangePagingWithColumnSelectionTest(int numRows,
-                                                                                          int numColsInSelection,
-                                                                                          boolean reverse) {
+    private static List<RowResult<Value>> getExpectedResultForRangePagingWithColumnSelectionTest(
+            int numRows,
+            int numColsInSelection,
+            boolean reverse) {
         List<RowResult<Value>> expected = new ArrayList<>();
         for (long row = 1; row <= numRows; ++row) {
             ImmutableSortedMap.Builder<byte[], Value> builder = ImmutableSortedMap.orderedBy(
@@ -1083,8 +1086,44 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void deleteRowsWithNothing() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of());
+        checkThatTableIsNowOnly(row(0), row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsDeletesOneRow() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0)));
+        checkThatTableIsNowOnly(row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsDeletesMultipleRows() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(2), row(1)));
+        checkThatTableIsNowOnly();
+    }
+
+    @Test
+    public void deleteRowsDeletesMultipleNoncontiguousRows() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(2)));
+        checkThatTableIsNowOnly(row(1));
+    }
+
+    @Test
+    public void deleteRowsIgnoresRowsThatDoNotExist() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(5), row(7)));
+        checkThatTableIsNowOnly(row(0), row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsResilientToDuplicates() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(0), row(0), row(0)));
+        checkThatTableIsNowOnly(row(1), row(2));
+    }
+
+    @Test
     public void deleteTimestampRangesIgnoresEmptyMap() {
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(), false);
+        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of());
     }
 
     @Test
@@ -1098,7 +1137,7 @@ public abstract class AbstractKeyValueServiceTest {
                 TEST_CELL, Value.create(val(0, 7), ts2),
                 TEST_CELL, Value.create(val(0, 9), latestTs)));
 
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
+        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
 
         assertThat(getAllTimestampsForTestCell(), contains(latestTs));
         assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL),
@@ -1131,10 +1170,9 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 1)), ts2Col1);
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(1, 0)), latestTsCol1);
 
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(
-                row0col0, latestTsCol0,
-                row0col1, latestTsCol1,
-                row1col0, latestTsCol0), false);
+        legacyDeleteAllTimestamps(TEST_TABLE,
+                ImmutableMap.of(row0col0, latestTsCol0, row0col1, latestTsCol1, row1col0, latestTsCol0),
+                false);
 
         assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap().get(
                 row0col0), contains(latestTsCol0));
@@ -1153,7 +1191,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void deleteTimestampRangesIncludingSentinelsIgnoresEmptyMap() {
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(), true);
+        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(), true);
     }
 
     @Test
@@ -1167,7 +1205,7 @@ public abstract class AbstractKeyValueServiceTest {
                 TEST_CELL, Value.create(val(0, 7), ts2),
                 TEST_CELL, Value.create(val(0, 9), latestTs)));
 
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
+        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
 
         assertThat(getAllTimestampsForTestCell(), contains(latestTs));
         assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL),
@@ -1200,7 +1238,7 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 1)), ts2Col1);
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(1, 0)), latestTsCol1);
 
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(
+        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(
                 row0col0, latestTsCol0,
                 row0col1, latestTsCol1,
                 row1col0, latestTsCol0), true);
@@ -1227,7 +1265,7 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
         keyValueService.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(1, 0)), latestTs);
 
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
+        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
 
         assertThat(getAllTimestampsForTestCell(), contains(Value.INVALID_VALUE_TIMESTAMP, latestTs));
         assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Value.INVALID_VALUE_TIMESTAMP + 1L))
@@ -1241,7 +1279,7 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
         keyValueService.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(1, 0)), latestTs);
 
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
+        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
 
         assertThat(getAllTimestampsForTestCell(), contains(latestTs));
     }
@@ -1256,7 +1294,7 @@ public abstract class AbstractKeyValueServiceTest {
                 TEST_CELL, Value.create(val(0, 7), TEST_TIMESTAMP - 1),
                 TEST_CELL, Value.create(val(0, 9), TEST_TIMESTAMP)));
 
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP), false);
+        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP), false);
 
         assertThat(getAllTimestampsForTestCell(), contains(Value.INVALID_VALUE_TIMESTAMP, TEST_TIMESTAMP));
     }
@@ -1271,7 +1309,7 @@ public abstract class AbstractKeyValueServiceTest {
                 TEST_CELL, Value.create(val(0, 7), TEST_TIMESTAMP - 1),
                 TEST_CELL, Value.create(val(0, 9), TEST_TIMESTAMP)));
 
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP), true);
+        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP), true);
 
         assertThat(getAllTimestampsForTestCell(), contains(TEST_TIMESTAMP));
     }
@@ -1293,6 +1331,12 @@ public abstract class AbstractKeyValueServiceTest {
                 .endRowExclusive(end)
                 .build();
         keyValueService.deleteRange(TEST_TABLE, range);
+    }
+
+    private void setupTestRowsZeroOneAndTwoAndDeleteSpecific(List<byte[]> rows) {
+        putTestDataForRowsZeroOneAndTwo();
+
+        keyValueService.deleteRows(TEST_TABLE, rows);
     }
 
     private void checkThatTableIsNowOnly(byte[]... rows) {
@@ -1411,7 +1455,7 @@ public abstract class AbstractKeyValueServiceTest {
         try {
             putTestDataForSingleTimestamp();
         } catch (AtlasDbDependencyException e) {
-            if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
+            if (e.getCause() instanceof KeyAlreadyExistsException) {
                 Assert.fail("Must not throw when overwriting with same value!");
             }
         }
@@ -1428,7 +1472,7 @@ public abstract class AbstractKeyValueServiceTest {
                             TEST_CELL,
                             Value.create(val(0, 0), TEST_TIMESTAMP + 1)));
         } catch (AtlasDbDependencyException e) {
-            if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
+            if (e.getCause() instanceof KeyAlreadyExistsException) {
                 Assert.fail("Must not throw when overwriting with same value!");
             }
         }
@@ -1513,6 +1557,22 @@ public abstract class AbstractKeyValueServiceTest {
 
         Value storedValue = keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL);
         assertArrayEquals(megabyteValue, storedValue.getContents());
+    }
+
+    @Test
+    public void putUnlessExistsDecodesCellsCorrectlyIfSupported() {
+        Assume.assumeTrue(keyValueService.getCheckAndSetCompatibility()
+                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE);
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
+
+        // Exact message is KVS specific so not asserting on that
+        assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0))))
+                .isInstanceOf(KeyAlreadyExistsException.class)
+                .satisfies(exception -> {
+                    KeyAlreadyExistsException keyAlreadyExistsException = (KeyAlreadyExistsException) exception;
+                    assertThat(keyAlreadyExistsException.getExistingKeys(), contains(TEST_CELL));
+                });
     }
 
     @Test
@@ -1739,11 +1799,11 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(getOnlyItemInTableRange(), is(originalData));
     }
 
-    private void modifyValue(byte[] retrievedValue) {
+    private static void modifyValue(byte[] retrievedValue) {
         retrievedValue[0] = (byte) 50;
     }
 
-    private byte[] copyOf(byte[] contents) {
+    private static byte[] copyOf(byte[] contents) {
         return Arrays.copyOf(contents, contents.length);
     }
 
@@ -1888,7 +1948,7 @@ public abstract class AbstractKeyValueServiceTest {
         return PtBytes.toBytes("value" + row + col);
     }
 
-    private byte[] dynamicColumn(long columnId) {
+    private static byte[] dynamicColumn(long columnId) {
         return PtBytes.toBytes(columnId);
     }
 
@@ -1940,5 +2000,16 @@ public abstract class AbstractKeyValueServiceTest {
                 .persistToBytes());
         keyValueService.truncateTable(tableRef);
         return tableRef;
+    }
+
+    private void legacyDeleteAllTimestamps(
+            TableReference tableRef, Map<Cell, Long> cellToMaxTimestamp, boolean deleteSentinels) {
+        Map<Cell, TimestampRangeDelete> deletes = Maps.transformValues(cellToMaxTimestamp,
+                timestamp -> new TimestampRangeDelete.Builder()
+                        .timestamp(timestamp)
+                        .endInclusive(false) // Used to always be exclusive
+                        .deleteSentinels(deleteSentinels)
+                        .build());
+        keyValueService.deleteAllTimestamps(tableRef, deletes);
     }
 }

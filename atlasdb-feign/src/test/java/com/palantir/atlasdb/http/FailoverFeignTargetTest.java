@@ -64,9 +64,7 @@ public class FailoverFeignTargetTest {
     private static final RetryableException EXCEPTION_WITHOUT_RETRY_AFTER = mock(RetryableException.class);
     private static final RetryableException BLOCKING_TIMEOUT_EXCEPTION = mock(RetryableException.class);
 
-    private static final long LOWER_BACKOFF_BOUND = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
-    private static final long UPPER_BACKOFF_BOUND =
-            (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
+    private static final long UPPER_BACKOFF_BOUND = FailoverFeignTarget.MAX_BACKOFF_BEFORE_ROUND_ROBIN_RETRY.toMillis();
     private static final long FIVE_THOUSAND_SECONDS_IN_MILLIS = Duration.ofSeconds(5_000).toMillis();
 
     private final AtomicLong clock = new AtomicLong(1);
@@ -213,7 +211,7 @@ public class FailoverFeignTargetTest {
         }
 
         verify(spiedTarget, times(1))
-                .pauseForBackoff(any(), longThat(isWithinBounds(LOWER_BACKOFF_BOUND, UPPER_BACKOFF_BOUND)));
+                .pauseForBackoff(any(), longThat(isWithinBounds(0L, UPPER_BACKOFF_BOUND)));
     }
 
     @Test
@@ -224,7 +222,7 @@ public class FailoverFeignTargetTest {
         }
 
         verify(spiedTarget, times(3))
-                .pauseForBackoff(any(), longThat(isWithinBounds(LOWER_BACKOFF_BOUND, UPPER_BACKOFF_BOUND)));
+                .pauseForBackoff(any(), longThat(isWithinBounds(0L, UPPER_BACKOFF_BOUND)));
     }
 
     @Test

@@ -31,52 +31,54 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.logsafe.Preconditions;
 
-final class LockLeaseService {
-    private final TimelockRpcClient delegate;
+class LockLeaseService {
+    private final NamespacedTimelockRpcClient delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
 
     @VisibleForTesting
-    LockLeaseService(TimelockRpcClient timelockRpcClient, UUID clientId) {
+    LockLeaseService(NamespacedTimelockRpcClient timelockRpcClient, UUID clientId) {
         this.delegate = timelockRpcClient;
         this.clientId = clientId;
         this.time = new CoalescingSupplier<>(timelockRpcClient::getLeaderTime);
     }
 
-    public static LockLeaseService create(TimelockRpcClient timelockRpcClient) {
+    static LockLeaseService create(NamespacedTimelockRpcClient timelockRpcClient) {
         return new LockLeaseService(timelockRpcClient, UUID.randomUUID());
     }
 
-    public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        StartAtlasDbTransactionResponseV3 response =
-                delegate.startAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
+    LockImmutableTimestampResponse lockImmutableTimestamp() {
+        StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
+                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
 
         return ImmutableLockImmutableTimestampResponse.of(
                 response.immutableTimestamp().getImmutableTimestamp(),
                 LeasedLockToken.of(response.immutableTimestamp().getLock(), response.getLease()));
     }
 
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        StartAtlasDbTransactionResponseV3 response =
-                delegate.startAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
+    StartTransactionResponseV4 startTransactions(int batchSize) {
+        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
+        StartTransactionResponseV4 response = delegate.startTransactions(request);
 
-        Lease lease = response.getLease();
+        Lease lease = response.lease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
         long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
 
-        return StartIdentifiedAtlasDbTransactionResponse.of(
+        return StartTransactionResponseV4.of(
                 LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
-                response.startTimestampAndPartition());
+                response.timestamps(),
+                lease);
     }
 
-    public LockResponse lock(LockRequest request) {
+    LockResponse lock(LockRequest request) {
         LockResponseV2 leasableResponse = delegate.lock(IdentifiedLockRequest.from(request));
 
         return leasableResponse.accept(LockResponseV2.Visitor.of(
@@ -85,7 +87,11 @@ final class LockLeaseService {
                 unsuccessful -> LockResponse.timedOut()));
     }
 
-    public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
+    Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
+        if (uncastedTokens.isEmpty()) {
+            return uncastedTokens;
+        }
+
         LeaderTime leaderTime = time.get();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
 
@@ -99,7 +105,7 @@ final class LockLeaseService {
         return Sets.union(refreshedTokens, validByLease);
     }
 
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
+    Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
@@ -128,9 +134,11 @@ final class LockLeaseService {
 
     @SuppressWarnings("unchecked")
     private static Set<LeasedLockToken> leasedTokens(Set<LockToken> tokens) {
-        Preconditions.checkArgument(tokens.stream()
-                        .allMatch(token -> token instanceof LeasedLockToken),
-                "All lock tokens should be an instance of LeasedLockToken");
+        for (LockToken token : tokens) {
+            Preconditions.checkArgument(
+                    token instanceof LeasedLockToken,
+                    "All lock tokens should be an instance of LeasedLockToken");
+        }
         return (Set<LeasedLockToken>) (Set<?>) tokens;
     }
 

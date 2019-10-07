@@ -26,12 +26,10 @@ public final class ServerListConfigs {
     }
 
     public static ServerListConfig parseInstallAndRuntimeConfigs(TimeLockClientConfig installClientConfig,
-            Supplier<Optional<TimeLockRuntimeConfig>> runtimeConfig,
-            String namespace) {
-        ServerListConfig nonNamespacedConfig = runtimeConfig.get()
+            Supplier<Optional<TimeLockRuntimeConfig>> runtimeConfig) {
+        return runtimeConfig.get()
                 .map(TimeLockRuntimeConfig::serversList)
-                .orElse(installClientConfig.serversList());
-        return namespaceUris(nonNamespacedConfig, namespace);
+                .orElseGet(installClientConfig::serversList);
     }
 
     public static ServerListConfig namespaceUris(ServerListConfig config, String namespace) {

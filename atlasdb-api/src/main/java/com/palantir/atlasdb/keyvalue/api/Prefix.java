@@ -17,8 +17,8 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Preconditions;
 import com.palantir.common.annotation.Immutable;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Represents a partial row to be used for range requests.

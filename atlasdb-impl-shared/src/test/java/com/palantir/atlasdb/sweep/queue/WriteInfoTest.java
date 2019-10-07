@@ -26,6 +26,7 @@ import com.palantir.atlasdb.sweep.Sweeper;
 public class WriteInfoTest {
     private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");
     private static final Cell CELL = Cell.create(new byte[]{1}, new byte[]{2});
+    private static final long ZERO = 0L;
     private static final long ONE = 1L;
     private static final long TWO = 2L;
     private static final int SHARDS = 128;
@@ -54,10 +55,10 @@ public class WriteInfoTest {
 
     @Test
     public void timestampToDeleteAtHigherForTombstoneAndThorough() {
-        assertThat(getWriteAt(ONE).timestampToDeleteAtExclusive(Sweeper.CONSERVATIVE)).isEqualTo(ONE);
-        assertThat(getWriteAt(ONE).timestampToDeleteAtExclusive(Sweeper.THOROUGH)).isEqualTo(ONE);
-        assertThat(getTombstoneAt(ONE).timestampToDeleteAtExclusive(Sweeper.CONSERVATIVE)).isEqualTo(ONE);
-        assertThat(getTombstoneAt(ONE).timestampToDeleteAtExclusive(Sweeper.THOROUGH)).isEqualTo(TWO);
+        assertThat(getWriteAt(ONE).toDelete(Sweeper.CONSERVATIVE).maxTimestampToDelete()).isEqualTo(ZERO);
+        assertThat(getWriteAt(ONE).toDelete(Sweeper.THOROUGH).maxTimestampToDelete()).isEqualTo(ZERO);
+        assertThat(getTombstoneAt(ONE).toDelete(Sweeper.CONSERVATIVE).maxTimestampToDelete()).isEqualTo(ZERO);
+        assertThat(getTombstoneAt(ONE).toDelete(Sweeper.THOROUGH).maxTimestampToDelete()).isEqualTo(ONE);
     }
 
     private WriteInfo getWriteAt(long timestamp) {

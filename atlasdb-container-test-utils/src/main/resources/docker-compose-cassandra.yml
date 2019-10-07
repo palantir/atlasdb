@@ -6,4 +6,6 @@ services:
     environment:
       - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
       - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack1
       - LOCAL_JMX=no

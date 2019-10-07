@@ -252,6 +252,42 @@ public class ThriftObjectSizeUtilsTest {
     }
 
     @Test
+    public void getMultigetMultisliceResultSizeOneRowOneColumn() {
+        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result = ImmutableMap.of(
+                TEST_NAME_BYTES, ImmutableList.of(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN)));
+
+        long expectedSize = TEST_NAME_BYTES_SIZE
+                + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
+
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result)).isEqualTo(expectedSize);
+    }
+
+    @Test
+    public void getMultigetMultisliceResultSizeMultipleColumnsOneQuery() {
+        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result = ImmutableMap.of(
+                TEST_NAME_BYTES, ImmutableList.of(
+                        ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN, EMPTY_COLUMN_OR_SUPERCOLUMN)));
+
+        long expectedSize = TEST_NAME_BYTES_SIZE
+                + (2 * EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result)).isEqualTo(expectedSize);
+    }
+
+    @Test
+    public void getMultigetMultisliceResultSizeMultipleColumnsMultipleQueries() {
+        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result = ImmutableMap.of(
+                TEST_NAME_BYTES, ImmutableList.of(
+                        ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN),
+                        ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN, EMPTY_COLUMN_OR_SUPERCOLUMN)));
+
+        long expectedSize = TEST_NAME_BYTES_SIZE
+                + (3 * EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result)).isEqualTo(expectedSize);
+    }
+
+    @Test
     public void getKeySlicesSize() {
         List<KeySlice> slices = ImmutableList.of(
                 new KeySlice()

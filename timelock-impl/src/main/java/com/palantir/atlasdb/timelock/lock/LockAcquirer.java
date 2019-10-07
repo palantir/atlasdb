@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
-public class LockAcquirer {
+public class LockAcquirer implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(LockAcquirer.class);
 
@@ -50,6 +50,11 @@ public class LockAcquirer {
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
         return new Acquisition(requestId, locks, timeout, lock -> lock.waitUntilAvailable(requestId))
                 .execute();
+    }
+
+    @Override
+    public void close() {
+        timeoutExecutor.shutdown();
     }
 
     private class Acquisition {
@@ -119,7 +124,7 @@ public class LockAcquirer {
                 return;
             }
 
-            timeoutExecutor.schedule(() -> timeoutAll(), timeout.getTimeMillis(), TimeUnit.MILLISECONDS);
+            timeoutExecutor.schedule(this::timeoutAll, timeout.getTimeMillis(), TimeUnit.MILLISECONDS);
         }
 
         private void timeoutAll() {
@@ -128,5 +133,4 @@ public class LockAcquirer {
             }
         }
     }
-
 }

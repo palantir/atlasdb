@@ -1,21 +1,17 @@
-clients:
-  - test
-  - test2
-  - atlasete
+install:
+  paxos:
+    data-directory: "var/data/paxos"
+    is-new-service: false
+  cluster:
+    cluster:
+      uris:
+      - "localhost:8421"
+    local-server: "localhost:8421"
+    enableNonstandardAndPossiblyDangerousTopology: true
+  timestampBoundPersistence:
 
-cluster:
-  localServer: localhost:8421
-  servers:
-    - localhost:8421
-
-algorithm:
-  type: paxos
-
-useClientRequestLimit: true
-
-timeLimiter:
-  enableTimeLimiting: true
-  blockingTimeoutErrorMargin: 0.2
+runtime:
+  paxos:
 
 server:
   idleThreadTimeout: 60s

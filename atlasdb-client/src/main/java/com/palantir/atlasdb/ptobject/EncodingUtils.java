@@ -23,7 +23,6 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.ArrayUtils;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
@@ -32,6 +31,8 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class EncodingUtils {
@@ -135,7 +136,7 @@ public class EncodingUtils {
         if (bitsBeforeZero == 8 && (encoded[offset+1] ^ flipByte) < 0) {
             bitsBeforeZero++;
             if (((encoded[offset+1] ^ flipByte) & 0x40) != 0) {
-                throw new IllegalArgumentException("bad varlong, too big");
+                throw new SafeIllegalArgumentException("bad varlong, too big");
             }
         }
         int size = bitsBeforeZero+1;
@@ -189,7 +190,7 @@ public class EncodingUtils {
             if (((encoded[offset+1] ^ flipByte) & 0x40) != 0) {
                 bitsBeforeZero++;
                 if (((encoded[offset+1] ^ flipByte) & 0x20) != 0) {
-                    throw new IllegalArgumentException("bad varlong, too big");
+                    throw new SafeIllegalArgumentException("bad varlong, too big");
                 }
             }
         }

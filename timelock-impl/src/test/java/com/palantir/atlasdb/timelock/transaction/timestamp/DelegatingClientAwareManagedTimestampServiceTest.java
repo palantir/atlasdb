@@ -32,9 +32,9 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
@@ -90,30 +90,30 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
     }
 
     @Test
-    public void delegatesRequestToAllocator() {
+    public void batchedTimestampCallShouldReturnAtLeastOneUsableTimestamp() {
         when(allocator.getRelevantModuli(UUID_ONE)).thenReturn(RESIDUE_ONE);
-        when(allocator.getRelevantModuli(UUID_TWO)).thenReturn(RESIDUE_TWO);
-        when(timestamps.getFreshTimestamps(anyInt())).thenReturn(TIMESTAMP_RANGE);
+        when(timestamps.getFreshTimestamps(anyInt()))
+                .thenReturn(TIMESTAMP_RANGE);
 
-        assertThat(service.getFreshTimestampForClient(UUID_ONE)).isEqualTo(RESIDUE_ONE_TIMESTAMP_IN_RANGE);
+        assertThat(service.getFreshTimestampsForClient(UUID_ONE, 2).stream())
+                .containsExactly(RESIDUE_ONE_TIMESTAMP_IN_RANGE.timestamp());
 
         verify(allocator).getRelevantModuli(UUID_ONE);
         verify(timestamps).getFreshTimestamps(anyInt());
     }
 
     @Test
-    public void makesRequestsAgainIfTimestampRangeDoesNotIncludeCorrectModuli() {
-        when(allocator.getRelevantModuli(UUID_ONE)).thenReturn(RESIDUE_ONE);
+    public void batchedTimestampCallMakesRequestsAgainIfTimestampRangeDoesNotIncludeCorrectModuli() {
         when(allocator.getRelevantModuli(UUID_TWO)).thenReturn(RESIDUE_TWO);
         when(timestamps.getFreshTimestamps(anyInt()))
                 .thenReturn(TIMESTAMP_SEVEN)
                 .thenReturn(TIMESTAMP_SEVEN)
                 .thenReturn(TIMESTAMP_RANGE);
 
-        assertThat(service.getFreshTimestampForClient(UUID_TWO)).isEqualTo(RESIDUE_TWO_TIMESTAMP_IN_RANGE);
+        assertThat(service.getFreshTimestampsForClient(UUID_TWO, 1).stream())
+                .containsExactly(RESIDUE_TWO_TIMESTAMP_IN_RANGE.timestamp());
 
         verify(allocator, times(3)).getRelevantModuli(UUID_TWO);
         verify(timestamps, times(3)).getFreshTimestamps(anyInt());
-
     }
 }

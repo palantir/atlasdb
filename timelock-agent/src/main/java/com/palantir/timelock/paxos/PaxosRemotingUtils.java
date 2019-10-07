@@ -15,10 +15,15 @@
  */
 package com.palantir.timelock.paxos;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.ws.rs.core.UriBuilder;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -65,5 +70,19 @@ public final class PaxosRemotingUtils {
         return addresses.stream()
                 .map(address -> addProtocol(install, address))
                 .collect(Collectors.toSet());
+    }
+
+    public static URL convertAddressToUrl(TimeLockInstallConfiguration install, String address) {
+        try {
+            return UriBuilder.fromPath(addProtocol(install, address)).build().toURL();
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static List<URL> convertAddressesToUrls(TimeLockInstallConfiguration install, List<String> addresses) {
+        return addresses.stream()
+                .map(address -> convertAddressToUrl(install, address))
+                .collect(Collectors.toList());
     }
 }

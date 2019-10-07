@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -115,11 +117,18 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
         try {
-            delegate().deleteAllTimestamps(tableMapper.getMappedTableName(tableRef), maxTimestampExclusiveByCell,
-                    deleteSentinels);
+            delegate().deleteRows(tableMapper.getMappedTableName(tableRef), rows);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
+        try {
+            delegate().deleteAllTimestamps(tableMapper.getMappedTableName(tableRef), deletes);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }
@@ -136,13 +145,9 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         delegate().dropTables(tableNames);
 
         // We're purposely updating the table mappings after all drops are complete
-        for (TableReference tableRef : tableRefs) {
-            // Handles the edge case of deleting _namespace when clearing the kvs
-            if (tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE)) {
-                break;
-            }
-            tableMapper.removeTable(tableRef);
-        }
+        tableMapper.removeTables(tableRefs.stream()
+                .filter(tableRef -> !tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE))
+                .collect(Collectors.toSet()));
     }
 
     private Set<TableReference> getShortTableReferencesForExistingTables(Set<TableReference> tableRefs) {

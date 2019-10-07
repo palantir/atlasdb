@@ -25,13 +25,13 @@ import static com.palantir.atlasdb.table.description.render.ComponentRenderers.v
 import java.util.List;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.logsafe.Preconditions;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 class RowOrDynamicColumnRenderer extends Renderer {

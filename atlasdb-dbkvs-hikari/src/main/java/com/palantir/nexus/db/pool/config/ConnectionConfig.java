@@ -114,10 +114,9 @@ public abstract class ConnectionConfig {
     @Value.Derived
     public String getConnectionPoolName() {
         return String.format(
-                "%s-%s-%s",
+                "%s-%s",
                 getConnectionPoolIdentifier(),
-                getConnId(),
-                getDbLogin());
+                getConnId());
     }
 
     /**

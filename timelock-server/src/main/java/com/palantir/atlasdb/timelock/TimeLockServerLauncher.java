@@ -18,38 +18,39 @@ package com.palantir.atlasdb.timelock;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
-import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
-import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
+import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
 /**
  * Provides a way of launching an embedded TimeLock server using Dropwizard. Should only be used in tests.
  */
-public class TimeLockServerLauncher extends Application<TimeLockServerConfiguration> {
+public class TimeLockServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
     public static void main(String[] args) throws Exception {
         new TimeLockServerLauncher().run(args);
     }
 
     @Override
-    public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
+    public void initialize(Bootstrap<CombinedTimeLockServerConfiguration> bootstrap) {
         MetricRegistry metricRegistry = SharedMetricRegistries
                 .getOrCreate("AtlasDbTest" + UUID.randomUUID().toString());
-        TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
@@ -57,20 +58,30 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
     }
 
     @Override
-    public void run(TimeLockServerConfiguration configuration, Environment environment) {
+    public void run(CombinedTimeLockServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper()
                 .registerModule(new Jdk8Module())
                 .registerModule(new JavaTimeModule());
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
+        environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
-        CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
+
         TimeLockAgent.create(
                 metricsManager,
-                combined.install(),
-                combined::runtime, // this won't actually live reload
-                combined.deprecated(),
+                configuration.install(),
+                configuration::runtime, // this won't actually live reload
+                CombinedTimeLockServerConfiguration.threadPoolSize(),
+                CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 registrar);
+    }
+
+    @Provider
+    private static final class EmptyOptionalTo204ExceptionMapper implements ExceptionMapper<EmptyOptionalException> {
+        @Override
+        public Response toResponse(EmptyOptionalException exception) {
+            return Response.noContent().build();
+        }
     }
 }

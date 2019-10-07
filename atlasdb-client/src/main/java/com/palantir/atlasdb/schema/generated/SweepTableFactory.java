@@ -24,12 +24,14 @@ public final class SweepTableFactory {
         this.namespace = namespace;
     }
 
-    public static SweepTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static SweepTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new SweepTableFactory(sharedTriggers, namespace);
     }
 
-    public static SweepTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static SweepTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new SweepTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -51,7 +53,8 @@ public final class SweepTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putSweepPriority(Multimap<SweepPriorityTable.SweepPriorityRow, ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>> newRows) {
+        public void putSweepPriority(
+                Multimap<SweepPriorityTable.SweepPriorityRow, ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

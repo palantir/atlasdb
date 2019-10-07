@@ -45,7 +45,7 @@ public interface ReentrantConnectionSupplier extends ConnectionSupplier, Closeab
     /**
      * Closes this connection supplier and releases any resources it may hold.
      *
-     * @see java.io.Closeable#close()
+     * @see Closeable#close()
      * @throws PalantirSqlException if an error occurs while closing
      */
     @Override

@@ -34,8 +34,8 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
-import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
@@ -68,7 +68,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
@@ -78,7 +78,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(
+    public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
             Optional<TableReference> timestampTable,
             boolean initializeAsync) {
@@ -93,7 +93,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         return PersistentTimestampServiceImpl.create(createTimestampBoundStore(timestampTable, dbkvs));
     }
 
-    private InDbTimestampBoundStore createTimestampBoundStore(Optional<TableReference> timestampTable,
+    private static InDbTimestampBoundStore createTimestampBoundStore(Optional<TableReference> timestampTable,
             ConnectionManagerAwareDbKvs dbkvs) {
         return timestampTable
                 .map(tableReference -> InDbTimestampBoundStore.create(

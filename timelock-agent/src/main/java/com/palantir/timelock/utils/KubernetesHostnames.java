@@ -89,7 +89,7 @@ public final class KubernetesHostnames {
         String canonicalHostName = currentHostnameSupplier.get();
         log.info("Using hostname.", SafeArg.of("hostname", canonicalHostName));
         Matcher matcher = POD_HOSTNAME_TEMPLATE_REGEX.matcher(canonicalHostName);
-        Preconditions.checkState(matcher.matches(), "Not running in a k8s stateful set.");
+        com.palantir.logsafe.Preconditions.checkState(matcher.matches(), "Not running in a k8s stateful set.");
         return matcher;
     }
 

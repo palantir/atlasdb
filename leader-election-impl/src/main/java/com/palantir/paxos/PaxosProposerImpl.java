@@ -20,17 +20,12 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 
 /**
  * Implementation of a paxos proposer than can be a designated proposer (leader) and designated
@@ -39,7 +34,12 @@ import com.palantir.logsafe.UnsafeArg;
  * @author rullman
  */
 public final class PaxosProposerImpl implements PaxosProposer {
-    private static final Logger log = LoggerFactory.getLogger(PaxosProposerImpl.class);
+
+    private final PaxosAcceptorNetworkClient acceptorClient;
+    private final PaxosLearnerNetworkClient learnerClient;
+    private final int quorumSize;
+    private final String uuid;
+    private final AtomicLong proposalNumber;
 
     /**
      * @deprecated use {@link #newProposer(PaxosLearner, List, List, int, UUID, ExecutorService)}.
@@ -61,53 +61,67 @@ public final class PaxosProposerImpl implements PaxosProposer {
         );
     }
 
+    /**
+     * @deprecated use {@link #newProposer(PaxosAcceptorNetworkClient, PaxosLearnerNetworkClient, int, UUID)} instead.
+     */
+    @Deprecated
     public static PaxosProposer newProposer(
-            PaxosLearner localLearner,
+            PaxosLearner knowledge,
             List<PaxosAcceptor> allAcceptors,
             List<PaxosLearner> allLearners,
             int quorumSize,
             UUID leaderUuid,
-            ExecutorService executor) {
-        return new PaxosProposerImpl(
-                localLearner,
+            ExecutorService singleExecutorService) {
+        SingleLeaderAcceptorNetworkClient acceptorClient = new SingleLeaderAcceptorNetworkClient(
                 allAcceptors,
-                allLearners,
                 quorumSize,
-                leaderUuid.toString(),
-                executor);
+                Maps.asMap(ImmutableSet.copyOf(allAcceptors), $ -> singleExecutorService));
+
+        SingleLeaderLearnerNetworkClient learnerClient = new SingleLeaderLearnerNetworkClient(
+                knowledge,
+                allLearners.stream().filter(learner -> !learner.equals(knowledge)).collect(Collectors.toList()),
+                quorumSize,
+                Maps.asMap(ImmutableSet.copyOf(allLearners), $ -> singleExecutorService));
+
+        return newProposer(acceptorClient, learnerClient, quorumSize, leaderUuid);
     }
 
-    final ImmutableList<PaxosAcceptor> allAcceptors;
-    final ImmutableList<PaxosLearner> allLearners;
-    final PaxosLearner localLearner;
-    final int quorumSize;
-    final String uuid;
-    final AtomicLong proposalNum;
+    public static PaxosProposer newProposer(
+            PaxosAcceptorNetworkClient acceptorClient,
+            PaxosLearnerNetworkClient learnerClient,
+            int quorumSize,
+            UUID leaderUuid) {
+        return new PaxosProposerImpl(acceptorClient, learnerClient, quorumSize, leaderUuid);
+    }
 
-    private final ExecutorService executor;
-
-    private PaxosProposerImpl(PaxosLearner localLearner,
-                              List<PaxosAcceptor> acceptors,
-                              List<PaxosLearner> learners,
-                              int quorumSize,
-                              String uuid,
-                              ExecutorService executor) {
-        Preconditions.checkState(
-                quorumSize > acceptors.size() / 2,
-                "quorum size needs to be at least the majority of acceptors");
-        this.localLearner = localLearner;
-        this.allAcceptors = ImmutableList.copyOf(acceptors);
-        this.allLearners = ImmutableList.copyOf(learners);
+    private PaxosProposerImpl(
+            PaxosAcceptorNetworkClient acceptorClient,
+            PaxosLearnerNetworkClient learnerClient,
+            int quorumSize,
+            UUID leaderUuid) {
+        this.acceptorClient = acceptorClient;
+        this.learnerClient = learnerClient;
         this.quorumSize = quorumSize;
-        this.uuid = uuid;
-        this.proposalNum = new AtomicLong();
-        this.executor = executor;
+        this.uuid = leaderUuid.toString();
+        this.proposalNumber = new AtomicLong();
     }
 
     @Override
     public byte[] propose(final long seq, @Nullable byte[] bytes) throws PaxosRoundFailureException {
-        final PaxosProposalId proposalId = new PaxosProposalId(proposalNum.incrementAndGet(), uuid);
-        PaxosValue toPropose = new PaxosValue(uuid, seq, bytes);
+        return proposeWithId(uuid, seq, bytes);
+    }
+
+    @Override
+    public byte[] proposeAnonymously(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException {
+        return proposeWithId(UUID.randomUUID().toString(), seq, proposalValue);
+    }
+
+    private byte[] proposeWithId(
+            String uuidToProposeWith,
+            final long seq,
+            @Nullable byte[] bytes) throws PaxosRoundFailureException {
+        final PaxosProposalId proposalId = new PaxosProposalId(proposalNumber.incrementAndGet(), uuidToProposeWith);
+        PaxosValue toPropose = new PaxosValue(uuidToProposeWith, seq, bytes);
 
         // paxos phase one (prepare and promise)
         final PaxosValue finalValue = phaseOne(seq, proposalId, toPropose);
@@ -115,27 +129,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
         // paxos phase two (accept request and accepted)
         phaseTwo(seq, proposalId, finalValue);
 
-        // broadcast learned value
-        for (final PaxosLearner learner : allLearners) {
-            // local learner is forced to update later
-            if (localLearner == learner) {
-                continue;
-            }
-
-            executor.execute(() -> {
-                try {
-                    learner.learn(seq, finalValue);
-                } catch (Throwable e) {
-                    log.warn("Failed to teach learner the value {} at sequence {}",
-                            UnsafeArg.of("value", bytes),
-                            SafeArg.of("sequence", seq),
-                            e);
-                }
-            });
-        }
-
-        // force local learner to update
-        localLearner.learn(seq, finalValue);
+        learnerClient.learn(seq, finalValue);
 
         return finalValue.getData();
     }
@@ -152,36 +146,19 @@ public final class PaxosProposerImpl implements PaxosProposer {
      */
     private PaxosValue phaseOne(final long seq, final PaxosProposalId proposalId, PaxosValue proposalValue)
             throws PaxosRoundFailureException {
-        List<PaxosPromise> receivedPromises = PaxosQuorumChecker.collectQuorumResponses(
-                allAcceptors,
-                new Function<PaxosAcceptor, PaxosPromise>() {
-                    @Override
-                    @Nullable
-                    public PaxosPromise apply(@Nullable PaxosAcceptor acceptor) {
-                        return acceptor.prepare(seq, proposalId);
-                    }
-                },
-                quorumSize,
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+        PaxosResponses<PaxosPromise> receivedPromises = acceptorClient.prepare(seq, proposalId);
 
-        if (!PaxosQuorumChecker.hasQuorum(receivedPromises, quorumSize)) {
+        if (!receivedPromises.hasQuorum()) {
             // update proposal number on failure
-            for (PaxosPromise promise : receivedPromises) {
-                while (true) {
-                    long curNum = proposalNum.get();
-                    if (promise.promisedId.number <= curNum) {
-                        break;
-                    }
-                    if (proposalNum.compareAndSet(curNum, promise.promisedId.number)) {
-                        break;
-                    }
-                }
-            }
+            long maxProposal = receivedPromises.stream()
+                    .mapToLong(promise -> promise.promisedId.number)
+                    .max()
+                    .orElseGet(proposalNumber::get);
+            proposalNumber.getAndUpdate(currentNumber -> maxProposal > currentNumber ? maxProposal : currentNumber);
             throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase one");
         }
 
-        PaxosPromise greatestPromise = Collections.max(receivedPromises);
+        PaxosPromise greatestPromise = Collections.max(receivedPromises.get());
         if (greatestPromise.lastAcceptedValue != null) {
             return greatestPromise.lastAcceptedValue;
         }
@@ -200,19 +177,9 @@ public final class PaxosProposerImpl implements PaxosProposer {
     private void phaseTwo(final long seq, PaxosProposalId proposalId, PaxosValue proposalValue)
             throws PaxosRoundFailureException {
         final PaxosProposal proposal = new PaxosProposal(proposalId, proposalValue);
-        List<PaxosResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
-                allAcceptors,
-                new Function<PaxosAcceptor, PaxosResponse>() {
-                    @Override
-                    @Nullable
-                    public PaxosResponse apply(@Nullable PaxosAcceptor acceptor) {
-                        return acceptor.accept(seq, proposal);
-                    }
-                },
-                quorumSize,
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
-        if (!PaxosQuorumChecker.hasQuorum(responses, quorumSize)) {
+
+        PaxosResponses<BooleanPaxosResponse> responses = acceptorClient.accept(seq, proposal);
+        if (!responses.hasQuorum()) {
             throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase two");
         }
     }

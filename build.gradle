@@ -13,23 +13,23 @@ buildscript {
 
     dependencies {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5'
-        classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.13.0'
-        classpath 'com.palantir.baseline:gradle-baseline-java:0.30.0'
-        classpath 'com.palantir.sls-packaging:gradle-sls-packaging:2.11.0'
-        classpath 'com.netflix.nebula:nebula-dependency-recommender:5.2.0'
-        classpath 'com.netflix.nebula:nebula-publishing-plugin:5.1.4'
-        classpath 'gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.8'
+        classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
+        classpath 'com.palantir.baseline:gradle-baseline-java:1.8.2'
+        classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
+        classpath 'com.palantir.sls-packaging:gradle-sls-packaging:3.8.1'
+        classpath 'com.netflix.nebula:nebula-dependency-recommender:8.0.0'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:13.2.0'
+        classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.15.0'
+        classpath 'gradle.plugin.org.inferred:gradle-processors:3.1.0'
     }
 }
 
 plugins {
-    id 'com.github.johnrengelman.shadow' version '2.0.0'
-    id 'com.palantir.configuration-resolver' version '0.2.0'
-    id 'com.palantir.git-version' version '0.5.2'
-    id 'org.inferred.processors' version '1.2.12'
-    id 'org.unbroken-dome.test-sets' version '1.4.2'
-    id 'com.google.protobuf' version '0.8.3'
+    id 'com.github.johnrengelman.shadow' version '5.1.0'
+    id 'com.palantir.configuration-resolver' version '0.4.0'
+    id 'org.unbroken-dome.test-sets' version '2.1.1'
+    id 'com.google.protobuf' version '0.8.10'
 }
 
 repositories {
@@ -40,12 +40,7 @@ repositories {
 }
 apply plugin: 'com.palantir.baseline-config'
 apply plugin: 'com.palantir.baseline-circleci'
-
-dependencies {
-    // Adds a dependency on the Baseline configuration files. Typically use
-    // the same version as the plugin itself.
-    baseline "com.palantir.baseline:gradle-baseline-java-config:0.30.0@zip"
-}
+apply plugin: 'com.palantir.git-version'
 
 apply from: 'gradle/versions.gradle'
 
@@ -61,7 +56,17 @@ task printLastVersion {
 }
 
 allprojects {
+    apply plugin: 'java-library'
     apply plugin: 'nebula.dependency-recommender'
+    apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
+
+    // temporary until this is merged/fixed inside gradle-processors
+    configurations.allProcessors {
+        canBeConsumed = false
+        attributes {
+            attribute Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_API)
+        }
+    }
 
     dependencyRecommendations {
         strategy OverrideTransitives
@@ -84,6 +89,10 @@ allprojects {
 subprojects {
     apply plugin: 'com.palantir.configuration-resolver'
     task allDeps(type: DependencyReportTask) {}
+}
+
+configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
+    apply from: "$rootDir/gradle/publish-jars.gradle"
 }
 
 apply from: 'gradle/idea.gradle'

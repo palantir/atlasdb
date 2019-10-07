@@ -31,13 +31,13 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
- * This service handles queries for timestamps before {@link com.palantir.atlasdb.AtlasDbConstants#STARTING_TS}
+ * This service handles queries for timestamps before {@link AtlasDbConstants#STARTING_TS}
  * as follows:
  *
- * - Gets of timestamps before {@link com.palantir.atlasdb.AtlasDbConstants#STARTING_TS} will return
- *   {@link com.palantir.atlasdb.AtlasDbConstants#STARTING_TS - 1}; in an AtlasDB context these correspond to
+ * - Gets of timestamps before {@link AtlasDbConstants#STARTING_TS} will return
+ *   {@link AtlasDbConstants#STARTING_TS - 1}; in an AtlasDB context these correspond to
  *   deletion sentinels that are written non-transactionally and thus always committed.
- * - putUnlessExists to timestamps before {@link com.palantir.atlasdb.AtlasDbConstants#STARTING_TS} will throw an
+ * - putUnlessExists to timestamps before {@link AtlasDbConstants#STARTING_TS} will throw an
  *   exception.
  *
  * Queries for legitimate timestamps are routed to the delegate.

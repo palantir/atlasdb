@@ -22,9 +22,9 @@ CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:ch
 
 CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
-CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest')
+CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest' ':timelock-server:suiteTest')
 
-CONTAINER_7=('compileJava' 'compileTestJava')
+CONTAINER_7=('compileJava' 'compileTestJava' ':atlasdb-refactorings:test')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")
@@ -33,6 +33,9 @@ for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
     CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x $task"
 done
+
+# refaster runs with errorprone which patches the bootClasspath, need to ensure we run only on the errorprone container
+CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-refactorings:test"
 
 # Short circuit the build if it's docs only
 if ./scripts/circle-ci/check-only-docs-changes.sh; then
@@ -54,7 +57,7 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 # External builds have a 4GB limit so we have to tune everything so it fits in memory (only just!)
 if [[ $INTERNAL_BUILD == true ]]; then
     if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
-        export _JAVA_OPTIONS="-Xms2g -Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
+        export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
     else
         BASE_GRADLE_ARGS+=" --parallel"
         export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
@@ -71,12 +74,12 @@ else
 fi
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:jepsenTest ;;
+    0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
     2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
-    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true && checkDocsBuild ;;
+    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac

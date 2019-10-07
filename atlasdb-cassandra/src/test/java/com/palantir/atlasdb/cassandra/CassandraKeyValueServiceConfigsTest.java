@@ -34,24 +34,32 @@ public class CassandraKeyValueServiceConfigsTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
     private static final ImmutableSet<InetSocketAddress> SERVERS = ImmutableSet.of(new InetSocketAddress("foo", 42));
+    private static final CassandraCredentialsConfig CREDENTIALS =
+            ImmutableCassandraCredentialsConfig.builder()
+                    .username("username")
+                    .password("password")
+                    .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(SERVERS)
+                    .servers(ImmutableDefaultConfig.builder().addAllThriftHosts(SERVERS).build())
                     .replicationFactor(1)
+                    .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(SERVERS)
+                    .servers(ImmutableDefaultConfig.builder().addAllThriftHosts(SERVERS).build())
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
+                    .credentials(CREDENTIALS)
                     .build();
 
     @Test
     public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(SERVERS)
+                .servers(ImmutableDefaultConfig.builder().addAllThriftHosts(SERVERS).build())
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
                 .replicationFactor(1)
+                .credentials(CREDENTIALS)
                 .build();
 
         URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader().getResource("testConfig.yml");
@@ -73,7 +81,8 @@ public class CassandraKeyValueServiceConfigsTest {
         CassandraKeyValueServiceConfig newConfig = CassandraKeyValueServiceConfigs.copyWithKeyspace(
                 CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
-        assertThat(newConfig.servers()).isEqualTo(SERVERS);
+        assertThat(newConfig.servers())
+                .isEqualTo(ImmutableDefaultConfig.builder().addAllThriftHosts(SERVERS).build());
     }
 
     @Test
@@ -88,6 +97,10 @@ public class CassandraKeyValueServiceConfigsTest {
         CassandraKeyValueServiceRuntimeConfig expectedConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .numberOfRetriesOnSameHost(4)
                 .numberOfRetriesOnAllHosts(8)
+                .cellLoadingConfig(ImmutableCassandraCellLoadingConfig.builder()
+                        .crossColumnLoadBatchLimit(42)
+                        .singleQueryLoadBatchLimit(424242)
+                        .build())
                 .conservativeRequestExceptionHandler(true)
                 .build();
 

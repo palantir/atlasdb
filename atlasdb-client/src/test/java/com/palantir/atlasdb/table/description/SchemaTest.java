@@ -16,47 +16,47 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.api.Assertions;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class SchemaTest {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
+    private static final String CLASS_HASH = "__CLASS_HASH";
     private static final String TEST_PACKAGE = "package";
     private static final String TEST_TABLE_NAME = "TestTable";
-    private static final String TEST_INDEX_NAME = TEST_TABLE_NAME + IndexDefinition.IndexType.ADDITIVE.getIndexSuffix();
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
-    private static final TableReference INDEX_TABLE_REF = TableReference.createWithEmptyNamespace(TEST_INDEX_NAME);
     private static final String EXPECTED_FILES_FOLDER_PATH = "src/integrationInput/java";
 
     @Test
@@ -211,43 +211,36 @@ public class SchemaTest {
         schema.validate();
     }
 
-    @Test
-    public void canAddDeprecatedTablesAndIndexes() {
-        Namespace namespace = Namespace.create("namespace");
-        Schema schema = new Schema("TableWithDeprecations", TEST_PACKAGE, namespace);
-        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
-        schema.addDeprecatedTables("anOldTable");
-
-        schema.validate();
-        assertThat(schema.getDeprecatedTables()).containsOnly(
-                TableReference.create(namespace, "anOldTable"));
-    }
-
-    @Test
-    public void cannotAddDeprecatedTablesOrIndexesThatConflictWithCurrentTables() {
-        Namespace namespace = Namespace.create("namespace");
-        Schema schema = new Schema("TableWithDeprecations", TEST_PACKAGE, namespace);
-        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
-        schema.addDeprecatedTables(TEST_TABLE_NAME);
-
-        assertThatExceptionOfType(SafeIllegalStateException.class)
-                .isThrownBy(schema::validate)
-                .withMessageStartingWith("A deprecated table cannot also be part of your schema. "
-                        + "Check logs for any unsafe table names.")
-                .satisfies(e -> assertThat(e.getArgs()).contains(UnsafeArg.of(
-                        "invalidDeprecatedTables_unsafe",
-                        ImmutableSet.of(TableReference.create(namespace, TEST_TABLE_NAME)))));
-    }
-
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {
         generatedTestTables.forEach(tableName -> {
             String generatedFilePath =
                     String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);
-
             File expectedFile = new File(EXPECTED_FILES_FOLDER_PATH, generatedFilePath);
             File actualFile = new File(testFolder.getRoot(), generatedFilePath);
-            assertThat(actualFile).hasSameContentAs(expectedFile);
+
+            assertThat(expectedFile.length()).isEqualTo(actualFile.length());
+
+            try (Stream<String> expectedFileStream = java.nio.file.Files.lines(expectedFile.toPath());
+                Stream<String> actualFileStream = java.nio.file.Files.lines(actualFile.toPath());
+                Stream<Boolean> zipped = correspondingLinesMatchOrAreHashes(expectedFileStream, actualFileStream)) {
+
+                assertThat(zipped).allMatch(elem -> elem);
+            } catch (IOException e) {
+                Assertions.fail("Exception on stream creation", e);
+            }
+
         });
+    }
+
+    private static Stream<Boolean> correspondingLinesMatchOrAreHashes(
+            Stream<String> expectedFileStream,
+            Stream<String> actualFileStream) {
+        return Streams.zip(
+                expectedFileStream,
+                actualFileStream,
+                (first, second) ->
+                    first.equals(second) || (first.contains(CLASS_HASH) && second.contains(CLASS_HASH))
+                );
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {

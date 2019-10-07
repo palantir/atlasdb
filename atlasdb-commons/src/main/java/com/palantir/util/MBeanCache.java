@@ -15,6 +15,8 @@
  */
 package com.palantir.util;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+
 /**
  * Registers an mbean useful for tracking cache operations. Subclasses are largely responsible for
  * updating the mbean on puts, cache hits, cache misses, etc.
@@ -56,7 +58,7 @@ public abstract class MBeanCache<K, V> implements NonDistributedCache<K, V> {
      */
     public void registerMBean(String objectName) {
         if (objectName == null) {
-            throw new IllegalArgumentException("objectName must not be null.");
+            throw new SafeIllegalArgumentException("objectName must not be null.");
         }
 
         JMXUtils.registerMBeanCatchAndLogExceptions(mbean, objectName);

@@ -20,19 +20,21 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
-import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.timestamp.ManagedTimestampService;
 
-public interface AsyncTimelockService extends ClientAwareManagedTimestampService, Closeable {
+public interface AsyncTimelockService extends ManagedTimestampService, Closeable {
 
     long currentTimeMillis();
 
@@ -48,11 +50,11 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
 
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
-    StartAtlasDbTransactionResponse startAtlasDbTransaction(
-            IdentifiedTimeLockRequest request);
+    StartAtlasDbTransactionResponse deprecatedStartTransaction(IdentifiedTimeLockRequest request);
 
-    StartAtlasDbTransactionResponseV3 startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request);
+    StartAtlasDbTransactionResponseV3 startTransaction(StartIdentifiedAtlasDbTransactionRequest request);
+
+    StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request);
 
     LeaderTime leaderTime();
 }

@@ -18,8 +18,10 @@ package com.palantir.atlasdb.keyvalue.api;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class RangeRequests {
     private RangeRequests() {
@@ -76,7 +78,7 @@ public final class RangeRequests {
     public static byte[] nextLexicographicName(@Nonnull byte[] name) {
         byte[] ret = nextLexicographicNameInternal(name);
         if (ret == null) {
-            throw new IllegalArgumentException("Name is lexicographically maximum and cannot be incremented.");
+            throw new SafeIllegalArgumentException("Name is lexicographically maximum and cannot be incremented.");
         }
         return ret;
     }
@@ -199,5 +201,29 @@ public final class RangeRequests {
         } else {
             return nextLexicographicNameInternal(rowName);
         }
+    }
+
+    public static boolean isContiguousRange(boolean reverse, byte[] startInclusive, byte[] endExclusive) {
+        if (startInclusive.length == 0 || endExclusive.length == 0) {
+            return true;
+        }
+        if (reverse) {
+            return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) >= 0;
+        }
+        return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) <= 0;
+    }
+
+    public static boolean isExactlyEmptyRange(byte[] startInclusive, byte[] endExclusive) {
+        if (startInclusive.length == 0 || endExclusive.length == 0) {
+            return false;
+        }
+        return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) == 0;
+    }
+
+    public static RangeRequest ofSingleRow(@Nonnull byte[] row) {
+        return RangeRequest.builder()
+                .startRowInclusive(row)
+                .endRowExclusive(RangeRequests.nextLexicographicName(row))
+                .build();
     }
 }

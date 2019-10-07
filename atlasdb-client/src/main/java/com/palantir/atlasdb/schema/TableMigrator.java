@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
@@ -38,6 +37,7 @@ import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.Preconditions;
 
 public class TableMigrator {
     private final TableReference srcTable;
@@ -113,7 +113,7 @@ public class TableMigrator {
             Callable<Void> task = createMigrationTask(
                     range,
                     rangeId);
-            Callable<Void> wrappedTask = PTExecutors.wrap(task);
+            Callable<Void> wrappedTask = PTExecutors.wrap("MigrationTask", task);
             Future<Void> future = executor.submit(wrappedTask);
             futures.add(future);
         }

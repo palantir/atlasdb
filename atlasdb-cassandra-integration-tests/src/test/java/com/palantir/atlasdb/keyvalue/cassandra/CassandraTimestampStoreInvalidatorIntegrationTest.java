@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -26,7 +27,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.flake.ShouldRetry;
@@ -120,7 +120,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
      */
     @Test
     public void invalidationDuringTimestampIssuanceYieldsConsistentResults() {
-        Set<Long> backedUpValues = Sets.newConcurrentHashSet();
+        Set<Long> backedUpValues = ConcurrentHashMap.newKeySet();
         AtomicLong maxSuccessfulBound = new AtomicLong(CassandraTimestampUtils.INITIAL_VALUE);
 
         CassandraTestTools.executeInParallelOnExecutorService(() -> {

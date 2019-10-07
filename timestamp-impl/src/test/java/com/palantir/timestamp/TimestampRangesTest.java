@@ -19,6 +19,8 @@ package com.palantir.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.stream.LongStream;
+
 import org.junit.Test;
 
 public class TimestampRangesTest {
@@ -30,77 +32,64 @@ public class TimestampRangesTest {
 
     @Test
     public void canGetTimestampFromRangeIfItIsTheLowerBound() {
-        assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10))
-                .isPresent()
-                .hasValue(SEVENTY_THREE);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10))
+                .containsExactly(SEVENTY_THREE);
     }
 
     @Test
     public void canGetTimestampFromRangeIfItIsTheUpperBound() {
-        assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10))
-                .isPresent()
-                .hasValue(EIGHTY_TWO);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10))
+                .containsExactly(EIGHTY_TWO);
     }
 
     @Test
     public void canGetTimestampsFromRangeInTheMiddle() {
-        assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10))
-                .isPresent()
-                .hasValue(77L);
-        assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10))
-                .isPresent()
-                .hasValue(78L);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10))
+                .containsExactly(77L);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10))
+                .containsExactly(78L);
     }
 
     @Test
     public void canHandleMultipleValidMatches() {
-        assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2))
-                .isPresent()
-                .satisfies(optionalLong -> {
-                    long value = optionalLong.getAsLong();
-                    assertThat(value).isIn(73L, 75L, 77L, 79L, 81L);
-                });
-        assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
-                .isPresent()
-                .satisfies(optionalLong -> {
-                    long value = optionalLong.getAsLong();
-                    assertThat(value).isIn(74L, 76L, 78L, 80L, 82L);
-                });
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2))
+                .containsExactly(73L, 75L, 77L, 79L, 81L);
+
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
+                .containsExactly(74L, 76L, 78L, 80L, 82L);
     }
 
     @Test
     public void canHandleNegativeResidues() {
-        assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -7, 10))
-                .isPresent()
-                .hasValue(SEVENTY_THREE);
-        assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -5, 10))
-                .isPresent()
-                .hasValue(75);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, -7, 10))
+                .containsExactly(SEVENTY_THREE);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, -5, 10))
+                .containsExactly(75L);
     }
 
     @Test
     public void throwsIfModulusIsNegative() {
-        assertThatThrownBy(() -> TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, -8))
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 3, -8))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found -8.");
-        assertThatThrownBy(() -> TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 4, -2))
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 4, -2))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found -2.");
     }
 
     @Test
     public void throwsIfModulusIsZero() {
-        assertThatThrownBy(() -> TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 0))
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found 0.");
     }
 
     @Test
     public void throwsIfResidueEqualsOrExceedsModulus() {
-        assertThatThrownBy(() -> TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 2))
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 2))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Absolute value of residue 2 equals or exceeds modulus 2 - no solutions");
-        assertThatThrownBy(() -> TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -3, 2))
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, -3, 2))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageMatching("Absolute value of residue -3 equals or exceeds modulus 2 - no solutions");
     }
@@ -108,6 +97,10 @@ public class TimestampRangesTest {
     @Test
     public void returnsAbsentIfTimestampRangeDoesNotContainAnyValuesMatchingModulus() {
         TimestampRange oneTimestamp = TimestampRange.createInclusiveRange(77, 77);
-        assertThat(TimestampRanges.getTimestampMatchingModulus(oneTimestamp, 6, 10)).isNotPresent();
+        assertThat(getPartitionedTimestamps(oneTimestamp, 6, 10)).isEmpty();
+    }
+
+    private static LongStream getPartitionedTimestamps(TimestampRange timestampRange, int residue, int modulus) {
+        return TimestampRanges.getPartitionedTimestamps(timestampRange, residue, modulus).stream();
     }
 }

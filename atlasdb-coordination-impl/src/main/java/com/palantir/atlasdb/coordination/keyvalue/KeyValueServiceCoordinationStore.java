@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.coordination.keyvalue;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -67,6 +69,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * in the sequence.
  */
 // TODO (jkong): Coordination stores should be able to clean up old values.
+// TODO (jkong): Split this class into 2 or more pieces as it's large.
 public final class KeyValueServiceCoordinationStore<T> implements CoordinationStore<T> {
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CoordinationStore<T> {
@@ -104,6 +107,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private final KeyValueService kvs;
     private final byte[] coordinationRow;
     private final LongSupplier sequenceNumberSupplier;
+    private final BiPredicate<T, T> shouldReuseExtantValue;
     private final Class<T> clazz;
 
     @VisibleForTesting
@@ -115,11 +119,13 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
+            BiPredicate<T, T> shouldReuseExtantValue,
             Class<T> clazz) {
         this.objectMapper = objectMapper;
         this.kvs = kvs;
         this.coordinationRow = coordinationRow;
         this.sequenceNumberSupplier = sequenceNumberSupplier;
+        this.shouldReuseExtantValue = shouldReuseExtantValue;
         this.clazz = clazz;
     }
 
@@ -128,11 +134,12 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
+            BiPredicate<T, T> shouldReuseExistingValue,
             Class<T> clazz,
             boolean initializeAsync) {
         KeyValueServiceCoordinationStore<T> coordinationStore
                 = new KeyValueServiceCoordinationStore<>(
-                        objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
+                        objectMapper, kvs, coordinationRow, sequenceNumberSupplier, shouldReuseExistingValue, clazz);
         coordinationStore.wrapper.initialize(initializeAsync);
         return coordinationStore.isInitialized() ? coordinationStore : coordinationStore.wrapper;
     }
@@ -146,25 +153,50 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     // some caching.
     @Override
     public Optional<ValueAndBound<T>> getAgreedValue() {
-        return getCoordinationValue()
-                .map(sequenceAndBound -> ValueAndBound.of(
-                        getValue(sequenceAndBound.sequence()), sequenceAndBound.bound()));
+        return readLatestState().map(CoordinationStoreState::valueAndBound);
     }
 
+    /**
+     * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
+     * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} is
+     * {@link com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility#SUPPORTED_DETAIL_ON_FAILURE}.
+     */
     @Override
     public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
-        Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-        ValueAndBound<T> extantValueAndBound = ValueAndBound.of(coordinationValue.flatMap(
-                sequenceAndBound -> getValue(sequenceAndBound.sequence())),
-                coordinationValue.map(SequenceAndBound::bound).orElse(SequenceAndBound.INVALID_BOUND));
-        T targetValue = transform.apply(extantValueAndBound);
+        Optional<CoordinationStoreState<T>> storeState = readLatestState();
 
-        SequenceAndBound newSequenceAndBound
-                = determineNewSequenceAndBound(coordinationValue, extantValueAndBound, targetValue);
+        T targetValue = transform.apply(
+                storeState.map(CoordinationStoreState::valueAndBound)
+                        .orElseGet(() -> ValueAndBound.of(Optional.empty(), SequenceAndBound.INVALID_BOUND)));
+
+        SequenceAndBound newSequenceAndBound = determineNewSequenceAndBound(storeState, targetValue);
 
         CheckAndSetResult<SequenceAndBound> casResult = checkAndSetCoordinationValue(
-                coordinationValue, newSequenceAndBound);
+                storeState.map(CoordinationStoreState::sequenceAndBound), newSequenceAndBound);
         return extractRelevantValues(targetValue, newSequenceAndBound.bound(), casResult);
+    }
+
+    private Optional<CoordinationStoreState<T>> readLatestState() {
+        while (true) {
+            Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
+            if (!coordinationValue.isPresent()) {
+                return Optional.empty();
+            }
+            SequenceAndBound presentCoordinationValue = coordinationValue.get();
+            Optional<T> value = getValue(presentCoordinationValue.sequence());
+            if (value.isPresent()) {
+                CoordinationStoreState<T> coordinationStoreState = CoordinationStoreState.of(
+                        presentCoordinationValue.sequence(),
+                        presentCoordinationValue.bound(),
+                        value);
+                return Optional.of(coordinationStoreState);
+            }
+            log.info("We read a value from the coordination store that seems to have been deleted, for sequence"
+                            + " and bound {}. This may happen as a part of sweeping the coordination store. We will"
+                            + " retry. This is acceptable, but if it persists and transactions are not making progress,"
+                            + " please contact support.",
+                    SafeArg.of("sequenceAndBound", presentCoordinationValue));
+        }
     }
 
     private void tryInitialize() {
@@ -173,15 +205,18 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
     private SequenceAndBound determineNewSequenceAndBound(
-            Optional<SequenceAndBound> coordinationValue,
-            ValueAndBound<T> extantValueAndBound,
+            Optional<CoordinationStoreState<T>> oldState,
             T targetValue) {
         long sequenceNumber;
         long newBound;
-        if (shouldReuseExtantValue(coordinationValue, extantValueAndBound.value(), targetValue)) {
+        if (reuseExtantValue(oldState, targetValue)) {
             // Safe as we're only on this branch if the value is present
-            sequenceNumber = coordinationValue.get().sequence();
-            newBound = getNewBound(sequenceNumberSupplier.getAsLong());
+            CoordinationStoreState<T> extantState = oldState.get();
+            sequenceNumber = extantState.sequence();
+            long freshSequenceNumber = sequenceNumberSupplier.getAsLong();
+            newBound = freshSequenceNumber < extantState.bound()
+                    ? extantState.bound()
+                    : getNewBound(freshSequenceNumber);
         } else {
             sequenceNumber = sequenceNumberSupplier.getAsLong();
             putUnlessValueExists(sequenceNumber, targetValue);
@@ -191,12 +226,15 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
-    private boolean shouldReuseExtantValue(
-            Optional<SequenceAndBound> coordinationValue,
-            Optional<T> extantValue,
+    private boolean reuseExtantValue(
+            Optional<CoordinationStoreState<T>> oldState,
             T targetValue) {
-        return coordinationValue.isPresent()
-                && extantValue.map(presentValue -> presentValue.equals(targetValue)).orElse(false);
+        if (!oldState.isPresent()) {
+            return false;
+        }
+        CoordinationStoreState<T> extantState = oldState.get();
+        return extantState.value().map(extantValue -> shouldReuseExtantValue.test(extantValue, targetValue))
+                .orElse(false);
     }
 
     private CheckAndSetResult<ValueAndBound<T>> extractRelevantValues(T targetValue, long newBound,
@@ -257,6 +295,10 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     @VisibleForTesting
     CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
             Optional<SequenceAndBound> oldValue, SequenceAndBound newValue) {
+        if (oldValue.map(presentOldValue -> Objects.equals(presentOldValue, newValue)).orElse(false)) {
+            return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
+        }
+
         CheckAndSetRequest request = new CheckAndSetRequest.Builder()
                 .table(AtlasDbConstants.COORDINATION_TABLE)
                 .cell(getCoordinationValueCell())
@@ -268,10 +310,13 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             kvs.checkAndSet(request);
             return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
         } catch (CheckAndSetException e) {
-            return ImmutableCheckAndSetResult.of(false, e.getActualValues()
-                    .stream()
-                    .map(this::deserializeSequenceAndBound)
-                    .collect(Collectors.toList()));
+            if (e.getActualValues() != null) {
+                return ImmutableCheckAndSetResult.of(false, e.getActualValues()
+                        .stream()
+                        .map(this::deserializeSequenceAndBound)
+                        .collect(Collectors.toList()));
+            }
+            return getFailedResultWithMostRecentValueAndBound(oldValue, newValue);
         }
     }
 
@@ -294,7 +339,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
-    private byte[] serializeSequenceAndBound(SequenceAndBound sequenceAndBound) {
+    @VisibleForTesting
+    byte[] serializeSequenceAndBound(SequenceAndBound sequenceAndBound) {
         return serializeData(sequenceAndBound, COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION);
     }
 
@@ -313,16 +359,54 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
-    private Cell getCoordinationValueCell() {
+    @VisibleForTesting
+    Cell getCoordinationValueCell() {
         return getCellForSequence(0);
     }
 
-    private Cell getCellForSequence(long sequenceNumber) {
+    @VisibleForTesting
+    Cell getCellForSequence(long sequenceNumber) {
         return Cell.create(coordinationRow, ValueType.VAR_LONG.convertFromJava(sequenceNumber));
     }
 
     private Optional<Value> readFromCoordinationTable(Cell cell) {
         return Optional.ofNullable(kvs.get(AtlasDbConstants.COORDINATION_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE))
                 .get(cell));
+    }
+
+    private CheckAndSetResult<SequenceAndBound> getFailedResultWithMostRecentValueAndBound(
+            Optional<SequenceAndBound> oldValue, SequenceAndBound newValue) {
+        Optional<SequenceAndBound> actualValue = getCoordinationValue();
+        if (!actualValue.isPresent()) {
+            throw new SafeIllegalStateException("Failed to check and set coordination value from {} to {}, but "
+                    + "there is no value present in the coordination table",
+                    SafeArg.of("oldValue", oldValue), SafeArg.of("newValue", newValue));
+        }
+        return ImmutableCheckAndSetResult.of(false, ImmutableList.of(actualValue.get()));
+    }
+
+    @org.immutables.value.Value.Immutable // We use the AtlasDB Value class too
+    interface CoordinationStoreState<T> {
+        long sequence();
+        long bound();
+        Optional<T> value();
+
+        @org.immutables.value.Value.Lazy
+        default SequenceAndBound sequenceAndBound() {
+            return SequenceAndBound.of(sequence(), bound());
+        }
+
+        @org.immutables.value.Value.Lazy
+        default ValueAndBound<T> valueAndBound() {
+            return ValueAndBound.of(value(), bound());
+        }
+
+        static <T> CoordinationStoreState<T> of(long sequence, long bound, Optional<T> value) {
+            return ImmutableCoordinationStoreState.<T>builder()
+                    .sequence(sequence)
+                    .bound(bound)
+                    .value(value)
+                    .build();
+        }
     }
 }

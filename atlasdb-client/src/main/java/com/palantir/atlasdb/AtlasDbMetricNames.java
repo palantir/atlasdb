@@ -58,6 +58,7 @@ public final class AtlasDbMetricNames {
     public static final String SWEEP_TS = "sweepTimestamp";
     public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
     public static final String LAG_MILLIS = "millisSinceLastSweptTs";
+    public static final String BATCH_SIZE_MEAN = "batchSizeMean";
 
     public static final String SWEEP_OUTCOME = "outcome";
     public static final String TAG_OUTCOME = "status";
@@ -66,5 +67,6 @@ public final class AtlasDbMetricNames {
     public static final String TAG_CLIENT = "client";
 
     public static final String COORDINATION_LAST_VALID_BOUND = "lastValidBound";
+    public static final String COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION = "currentTransactionsSchemaVersion";
     public static final String COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION = "eventualTransactionsSchemaVersion";
 }

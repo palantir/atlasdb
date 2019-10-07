@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -23,7 +24,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -649,6 +649,22 @@ public final class SweepableTimestampsTable implements
         });
     }
 
+    @Override
+    public Map<SweepableTimestampsRow, Iterator<SweepableTimestampsColumnValue>> getRowsColumnRangeIterator(Iterable<SweepableTimestampsRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<SweepableTimestampsRow, Iterator<SweepableTimestampsColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            SweepableTimestampsRow row = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<SweepableTimestampsColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                SweepableTimestampsColumn col = SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                byte[] val = SweepableTimestampsColumnValue.hydrateValue(result.getValue());
+                return SweepableTimestampsColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<SweepableTimestampsRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -760,5 +776,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "t7gPykD45L4BzA0609socA==";
+    static String __CLASS_HASH = "5iC+nT3xDVTidq0kWH0TUQ==";
 }

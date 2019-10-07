@@ -27,6 +27,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -43,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.KvsProfilingLogger.LoggingFunction;
@@ -131,6 +133,19 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.durationMillis(stopwatch));
     }
 
+    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRows(String method,
+            TableReference tableRef,
+            Iterable<byte[]> rows) {
+        long startTime = System.currentTimeMillis();
+        return (logger, stopwatch) ->
+                logger.log("Call to KVS.{} at time {}, on table {} for (estimated) {} rows took {} ms.",
+                        LoggingArgs.method(method),
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.rowCount(Ints.saturatedCast(rows.spliterator().estimateSize())),
+                        LoggingArgs.durationMillis(stopwatch));
+    }
+
     private static BiConsumer<LoggingFunction, Map<Cell, Value>> logCellResultSize(long overhead) {
         return (logger, result) -> {
             long sizeInBytes = 0;
@@ -180,9 +195,14 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
-        maybeLog(() -> delegate.deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels),
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        maybeLog(() -> delegate.deleteRows(tableRef, rows),
+                logTimeAndTableRows("deleteRows", tableRef, rows));
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
+        maybeLog(() -> delegate.deleteAllTimestamps(tableRef, deletes),
                 logTimeAndTable("deleteAllTimestamps", tableRef));
     }
 

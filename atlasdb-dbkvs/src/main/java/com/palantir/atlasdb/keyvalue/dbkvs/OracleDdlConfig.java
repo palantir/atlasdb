@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
@@ -24,12 +25,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.db.oracle.JdbcHandler;
+import com.palantir.logsafe.Preconditions;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
 @JsonSerialize(as = ImmutableOracleDdlConfig.class)
@@ -99,7 +99,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
         Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
         Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
         Preconditions.checkState(tablePrefix().endsWith("_"), "Oracle 'tablePrefix' must end with an underscore.");
-        Preconditions.checkState(
+        com.google.common.base.Preconditions.checkState(
                 tablePrefix().length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
                 "Oracle 'tablePrefix' cannot be more than %s characters long.",
                 AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
@@ -109,7 +109,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
         Preconditions.checkState(
                 overflowTablePrefix().endsWith("_"),
                 "Oracle 'overflowTablePrefix' must end with an underscore.");
-        Preconditions.checkState(
+        com.google.common.base.Preconditions.checkState(
                 overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
                 "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
                 AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);

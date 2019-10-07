@@ -27,16 +27,16 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
 
     public static PaxosAcceptor newAcceptor(String logDir) {
-        PaxosStateLog<PaxosAcceptorState> log = new PaxosStateLogImpl<PaxosAcceptorState>(logDir);
+        PaxosStateLog<PaxosAcceptorState> log = new PaxosStateLogImpl<>(logDir);
         return new PaxosAcceptorImpl(
-                new ConcurrentSkipListMap<Long, PaxosAcceptorState>(),
+                new ConcurrentSkipListMap<>(),
                 log,
                 log.getGreatestLogEntry());
     }
 
-    final ConcurrentSkipListMap<Long, PaxosAcceptorState> state;
-    final PaxosStateLog<PaxosAcceptorState> log;
-    final long greatestInLogAtStartup;
+    private final ConcurrentSkipListMap<Long, PaxosAcceptorState> state;
+    private final PaxosStateLog<PaxosAcceptorState> log;
+    private final long greatestInLogAtStartup;
 
     private PaxosAcceptorImpl(ConcurrentSkipListMap<Long, PaxosAcceptorState> state,
                               PaxosStateLog<PaxosAcceptorState> log,

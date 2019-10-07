@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -35,12 +36,12 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -64,11 +65,11 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
 
     private void scheduleTasksAndValidateSnapshots(int numRequests, int numManagers) {
         List<TransactionSchemaManager> managers = IntStream.range(0, numManagers)
-                .mapToObj(this::createTransactionSchemaManager)
+                .mapToObj(unused -> createTransactionSchemaManager())
                 .collect(Collectors.toList());
 
         List<Future> futures = Lists.newArrayList();
-        Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots = Sets.newConcurrentHashSet();
+        Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots = ConcurrentHashMap.newKeySet();
 
         for (int i = 0; i < numRequests; i++) {
             futures.add(service.submit(() -> writeBetweenTwoSnapshots(getRandomManager(managers), snapshots)));
@@ -77,8 +78,13 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
         validateSnapshots(snapshots);
     }
 
-    private TransactionSchemaManager createTransactionSchemaManager(int unused) {
-        return new TransactionSchemaManager(CoordinationServices.createDefault(kvs, timestampService, false));
+    private TransactionSchemaManager createTransactionSchemaManager() {
+        return new TransactionSchemaManager(
+                CoordinationServices.createDefault(
+                        kvs,
+                        timestampService,
+                        MetricsManagers.createForTests(),
+                        false));
     }
 
     private static TransactionSchemaManager getRandomManager(List<TransactionSchemaManager> managers) {

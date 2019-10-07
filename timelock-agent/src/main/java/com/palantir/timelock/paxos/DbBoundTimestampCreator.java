@@ -19,17 +19,19 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class DbBoundTimestampCreator implements TimestampCreator {
 
@@ -40,16 +42,19 @@ public class DbBoundTimestampCreator implements TimestampCreator {
     }
 
     @Override
-    public Supplier<ManagedTimestampService> createTimestampService(String client, LeaderConfig leaderConfig) {
+    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig) {
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
-                new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), x -> false),
+                new MetricsManager(new MetricRegistry(), SharedTaggedMetricRegistries.getSingleton(), x -> false),
                 kvsConfig,
+                Optional::empty,
                 Optional.of(leaderConfig),
                 Optional.empty(),
-                Optional.of(AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE));
+                Optional.of(AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
 
-        TimestampService timestampService = atlasFactory.getTimestampService();
-        Preconditions.checkArgument(TimestampManagementService.class.isInstance(timestampService),
+        TimestampService timestampService = atlasFactory.getManagedTimestampService();
+        Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
                 "The timestamp service is not a managed timestamp service.");
 
         return () -> new DelegatingManagedTimestampService(timestampService,

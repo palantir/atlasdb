@@ -64,6 +64,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
@@ -258,8 +259,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.deleteAllTimestamps(
                 tableReference,
-                ImmutableMap.of(CELL, 1_234_567L),
-                true);
+                ImmutableMap.of(CELL, new TimestampRangeDelete.Builder()
+                        .deleteSentinels(true)
+                        .endInclusive(false)
+                        .timestamp(1_234_567L)
+                        .build()));
 
         putDummyValueAtCellAndTimestamp(tableReference, CELL, 1337L, STARTING_ATLAS_TIMESTAMP - 1);
         Map<Cell, Value> resultExpectedCoveredByRangeTombstone =
@@ -275,8 +279,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.deleteAllTimestamps(
                 tableReference,
-                ImmutableMap.of(CELL, 1_234_567L),
-                true);
+                ImmutableMap.of(CELL, new TimestampRangeDelete.Builder()
+                        .deleteSentinels(true)
+                        .endInclusive(false)
+                        .timestamp(1_234_567L)
+                        .build()));
 
         // A value written outside of the range tombstone should not be covered by the range tombstone, even if
         // the Cassandra timestamp of the value is much lower than that of the range tombstone.

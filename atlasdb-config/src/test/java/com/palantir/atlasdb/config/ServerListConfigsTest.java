@@ -71,17 +71,15 @@ public class ServerListConfigsTest {
     public void prioritisesRuntimeConfigIfAvailable() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                () -> Optional.of(RUNTIME_CONFIG),
-                CLIENT);
-        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client", "two/client");
+                () -> Optional.of(RUNTIME_CONFIG));
+        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one", "two");
     }
 
     @Test
     public void prioritisesRuntimeConfigEvenIfThatHasNoClients() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()),
-                CLIENT);
+                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()));
         assertThat(resolvedConfig.servers()).isEmpty();
     }
 
@@ -89,8 +87,7 @@ public class ServerListConfigsTest {
     public void fallsBackToInstallConfigIfRuntimeConfigNotAvailable() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                Optional::empty,
-                CLIENT);
-        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client");
+                Optional::empty);
+        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one");
     }
 }

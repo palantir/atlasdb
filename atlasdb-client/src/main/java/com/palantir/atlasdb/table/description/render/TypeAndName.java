@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import org.apache.commons.lang3.Validate;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.logsafe.Preconditions;
 
 public class TypeAndName {
     public final String type;
@@ -67,12 +66,12 @@ public class TypeAndName {
     }
 
     public String getNonListType() {
-        Validate.isTrue(isListType());
+        Preconditions.checkArgument(isListType());
         return type.replaceFirst("List<", "").replaceAll(">$", "");
     }
 
     public String getVarArgParameterFromList(String separator, int requiredArgs) {
-        Validate.isTrue(isListType());
+        Preconditions.checkArgument(isListType());
         String nonListType = getType().replaceFirst("List<", "").replaceAll(">$", "");
         StringBuilder s = new StringBuilder();
         for (int i = 0; i < requiredArgs; i++) {
@@ -82,7 +81,7 @@ public class TypeAndName {
     }
 
     public String getListFromVarArgParameter(int requiredArgs) {
-        Validate.isTrue(isListType());
+        Preconditions.checkArgument(isListType());
         StringBuilder s = new StringBuilder(type.replaceFirst("List<", "ImmutableList.<"));
         s.append("builder()");
         for (int i = 0; i < requiredArgs; i++) {

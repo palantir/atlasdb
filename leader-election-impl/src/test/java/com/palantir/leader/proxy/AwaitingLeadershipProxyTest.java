@@ -17,7 +17,6 @@ package com.palantir.leader.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -33,16 +32,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.stubbing.Answer;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -62,7 +58,6 @@ public class AwaitingLeadershipProxyTest {
     public void before() throws InterruptedException {
         when(leaderElectionService.blockOnBecomingLeader()).thenReturn(leadershipToken);
         when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
-        when(leaderElectionService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(leaderElectionService.isStillLeading(leadershipToken)).thenReturn(
                 LeaderElectionService.StillLeadingStatus.LEADING);
     }
@@ -72,7 +67,6 @@ public class AwaitingLeadershipProxyTest {
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
-        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.LEADING);
@@ -90,7 +84,6 @@ public class AwaitingLeadershipProxyTest {
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenNotLeading() {
-        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.NOT_LEADING);
@@ -101,42 +94,6 @@ public class AwaitingLeadershipProxyTest {
         assertThat(proxy.equals(proxy)).isTrue();
         assertThat(proxy.equals(null)).isFalse();
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
-    }
-
-    @Test
-    public void shouldNotRedirectToItself() {
-        HostAndPort localHost = HostAndPort.fromHost("localhost");
-        AtomicReference<LeaderElectionService.LeadershipToken> reference = new AtomicReference<>();
-
-        // This is a hacky way to "gain leadership" whilst checking the leader in memory.
-        Answer<Optional<HostAndPort>> answer = invocation -> {
-            reference.set(leadershipToken);
-            return Optional.of(localHost);
-        };
-        when(mockLeader.getSuspectedLeaderInMemory()).then(answer);
-
-        AwaitingLeadershipProxy<Runnable> proxy = AwaitingLeadershipProxy.proxyForTest(delegateSupplier,
-                mockLeader,
-                Runnable.class,
-                reference);
-
-        LeaderElectionService.LeadershipToken token = proxy.getLeadershipToken();
-        assertEquals(token, leadershipToken);
-    }
-
-    @Test
-    public void shouldRedirectToOtherHosts() {
-        HostAndPort otherHost = HostAndPort.fromHost("otherhost");
-        AtomicReference<LeaderElectionService.LeadershipToken> reference = new AtomicReference<>();
-        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.of(otherHost));
-
-        AwaitingLeadershipProxy<Runnable> proxy = AwaitingLeadershipProxy.proxyForTest(delegateSupplier,
-                mockLeader,
-                Runnable.class,
-                reference);
-
-        assertThatThrownBy(proxy::getLeadershipToken).isInstanceOf(NotCurrentLeaderException.class)
-                .hasMessageContaining("hinting suspected leader host otherhost");
     }
 
     @Test

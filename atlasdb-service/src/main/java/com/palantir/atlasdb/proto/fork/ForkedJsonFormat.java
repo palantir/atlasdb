@@ -37,6 +37,8 @@ import com.google.protobuf.ExtensionRegistry;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.UnknownFieldSet;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 /**
  * Forked version of com.googlecode.protobuf.format.JsonFormat from protobuf-java-format-1.2
@@ -107,7 +109,7 @@ public final class ForkedJsonFormat {
             print(message, text);
             return text.toString();
         } catch (IOException e) {
-            throw new RuntimeException("Writing to a StringBuilder threw an IOException (should never happen).",
+            throw new SafeRuntimeException("Writing to a StringBuilder threw an IOException (should never happen).",
                     e);
         }
     }
@@ -121,7 +123,7 @@ public final class ForkedJsonFormat {
             print(fields, text);
             return text.toString();
         } catch (IOException e) {
-            throw new RuntimeException("Writing to a StringBuilder threw an IOException (should never happen).",
+            throw new SafeRuntimeException("Writing to a StringBuilder threw an IOException (should never happen).",
                     e);
         }
     }
@@ -359,7 +361,7 @@ public final class ForkedJsonFormat {
         public void outdent() {
             int length = indent.length();
             if (length == 0) {
-                throw new IllegalArgumentException(" Outdent() without matching Indent().");
+                throw new SafeIllegalArgumentException(" Outdent() without matching Indent().");
             }
             indent.delete(length - 2, length);
         }
@@ -1116,7 +1118,7 @@ public final class ForkedJsonFormat {
             case MESSAGE:
             case GROUP:
             default:
-                throw new RuntimeException("Can't get here.");
+                throw new SafeRuntimeException("Can't get here.");
         }
         return value;
     }
@@ -1257,8 +1259,8 @@ public final class ForkedJsonFormat {
                         appendEscapedUnicode(builder, c);
                         char next = iter.next();
                         if (next == CharacterIterator.DONE) {
-                            throw new IllegalArgumentException("invalid unicode string: unexpected high surrogate pair "
-                                    + "value without corresponding low value.");
+                            throw new SafeIllegalArgumentException("invalid unicode string: unexpected high surrogate "
+                                    + "pair value without corresponding low value.");
                         }
                         appendEscapedUnicode(builder, next);
                     } else {

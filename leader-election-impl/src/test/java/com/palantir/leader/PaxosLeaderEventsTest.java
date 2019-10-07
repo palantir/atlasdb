@@ -16,82 +16,100 @@
 package com.palantir.leader;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
-import java.util.concurrent.CompletableFuture;
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.net.HostAndPort;
-import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosProposer;
+import com.palantir.paxos.LeaderPinger;
+import com.palantir.paxos.SingleLeaderPinger;
 
+@RunWith(MockitoJUnitRunner.class)
 public class PaxosLeaderEventsTest {
 
-    PaxosLeadershipEventRecorder recorder = mock(PaxosLeadershipEventRecorder.class);
-    PaxosLeaderElectionService electionService = new PaxosLeaderElectionServiceBuilder()
-            .proposer(mock(PaxosProposer.class))
-            .knowledge(mock(PaxosLearner.class))
-            .potentialLeadersToHosts(ImmutableMap.<PingableLeader, HostAndPort>of())
-            .acceptors(ImmutableList.of())
-            .learners(ImmutableList.of())
-            .executor(Executors.newSingleThreadExecutor())
-            .pingRateMs(0L)
-            .randomWaitBeforeProposingLeadershipMs(0L)
-            .leaderPingResponseWaitMs(0L)
-            .eventRecorder(recorder)
-            .onlyLogOnQuorumFailure(() -> true)
-            .build();
+    private static final UUID LOCAL_UUID = UUID.randomUUID();
+    private static final UUID REMOTE_UUID = UUID.randomUUID();
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    @Mock private PingableLeader pingableLeader;
+    @Mock private PaxosLeadershipEventRecorder recorder;
+
+    @After
+    public void after() {
+        executorService.shutdown();
+    }
 
     @Test
-    public void recordsLeaderPingFailure() throws InterruptedException {
+    public void recordsLeaderPingFailure() {
         RuntimeException error = new RuntimeException("foo");
-        CompletableFuture<Boolean> pingFuture = new CompletableFuture<>();
-        pingFuture.completeExceptionally(error);
+        when(pingableLeader.ping()).thenThrow(error);
+        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
-        boolean result = electionService.getAndRecordLeaderPingResult(pingFuture);
-        assertThat(result).isFalse();
+        LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(10));
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isFalse();
 
         verify(recorder).recordLeaderPingFailure(error);
         verifyNoMoreInteractions(recorder);
     }
 
     @Test
-    public void recordsLeaderPingTimeout() throws InterruptedException {
-        // a null result from ExecutorCompletionService indicates that no results were available before the timeout
-        CompletableFuture<Boolean> pingFuture = null;
+    public void recordsLeaderPingTimeout() {
+        when(pingableLeader.ping()).thenAnswer($ -> {
+            Thread.sleep(10_000);
+            return true;
+        });
 
-        boolean result = electionService.getAndRecordLeaderPingResult(pingFuture);
-        assertThat(result).isFalse();
+        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
+
+        LeaderPinger pinger = pingerWithTimeout(Duration.ofMillis(100));
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isFalse();
 
         verify(recorder).recordLeaderPingTimeout();
         verifyNoMoreInteractions(recorder);
     }
 
     @Test
-    public void recordsLeaderPingReturnedFalse() throws InterruptedException {
-        CompletableFuture<Boolean> pingFuture = CompletableFuture.completedFuture(false);
+    public void recordsLeaderPingReturnedFalse() {
+        when(pingableLeader.ping()).thenReturn(false);
+        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
-        boolean result = electionService.getAndRecordLeaderPingResult(pingFuture);
-        assertThat(result).isFalse();
+        LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isFalse();
 
         verify(recorder).recordLeaderPingReturnedFalse();
         verifyNoMoreInteractions(recorder);
     }
 
     @Test
-    public void doesNotRecordLeaderPingSuccess() throws InterruptedException {
-        CompletableFuture<Boolean> pingFuture = CompletableFuture.completedFuture(true);
+    public void doesNotRecordLeaderPingSuccess() {
+        when(pingableLeader.ping()).thenReturn(true);
+        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
-        boolean result = electionService.getAndRecordLeaderPingResult(pingFuture);
-        assertThat(result).isTrue();
+        LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isTrue();
 
-        verifyNoMoreInteractions(recorder);
+        verifyZeroInteractions(recorder);
+    }
+
+    private LeaderPinger pingerWithTimeout(Duration leaderPingResponseWait) {
+        return new SingleLeaderPinger(
+                ImmutableMap.of(pingableLeader, executorService),
+                leaderPingResponseWait,
+                recorder,
+                LOCAL_UUID);
     }
 
 }

@@ -36,6 +36,7 @@ public class ExpectedFailureRule implements TestRule {
                 evaluateBaseExpectingFailure();
             }
 
+            @SuppressWarnings("CatchBlockLogException")
             private void evaluateBaseExpectingFailure() {
                 try {
                     base.evaluate();

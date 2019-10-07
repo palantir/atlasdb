@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -41,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -156,30 +156,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell, boolean deleteSentinels) {
-        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, deleteSentinels);
-    }
-
-    public static void deleteAllTimestampsDefaultImpl(KeyValueService kvs, TableReference tableRef,
-            Map<Cell, Long> maxTimestampByCell, boolean deleteSentinel) {
-        if (maxTimestampByCell.isEmpty()) {
-            return;
-        }
-
-        long maxTimestampExclusive = maxTimestampByCell.values().stream().max(Long::compare).get();
-
-        Multimap<Cell, Long> timestampsByCell = kvs.getAllTimestamps(tableRef, maxTimestampByCell.keySet(),
-                maxTimestampExclusive);
-
-        Multimap<Cell, Long> timestampsByCellExcludingSentinels = Multimaps.filterEntries(timestampsByCell, entry -> {
-            long maxTimestampForCell = maxTimestampByCell.get(entry.getKey());
-
-            long timestamp = entry.getValue();
-            return timestamp < maxTimestampForCell && (deleteSentinel || timestamp != Value.INVALID_VALUE_TIMESTAMP);
-        });
-
-        kvs.delete(tableRef, timestampsByCellExcludingSentinels);
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        rows.forEach(row -> deleteRange(tableRef, RangeRequests.ofSingleRow(row)));
     }
 
     @Override

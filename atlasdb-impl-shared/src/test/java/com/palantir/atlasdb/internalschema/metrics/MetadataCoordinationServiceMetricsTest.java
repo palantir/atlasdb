@@ -39,6 +39,7 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("unchecked") // Mocks
 public class MetadataCoordinationServiceMetricsTest {
@@ -55,12 +56,16 @@ public class MetadataCoordinationServiceMetricsTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final CoordinationService<InternalSchemaMetadata> metadataCoordinationService
             = mock(CoordinationService.class);
+    private final TimestampService timestampService = mock(TimestampService.class);
 
     @Before
     public void setUp() {
         when(metadataCoordinationService.getLastKnownLocalValue())
                 .thenReturn(Optional.of(ValueAndBound.of(INTERNAL_SCHEMA_METADATA, TIMESTAMP_1)));
-        MetadataCoordinationServiceMetrics.registerMetrics(metricsManager, metadataCoordinationService);
+        MetadataCoordinationServiceMetrics.registerMetrics(
+                metricsManager,
+                metadataCoordinationService,
+                timestampService);
     }
 
     @Test
@@ -81,10 +86,31 @@ public class MetadataCoordinationServiceMetricsTest {
     }
 
     @Test
+    public void returnsOldTransactionsSchemaVersionAsCurrentIfNewVersionNotActiveYet() {
+        Gauge<Integer> boundGauge = getGauge(metricsManager,
+                AtlasDbMetricNames.COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION);
+        when(timestampService.getFreshTimestamp()).thenReturn(TIMESTAMP_1 - 1);
+        assertThat(boundGauge.getValue()).isEqualTo(1);
+        verify(metadataCoordinationService).getLastKnownLocalValue();
+        verifyNoMoreInteractions(metadataCoordinationService);
+    }
+
+    @Test
+    public void returnsNewTransactionsSchemaVersionAsCurrentIfNewVersionHasTakenEffect() {
+        Gauge<Integer> boundGauge = getGauge(metricsManager,
+                AtlasDbMetricNames.COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION);
+        when(timestampService.getFreshTimestamp()).thenReturn(TIMESTAMP_1);
+        assertThat(boundGauge.getValue()).isEqualTo(2);
+        verify(metadataCoordinationService).getLastKnownLocalValue();
+        verifyNoMoreInteractions(metadataCoordinationService);
+    }
+
+    @Test
     public void handlesMultitenancyCorrectly() {
         CoordinationService<InternalSchemaMetadata> otherService = mock(CoordinationService.class);
         MetricsManager otherManager = MetricsManagers.createForTests();
-        MetadataCoordinationServiceMetrics.registerMetrics(otherManager, otherService);
+        TimestampService otherTimestampService = mock(TimestampService.class);
+        MetadataCoordinationServiceMetrics.registerMetrics(otherManager, otherService, otherTimestampService);
 
         when(otherService.getLastKnownLocalValue()).thenReturn(
                 Optional.of(ValueAndBound.of(Optional.empty(), TIMESTAMP_2)));

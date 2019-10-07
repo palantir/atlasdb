@@ -20,7 +20,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -28,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 
 public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
     private final KeyValueService keyValueService;
