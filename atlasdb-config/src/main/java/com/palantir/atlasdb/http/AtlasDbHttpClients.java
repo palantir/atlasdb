@@ -18,6 +18,9 @@ package com.palantir.atlasdb.http;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -28,7 +31,9 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AtlasDbHttpClients {
-    public static final TargetFactory DEFAULT_TARGET_FACTORY = AtlasDbFeignTargetFactory.DEFAULT;
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbHttpClients.class);
+
+    public static final TargetFactory LEGACY_FEIGN_TARGET_FACTORY = AtlasDbFeignTargetFactory.DEFAULT;
     private static final TargetFactory TESTING_TARGET_FACTORY = AtlasDbFeignTargetFactory.FAST_FAIL_FOR_TESTING;
 
     private AtlasDbHttpClients() {
@@ -44,7 +49,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters).instance(),
+                LEGACY_FEIGN_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters).instance(),
                 MetricRegistry.name(type));
     }
 
@@ -63,7 +68,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                DEFAULT_TARGET_FACTORY.createProxyWithFailover(serverListConfig, type, parameters).instance(),
+                LEGACY_FEIGN_TARGET_FACTORY.createProxyWithFailover(serverListConfig, type, parameters).instance(),
                 MetricRegistry.name(type));
     }
 
@@ -72,34 +77,40 @@ public final class AtlasDbHttpClients {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters clientParameters) {
-        return VersionSelectingClients.createVersionSelectingClient(
+        return createExperimentallyWithFallback(
                 taggedMetricRegistry,
-                ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),
-                DEFAULT_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+                () -> LEGACY_FEIGN_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),
-                () -> clientParameters.remotingClientConfig().get().maximumConjureRemotingProbability(),
-                type);
+                type,
+                clientParameters);
     }
 
-    @VisibleForTesting
-    static <T> T createLiveReloadingProxyWithQuickFailoverForTesting(
-            MetricRegistry metricRegistry,
-            Supplier<ServerListConfig> serverListConfigSupplier,
+    private static <T> T createExperimentallyWithFallback(
+            TaggedMetricRegistry taggedMetricRegistry,
+            Supplier<TargetFactory.InstanceAndVersion<T>> experimentalProxySupplier,
+            Supplier<TargetFactory.InstanceAndVersion<T>> fallbackProxySupplier,
             Class<T> type,
-            AuxiliaryRemotingParameters parameters) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                type,
-                TESTING_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier,
-                        type,
-                        parameters).instance(),
-                MetricRegistry.name(type));
+            AuxiliaryRemotingParameters clientParameters) {
+        TargetFactory.InstanceAndVersion<T> fallbackProxy = fallbackProxySupplier.get();
+        try {
+            return VersionSelectingClients.createVersionSelectingClient(
+                    taggedMetricRegistry,
+                    experimentalProxySupplier.get(),
+                    fallbackProxy,
+                    () -> clientParameters.remotingClientConfig().get().maximumConjureRemotingProbability(),
+                    type);
+        } catch (Exception e) {
+            log.warn("Error occurred in creating an experimental proxy. Possible causes include"
+                    + " not running with SSL, which is deprecated and expected to be removed in a future release."
+                    + " Creating a legacy client.", e);
+            return fallbackProxy.instance();
+        }
     }
 
     @VisibleForTesting
