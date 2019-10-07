@@ -81,7 +81,6 @@ public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServi
         createTwoTablesWithSamePrefix(TEST_LONG_TABLE_NAME);
     }
 
-
     private void createTwoTablesWithSamePrefix(String tableNamePrefix) {
         TableReference longTableName1 = TableReference.create(TEST_NAMESPACE, tableNamePrefix + "1");
         TableReference longTableName2 = TableReference.create(TEST_NAMESPACE, tableNamePrefix + "2");
