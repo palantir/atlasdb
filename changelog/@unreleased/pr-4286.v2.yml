@@ -1,5 +1,7 @@
 type: fix
 fix:
-  description: Add check for one datacenter being a prefix of the other
+  description: Add check for one datacenter being a prefix of the other, for when
+    Cassandra appends additional information to the datacenter that cannot be easily
+    retrieved in Atlas.
   links:
   - https://github.com/palantir/atlasdb/pull/4286
