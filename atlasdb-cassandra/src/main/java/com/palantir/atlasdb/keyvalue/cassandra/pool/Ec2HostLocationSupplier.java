@@ -54,25 +54,19 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
     }
 
     @VisibleForTesting
-    static HostLocation parseHostLocation(String az) {
-        // Code is copied from Cassandra's Ec2Snitch. The result of this parsing must match Cassandra's as closely as
-        // possible, as the strings are later matched exactly.
+    static HostLocation parseHostLocation(String responseBody) {
+        // The result of this parsing must match Cassandra's as closely as possible, as the output is later matched.
 
-        String ec2region;
-        String ec2zone;
+        // Split strings such as "us-east-1a" into "us-east" and "1a"
+        String[] splitResponse = responseBody.split("-");
+        String rack = splitResponse[splitResponse.length - 1];
 
-        // Split "us-east-1a" or "asia-1a" into "us-east"/"1a" and "asia"/"1a".
-        String[] splits = az.split("-");
-        ec2zone = splits[splits.length - 1];
-
-        // hack for CASSANDRA-4026
-        ec2region = az.substring(0, az.length() - 1);
-        if (ec2region.endsWith("1")) {
-            ec2region = az.substring(0, az.length() - 3);
+        // this hack accounts for certain Cassandra cases
+        String datacenter = responseBody.substring(0, responseBody.length() - 1);
+        if (datacenter.endsWith("1")) {
+            datacenter = responseBody.substring(0, responseBody.length() - 3);
         }
 
-        return HostLocation.of(ec2region, ec2zone);
-
-
+        return HostLocation.of(datacenter, rack);
     }
 }
