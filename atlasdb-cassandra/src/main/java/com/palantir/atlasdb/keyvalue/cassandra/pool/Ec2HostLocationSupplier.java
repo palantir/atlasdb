@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import java.io.IOException;
 import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.Preconditions;
 
 import okhttp3.OkHttpClient;
@@ -46,13 +47,26 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
             Preconditions.checkState(response.isSuccessful(),
                     "Getting AWS host metadata was not successful");
 
-            String responseString = response.body().string();
-            String datacenter = responseString.substring(0, responseString.length() - 2);
-            String rack = responseString.substring(responseString.length() - 1);
-
-            return HostLocation.of(datacenter, rack);
+            return parseHostLocation(response.body().string());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @VisibleForTesting
+    static HostLocation parseHostLocation(String responseBody) {
+        // The result of this parsing must match Cassandra's as closely as possible, as the output is later matched.
+
+        // Split strings such as "us-east-1a" into "us-east" and "1a"
+        String[] splitResponse = responseBody.split("-");
+        String rack = splitResponse[splitResponse.length - 1];
+
+        // this hack accounts for certain Cassandra cases
+        String datacenter = responseBody.substring(0, responseBody.length() - 1);
+        if (datacenter.endsWith("1")) {
+            datacenter = responseBody.substring(0, responseBody.length() - 3);
+        }
+
+        return HostLocation.of(datacenter, rack);
     }
 }

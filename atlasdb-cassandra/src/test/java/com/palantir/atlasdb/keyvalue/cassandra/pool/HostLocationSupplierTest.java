@@ -81,4 +81,10 @@ public class HostLocationSupplierTest {
         assertThat(hostLocationSupplier.get()).isNotPresent();
     }
 
+    @Test
+    public void shouldReturnHostLocationInCassandraStyle() {
+        HostLocation awsLocation = HostLocation.of("us-east", "1a");
+        assertThat(Ec2HostLocationSupplier.parseHostLocation("us-east-1a")).isEqualTo(awsLocation);
+    }
+
 }
