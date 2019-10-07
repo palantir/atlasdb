@@ -265,7 +265,7 @@ public class AtlasDbHttpClientsTest {
                 DefaultTaggedMetricRegistry.getDefault(),
                 () -> ImmutableServerListConfig.builder()
                         .servers(servers)
-                        .sslConfiguration(SslConfiguration.of(Paths.get("var/security/keystore.jks")))
+                        .sslConfiguration(SslConfiguration.of(Paths.get("var/security/keyStore.jks")))
                         .build(),
                 TestResource.class,
                 AuxiliaryRemotingParameters.builder()
