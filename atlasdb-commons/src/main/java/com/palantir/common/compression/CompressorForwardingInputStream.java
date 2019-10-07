@@ -16,20 +16,28 @@
 
 package com.palantir.common.compression;
 
-import java.util.zip.GZIPInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-import net.jpountz.lz4.LZ4BlockInputStream;
+public class CompressorForwardingInputStream extends InputStream {
+    private InputStream compressedStream;
+    private InputStream delegate;
 
-public enum EnumClientCompressor {
-    GZIP(GzipCompressingInputStream.class.getName(), GZIPInputStream.class.getName()),
-    LZ4(LZ4CompressingInputStream.class.getName(), LZ4BlockInputStream.class.getName()),
-    NONE(null, null);
+    public CompressorForwardingInputStream(InputStream stream) {
+        compressedStream = stream;
+    }
 
-    public final String compressionType;
-    public final String inputClass;
+    @Override
+    public int read() throws IOException {
+        if (delegate == null) {
+            delegate = ClientCompressor.getDecompressorStream(compressedStream);
+        }
+        return delegate.read();
+    }
 
-    EnumClientCompressor(String compressionType, String inputClass) {
-        this.compressionType = compressionType;
-        this.inputClass = inputClass;
+    @Override
+    public void close() throws IOException {
+        super.close();
+        delegate.close();
     }
 }

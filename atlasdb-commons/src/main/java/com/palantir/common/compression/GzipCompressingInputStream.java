@@ -34,6 +34,20 @@ import com.google.common.io.CountingInputStream;
 
 
 public class GzipCompressingInputStream extends SequenceInputStream {
+    public static final int GZIP_MAGIC = 0x8b1f;
+    public static final byte[] GZIP_HEADER = new byte[] {
+            (byte) GZIP_MAGIC,        // Magic number (short)
+            (byte) (GZIP_MAGIC >> 8),  // Magic number (short)
+            Deflater.DEFLATED,        // Compression method (CM)
+            0,                        // Flags (FLG)
+            0,                        // Modification time MTIME (int)
+            0,                        // Modification time MTIME (int)
+            0,                        // Modification time MTIME (int)
+            0,                        // Modification time MTIME (int)
+            0,                        // Extra flags (XFLG)
+            0                         // Operating system (OS)
+    };
+
     public GzipCompressingInputStream(InputStream in) throws IOException {
         this(in, 512);
     }
@@ -43,20 +57,9 @@ public class GzipCompressingInputStream extends SequenceInputStream {
     }
 
     protected static class GzipStreamEnumeration implements Enumeration<InputStream> {
-        private static final int GZIP_MAGIC = 0x8b1f;
+
         private static final int DEFAULT_DEFLATER_BUFFER_SIZE = 512;
-        private static final byte[] GZIP_HEADER = new byte[] {
-                (byte) GZIP_MAGIC,        // Magic number (short)
-                (byte) (GZIP_MAGIC >> 8),  // Magic number (short)
-                Deflater.DEFLATED,        // Compression method (CM)
-                0,                        // Flags (FLG)
-                0,                        // Modification time MTIME (int)
-                0,                        // Modification time MTIME (int)
-                0,                        // Modification time MTIME (int)
-                0,                        // Modification time MTIME (int)
-                0,                        // Extra flags (XFLG)
-                0                         // Operating system (OS)
-        };
+
         private final InputStream in;
         private final int bufferSize;
         private final Iterator<Supplier<InputStream>> streamSupplierIt;

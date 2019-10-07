@@ -15,15 +15,11 @@
  */
 package com.palantir.common.compression;
 
-import java.io.IOException;
-import java.util.zip.GZIPInputStream;
-
-
 public class GzipCompressionTests extends AbstractCompressionTests {
 
     @Override
-    protected void initializeCompressStreams() throws IOException {
+    protected void initializeCompressStreams() throws Exception {
         compressingStream = new GzipCompressingInputStream(uncompressedStream, 512);
-        decompressingStream = new GZIPInputStream(compressingStream);
+        decompressingStream = new CompressorForwardingInputStream(compressingStream);
     }
 }

@@ -27,6 +27,7 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,7 +36,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
-import java.util.zip.GZIPInputStream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
@@ -76,9 +76,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.compression.EnumClientCompressor;
-import com.palantir.common.compression.GzipCompressingInputStream;
-import com.palantir.common.compression.LZ4CompressingInputStream;
+import com.palantir.common.compression.ClientCompressor;
+import com.palantir.common.compression.CompressorForwardingInputStream;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
@@ -87,8 +86,6 @@ import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
 
-import net.jpountz.lz4.LZ4BlockInputStream;
-
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamStoreRenderer {
     private final String name;
@@ -96,15 +93,15 @@ public class StreamStoreRenderer {
     private final String packageName;
     private final String schemaName;
     private final int inMemoryThreshold;
-    private final EnumClientCompressor clientSideCompression;
+    private final ClientCompressor clientSideCompressor;
 
-    public StreamStoreRenderer(String name, ValueType streamIdType, String packageName, String schemaName, int inMemoryThreshold, EnumClientCompressor clientSideCompression) {
+    public StreamStoreRenderer(String name, ValueType streamIdType, String packageName, String schemaName, int inMemoryThreshold, ClientCompressor clientSideCompressor) {
         this.name = name;
         this.streamIdType = streamIdType;
         this.packageName = packageName;
         this.schemaName = schemaName;
         this.inMemoryThreshold = inMemoryThreshold;
-        this.clientSideCompression = clientSideCompression;
+        this.clientSideCompressor = clientSideCompressor;
     }
 
     public String getPackageName() {
@@ -176,7 +173,7 @@ public class StreamStoreRenderer {
                     line();
                     getBlock();
                     line();
-                    if (clientSideCompression != EnumClientCompressor.NONE) {
+                    if (clientSideCompressor != ClientCompressor.NONE) {
                         storeBlocksAndGetFinalMetadata();
                         line();
                         loadStreamWithCompression();
@@ -222,6 +219,8 @@ public class StreamStoreRenderer {
                 line("private static final Logger log = LoggerFactory.getLogger(", StreamStore, ".class);");
                 line();
                 line("private final ", TableFactory, " tables;");
+                line("private final ClientCompressor clientSideCompressor = ClientCompressor." + clientSideCompressor.name(), ";");
+
             }
 
             private void constructors() {
@@ -561,41 +560,26 @@ public class StreamStoreRenderer {
             }
 
             private void storeBlocksAndGetFinalMetadata() {
-                String compression = clientSideCompression.compressionType;
                 line("@Override");
                 line("protected StreamMetadata storeBlocksAndGetFinalMetadata(Transaction t, long id, InputStream stream) {"); {
                     line("//Hash the data before compressing it");
                     line("MessageDigest digest = Sha256Hash.getMessageDigest();");
                     line("try (InputStream hashingStream = new DigestInputStream(stream, digest);");
-                    line("        InputStream compressingStream = new " + compression + "(hashingStream)) {"); {
+                    line("        InputStream compressingStream = new CompressorForwardingInputStream(hashingStream)) {"); {
                         line("StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);");
                         line("return StreamMetadata.newBuilder(metadata)");
                         line("        .setHash(ByteString.copyFrom(digest.digest()))");
                         line("        .build();");
-                    } line("} catch (Exception e) {"); {
-                        line("throw Throwables.rewrapAndThrowUncheckedException(\"Error in creating compression stream\", e);");
+                    } line("} catch (IOException e) {"); {
+                        line("throw new RuntimeException(e);");
                     } line("}");
                 } line("}");
-            }
-
-            private void closeStreamWithExceptionLogging(String streamVarName, String streamId) {
-                line("try {"); {
-                    line(streamVarName + ".close();");
-                } line("} catch (IOException streamCloseExc) {"); {
-                        line("log.error(\"Error closing stream id {}\", " + streamId + ", streamCloseExc);");
-                } line ("}");
             }
 
             private void loadStreamWithCompression() {
                 line("@Override");
                 line("public InputStream loadStream(Transaction t, final ", StreamId, " id) {"); {
-                    line("InputStream in = super.loadStream(t, id);");
-                    line("try {"); {
-                        line("return new " + clientSideCompression.inputClass + "(super.loadStream(t, id));");
-                    } line("} catch (Exception e) {"); {
-                        closeStreamWithExceptionLogging("in", "id");
-                        line("throw Throwables.rewrapAndThrowUncheckedException(\"Error in creating compression stream\", e);");
-                    } line("}");
+                    line("return new CompressorForwardingInputStream(super.loadStream(t, id));");
                 } line("}");
             }
 
@@ -603,15 +587,7 @@ public class StreamStoreRenderer {
                 line("@Override");
                 line("public Optional<InputStream> loadSingleStream(Transaction t, final ", StreamId, " id) {"); {
                     line("Optional<InputStream> inputStream = super.loadSingleStream(t, id);");
-
-                    line("return inputStream.map( s-> {"); {
-                        line("try {"); {
-                            line("return new " + clientSideCompression.inputClass + "(s);");
-                        } line("} catch (IOException e) {"); {
-                            closeStreamWithExceptionLogging("s", "id");
-                            line("throw Throwables.rewrapAndThrowUncheckedException(\"Error in creating compression stream\", e);");
-                        } line("}");
-                    } line("});");
+                    line("return inputStream.map(CompressorForwardingInputStream::new);");
                 } line("}");
             }
 
@@ -619,20 +595,9 @@ public class StreamStoreRenderer {
                 line("@Override");
                 line("public Map<", StreamId, ", InputStream> loadStreams(Transaction t, Set<", StreamId, "> ids) {"); {
                     line("Map<", StreamId, ", InputStream> compressedStreams = super.loadStreams(t, ids);");
-                    line("try {"); {
-                        line("return Maps.transformValues(compressedStreams, stream -> {"); {
-                            line("try {"); {
-                                line("return new " + clientSideCompression.inputClass + "(stream);");
-                            } line("} catch (IOException e) {"); {
-                                line("throw Throwables.rewrapAndThrowUncheckedException(\"Error in creating compression stream\", e);");
-                            } line("}");
-                        } line("});");
-                    } line("} catch (Exception exc) {"); {
-                        line("compressedStreams.entrySet().forEach(e -> {"); {
-                            closeStreamWithExceptionLogging("e.getValue()", "e.getKey()");
-                        } line ("});");
-                        line("throw exc;");
-                    } line("}");
+                    line("return Maps.transformValues(compressedStreams, stream -> {"); {
+                        line("return new CompressorForwardingInputStream(stream);");
+                    } line("});");
                 } line("}");
             }
 
@@ -640,7 +605,7 @@ public class StreamStoreRenderer {
                 line("@Override");
                 line("protected void tryWriteStreamToFile(Transaction transaction, ", StreamId, " id, StreamMetadata metadata, FileOutputStream fos) throws IOException {"); {
                     line("try (InputStream blockStream = makeStreamUsingTransaction(transaction, id, metadata);");
-                    line("        InputStream decompressingStream = new " + clientSideCompression.inputClass + "(blockStream);");
+                    line("        InputStream decompressingStream = new CompressorForwardingInputStream(blockStream);");
                     line("        OutputStream fileStream = fos;) {"); {
                         line("ByteStreams.copy(decompressingStream, fileStream);");
                     } line("}");
@@ -884,10 +849,8 @@ public class StreamStoreRenderer {
         List.class,
         CheckForNull.class,
         Generated.class,
-        LZ4CompressingInputStream.class,
-        LZ4BlockInputStream.class,
-        GzipCompressingInputStream.class,
-        GZIPInputStream.class,
+        ClientCompressor.class,
+        CompressorForwardingInputStream.class,
         Pair.class,
         Functions.class,
         ByteStreams.class,

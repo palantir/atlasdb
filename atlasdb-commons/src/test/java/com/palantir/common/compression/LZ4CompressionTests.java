@@ -19,21 +19,18 @@ import java.io.IOException;
 
 import org.junit.After;
 
-import net.jpountz.lz4.LZ4BlockInputStream;
-
 
 public class LZ4CompressionTests extends AbstractCompressionTests {
 
     @Override
-    protected void initializeCompressStreams() throws IOException {
+    protected void initializeCompressStreams() throws Exception {
         compressingStream = new LZ4CompressingInputStream(uncompressedStream);
-        decompressingStream = new LZ4BlockInputStream(compressingStream);
+        decompressingStream = new CompressorForwardingInputStream(compressingStream);
     }
 
     @After
     public void after() throws IOException {
         uncompressedStream.close();
-        compressingStream.close();
         decompressingStream.close();
     }
 }

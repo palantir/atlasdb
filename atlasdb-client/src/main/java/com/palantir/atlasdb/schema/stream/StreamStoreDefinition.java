@@ -27,7 +27,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.compression.EnumClientCompressor;
+import com.palantir.common.compression.ClientCompressor;
 
 public class StreamStoreDefinition {
     // from ArrayList.MAX_ARRAY_SIZE on 64-bit systems
@@ -37,7 +37,7 @@ public class StreamStoreDefinition {
     private final String shortName;
     private final String longName;
     private final ValueType idType;
-    private final EnumClientCompressor streamCompressType;
+    private final ClientCompressor streamCompressType;
     private final int numberOfRowComponentsHashed;
 
     private int inMemoryThreshold;
@@ -48,7 +48,7 @@ public class StreamStoreDefinition {
             String longName,
             ValueType idType,
             int inMemoryThreshold,
-            EnumClientCompressor streamCompressType,
+            ClientCompressor streamCompressType,
             int numberOfRowComponentsHashed) {
         this.streamStoreTables = streamStoreTables;
         this.shortName = shortName;
