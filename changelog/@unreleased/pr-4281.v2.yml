@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Rename EC2 to Ec2 as per the docs
+  links:
+  - https://github.com/palantir/atlasdb/pull/4281
