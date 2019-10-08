@@ -22,6 +22,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
@@ -41,11 +44,16 @@ public class CassandraServersConfigsTest {
     }
 
     public static CassandraServersConfigs.CqlCapableConfig cqlCapable(int thriftPort, int cqlPort, String... hosts) {
+        Iterable<InetSocketAddress> thriftHosts = constructHosts(thriftPort, hosts);
+        Iterable<InetSocketAddress> cqlHosts = constructHosts(cqlPort, hosts);
         return ImmutableCqlCapableConfig.builder()
-                .addHosts(hosts)
-                .cqlPort(cqlPort)
-                .thriftPort(thriftPort)
+                .cqlHosts(cqlHosts)
+                .thriftHosts(thriftHosts)
                 .build();
+    }
+
+    private static List<InetSocketAddress> constructHosts(int port, String[] hosts) {
+        return Stream.of(hosts).map(host -> new InetSocketAddress(host, port)).collect(Collectors.toList());
     }
 
     @Test
