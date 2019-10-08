@@ -141,11 +141,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     /**
      * Overrides the behaviour of the host location supplier.
      */
-    @Value.Default
-    default Optional<HostLocation> overrideHostLocation() {
-        return Optional.empty();
-    }
-
+    Optional<HostLocation> overrideHostLocation();
 
     @JsonIgnore
     @Value.Lazy
