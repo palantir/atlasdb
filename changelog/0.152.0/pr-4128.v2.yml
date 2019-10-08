@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Targeted sweep metrics now expose a gauge `batchSizeMean` with the mean of the number of entries read in iterations of targeted sweep during a sliding time window of one hour.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4128

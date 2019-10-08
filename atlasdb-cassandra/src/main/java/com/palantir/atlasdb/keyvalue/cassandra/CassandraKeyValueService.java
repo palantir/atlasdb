@@ -26,7 +26,7 @@ public interface CassandraKeyValueService extends KeyValueService {
     CassandraTables getCassandraTables();
     TracingQueryRunner getTracingQueryRunner();
     CassandraClientPool getClientPool();
-    boolean isInitialized();
+    @Override boolean isInitialized();
     /**
      * Returns a sorted list of row keys in the specified range.
      *

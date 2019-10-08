@@ -36,7 +36,7 @@ public interface PalantirSqlConnection extends SqlConnection {
      *
      * @deprecated Use selectLongWithDefaultUnregisteredQuery to control behavior when no or NULL results are found.
      */
-    @Deprecated
+    @Override @Deprecated
     long selectLongUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
 
     /**

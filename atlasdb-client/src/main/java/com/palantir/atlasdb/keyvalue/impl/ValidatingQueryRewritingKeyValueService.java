@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -197,9 +198,9 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException {
-        Validate.isTrue(timestamp != Long.MAX_VALUE);
-        Validate.isTrue(timestamp >= 0);
-        Validate.isTrue(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
+        Preconditions.checkArgument(timestamp != Long.MAX_VALUE);
+        Preconditions.checkArgument(timestamp >= 0);
+        Preconditions.checkArgument(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
         if (values.isEmpty()) {
             return;
         }
@@ -239,14 +240,14 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
         if (cellValues.isEmpty()) {
             return;
         }
-        Validate.isTrue(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
+        Preconditions.checkArgument(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
 
         long lastTimestamp = -1;
         boolean allAtSameTimestamp = true;
         for (Value value : cellValues.values()) {
             long timestamp = value.getTimestamp();
-            Validate.isTrue(timestamp != Long.MAX_VALUE);
-            Validate.isTrue(timestamp >= 0);
+            Preconditions.checkArgument(timestamp != Long.MAX_VALUE);
+            Preconditions.checkArgument(timestamp >= 0);
             if (lastTimestamp != -1 && timestamp != lastTimestamp) {
                 allAtSameTimestamp = false;
             }

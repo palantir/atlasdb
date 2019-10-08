@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: AtlasDB now allocates considerably fewer objects and less memory. In
+    particular, metrics registry and lock lease implementations have been streamlined.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4219

@@ -15,6 +15,7 @@
  */
 package com.palantir.util;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 import javax.annotation.concurrent.Immutable;
@@ -33,7 +34,7 @@ import com.palantir.common.annotation.LongTermSerialized;
  */
 @Immutable
 @LongTermSerialized
-public final class Pair<V, W> implements java.io.Serializable {
+public final class Pair<V, W> implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**

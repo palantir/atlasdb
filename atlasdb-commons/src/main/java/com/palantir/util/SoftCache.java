@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -235,7 +236,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return ImmutableSet.copyOf(cacheEntries.keySet());
     }
 
-    public synchronized Set<V> removeMatchingKeys(com.google.common.base.Predicate<K> predicate) {
+    public synchronized Set<V> removeMatchingKeys(Predicate<K> predicate) {
         Set<V> removedValues = Sets.newHashSet();
 
         Iterator<Entry<K, CacheEntry<V>>> entryIterator = cacheEntries.entrySet().iterator();

@@ -1,4 +1,4 @@
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'checkstyle'
@@ -39,9 +39,19 @@ dependencies {
     compile group: 'com.google.code.findbugs', name: 'findbugs-annotations'
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
+    testCompile group: 'org.assertj', name: 'assertj-core'
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
+
+jar {
+    manifest {
+        attributes(
+                "Implementation-Title": project.name,
+                "Implementation-Version": project.version,
+                "Implementation-Vendor": "Palantir Technologies, Inc.")
+    }
+}
 
 license {
     header rootProject.file('config/HEADER')

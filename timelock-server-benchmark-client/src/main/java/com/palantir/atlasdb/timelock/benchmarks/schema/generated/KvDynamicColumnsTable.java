@@ -630,6 +630,22 @@ public final class KvDynamicColumnsTable implements
         });
     }
 
+    @Override
+    public Map<KvDynamicColumnsRow, Iterator<KvDynamicColumnsColumnValue>> getRowsColumnRangeIterator(Iterable<KvDynamicColumnsRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<KvDynamicColumnsRow, Iterator<KvDynamicColumnsColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            KvDynamicColumnsRow row = KvDynamicColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<KvDynamicColumnsColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                KvDynamicColumnsColumn col = KvDynamicColumnsColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                byte[] val = KvDynamicColumnsColumnValue.hydrateValue(result.getValue());
+                return KvDynamicColumnsColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<KvDynamicColumnsRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -794,5 +810,5 @@ public final class KvDynamicColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mAC6ZGVLSNeEj4c3Qp9xyw==";
+    static String __CLASS_HASH = "A7GDU50+va5o89bxd7JuXw==";
 }

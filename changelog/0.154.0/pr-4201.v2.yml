@@ -1,0 +1,10 @@
+type: fix
+fix:
+  description: |-
+    Stream store metadata cleanup tasks now clear up streams that are stored if they have zero entries in the index table. Previously, if a service crashed between storing a stream non-transactionally and marking it (or otherwise chose not to mark the stream as used), the stream data for the unmarked stream would never be cleared from the database.
+
+    Note that this change does not apply retroactively to streams that were already leaked as described above.
+
+    Users who have checked in the generated AtlasDB schema code will need to regenerate their schemas once they are on this version of AtlasDB. Users that re-generate this via buildscripts do not need to perform any manual tasks.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4201

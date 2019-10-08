@@ -6,6 +6,8 @@ Date: 18/05/2016
 
 Accepted
 
+Superseded by [PR #3620: Use CQL to create tables](https://github.com/palantir/atlasdb/pull/3620).
+
 ## Context
 
 Cassandra [has an issue](https://issues.apache.org/jira/browse/CASSANDRA-10699) which can cause data loss in the situation:

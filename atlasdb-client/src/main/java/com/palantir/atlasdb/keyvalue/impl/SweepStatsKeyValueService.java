@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.ImmutableMap;
@@ -56,6 +56,7 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistables;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
@@ -82,7 +83,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
-    private final Set<TableReference> clearedTables = Sets.newConcurrentHashSet();
+    private final Set<TableReference> clearedTables = ConcurrentHashMap.newKeySet();
 
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final AtomicLong totalModificationsSize = new AtomicLong();

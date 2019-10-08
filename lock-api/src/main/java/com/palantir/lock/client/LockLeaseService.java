@@ -31,27 +31,27 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
-    private final TimelockRpcClient delegate;
+    private final NamespacedTimelockRpcClient delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
 
     @VisibleForTesting
-    LockLeaseService(TimelockRpcClient timelockRpcClient, UUID clientId) {
+    LockLeaseService(NamespacedTimelockRpcClient timelockRpcClient, UUID clientId) {
         this.delegate = timelockRpcClient;
         this.clientId = clientId;
         this.time = new CoalescingSupplier<>(timelockRpcClient::getLeaderTime);
     }
 
-    static LockLeaseService create(TimelockRpcClient timelockRpcClient) {
+    static LockLeaseService create(NamespacedTimelockRpcClient timelockRpcClient) {
         return new LockLeaseService(timelockRpcClient, UUID.randomUUID());
     }
 
@@ -134,9 +134,11 @@ class LockLeaseService {
 
     @SuppressWarnings("unchecked")
     private static Set<LeasedLockToken> leasedTokens(Set<LockToken> tokens) {
-        Preconditions.checkArgument(tokens.stream()
-                        .allMatch(token -> token instanceof LeasedLockToken),
-                "All lock tokens should be an instance of LeasedLockToken");
+        for (LockToken token : tokens) {
+            Preconditions.checkArgument(
+                    token instanceof LeasedLockToken,
+                    "All lock tokens should be an instance of LeasedLockToken");
+        }
         return (Set<LeasedLockToken>) (Set<?>) tokens;
     }
 

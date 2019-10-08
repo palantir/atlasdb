@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -110,6 +111,7 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -120,9 +122,9 @@ public class TableRenderer {
     private final OptionalType optionalType;
 
     public TableRenderer(String packageName, Namespace namespace, OptionalType optionalType) {
-        this.packageName = Preconditions.checkNotNull(packageName);
-        this.namespace = Preconditions.checkNotNull(namespace);
-        this.optionalType = Preconditions.checkNotNull(optionalType, "Must specify optionalType");
+        this.packageName = com.palantir.logsafe.Preconditions.checkNotNull(packageName);
+        this.namespace = com.palantir.logsafe.Preconditions.checkNotNull(namespace);
+        this.optionalType = com.palantir.logsafe.Preconditions.checkNotNull(optionalType, "Must specify optionalType");
     }
 
     public String getClassName(String rawTableName, TableDefinition table) {
@@ -316,6 +318,8 @@ public class TableRenderer {
             renderGetRowsMultimap(false);
             line();
             renderGetRowsColumnRange(false);
+            line();
+            renderGetRowsColumnRangeIterator(false);
 
             if (!cellReferencingIndices.isEmpty()) {
                 line();
@@ -351,6 +355,8 @@ public class TableRenderer {
             renderGetRowsMultimap(true);
             line();
             renderGetRowsColumnRange(true);
+            line();
+            renderGetRowsColumnRangeIterator(true);
         }
 
         private void fields(boolean isDynamic) {
@@ -1096,6 +1102,28 @@ public class TableRenderer {
             } line("}");
         }
 
+        private void renderGetRowsColumnRangeIterator(boolean isDynamic) {
+            line("@Override");
+            line("public Map<", Row, ", Iterator<", ColumnValue, ">> getRowsColumnRangeIterator(Iterable<", Row, "> rows, BatchColumnRangeSelection columnRangeSelection) {"); {
+                line("Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
+                line("Map<", Row, ", Iterator<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
+                line("for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
+                    line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
+                    line("Iterator<", ColumnValue, "> bv = Iterators.transform(e.getValue(), result -> {"); {
+                        if (isDynamic) {
+                            line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
+                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(result.getValue());");
+                            line("return ", ColumnValue, ".of(col, val);");
+                        } else {
+                            line("return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
+                        }
+                    } line("});");
+                    line("transformed.put(row, bv);");
+                } line("}");
+                line("return transformed;");
+            } line("}");
+        }
+
         private void renderFindConstraintFailures() {
             line("@Override");
             line("public List<String> findConstraintFailures(Map<Cell, byte[]> writes,");
@@ -1177,10 +1205,10 @@ public class TableRenderer {
                 classes.add(com.google.common.base.Optional.class);
                 break;
             case JAVA8:
-                classes.add(java.util.Optional.class);
+                classes.add(Optional.class);
                 break;
             default:
-                throw new IllegalArgumentException("Unknown optionalType!");
+                throw new SafeIllegalArgumentException("Unknown optionalType!");
         }
         return classes;
     }

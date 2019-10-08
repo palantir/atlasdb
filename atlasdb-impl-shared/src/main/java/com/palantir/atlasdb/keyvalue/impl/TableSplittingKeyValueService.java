@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -50,6 +49,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /*
@@ -137,6 +137,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        getDelegate(tableRef).deleteRows(tableRef, rows);
+    }
+
+    @Override
     public void deleteAllTimestamps(
             TableReference tableRef,
             Map<Cell, TimestampRangeDelete> deletes) {
@@ -196,8 +201,8 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     public KeyValueService getDelegate(TableReference tableRef) {
         return tableDelegateFor(tableRef)
-                .orElse(namespaceDelegateFor(tableRef)
-                        .orElse(delegates.get(0)));
+                .orElseGet(() -> namespaceDelegateFor(tableRef)
+                        .orElseGet(() -> delegates.get(0)));
     }
 
     private Optional<KeyValueService> tableDelegateFor(TableReference tableRef) {

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public final class WriteReferencePersister {
     private static final byte[] writePrefix = { 1 };
@@ -43,7 +44,7 @@ public final class WriteReferencePersister {
                 try {
                     return OBJECT_MAPPER.readValue(ref, WriteReference.class);
                 } catch (IOException e) {
-                    throw new RuntimeException("Exception hydrating object.");
+                    throw new SafeRuntimeException("Exception hydrating object.");
                 }
             }
 

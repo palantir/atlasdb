@@ -6,6 +6,9 @@ Date: 26/09/2017
 
 Accepted
 
+The third decision point has been superseded. The ability to disable request batching has been removed, as we
+have not seen cases in practice where enabling it has caused issues (even in spite of the latency cost there).
+
 ## Context
 
 A TimeLock cluster can serve multiple services. Under these circumstances, each TimeLock client node can separately

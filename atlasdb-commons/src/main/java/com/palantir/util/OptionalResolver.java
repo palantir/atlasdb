@@ -43,7 +43,7 @@ public final class OptionalResolver {
                 .map(Optional::get)
                 .collect(Collectors.toSet());
 
-        Preconditions.checkArgument(values.size() >= 1,
+        com.palantir.logsafe.Preconditions.checkArgument(values.size() >= 1,
                 "All Optionals provided were empty, couldn't determine a value.");
         Preconditions.checkArgument(values.size() <= 1,
                 "Contradictory values %s found, expected a single common value", values);

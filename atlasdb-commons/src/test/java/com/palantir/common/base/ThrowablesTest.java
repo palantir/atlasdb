@@ -15,14 +15,18 @@
  */
 package com.palantir.common.base;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ThrowablesTest extends Assert {
+public class ThrowablesTest {
     @Before
     public void setUp() throws Exception {
         NoUsefulConstructorException.noUsefulConstructorCalled = false;

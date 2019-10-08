@@ -26,7 +26,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ForwardingObject;
@@ -34,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A wrapper for an iterable that gives it super chaining powers. And a nice toString.

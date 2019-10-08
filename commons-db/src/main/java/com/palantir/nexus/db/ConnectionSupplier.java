@@ -36,7 +36,7 @@ public interface ConnectionSupplier extends Supplier<Connection>, Closeable {
     /**
      * Closes this connection supplier and releases any resources it may hold.
      *
-     * @see java.io.Closeable#close()
+     * @see Closeable#close()
      * @throws PalantirSqlException if an error occurs while closing
      */
     @Override

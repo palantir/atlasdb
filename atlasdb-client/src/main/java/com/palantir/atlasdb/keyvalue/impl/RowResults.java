@@ -21,11 +21,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import org.apache.commons.lang3.Validate;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterators;
@@ -33,8 +30,8 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.collect.IterableView;
+import com.palantir.logsafe.Preconditions;
 
 public class RowResults {
     private RowResults() { /* */ }
@@ -79,7 +76,7 @@ public class RowResults {
     }
 
     public static <T> RowResult<T> merge(RowResult<T> base, RowResult<T> overwrite) {
-        Validate.isTrue(Arrays.equals(base.getRowName(), overwrite.getRowName()));
+        Preconditions.checkArgument(Arrays.equals(base.getRowName(), overwrite.getRowName()));
         Builder<byte[], T> colBuilder = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
         colBuilder.putAll(overwrite.getColumns());
         colBuilder.putAll(Maps.difference(base.getColumns(), overwrite.getColumns()).entriesOnlyOnLeft());

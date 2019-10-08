@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -33,7 +35,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,6 +86,7 @@ import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
 
 /**
@@ -205,6 +207,44 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     @Override
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Entry<Cell, byte[]>>> ret =
+                super.getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
+        return Maps.transformEntries(ret, (row, iterator) -> new Iterator<Entry<Cell, byte[]>>() {
+            Entry<Cell, byte[]> next = null;
+
+            @Override
+            public boolean hasNext() {
+                if (next != null) {
+                    return true;
+                }
+
+                if (iterator.hasNext()) {
+                    next = iterator.next();
+                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, Collections.singletonList(next));
+                    return true;
+                }
+
+                reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                return false;
+            }
+
+            @Override
+            public Entry<Cell, byte[]> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Entry<Cell, byte[]> result = next;
+                next = null;
+                return result;
+            }
+        });
+    }
+
+    @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         Map<Cell, byte[]> ret = super.get(tableRef, cells);
@@ -257,7 +297,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void setRangeEnd(TableReference table, RangeRequest range, byte[] maxRow) {
-        Validate.notNull(maxRow, "maxRow cannot be null");
+        Preconditions.checkNotNull(maxRow, "maxRow cannot be null");
         ConcurrentMap<RangeRequest, byte[]> rangeEnds =
                 rangeEndByTable.computeIfAbsent(table, unused -> Maps.newConcurrentMap());
 
@@ -280,7 +320,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             byte[] unwrappedRow,
             BatchColumnRangeSelection columnRangeSelection,
             byte[] maxCol) {
-        Validate.notNull(maxCol, "maxCol cannot be null");
+        Preconditions.checkNotNull(maxCol, "maxCol cannot be null");
         ByteBuffer row = ByteBuffer.wrap(unwrappedRow);
         columnRangeEndsByTable.computeIfAbsent(table, unused -> new ConcurrentHashMap<>());
         ConcurrentMap<BatchColumnRangeSelection, byte[]> rangeEndsForRow =
@@ -320,7 +360,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             return;
         }
         getReadsForTable(table).putAll(transformGetsForTesting(result));
-        Set<Cell> cellsForTable = cellsRead.computeIfAbsent(table, unused -> Sets.newConcurrentHashSet());
+        Set<Cell> cellsForTable = cellsRead.computeIfAbsent(table, unused -> ConcurrentHashMap.newKeySet());
         cellsForTable.addAll(searched);
     }
 
@@ -375,7 +415,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             reads.putAll(transformGetsForTesting(map));
         }
 
-        Set<RowRead> rowReads = rowsRead.computeIfAbsent(table, unused -> Sets.newConcurrentHashSet());
+        Set<RowRead> rowReads = rowsRead.computeIfAbsent(table, unused -> ConcurrentHashMap.newKeySet());
         rowReads.add(new RowRead(rows, cols));
     }
 

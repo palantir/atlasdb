@@ -26,9 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.EmptyQueue;
+import com.palantir.logsafe.Preconditions;
 
 
 /**
@@ -148,7 +148,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
         }
         boolean wasReturned = returnToQueue(resource);
         if (!wasReturned) {
-            log.info("Pool full, releasing resource: {}", resource);
+            log.debug("Pool full, releasing resource: {}", resource);
             allocatedResources.decrementAndGet();
             try {
                 cleanupForDiscard(resource);
@@ -160,8 +160,8 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
     }
 
     private void logPoolStats() {
-        if (log.isInfoEnabled()) {
-            log.info("Allocated {} instances, {} remaining in pool, {} max pool size",
+        if (log.isDebugEnabled()) {
+            log.debug("Allocated {} instances, {} remaining in pool, {} max pool size",
                     getAllocatedResources(), pool.size(), getMaxPoolSize());
         }
     }

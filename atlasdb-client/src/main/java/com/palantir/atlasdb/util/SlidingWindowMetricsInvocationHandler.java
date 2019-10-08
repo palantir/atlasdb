@@ -16,10 +16,11 @@
 
 package com.palantir.atlasdb.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,6 +30,9 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
+import com.codahale.metrics.Timer;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
@@ -42,12 +46,22 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
     private static final Logger logger = LoggerFactory.getLogger(SlidingWindowMetricsInvocationHandler.class);
 
     private final MetricRegistry metricRegistry;
+    private final Map<Method, Timer> timers;
     private final String serviceName;
 
-    public SlidingWindowMetricsInvocationHandler(MetricRegistry metricRegistry, String serviceName) {
+    public SlidingWindowMetricsInvocationHandler(
+            MetricRegistry metricRegistry, String serviceName, Class<?> clazz) {
         super(InstrumentationUtils.getEnabledSupplier(serviceName));
-        this.metricRegistry = checkNotNull(metricRegistry, "metricRegistry");
-        this.serviceName = checkNotNull(serviceName, "serviceName");
+        this.metricRegistry = Preconditions.checkNotNull(metricRegistry, "metricRegistry");
+        this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName");
+        this.timers = Arrays.stream(clazz.getDeclaredMethods())
+                .collect(ImmutableMap.toImmutableMap(Function.identity(), this::getTimer));
+    }
+
+    private Timer getTimer(Method method) {
+        return metricRegistry.timer(
+                InstrumentationUtils.getBaseMetricName(method, serviceName),
+                InstrumentationUtils::createNewTimer);
     }
 
     @Override
@@ -63,9 +77,12 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
         }
 
         long nanos = System.nanoTime() - context.getStartTimeNanos();
-        metricRegistry.timer(InstrumentationUtils.getBaseMetricName(context, serviceName),
-                InstrumentationUtils::createNewTimer)
-                .update(nanos, TimeUnit.NANOSECONDS);
+        Method method = context.getMethod();
+        Timer timer = timers.get(method);
+        if (timer == null) {
+            timer = getTimer(method);
+        }
+        timer.update(nanos, TimeUnit.NANOSECONDS);
     }
 
     @Override

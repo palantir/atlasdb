@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: We no longer run Background Sweep by default if Targeted Sweep is fully
+    enabled (that is, writes to the sweep queue and reading from the sweep queue are
+    both enabled). Background Sweep may still be enabled in this case by explicitly
+    setting `sweep#enabled` to true in runtime configuration.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4154

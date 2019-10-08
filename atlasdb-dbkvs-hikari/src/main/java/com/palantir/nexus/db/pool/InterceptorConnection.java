@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.reflect.AbstractInvocationHandler;
 
 /**
- * Allows you to intercept and override methods in {@link java.sql.Connection}.
+ * Allows you to intercept and override methods in {@link Connection}.
  */
 public final class InterceptorConnection extends AbstractInvocationHandler implements InvocationHandler {
     private final Connection delegate;

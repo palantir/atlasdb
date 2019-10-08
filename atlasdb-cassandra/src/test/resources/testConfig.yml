@@ -4,3 +4,6 @@
   servers:
     - foo:42
   replicationFactor: 1
+  credentials:
+    username: username
+    password: password

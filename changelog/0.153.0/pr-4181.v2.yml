@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    Add logging and reaping of leaked atlas locks
+
+  links:
+  - https://github.com/palantir/atlasdb/pull/4181

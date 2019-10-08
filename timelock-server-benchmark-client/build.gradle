@@ -1,10 +1,11 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
-apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 apply from: "../gradle/non-client-dist.gradle"
+
+schemas = ['com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema']
 
 dependencies {
     compile project(":timelock-server")

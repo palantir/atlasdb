@@ -1048,6 +1048,20 @@ public final class UserProfileTable implements
         });
     }
 
+    @Override
+    public Map<UserProfileRow, Iterator<UserProfileNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<UserProfileRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserProfileRow, Iterator<UserProfileNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<UserProfileNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAffectedCells(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> oldData = getRowsMultimap(rows.keySet());
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> cellsAffected = ArrayListMultimap.create();
@@ -1720,6 +1734,22 @@ public final class UserProfileTable implements
             });
         }
 
+        @Override
+        public Map<CookiesIdxRow, Iterator<CookiesIdxColumnValue>> getRowsColumnRangeIterator(Iterable<CookiesIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+            Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<CookiesIdxRow, Iterator<CookiesIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                Iterator<CookiesIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                    CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = CookiesIdxColumnValue.hydrateValue(result.getValue());
+                    return CookiesIdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<CookiesIdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(allColumns).build();
@@ -2375,6 +2405,22 @@ public final class UserProfileTable implements
                 CreatedIdxColumnValue colValue = CreatedIdxColumnValue.of(col, val);
                 return Maps.immutableEntry(row, colValue);
             });
+        }
+
+        @Override
+        public Map<CreatedIdxRow, Iterator<CreatedIdxColumnValue>> getRowsColumnRangeIterator(Iterable<CreatedIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+            Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<CreatedIdxRow, Iterator<CreatedIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                Iterator<CreatedIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                    CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = CreatedIdxColumnValue.hydrateValue(result.getValue());
+                    return CreatedIdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
         }
 
         public BatchingVisitableView<CreatedIdxRowResult> getRange(RangeRequest range) {
@@ -3034,6 +3080,22 @@ public final class UserProfileTable implements
             });
         }
 
+        @Override
+        public Map<UserBirthdaysIdxRow, Iterator<UserBirthdaysIdxColumnValue>> getRowsColumnRangeIterator(Iterable<UserBirthdaysIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+            Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<UserBirthdaysIdxRow, Iterator<UserBirthdaysIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                Iterator<UserBirthdaysIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                    UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = UserBirthdaysIdxColumnValue.hydrateValue(result.getValue());
+                    return UserBirthdaysIdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<UserBirthdaysIdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 range = range.getBuilder().retainColumns(allColumns).build();
@@ -3200,5 +3262,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "90glu+qbIyo2vFb/CB2wWw==";
+    static String __CLASS_HASH = "6ERsVdIdFT9pY4XfL9rwMw==";
 }

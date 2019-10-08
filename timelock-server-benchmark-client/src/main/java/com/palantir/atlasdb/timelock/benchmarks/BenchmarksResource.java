@@ -21,7 +21,6 @@ import java.util.Optional;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsPutUnlessExistsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsReadBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsWriteBenchmark;
@@ -36,6 +35,7 @@ import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteDynam
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteRowsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class BenchmarksResource implements BenchmarksService {
@@ -45,7 +45,7 @@ public class BenchmarksResource implements BenchmarksService {
     public BenchmarksResource(AtlasDbConfig config) {
         this.txnManager = TransactionManagers.builder()
                 .config(config)
-                .userAgent(UserAgents.DEFAULT_USER_AGENT)
+                .userAgent(UserAgent.of(UserAgent.Agent.of("benchmarks", "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(SharedTaggedMetricRegistries.getSingleton())
                 .addSchemas(BenchmarksSchema.SCHEMA)

@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -25,15 +23,15 @@ import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
 
 public class AtlasDbRuntimeConfigTest {
     @Test
-    public void configHasSweepEnabledByDefault() {
+    public void configDoesNotSpecifySweepByDefault() {
         AtlasDbRuntimeConfig config = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        assertTrue(config.sweep().enabled());
+        assertThat(config.sweep().enabled()).isEmpty();
     }
 
     @Test
-    public void configWithoutSweepHasSweepDisabled() throws Exception {
+    public void configWithoutSweepHasSweepDisabled() {
         AtlasDbRuntimeConfig config = AtlasDbRuntimeConfig.withSweepDisabled();
-        assertFalse(config.sweep().enabled());
+        assertThat(config.sweep().enabled()).contains(false);
     }
 
     @Test

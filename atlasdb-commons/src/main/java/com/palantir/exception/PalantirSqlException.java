@@ -27,8 +27,9 @@ import com.palantir.common.exception.PalantirRuntimeException;
  */
 public class PalantirSqlException extends PalantirRuntimeException {
     private static final long serialVersionUID = 1L;
-    public static enum DO_NOT_SET_INITIAL_SQL_EXCEPTION { YES};
-    public static enum SET_INITIAL_SQL_EXCEPTION {YES};
+    public enum DO_NOT_SET_INITIAL_SQL_EXCEPTION { YES}
+
+    public enum SET_INITIAL_SQL_EXCEPTION {YES}
 
     /**
      * @deprecated Do not use! This should only be used by Throwables.rewrap which
@@ -72,7 +73,7 @@ public class PalantirSqlException extends PalantirRuntimeException {
     }
 
     public static PalantirSqlException create(SQLException e) {
-        String msg = Optional.ofNullable(e.getMessage()).orElse(e.getClass().getName() + "with null message");
+        String msg = Optional.ofNullable(e.getMessage()).orElseGet(() -> e.getClass().getName() + "with null message");
         return new PalantirSqlException(msg, e);
     }
 

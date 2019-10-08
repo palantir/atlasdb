@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,7 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -37,6 +39,10 @@ import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -45,13 +51,15 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
-    private final Supplier<Boolean> runSweep;
-    private final Supplier<Integer> shardsConfig;
+    private static final Duration MAX_SHARD_DURATION = Duration.ofMinutes(5L);
+
+    private final Supplier<TargetedSweepRuntimeConfig> runtime;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
 
@@ -64,14 +72,15 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private volatile boolean isInitialized = false;
 
-    private TargetedSweeper(MetricsManager metricsManager, Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads, List<Follower> followers) {
+    private TargetedSweeper(MetricsManager metricsManager,
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            TargetedSweepInstallConfig install,
+            List<Follower> followers) {
         this.metricsManager = metricsManager;
-        this.runSweep = runSweep;
-        this.shardsConfig = shardsConfig;
-        this.conservativeScheduler = new BackgroundSweepScheduler(conservativeThreads,
+        this.runtime = runtime;
+        this.conservativeScheduler = new BackgroundSweepScheduler(install.conservativeThreads(),
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-        this.thoroughScheduler = new BackgroundSweepScheduler(thoroughThreads,
+        this.thoroughScheduler = new BackgroundSweepScheduler(install.thoroughThreads(),
                 TableMetadataPersistence.SweepStrategy.THOROUGH);
         this.followers = followers;
     }
@@ -82,27 +91,33 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * TransactionService, TargetedSweepFollower)} method before any writes can be made to the sweep queue, or before
      * the background sweep job can run.
      *
-     * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
-     * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
-     * must never be reduced, this will be ignored if the persisted number of shards is greater.
-     * @param conservativeThreads number of conservative threads to use for background targeted sweep.
-     * @param thoroughThreads number of thorough threads to use for background targeted sweep.
+     * @param runtime live reloadable TargetedSweepRuntimeConfig.
+     * @param install TargetedSweepInstallConfig, which is not live reloadable.
      * @param followers follower used for sweeps, as defined by your schema.
      * @return returns an uninitialized targeted sweeper
      */
-    public static TargetedSweeper createUninitialized(MetricsManager metrics, Supplier<Boolean> enabled,
-            Supplier<Integer> shardsConfig, int conservativeThreads, int thoroughThreads, List<Follower> followers) {
-        return new TargetedSweeper(metrics, enabled, shardsConfig, conservativeThreads, thoroughThreads, followers);
+    public static TargetedSweeper createUninitialized(MetricsManager metrics,
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            TargetedSweepInstallConfig install,
+            List<Follower> followers) {
+        return new TargetedSweeper(metrics, runtime, install, followers);
     }
 
-    @VisibleForTesting
-    static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Boolean> enabled,
-            Supplier<Integer> shards) {
-        return createUninitialized(metricsManager, enabled, shards, 0, 0, ImmutableList.of());
+    public static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager,
+            Supplier<TargetedSweepRuntimeConfig> runtime) {
+        TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
+                .conservativeThreads(0)
+                .thoroughThreads(0)
+                .build();
+        return createUninitialized(metricsManager, runtime, install, ImmutableList.of());
     }
 
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
-        return createUninitializedForTest(MetricsManagers.createForTests(), () -> true, shards);
+        Supplier<TargetedSweepRuntimeConfig> runtime = () ->
+                ImmutableTargetedSweepRuntimeConfig.builder()
+                        .shards(shards.get())
+                        .build();
+        return createUninitializedForTest(MetricsManagers.createForTests(), runtime);
     }
 
     @Override
@@ -140,7 +155,14 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, SweepQueueUtils.REFRESH_TIME);
-        queue = SweepQueue.create(metrics, kvs, timelockService, shardsConfig, transaction, follower);
+        queue = SweepQueue.create(
+                metrics,
+                kvs,
+                timelockService,
+                Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
+                transaction,
+                follower,
+                () -> runtime.get().maximumPartitionsToBatchInSingleRead());
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         isInitialized = true;
@@ -164,17 +186,28 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * writes from the sweep queue and then update the sweep queue progress accordingly.
      *
      * @param shardStrategy shard and strategy to use
+     * @return true if we should immediately process another batch for this shard and strategy
      */
     @SuppressWarnings("checkstyle:RegexpMultiline") // Suppress VisibleForTesting warning
     @VisibleForTesting
-    public void sweepNextBatch(ShardAndStrategy shardStrategy) {
+    public boolean sweepNextBatch(ShardAndStrategy shardStrategy, long maxTsExclusive) {
         assertInitialized();
-        if (!runSweep.get()) {
-            metrics.registerOccurrenceOf(SweepOutcome.DISABLED);
-            return;
+        return queue.sweepNextBatch(shardStrategy, maxTsExclusive);
+    }
+
+    @VisibleForTesting
+    void processShard(ShardAndStrategy shardAndStrategy) {
+        long maxTsExclusive = Sweeper.of(shardAndStrategy).getSweepTimestamp(timestampsSupplier);
+        if (runtime.get().batchShardIterations()) {
+            Stopwatch watch = Stopwatch.createStarted();
+            boolean processNextBatch = true;
+            while (processNextBatch && runtime.get().enabled()
+                    && (watch.elapsed().compareTo(MAX_SHARD_DURATION) < 0)) {
+                processNextBatch = sweepNextBatch(shardAndStrategy, maxTsExclusive);
+            }
+        } else {
+            sweepNextBatch(shardAndStrategy, maxTsExclusive);
         }
-        long maxTsExclusive = Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier);
-        queue.sweepNextBatch(shardStrategy, maxTsExclusive);
     }
 
     @Override
@@ -211,21 +244,27 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 executorService = PTExecutors
                         .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
                 for (int i = 0; i < numThreads; i++) {
-                    executorService.scheduleWithFixedDelay(this::runOneIteration, 1, 5, TimeUnit.SECONDS);
+                    executorService.scheduleWithFixedDelay(this::runOneIteration, 1000,
+                            Math.max(runtime.get().pauseMillis(), 1L), TimeUnit.MILLISECONDS);
                 }
             }
         }
 
         private void runOneIteration() {
+            if (!runtime.get().enabled()) {
+                metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.DISABLED);
+                return;
+            }
+
             Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
-                maybeLock.ifPresent(lock -> sweepNextBatch(lock.getShardAndStrategy()));
+                maybeLock.ifPresent(lock -> processShard(lock.getShardAndStrategy()));
             } catch (InsufficientConsistencyException e) {
-                metrics.registerOccurrenceOf(SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
+                metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
                 logException(e, maybeLock);
             } catch (Throwable th) {
-                metrics.registerOccurrenceOf(SweepOutcome.ERROR);
+                metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.ERROR);
                 logException(th, maybeLock);
             } finally {
                 try {

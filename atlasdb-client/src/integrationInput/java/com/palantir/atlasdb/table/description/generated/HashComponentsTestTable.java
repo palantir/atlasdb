@@ -589,6 +589,20 @@ public final class HashComponentsTestTable implements
         });
     }
 
+    @Override
+    public Map<HashComponentsTestRow, Iterator<HashComponentsTestNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<HashComponentsTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<HashComponentsTestRow, Iterator<HashComponentsTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            HashComponentsTestRow row = HashComponentsTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<HashComponentsTestNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<HashComponentsTestRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -749,5 +763,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "wcMKuy9F9wZNt8f7UQPeUg==";
+    static String __CLASS_HASH = "mUSvA7C+KGeRB81zw13qGg==";
 }

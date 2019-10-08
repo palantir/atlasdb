@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
@@ -38,7 +37,10 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
@@ -54,20 +56,22 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     }
 
     @Before
+    @Override
     public void setup() {
         super.setup();
 
-        sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager,
+                () -> ImmutableTargetedSweepRuntimeConfig.builder().shards(1).maximumPartitionsToBatchInSingleRead(8)
+                        .build());
         sweepQueue.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), kvs, txService, mock(TargetedSweepFollower.class));
     }
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference ignored, long ts) {
-        when(timestampsSupplier.getUnreadableTimestamp()).thenReturn(ts);
-        when(timestampsSupplier.getImmutableTimestamp()).thenReturn(ts);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0), ts);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0), ts);
         return Optional.empty();
     }
 
@@ -95,6 +99,19 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         assertThat(getValue(TABLE_NAME, 110))
                 .isEqualTo(Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP));
         assertThat(getValue(TABLE_NAME, 160)).isEqualTo(Value.create(PtBytes.toBytes(NEW_VALUE), 150));
+    }
+
+    @Test
+    public void targetedSweepIgnoresDroppedTablesForUncommittedWrites() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+        kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
+
+        sweepQueue.enqueue(ImmutableMap.of(TABLE_TO_BE_DROPPED,
+                ImmutableMap.of(TEST_CELL, PtBytes.toBytes(OLD_VALUE))), 100);
+
+        kvs.dropTable(TABLE_TO_BE_DROPPED);
+
+        completeSweep(null, 160);
     }
 
     private Value getValue(TableReference tableRef, long ts) {

@@ -25,9 +25,12 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
+@AutoDelegate
 public interface TransactionManager extends AutoCloseable {
     /**
      * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
@@ -136,6 +139,15 @@ public interface TransactionManager extends AutoCloseable {
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
+    /**
+     * This is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}, but instead
+     * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
+     *
+     * @deprecated use {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)} instead.
+     * @see #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)
+     */
+    @DoNotDelegate
+    @Deprecated
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
             com.google.common.base.Supplier<LockRequest> guavaSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException {
@@ -160,6 +172,15 @@ public interface TransactionManager extends AutoCloseable {
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
+    /**
+     * This is the same as {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)}, but instead
+     * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
+     *
+     * @deprecated use {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)} instead.
+     * @see #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)
+     */
+    @DoNotDelegate
+    @Deprecated
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             com.google.common.base.Supplier<LockRequest> guavaSupplier,
@@ -200,6 +221,15 @@ public interface TransactionManager extends AutoCloseable {
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
+    /**
+     * This is the same as {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)}, but instead
+     * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
+     *
+     * @deprecated use {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)} instead.
+     * @see #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)
+     */
+    @DoNotDelegate
+    @Deprecated
     default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             com.google.common.base.Supplier<C> guavaSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
         Supplier<C> javaSupplier = guavaSupplier::get;

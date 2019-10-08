@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -104,7 +105,7 @@ public class CachingTransaction extends ForwardingTransaction {
                 }
             }
             SortedMap<byte[], RowResult<byte[]>> results = super.getRows(tableRef, toLoad, columnSelection);
-            cacheLoadedRows(tableRef, results.values());
+            cacheLoadedRows(tableRef, toLoad, columnSelection.getSelectedColumns(), results);
             inCache.putAll(results);
             return inCache.build();
         }
@@ -162,6 +163,25 @@ public class CachingTransaction extends ForwardingTransaction {
         for (RowResult<byte[]> loadedRow : rowView) {
             for (Map.Entry<Cell, byte[]> e : loadedRow.getCells()) {
                 cacheLoadedCell(tableRef, e.getKey(), e.getValue());
+            }
+        }
+    }
+
+    private void cacheLoadedRows(
+            TableReference tableRef,
+            Iterable<byte[]> toLoad,
+            Collection<byte[]> columnNames,
+            SortedMap<byte[], RowResult<byte[]>> toCache) {
+        for (byte[] row : toLoad) {
+            SortedMap<byte[], byte[]> columnValues = toCache.get(row) != null
+                    ? toCache.get(row).getColumns()
+                    : ImmutableSortedMap.of();
+            for (byte[] columnName : columnNames) {
+                byte[] value = columnValues.get(columnName);
+                if (value == null) {
+                    value = PtBytes.EMPTY_BYTE_ARRAY;
+                }
+                cacheLoadedCell(tableRef, Cell.create(row, columnName), value);
             }
         }
     }

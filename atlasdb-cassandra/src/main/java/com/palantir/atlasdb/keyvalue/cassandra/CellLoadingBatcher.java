@@ -33,14 +33,15 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 /**
- * Divides a list of {@link com.palantir.atlasdb.keyvalue.api.Cell}s into batches for querying.
+ * Divides a list of {@link Cell}s into batches for querying.
  *
  * The batcher partitions cells by columns.
  * If for a given column the number of cells provided is at least
  * {@link CassandraCellLoadingConfig#crossColumnLoadBatchLimit()}, then the cells for that column will exclusively
- * occupy one or more batches, with no batch having size greater than that limit..
+ * occupy one or more batches, with no batch having size greater than
+ * {@link CassandraCellLoadingConfig#singleQueryLoadBatchLimit()}.
  * Otherwise, the cells provided may be combined with cells for other columns in batches of size up to the value
- * from {@link CassandraCellLoadingConfig#singleQueryLoadBatchLimit()}. There is no guarantee that all cells for this
+ * from {@link CassandraCellLoadingConfig#crossColumnLoadBatchLimit()}. There is no guarantee that all cells for this
  * column will be in the same batch in this case.
  *
  * Live reloading: Batching will take place following some {@link CassandraCellLoadingConfig} available from

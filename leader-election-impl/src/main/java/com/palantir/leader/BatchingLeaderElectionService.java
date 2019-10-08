@@ -21,10 +21,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.atlasdb.autobatch.ProfilingAutobatchers;
 
 public class BatchingLeaderElectionService implements LeaderElectionService {
     private final LeaderElectionService delegate;
@@ -32,9 +31,14 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
 
     public BatchingLeaderElectionService(LeaderElectionService delegate) {
         this.delegate = delegate;
-        this.batcher = ProfilingAutobatchers.create(
-                BatchingLeaderElectionService.class.getSimpleName(),
-                this::processBatch);
+        this.batcher = Autobatchers.independent(this::processBatch)
+                .safeLoggablePurpose("leader-election-service")
+                .build();
+    }
+
+    @Override
+    public void markNotEligibleForLeadership() {
+        delegate.markNotEligibleForLeadership();
     }
 
     @Override
@@ -61,13 +65,13 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
     }
 
     @Override
-    public Optional<HostAndPort> getSuspectedLeaderInMemory() {
-        return delegate.getSuspectedLeaderInMemory();
+    public Set<PingableLeader> getPotentialLeaders() {
+        return delegate.getPotentialLeaders();
     }
 
     @Override
-    public Set<PingableLeader> getPotentialLeaders() {
-        return delegate.getPotentialLeaders();
+    public boolean stepDown() {
+        return delegate.stepDown();
     }
 
     private void processBatch(List<BatchElement<Void, LeadershipToken>> batch) {

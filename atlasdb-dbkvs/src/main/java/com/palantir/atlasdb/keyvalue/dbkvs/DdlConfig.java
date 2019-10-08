@@ -19,8 +19,8 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Preconditions;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 @JsonSubTypes({
