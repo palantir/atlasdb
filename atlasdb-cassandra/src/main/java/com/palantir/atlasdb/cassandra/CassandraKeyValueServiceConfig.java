@@ -184,6 +184,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     Optional<SslConfiguration> sslConfiguration();
 
+    /**
+     * An object which implements the logic behind CQL client resource management. Default implementation creates a new
+     * one per CKVS.
+     */
+    @Value.Default
     default CqlClientFactory cqlClientFactory() {
         return CqlClientFactoryImpl.DEFAULT;
     }
