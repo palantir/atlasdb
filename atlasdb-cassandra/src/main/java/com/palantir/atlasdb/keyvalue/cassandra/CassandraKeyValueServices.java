@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
@@ -57,6 +58,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 
 public final class CassandraKeyValueServices {
@@ -72,8 +74,12 @@ public final class CassandraKeyValueServices {
     }
 
     /**
-     * Wraps the execution of the specified task with checks verifying that schema versions on Cassandra nodes are
-     * consistent. It is recommended that any task modifying schema versions is run using this method.
+     * Waits for schema versions to agree before, and after, running the task. We allow for a single node to be
+     * unreachable as long as all other nodes agree on their schema version as a compromise to allow some degree of high
+     * availability, i.e., allow schema changes even if a Cassandra node is down.
+     *
+     * While using this method does not guarantee avoiding schema version mismatch, it should decrease the chance of it
+     * occurring. It is therefore recommended that any task modifying schema versions is run this way.
      *
      * @param task task modifying Cassandra schema.
      * @param config the KVS configuration.
@@ -164,12 +170,18 @@ public final class CassandraKeyValueServices {
 
     private static long sleepAndGetNextBackoffTime(long sleepTime) {
         try {
-            Thread.sleep(sleepTime);
+            long wait = sleepTime + (long) (sleepTime * getRandomJitter());
+            log.info("Disagreement on schema versions, waiting for {} ms and retrying.", SafeArg.of("backoff", wait));
+            Thread.sleep(wait);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw Throwables.throwUncheckedException(e);
         }
         return Math.min(sleepTime * 2, MAX_SLEEP_TIME);
+    }
+
+    private static double getRandomJitter() {
+        return ThreadLocalRandom.current().nextDouble(0.2d) - 0.1d;
     }
 
     private static StringBuilder addNodeInformation(StringBuilder builder, String message, List<String> nodes) {
