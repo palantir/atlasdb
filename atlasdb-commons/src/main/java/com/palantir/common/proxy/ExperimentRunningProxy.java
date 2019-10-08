@@ -28,6 +28,7 @@ import java.util.function.BooleanSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.exception.NotInitializedException;
 
@@ -42,6 +43,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
 
     private final AtomicReference<Instant> nextPermittedExperiment = new AtomicReference<>(Instant.MIN);
 
+    @VisibleForTesting
     ExperimentRunningProxy(
             T experimentalService,
             T fallbackService,
