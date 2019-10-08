@@ -73,7 +73,7 @@ public final class CqlClientFactoryImpl implements CqlClientFactory {
 
             @Override
             public CqlClient visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
-                if (cqlCapableConfig.validateHosts()) {
+                if (!cqlCapableConfig.validateHosts()) {
                     log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same, using "
                             + "async API will result in an exception");
                     return ThrowingCqlClientImpl.SINGLETON;
