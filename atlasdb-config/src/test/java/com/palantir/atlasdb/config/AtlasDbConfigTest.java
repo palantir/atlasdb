@@ -18,7 +18,6 @@ package com.palantir.atlasdb.config;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
@@ -43,6 +42,7 @@ public class AtlasDbConfigTest {
             .quorumSize(1)
             .localServer("me")
             .addLeaders("me")
+            .sslConfiguration(mock(SslConfiguration.class))
             .build();
     private static final ServerListConfig SINGLETON_SERVER_LIST = ImmutableServerListConfig.builder()
             .addServers("server")
@@ -51,9 +51,6 @@ public class AtlasDbConfigTest {
             .client("client")
             .serversList(SINGLETON_SERVER_LIST)
             .build();
-    private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
-    private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
-    private static final Optional<SslConfiguration> NO_SSL_CONFIG = Optional.empty();
 
     private static final String TEST_NAMESPACE = "client";
     private static final String OTHER_CLIENT = "other-client";
@@ -300,73 +297,6 @@ public class AtlasDbConfigTest {
                 .isInstanceOf(IllegalStateException.class)
                 .satisfies((exception) ->
                         assertThat(exception.getMessage(), containsString("config should be the same")));
-    }
-
-    @Test
-    public void addingFallbackSslAddsItToLeaderBlock() {
-        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .leader(LEADER_CONFIG)
-                .build();
-        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.leader().get().sslConfiguration(), is(SSL_CONFIG));
-        assertThat(withoutSsl.getNamespaceString(), equalTo(TEST_NAMESPACE));
-    }
-
-    @Test
-    public void addingFallbackSslAddsItToLockBlock() {
-        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .lock(SINGLETON_SERVER_LIST)
-                .timestamp(SINGLETON_SERVER_LIST)
-                .build();
-        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.lock().get().sslConfiguration(), is(SSL_CONFIG));
-        assertThat(withoutSsl.getNamespaceString(), equalTo(TEST_NAMESPACE));
-    }
-
-    @Test
-    public void addingFallbackSslAddsItToTimelockServersBlock() {
-        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG)
-                .build();
-        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.timelock().get().serversList().sslConfiguration(), is(SSL_CONFIG));
-    }
-
-    @Test
-    public void addingFallbackSslAddsItToTimestampBlock() {
-        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .lock(SINGLETON_SERVER_LIST)
-                .timestamp(SINGLETON_SERVER_LIST)
-                .build();
-        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.timestamp().get().sslConfiguration(), is(SSL_CONFIG));
-    }
-
-    @Test
-    public void addingFallbackSslWhenItExistsDoesntOverride() {
-        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .leader(ImmutableLeaderConfig.builder()
-                        .from(LEADER_CONFIG)
-                        .sslConfiguration(SSL_CONFIG)
-                        .build())
-                .build();
-        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, OTHER_SSL_CONFIG);
-        assertThat(withSsl.leader().get().sslConfiguration(), is(SSL_CONFIG));
-    }
-
-    @Test
-    public void addingAbsentFallbackSslWhenItDoesntExistsLeavesItAsAbsent() {
-        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .leader(LEADER_CONFIG)
-                .build();
-        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, NO_SSL_CONFIG);
-        assertThat(withSsl.leader().get().sslConfiguration(), is(NO_SSL_CONFIG));
     }
 
     @Test

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -33,17 +34,24 @@ import org.junit.rules.TemporaryFolder;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.errors.RemoteException;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.timestamp.TimestampService;
+
+import feign.RetryableException;
 
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".
 public class TimeLockMigrationEteTest {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
+    public static final TrustContext TRUST_CONTEXT =
+            SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
 
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
@@ -130,19 +138,20 @@ public class TimeLockMigrationEteTest {
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
         softAssertions.assertThat(
-                ((AtlasDbRemoteException) catchThrowable(timestampClient::getFreshTimestamp)).getStatus())
+                ((RemoteException) catchThrowable(timestampClient::getFreshTimestamp)).getStatus())
                 .isEqualTo(404)
                 .as("no longer exposes an embedded timestamp service");
     }
 
     private void assertCanNeitherReadNorWrite() {
         TodoResource todoClient = createEteClientFor(TodoResource.class);
+
         softAssertions.assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
                 .as("cannot write using embedded service after migration to TimeLock")
-                .hasMessageContaining("Connection refused");
+                .isInstanceOf(RetryableException.class);
         softAssertions.assertThat(catchThrowable(todoClient::getTodoList))
                 .as("cannot read using embedded service after migration to TimeLock")
-                .hasMessageContaining("Connection refused");
+                .isInstanceOf(RetryableException.class);
     }
 
     private void assertTimeLockGivesHigherTimestampThan(long timestamp) {
@@ -181,11 +190,12 @@ public class TimeLockMigrationEteTest {
 
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
-        return AtlasDbHttpClients.createProxy(new MetricRegistry(), Optional.empty(), uri, clazz);
+        return AtlasDbHttpClients.createProxy(new MetricRegistry(), TRUST_CONTEXT, uri, clazz);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
-        return AtlasDbHttpClients.createProxy(new MetricRegistry(), Optional.empty(), uri, TimestampService.class);
+        return AtlasDbHttpClients
+                .createProxy(new MetricRegistry(), TRUST_CONTEXT, uri, TimestampService.class);
     }
 }

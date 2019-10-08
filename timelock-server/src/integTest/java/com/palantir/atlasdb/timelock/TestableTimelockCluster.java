@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -59,6 +61,7 @@ import com.palantir.timestamp.TimestampService;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class TestableTimelockCluster {
+    private static final Logger log = LoggerFactory.getLogger(TestableTimelockCluster.class);
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 

@@ -63,6 +63,10 @@ task printLastVersion {
 allprojects {
     apply plugin: 'nebula.dependency-recommender'
 
+    repositories {
+        mavenLocal()
+    }
+
     dependencyRecommendations {
         strategy OverrideTransitives
         propertiesFile file: project.rootProject.file('versions.props')

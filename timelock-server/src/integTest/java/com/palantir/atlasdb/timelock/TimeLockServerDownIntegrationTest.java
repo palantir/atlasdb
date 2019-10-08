@@ -29,7 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.common.exception.AtlasDbDependencyException;
+
+import feign.RetryableException;
 
 public class TimeLockServerDownIntegrationTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
@@ -63,7 +64,7 @@ public class TimeLockServerDownIntegrationTest {
 
         // Try to get again
         assertThatThrownBy(() -> txnManager.runTaskWithRetry(txn -> txn.get(TABLE, ImmutableSet.of(CELL)).get(CELL)))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class);
+                .isExactlyInstanceOf(RetryableException.class);
     }
 
     private static void takeDownTimeLock() {

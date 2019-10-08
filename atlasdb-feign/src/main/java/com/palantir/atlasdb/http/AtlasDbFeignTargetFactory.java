@@ -16,166 +16,63 @@
 package com.palantir.atlasdb.http;
 
 import java.net.ProxySelector;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.google.common.reflect.Reflection;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.client.config.ClientConfiguration;
+import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
-
-import feign.Client;
-import feign.Contract;
-import feign.Feign;
-import feign.Request;
-import feign.Retryer;
-import feign.codec.Decoder;
-import feign.codec.Encoder;
-import feign.codec.ErrorDecoder;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
+import com.palantir.conjure.java.ext.refresh.Refreshable;
+import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
 
 public final class AtlasDbFeignTargetFactory {
-
-    private static final ObjectMapper mapper = new ObjectMapper()
-            .registerModule(new Jdk8Module())
-            .registerModule(new JavaTimeModule())
-            .registerModule(new GuavaModule());
-    private static final Contract contract = new JAXRSContract();
-    private static final Encoder encoder = new JacksonEncoder(mapper);
-    private static final Decoder decoder = new TextDelegateDecoder(
-            new OptionalAwareDecoder(new JacksonDecoder(mapper)));
-    private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
-
     private AtlasDbFeignTargetFactory() {
         // factory
     }
 
-    public static <T> T createProxyWithoutRetrying(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .retryer(Retryer.NEVER_RETRY)
-                .client(createClient(trustContext, userAgent, limitPayloadSize))
-                .target(type, uri);
-    }
-
     public static <T> T createProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .retryer(new InterruptHonoringRetryer())
-                .client(createClient(trustContext, userAgent, limitPayloadSize))
-                .target(type, uri);
-    }
-
-    public static <T> T createRsProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
+            Collection<String> endpointUris,
+            TrustContext trustContext,
+            ClientOptions clientOptions,
+            Optional<ProxySelector> proxy,
             Class<T> type,
             String userAgent) {
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(new RsErrorDecoder())
-                .client(createClient(trustContext, userAgent, false))
-                .target(type, uri);
+        ClientConfiguration clientConfiguration = clientOptions
+                .fromStuff(ImmutableList.copyOf(endpointUris), proxy, trustContext);
+
+        return JaxRsClient.create(type, createAgent(userAgent), new HostMetricsRegistry(), clientConfiguration);
     }
 
-    public static <T> T createProxyWithFailover(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            int feignConnectTimeout,
-            int feignReadTimeout,
-            long maxBackoffMillis,
-            Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
-        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
-        Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
-
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .client(client)
-                .retryer(failoverFeignTarget)
-                .options(new Request.Options(feignConnectTimeout, feignReadTimeout))
-                .target(failoverFeignTarget);
-    }
-
-    static <T> T createLiveReloadingProxyWithFailover(
+    static <T> T createLiveReloadingProxy(
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
-            int feignConnectTimeout,
-            int feignReadTimeout,
-            long maxBackoffMillis,
+            ClientOptions clientOptions,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
-        PollingRefreshable<ServerListConfig> configPollingRefreshable =
-                PollingRefreshable.create(serverListConfigSupplier);
-        return Reflection.newProxy(
-                type,
-                RefreshableProxyInvocationHandler.create(
-                        configPollingRefreshable.getRefreshable(),
-                        serverListConfig -> {
-                            if (serverListConfig.hasAtLeastOneServer()) {
-                                return createProxyWithFailover(
-                                        serverListConfig.sslConfiguration().map(trustContextCreator),
-                                        serverListConfig.proxyConfiguration().map(proxySelectorCreator),
-                                        serverListConfig.servers(),
-                                        feignConnectTimeout,
-                                        feignReadTimeout,
-                                        maxBackoffMillis,
-                                        type,
-                                        userAgent,
-                                        limitPayload);
-                            }
-                            return createProxyForZeroNodes(type);
-                        }));
+            String userAgent) {
+        Supplier<ServerListConfig> nonEmptyServerList = () -> injectDummyServer(serverListConfigSupplier);
+        Refreshable<ClientConfiguration> refreshableConfig = PollingRefreshable
+                .createComposed(nonEmptyServerList, Duration.ofSeconds(5L), clientOptions::serverListToClient)
+                .getRefreshable();
+
+        return JaxRsClient.create(type, createAgent(userAgent), new HostMetricsRegistry(), refreshableConfig);
     }
 
-    private static Client createClient(
-            Optional<TrustContext> trustContext,
-            String userAgent,
-            boolean limitPayload) {
-        return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
+    private static ServerListConfig injectDummyServer(Supplier<ServerListConfig> serverListConfigSupplier) {
+        ServerListConfig originalConfig = serverListConfigSupplier.get();
+        if (originalConfig.hasAtLeastOneServer()) {
+            return originalConfig;
+        }
+        return ImmutableServerListConfig.builder().from(serverListConfigSupplier.get())
+                .addServers("http://dummy")
+                .build();
     }
 
-    private static <T> T createProxyForZeroNodes(Class<T> type) {
-        return Reflection.newProxy(type, (unused1, unused2, unused3) -> {
-            throw new ServiceNotAvailableException("The " + type.getSimpleName() + " is currently unavailable,"
-                    + " because configuration contains zero servers.");
-        });
+    private static UserAgent createAgent(String userAgent) {
+        return UserAgent.of(UserAgent.Agent.of(userAgent.replace('.', '-'), "0.0.0"));
     }
 }

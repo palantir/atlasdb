@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.timelock.TimeLockStatus;
 
@@ -106,7 +105,8 @@ public class LeaderPingHealthCheckTest {
 
     private static PingableLeader getMockOfPingableLeaderWherePingThrows() {
         PingableLeader mockLeader = mock(PingableLeader.class);
-        when(mockLeader.ping()).thenThrow(mock(AtlasDbRemoteException.class));
+        // TODO(gmaretic): fix, used to be AtlasDbRemoteException
+        when(mockLeader.ping()).thenThrow(mock(RuntimeException.class));
         return mockLeader;
     }
 }

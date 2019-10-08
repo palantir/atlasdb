@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.UserAgents;
-import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -59,13 +58,13 @@ public class TestProxies {
 
     public <T> T singleNode(Class<T> serviceInterface, String uri) {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
-        return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
+        return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithoutRetrying(
                 new MetricRegistry(),
-                Optional.of(TRUST_CONTEXT),
+                TRUST_CONTEXT,
                 uri,
                 serviceInterface,
-                MultiNodePaxosTimeLockServerIntegrationTest.class.toString(),
-                false));
+                UserAgents.DEFAULT_USER_AGENT
+        ));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {
@@ -76,9 +75,9 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                Optional.of(TRUST_CONTEXT),
-                Optional.empty(),
+                TRUST_CONTEXT,
                 uris,
+                Optional.empty(),
                 UserAgents.DEFAULT_USER_AGENT,
                 serviceInterface));
     }

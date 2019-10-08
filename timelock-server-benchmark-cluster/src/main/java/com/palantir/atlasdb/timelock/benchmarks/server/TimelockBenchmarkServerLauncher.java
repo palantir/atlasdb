@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.benchmarks.server;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -42,9 +41,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
 
     @Override
     public void run(CombinedTimeLockServerConfiguration configuration, Environment environment) throws Exception {
-        FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
-
-        TimeLockAgent agent = TimeLockAgent.create(
+        TimeLockAgent.create(
                 MetricsManagers.of(environment.metrics(), SharedTaggedMetricRegistries.getSingleton()),
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload

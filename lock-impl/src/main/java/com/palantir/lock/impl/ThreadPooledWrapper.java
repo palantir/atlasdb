@@ -21,10 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 public class ThreadPooledWrapper<F> {
-    private static final Logger log = LoggerFactory.getLogger(ThreadPooledWrapper.class);
-
     private final Semaphore localThreadPool;
     private final Semaphore sharedThreadPool;
     private final F delegate;
@@ -46,8 +45,7 @@ public class ThreadPooledWrapper<F> {
         if (sharedThreadPool.tryAcquire()) {
             return applyAndRelease(sharedThreadPool, function);
         }
-        throw new TooManyRequestsException(
-                "ThreadPooledLockService was unable to acquire a permit to assign a server thread to the request.");
+        throw QosException.throttle();
     }
 
     private <T, K extends Exception> T applyAndRelease(Semaphore semaphore, FunctionCheckedException<F, T, K> function)

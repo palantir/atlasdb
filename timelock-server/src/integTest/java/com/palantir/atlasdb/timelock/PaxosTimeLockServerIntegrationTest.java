@@ -49,8 +49,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.FeignOkHttpClients;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
@@ -70,6 +68,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
+import feign.RetryableException;
 import io.dropwizard.testing.ResourceHelpers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -84,7 +83,6 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String LEARNER = "learner";
     private static final String ACCEPTOR = "acceptor";
     private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
-    private static final String INVALID_CLIENT = "test2\b";
 
     private static final int MAX_CONCURRENT_LOCK_REQUESTS = CombinedTimeLockServerConfiguration.threadPoolSize();
 
@@ -123,7 +121,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public static void waitForClusterToStabilize() {
         PingableLeader leader = AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                Optional.of(TestProxies.TRUST_CONTEXT),
+                TestProxies.TRUST_CONTEXT,
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class);
         Awaitility.await()
@@ -145,7 +143,6 @@ public class PaxosTimeLockServerIntegrationTest {
     @Test
     public void singleClientCanUseLocalAndSharedThreads() throws Exception {
         List<LockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
-
         assertThat(lockAndUnlockAndCountExceptions(lockService, MAX_CONCURRENT_LOCK_REQUESTS)).isEqualTo(0);
     }
 
@@ -191,8 +188,8 @@ public class PaxosTimeLockServerIntegrationTest {
         }
 
         List<Future<LockRefreshToken>> futures = Lists.newArrayList();
-        for (LockService lockService : lockServices) {
-            for (int i = 0; i < numRequestsPerClient; i++) {
+        for (int i = 0; i < numRequestsPerClient; i++) {
+            for (LockService lockService : lockServices) {
                 int currentTrial = i;
                 futures.add(executorService.submit(() ->
                         lockService.lock(CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT))
@@ -209,8 +206,8 @@ public class PaxosTimeLockServerIntegrationTest {
                 assertThat(future.get()).isNull();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
-                assertThat(cause.getClass().getName()).contains("RetryableException");
-                assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
+                assertThat(cause).isInstanceOf(RetryableException.class)
+                        .hasMessageContaining("Failed to complete the request due to QosException.Throttle");
                 exceptionCounter.getAndIncrement();
             } catch (InterruptedException e) {
                 throw Throwables.propagate(e);
@@ -384,13 +381,6 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwsOnQueryingTimestampWithWithInvalidClientName() {
-        TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
-        assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining("Unexpected char 0x08");
-    }
-
-    @Test
     public void supportsClientNamesMatchingPaxosRoles() throws InterruptedException {
         getTimestampService(LEARNER).getFreshTimestamp();
         getTimestampService(ACCEPTOR).getFreshTimestamp();
@@ -461,7 +451,6 @@ public class PaxosTimeLockServerIntegrationTest {
                 .sslSocketFactory(
                         TestProxies.TRUST_CONTEXT.sslSocketFactory(),
                         TestProxies.TRUST_CONTEXT.x509TrustManager())
-                .connectionSpecs(FeignOkHttpClients.CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .build();
         return client.newCall(new Request.Builder()
                 .url(uri)
@@ -493,22 +482,15 @@ public class PaxosTimeLockServerIntegrationTest {
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                Optional.of(TestProxies.TRUST_CONTEXT),
+                TestProxies.TRUST_CONTEXT,
                 getRootUriForClient(client),
                 clazz,
-                client,
-                true);
+                client
+        );
     }
 
     private static String getRootUriForClient(String client) {
         return String.format("https://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
-    }
-
-    private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
-        assertThat(throwable).isInstanceOf(AtlasDbRemoteException.class);
-
-        AtlasDbRemoteException remoteException = (AtlasDbRemoteException) throwable;
-        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
     }
 
     private LockRequest newLockV2Request(LockDescriptor lock) {

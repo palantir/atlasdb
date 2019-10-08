@@ -24,7 +24,7 @@ public final class UserAgents {
 
     public static final String USER_AGENT_FORMAT = "%s-" + ATLASDB_CLIENT + " (%s)";
     public static final String DEFAULT_VALUE = "unknown";
-    public static final String DEFAULT_USER_AGENT = fromStrings(DEFAULT_VALUE, DEFAULT_VALUE);
+    public static final String DEFAULT_USER_AGENT = "unknown";
 
     private UserAgents() {
         // utility class

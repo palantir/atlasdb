@@ -36,7 +36,7 @@ public final class PaxosRemotingUtils {
     }
 
     public static Set<String> getRemoteServerPaths(TimeLockInstallConfiguration install) {
-        return addProtocols(install, getRemoteServerAddresses(install));
+        return addProtocols(getRemoteServerAddresses(install));
     }
 
     public static ImmutableSet<String> getClusterAddresses(TimeLockInstallConfiguration install) {
@@ -52,18 +52,17 @@ public final class PaxosRemotingUtils {
         return install.cluster();
     }
 
-    public static Optional<SslConfiguration> getSslConfigurationOptional(TimeLockInstallConfiguration install) {
-        return getClusterConfiguration(install).cluster().security();
+    public static SslConfiguration getSslConfiguration(TimeLockInstallConfiguration install) {
+        return getClusterConfiguration(install).cluster().security().get();
     }
 
-    public static String addProtocol(TimeLockInstallConfiguration install, String address) {
-        String protocolPrefix = getSslConfigurationOptional(install).isPresent() ? "https://" : "http://";
-        return protocolPrefix + address;
+    public static String addProtocol(String address) {
+        return "https://" + address;
     }
 
-    public static Set<String> addProtocols(TimeLockInstallConfiguration install, Set<String> addresses) {
+    public static Set<String> addProtocols(Set<String> addresses) {
         return addresses.stream()
-                .map(address -> addProtocol(install, address))
+                .map(PaxosRemotingUtils::addProtocol)
                 .collect(Collectors.toSet());
     }
 }

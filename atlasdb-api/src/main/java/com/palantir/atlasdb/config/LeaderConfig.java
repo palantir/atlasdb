@@ -58,7 +58,7 @@ public abstract class LeaderConfig {
     @Size(min = 1)
     public abstract Set<String> leaders();
 
-    public abstract Optional<SslConfiguration> sslConfiguration();
+    public abstract SslConfiguration sslConfiguration();
 
     @Value.Default
     public long pingRateMs() {

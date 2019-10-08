@@ -22,6 +22,9 @@ import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -34,6 +37,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 
 public class ThreadPooledLockService implements CloseableLockService {
+    private final Logger log = LoggerFactory.getLogger(ThreadPooledLockService.class);
     private final ThreadPooledWrapper<LockService> wrapper;
     private final CloseableLockService delegate;
 

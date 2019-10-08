@@ -35,6 +35,7 @@ public final class CloseableTrace implements AutoCloseable {
     }
 
     @Override
+    @SuppressWarnings("CheckReturnValue")
     public void close() {
         if (trace != null) {
             Tracer.completeSpan();

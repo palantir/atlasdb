@@ -22,8 +22,6 @@ import java.net.ProxySelector;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
@@ -34,72 +32,39 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-import com.palantir.conjure.java.config.ssl.SslSocketFactories;
-import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
     private final String userAgent;
     private final Supplier<ServerListConfig> servers;
-    private final boolean limitPayload;
 
-    private ServiceCreator(MetricsManager metricsManager, String userAgent, Supplier<ServerListConfig> servers,
-            boolean limitPayload) {
+    private ServiceCreator(MetricsManager metricsManager, String userAgent, Supplier<ServerListConfig> servers) {
         this.metricsManager = metricsManager;
         this.userAgent = userAgent;
         this.servers = servers;
-        this.limitPayload = limitPayload;
     }
 
-    /**
-     * Creates clients without client-side restrictions on payload size.
-     */
-    public static ServiceCreator noPayloadLimiter(MetricsManager metrics, String agent,
-            Supplier<ServerListConfig> serverList) {
-        return new ServiceCreator(metrics, agent, serverList, false);
-    }
-
-    /**
-     * Creates clients that intercept requests with payload greater than
-     * {@link com.palantir.atlasdb.http.AtlasDbInterceptors#MAX_PAYLOAD_SIZE} bytes. This ServiceCreator should be used
-     * for clients to servers that impose payload limits.
-     */
-    public static ServiceCreator withPayloadLimiter(MetricsManager metrics, String agent,
-            Supplier<ServerListConfig> serverList) {
-        return new ServiceCreator(metrics, agent, serverList, true);
+    public static ServiceCreator creator(MetricsManager metrics, String agent, Supplier<ServerListConfig> serverList) {
+        return new ServiceCreator(metrics, agent, serverList);
     }
 
     public <T> T createService(Class<T> serviceClass) {
         return create(
                 metricsManager,
                 servers,
-                SslSocketFactories::createTrustContext,
-                ServiceCreator::createProxySelector,
                 serviceClass,
-                userAgent,
-                limitPayload);
-    }
-
-    /**
-     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link TrustContext}.
-     */
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Just mapping
-    public static Optional<TrustContext> createTrustContext(Optional<SslConfiguration> sslConfiguration) {
-        return sslConfiguration.map(SslSocketFactories::createTrustContext);
+                userAgent
+        );
     }
 
     private static <T> T create(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
+            String userAgent) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 metricsManager.getRegistry(),
-                serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload);
+                serverListConfigSupplier, type, userAgent);
     }
 
     public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {

@@ -41,7 +41,6 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.lock.SimpleLockResource;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -108,7 +107,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 sweeperSupplier)));
         environment.jersey().register(SimpleCoordinationResource.create(txManager));
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
-        environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
         environment.jersey().register(new EmptyOptionalNoContentExceptionMapper());
@@ -181,7 +179,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             TaggedMetricRegistry taggedMetricRegistry) {
         return TransactionManagers.builder()
                 .config(config)
-                .userAgent("ete test")
+                .userAgent("ete-test")
                 .globalMetricsRegistry(environment.metrics())
                 .globalTaggedMetricRegistry(taggedMetricRegistry)
                 .registrar(environment.jersey()::register)

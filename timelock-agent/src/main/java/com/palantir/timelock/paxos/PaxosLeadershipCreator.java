@@ -101,9 +101,9 @@ class PaxosLeadershipCreator {
         // TODO (jkong): Live Reload Paxos Ping Rates
         PaxosRuntimeConfiguration paxosRuntimeConfiguration = runtime.get();
         return ImmutableLeaderConfig.builder()
-                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
-                .leaders(PaxosRemotingUtils.addProtocols(install, PaxosRemotingUtils.getClusterAddresses(install)))
-                .localServer(PaxosRemotingUtils.addProtocol(install,
+                .sslConfiguration(PaxosRemotingUtils.getSslConfiguration(install))
+                .leaders(PaxosRemotingUtils.addProtocols(PaxosRemotingUtils.getClusterAddresses(install)))
+                .localServer(PaxosRemotingUtils.addProtocol(
                         PaxosRemotingUtils.getClusterConfiguration(install).localServer()))
                 .acceptorLogDir(Paths.get(install.paxos().dataDirectory().toString(),
                         PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,

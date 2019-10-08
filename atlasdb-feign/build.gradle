@@ -15,9 +15,9 @@ configurations {
      *   shading. If not we have to write each dependency twice.
      * - `toBeShaded` is purely for readability. This would be functionally unchanged if we just used compile.
      */
-    explicitShadow
-    compile.extendsFrom(explicitShadow)
-    shadow.extendsFrom(explicitShadow)
+//    explicitShadow
+//    compile.extendsFrom(explicitShadow)
+//    shadow.extendsFrom(explicitShadow)
 
     // This is used for cleaning up the POM.
     toBeShaded
@@ -25,22 +25,11 @@ configurations {
 }
 
 dependencies {
-  explicitShadow project(':lock-api')
-  explicitShadow group: 'com.squareup.okhttp3', name: 'okhttp'
-  explicitShadow group: 'com.palantir.conjure.java.api', name: 'service-config'
-  explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
-  explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'
+  compile project(':lock-api')
 
-  explicitShadow group: 'javax.validation', name: 'validation-api'
+  compile group: 'javax.validation', name: 'validation-api'
 
-  toBeShaded group: 'com.palantir.remoting2', name: 'error-handling'
-  toBeShaded group: 'com.palantir.remoting2', name: 'jackson-support'
-
-  toBeShaded (group: 'com.netflix.feign', name: 'feign-jaxrs') {
-    exclude module: 'jsr311-api'
-  }
-  toBeShaded group: 'com.netflix.feign', name: 'feign-jackson'
-  toBeShaded group: 'com.netflix.feign', name: 'feign-okhttp'
+  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
 
   processor group: 'org.immutables', name: 'value'
 
@@ -56,24 +45,24 @@ dependencies {
   testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
 }
 
-shadowJar {
-  mergeServiceFiles()
-  classifier ''
+//shadowJar {
+//  mergeServiceFiles()
+//  classifier ''
+//
+//  relocate('feign', 'com.palantir.atlasdb.shaded.feign')
+//  relocate('okio', 'com.palantir.atlasdb.shaded.okio')
+//  relocate('org.jvnet.animal_sniffer', 'com.palantir.atlasdb.shaded.org.jvnet.animal_sniffer')
+//  relocate('com.palantir.remoting2.errors', 'com.palantir.atlasdb.shaded.com.palantir.remoting2.errors')
+//  relocate('com.palantir.remoting2.ext.jackson', 'com.palantir.atlasdb.shaded.com.palantir.remoting2.ext.jackson')
+//
+//  dependencies {
+//    include (dependency('com.netflix.feign:feign-.*'))
+//    include (dependency('com.squareup.okio:okio'))
+//    include (dependency('org.jvnet:animal-sniffer-annotation'))
+//    include (dependency(group: 'com.palantir.remoting2', name: 'error-handling'))
+//    include (dependency(group: 'com.palantir.remoting2', name: 'jackson-support'))
+//  }
+//}
 
-  relocate('feign', 'com.palantir.atlasdb.shaded.feign')
-  relocate('okio', 'com.palantir.atlasdb.shaded.okio')
-  relocate('org.jvnet.animal_sniffer', 'com.palantir.atlasdb.shaded.org.jvnet.animal_sniffer')
-  relocate('com.palantir.remoting2.errors', 'com.palantir.atlasdb.shaded.com.palantir.remoting2.errors')
-  relocate('com.palantir.remoting2.ext.jackson', 'com.palantir.atlasdb.shaded.com.palantir.remoting2.ext.jackson')
-
-  dependencies {
-    include (dependency('com.netflix.feign:feign-.*'))
-    include (dependency('com.squareup.okio:okio'))
-    include (dependency('org.jvnet:animal-sniffer-annotation'))
-    include (dependency(group: 'com.palantir.remoting2', name: 'error-handling'))
-    include (dependency(group: 'com.palantir.remoting2', name: 'jackson-support'))
-  }
-}
-
-jar.dependsOn shadowJar
-jar.onlyIf { false }
+//jar.dependsOn shadowJar
+//jar.onlyIf { false }

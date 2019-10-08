@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.util.Optional;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
@@ -23,6 +25,6 @@ import com.palantir.lock.remoting.BlockingTimeoutException;
 public class BlockingTimeoutExceptionMapper implements ExceptionMapper<BlockingTimeoutException> {
     @Override
     public Response toResponse(BlockingTimeoutException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+        return ExceptionMappers.encodeAsUnavailable(exception, Optional.empty());
     }
 }

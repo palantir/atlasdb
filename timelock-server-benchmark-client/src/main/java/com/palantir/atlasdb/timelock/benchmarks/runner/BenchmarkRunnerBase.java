@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.benchmarks.runner;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -31,10 +32,15 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
+import com.palantir.atlasdb.http.ClientOptions;
 import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public class BenchmarkRunnerBase {
-
+    public static final TrustContext TRUST_CONTEXT =
+            SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
     private static final String BENCHMARK_SERVER = readBenchmarkServerUri();
     private static final int BENCHMARK_SERVER_PORT = 9425;
 
@@ -61,17 +67,12 @@ public class BenchmarkRunnerBase {
         }
     }
 
+    // TODO(gmaretic): fix ssl
     protected static final BenchmarksService createClient() {
-        return AtlasDbFeignTargetFactory.createProxyWithFailover(
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableSet.of(BENCHMARK_SERVER),
-                10_000,
-                1_000_000,
-                1_000,
+        return AtlasDbFeignTargetFactory.createProxy(
+                ImmutableSet.of(BENCHMARK_SERVER), TRUST_CONTEXT, ClientOptions.DEFAULT_RETRYING, Optional.empty(),
                 BenchmarksService.class,
-                "benchmarks",
-                false);
+                "benchmarks");
     }
 
     private static String readBenchmarkServerUri() {
