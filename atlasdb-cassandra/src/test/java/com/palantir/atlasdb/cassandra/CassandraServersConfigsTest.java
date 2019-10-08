@@ -33,19 +33,22 @@ import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class CassandraServersConfigsTest {
 
-    private static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", 44);
-    private static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", 44);
+    private static final int TEST_THRIFT_PORT = 44;
+    private static final int TEST_CQL_PORT = 45;
+
+    private static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", TEST_THRIFT_PORT);
+    private static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", TEST_THRIFT_PORT);
 
     private static final CassandraServersConfigs.CqlCapableConfig CQL_CAPABLE_CONFIG =
-            cqlCapable(44, 45, "bar", "foo");
+            cqlCapable("bar", "foo");
 
-    public static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
+    private static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
         return ImmutableDefaultConfig.builder().addThriftHosts(thriftServers).build();
     }
 
-    public static CassandraServersConfigs.CqlCapableConfig cqlCapable(int thriftPort, int cqlPort, String... hosts) {
-        Iterable<InetSocketAddress> thriftHosts = constructHosts(thriftPort, hosts);
-        Iterable<InetSocketAddress> cqlHosts = constructHosts(cqlPort, hosts);
+    private static CassandraServersConfigs.CqlCapableConfig cqlCapable(String... hosts) {
+        Iterable<InetSocketAddress> thriftHosts = constructHosts(TEST_THRIFT_PORT, hosts);
+        Iterable<InetSocketAddress> cqlHosts = constructHosts(TEST_CQL_PORT, hosts);
         return ImmutableCqlCapableConfig.builder()
                 .cqlHosts(cqlHosts)
                 .thriftHosts(thriftHosts)
