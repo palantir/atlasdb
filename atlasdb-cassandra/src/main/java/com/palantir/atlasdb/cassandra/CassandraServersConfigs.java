@@ -43,7 +43,7 @@ public final class CassandraServersConfigs {
 
     private static void checkPortNumbers(Set<InetSocketAddress> socketAddresses, String portName) {
         socketAddresses.forEach(host -> Preconditions.checkState(host.getPort() > 0,
-                String.format(PORT_NUMBER_ERROR, SafeArg.of(portName, host.getPort()))));
+                PORT_NUMBER_ERROR, SafeArg.of(portName, host.getPort())));
     }
 
     public interface Visitor<T> {
