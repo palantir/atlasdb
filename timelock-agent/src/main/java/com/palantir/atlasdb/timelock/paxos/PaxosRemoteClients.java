@@ -66,7 +66,7 @@ public abstract class PaxosRemoteClients {
     private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, String name) {
         return context().remoteUris().stream()
                 // TODO(fdesouza): wire up the configurable cutover to CJR
-                .map(uri -> AtlasDbHttpClients.DEFAULT_TARGET_FACTORY.createProxy(
+                .map(uri -> AtlasDbHttpClients.LEGACY_FEIGN_TARGET_FACTORY.createProxy(
                         context().trustContext(),
                         uri,
                         clazz,

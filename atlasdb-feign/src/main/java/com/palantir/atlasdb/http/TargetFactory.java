@@ -32,6 +32,13 @@ public interface TargetFactory {
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
 
+    /**
+     * Creates a proxy that performs failover - that is, if the client encounters problems talking to a node of the
+     * remote service, it may retry on other nodes in the specified {@link ServerListConfig}.
+     *
+     * Note that because failover by definition involves retrying on other nodes, the value of
+     * {@link AuxiliaryRemotingParameters#shouldRetry()} is ignored; we will always retry in this case.
+     */
     <T> InstanceAndVersion<T> createProxyWithFailover(
             ServerListConfig serverListConfig,
             Class<T> type,
