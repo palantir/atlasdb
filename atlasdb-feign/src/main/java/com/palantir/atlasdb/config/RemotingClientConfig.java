@@ -31,7 +31,7 @@ public interface RemotingClientConfig {
 
     @Value.Default
     default double maximumConjureRemotingProbability() {
-        return 0.0;
+        return 0.01;
     }
 
     @Value.Check
