@@ -515,10 +515,6 @@ v0.134.0
     *    - Type
          - Change
 
-    *    - |metrics| |improved|
-         - A new metric `futureValueCellFilterCount` is added to track number of cells filtered on client side after retrieved from C* as a result of having a timestamp bigger than start timestamp of the transaction.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4032>`__)
-
     *    - |fixed|
          - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3944>`__)
