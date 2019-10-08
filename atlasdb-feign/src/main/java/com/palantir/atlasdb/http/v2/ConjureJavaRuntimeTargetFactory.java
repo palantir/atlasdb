@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.ImmutableInstanceAndVersion;
@@ -85,13 +84,11 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        Supplier<ServerListConfig> nonEmptyServerList = () -> injectDummyServer(serverListConfigSupplier);
-
         // TODO (jkong): Thread leak for days. Though no regression over existing implementation in Feign.
         Refreshable<ClientConfiguration> refreshableConfig = PollingRefreshable
                 .create(
                         new CachedTransformingSupplier<>(
-                                nonEmptyServerList, ClientOptions.DEFAULT_RETRYING::serverListToClient),
+                                serverListConfigSupplier, ClientOptions.DEFAULT_RETRYING::serverListToClient),
                         Duration.ofSeconds(5L))
                 .getRefreshable();
         return wrapWithVersion(JaxRsClient.create(
@@ -99,18 +96,6 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 HOST_METRICS_REGISTRY,
                 refreshableConfig));
-    }
-
-    // TODO (gmaretic): This is a hack because CJR doesn't like configurations with 0 servers, yet we claim
-    // that we might encounter such configurations in k8s when the first node discovers other available remotes.
-    private static ServerListConfig injectDummyServer(Supplier<ServerListConfig> serverListConfigSupplier) {
-        ServerListConfig originalConfig = serverListConfigSupplier.get();
-        if (originalConfig.hasAtLeastOneServer()) {
-            return originalConfig;
-        }
-        return ImmutableServerListConfig.builder().from(serverListConfigSupplier.get())
-                .addServers("http://dummy")
-                .build();
     }
 
     private static UserAgent addAtlasDbRemotingAgent(UserAgent agent) {
