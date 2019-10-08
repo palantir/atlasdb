@@ -15,23 +15,41 @@
  */
 package com.palantir.atlasdb.http;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
+import java.util.Optional;
 
+import javax.ws.rs.core.Response;
+
+import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 
 /**
- * Convert {@link NotCurrentLeaderException} into a 503 status response.
+ * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's
+ * {@link AtlasDbHttpProtocolVersion}. The intention is that clients should failover to other nodes, and there
+ * is no need to wait before retrying as there is no indication that clients should do so.
+ *
+ * This is a 503 response in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  *
  * @author carrino
  */
-public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
+public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMapper<NotCurrentLeaderException> {
+    private final Optional<RedirectRetryTargeter> redirectRetryTargeter;
 
-    /**
-     * Returns a 503 response, with body corresponding to the serialized exception.
-     */
+    public NotCurrentLeaderExceptionMapper() {
+        this.redirectRetryTargeter = Optional.empty();
+    }
+
+    public NotCurrentLeaderExceptionMapper(RedirectRetryTargeter redirectRetryTargeter) {
+        this.redirectRetryTargeter = Optional.of(redirectRetryTargeter);
+    }
+
     @Override
-    public Response toResponse(NotCurrentLeaderException exception) {
-        return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+    Response handleLegacyOrUnknownVersion(NotCurrentLeaderException exception) {
+        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+    }
+
+    @Override
+    QosException handleConjureJavaRuntime(NotCurrentLeaderException exception) {
+        return redirectRetryTargeter.<QosException>map(targeter -> QosException.retryOther(targeter.redirectRequest()))
+                .orElseGet(QosException::unavailable);
     }
 }

@@ -15,13 +15,8 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
-import java.util.function.Supplier;
-
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.factory.ServiceCreator;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
@@ -71,14 +66,6 @@ public class TimeLockMigrator extends AsyncInitializer {
     @Idempotent
     public void migrate() {
         initialize(initializeAsync);
-    }
-
-    private static TimestampManagementService createRemoteManagementService(
-            MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfig,
-            String userAgent) {
-        return ServiceCreator.noPayloadLimiter(metricsManager, userAgent, serverListConfig)
-                .createService(TimestampManagementService.class);
     }
 
     @Override

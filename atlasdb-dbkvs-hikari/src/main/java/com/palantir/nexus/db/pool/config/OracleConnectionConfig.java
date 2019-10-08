@@ -27,8 +27,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
@@ -170,13 +170,13 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         if (getProtocol() == ConnectionProtocol.TCPS) {
             Preconditions.checkArgument(getTruststorePath().isPresent(),
                     "ConnectionProtocol.TCPS requires a truststore");
-            Preconditions.checkArgument(new File(getTruststorePath().get()).exists(),
+            com.google.common.base.Preconditions.checkArgument(new File(getTruststorePath().get()).exists(),
                     "truststore file not found at %s", getTruststorePath().get());
             Preconditions.checkArgument(getTruststorePassword().isPresent(),
                     "ConnectionProtocol.TCPS requires a truststore password");
             if (getTwoWaySsl()) {
                 Preconditions.checkArgument(getKeystorePath().isPresent(), "two way ssl requires a keystore");
-                Preconditions.checkArgument(new File(getKeystorePath().get()).exists(),
+                com.google.common.base.Preconditions.checkArgument(new File(getKeystorePath().get()).exists(),
                         "keystore file not found at %s", getKeystorePath().get());
                 Preconditions.checkArgument(getKeystorePassword().isPresent(),
                         "two way ssl requires a keystore password");

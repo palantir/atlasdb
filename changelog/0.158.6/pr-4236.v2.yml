@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Fix an issue where targeted sweep could retry forever to delete aborted
+    transactions from tables that were already dropped (and cause a bunch of logspam
+    in the process).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4236

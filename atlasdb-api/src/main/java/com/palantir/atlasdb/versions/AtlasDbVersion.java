@@ -15,25 +15,20 @@
  */
 package com.palantir.atlasdb.versions;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.function.Supplier;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.io.CharStreams;
 
 public final class AtlasDbVersion {
     public static final String REPORT_VERSION_PROPERTY = "atlasdb.report.version";
     public static final String REPORT_VERSION_DEFAULT = "false";
     public static final String VERSION_UNKNOWN_STRING = "VERSION UNKNOWN";
-    public static final String VERSION_INFO_FILE = "/META-INF/atlasdb.version";
 
     private static volatile boolean versionPrinted = false;
 
-    private static final Supplier<String> version = Suppliers.memoize(() -> readVersion());
+    private static final Supplier<String> version = Suppliers.memoize(AtlasDbVersion::readVersion);
 
     private AtlasDbVersion() {
         // static class
@@ -55,14 +50,8 @@ public final class AtlasDbVersion {
     }
 
     public static String readVersion() {
-        try (InputStream is = AtlasDbVersion.class.getResourceAsStream(VERSION_INFO_FILE)) {
-            if (is == null) {
-                return VERSION_UNKNOWN_STRING;
-            }
-            return CharStreams.toString(new InputStreamReader(is, StandardCharsets.UTF_8)).trim();
-        } catch (IOException e) {
-            return VERSION_UNKNOWN_STRING;
-        }
+        return Optional.ofNullable(AtlasDbVersion.class.getPackage().getImplementationVersion())
+                .orElse(VERSION_UNKNOWN_STRING);
     }
-
 }
+

@@ -24,11 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingLevel;
-import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.proxy.Instrumentation;
@@ -46,7 +45,7 @@ public final class AtlasDbMetrics {
     public static <T, U extends T> T instrument(
             MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
         return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
+                .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name, serviceInterface))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
@@ -70,19 +69,6 @@ public final class AtlasDbMetrics {
     }
 
     public static void registerCache(MetricRegistry metricRegistry, Cache<?, ?> cache, String metricsPrefix) {
-        Set<String> existingMetrics = metricRegistry.getMetrics().keySet().stream()
-                .filter(name -> name.startsWith(metricsPrefix))
-                .collect(Collectors.toSet());
-        if (existingMetrics.isEmpty()) {
-            MetricRegistries.registerCache(metricRegistry, cache, metricsPrefix);
-        } else {
-            log.info("Not registering cache with prefix '{}' as metric registry already contains metrics: {}",
-                    metricsPrefix, existingMetrics);
-        }
-    }
-
-    public static void registerCache(MetricRegistry metricRegistry,
-            com.github.benmanes.caffeine.cache.Cache<?, ?> cache, String metricsPrefix) {
         Set<String> existingMetrics = metricRegistry.getMetrics().keySet().stream()
                 .filter(name -> name.startsWith(metricsPrefix))
                 .collect(Collectors.toSet());

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cleaner;
 import java.util.Collection;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -28,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.logsafe.Preconditions;
 
 public final class CleanupFollower implements Follower {
     private final ImmutableMultimap<TableReference, OnCleanupTask> cleanupTasksByTable;

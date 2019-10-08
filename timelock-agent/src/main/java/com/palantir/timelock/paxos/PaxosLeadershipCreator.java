@@ -16,12 +16,17 @@
 package com.palantir.timelock.paxos;
 
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -31,26 +36,29 @@ import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeadershipObserver;
-import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class PaxosLeadershipCreator {
+class PaxosLeadershipCreator {
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Supplier<PaxosRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
 
-    private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
-    private LeadershipObserver leadershipObserver;
+    private Supplier<Boolean> isCurrentSuspectedLeader;
 
-    public PaxosLeadershipCreator(
+    PaxosLeadershipCreator(
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
@@ -61,7 +69,7 @@ public class PaxosLeadershipCreator {
         this.registrar = registrar;
     }
 
-    public void registerLeaderElectionService() {
+    void registerLeaderElectionService() {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
 
         LeaderConfig leaderConfig = getLeaderConfig();
@@ -77,22 +85,50 @@ public class PaxosLeadershipCreator {
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
-                "leader-election-service");
-        localPingableLeader = localPaxosServices.pingableLeader();
+                UserAgent.of(UserAgent.Agent.of("leader-election-service", UserAgent.Agent.DEFAULT_VERSION)),
+                this::leadershipAwareLeadershipObserver);
         leaderElectionService = localPaxosServices.leaderElectionService();
-        leadershipObserver = localPaxosServices.leadershipObserver();
+        isCurrentSuspectedLeader = localPaxosServices.isCurrentSuspectedLeader();
 
-        registrar.accept(localPingableLeader);
+        registrar.accept(localPaxosServices.pingableLeader());
         registrar.accept(new LeadershipResource(
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
     }
 
-    public <T> T wrapInLeadershipProxy(Supplier<T> delegateSupplier, Class<T> clazz) {
-        return AwaitingLeadershipProxy.newProxyInstance(
-                clazz,
-                delegateSupplier::get,
-                leaderElectionService);
+    <T> T wrapInLeadershipProxy(Supplier<T> delegateSupplier, Class<T> clazz, String client) {
+        T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, leaderElectionService);
+        return instrument(metricsManager.getTaggedRegistry(), clazz, instance, client);
+    }
+
+    Supplier<LeaderPingHealthCheck> getHealthCheck() {
+        return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
+    }
+
+    void shutdown() {
+        leaderElectionService.markNotEligibleForLeadership();
+        leaderElectionService.stepDown();
+    }
+
+    private <T> T instrument(TaggedMetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass),
+                context -> ImmutableMap.of(
+                        AtlasDbMetricNames.TAG_CLIENT, client,
+                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(isCurrentSuspectedLeader())));
+    }
+
+    private LeadershipObserver leadershipAwareLeadershipObserver() {
+        return AsyncLeadershipObserver.create(
+                () -> metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(false)),
+                () -> metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(true)));
+    }
+
+    private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
+        return metricName ->
+                Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
+                        .filter(x -> x.equals(String.valueOf(currentLeader)))
+                        .isPresent();
     }
 
     private LeaderConfig getLeaderConfig() {
@@ -121,19 +157,7 @@ public class PaxosLeadershipCreator {
                     .onlyLogOnQuorumFailure(config.onlyLogOnQuorumFailure())
                     .build();
 
-    public Supplier<LeaderPingHealthCheck> getHealthCheck() {
-        return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
-    }
-
-    public void executeWhenGainedLeadership(Runnable task) {
-        leadershipObserver.executeWhenGainedLeadership(task);
-    }
-
-    public void executeWhenLostLeadership(Runnable task) {
-        leadershipObserver.executeWhenLostLeadership(task);
-    }
-
-    public boolean isCurrentSuspectedLeader() {
-        return localPingableLeader.ping();
+    private boolean isCurrentSuspectedLeader() {
+        return isCurrentSuspectedLeader.get();
     }
 }

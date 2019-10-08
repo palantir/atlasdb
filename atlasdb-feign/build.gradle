@@ -1,5 +1,3 @@
-apply from: "../gradle/publish-jars.gradle"
-apply plugin: 'org.inferred.processors'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 apply from: '../gradle/shared.gradle'
@@ -30,19 +28,24 @@ dependencies {
   explicitShadow group: 'com.palantir.conjure.java.api', name: 'service-config'
   explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
   explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'
+  explicitShadow group: 'com.palantir.common', name: 'streams'
 
   explicitShadow group: 'javax.validation', name: 'validation-api'
 
   toBeShaded group: 'com.palantir.remoting2', name: 'error-handling'
   toBeShaded group: 'com.palantir.remoting2', name: 'jackson-support'
 
+  toBeShaded group: 'com.netflix.feign', name: 'feign-core'
   toBeShaded (group: 'com.netflix.feign', name: 'feign-jaxrs') {
     exclude module: 'jsr311-api'
   }
   toBeShaded group: 'com.netflix.feign', name: 'feign-jackson'
   toBeShaded group: 'com.netflix.feign', name: 'feign-okhttp'
 
-  processor group: 'org.immutables', name: 'value'
+  compile 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'

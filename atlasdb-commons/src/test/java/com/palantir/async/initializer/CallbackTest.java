@@ -73,7 +73,7 @@ public class CallbackTest {
         Callback<Object> noOp = Callback.noOp();
         long start = System.currentTimeMillis();
 
-        PTExecutors.newSingleThreadScheduledExecutor().submit(() -> noOp.runWithRetry(new Object()));
+        PTExecutors.newSingleThreadScheduledExecutor().execute(() -> noOp.runWithRetry(new Object()));
 
         noOp.blockUntilSafeToShutdown();
         assertThat(System.currentTimeMillis()).isLessThanOrEqualTo(start + 500L);
@@ -85,7 +85,7 @@ public class CallbackTest {
         long start = System.currentTimeMillis();
         AtomicBoolean started = new AtomicBoolean(false);
 
-        PTExecutors.newSingleThreadScheduledExecutor().submit(() -> slowCallback.runWithRetry(started));
+        PTExecutors.newSingleThreadScheduledExecutor().execute(() -> slowCallback.runWithRetry(started));
         Awaitility.waitAtMost(500L, TimeUnit.MILLISECONDS).until(started::get);
 
         slowCallback.blockUntilSafeToShutdown();

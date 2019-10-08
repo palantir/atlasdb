@@ -16,8 +16,12 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.util.List;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
-import com.google.common.base.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -32,6 +36,8 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 public class DefaultCleanerBuilder {
+    private static final Logger log = LoggerFactory.getLogger(DefaultCleanerBuilder.class);
+
     private final KeyValueService keyValueService;
     private final TimelockService timelockService;
     private final List<Follower> followerList;
@@ -106,7 +112,7 @@ public class DefaultCleanerBuilder {
         return this;
     }
 
-    private Puncher buildPuncher() {
+    private Puncher buildPuncher(LongSupplier timestampSeedSource) {
         PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService, initalizeAsync);
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
@@ -116,7 +122,7 @@ public class DefaultCleanerBuilder {
                 cachingPuncherStore,
                 clock,
                 Suppliers.ofInstance(transactionReadTimeout));
-        return AsyncPuncher.create(simplePuncher, punchIntervalMillis);
+        return AsyncPuncher.create(simplePuncher, punchIntervalMillis, timestampSeedSource);
     }
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
@@ -138,7 +144,7 @@ public class DefaultCleanerBuilder {
     }
 
     public Cleaner buildCleaner() {
-        Puncher puncher = buildPuncher();
+        Puncher puncher = buildPuncher(timelockService::getFreshTimestamp);
         Supplier<Long> immutableTs = ImmutableTimestampSupplier
                 .createMemoizedWithExpiration(timelockService);
         Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTs);

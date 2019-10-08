@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -38,6 +39,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -64,33 +66,43 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ImmutableTargetedSweepInstallConfig;
-import com.palantir.atlasdb.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
 import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
@@ -107,11 +119,15 @@ import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
     private static final String USER_AGENT_NAME = "user-agent";
-    private static final String USER_AGENT = USER_AGENT_NAME + " (3.14159265)";
+    private static final String USER_AGENT_VERSION = "3.1415926.5358979";
+    private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
+    private static final String EXPECTED_USER_AGENT_STRING = UserAgents.format(USER_AGENT.addAgent(
+            AtlasDbRemotingConstants.LEGACY_ATLASDB_HTTP_CLIENT_AGENT));
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
@@ -123,6 +139,7 @@ public class TransactionManagersTest {
             MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
+    private static final Map<String, String> LEGACY_CLIENT_TAGS = ImmutableMap.of("clientVersion", "AtlasDB-Feign");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
@@ -148,6 +165,9 @@ public class TransactionManagersTest {
     private static final String TIMELOCK_FF_PATH
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
     private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
+
+    private static final SslConfiguration SSL_CONFIGURATION
+            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
 
     private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
     private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
@@ -205,6 +225,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
         when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
+        when(runtimeConfig.remotingClient()).thenReturn(RemotingClientConfig.DEFAULT);
 
         environment = mock(Consumer.class);
 
@@ -215,6 +236,7 @@ public class TransactionManagersTest {
         mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
+                .sslConfiguration(SSL_CONFIGURATION)
                 .build();
     }
 
@@ -248,7 +270,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void remoteCallsStillMadeIfPingableLeader404s() throws IOException, InterruptedException {
+    public void remoteCallsStillMadeIfPingableLeader404s() throws IOException {
         setUpForRemoteServices();
         setUpLeaderBlockInConfig();
 
@@ -259,13 +281,13 @@ public class TransactionManagersTest {
         lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
-    public void remoteCallsElidedIfTalkingToLocalServer() throws IOException, InterruptedException {
+    public void remoteCallsElidedIfTalkingToLocalServer() throws IOException {
         setUpForLocalServices();
         setUpLeaderBlockInConfig();
 
@@ -276,9 +298,9 @@ public class TransactionManagersTest {
         lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(0, postRequestedFor(urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
@@ -290,7 +312,7 @@ public class TransactionManagersTest {
                 .build();
         TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -317,6 +339,30 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void canDropTablesWhenSweepQueueWritesAreDisabled() {
+        AtlasDbConfig inMemoryNoQueueWrites = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().enableSweepQueueWrites(false).build())
+                .build();
+        KeyValueService kvs = TransactionManagers.builder()
+                .config(inMemoryNoQueueWrites)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .build()
+                .serializable()
+                .getKeyValueService();
+
+        TableReference testTable = TableReference.createFromFullyQualifiedName("test.test");
+
+        kvs.createTable(testTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertThat(kvs.getAllTableNames()).contains(testTable);
+
+        kvs.dropTable(testTable);
+        assertThat(kvs.getAllTableNames()).doesNotContain(testTable);
+    }
+
+    @Test
     public void runsClosingCallbackOnShutdown() throws Exception {
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
@@ -327,7 +373,7 @@ public class TransactionManagersTest {
 
         TransactionManager manager = TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -347,7 +393,7 @@ public class TransactionManagersTest {
         MetricRegistry metrics = new MetricRegistry();
         TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -355,6 +401,54 @@ public class TransactionManagersTest {
                 .serializable();
         assertThat(metrics.getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+    }
+
+    @Test
+    public void grabImmutableTsLockIsConfiguredWithBuilderOption() {
+        TransactionConfig transactionConfig = ImmutableTransactionConfig.builder()
+                .build();
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(true)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
+                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
+                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+    }
+
+    @Test
+    public void useRuntimeConfigFlagIfBuilderOptionIsSetToFalse() {
+        TransactionConfig transactionConfigLocking = ImmutableTransactionConfig.builder()
+                .lockImmutableTsOnReadOnlyTransactions(true)
+                .build();
+
+        TransactionConfig transactionConfigNotLocking = ImmutableTransactionConfig.builder()
+                .lockImmutableTsOnReadOnlyTransactions(false)
+                .build();
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfigLocking)
+                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfigNotLocking)
+                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+    }
+
+    private TransactionManagers withLockImmutableTsOnReadOnlyTransaction(boolean option) {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+
+        return TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .lockImmutableTsOnReadOnlyTransactions(option)
+                .build();
     }
 
     @Test
@@ -371,16 +465,20 @@ public class TransactionManagersTest {
         setUpForRemoteServices();
         setUpLeaderBlockInConfig();
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                LOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsWithTagsAreRecorded(
+                TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                LOCK_SERVICE_CURRENT_TIME_METRIC,
+                LEGACY_CLIENT_TAGS);
     }
 
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingTimelockService() {
         setUpTimeLockBlockInInstallConfig();
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
-                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsWithTagsAreRecorded(
+                TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
+                TIMELOCK_SERVICE_CURRENT_TIME_METRIC,
+                LEGACY_CLIENT_TAGS);
     }
 
     @Test
@@ -477,7 +575,7 @@ public class TransactionManagersTest {
 
         TransactionManager manager = TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .userAgent("test")
+                .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -533,7 +631,7 @@ public class TransactionManagersTest {
 
         TransactionManager manager = TransactionManagers.builder()
                 .config(installConfig)
-                .userAgent("test")
+                .userAgent(UserAgent.of(UserAgent.Agent.of("test", "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
@@ -582,6 +680,28 @@ public class TransactionManagersTest {
         assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(1L)));
     }
 
+    private void assertThatTimeAndLockMetricsWithTagsAreRecorded(
+            String timestampMetric, String lockMetric, Map<String, String> tags) {
+        MetricName timestampMetricName = MetricName.builder()
+                .safeName(timestampMetric)
+                .putAllSafeTags(tags)
+                .build();
+        MetricName lockMetricName = MetricName.builder()
+                .safeName(lockMetric)
+                .putAllSafeTags(tags)
+                .build();
+
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount(), is(equalTo(0L)));
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.timelock().currentTimeMillis();
+
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount(), is(equalTo(1L)));
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount(), is(equalTo(1L)));
+    }
+
     private void setUpForLocalServices() throws IOException {
         doAnswer(invocation -> {
             // Configure our server to reply with the same server ID as the registered PingableLeader.
@@ -604,10 +724,14 @@ public class TransactionManagersTest {
     }
 
     private void setUpTimeLockBlockInRuntimeConfig() {
-        when(runtimeConfig.timelockRuntime()).thenReturn(
-                Optional.of(ImmutableTimeLockRuntimeConfig.builder()
-                        .serversList(rawRemoteServerConfig)
+        when(runtimeConfig.timelockRuntime())
+                .thenReturn(Optional.of(ImmutableTimeLockRuntimeConfig.builder()
+                        .serversList(ImmutableServerListConfig.builder()
+                                .addServers(getUriForPort(availablePort))
+                                .sslConfiguration(SSL_CONFIGURATION)
+                                .build())
                         .build()));
+
     }
 
     private void setUpRemoteTimestampAndLockBlocksInConfig() {
@@ -622,6 +746,7 @@ public class TransactionManagersTest {
                 .acceptorLogDir(temporaryFolder.newFolder())
                 .learnerLogDir(temporaryFolder.newFolder())
                 .quorumSize(1)
+                .sslConfiguration(SSL_CONFIGURATION)
                 .build()));
     }
 
@@ -646,9 +771,9 @@ public class TransactionManagersTest {
         verifyUserAgentOnTimestampAndLockRequests(TIMELOCK_TIMESTAMP_PATH, TIMELOCK_LOCK_PATH);
         verify(invalidator, times(1)).backupAndInvalidate();
         availableServer.verify(getRequestedFor(urlEqualTo(TIMELOCK_PING_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_FF_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
@@ -667,9 +792,9 @@ public class TransactionManagersTest {
         lockAndTimestamp.timelock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlMatching(lockPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
@@ -688,6 +813,7 @@ public class TransactionManagersTest {
                 .client(CLIENT)
                 .serversList(ImmutableServerListConfig.builder()
                         .addAllServers(servers)
+                        .sslConfiguration(SSL_CONFIGURATION)
                         .build())
                 .build();
     }

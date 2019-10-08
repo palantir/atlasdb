@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
@@ -56,8 +55,8 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
             String serviceName,
             Function<InvocationContext, Map<String, String>> tagFunction) {
         super(InstrumentationUtils.getEnabledSupplier(serviceName));
-        this.taggedMetricRegistry = checkNotNull(taggedMetricRegistry, "metricRegistry");
-        this.serviceName = checkNotNull(serviceName, "serviceName");
+        this.taggedMetricRegistry = Preconditions.checkNotNull(taggedMetricRegistry, "metricRegistry");
+        this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName");
         this.tagFunction = tagFunction;
     }
 

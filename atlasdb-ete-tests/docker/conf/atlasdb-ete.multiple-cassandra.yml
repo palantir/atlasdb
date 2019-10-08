@@ -13,9 +13,13 @@ atlasdb:
   keyValueService:
     type: cassandra
     servers:
-      - cassandra1:9160
-      - cassandra2:9160
-      - cassandra3:9160
+      type: cqlCapable
+      hosts:
+        - cassandra1
+        - cassandra2
+        - cassandra3
+      cqlPort: 9042
+      thriftPort: 9160
     credentials:
       username: cassandra
       password: cassandra
@@ -31,3 +35,7 @@ atlasdb:
     localServer: http://${ME}:3828
     leaders:
       - http://ete1:3828
+    sslConfiguration:
+      keyStorePath: "var/security/keyStore.jks"
+      keyStorePassword: "keystore"
+      trustStorePath: "var/security/trustStore.jks"

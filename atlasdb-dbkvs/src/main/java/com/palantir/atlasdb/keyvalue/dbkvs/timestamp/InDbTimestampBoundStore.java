@@ -27,11 +27,12 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
@@ -121,7 +122,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
                         }
                     } else {
                         // disappearance
-                        throw new IllegalStateException(
+                        throw new SafeIllegalStateException(
                                 "Unable to retrieve a timestamp when expected. "
                                         + "This service is in a dangerous state and should be taken down "
                                         + "until a new safe timestamp value can be established in the KVS. "

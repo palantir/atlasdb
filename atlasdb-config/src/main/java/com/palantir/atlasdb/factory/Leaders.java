@@ -40,14 +40,15 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
-import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.BatchingLeaderElectionService;
@@ -73,19 +74,12 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and registers appropriate endpoints for that
      * service.
      */
-    public static LeaderElectionService create(MetricsManager metricsManager,
-            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime) {
-        return create(metricsManager, env, config, runtime, UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    public static LeaderElectionService create(MetricsManager metricsManager,
-            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
-        return createAndRegisterLocalServices(metricsManager, env, config, runtime, userAgent).leaderElectionService();
-    }
-
     public static LocalPaxosServices createAndRegisterLocalServices(
-            MetricsManager metricsManager, Consumer<Object> env, LeaderConfig config,
-            Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
+            MetricsManager metricsManager,
+            Consumer<Object> env,
+            LeaderConfig config,
+            Supplier<LeaderRuntimeConfig> runtime,
+            UserAgent userAgent) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(
                 metricsManager, config, runtime, userAgent);
 
@@ -96,8 +90,11 @@ public final class Leaders {
         return localPaxosServices;
     }
 
-    public static LocalPaxosServices createInstrumentedLocalServices(MetricsManager metricsManager,
-            LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
+    public static LocalPaxosServices createInstrumentedLocalServices(
+            MetricsManager metricsManager,
+            LeaderConfig config,
+            Supplier<LeaderRuntimeConfig> runtime,
+            UserAgent userAgent) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -106,7 +103,13 @@ public final class Leaders {
                 .remoteAcceptorUris(remoteLeaderUris)
                 .remoteLearnerUris(remoteLeaderUris)
                 .build();
-        return createInstrumentedLocalServices(metricsManager, config, runtime, remotePaxosServerSpec, userAgent);
+        return createInstrumentedLocalServices(
+                metricsManager,
+                config,
+                runtime,
+                remotePaxosServerSpec,
+                userAgent,
+                AsyncLeadershipObserver::create);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
@@ -114,12 +117,15 @@ public final class Leaders {
             LeaderConfig config,
             Supplier<LeaderRuntimeConfig> runtime,
             RemotePaxosServerSpec remotePaxosServerSpec,
-            String userAgent) {
+            UserAgent userAgent,
+            Supplier<LeadershipObserver> leadershipObserverFactory) {
         UUID leaderUuid = UUID.randomUUID();
 
-        AsyncLeadershipObserver leadershipObserver = AsyncLeadershipObserver.create();
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
-                metricsManager.getRegistry(), leaderUuid.toString(), leadershipObserver);
+                metricsManager.getTaggedRegistry(),
+                leaderUuid.toString(),
+                leadershipObserverFactory.get(),
+                ImmutableList.of());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PaxosAcceptor.class,
@@ -191,7 +197,7 @@ public final class Leaders {
                 .ourLearner(ourLearner)
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .pingableLeader(pingableLeader)
-                .leadershipObserver(leadershipObserver)
+                .isCurrentSuspectedLeader(paxosLeaderElectionService::ping)
                 .build();
     }
 
@@ -208,10 +214,20 @@ public final class Leaders {
             Set<String> remoteUris,
             Optional<TrustContext> trustContext,
             Class<T> clazz,
-            String userAgent) {
+            UserAgent userAgent) {
 
+        // TODO (jkong): Enable runtime config for leader election services.
         List<T> remotes = remoteUris.stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(metrics, trustContext, uri, clazz, userAgent, false))
+                .map(uri -> AtlasDbHttpClients.createProxy(
+                        metrics,
+                        trustContext,
+                        uri,
+                        clazz,
+                        AuxiliaryRemotingParameters.builder()
+                                .userAgent(userAgent)
+                                .shouldLimitPayload(false)
+                                .shouldRetry(true)
+                                .build()))
                 .collect(Collectors.toList());
 
         return ImmutableList.copyOf(Iterables.concat(
@@ -223,14 +239,23 @@ public final class Leaders {
             MetricsManager metricsManager,
             Collection<String> remoteEndpoints,
             Optional<TrustContext> trustContext,
-            String userAgent) {
+            UserAgent userAgent) {
         /* The interface used as a key here may be a proxy, which may have strange .equals() behavior.
          * This is circumvented by using an IdentityHashMap which will just use native == for equality.
          */
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(metricsManager.getRegistry(), trustContext,
-                            endpoint, PingableLeader.class, userAgent, false);
+            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(
+                    metricsManager.getRegistry(),
+                    trustContext,
+                    endpoint,
+                    PingableLeader.class,
+                    AuxiliaryRemotingParameters.builder() // TODO (jkong): Configurable remoting client config.
+                            .shouldLimitPayload(false)
+                            .userAgent(userAgent)
+                            .shouldRetry(false)
+                            .shouldLimitPayload(true)
+                            .build());
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }
@@ -243,7 +268,7 @@ public final class Leaders {
         PaxosLearner ourLearner();
         LeaderElectionService leaderElectionService();
         PingableLeader pingableLeader();
-        LeadershipObserver leadershipObserver();
+        Supplier<Boolean> isCurrentSuspectedLeader();
     }
 
     @Value.Immutable

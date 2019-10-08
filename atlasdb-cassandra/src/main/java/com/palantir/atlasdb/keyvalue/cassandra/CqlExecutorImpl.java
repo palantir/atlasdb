@@ -36,7 +36,6 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
-import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -306,19 +305,13 @@ public class CqlExecutorImpl implements CqlExecutor {
                 FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction, InetSocketAddress host) {
             try {
                 return clientPool.runWithRetryOnHost(host, cqlFunction);
-            } catch (UnavailableException e) {
-                throw wrapIfConsistencyAll(e);
+            } catch (RetryLimitReachedException e) {
+                if (consistency.equals(ConsistencyLevel.ALL)) {
+                    throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
+                }
+                throw e;
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
-            }
-        }
-
-        private RuntimeException wrapIfConsistencyAll(UnavailableException ex) {
-            if (consistency.equals(ConsistencyLevel.ALL)) {
-                throw new InsufficientConsistencyException("This operation requires all Cassandra"
-                        + " nodes to be up and available.", ex);
-            } else {
-                throw Throwables.throwUncheckedException(ex);
             }
         }
 

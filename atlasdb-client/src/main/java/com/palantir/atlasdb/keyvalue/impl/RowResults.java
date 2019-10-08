@@ -21,11 +21,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import org.apache.commons.lang3.Validate;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterators;
@@ -33,8 +30,8 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.collect.IterableView;
+import com.palantir.logsafe.Preconditions;
 
 public class RowResults {
     private RowResults() { /* */ }
@@ -74,23 +71,12 @@ public class RowResults {
         return row -> RowResult.create(row.getRowName(), Maps.filterKeys(row.getColumns(), keepColumn));
     }
 
-    public static Function<RowResult<byte[]>, RowResult<byte[]>> createFilterColumnValues(
-            final Predicate<byte[]> keepValue) {
-        return row -> RowResult.create(row.getRowName(), Maps.filterValues(row.getColumns(), keepValue));
-    }
-
     public static <T, U> Function<RowResult<T>, RowResult<U>> transformValues(final Function<T, U> transform) {
         return row -> RowResult.create(row.getRowName(), Maps.transformValues(row.getColumns(), transform));
     }
 
-    public static Iterator<RowResult<byte[]>> filterDeletedColumnsAndEmptyRows(final Iterator<RowResult<byte[]>> it) {
-        Iterator<RowResult<byte[]>> purgeDeleted = Iterators.transform(it,
-                createFilterColumnValues(Predicates.not(Value.IS_EMPTY)));
-        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.<byte[]>createIsEmptyPredicate()));
-    }
-
     public static <T> RowResult<T> merge(RowResult<T> base, RowResult<T> overwrite) {
-        Validate.isTrue(Arrays.equals(base.getRowName(), overwrite.getRowName()));
+        Preconditions.checkArgument(Arrays.equals(base.getRowName(), overwrite.getRowName()));
         Builder<byte[], T> colBuilder = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
         colBuilder.putAll(overwrite.getColumns());
         colBuilder.putAll(Maps.difference(base.getColumns(), overwrite.getColumns()).entriesOnlyOnLeft());

@@ -39,6 +39,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +54,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -70,7 +72,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -78,11 +79,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -140,7 +143,7 @@ import com.palantir.timestamp.TimestampService;
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     private TransactionConfig transactionConfig;
 
-    protected final TimestampCache timestampCache = new TimestampCache(
+    protected final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     protected final int defaultGetRangesConcurrency = 2;
@@ -670,8 +673,19 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, ColumnRangeSelection, int)",
                 (t, heldLocks) -> {
-                    t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
-                            new ColumnRangeSelection(null, null), batchHint);
+                    Iterators.getLast(
+                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                                    new ColumnRangeSelection(null, null), batchHint));
+                    return null;
+                }));
+
+        tasks.add(Pair.of("getRowsColumnRangeIterator",
+                (t, heldLocks) -> {
+                    Collection<Iterator<Map.Entry<Cell, byte[]>>> results =
+                            t.getRowsColumnRangeIterator(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                                    BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
+                                    .values();
+                    results.forEach(Iterators::getLast);
                     return null;
                 }));
 

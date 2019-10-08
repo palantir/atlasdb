@@ -21,6 +21,8 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+
 public final class CassandraCliParser {
     private static final Logger log = LoggerFactory.getLogger(CassandraCliParser.class);
 
@@ -42,10 +44,10 @@ public final class CassandraCliParser {
             }
         } catch (Exception e) {
             log.error("Failed parsing system_auth keyspace RF", e);
-            throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
+            throw new SafeIllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
         }
 
-        throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
+        throw new SafeIllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
     }
 
     public int parseNumberOfUpNodesFromNodetoolStatus(String output) {

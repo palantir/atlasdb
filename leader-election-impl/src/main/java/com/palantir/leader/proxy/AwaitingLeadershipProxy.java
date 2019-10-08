@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -33,8 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
-import com.google.common.net.HostAndPort;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
@@ -43,6 +42,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
@@ -66,42 +66,29 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 proxy);
     }
 
-    @VisibleForTesting
-    static <T> AwaitingLeadershipProxy<T> proxyForTest(Supplier<T> delegateSupplier,
-            LeaderElectionService leaderElectionService,
-            Class<T> interfaceClass,
-            AtomicReference<LeadershipToken> leadershipTokenRef) {
-        return new AwaitingLeadershipProxy<>(delegateSupplier, leaderElectionService, interfaceClass,
-                leadershipTokenRef);
-    }
-
-    final Supplier<T> delegateSupplier;
-    final LeaderElectionService leaderElectionService;
-    final ExecutorService executor;
+    private final Supplier<T> delegateSupplier;
+    private final LeaderElectionService leaderElectionService;
+    private final ExecutorService executor;
     /**
      * This is used as the handoff point between the executor doing the blocking
      * and the invocation calls.  It is set by the executor after the delegateRef is set.
      * It is cleared out by invoke which will close the delegate and spawn a new blocking task.
      */
-    final AtomicReference<LeadershipToken> leadershipTokenRef;
-    final AtomicReference<T> delegateRef;
-    final Class<T> interfaceClass;
-    volatile boolean isClosed;
+    private final AtomicReference<LeadershipToken> leadershipTokenRef;
+    private final AtomicReference<T> delegateRef;
+    private final Class<T> interfaceClass;
+    private volatile boolean isClosed;
 
-    private AwaitingLeadershipProxy(Supplier<T> delegateSupplier,
-                                    LeaderElectionService leaderElectionService,
-                                    Class<T> interfaceClass) {
-        this(delegateSupplier, leaderElectionService, interfaceClass, new AtomicReference<>());
-    }
-
-    private AwaitingLeadershipProxy(Supplier<T> delegateSupplier, LeaderElectionService leaderElectionService,
-            Class<T> interfaceClass, AtomicReference<LeadershipToken> leadershipTokenRef) {
-        Preconditions.checkNotNull(delegateSupplier,
+    private AwaitingLeadershipProxy(
+            Supplier<T> delegateSupplier,
+            LeaderElectionService leaderElectionService,
+            Class<T> interfaceClass) {
+        com.palantir.logsafe.Preconditions.checkNotNull(delegateSupplier,
                 "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
         this.executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true));
-        this.leadershipTokenRef = leadershipTokenRef;
+        this.leadershipTokenRef = new AtomicReference<>();
         this.delegateRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;
         this.isClosed = false;
@@ -118,10 +105,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private void tryToGainLeadershipAsync() {
         try {
-            executor.submit(this::gainLeadershipWithRetry);
+            executor.execute(this::gainLeadershipWithRetry);
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
-                throw new IllegalStateException("failed to submit task but proxy not closed", e);
+                throw new SafeIllegalStateException("failed to submit task but proxy not closed", e);
             }
         }
     }
@@ -267,18 +254,11 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         return leadershipTokenRef.get() == leadershipToken;
     }
 
-    private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
-        Optional<HostAndPort> maybeLeader = leaderElectionService.getSuspectedLeaderInMemory();
-        if (maybeLeader.isPresent()) {
-            HostAndPort leaderHint = maybeLeader.get();
-            return new NotCurrentLeaderException(message + "; hinting suspected leader host " + leaderHint,
-                    cause, leaderHint);
-        } else {
-            return new NotCurrentLeaderException(message, cause);
-        }
+    private static NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
+        return new NotCurrentLeaderException(message, cause);
     }
 
-    private NotCurrentLeaderException notCurrentLeaderException(String message) {
+    private static NotCurrentLeaderException notCurrentLeaderException(String message) {
         return notCurrentLeaderException(message, null /* cause */);
     }
 

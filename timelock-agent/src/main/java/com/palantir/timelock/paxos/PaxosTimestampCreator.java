@@ -15,102 +15,66 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
-import com.palantir.atlasdb.timelock.paxos.PaxosResource;
+import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
+import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory.PaxosUseCaseContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class PaxosTimestampCreator implements TimestampCreator {
-    private final MetricRegistry metricRegistry;
-    private final PaxosResource paxosResource;
-    private final Supplier<PaxosRuntimeConfiguration> paxosRuntime;
-    private final Function<String, List<PaxosAcceptor>> paxosAcceptorsForClient;
-    private final Function<String, List<PaxosLearner>> paxosLearnersForClient;
-    private final ExecutorService executor;
 
-    public PaxosTimestampCreator(
-            MetricRegistry metricRegistry,
-            PaxosResource paxosResource,
-            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            Function<String, List<PaxosAcceptor>> paxosAcceptorsForClient,
-            Function<String, List<PaxosLearner>> paxosLearnersForClient,
-            ExecutorService executor) {
-        this.metricRegistry = metricRegistry;
-        this.paxosResource = paxosResource;
-        this.paxosRuntime = paxosRuntime;
-        this.paxosAcceptorsForClient = paxosAcceptorsForClient;
-        this.paxosLearnersForClient = paxosLearnersForClient;
-        this.executor = executor;
+    private final PaxosUseCaseContext context;
+    private final Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig;
+
+    PaxosTimestampCreator(PaxosUseCaseContext context, Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig) {
+        this.context = context;
+        this.paxosRuntimeConfig = paxosRuntimeConfig;
     }
 
     @Override
-    public Supplier<ManagedTimestampService> createTimestampService(String client, LeaderConfig unused) {
-        PaxosAcceptor ourAcceptor = paxosResource.getPaxosAcceptor(client);
-        List<PaxosAcceptor> acceptors = Stream.concat(
-                paxosAcceptorsForClient.apply(client).stream(),
-                Stream.of(ourAcceptor))
-                .collect(Collectors.toList());
+    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig unused) {
+        NetworkClientFactories clientFactories = context.networkClientFactories();
+        PaxosAcceptorNetworkClient acceptorNetworkClient = clientFactories.acceptor().create(client);
+        PaxosLearnerNetworkClient learnerNetworkClient = clientFactories.learner().create(client);
+        PaxosProposer proposer = context.proposerFactory().create(client);
+        PaxosLearner learner = context.components().learner(client);
 
-        PaxosLearner ourLearner = paxosResource.getPaxosLearner(client);
-        List<PaxosLearner> learners = Stream.concat(
-                paxosLearnersForClient.apply(client).stream(),
-                Stream.of(ourLearner))
-                .collect(Collectors.toList());
-
-        PaxosProposer proposer = instrument(PaxosProposer.class,
-                PaxosProposerImpl.newProposer(
-                        ourLearner,
-                        acceptors,
-                        learners,
-                        PaxosRemotingUtils.getQuorumSize(acceptors),
-                        UUID.randomUUID(),
-                        executor),
-                client);
-
-        return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
+        return () -> createManagedPaxosTimestampService(
+                proposer,
+                client,
+                learner,
+                acceptorNetworkClient,
+                learnerNetworkClient);
     }
 
     private ManagedTimestampService createManagedPaxosTimestampService(
             PaxosProposer proposer,
-            String client,
-            List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners) {
+            Client client,
+            PaxosLearner knowledge,
+            PaxosAcceptorNetworkClient acceptorNetworkClient,
+            PaxosLearnerNetworkClient learnerNetworkClient) {
         // TODO (jkong): live reload ping
-        TimestampBoundStore boundStore = instrument(TimestampBoundStore.class,
+        TimestampBoundStore boundStore = context.metrics().instrument(
+                TimestampBoundStore.class,
                 new PaxosTimestampBoundStore(
                         proposer,
-                        paxosResource.getPaxosLearner(client),
-                        ImmutableList.copyOf(acceptors),
-                        ImmutableList.copyOf(learners),
-                        paxosRuntime.get().maximumWaitBeforeProposalMs(),
-                        executor),
+                        knowledge,
+                        acceptorNetworkClient,
+                        learnerNetworkClient,
+                        paxosRuntimeConfig.get().maximumWaitBeforeProposalMs()),
+                "paxos-timestamp-bound-store",
                 client);
-        PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(boundStore);
-        return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
+        return PersistentTimestampServiceImpl.create(boundStore);
     }
 
-    private <T> T instrument(Class<T> serviceClass, T service, String client) {
-        // TODO(nziebart): tag with the client name, when tritium supports it
-        return AtlasDbMetrics.instrument(metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass));
-    }
 }

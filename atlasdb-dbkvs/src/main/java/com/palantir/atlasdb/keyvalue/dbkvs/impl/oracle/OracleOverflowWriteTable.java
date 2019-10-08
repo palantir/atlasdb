@@ -43,7 +43,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.UpdateExecutor;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.WhereClauses;
-import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
@@ -224,7 +224,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         SqlConnection conn = conns.get();
         try {
-            log.info("Got connection for delete on table {}: {}, autocommit={}",
+            log.debug("Got connection for delete on table {}: {}, autocommit={}",
                     shortTableName,
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
@@ -307,7 +307,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         SqlConnection conn = conns.get();
         try {
-            log.info("Got connection for deleteAllTimestamps on table {}: {}, autocommit={}",
+            log.debug("Got connection for deleteAllTimestamps on table {}: {}, autocommit={}",
                     shortTableName,
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());

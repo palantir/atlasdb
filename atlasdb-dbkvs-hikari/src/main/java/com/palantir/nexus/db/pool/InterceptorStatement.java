@@ -30,7 +30,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.reflect.AbstractInvocationHandler;
 
 /**
- * Allows you to intercept and override methods in {@link java.sql.Statement} and subinterfaces
+ * Allows you to intercept and override methods in {@link Statement} and subinterfaces
  * methods.
  */
 public final class InterceptorStatement<T extends Statement> extends AbstractInvocationHandler

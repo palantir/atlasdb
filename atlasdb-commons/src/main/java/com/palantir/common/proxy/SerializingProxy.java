@@ -21,7 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.ObjectInputStreamFactory;
 
 public class SerializingProxy implements DelegatingInvocationHandler {

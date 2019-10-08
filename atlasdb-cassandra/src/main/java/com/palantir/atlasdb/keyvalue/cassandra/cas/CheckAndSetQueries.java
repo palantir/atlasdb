@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
-import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCqlQuery;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 

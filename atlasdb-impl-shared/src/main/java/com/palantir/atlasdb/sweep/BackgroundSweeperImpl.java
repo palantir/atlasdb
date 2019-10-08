@@ -17,12 +17,11 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcomeMetrics;
@@ -31,6 +30,7 @@ import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.Preconditions;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);

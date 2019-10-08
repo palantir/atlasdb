@@ -29,6 +29,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.GuardedBy;
 
@@ -36,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -72,6 +72,7 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Scrubs individuals cells on-demand.
@@ -188,7 +189,7 @@ public class Scrubber {
      */
     private synchronized void launchBackgroundScrubTask(final TransactionManager txManager) {
         if (scrubTaskLaunched) {
-            throw new IllegalStateException("Background scrub task has already been launched");
+            throw new SafeIllegalStateException("Background scrub task has already been launched");
         }
         Runnable scrubTask = () -> {
             int numberOfAttempts = 0;

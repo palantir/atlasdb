@@ -1,5 +1,3 @@
-apply from: "../gradle/publish-jars.gradle"
-apply plugin: 'org.inferred.processors'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 apply from: "../gradle/shared.gradle"
@@ -35,6 +33,7 @@ dependencies {
   explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
+  explicitShadow group: 'io.netty', name: 'netty-handler-proxy'
   explicitShadow group: 'com.google.guava', name: 'guava'
 
   explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
@@ -58,9 +57,12 @@ dependencies {
   testCompile group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
 
-  processor group: 'org.immutables', name: 'value'
-  processor 'com.google.auto.service:auto-service:1.0-rc2'
-  processor project(":atlasdb-processors")
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
+  annotationProcessor 'com.google.auto.service:auto-service'
+  compileOnly 'com.google.auto.service:auto-service'
+  annotationProcessor project(":atlasdb-processors")
+  compileOnly project(":atlasdb-processors")
 
   explicitShadow 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
 }
@@ -96,6 +98,6 @@ recommendedProductDependencies {
         productGroup = 'com.palantir.cassandra'
         productName = 'sls-cassandra'
         minimumVersion = '3.31.0'
-        maximumVersion = '3.x.x'
+        maximumVersion = '4.x.x'
     }
 }

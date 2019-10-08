@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: AtlasDB clients using TimeLock now output logs indicating
+    the slowest operation they encountered in the last 10 seconds, if said
+    operation took at least 1 second.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4105
+  

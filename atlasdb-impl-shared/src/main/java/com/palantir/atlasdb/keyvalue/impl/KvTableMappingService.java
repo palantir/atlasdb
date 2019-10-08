@@ -24,7 +24,6 @@ import java.util.function.LongSupplier;
 
 import org.apache.commons.lang3.Validate;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -54,6 +53,8 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.logsafe.Preconditions;
 
 public class KvTableMappingService implements TableMappingService {
     public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.internal()

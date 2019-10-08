@@ -30,6 +30,8 @@ import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public final class DockerizedDatabase implements Closeable {
 
@@ -50,7 +52,7 @@ public final class DockerizedDatabase implements Closeable {
         try {
             return writeResourceToTempFile(DockerizedDatabase.class, dockerComposeResourceFileName).getAbsolutePath();
         } catch (IOException e) {
-            throw new RuntimeException("Unable to write docker compose file to a temporary file.", e);
+            throw new SafeRuntimeException("Unable to write docker compose file to a temporary file.", e);
         }
     }
 
@@ -71,7 +73,7 @@ public final class DockerizedDatabase implements Closeable {
     private static InetSocketAddress connect(DockerComposeRule docker, int dbPort) {
         try {
             if (docker == null) {
-                throw new IllegalStateException("Docker compose rule cannot be run, is null.");
+                throw new SafeIllegalStateException("Docker compose rule cannot be run, is null.");
             } else {
                 docker.before();
                 return InetSocketAddress.createUnresolved(
@@ -79,7 +81,7 @@ public final class DockerizedDatabase implements Closeable {
                         docker.hostNetworkedPort(dbPort).getExternalPort());
             }
         } catch (IOException | InterruptedException | IllegalStateException e) {
-            throw new RuntimeException("Could not run docker compose rule.", e);
+            throw new SafeRuntimeException("Could not run docker compose rule.", e);
         }
     }
 
@@ -95,7 +97,7 @@ public final class DockerizedDatabase implements Closeable {
         return uri;
     }
 
-    public void close() {
+    @Override public void close() {
         if (docker != null) {
             docker.after();
         }

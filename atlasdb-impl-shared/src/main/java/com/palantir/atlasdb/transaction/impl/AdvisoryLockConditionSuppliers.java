@@ -16,19 +16,19 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.Preconditions;
 
 public final class AdvisoryLockConditionSuppliers {
 
@@ -48,7 +48,7 @@ public final class AdvisoryLockConditionSuppliers {
 
             LockRequest lockRequest = lockSupplier.get();
             if (lockRequest != null) {
-                Validate.isTrue(lockRequest.getVersionId() == null, "Using a version id is not allowed");
+                Preconditions.checkArgument(lockRequest.getVersionId() == null, "Using a version id is not allowed");
                 HeldLocksToken newToken = acquireLock(lockService, lockRequest);
                 TransactionLocksCondition transactionCondition = new TransactionLocksCondition(lockService, newToken);
 
@@ -76,11 +76,20 @@ public final class AdvisoryLockConditionSuppliers {
             if (response == null) {
                 RuntimeException ex = new LockAcquisitionException(
                         "Failed to lock using the provided lock request: " + lockRequest);
-                log.warn("Could not lock successfully", ex);
-                ++failureCount;
-                if (failureCount >= NUM_RETRIES) {
-                    log.warn("Failing after {} tries", failureCount, ex);
-                    throw ex;
+                switch (lockRequest.getBlockingMode()) {
+                    case DO_NOT_BLOCK:
+                        log.debug("Could not lock successfully", ex);
+                        throw ex;
+                    case BLOCK_UNTIL_TIMEOUT:
+                    case BLOCK_INDEFINITELY:
+                    case BLOCK_INDEFINITELY_THEN_RELEASE:
+                        log.warn("Could not lock successfully", ex);
+                        ++failureCount;
+                        if (failureCount >= NUM_RETRIES) {
+                            log.warn("Failing after {} tries", failureCount, ex);
+                            throw ex;
+                        }
+                        break;
                 }
             } else {
                 return response;

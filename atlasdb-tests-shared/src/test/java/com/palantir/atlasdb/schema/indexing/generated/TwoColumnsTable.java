@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -23,7 +24,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -741,6 +741,20 @@ public final class TwoColumnsTable implements
         });
     }
 
+    @Override
+    public Map<TwoColumnsRow, Iterator<TwoColumnsNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<TwoColumnsRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<TwoColumnsRow, Iterator<TwoColumnsNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            TwoColumnsRow row = TwoColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<TwoColumnsNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     private Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAffectedCells(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> oldData = getRowsMultimap(rows.keySet());
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> cellsAffected = ArrayListMultimap.create();
@@ -1395,6 +1409,22 @@ public final class TwoColumnsTable implements
             });
         }
 
+        @Override
+        public Map<FooToIdCondIdxRow, Iterator<FooToIdCondIdxColumnValue>> getRowsColumnRangeIterator(Iterable<FooToIdCondIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+            Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<FooToIdCondIdxRow, Iterator<FooToIdCondIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                FooToIdCondIdxRow row = FooToIdCondIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                Iterator<FooToIdCondIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                    FooToIdCondIdxColumn col = FooToIdCondIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = FooToIdCondIdxColumnValue.hydrateValue(result.getValue());
+                    return FooToIdCondIdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<FooToIdCondIdxRowResult> getAllRowsUnordered() {
             return getAllRowsUnordered(allColumns);
         }
@@ -2013,6 +2043,22 @@ public final class TwoColumnsTable implements
             });
         }
 
+        @Override
+        public Map<FooToIdIdxRow, Iterator<FooToIdIdxColumnValue>> getRowsColumnRangeIterator(Iterable<FooToIdIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+            Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<FooToIdIdxRow, Iterator<FooToIdIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                FooToIdIdxRow row = FooToIdIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                Iterator<FooToIdIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                    FooToIdIdxColumn col = FooToIdIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = FooToIdIdxColumnValue.hydrateValue(result.getValue());
+                    return FooToIdIdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<FooToIdIdxRowResult> getAllRowsUnordered() {
             return getAllRowsUnordered(allColumns);
         }
@@ -2126,5 +2172,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JnmKvbbyrrxBYn7NjaLlMQ==";
+    static String __CLASS_HASH = "22ey1qbdFb1NsSuNpq+76A==";
 }

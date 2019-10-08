@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Strings;
 import com.palantir.config.crypto.DecryptingVariableSubstitutor;
@@ -47,7 +46,6 @@ public final class AtlasDbConfigs {
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
             .setSubtypeResolver(new DiscoverableSubtypeResolver(DISCOVERED_SUBTYPE_MARKER))
             .registerModule(new GuavaModule())
-            .registerModule(new Jdk7Module())
             .registerModule(new Jdk8Module());
 
     private AtlasDbConfigs() {

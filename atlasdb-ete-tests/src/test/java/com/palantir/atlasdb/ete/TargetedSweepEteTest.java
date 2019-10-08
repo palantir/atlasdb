@@ -93,6 +93,18 @@ public class TargetedSweepEteTest {
         assertDeletedAndSwept(4, 4, 4, 4 * 4);
     }
 
+    @Test
+    public void targetedSweepCleanupUnmarkedStreamsTest() {
+        todoClient.storeUnmarkedSnapshot("snap");
+        todoClient.storeUnmarkedSnapshot("crackle");
+        todoClient.storeUnmarkedSnapshot("pop");
+        todoClient.runIterationOfTargetedSweep();
+
+        // Nothing can be deleted from Index because it wasn't written. There should be 3 entries in the other tables
+        // (hash, metadata and value), one per stream, all of which should be cleaned up.
+        assertDeleted(0, 3, 3, 3);
+    }
+
     private void assertDeleted(long idx, long hash, long meta, long val) {
         Assert.assertThat(todoClient.numberOfCellsDeleted(INDEX_TABLE), equalTo(idx));
         Assert.assertThat(todoClient.numberOfCellsDeleted(HASH_TABLE), equalTo(hash));

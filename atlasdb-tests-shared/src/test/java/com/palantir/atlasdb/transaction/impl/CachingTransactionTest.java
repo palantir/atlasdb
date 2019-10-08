@@ -53,14 +53,14 @@ public class CachingTransactionTest {
         final SortedMap<byte[], RowResult<byte[]>> emptyResults =
                 ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR).build();
 
+        final Set<byte[]> noRows = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).build();
+
         mockery.checking(new Expectations() {
             {
-                // the cache doesn't actually cache empty results in this case
-                // this is probably an oversight, but this has been the behavior for a long time
                 oneOf(txn).getRows(table, oneRow, oneColumn);
                 will(returnValue(emptyResults));
 
-                oneOf(txn).getRows(table, oneRow, oneColumn);
+                oneOf(txn).getRows(table, noRows, oneColumn);
                 will(returnValue(emptyResults));
             }
         });

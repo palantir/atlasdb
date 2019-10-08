@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -94,12 +94,10 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        Map<Cell, byte[]> values = startTimestampToCommitTimestamp.entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        entry -> getTransactionCell(entry.getKey()),
-                        entry -> encodingStrategy.encodeCommitTimestampAsValue(
-                                entry.getKey(), entry.getValue())));
+        Map<Cell, byte[]> values = new HashMap<>(startTimestampToCommitTimestamp.size());
+        startTimestampToCommitTimestamp.forEach((start, commit) -> values.put(
+                getTransactionCell(start),
+                encodingStrategy.encodeCommitTimestampAsValue(start, commit)));
         kvs.putUnlessExists(transactionsTable, values);
     }
 

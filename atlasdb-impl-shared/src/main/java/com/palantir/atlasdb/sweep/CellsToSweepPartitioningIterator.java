@@ -19,10 +19,10 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.logsafe.Preconditions;
 
 // The batches can end up very small or even empty after we filter out unsweepable cells,
 // so we want to re-partition them before deleting.

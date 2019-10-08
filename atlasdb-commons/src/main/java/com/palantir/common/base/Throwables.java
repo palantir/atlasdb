@@ -28,11 +28,18 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
+import com.palantir.logsafe.Preconditions;
 
+/**
+ * Utilities for creating and propagating exceptions.
+ *
+ * Note: Differently from Guava, the methods in this class handle interruption; that is, they will re-set the
+ * interrupt flag and throw a {@link PalantirInterruptedException} instead of {@link PalantirRuntimeException}
+ * if incoming exceptions are subclasses of {@link InterruptedException}.
+ */
 public final class Throwables {
 
     private static Logger log = LoggerFactory.getLogger(Throwables.class);
@@ -63,16 +70,14 @@ public final class Throwables {
     }
 
     /**
-     * If Throwable is a RuntimeException or Error, rewrap and throw it. If not, throw a
-     * new PalantirRuntimeException(ex)
+     * If Throwable is a RuntimeException or Error, rewrap and throw it. If not, throw a PalantirRuntimeException.
      */
     public static RuntimeException rewrapAndThrowUncheckedException(Throwable ex) {
         throw rewrapAndThrowUncheckedException(ex.getMessage(), ex);
     }
 
     /**
-     * If Throwable is a RuntimeException or Error, rewrap and throw it. If not, throw a
-     * new PalantirRuntimeException(ex)
+     * If Throwable is a RuntimeException or Error, rewrap and throw it. If not, throw a PalantirRuntimeException.
      */
     public static RuntimeException rewrapAndThrowUncheckedException(String newMessage, Throwable ex) {
         rewrapAndThrowIfInstance(newMessage, ex, RuntimeException.class);
@@ -82,8 +87,7 @@ public final class Throwables {
 
     /**
      * If Throwable is a RuntimeException or Error, rethrow it. If its an ExecutionException or
-     * InvocationTargetException, extract the cause and process it. Else, throw a
-     * new PalantirRuntimeException(ex)
+     * InvocationTargetException, extract the cause and process it. Else, throw a PalantirRuntimeException.
      */
     public static AtlasDbDependencyException unwrapAndThrowAtlasDbDependencyException(Throwable ex) {
         if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
@@ -100,9 +104,12 @@ public final class Throwables {
         return new AtlasDbDependencyException(ex);
     }
 
+    /**
+     * Throws the input Throwable if it is a RuntimeException or Error, otherwise wraps it in a
+     * PalantirRuntimeException.
+     */
     public static RuntimeException throwUncheckedException(Throwable ex) {
-        throwIfInstance(ex, RuntimeException.class);
-        throwIfInstance(ex, Error.class);
+        throwIfUncheckedException(ex);
         throw createPalantirRuntimeException(ex);
     }
 

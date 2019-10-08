@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.AssertUtils;
 
 /**
@@ -77,7 +78,7 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
      *
      */
     public static void changeThread(Object proxy, Thread oldThread, Thread newThread) {
-        Validate.notNull(proxy, "Proxy argument must not be null");
+        Preconditions.checkNotNull(proxy, "Proxy argument must not be null");
         if (Proxy.isProxyClass(proxy.getClass())) {
             InvocationHandler handler = Proxy.getInvocationHandler(proxy);
             changeHandlerThread(handler, oldThread, newThread);

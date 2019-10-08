@@ -26,7 +26,6 @@ import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,13 +125,13 @@ public abstract class SQL extends BasicSQL {
         } else if (is.getLength() <= Integer.MAX_VALUE) {
             if (DBType.getTypeFromConnection(c) == DBType.POSTGRESQL
                     && is.getLength() > SQL.POSTGRES_BLOB_WRITE_LIMIT) {
-                Validate.isTrue(false, "Postgres only supports blobs up to 1G"); //$NON-NLS-1$
+                com.palantir.logsafe.Preconditions.checkArgument(false, "Postgres only supports blobs up to 1G"); //$NON-NLS-1$
             }
             PreparedStatements.setBinaryStream(ps, i, is, (int)is.getLength());
             return null;
         } else {
             DBType dbType = DBType.getTypeFromConnection(c);
-            Validate.isTrue(dbType == DBType.ORACLE, "We only support blobs over 2GB on oracle (postgres only supports blobs up to 1G)"); //$NON-NLS-1$
+            com.palantir.logsafe.Preconditions.checkArgument(dbType == DBType.ORACLE, "We only support blobs over 2GB on oracle (postgres only supports blobs up to 1G)"); //$NON-NLS-1$
             BlobHandler blobHandler;
             try {
                 blobHandler = getJdbcHandler().createBlob(c);
@@ -164,7 +163,7 @@ public abstract class SQL extends BasicSQL {
                                       PreparedStatement ps,
                                       int paramIndex,
                                       ArrayHandler array) {
-        Preconditions.checkArgument(DBType.getTypeFromConnection(c) == DBType.ORACLE);
+        com.palantir.logsafe.Preconditions.checkArgument(DBType.getTypeFromConnection(c) == DBType.ORACLE);
         try {
             PreparedStatements.setObject(ps, paramIndex, array.toOracleArray(c));
         } catch (SQLException e) {

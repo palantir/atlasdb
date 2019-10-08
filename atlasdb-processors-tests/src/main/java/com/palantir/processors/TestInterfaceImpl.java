@@ -25,4 +25,9 @@ public class TestInterfaceImpl implements AutoDelegate_TestInterface {
     public int methodWithReturnType() {
         return 0;
     }
+
+    @Override
+    public void methodThatMustBeImplemented() {
+
+    }
 }

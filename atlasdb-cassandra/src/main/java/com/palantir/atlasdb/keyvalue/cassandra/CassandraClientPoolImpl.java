@@ -44,6 +44,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -51,6 +52,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * Feature breakdown:
@@ -272,13 +274,21 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandra.getTokenMap();
     }
 
+    @VisibleForTesting
+    Set<InetSocketAddress> getLocalHosts() {
+        return cassandra.getLocalHosts();
+    }
+
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
+
+        Set<InetSocketAddress> resolvedConfigAddresses = config.servers()
+                .accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
 
         if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
-            setServersInPoolTo(config.servers());
+            setServersInPoolTo(resolvedConfigAddresses);
         }
 
         cassandra.debugLogStateOfPool();
@@ -486,7 +496,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return;
         }
 
-        RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
+        RuntimeException ex = new SafeIllegalStateException("Hosts have differing ring descriptions."
                 + " This can lead to inconsistent reads and lost data. ");
         log.error("Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
                         + " lose writes. The mapping of token ranges to hosts is:\n{}",

@@ -15,7 +15,6 @@
  */
 package com.palantir.processors;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -37,39 +36,22 @@ final class TestingUtils {
                 .collect(Collectors.toSet());
     }
 
-    static String methodToString(Method method) {
+    private static String methodToString(Method method) {
         return String.format("%s,%s,%s",
                 method.getReturnType(),
                 method.getName(),
                 extractMethodParameterTypes(method));
     }
 
-    static String extractMethodParameterTypes(Method method) {
+    private static String extractMethodParameterTypes(Method method) {
         return Arrays.stream(method.getParameterTypes())
                 .map(Class::getCanonicalName)
                 .collect(Collectors.toList())
                 .toString();
     }
 
-    static Set<String> extractConstructors(Class klass) {
-        return Arrays.stream(klass.getConstructors())
-                .map(TestingUtils::constructorToString)
-                .collect(Collectors.toSet());
-    }
-
-    static String constructorToString(Constructor constructor) {
-        return String.format("%s", extractConstructorParameterTypes(constructor));
-    }
-
     static Set<String> extractNonStaticMethods(Class klass) {
         return extractMethodsSatisfyingPredicate(klass, method -> !Modifier.isStatic(method.getModifiers()));
     }
 
-
-    private static String extractConstructorParameterTypes(Constructor constructor) {
-        return Arrays.stream(constructor.getParameterTypes())
-                .map(Class::getCanonicalName)
-                .collect(Collectors.toList())
-                .toString();
-    }
 }

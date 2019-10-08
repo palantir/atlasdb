@@ -191,7 +191,10 @@ public class BackgroundSweepThread implements Runnable {
             return grabLocksAndRun(locks);
         }
 
-        log.debug("Skipping sweep because it is currently disabled.");
+        log.debug("Skipping background sweep because it is currently disabled. Note that AtlasDB automatically"
+                + " disables background sweep if targeted sweep is fully enabled (i.e. both writes to the queue"
+                + " and reading from the queue are enabled); if you still want to run Background Sweep under these"
+                + " circumstances, please explicitly enable Background Sweep in configuration. ");
         closeTableLockIfHeld();
         return SweepOutcome.DISABLED;
     }

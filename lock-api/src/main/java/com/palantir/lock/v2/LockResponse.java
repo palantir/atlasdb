@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockResponse.class)
@@ -39,7 +40,7 @@ public interface LockResponse {
     @JsonIgnore
     default LockToken getToken() {
         if (!wasSuccessful()) {
-            throw new IllegalStateException("This lock response was not successful");
+            throw new SafeIllegalStateException("This lock response was not successful");
         }
         return getTokenOrEmpty().get();
     }

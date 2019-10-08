@@ -1,0 +1,7 @@
+type: break
+break:
+  description: '`AtlasDbHttpClients#createLiveReloadingProxyWithFailover` now requires
+    a _tagged_ metrics registry; this is part of changes to better track remoting
+    metrics.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4260

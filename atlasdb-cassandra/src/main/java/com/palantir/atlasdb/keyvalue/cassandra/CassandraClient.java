@@ -57,6 +57,8 @@ public interface CassandraClient extends Closeable {
      */
     boolean isValid();
 
+    String describe_snitch() throws org.apache.thrift.TException;
+
     Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
             TableReference tableRef,
             List<ByteBuffer> keys,

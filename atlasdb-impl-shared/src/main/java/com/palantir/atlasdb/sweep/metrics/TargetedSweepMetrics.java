@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -35,6 +33,7 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
@@ -47,7 +46,6 @@ public class TargetedSweepMetrics {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
     private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
-    private final SweepOutcomeMetrics outcomeMetrics;
 
     private TargetedSweepMetrics(MetricsManager metricsManager,
                 Function<Long, Long> tsToMillis, Clock clock, long millis) {
@@ -56,7 +54,6 @@ public class TargetedSweepMetrics {
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
                 TableMetadataPersistence.SweepStrategy.THOROUGH,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
-        outcomeMetrics = SweepOutcomeMetrics.registerTargeted(metricsManager);
     }
 
     public static TargetedSweepMetrics create(MetricsManager metricsManager, TimelockService timelock,
@@ -102,19 +99,28 @@ public class TargetedSweepMetrics {
         getMetrics(shardStrategy).updateProgressForShard(shardStrategy.shard(), lastSweptTs);
     }
 
-    public void registerOccurrenceOf(SweepOutcome outcome) {
-        outcomeMetrics.registerOccurrenceOf(outcome);
+    public void registerOccurrenceOf(ShardAndStrategy shardStrategy, SweepOutcome outcome) {
+        registerOccurrenceOf(shardStrategy.strategy(), outcome);
+    }
+
+    public void registerOccurrenceOf(TableMetadataPersistence.SweepStrategy strategy, SweepOutcome outcome) {
+        getMetrics(strategy).registerOccurrenceOf(outcome);
+    }
+
+    public void registerEntriesReadInBatch(ShardAndStrategy shardStrategy, long batchSize) {
+        getMetrics(shardStrategy).registerEntriesReadInBatch(batchSize);
     }
 
     private MetricsForStrategy getMetrics(ShardAndStrategy shardStrategy) {
-        return metricsForStrategyMap.get(shardStrategy.strategy());
+        return getMetrics(shardStrategy.strategy());
     }
 
-    private static Long minimum(Collection<Long> currentValues) {
-        return currentValues.stream().min(Comparator.naturalOrder()).orElse(null);
+    private MetricsForStrategy getMetrics(TableMetadataPersistence.SweepStrategy strategy) {
+        return metricsForStrategyMap.get(strategy);
     }
 
     private static final class MetricsForStrategy {
+        private final Map<String, String> tag;
         private final MetricsManager manager;
         private final AccumulatingValueMetric enqueuedWrites;
         private final AccumulatingValueMetric entriesRead;
@@ -122,36 +128,46 @@ public class TargetedSweepMetrics {
         private final AccumulatingValueMetric abortedWritesDeleted;
         private final CurrentValueMetric<Long> sweepTimestamp;
         private final AggregatingVersionedMetric<Long> lastSweptTs;
+        private final SweepOutcomeMetrics outcomeMetrics;
+        private final SlidingWindowMeanGauge batchSizeMean;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
-            Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
+            tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
             this.manager = manager;
-            enqueuedWrites = registerAccumulating(AtlasDbMetricNames.ENQUEUED_WRITES, tag);
-            entriesRead = registerAccumulating(AtlasDbMetricNames.ENTRIES_READ, tag);
-            tombstonesPut = registerAccumulating(AtlasDbMetricNames.TOMBSTONES_PUT, tag);
-            abortedWritesDeleted = registerAccumulating(AtlasDbMetricNames.ABORTED_WRITES_DELETED, tag);
-            sweepTimestamp = register(AtlasDbMetricNames.SWEEP_TS, new CurrentValueMetric<>(), tag);
-
-            AggregatingVersionedSupplier<Long> lastSweptTsSupplier = new AggregatingVersionedSupplier<>(
-                    TargetedSweepMetrics::minimum, recomputeMillis);
-            lastSweptTs = register(AtlasDbMetricNames.LAST_SWEPT_TS,
-                    new AggregatingVersionedMetric<>(lastSweptTsSupplier), tag);
-
-            Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
-                    sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis), lastSweptTs::getVersionedValue,
-                    recomputeMillis, wallClock);
-
-            register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
+            enqueuedWrites = registerAccumulating(AtlasDbMetricNames.ENQUEUED_WRITES);
+            entriesRead = registerAccumulating(AtlasDbMetricNames.ENTRIES_READ);
+            tombstonesPut = registerAccumulating(AtlasDbMetricNames.TOMBSTONES_PUT);
+            abortedWritesDeleted = registerAccumulating(AtlasDbMetricNames.ABORTED_WRITES_DELETED);
+            sweepTimestamp = register(AtlasDbMetricNames.SWEEP_TS, new CurrentValueMetric<>());
+            lastSweptTs = registerLastSweptTsMetric(recomputeMillis);
+            registerMillisSinceLastSweptMetric(tsToMillis, wallClock, recomputeMillis);
+            outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag);
+            batchSizeMean = register(AtlasDbMetricNames.BATCH_SIZE_MEAN, new SlidingWindowMeanGauge());
         }
 
-        private AccumulatingValueMetric registerAccumulating(String name, Map<String, String> tag) {
-            return register(name, new AccumulatingValueMetric(), tag);
+        private AccumulatingValueMetric registerAccumulating(String name) {
+            return register(name, new AccumulatingValueMetric());
         }
 
         @SuppressWarnings("unchecked")
-        private <T extends Gauge<Long>> T register(String name, T metric, Map<String, String> tag) {
+        private <T extends Gauge<?>> T register(String name, T metric) {
             return (T) manager.registerOrGet(TargetedSweepMetrics.class, name, metric, tag);
+        }
+
+        private AggregatingVersionedMetric<Long> registerLastSweptTsMetric(long millis) {
+            AggregatingVersionedSupplier<Long> lastSweptTimestamp = AggregatingVersionedSupplier.min(millis);
+            return register(AtlasDbMetricNames.LAST_SWEPT_TS, new AggregatingVersionedMetric<>(lastSweptTimestamp));
+        }
+
+        private void registerMillisSinceLastSweptMetric(Function<Long, Long> tsToMillis, Clock wallClock, long millis) {
+            Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
+                    sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis),
+                    lastSweptTs::getVersionedValue,
+                    millis,
+                    wallClock);
+
+            register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get);
         }
 
         private Long estimateMillisSinceTs(Long sweptTs, Clock clock, Function<Long, Long> tsToMillis) {
@@ -192,6 +208,14 @@ public class TargetedSweepMetrics {
 
         private void updateProgressForShard(int shard, long sweptTs) {
             lastSweptTs.update(shard, sweptTs);
+        }
+
+        public void registerOccurrenceOf(SweepOutcome outcome) {
+            outcomeMetrics.registerOccurrenceOf(outcome);
+        }
+
+        public void registerEntriesReadInBatch(long batchSize) {
+            batchSizeMean.update(batchSize);
         }
     }
 }

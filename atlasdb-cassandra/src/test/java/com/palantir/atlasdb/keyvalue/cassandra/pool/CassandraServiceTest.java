@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -27,7 +25,9 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -45,12 +45,48 @@ public class CassandraServiceTest {
     private Blacklist blacklist;
 
     @Test
+    public void shouldOnlyReturnLocalHosts() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
+        ImmutableSet<InetSocketAddress> localHosts = ImmutableSet.of(HOST_1);
+
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 1.0);
+
+        cassandra.setLocalHosts(localHosts);
+
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(localHosts);
+    }
+
+    @Test
+    public void shouldReturnAllHostsBySkippingFilter() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
+        ImmutableSet<InetSocketAddress> localHosts = ImmutableSet.of(HOST_1);
+
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 0.0);
+
+        cassandra.setLocalHosts(localHosts);
+
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
+    }
+
+    @Test
+    public void shouldReturnAllHostsAsNoIntersection() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
+        ImmutableSet<InetSocketAddress> localHosts = ImmutableSet.of();
+
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 0.0);
+
+        cassandra.setLocalHosts(localHosts);
+
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
+    }
+
+    @Test
     public void shouldReturnAddressForSingleHostInPool() throws UnknownHostException {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1));
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost, equalTo(HOST_1));
+        assertThat(resolvedHost).isEqualTo(HOST_1);
     }
 
     @Test
@@ -59,7 +95,7 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost, equalTo(HOST_1));
+        assertThat(resolvedHost).isEqualTo(HOST_1);
     }
 
     @Test
@@ -68,7 +104,7 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_3);
 
-        assertThat(resolvedHost, equalTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT)));
+        assertThat(resolvedHost).isEqualTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT));
     }
 
 
@@ -83,16 +119,16 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldReturnAbsentIfPredicateMatchesNoServers() {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1));
 
         Optional<CassandraClientPoolingContainer> container
                 = cassandra.getRandomGoodHostForPredicate(address -> false);
-        assertThat(container.isPresent(), is(false));
+        assertThat(container).isNotPresent();
     }
 
     @Test
     public void shouldOnlyReturnHostsMatchingPredicate() {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
 
         int numTrials = 50;
         for (int i = 0; i < numTrials; i++) {
@@ -104,7 +140,7 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
         blacklist.add(HOST_1);
         Optional<CassandraClientPoolingContainer> container
                 = cassandra.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
@@ -113,24 +149,36 @@ public class CassandraServiceTest {
 
     @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
     private void assertContainerHasHostOne(Optional<CassandraClientPoolingContainer> container) {
-        assertThat(container.isPresent(), is(true));
-        assertThat(container.get().getHost(), equalTo(HOST_1));
+        assertThat(container).isPresent();
+        assertThat(container.get().getHost()).isEqualTo(HOST_1);
     }
 
     private CassandraService clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
         return clientPoolWith(servers, servers);
     }
 
-    private CassandraService clientPoolWithServersInCurrentPool(ImmutableSet<InetSocketAddress> servers) {
-        return clientPoolWith(servers, servers);
+    private CassandraService clientPoolWithServersAndParams(ImmutableSet<InetSocketAddress> servers, double weighting) {
+        return clientPoolWithParams(servers, servers, weighting);
     }
 
     private CassandraService clientPoolWith(
             ImmutableSet<InetSocketAddress> servers,
             ImmutableSet<InetSocketAddress> serversInPool) {
+        return clientPoolWithParams(servers, serversInPool, 0.0);
+    }
+
+    private CassandraService clientPoolWithParams(ImmutableSet<InetSocketAddress> servers,
+            ImmutableSet<InetSocketAddress> serversInPool, double weighting) {
         config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .replicationFactor(3)
-                .addServers(servers.toArray(new InetSocketAddress[0]))
+                .credentials(ImmutableCassandraCredentialsConfig.builder()
+                        .username("username")
+                        .password("password")
+                        .build())
+                .servers(
+                        ImmutableDefaultConfig
+                                .builder().addAllThriftHosts(servers).build())
+                .localHostWeighting(weighting)
                 .build();
 
         blacklist = new Blacklist(config);

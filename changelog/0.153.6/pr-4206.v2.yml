@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: AgnosticLightResultSetImpl is now resilient to being closed multiple
+    times; previously, we would close the most recent span (whatever that was) when
+    this was closed, leading to unexpected traces.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4206

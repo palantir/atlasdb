@@ -15,14 +15,17 @@
  */
 package com.palantir.leader;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder, PaxosLeaderElectionEventRecorder {
 
@@ -33,14 +36,17 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     @GuardedBy("this") private PaxosValue currentRound = null;
     @GuardedBy("this") private boolean isLeading = false;
 
-    public static PaxosLeadershipEventRecorder create(MetricRegistry metrics, String leaderUuid) {
-        return create(metrics, leaderUuid, null);
+    public static PaxosLeadershipEventRecorder create(TaggedMetricRegistry metrics, String leaderUuid) {
+        return create(metrics, leaderUuid, null, ImmutableList.of());
     }
 
-    public static PaxosLeadershipEventRecorder create(MetricRegistry metrics,
-            String leaderUuid, LeadershipObserver observer) {
+    public static PaxosLeadershipEventRecorder create(
+            TaggedMetricRegistry metrics,
+            String leaderUuid,
+            LeadershipObserver observer,
+            List<SafeArg<Object>> safeArgs) {
         return new PaxosLeadershipEventRecorder(
-                new LeadershipEvents(metrics),
+                new LeadershipEvents(metrics, safeArgs),
                 leaderUuid,
                 Optional.ofNullable(observer));
     }
