@@ -21,51 +21,63 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
+import com.google.common.collect.MoreCollectors;
 import com.palantir.common.base.Throwables;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 
 public enum ClientCompressor {
-    GZIP(GzipCompressingInputStream.class, GZIPInputStream.class, GzipCompressingInputStream.GZIP_HEADER),
-    LZ4(LZ4CompressingInputStream.class, LZ4BlockInputStream.class,
+    GZIP(GzipCompressingInputStream.class, in -> {
+        try {
+            return new GZIPInputStream(in);
+        } catch (Exception exc) {
+            throw new RuntimeException(exc);
+        }
+    }, GzipCompressingInputStream.GZIP_HEADER),
+    LZ4(LZ4CompressingInputStream.class, LZ4BlockInputStream::new,
             new byte[] {'L', 'Z', '4', 'B', 'l', 'o', 'c', 'k'}),
-    NONE(null, null, new byte[] {});
+    NONE(null, UnaryOperator.identity(), new byte[] {});
 
     public final Class<InputStream> compressorClass;
-    public final Class<InputStream> decompressorClass;
+    public UnaryOperator<InputStream> decompressorCreator;
     public final byte[] magic;
 
-    ClientCompressor(Class compressorClass, Class decompressorClass, byte[] magic) {
+    ClientCompressor(Class compressorClass, UnaryOperator<InputStream> decompressorCreator, byte[] magic) {
         this.compressorClass = compressorClass;
-        this.decompressorClass = decompressorClass;
+        this.decompressorCreator = decompressorCreator;
         this.magic = magic;
     }
 
-    private static boolean matchMagic(ClientCompressor compressorType, byte[] buffer, int bufferLen) {
-        byte[] signature = compressorType.magic;
+    private boolean matchMagic(byte[] buffer, int bufferLen) {
         int i = 0;
-        while (i < signature.length && i < bufferLen && signature[i] == buffer[i++]);
-        return i >= signature.length && signature.length > 0;
+        while (i < magic.length && i < bufferLen && magic[i] == buffer[i++]);
+        return i >= magic.length && magic.length > 0;
     }
 
+    /**
+     * Method that takes a compressed stream and returns a decompressor stream. It will throw {@code
+     * IllegalArgumentException} if more than one decompressor is detected,  a {@code NoSuchElementException} if no
+     * compressor detected.
+     */
     static InputStream getDecompressorStream(InputStream stream) throws IOException {
         BufferedInputStream buff = new BufferedInputStream(stream);
-        int maxLen = Arrays.stream(ClientCompressor.values()).max(
-                Comparator.comparingInt(x -> x.magic.length)).get().magic.length;
+        List<ClientCompressor> compressors = Arrays.stream(ClientCompressor.values()).sorted(
+                Comparator.comparingInt((ClientCompressor t) -> t.magic.length).reversed()
+        ).collect(
+                Collectors.toList());
+        int maxLen = compressors.get(0).magic.length;
         buff.mark(maxLen);
         byte[] headerBuffer = new byte[maxLen];
         int len = buff.read(headerBuffer);
         buff.reset();
-        Optional<ClientCompressor> compressor = Arrays.stream(ClientCompressor.values()).filter(t -> matchMagic(t, headerBuffer, len)).findFirst();
-        return compressor.map(t -> {
-            try {
-                return t.decompressorClass.getConstructor(InputStream.class).newInstance(buff);
-            } catch (Exception exc) {
-                throw new RuntimeException(exc);
-            }
-        }).orElseGet(() -> buff);
+        ClientCompressor compressor = compressors.stream().filter(
+                t -> t.matchMagic(headerBuffer, len)).collect(MoreCollectors.onlyElement());
+        return compressor.decompressorCreator.apply(buff);
     }
 }

@@ -47,14 +47,6 @@ public abstract class BufferedDelegateInputStream extends InputStream {
         this.buffer = new byte[bufferLength];
     }
 
-    public BufferedDelegateInputStream(InputStream delegate, int bufferLength, int initialBufferSize) {
-        Preconditions.checkArgument(bufferLength >= 0, "buffer size must be greater than or equal to zero");
-        this.delegate = delegate;
-        this.position = 0;
-        this.bufferSize = initialBufferSize;
-        this.buffer = new byte[bufferLength];
-    }
-
     @Override
     public final int read() throws IOException {
         if (!ensureBytesAvailable()) {

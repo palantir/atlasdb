@@ -13,33 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.common.compression;
 
-import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.NoSuchElementException;
 
-public class CompressorForwardingInputStream extends InputStream {
-    private InputStream compressedStream;
-    private InputStream delegate;
+import org.junit.Test;
 
-    public CompressorForwardingInputStream(InputStream stream) {
-        compressedStream = stream;
-    }
+public class NotCompressedStreamTests {
 
-    @Override
-    public int read() throws IOException {
-        if (delegate == null) {
-            delegate = ClientCompressor.getDecompressorStream(compressedStream);
-        }
-        return delegate.read();
-    }
-
-    @Override
-    public void close() throws IOException {
-        super.close();
-        if (delegate != null) {
-            delegate.close();
-        }
+    @Test(expected = NoSuchElementException.class)
+    public void testNonCompressedStreamRead() throws Exception {
+        ByteArrayInputStream compressingStream = new ByteArrayInputStream(new byte[10]);
+        InputStream decompressingStream = new CompressorForwardingInputStream(compressingStream);
+        decompressingStream.read();
     }
 }
