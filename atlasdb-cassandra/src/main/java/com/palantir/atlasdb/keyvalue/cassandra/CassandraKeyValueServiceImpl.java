@@ -97,7 +97,6 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -359,7 +358,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            CqlClient cqlClient = CqlClientFactory.constructClient(
+            CqlClient cqlClient = config.cqlClientFactory().constructClient(
                     metricsManager.getTaggedRegistry(),
                     config,
                     initializeAsync);
@@ -377,7 +376,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             log.warn("CqlClient creation exception", e);
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
-
     }
 
     private static CassandraKeyValueService createAndInitialize(
