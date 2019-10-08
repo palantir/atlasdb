@@ -80,8 +80,8 @@ public class AtlasDbHttpClientsTest {
             = ATLASDB_HTTP_CLIENT + "/" + ATLASDB_CLIENT_V2_AGENT.version();
 
     private static final UserAgent BASE_USER_AGENT = UserAgent.of(UserAgent.Agent.of("bla", "0.1.2"));
-    private static final UserAgent USER_AGENT = BASE_USER_AGENT.addAgent(ATLASDB_CLIENT_V1_AGENT);
-    private static final String DEFAULT_USER_AGENT_STRING = UserAgents.format(USER_AGENT);
+    private static final UserAgent LEGACY_USER_AGENT = BASE_USER_AGENT.addAgent(ATLASDB_CLIENT_V1_AGENT);
+    private static final String LEGACY_USER_AGENT_STRING = UserAgents.format(LEGACY_USER_AGENT);
     private static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT
             = AuxiliaryRemotingParameters.builder()
             .shouldLimitPayload(false)
@@ -195,7 +195,7 @@ public class AtlasDbHttpClientsTest {
         client.getTestNumber();
 
         availableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(DEFAULT_USER_AGENT_STRING)));
+                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(LEGACY_USER_AGENT_STRING)));
     }
 
     @Test
@@ -211,7 +211,7 @@ public class AtlasDbHttpClientsTest {
         clientWithDirectCall.getTestNumber();
 
         availableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(DEFAULT_USER_AGENT_STRING)));
+                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(LEGACY_USER_AGENT_STRING)));
     }
 
     @Test
@@ -227,7 +227,7 @@ public class AtlasDbHttpClientsTest {
         clientWithHttpProxy.getTestNumber();
 
         proxyServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(DEFAULT_USER_AGENT_STRING)));
+                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(LEGACY_USER_AGENT_STRING)));
         availableServer.verify(0, getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
@@ -255,7 +255,7 @@ public class AtlasDbHttpClientsTest {
         int response = client.getTestNumber();
         assertThat(response, equalTo(TEST_NUMBER));
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(DEFAULT_USER_AGENT_STRING)));
+                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(LEGACY_USER_AGENT_STRING)));
     }
 
     @Test
