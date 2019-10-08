@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.SafeArg;
 
 public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ExperimentRunningProxy.class);
@@ -73,6 +74,10 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {
             if (runExperiment) {
+                log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to"
+                                + " use the experimental service again in {} milliseconds.",
+                        SafeArg.of("retryDurationMillis", REFRESH_INTERVAL.toMillis()),
+                        e);
                 markExperimentFailure();
             }
             if (e.getTargetException() instanceof NotInitializedException) {
