@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: |-
+    Remove redundant default annotation in CassandraKeyValueServiceConfig
+
+    Small change that removes the redundant default annotation, as the default behaviour of an Optional in the config is to return Optional.empty anyway.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4288
