@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
@@ -123,7 +122,7 @@ public class DefaultCleanerBuilder {
                 cachingPuncherStore,
                 clock,
                 Suppliers.ofInstance(transactionReadTimeout));
-        return AsyncPuncher.create(simplePuncher, punchIntervalMillis, Optional.of(timestampSeedSource));
+        return AsyncPuncher.create(simplePuncher, punchIntervalMillis, timestampSeedSource);
     }
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,

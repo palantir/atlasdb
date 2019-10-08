@@ -15,11 +15,8 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -27,7 +24,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.SimpleTimeLimiter;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
@@ -41,14 +38,15 @@ import com.palantir.logsafe.SafeArg;
  */
 public final class AsyncPuncher implements Puncher {
     private static final Logger log = LoggerFactory.getLogger(AsyncPuncher.class);
-    private static final long INVALID_TIMESTAMP = -1L;
-    private static final Duration SEED_TIME_LIMIT = Duration.ofSeconds(1);
+
+    @VisibleForTesting
+    static final long INVALID_TIMESTAMP = -1L;
 
     public static AsyncPuncher create(
             Puncher delegate,
             long interval,
-            Optional<LongSupplier> seedTimestampSupplier) {
-        AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval, seedTimestampSupplier);
+            LongSupplier freshTimestampSupplier) {
+        AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval, freshTimestampSupplier);
         asyncPuncher.start();
         return asyncPuncher;
     }
@@ -59,12 +57,13 @@ public final class AsyncPuncher implements Puncher {
     private final Puncher delegate;
     private final long interval;
     private final AtomicLong lastTimestamp;
+    private final LongSupplier freshTimestampSource;
 
-    private AsyncPuncher(Puncher delegate, long interval, Optional<LongSupplier> seedTimestampSupplier) {
+    private AsyncPuncher(Puncher delegate, long interval, LongSupplier freshTimestampSource) {
         this.delegate = delegate;
         this.interval = interval;
-        this.lastTimestamp = new AtomicLong(
-                seedTimestampSupplier.map(this::getInitialTimestamp).orElse(INVALID_TIMESTAMP));
+        this.lastTimestamp = new AtomicLong(INVALID_TIMESTAMP);
+        this.freshTimestampSource = freshTimestampSource;
     }
 
     private void start() {
@@ -72,15 +71,25 @@ public final class AsyncPuncher implements Puncher {
     }
 
     private void punchWithRollback() {
-        long timestamp = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
-        if (timestamp != INVALID_TIMESTAMP) {
+        long timestampToPunch = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
+        if (timestampToPunch == INVALID_TIMESTAMP) {
             try {
-                delegate.punch(timestamp);
+                timestampToPunch = freshTimestampSource.getAsLong();
             } catch (Throwable th) {
-                log.warn("Attempt to punch timestamp {} failed. Retrying in {} milliseconds.",
-                        SafeArg.of("timestamp", timestamp), SafeArg.of("interval", interval), th);
-                lastTimestamp.compareAndSet(INVALID_TIMESTAMP, timestamp);
+                log.warn("No timestamp was found and attempting to get a fresh timestamp to punch failed."
+                        + " Retrying in {} milliseconds.",
+                        SafeArg.of("interval", interval),
+                        th);
+                return;
             }
+        }
+
+        try {
+            delegate.punch(timestampToPunch);
+        } catch (Throwable th) {
+            log.warn("Attempt to punch timestamp {} failed. Retrying in {} milliseconds.",
+                    SafeArg.of("timestamp", timestampToPunch), SafeArg.of("interval", interval), th);
+            lastTimestamp.compareAndSet(INVALID_TIMESTAMP, timestampToPunch);
         }
     }
 
@@ -115,20 +124,5 @@ public final class AsyncPuncher implements Puncher {
                     + " to access a key value service after the key value service closes. This shouldn't"
                     + " cause any problems, but may result in some scary looking error messages.");
         }
-    }
-
-    private long getInitialTimestamp(LongSupplier seedTimestampSupplier) {
-        try {
-            return SimpleTimeLimiter.create(service)
-                    .callWithTimeout(seedTimestampSupplier::getAsLong,
-                            SEED_TIME_LIMIT.getSeconds(), TimeUnit.SECONDS);
-        } catch (TimeoutException timeout) {
-            log.info("Unable to acquire a seed timestamp in {}, continuing",
-                    SafeArg.of("timeLimit", SEED_TIME_LIMIT),
-                    timeout);
-        } catch (Exception e) {
-            log.info("Error occurred when trying to acquire a seed timestamp. Continuing without seeding.", e);
-        }
-        return INVALID_TIMESTAMP;
     }
 }
