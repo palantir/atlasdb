@@ -1,0 +1,7 @@
+type: cqlCapable
+cqlHosts:
+  - foo:45
+  - bar:45
+thriftHosts:
+  - baz:44
+  - bar:44
