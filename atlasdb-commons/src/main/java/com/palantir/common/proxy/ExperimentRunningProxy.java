@@ -35,7 +35,7 @@ import com.palantir.logsafe.SafeArg;
 
 public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ExperimentRunningProxy.class);
-    private static final Duration REFRESH_INTERVAL = Duration.ofMinutes(10);
+    static final Duration REFRESH_INTERVAL = Duration.ofMinutes(10);
 
     private final T experimentalService;
     private final T fallbackService;
@@ -90,7 +90,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private void markExperimentFailure(Exception exception) {
         nextPermittedExperiment.accumulateAndGet(Instant.now(clock).plus(REFRESH_INTERVAL),
                 (existing, current) -> existing.compareTo(current) > 0 ? existing : current);
-        log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use"
-                + " the experimental service again in {}.", SafeArg.of("retryDuration", REFRESH_INTERVAL), exception);
+        log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use the"
+                + " experimental service again after a timeout.", SafeArg.of("timeout", REFRESH_INTERVAL), exception);
     }
 }

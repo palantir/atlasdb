@@ -18,6 +18,7 @@ package com.palantir.common.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,70 +32,73 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ExperimentRunningProxyTest {
-    private static final int EXPERIMENTAL_INT = 123;
-    private static final int FALLBACK_INT = 1;
+    private static final int EXPERIMENTAL_RESULT = 123;
+    private static final int FALLBACK_RESULT = 1;
     private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException("foo");
 
     private final IntSupplier experimentalIntSupplier = mock(IntSupplier.class);
-    private final IntSupplier fallbackIntSupplier = mock(IntSupplier.class);
+    private final IntSupplier fallbackIntSupplier = () -> FALLBACK_RESULT;
     private final BooleanSupplier useExperimental = mock(BooleanSupplier.class);
     private final Clock clock = mock(Clock.class);
-    private final ExperimentRunningProxy<IntSupplier> proxy = new ExperimentRunningProxy<>(
-            experimentalIntSupplier, fallbackIntSupplier, useExperimental, clock);
 
-    private final IntSupplier experimentSupplier = intSupplierForProxy(proxy);
+    private final IntSupplier proxyInstance = intSupplierForProxy(
+            new ExperimentRunningProxy<>(experimentalIntSupplier, fallbackIntSupplier, useExperimental, clock));
 
     @Before
     public void setup() {
-        when(fallbackIntSupplier.getAsInt()).thenReturn(FALLBACK_INT);
-        when(experimentalIntSupplier.getAsInt()).thenReturn(EXPERIMENTAL_INT);
-        when(clock.instant()).thenReturn(Instant.ofEpochSecond(0));
+        returnValueOnExperiment();
+        setTimeTo(Instant.ofEpochSecond(0));
     }
 
     @Test
     public void doesNotAttemptExperimentIfNotRequested() {
         disableExperiment();
-        assertThat(experimentSupplier.getAsInt()).isEqualTo(FALLBACK_INT);
+        assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
     }
 
     @Test
     public void attemptsExperimentIfRequested() {
         enableExperiment();
-        assertThat(experimentSupplier.getAsInt()).isEqualTo(EXPERIMENTAL_INT);
+        assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
     }
 
     @Test
     public void canFallBackIfExperimentFails() {
         enableExperiment();
-        throwOnFirstExperiment();
+        throwOnExperiment();
 
-        assertThatThrownBy(experimentSupplier::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
-        assertThat(experimentSupplier.getAsInt()).isEqualTo(FALLBACK_INT);
+        assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
+        assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
     }
 
     @Test
     public void attemptsExperimentAgainAfterEnoughTimeHasElapsed() {
         enableExperiment();
-        throwOnFirstExperiment();
 
-        assertThatThrownBy(experimentSupplier::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
-        assertThat(experimentSupplier.getAsInt()).isEqualTo(FALLBACK_INT);
+        setTimeTo(Instant.ofEpochSecond(0));
+        throwOnExperiment();
 
-        when(clock.instant()).thenReturn(Instant.ofEpochSecond(1_000));
+        assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
+        assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
+        returnValueOnExperiment();
 
-        assertThat(experimentSupplier.getAsInt()).isEqualTo(EXPERIMENTAL_INT);
+        setTimeTo(Instant.ofEpochSecond(ExperimentRunningProxy.REFRESH_INTERVAL.getSeconds() - 1));
+        assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
+
+        setTimeTo(Instant.ofEpochSecond(ExperimentRunningProxy.REFRESH_INTERVAL.getSeconds() + 1));
+        assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
     }
 
     @Test
     public void canLiveReloadUsageOfExperiment() {
         enableExperiment();
-        assertThat(experimentSupplier.getAsInt()).isEqualTo(EXPERIMENTAL_INT);
+        assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
 
         disableExperiment();
-        assertThat(experimentSupplier.getAsInt()).isEqualTo(FALLBACK_INT);
+        assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
 
         enableExperiment();
-        assertThat(experimentSupplier.getAsInt()).isEqualTo(EXPERIMENTAL_INT);
+        assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
     }
 
     private static IntSupplier intSupplierForProxy(ExperimentRunningProxy<IntSupplier> proxy) {
@@ -103,15 +107,23 @@ public class ExperimentRunningProxyTest {
                 proxy);
     }
 
+    private void returnValueOnExperiment() {
+        doReturn(EXPERIMENTAL_RESULT).when(experimentalIntSupplier).getAsInt();
+    }
+
+    private void throwOnExperiment() {
+        when(experimentalIntSupplier.getAsInt()).thenThrow(RUNTIME_EXCEPTION);
+    }
+
+    private void setTimeTo(Instant instant) {
+        when(clock.instant()).thenReturn(instant);
+    }
+
     private void enableExperiment() {
         when(useExperimental.getAsBoolean()).thenReturn(true);
     }
 
     private void disableExperiment() {
         when(useExperimental.getAsBoolean()).thenReturn(false);
-    }
-
-    private void throwOnFirstExperiment() {
-        when(experimentalIntSupplier.getAsInt()).thenThrow(RUNTIME_EXCEPTION).thenReturn(EXPERIMENTAL_INT);
     }
 }
