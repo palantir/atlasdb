@@ -22,7 +22,7 @@ import java.util.function.DoubleSupplier;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.common.proxy.PredicateSwitchedProxy;
+import com.palantir.common.proxy.ExperimentRunningProxy;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 /**
@@ -49,7 +49,7 @@ final class VersionSelectingClients {
         T instrumentedLegacyClient = instrumentWithClientVersionTag(
                 taggedMetricRegistry, legacyClient, clazz);
 
-        return PredicateSwitchedProxy.newProxyInstance(
+        return ExperimentRunningProxy.newProxyInstance(
                 instrumentedNewClient,
                 instrumentedLegacyClient,
                 () -> ThreadLocalRandom.current().nextDouble() < newClientProbabilitySupplier.getAsDouble(),
