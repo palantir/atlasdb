@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -46,6 +47,7 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -397,10 +399,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void upgradeFromOlderInternalSchemaDoesNotErrorOnTablesWithUpperCaseCharacters() {
-        // TODO (OStevan): fix this test or do something
-        if (!name.equals("sync")) {
-            return;
-        }
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.uPgrAdefRomolDerintErnalscHema");
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
@@ -416,16 +414,13 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
         }
 
-        verify(logger, never()).error(anyString(), any(Object.class));
+        verify(logger, never()).error(anyString(), eq(LoggingArgs.tableRef(tableRef)));
+        keyValueService.dropTable(tableRef);
     }
 
     @Test
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void upgradeFromOlderInternalSchemaDoesNotErrorOnTablesWithOldMetadata() {
-        // TODO (OStevan): fix this test or do something
-        if (!name.equals("sync")) {
-            return;
-        }
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.oldTimeyTable");
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
@@ -440,7 +435,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         } else {
             ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
         }
-        verify(logger, never()).error(anyString(), any(Object.class));
+        verify(logger, never()).error(anyString(), eq(LoggingArgs.tableRef(tableRef)));
+        keyValueService.dropTable(tableRef);
     }
 
     private static CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
