@@ -34,8 +34,16 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 @org.immutables.value.Value.Immutable
 public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
+    /**
+     * Since each query is constructed for one cell we are using an optimisation that we can ask the CQL to do most
+     * of the work internally. First of all we are using the fact that timestamps in column2 are ordered in ASC order
+     * and since we are interested in the most recent timestamp we use LIMIT 1 to get the latest value. This should help
+     * with both cassandra workload and amount of transferred data.
+     */
     private static final String QUERY_FORMAT = "SELECT value, column2 FROM \"%s\".\"%s\" "
-                + "WHERE key = :row AND column1 = :column AND column2 > :timestamp;";
+            + "WHERE key = :row AND column1 = :column AND column2 > :timestamp "
+            + "ORDER BY column1, column2 ASC "
+            + "LIMIT 1;";
 
     @org.immutables.value.Value.Auxiliary
     public abstract ByteBuffer row();
