@@ -17,11 +17,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
@@ -43,17 +38,14 @@ public final class CqlClientImpl implements CqlClient {
         private final TaggedMetricRegistry taggedMetricRegistry;
         private final int cacheSize;
         private final Cluster cluster;
-        private final ExecutorService executorService;
         private volatile CqlClient internalImpl;
 
         InitializingWrapper(
                 TaggedMetricRegistry taggedMetricRegistry,
                 Cluster cluster,
-                ExecutorService executorService,
                 int cacheSize) {
             this.taggedMetricRegistry = taggedMetricRegistry;
             this.cluster = cluster;
-            this.executorService = executorService;
             this.cacheSize = cacheSize;
         }
 
@@ -64,18 +56,8 @@ public final class CqlClientImpl implements CqlClient {
         }
 
         @Override
-        public CqlQueryBuilder asyncQueryBuilder() {
-            return internalImpl.asyncQueryBuilder();
-        }
-
-        @Override
-        public <R> ListenableFuture<R> execute(Executable<R> executable) {
-            return internalImpl.execute(executable);
-        }
-
-        @Override
         protected void tryInitialize() {
-            internalImpl = CqlClientImpl.create(taggedMetricRegistry, cluster.connect(), executorService, cacheSize);
+            internalImpl = CqlClientImpl.create(taggedMetricRegistry, cluster.connect(), cacheSize);
         }
 
         @Override
@@ -91,128 +73,80 @@ public final class CqlClientImpl implements CqlClient {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(CqlClientFactoryImpl.class);
-
     private final Session session;
-    private final ExecutorService executorService;
     private final StatementPreparer statementPreparer;
 
-    public static CqlClient create(TaggedMetricRegistry taggedMetricRegistry, Cluster cluster,
-            ExecutorService executorService, CqlCapableConfigTuning tuningConfig, boolean initializeAsync) {
+    public static CqlClient create(
+            TaggedMetricRegistry taggedMetricRegistry,
+            Cluster cluster,
+            CqlCapableConfigTuning tuningConfig,
+            boolean initializeAsync) {
         if (initializeAsync) {
             return new InitializingWrapper(
                     taggedMetricRegistry,
                     cluster,
-                    executorService,
                     tuningConfig.preparedStatementCacheSize());
         }
 
         return create(
                 taggedMetricRegistry,
                 cluster.connect(),
-                executorService,
                 tuningConfig.preparedStatementCacheSize());
     }
 
     private static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
             Session session,
-            ExecutorService executorService,
             int preparedStatementCacheSize) {
         QueryCache queryCache = QueryCache.create(
-                key -> session.prepare(key.formatQueryString()),
+                key -> session.prepare(key.formatQueryString()).setConsistencyLevel(key.queryConsistency()),
                 taggedMetricRegistry,
                 preparedStatementCacheSize);
 
-        return new CqlClientImpl(session, executorService, queryCache);
+        return new CqlClientImpl(session, queryCache);
     }
 
-    private CqlClientImpl(Session session, ExecutorService executorService, QueryCache statementPreparer) {
+    private CqlClientImpl(Session session, QueryCache statementPreparer) {
         this.session = session;
-        this.executorService = executorService;
         this.statementPreparer = statementPreparer;
     }
 
     @Override
     public void close() {
-        try {
-            executorService.shutdown();
-            if (executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-                log.info("CqlClient executor service terminated properly.");
-            } else {
-                log.warn("CqlClient executor service timed out before shutting down, shutting down forcefully");
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            log.warn("Thread was interrupted while waiting for CqlClient to terminate.", e);
-        } catch (Exception e) {
-            log.warn("CqlClient exception on executor service termination", e);
-        }
         Cluster cluster = session.getCluster();
         session.close();
         cluster.close();
     }
 
     @Override
-    public CqlQueryBuilder asyncQueryBuilder() {
-        return new CqlQueryBuilderImpl();
+    public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
+        PreparedStatement statement = statementPreparer.prepare(querySpec);
+        BoundStatement boundStatement = querySpec.bind(statement.bind());
+        return execute(boundStatement, querySpec.executor(), querySpec.rowStreamAccumulatorFactory().get());
     }
 
-    @Override
-    public <R> ListenableFuture<R> execute(Executable<R> executable) {
-        return executable.execute(executorService);
+    private <V> ListenableFuture<V> execute(
+            BoundStatement boundStatement,
+            Executor executor,
+            RowStreamAccumulator<V> rowStreamAccumulator) {
+        return Futures.transformAsync(
+                session.executeAsync(boundStatement),
+                iterate(executor, rowStreamAccumulator),
+                executor);
     }
 
-    private class CqlQueryImpl<R> implements CqlQuery<R> {
+    private <V> AsyncFunction<ResultSet, V> iterate(Executor executor, RowStreamAccumulator<V> rowStreamAccumulator) {
+        return resultSet -> {
+            rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
+                    .limit(resultSet.getAvailableWithoutFetching()));
 
-        private final RowStreamAccumulator<R> rowStreamAccumulator;
-        private final BoundStatement boundStatement;
-
-        CqlQueryImpl(BoundStatement boundStatement, RowStreamAccumulator<R> rowStreamAccumulator) {
-            this.boundStatement = boundStatement;
-            this.rowStreamAccumulator = rowStreamAccumulator;
-        }
-
-        /**
-         * This method is implemented to process only the currently available data page. After each page is processed we
-         * asynchronously request more data and process it. That way no thread is blocked waiting to retrieve the next
-         * page.
-         *
-         * @return {@code AsyncFunction} which will transform the {@code Future} containing the {@code resultSet}
-         */
-        private AsyncFunction<ResultSet, R> iterate(Executor executor) {
-            return resultSet -> {
-                rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
-                        .limit(resultSet.getAvailableWithoutFetching()));
-
-                boolean wasLastPage = resultSet.getExecutionInfo().getPagingState() == null;
-                if (wasLastPage) {
-                    return Futures.immediateFuture(rowStreamAccumulator.result());
-                } else {
-                    ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
-                    return Futures.transformAsync(future, iterate(executor), executor);
-                }
-            };
-        }
-
-        @Override
-        public ListenableFuture<R> execute(Executor executor) {
-            return Futures.transformAsync(
-                    session.executeAsync(boundStatement),
-                    iterate(executor),
-                    executor);
-        }
-    }
-
-    private class CqlQueryBuilderImpl implements CqlQueryBuilder {
-
-        @Override
-        public <R> CqlQuery<R> build(CqlQuerySpec<R> querySpec) {
-            PreparedStatement statement = statementPreparer.prepare(querySpec);
-
-            BoundStatement boundStatement = querySpec.bind(statement.bind());
-
-            return new CqlQueryImpl<>(boundStatement, querySpec.rowStreamAccumulatorFactory().get());
-        }
+            boolean wasLastPage = resultSet.getExecutionInfo().getPagingState() == null;
+            if (wasLastPage) {
+                return Futures.immediateFuture(rowStreamAccumulator.result());
+            } else {
+                ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
+                return Futures.transformAsync(future, iterate(executor, rowStreamAccumulator), executor);
+            }
+        };
     }
 }

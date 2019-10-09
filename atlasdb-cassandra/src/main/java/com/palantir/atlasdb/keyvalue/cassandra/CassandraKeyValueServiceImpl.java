@@ -99,7 +99,6 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient.Executable;
 import com.palantir.atlasdb.keyvalue.cassandra.async.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -1938,39 +1937,35 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        CqlClient.CqlQueryBuilder cqlQueryBuilder = cqlClient.asyncQueryBuilder();
 
-        Executable<Map<Cell, Value>> job = executor -> {
-            Map<Cell, ? extends ListenableFuture<? extends Optional<Value>>> cellsToFutureResults =
-                    KeyedStream.stream(timestampByCell)
-                            .map((cell, timestamp) ->
-                                    ImmutableGetQuerySpec.builder()
-                                            .tableReference(tableRef)
-                                            .keySpace(config.getKeyspaceOrThrow())
-                                            .row(ByteBuffer.wrap(cell.getRowName()))
-                                            .column(ByteBuffer.wrap(cell.getColumnName()))
-                                            .humanReadableTimestamp(timestamp)
-                                            .build())
-                            .map(spec -> cqlQueryBuilder.build(spec).execute(executor))
-                            .collectToMap();
+        Map<Cell, ? extends ListenableFuture<? extends Optional<Value>>> cellsToFutureResults =
+                KeyedStream.stream(timestampByCell)
+                        .map((cell, timestamp) ->
+                                ImmutableGetQuerySpec.builder()
+                                        .tableReference(tableRef)
+                                        .keySpace(config.getKeyspaceOrThrow())
+                                        .row(ByteBuffer.wrap(cell.getRowName()))
+                                        .column(ByteBuffer.wrap(cell.getColumnName()))
+                                        .humanReadableTimestamp(timestamp)
+                                        .executor(executor)
+                                        .queryConsistency(com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM)
+                                        .build())
+                        .map(cqlClient::executeQuery)
+                        .collectToMap();
 
-            return Futures.whenAllSucceed(cellsToFutureResults.values())
-                    .call(() -> KeyedStream.stream(cellsToFutureResults)
-                                    // using getDone is important, throws if not done, as opposed to blocking
-                                    .map(future -> {
-                                        try {
-                                            return future.get();
-                                        } catch (Exception e) {
-                                            throw new RuntimeException(e);
-                                        }
-                                    })
-                                    .filter(Optional::isPresent)
-                                    .map(Optional::get)
-                                    .collectToMap(),
-                            executor);
-        };
-
-        return cqlClient.execute(job);
+        return Futures.whenAllSucceed(cellsToFutureResults.values())
+                .call(() -> KeyedStream.stream(cellsToFutureResults)
+                                .map(future -> {
+                                    try {
+                                        return future.get();
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                })
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .collectToMap(),
+                        executor);
     }
 
     private static class TableCellAndValue {

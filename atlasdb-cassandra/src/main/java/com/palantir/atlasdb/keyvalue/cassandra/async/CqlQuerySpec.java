@@ -16,9 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface CqlQuerySpec<R> {
@@ -30,6 +32,10 @@ public interface CqlQuerySpec<R> {
     Supplier<RowStreamAccumulator<R>> rowStreamAccumulatorFactory();
 
     String formatQueryString();
+
+    ConsistencyLevel queryConsistency();
+
+    Executor executor();
 
     BoundStatement bind(BoundStatement boundStatement);
 }

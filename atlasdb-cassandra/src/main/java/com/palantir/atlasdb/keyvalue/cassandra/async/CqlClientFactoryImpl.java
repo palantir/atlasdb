@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ThreadFactory;
 
 import javax.net.ssl.SSLContext;
 
@@ -42,10 +41,8 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -92,14 +89,9 @@ public final class CqlClientFactoryImpl implements CqlClientFactory {
                         cqlCapableConfig.socksProxy().map(SocksProxyNettyOptions::new),
                         sslOptions(config));
 
-                ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                        .setNameFormat(cluster.getClusterName() + "-session" + "-%d")
-                        .build();
-
                 return CqlClientImpl.create(
                         taggedMetricRegistry,
                         cluster,
-                        PTExecutors.newCachedThreadPool(threadFactory),
                         cqlCapableConfig.tuning(),
                         initializeAsync);
             }

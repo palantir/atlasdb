@@ -16,27 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.concurrent.Executor;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
 public interface CqlClient extends AutoCloseable {
 
-    interface Executable<R> {
-        ListenableFuture<R> execute(Executor executor);
-    }
-
-    interface CqlQuery<R> extends Executable<R> {
-        ListenableFuture<R> execute(Executor executor);
-    }
-
-    interface CqlQueryBuilder {
-        <R> CqlQuery<R> build(CqlQuerySpec<R> querySpec);
-    }
-
-    CqlQueryBuilder asyncQueryBuilder();
-
-    <R> ListenableFuture<R> execute(Executable<R> executable);
+    <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec);
 }
