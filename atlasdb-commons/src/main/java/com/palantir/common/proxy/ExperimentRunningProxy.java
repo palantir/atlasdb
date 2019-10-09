@@ -74,11 +74,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {
             if (runExperiment) {
-                log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to"
-                                + " use the experimental service again in {} milliseconds.",
-                        SafeArg.of("retryDurationMillis", REFRESH_INTERVAL.toMillis()),
-                        e);
-                markExperimentFailure();
+                markExperimentFailure(e);
             }
             if (e.getTargetException() instanceof NotInitializedException) {
                 log.warn("Resource is not initialized yet!");
@@ -91,8 +87,10 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
         return useExperimental.getAsBoolean() && Instant.now(clock).compareTo(nextPermittedExperiment.get()) > 0;
     }
 
-    private void markExperimentFailure() {
+    private void markExperimentFailure(Exception exception) {
         nextPermittedExperiment.accumulateAndGet(Instant.now(clock).plus(REFRESH_INTERVAL),
                 (existing, current) -> existing.compareTo(current) > 0 ? existing : current);
+        log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use"
+                + " the experimental service again in {}.", SafeArg.of("retryDuration", REFRESH_INTERVAL), exception);
     }
 }

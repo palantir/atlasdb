@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class ExperimentRunningProxyTest {
@@ -40,34 +41,32 @@ public class ExperimentRunningProxyTest {
     private final Clock clock = mock(Clock.class);
     private final ExperimentRunningProxy<IntSupplier> proxy = new ExperimentRunningProxy<>(
             experimentalIntSupplier, fallbackIntSupplier, useExperimental, clock);
-    private final IntSupplier experimentSupplier = (IntSupplier) Proxy.newProxyInstance(
-            IntSupplier.class.getClassLoader(),
-            new Class[] { IntSupplier.class },
-            proxy);
+
+    private final IntSupplier experimentSupplier = intSupplierForProxy(proxy);
+
+    @Before
+    public void setup() {
+        when(fallbackIntSupplier.getAsInt()).thenReturn(FALLBACK_INT);
+        when(experimentalIntSupplier.getAsInt()).thenReturn(EXPERIMENTAL_INT);
+        when(clock.instant()).thenReturn(Instant.ofEpochSecond(0));
+    }
 
     @Test
     public void doesNotAttemptExperimentIfNotRequested() {
-        when(fallbackIntSupplier.getAsInt()).thenReturn(FALLBACK_INT);
-        when(useExperimental.getAsBoolean()).thenReturn(false);
-
+        disableExperiment();
         assertThat(experimentSupplier.getAsInt()).isEqualTo(FALLBACK_INT);
     }
 
     @Test
     public void attemptsExperimentIfRequested() {
-        when(experimentalIntSupplier.getAsInt()).thenReturn(EXPERIMENTAL_INT);
-        when(useExperimental.getAsBoolean()).thenReturn(true);
-        when(clock.instant()).thenReturn(Instant.ofEpochSecond(0));
-
+        enableExperiment();
         assertThat(experimentSupplier.getAsInt()).isEqualTo(EXPERIMENTAL_INT);
     }
 
     @Test
     public void canFallBackIfExperimentFails() {
-        when(experimentalIntSupplier.getAsInt()).thenThrow(RUNTIME_EXCEPTION);
-        when(fallbackIntSupplier.getAsInt()).thenReturn(FALLBACK_INT);
-        when(useExperimental.getAsBoolean()).thenReturn(true);
-        when(clock.instant()).thenReturn(Instant.ofEpochSecond(0));
+        enableExperiment();
+        throwOnFirstExperiment();
 
         assertThatThrownBy(experimentSupplier::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
         assertThat(experimentSupplier.getAsInt()).isEqualTo(FALLBACK_INT);
@@ -75,17 +74,44 @@ public class ExperimentRunningProxyTest {
 
     @Test
     public void attemptsExperimentAgainAfterEnoughTimeHasElapsed() {
-        when(experimentalIntSupplier.getAsInt())
-                .thenThrow(RUNTIME_EXCEPTION)
-                .thenReturn(EXPERIMENTAL_INT);
-        when(fallbackIntSupplier.getAsInt()).thenReturn(FALLBACK_INT);
-        when(useExperimental.getAsBoolean()).thenReturn(true);
-        when(clock.instant()).thenReturn(Instant.ofEpochSecond(0));
+        enableExperiment();
+        throwOnFirstExperiment();
 
         assertThatThrownBy(experimentSupplier::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
         assertThat(experimentSupplier.getAsInt()).isEqualTo(FALLBACK_INT);
 
         when(clock.instant()).thenReturn(Instant.ofEpochSecond(1_000));
+
         assertThat(experimentSupplier.getAsInt()).isEqualTo(EXPERIMENTAL_INT);
+    }
+
+    @Test
+    public void canLiveReloadUsageOfExperiment() {
+        enableExperiment();
+        assertThat(experimentSupplier.getAsInt()).isEqualTo(EXPERIMENTAL_INT);
+
+        disableExperiment();
+        assertThat(experimentSupplier.getAsInt()).isEqualTo(FALLBACK_INT);
+
+        enableExperiment();
+        assertThat(experimentSupplier.getAsInt()).isEqualTo(EXPERIMENTAL_INT);
+    }
+
+    private static IntSupplier intSupplierForProxy(ExperimentRunningProxy<IntSupplier> proxy) {
+        return (IntSupplier) Proxy.newProxyInstance(IntSupplier.class.getClassLoader(),
+                new Class[] { IntSupplier.class },
+                proxy);
+    }
+
+    private void enableExperiment() {
+        when(useExperimental.getAsBoolean()).thenReturn(true);
+    }
+
+    private void disableExperiment() {
+        when(useExperimental.getAsBoolean()).thenReturn(false);
+    }
+
+    private void throwOnFirstExperiment() {
+        when(experimentalIntSupplier.getAsInt()).thenThrow(RUNTIME_EXCEPTION).thenReturn(EXPERIMENTAL_INT);
     }
 }
