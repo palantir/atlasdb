@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class CassandraServersConfigsTest {
@@ -39,14 +40,14 @@ public class CassandraServersConfigsTest {
     private static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", TEST_THRIFT_PORT);
     private static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", TEST_THRIFT_PORT);
 
-    private static final CassandraServersConfigs.CqlCapableConfig CQL_CAPABLE_CONFIG =
+    private static final CqlCapableConfig CQL_CAPABLE_CONFIG =
             cqlCapable("bar", "foo");
 
     private static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
         return ImmutableDefaultConfig.builder().addThriftHosts(thriftServers).build();
     }
 
-    private static CassandraServersConfigs.CqlCapableConfig cqlCapable(String... hosts) {
+    private static CqlCapableConfig cqlCapable(String... hosts) {
         Iterable<InetSocketAddress> thriftHosts = constructHosts(TEST_THRIFT_PORT, hosts);
         Iterable<InetSocketAddress> cqlHosts = constructHosts(TEST_CQL_PORT, hosts);
         return ImmutableCqlCapableConfig.builder()
@@ -60,15 +61,28 @@ public class CassandraServersConfigsTest {
     }
 
     @Test
-    public void canDeserializeMultiEntryDefault() throws IOException {
+    public void testCanDeserializeMultiEntryDefault() throws IOException {
         assertThat(deserializeClassFromFile("testServersConfigDefaultMulti.yml"))
                 .isEqualTo(defaultConfig(THRIFT_SERVER_1, THRIFT_SERVER_2));
     }
 
     @Test
-    public void canDeserializeMultiEntryCqlCapable() throws IOException {
+    public void testCanDeserializeMultiEntryCqlCapable() throws IOException {
         assertThat(deserializeClassFromFile("testServersConfigCqlCapableMulti.yml"))
                 .isEqualTo(CQL_CAPABLE_CONFIG);
+    }
+
+    @Test
+    public void testHostAreSame() throws IOException {
+        CqlCapableConfig cqlCapableConfig =
+                (CqlCapableConfig) deserializeClassFromFile("testServersConfigCqlCapableMulti.yml");
+        assertThat(cqlCapableConfig.validateHosts()).isTrue();
+    }
+    @Test
+    public void testHostNotTheSame() throws IOException {
+        CqlCapableConfig cqlCapableConfig =
+                (CqlCapableConfig) deserializeClassFromFile("testServersConfigCqlCapableDifferent.yml");
+        assertThat(cqlCapableConfig.validateHosts()).isFalse();
     }
 
     private static CassandraServersConfig deserializeClassFromFile(String configPath) throws IOException {
