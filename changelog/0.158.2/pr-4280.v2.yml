@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Add support to do automatic refactorings from old `String` user agent
+    to typed `UserAgent`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4280

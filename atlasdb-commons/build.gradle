@@ -1,5 +1,3 @@
-apply plugin: 'org.inferred.processors'
-apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
@@ -12,7 +10,11 @@ dependencies {
     compile group: 'net.jpountz.lz4', name: 'lz4'
     compile group: 'com.palantir.safe-logging', name: 'preconditions'
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
+
+    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testCompileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'

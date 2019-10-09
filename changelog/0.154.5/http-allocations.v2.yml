@@ -1,0 +1,4 @@
+type: improvement
+improvement:
+  description: |
+    AtlasDB makes fewer allocations when making HTTP calls

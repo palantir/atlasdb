@@ -44,6 +44,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -273,13 +274,21 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandra.getTokenMap();
     }
 
+    @VisibleForTesting
+    Set<InetSocketAddress> getLocalHosts() {
+        return cassandra.getLocalHosts();
+    }
+
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
+
+        Set<InetSocketAddress> resolvedConfigAddresses = config.servers()
+                .accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
 
         if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
-            setServersInPoolTo(config.servers());
+            setServersInPoolTo(resolvedConfigAddresses);
         }
 
         cassandra.debugLogStateOfPool();

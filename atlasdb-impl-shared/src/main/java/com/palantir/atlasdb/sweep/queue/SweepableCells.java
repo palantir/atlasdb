@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,6 +39,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Streams;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -269,7 +271,20 @@ public class SweepableCells extends SweepQueueTable {
         }
 
         cellsToDelete.forEach((tableRef, multimap) -> {
-            kvs.delete(tableRef, multimap);
+            try {
+                kvs.delete(tableRef, multimap);
+            } catch (Exception exception) {
+                if (tableWasDropped(tableRef)) {
+                    // this table no longer exists, but had work to do in the sweep queue still;
+                    // don't error out on this batch so that the queue cleans up and doesn't constantly retry forever
+                    log.info("Tried to delete {} aborted writes from table {}, "
+                                    + "but instead found that the table no longer exists.",
+                            SafeArg.of("number", multimap.size()),
+                            LoggingArgs.tableRef(tableRef));
+                } else {
+                    throw exception;
+                }
+            }
             maybeMetrics.ifPresent(metrics -> metrics.updateAbortedWritesDeleted(shardStrategy, multimap.size()));
             log.info("Deleted {} aborted writes from table {}.", SafeArg.of("number", multimap.size()),
                     LoggingArgs.tableRef(tableRef));
@@ -279,6 +294,10 @@ public class SweepableCells extends SweepQueueTable {
                 ImmutableSortedSet.copyOf(committedTimestamps).descendingSet(),
                 lastSweptTs,
                 processedAll);
+    }
+
+    private boolean tableWasDropped(TableReference tableRef) {
+        return Arrays.equals(kvs.getMetadataForTable(tableRef), AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
     private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, SortedSet<Long> startTs) {

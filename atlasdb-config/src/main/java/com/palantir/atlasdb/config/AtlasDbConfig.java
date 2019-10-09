@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
@@ -261,6 +262,12 @@ public abstract class AtlasDbConfig {
     public int getDefaultLockTimeoutSeconds() {
         return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
     }
+
+    /**
+     * If set, the timestamp cache that should be used by AtlasDB. If set, any timestamp cache sizing configuration
+     * is ignored.
+     */
+    public abstract Optional<TimestampCache> timestampCache();
 
     @Value.Check
     protected final void check() {

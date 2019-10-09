@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
-import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.common.exception.TableMappingNotFoundException;
 
 public class OracleTableNameGetter {
     private final String tablePrefix;

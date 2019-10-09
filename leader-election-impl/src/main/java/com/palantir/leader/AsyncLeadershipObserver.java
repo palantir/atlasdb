@@ -36,6 +36,13 @@ public class AsyncLeadershipObserver implements LeadershipObserver {
         return new AsyncLeadershipObserver(PTExecutors.newSingleThreadExecutor(true));
     }
 
+    public static AsyncLeadershipObserver create(Runnable gainedLeadershipTask, Runnable lostLeadershipTask) {
+        AsyncLeadershipObserver asyncLeadershipObserver = create();
+        asyncLeadershipObserver.executeWhenGainedLeadership(gainedLeadershipTask);
+        asyncLeadershipObserver.executeWhenLostLeadership(lostLeadershipTask);
+        return asyncLeadershipObserver;
+    }
+
     @VisibleForTesting
     AsyncLeadershipObserver(ExecutorService executorService) {
         this.executorService = executorService;

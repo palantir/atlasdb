@@ -132,10 +132,7 @@ public class TodoClient {
 
         TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
         SnapshotsStreamStore streamStore = SnapshotsStreamStore.of(transactionManager, tableFactory);
-        log.info("Storing stream...");
-        Pair<Long, Sha256Hash> storedStream = streamStore.storeStream(snapshot);
-        Long newStreamId = storedStream.getLhSide();
-        log.info("Stored stream with ID {}", newStreamId);
+        Long newStreamId = storeStreamAndGetId(snapshot, streamStore);
 
         transactionManager.runTaskWithRetry(transaction -> {
             // Load previous stream, and unmark it as used
@@ -158,6 +155,20 @@ public class TodoClient {
 
             return null;
         });
+    }
+
+    private Long storeStreamAndGetId(InputStream snapshot, SnapshotsStreamStore streamStore) {
+        log.info("Storing stream...");
+        Pair<Long, Sha256Hash> storedStream = streamStore.storeStream(snapshot);
+        Long newStreamId = storedStream.getLhSide();
+        log.info("Stored stream with ID {}", newStreamId);
+        return newStreamId;
+    }
+
+    public void storeUnmarkedSnapshot(InputStream snapshot) {
+        TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
+        SnapshotsStreamStore streamStore = SnapshotsStreamStore.of(transactionManager, tableFactory);
+        storeStreamAndGetId(snapshot, streamStore);
     }
 
     public void runIterationOfTargetedSweep() {

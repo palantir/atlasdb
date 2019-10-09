@@ -62,4 +62,5 @@ public interface PaxosInstallConfiguration {
                     + "configure paxos.is-new-service to true for the first startup only of each node.");
         }
     }
+
 }

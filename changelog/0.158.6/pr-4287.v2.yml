@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Improved tracking of the unreadable timestamp, and thus accuracy of
+    Sweep and timestamp metrics, on stacks where reads are sparse. The `AsyncPuncher`
+    now grabs a fresh timestamp when punching if there were no explicit punches since
+    the last time the underlying puncher was invoked.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4287

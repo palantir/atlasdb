@@ -113,7 +113,7 @@ public class TableMigrator {
             Callable<Void> task = createMigrationTask(
                     range,
                     rangeId);
-            Callable<Void> wrappedTask = PTExecutors.wrap(task);
+            Callable<Void> wrappedTask = PTExecutors.wrap("MigrationTask", task);
             Future<Void> future = executor.submit(wrappedTask);
             futures.add(future);
         }

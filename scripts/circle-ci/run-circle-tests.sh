@@ -22,9 +22,9 @@ CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:ch
 
 CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
-CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest')
+CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest' ':timelock-server:suiteTest')
 
-CONTAINER_7=('compileJava' 'compileTestJava')
+CONTAINER_7=('compileJava' 'compileTestJava' ':atlasdb-refactorings:test')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")
@@ -33,6 +33,9 @@ for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
     CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x $task"
 done
+
+# refaster runs with errorprone which patches the bootClasspath, need to ensure we run only on the errorprone container
+CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-refactorings:test"
 
 # Short circuit the build if it's docs only
 if ./scripts/circle-ci/check-only-docs-changes.sh; then

@@ -27,7 +27,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
-import java.net.ProxySelector;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -53,13 +53,16 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.factory.ServiceCreator;
-import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class AtlasDbHttpClientsTest {
     private static final Optional<TrustContext> NO_SSL = Optional.empty();
@@ -67,15 +70,44 @@ public class AtlasDbHttpClientsTest {
     private static final String POST_ENDPOINT = "/post";
     private static final MappingBuilder GET_MAPPING = get(urlEqualTo(GET_ENDPOINT));
     private static final MappingBuilder POST_MAPPING = post(urlEqualTo(POST_ENDPOINT));
-    private static final int TEST_NUMBER = 12;
+    private static final int TEST_NUMBER_1 = 12;
+    private static final int TEST_NUMBER_2 = 123;
 
-    private int availablePort;
+    private static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
+    private static final UserAgent.Agent ATLASDB_CLIENT_V1_AGENT = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, "1.0");
+    private static final UserAgent.Agent ATLASDB_CLIENT_V2_AGENT = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, "2.0");
+    private static final String ATLASDB_CLIENT_V2_AGENT_STRING
+            = ATLASDB_HTTP_CLIENT + "/" + ATLASDB_CLIENT_V2_AGENT.version();
+
+    private static final UserAgent BASE_USER_AGENT = UserAgent.of(UserAgent.Agent.of("bla", "0.1.2"));
+    private static final UserAgent LEGACY_USER_AGENT = BASE_USER_AGENT.addAgent(ATLASDB_CLIENT_V1_AGENT);
+    private static final String LEGACY_USER_AGENT_STRING = UserAgents.format(LEGACY_USER_AGENT);
+    private static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT
+            = AuxiliaryRemotingParameters.builder()
+            .shouldLimitPayload(false)
+            .userAgent(BASE_USER_AGENT)
+            .shouldRetry(true)
+            .build();
+    private static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_WITH_PAYLOAD_LIMIT
+            = AuxiliaryRemotingParameters.builder()
+            .shouldLimitPayload(true)
+            .userAgent(BASE_USER_AGENT)
+            .shouldRetry(true)
+            .build();
+
+    private static final SslConfiguration SSL_CONFIG = SslConfiguration.of(Paths.get("var/security/keyStore.jks"));
+
+    private int availablePort1;
+    private int availablePort2;
     private int unavailablePort;
     private int proxyPort;
     private Set<String> bothUris;
 
     @Rule
-    public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockRule availableServer1 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+
+    @Rule
+    public WireMockRule availableServer2 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Rule
     public WireMockRule unavailableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
@@ -98,24 +130,34 @@ public class AtlasDbHttpClientsTest {
 
     @Before
     public void setup() {
-        String testNumberAsString = Integer.toString(TEST_NUMBER);
-        availableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
-        availableServer.stubFor(POST_MAPPING.willReturn(aResponse().withStatus(200).withBody(Boolean.toString(true))));
-        proxyServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
+        setupAvailableServer(Integer.toString(TEST_NUMBER_1), availableServer1);
+        setupAvailableServer(Integer.toString(TEST_NUMBER_2), availableServer2);
+        proxyServer.stubFor(
+                GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(Integer.toString(TEST_NUMBER_1))));
 
-        availablePort = availableServer.port();
+        availablePort1 = availableServer1.port();
+        availablePort2 = availableServer2.port();
         unavailablePort = unavailableServer.port();
         proxyPort = proxyServer.port();
 
         bothUris = ImmutableSet.of(
                 getUriForPort(unavailablePort),
-                getUriForPort(availablePort));
+                getUriForPort(availablePort1));
+    }
+
+    private void setupAvailableServer(String testNumberAsString, WireMockRule availableServer) {
+        availableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
+        availableServer.stubFor(POST_MAPPING.willReturn(aResponse().withStatus(200).withBody(Boolean.toString(true))));
     }
 
     @Test
     public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
-        TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
-                TestResource.class, UserAgents.DEFAULT_USER_AGENT, true);
+        TestResource client = AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
+                NO_SSL,
+                getUriForPort(availablePort1),
+                TestResource.class,
+                AUXILIARY_REMOTING_PARAMETERS_WITH_PAYLOAD_LIMIT);
         assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE / 2]))
                 .as("Request with payload size below limit succeeds")
                 .isTrue();
@@ -127,8 +169,13 @@ public class AtlasDbHttpClientsTest {
 
     @Test
     public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
-        TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
-                TestResource.class);
+        TestResource client
+                = AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
+                NO_SSL,
+                getUriForPort(availablePort1),
+                TestResource.class,
+                AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);
         assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE]))
                 .as("Request with payload size exceeding limit succeeds when not limiting payload size")
                 .isTrue();
@@ -138,62 +185,62 @@ public class AtlasDbHttpClientsTest {
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(new MetricRegistry(),
-                NO_SSL,
-                Optional.empty(), bothUris, UserAgents.DEFAULT_USER_AGENT, TestResource.class);
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(
+                new MetricRegistry(),
+                ImmutableServerListConfig.builder().addAllServers(bothUris).build(),
+                TestResource.class,
+                AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);
         int response = client.getTestNumber();
 
-        assertThat(response, equalTo(TEST_NUMBER));
+        assertThat(response, equalTo(TEST_NUMBER_1));
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
     @Test
     public void userAgentIsPresentOnClientRequests() {
-        TestResource client =
-                AtlasDbHttpClients.createProxy(
-                        new MetricRegistry(), NO_SSL, getUriForPort(availablePort), TestResource.class);
+        TestResource client = AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
+                NO_SSL,
+                getUriForPort(availablePort1),
+                TestResource.class,
+                AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);
         client.getTestNumber();
 
-        String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
-        availableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
+        availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
+                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(LEGACY_USER_AGENT_STRING)));
     }
 
     @Test
     public void directProxyIsConfigurableOnClientRequests() {
-        Optional<ProxySelector> directProxySelector = Optional.of(
-                ServiceCreator.createProxySelector(ProxyConfiguration.DIRECT));
         TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                NO_SSL,
-                directProxySelector,
-                ImmutableSet.of(getUriForPort(availablePort)),
-                UserAgents.DEFAULT_USER_AGENT,
-                TestResource.class);
+                ImmutableServerListConfig.builder()
+                        .addServers(getUriForPort(availablePort1))
+                        .proxyConfiguration(ProxyConfiguration.DIRECT)
+                        .build(),
+                TestResource.class,
+                AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);
         clientWithDirectCall.getTestNumber();
-        String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 
-        availableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
+        availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
+                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(LEGACY_USER_AGENT_STRING)));
     }
 
     @Test
     public void httpProxyIsConfigurableOnClientRequests() {
-        Optional<ProxySelector> httpProxySelector = Optional.of(
-                ServiceCreator.createProxySelector(ProxyConfiguration.of(getHostAndPort(proxyPort))));
         TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                NO_SSL,
-                httpProxySelector,
-                ImmutableSet.of(getUriForPort(availablePort)),
-                UserAgents.DEFAULT_USER_AGENT,
-                TestResource.class);
+                ImmutableServerListConfig.builder()
+                        .addServers(getUriForPort(availablePort1))
+                        .proxyConfiguration(ProxyConfiguration.of(getHostAndPort(proxyPort)))
+                        .build(),
+                TestResource.class,
+                AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);
         clientWithHttpProxy.getTestNumber();
-        String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 
         proxyServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
-        availableServer.verify(0, getRequestedFor(urlMatching(GET_ENDPOINT)));
+                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER, WireMock.equalTo(LEGACY_USER_AGENT_STRING)));
+        availableServer1.verify(0, getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
     @Test
@@ -202,65 +249,74 @@ public class AtlasDbHttpClientsTest {
 
         List<String> servers = Lists.newArrayList(getUriForPort(unavailablePort));
 
-        TestResource client = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
-                new MetricRegistry(),
+        TestResource client = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
+                DefaultTaggedMetricRegistry.getDefault(),
                 () -> ImmutableServerListConfig.builder()
                         .servers(servers)
+                        .sslConfiguration(SSL_CONFIG)
                         .build(),
-                SslSocketFactories::createTrustContext,
-                unused -> ProxySelector.getDefault(),
                 TestResource.class,
-                "user (123)");
+                AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);
 
         // actually a Feign RetryableException but that's not on our classpath
         assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
 
-        servers.add(getUriForPort(availablePort));
+        servers.add(getUriForPort(availablePort1));
         Uninterruptibles.sleepUninterruptibly(
                 PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
 
         int response = client.getTestNumber();
-        assertThat(response, equalTo(TEST_NUMBER));
+        assertThat(response, equalTo(TEST_NUMBER_1));
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
     @Test
-    public void httpProxyThrowsServiceNotAvailableExceptionIfConfiguredWithZeroNodes() {
-        TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
-                new MetricRegistry(),
-                () -> ImmutableServerListConfig.builder().build(),
-                SslSocketFactories::createTrustContext,
-                proxyConfiguration -> ProxySelector.getDefault(),
+    public void canConnectViaConjureJavaRuntime() {
+        List<String> servers = Lists.newArrayList(getUriForPort(availablePort1));
+        TestResource client = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
+                DefaultTaggedMetricRegistry.getDefault(),
+                () -> ImmutableServerListConfig.builder()
+                        .servers(servers)
+                        .sslConfiguration(SSL_CONFIG)
+                        .build(),
                 TestResource.class,
-                UserAgents.DEFAULT_VALUE);
-
-        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+                AuxiliaryRemotingParameters.builder()
+                        .shouldLimitPayload(false)
+                        .shouldRetry(true)
+                        .userAgent(BASE_USER_AGENT)
+                        .remotingClientConfig(() -> ImmutableRemotingClientConfig.builder()
+                                .maximumConjureRemotingProbability(1.0)
+                                .build())
+                        .build());
+        int response = client.getTestNumber();
+        assertThat(response, equalTo(TEST_NUMBER_1));
+        availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
+                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER,
+                        WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
     }
 
     @Test
     public void httpProxyCanBeCommissionedAndDecommissionedIfNodeAvailabilityChanges() {
-        AtomicReference<ServerListConfig> config = new AtomicReference<>(ImmutableServerListConfig.builder().build());
+        AtomicReference<ServerListConfig> config = new AtomicReference<>(ImmutableServerListConfig.builder()
+                .addServers(getUriForPort(availablePort1))
+                .sslConfiguration(SSL_CONFIG)
+                .build());
 
-        TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
-                new MetricRegistry(),
+        TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
+                DefaultTaggedMetricRegistry.getDefault(),
                 config::get,
-                SslSocketFactories::createTrustContext,
-                proxyConfiguration -> ProxySelector.getDefault(),
                 TestResource.class,
-                UserAgents.DEFAULT_VALUE);
+                AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);
 
-        // At this point, there are zero nodes in the config, so we should get ServiceNotAvailable.
-        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_1));
 
-        config.set(ImmutableServerListConfig.builder().addServers(getUriForPort(availablePort)).build());
+        config.set(ImmutableServerListConfig.builder()
+                .addServers(getUriForPort(availablePort2))
+                .sslConfiguration(SSL_CONFIG)
+                .build());
         Uninterruptibles.sleepUninterruptibly(
                 PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
-        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER));
-
-        config.set(ImmutableServerListConfig.builder().build());
-        Uninterruptibles.sleepUninterruptibly(
-                PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
-        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_2));
     }
 
     private static String getUriForPort(int port) {
@@ -270,4 +326,5 @@ public class AtlasDbHttpClientsTest {
     private static String getHostAndPort(int port) {
         return String.format("%s:%s", WireMockConfiguration.DEFAULT_BIND_ADDRESS, port);
     }
+
 }

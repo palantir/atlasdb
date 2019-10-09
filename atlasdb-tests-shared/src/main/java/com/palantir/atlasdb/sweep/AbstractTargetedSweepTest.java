@@ -48,7 +48,6 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
     private static final String OLD_VALUE = "old_value";
     private static final String NEW_VALUE = "new_value";
-    private static final String NEWER_VALUE = "newer_value";
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 
@@ -100,6 +99,19 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         assertThat(getValue(TABLE_NAME, 110))
                 .isEqualTo(Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP));
         assertThat(getValue(TABLE_NAME, 160)).isEqualTo(Value.create(PtBytes.toBytes(NEW_VALUE), 150));
+    }
+
+    @Test
+    public void targetedSweepIgnoresDroppedTablesForUncommittedWrites() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+        kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
+
+        sweepQueue.enqueue(ImmutableMap.of(TABLE_TO_BE_DROPPED,
+                ImmutableMap.of(TEST_CELL, PtBytes.toBytes(OLD_VALUE))), 100);
+
+        kvs.dropTable(TABLE_TO_BE_DROPPED);
+
+        completeSweep(null, 160);
     }
 
     private Value getValue(TableReference tableRef, long ts) {

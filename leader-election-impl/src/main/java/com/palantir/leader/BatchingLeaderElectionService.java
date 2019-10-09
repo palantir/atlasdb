@@ -37,6 +37,11 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
     }
 
     @Override
+    public void markNotEligibleForLeadership() {
+        delegate.markNotEligibleForLeadership();
+    }
+
+    @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
         try {
             return batcher.apply(null).get();

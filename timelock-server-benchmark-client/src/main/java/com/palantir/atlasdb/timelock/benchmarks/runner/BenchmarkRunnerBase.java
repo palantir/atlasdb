@@ -19,7 +19,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -28,14 +27,18 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class BenchmarkRunnerBase {
 
+    private static final UserAgent BENCHMARK_CLIENT_USER_AGENT = UserAgent.of(
+            UserAgent.Agent.of("benchmarks", UserAgent.Agent.DEFAULT_VERSION));
     private static final String BENCHMARK_SERVER = readBenchmarkServerUri();
     private static final int BENCHMARK_SERVER_PORT = 9425;
 
@@ -62,17 +65,15 @@ public class BenchmarkRunnerBase {
         }
     }
 
-    protected static final BenchmarksService createClient() {
-        return AtlasDbFeignTargetFactory.createProxyWithFailover(
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableSet.of(BENCHMARK_SERVER),
-                10_000,
-                1_000_000,
-                1_000,
+    protected static BenchmarksService createClient() {
+        return AtlasDbFeignTargetFactory.DEFAULT.createProxyWithFailover(
+                ImmutableServerListConfig.builder().addServers(BENCHMARK_SERVER).build(),
                 BenchmarksService.class,
-                "benchmarks",
-                false);
+                AuxiliaryRemotingParameters.builder()
+                        .userAgent(BENCHMARK_CLIENT_USER_AGENT)
+                        .shouldLimitPayload(false)
+                        .shouldRetry(true)
+                        .build()).instance();
     }
 
     private static String readBenchmarkServerUri() {

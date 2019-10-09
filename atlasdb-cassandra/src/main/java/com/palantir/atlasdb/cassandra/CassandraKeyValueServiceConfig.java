@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.immutables.value.Value;
 
@@ -30,7 +29,11 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactoryImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
@@ -47,7 +50,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
 
-    Set<InetSocketAddress> servers();
+    CassandraServersConfigs.CassandraServersConfig servers();
 
     @Value.Default
     default Map<String, InetSocketAddress> addressTranslation() {
@@ -67,9 +70,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * The cap at which the connection pool is able to grow over the {@link #poolSize()}
-     * given high request load. When load is depressed, the pool will shrink back to its
-     * idle {@link #poolSize()} value.
+     * The cap at which the connection pool is able to grow over the {@link #poolSize()} given high request load. When
+     * load is depressed, the pool will shrink back to its idle {@link #poolSize()} value.
      */
     @Value.Default
     default int maxConnectionBurstSize() {
@@ -77,11 +79,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * The proportion of {@link #poolSize()} connections that are checked approximately
-     * every {@link #timeBetweenConnectionEvictionRunsSeconds()} seconds to see if has been idle at least
-     * {@link #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the
-     * the default values, 0.1 * 30 = 3 connections will be checked approximately every 20 seconds and will
-     * be evicted from the pool if it has been idle for at least 10 minutes.
+     * The proportion of {@link #poolSize()} connections that are checked approximately every {@link
+     * #timeBetweenConnectionEvictionRunsSeconds()} seconds to see if has been idle at least {@link
+     * #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the the default
+     * values, 0.1 * 30 = 3 connections will be checked approximately every 20 seconds and will be evicted from the pool
+     * if it has been idle for at least 10 minutes.
      */
     @Value.Default
     default double proportionConnectionsToCheckPerEvictionRun() {
@@ -99,8 +101,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * The period between refreshing the Cassandra client pools.
-     * At every refresh, we check the health of the current blacklisted nodes — if they're healthy, we whitelist them.
+     * The period between refreshing the Cassandra client pools. At every refresh, we check the health of the current
+     * blacklisted nodes — if they're healthy, we whitelist them.
      */
     @Value.Default
     default int poolRefreshIntervalSeconds() {
@@ -121,13 +123,27 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra
-     * as data marked with a tombstone is removed during the normal compaction process every gc_grace_seconds.
+     * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra as data
+     * marked with a tombstone is removed during the normal compaction process every gc_grace_seconds.
      */
     @Value.Default
     default int gcGraceSeconds() {
         return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
     }
+
+    /**
+     * This increases the likelihood of selecting an instance that is hosted in the same data centre as the process.
+     * Weighting is a ratio from 0 to 1, where 0 disables the feature and 1 forces the same data centre if possible.
+     */
+    @Value.Default
+    default double localHostWeighting() {
+        return 0.0;
+    }
+
+    /**
+     * Overrides the behaviour of the host location supplier.
+     */
+    Optional<HostLocation> overrideHostLocation();
 
     @JsonIgnore
     @Value.Lazy
@@ -138,6 +154,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     /**
      * Note that when the keyspace is read, this field must be present.
+     *
      * @deprecated Use the AtlasDbConfig#namespace to specify it instead.
      */
     @Deprecated
@@ -146,10 +163,9 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     CassandraCredentialsConfig credentials();
 
     /**
-     * A boolean declaring whether or not to use ssl to communicate with cassandra.
-     * This configuration value is deprecated in favor of using sslConfiguration.  If
-     * true, read in trust and key store information from system properties unless
-     * the sslConfiguration object is specified.
+     * A boolean declaring whether or not to use ssl to communicate with cassandra. This configuration value is
+     * deprecated in favor of using sslConfiguration.  If true, read in trust and key store information from system
+     * properties unless the sslConfiguration object is specified.
      *
      * @deprecated Use {@link #sslConfiguration()} instead.
      */
@@ -157,12 +173,21 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     Optional<Boolean> ssl();
 
     /**
-     * An object for specifying ssl configuration details.  The lack of existence of this
-     * object implies ssl is not to be used to connect to cassandra.
-     *
+     * An object for specifying ssl configuration details.  The lack of existence of this object implies ssl is not to
+     * be used to connect to cassandra.
+     * <p>
      * The existence of this object overrides any configuration made via the ssl config value.
      */
     Optional<SslConfiguration> sslConfiguration();
+
+    /**
+     * An object which implements the logic behind CQL client resource management. Default implementation creates a new
+     * one per CKVS.
+     */
+    @Value.Default
+    default CqlClientFactory cqlClientFactory() {
+        return CqlClientFactoryImpl.DEFAULT;
+    }
 
     int replicationFactor();
 
@@ -230,9 +255,9 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * This is how long we will wait when we first open a socket to the cassandra server.
-     * This should be long enough to enough to handle cross data center latency, but short enough
-     * that it will fail out quickly if it is clear we can't reach that server.
+     * This is how long we will wait when we first open a socket to the cassandra server. This should be long enough to
+     * enough to handle cross data center latency, but short enough that it will fail out quickly if it is clear we
+     * can't reach that server.
      */
     @Value.Default
     default int socketTimeoutMillis() {
@@ -240,10 +265,9 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * Socket timeout is a java side concept.  This the maximum time we will block on a network
-     * read without the server sending us any bytes.  After this time a {@link SocketTimeoutException}
-     * will be thrown.  All cassandra reads time out at less than this value so we shouldn't see
-     * it very much (10s by default).
+     * Socket timeout is a java side concept.  This the maximum time we will block on a network read without the server
+     * sending us any bytes.  After this time a {@link SocketTimeoutException} will be thrown.  All cassandra reads time
+     * out at less than this value so we shouldn't see it very much (10s by default).
      */
     @Value.Default
     default int socketQueryTimeoutMillis() {
@@ -298,7 +322,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Override
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().size();
+        return poolSize() * servers().numberOfHosts();
     }
 
     @JsonIgnore
@@ -309,12 +333,14 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
-        for (InetSocketAddress addr : servers()) {
-            Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
-        }
+        Preconditions.checkState(!servers().accept(new ThriftHostsExtractingVisitor()).isEmpty(),
+                "'servers' must have at least one defined host");
+
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
+
+        Preconditions.checkArgument(localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
+                "'localHostWeighting' must be between 0 and 1 inclusive");
     }
 }

@@ -18,7 +18,6 @@ package com.palantir.leader;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -35,7 +34,6 @@ import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
@@ -172,39 +170,6 @@ public class PaxosLeaderElectionServiceBuilder {
                 leaderPingResponseWait,
                 eventRecorder,
                 UUID.fromString(proposer.getUuid()));
-    }
-
-    private static final class LocalPingableLeader implements PingableLeader {
-
-        private final PaxosLearner knowledge;
-        private final UUID localUuid;
-
-        LocalPingableLeader(
-                PaxosLearner knowledge,
-                UUID localUuid) {
-            this.knowledge = knowledge;
-            this.localUuid = localUuid;
-        }
-
-        @Override
-        public boolean ping() {
-            return getGreatestLearnedPaxosValue()
-                    .map(this::isThisNodeTheLeaderFor)
-                    .orElse(false);
-        }
-
-        @Override
-        public String getUUID() {
-            return localUuid.toString();
-        }
-
-        private Optional<PaxosValue> getGreatestLearnedPaxosValue() {
-            return Optional.ofNullable(knowledge.getGreatestLearnedValue());
-        }
-
-        private boolean isThisNodeTheLeaderFor(PaxosValue value) {
-            return value.getLeaderUUID().equals(localUuid.toString());
-        }
     }
 
     public PaxosLeaderElectionService build() {

@@ -53,6 +53,7 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.Preconditions;
 
 public class KvTableMappingService implements TableMappingService {

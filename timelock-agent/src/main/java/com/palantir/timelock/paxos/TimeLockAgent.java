@@ -15,13 +15,14 @@
  */
 package com.palantir.timelock.paxos;
 
+import java.net.URL;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
@@ -29,19 +30,20 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.lock.LockLog;
-import com.palantir.atlasdb.timelock.paxos.PaxosResource;
+import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
+import com.palantir.atlasdb.timelock.paxos.PaxosResources;
+import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.conjure.java.config.ssl.SslSocketFactories;
-import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
 import com.palantir.timelock.TimeLockStatus;
@@ -54,19 +56,19 @@ import com.palantir.timestamp.ManagedTimestampService;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
+    private static final Logger log = LoggerFactory.getLogger(TimeLockAgent.class);
+
     private static final Long SCHEMA_VERSION = 1L;
 
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
-
-    private final PaxosResource paxosResource;
+    private final PaxosResources paxosResources;
     private final PaxosLeadershipCreator leadershipCreator;
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
-    private final ExecutorService sharedExecutor;
 
     private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
     private TimeLockResource resource;
@@ -79,8 +81,20 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar) {
         ExecutorService executor = createSharedExecutor(metricsManager);
-        TimeLockAgent agent = new TimeLockAgent(metricsManager, install, runtime, threadPoolSize, blockingTimeoutMs,
-                registrar, executor);
+        PaxosResources paxosResources = PaxosResourcesFactory.create(
+                ImmutableTimelockPaxosInstallationContext.of(install),
+                metricsManager,
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
+                executor);
+
+        TimeLockAgent agent = new TimeLockAgent(
+                metricsManager,
+                install,
+                runtime,
+                threadPoolSize,
+                blockingTimeoutMs,
+                registrar,
+                paxosResources);
         agent.createAndRegisterResources();
         return agent;
     }
@@ -91,18 +105,15 @@ public class TimeLockAgent {
             int threadPoolSize,
             long blockingTimeoutMs,
             Consumer<Object> registrar,
-            ExecutorService sharedExecutor) {
+            PaxosResources paxosResources) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
         this.registrar = registrar;
-        this.sharedExecutor = sharedExecutor;
-        this.paxosResource = PaxosResource.create(
-                metricsManager.getTaggedRegistry(),
-                install.paxos().dataDirectory().toPath());
+        this.paxosResources = paxosResources;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.leadershipCreator = new PaxosLeadershipCreator(metricsManager, install, runtime, registrar);
-        this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
+        this.timestampCreator = getTimestampCreator();
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
 
@@ -123,10 +134,10 @@ public class TimeLockAgent {
                 MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator", "executor"));
     }
 
-    private TimestampCreator getTimestampCreator(MetricRegistry metrics) {
+    private TimestampCreator getTimestampCreator() {
         TsBoundPersisterConfiguration timestampBoundPersistence = install.timestampBoundPersistence();
         if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
-            return getPaxosTimestampCreator(metrics);
+            return getPaxosTimestampCreator();
         } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
             return new DbBoundTimestampCreator(
                     ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
@@ -136,33 +147,10 @@ public class TimeLockAgent {
                 timestampBoundPersistence.getClass()));
     }
 
-    private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
-        List<ClientAwarePaxosAcceptor> paxosAcceptors = createProxies(ClientAwarePaxosAcceptor.class,
-                "timestamp-bound-store.acceptor");
-        List<ClientAwarePaxosLearner> paxosLearners = createProxies(ClientAwarePaxosLearner.class,
-                "timestamp-bound-store.learner");
+    private PaxosTimestampCreator getPaxosTimestampCreator() {
         return new PaxosTimestampCreator(
-                metrics,
-                paxosResource,
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                ClientAwarePaxosAcceptorAdapter.wrap(paxosAcceptors),
-                ClientAwarePaxosLearnerAdapter.wrap(paxosLearners),
-                sharedExecutor);
-    }
-
-    private <T> List<T> createProxies(Class<T> clazz, String userAgent) {
-        Set<String> remoteUris = PaxosRemotingUtils.getRemoteServerPaths(install);
-        Optional<TrustContext> trustContext = PaxosRemotingUtils.getSslConfigurationOptional(install)
-                .map(SslSocketFactories::createTrustContext);
-        return remoteUris.stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(
-                        metricsManager.getRegistry(),
-                        trustContext,
-                        uri,
-                        clazz,
-                        userAgent,
-                        false))
-                .collect(Collectors.toList());
+                paxosResources.timestamp(),
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
     }
 
     private void createAndRegisterResources() {
@@ -212,12 +200,16 @@ public class TimeLockAgent {
 
     // No runtime configuration at the moment.
     private void registerPaxosResource() {
-        registrar.accept(paxosResource);
+        paxosResources.resourcesForRegistration().forEach(registrar::accept);
     }
 
     private void registerExceptionMappers() {
         registrar.accept(new BlockingTimeoutExceptionMapper());
-        registrar.accept(new NotCurrentLeaderExceptionMapper());
+
+        URL localServer = PaxosRemotingUtils.convertAddressToUrl(install, install.cluster().localServer());
+        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(install, install.cluster().clusterMembers());
+        registrar.accept(new NotCurrentLeaderExceptionMapper(RedirectRetryTargeter.create(localServer, clusterUrls)));
+
         registrar.accept(new TooManyRequestsExceptionMapper());
     }
 
@@ -237,8 +229,12 @@ public class TimeLockAgent {
                 .build();
 
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
-                .createTimestampService(client, leaderConfig);
+                .createTimestampService(Client.of(client), leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
+    }
+
+    public void shutdown() {
+        leadershipCreator.shutdown();
     }
 }

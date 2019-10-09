@@ -50,6 +50,28 @@ public interface PaxosRuntimeConfiguration {
         return true;
     }
 
+    @Value.Default
+    @JsonProperty("timestamp-paxos")
+    default TimestampPaxosConfig timestampPaxos() {
+        return TimestampPaxosConfig.defaultConfig();
+    }
+
+    @Value.Immutable
+    @JsonDeserialize(as = ImmutableTimestampPaxosConfig.class)
+    @JsonSerialize(as = ImmutableTimestampPaxosConfig.class)
+    interface TimestampPaxosConfig {
+
+        @Value.Default
+        @JsonProperty("use-batch-paxos")
+        default boolean useBatchPaxos() {
+            return false;
+        }
+
+        static TimestampPaxosConfig defaultConfig() {
+            return ImmutableTimestampPaxosConfig.builder().build();
+        }
+    }
+
     @Value.Check
     default void check() {
         Preconditions.checkArgument(pingRateMs() > 0,

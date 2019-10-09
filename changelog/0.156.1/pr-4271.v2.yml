@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix caching of config hostnames in cassandra client pool
+  links:
+  - https://github.com/palantir/atlasdb/pull/4271

@@ -43,7 +43,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.UpdateExecutor;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.WhereClauses;
-import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;

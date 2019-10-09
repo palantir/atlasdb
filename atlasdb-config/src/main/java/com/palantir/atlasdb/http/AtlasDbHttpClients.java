@@ -15,72 +15,41 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.ProxySelector;
-import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AtlasDbHttpClients {
-    // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,
-    // and we don't want it to exactly align with the feign timeout
-    private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 10_000;
-    private static final int DEFAULT_READ_TIMEOUT_MILLIS = 65_000;
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbHttpClients.class);
 
-    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
-    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
+    public static final TargetFactory LEGACY_FEIGN_TARGET_FACTORY = AtlasDbFeignTargetFactory.DEFAULT;
+    private static final TargetFactory TESTING_TARGET_FACTORY = AtlasDbFeignTargetFactory.FAST_FAIL_FOR_TESTING;
 
     private AtlasDbHttpClients() {
         // Utility class
     }
 
-    /**
-     * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and the
-     * default Feign HTTP client.
-     */
-    public static <T> T createProxy(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type) {
-        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT, false);
-    }
-
     public static <T> T createProxy(
             MetricRegistry metricRegistry,
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory
-                        .createProxy(trustContext, uri, type, userAgent, limitPayloadSize),
-                MetricRegistry.name(type));
-    }
-
-    public static <T> T createProxyWithoutRetrying(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                type,
-                AtlasDbFeignTargetFactory
-                        .createProxyWithoutRetrying(trustContext, uri, type, userAgent, limitPayloadSize),
+                LEGACY_FEIGN_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters).instance(),
                 MetricRegistry.name(type));
     }
 
@@ -93,95 +62,70 @@ public final class AtlasDbHttpClients {
      */
     public static <T> T createProxyWithFailover(
             MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            String userAgent,
-            Class<T> type) {
+            ServerListConfig serverListConfig,
+            Class<T> type,
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxyWithFailover(
-                        trustContext,
-                        proxySelector,
-                        endpointUris,
-                        DEFAULT_CONNECT_TIMEOUT_MILLIS,
-                        DEFAULT_READ_TIMEOUT_MILLIS,
-                        FailoverFeignTarget.DEFAULT_MAX_BACKOFF.toMillis(),
-                        type,
-                        userAgent,
-                        false),
+                LEGACY_FEIGN_TARGET_FACTORY.createProxyWithFailover(serverListConfig, type, parameters).instance(),
                 MetricRegistry.name(type));
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
-            MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent,
-            boolean limitPayload) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                type,
-                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
+            AuxiliaryRemotingParameters clientParameters) {
+        return createExperimentallyWithFallback(
+                taggedMetricRegistry,
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
-                        trustContextCreator,
-                        proxySelectorCreator,
-                        DEFAULT_CONNECT_TIMEOUT_MILLIS,
-                        DEFAULT_READ_TIMEOUT_MILLIS,
-                        FailoverFeignTarget.DEFAULT_MAX_BACKOFF.toMillis(),
                         type,
-                        userAgent,
-                        limitPayload),
-                MetricRegistry.name(type));
+                        clientParameters),
+                () -> LEGACY_FEIGN_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+                        serverListConfigSupplier,
+                        type,
+                        clientParameters),
+                type,
+                clientParameters);
     }
 
-    @VisibleForTesting
-    static <T> T createLiveReloadingProxyWithQuickFailoverForTesting(
-            MetricRegistry metricRegistry,
-            Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+    private static <T> T createExperimentallyWithFallback(
+            TaggedMetricRegistry taggedMetricRegistry,
+            Supplier<TargetFactory.InstanceAndVersion<T>> experimentalProxySupplier,
+            Supplier<TargetFactory.InstanceAndVersion<T>> fallbackProxySupplier,
             Class<T> type,
-            String userAgent) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                type,
-                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier,
-                        trustContextCreator,
-                        proxySelectorCreator,
-                        QUICK_FEIGN_TIMEOUT_MILLIS,
-                        QUICK_FEIGN_TIMEOUT_MILLIS,
-                        QUICK_MAX_BACKOFF_MILLIS,
-                        type,
-                        userAgent,
-                        false),
-                MetricRegistry.name(type));
+            AuxiliaryRemotingParameters clientParameters) {
+        TargetFactory.InstanceAndVersion<T> fallbackProxy = fallbackProxySupplier.get();
+        try {
+            return VersionSelectingClients.createVersionSelectingClient(
+                    taggedMetricRegistry,
+                    experimentalProxySupplier.get(),
+                    fallbackProxy,
+                    () -> clientParameters.remotingClientConfig().get().maximumConjureRemotingProbability(),
+                    type);
+        } catch (Exception e) {
+            log.warn("Error occurred in creating an experimental proxy. Possible causes include"
+                    + " not running with SSL, which is deprecated and expected to be removed in a future release."
+                    + " Creating a legacy client.", e);
+            return fallbackProxy.instance();
+        }
     }
 
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
             MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            Class<T> type) {
+            ServerListConfig serverListConfig,
+            Class<T> type,
+            AuxiliaryRemotingParameters parameters) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxyWithFailover(
-                        trustContext,
-                        proxySelector,
-                        endpointUris,
-                        QUICK_FEIGN_TIMEOUT_MILLIS,
-                        QUICK_FEIGN_TIMEOUT_MILLIS,
-                        QUICK_MAX_BACKOFF_MILLIS,
+                TESTING_TARGET_FACTORY.createProxyWithFailover(
+                        serverListConfig,
                         type,
-                        UserAgents.DEFAULT_USER_AGENT,
-                        false),
+                        parameters).instance(),
                 MetricRegistry.name(type, "atlasdb-testing"));
     }
 }

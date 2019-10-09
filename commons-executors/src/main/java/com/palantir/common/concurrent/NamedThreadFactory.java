@@ -63,4 +63,8 @@ public class NamedThreadFactory implements ThreadFactory {
         thread.setDaemon(isDaemon);
         return thread;
     }
+
+    String getPrefix() {
+        return prefix;
+    }
 }

@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
@@ -28,17 +26,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.SetMultimap;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosValue;
 
 @Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
         + "/learner")
-public class BatchPaxosLearnerResource implements BatchPaxosLearner {
+public class BatchPaxosLearnerResource {
 
-    private final PaxosComponents paxosComponents;
+    private final BatchPaxosLearner batchPaxosLearner;
 
-    public BatchPaxosLearnerResource(PaxosComponents paxosComponents) {
-        this.paxosComponents = paxosComponents;
+    public BatchPaxosLearnerResource(BatchPaxosLearner batchPaxosLearner) {
+        this.batchPaxosLearner = batchPaxosLearner;
     }
 
     @POST
@@ -46,8 +43,7 @@ public class BatchPaxosLearnerResource implements BatchPaxosLearner {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public void learn(SetMultimap<Client, PaxosValue> paxosValuesByClient) {
-        paxosValuesByClient.forEach(
-                (client, paxosValue) -> paxosComponents.learner(client).learn(paxosValue.getRound(), paxosValue));
+        batchPaxosLearner.learn(paxosValuesByClient);
     }
 
     @POST
@@ -55,12 +51,7 @@ public class BatchPaxosLearnerResource implements BatchPaxosLearner {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public SetMultimap<Client, PaxosValue> getLearnedValues(Set<WithSeq<Client>> clientAndSeqs) {
-        return KeyedStream.of(clientAndSeqs)
-                .mapKeys(WithSeq::value)
-                .map(WithSeq::seq)
-                .map((client, seq) -> paxosComponents.learner(client).getLearnedValue(seq))
-                .filter(Objects::nonNull)
-                .collectToSetMultimap();
+        return batchPaxosLearner.getLearnedValues(clientAndSeqs);
     }
 
     @POST
@@ -68,10 +59,7 @@ public class BatchPaxosLearnerResource implements BatchPaxosLearner {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public SetMultimap<Client, PaxosValue> getLearnedValuesSince(Map<Client, Long> seqLowerBoundsByClient) {
-        return KeyedStream.stream(seqLowerBoundsByClient)
-                .map((client, seq) -> paxosComponents.learner(client).getLearnedValuesSince(seq))
-                .flatMap(Collection::stream)
-                .collectToSetMultimap();
+        return batchPaxosLearner.getLearnedValuesSince(seqLowerBoundsByClient);
     }
 
 }

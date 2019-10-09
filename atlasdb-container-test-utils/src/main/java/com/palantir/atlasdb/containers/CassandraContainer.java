@@ -15,23 +15,28 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.logsafe.Preconditions;
 
 public class CassandraContainer extends Container {
-    static final int CASSANDRA_PORT = 9160;
+    static final int CASSANDRA_CQL_PORT = 9042;
+    static final int CASSANDRA_THRIFT_PORT = 9160;
     static final String USERNAME = "cassandra";
     static final String PASSWORD = "cassandra";
     private static final String CONTAINER_NAME = "cassandra";
@@ -55,7 +60,11 @@ public class CassandraContainer extends Container {
     private CassandraContainer(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(forService(name))
+                .servers(ImmutableCqlCapableConfig.builder()
+                        .addHosts(name)
+                        .cqlPort(CASSANDRA_CQL_PORT)
+                        .thriftPort(CASSANDRA_THRIFT_PORT)
+                        .build())
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username(USERNAME)
@@ -87,8 +96,13 @@ public class CassandraContainer extends Container {
 
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
-        return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.createForTesting(config)
-                .isInitialized());
+        try (CassandraKeyValueService cassandraKeyValueService =
+                CassandraKeyValueServiceImpl.createForTesting(
+                        getConfigWithProxy(Containers.getSocksProxy(name).address()))) {
+            return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);
+        } catch (Exception e) {
+            return SuccessOrFailure.failure(e.getMessage());
+        }
     }
 
     @Override
@@ -106,11 +120,20 @@ public class CassandraContainer extends Container {
         return config;
     }
 
-    String getServiceName() {
-        return name;
+    CassandraKeyValueServiceConfig getConfigWithProxy(SocketAddress proxyAddress) {
+        Preconditions.checkState(config.servers() instanceof CqlCapableConfig, "Has to be CqlCapableConfig");
+        CqlCapableConfig cqlCapableConfig = (CqlCapableConfig) config.servers();
+
+        return ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(config)
+                .servers(ImmutableCqlCapableConfig.builder()
+                        .from(cqlCapableConfig)
+                        .socksProxy(proxyAddress)
+                        .build())
+                .build();
     }
 
-    private static InetSocketAddress forService(String name) {
-        return new InetSocketAddress(name, CASSANDRA_PORT);
+    String getServiceName() {
+        return name;
     }
 }
