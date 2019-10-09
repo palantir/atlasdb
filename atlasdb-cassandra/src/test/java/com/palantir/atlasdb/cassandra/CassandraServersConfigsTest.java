@@ -22,6 +22,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
@@ -30,22 +33,30 @@ import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class CassandraServersConfigsTest {
 
-    private static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", 44);
-    private static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", 44);
+    private static final int TEST_THRIFT_PORT = 44;
+    private static final int TEST_CQL_PORT = 45;
+
+    private static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", TEST_THRIFT_PORT);
+    private static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", TEST_THRIFT_PORT);
 
     private static final CassandraServersConfigs.CqlCapableConfig CQL_CAPABLE_CONFIG =
-            cqlCapable(44, 45, "bar", "foo");
+            cqlCapable("bar", "foo");
 
-    public static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
+    private static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
         return ImmutableDefaultConfig.builder().addThriftHosts(thriftServers).build();
     }
 
-    public static CassandraServersConfigs.CqlCapableConfig cqlCapable(int thriftPort, int cqlPort, String... hosts) {
+    private static CassandraServersConfigs.CqlCapableConfig cqlCapable(String... hosts) {
+        Iterable<InetSocketAddress> thriftHosts = constructHosts(TEST_THRIFT_PORT, hosts);
+        Iterable<InetSocketAddress> cqlHosts = constructHosts(TEST_CQL_PORT, hosts);
         return ImmutableCqlCapableConfig.builder()
-                .addHosts(hosts)
-                .cqlPort(cqlPort)
-                .thriftPort(thriftPort)
+                .cqlHosts(cqlHosts)
+                .thriftHosts(thriftHosts)
                 .build();
+    }
+
+    private static List<InetSocketAddress> constructHosts(int port, String[] hosts) {
+        return Stream.of(hosts).map(host -> new InetSocketAddress(host, port)).collect(Collectors.toList());
     }
 
     @Test

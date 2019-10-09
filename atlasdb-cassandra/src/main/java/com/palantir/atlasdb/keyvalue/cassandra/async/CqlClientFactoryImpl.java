@@ -24,6 +24,9 @@ import java.util.concurrent.ThreadFactory;
 
 import javax.net.ssl.SSLContext;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.NettyOptions;
@@ -52,6 +55,7 @@ import io.netty.handler.proxy.Socks5ProxyHandler;
 public final class CqlClientFactoryImpl implements CqlClientFactory {
 
     public static final CqlClientFactory DEFAULT = new CqlClientFactoryImpl();
+    private static final Logger log = LoggerFactory.getLogger(CqlClientFactoryImpl.class);
 
     private CqlClientFactoryImpl() {
         // Use instance
@@ -69,6 +73,12 @@ public final class CqlClientFactoryImpl implements CqlClientFactory {
 
             @Override
             public CqlClient visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
+                if (!cqlCapableConfig.validateHosts()) {
+                    log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same, using "
+                            + "async API will result in an exception");
+                    return ThrowingCqlClientImpl.SINGLETON;
+                }
+
                 Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
 
                 Cluster cluster = buildCluster(

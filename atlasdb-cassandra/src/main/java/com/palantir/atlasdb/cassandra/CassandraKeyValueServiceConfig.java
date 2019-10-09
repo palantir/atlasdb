@@ -322,7 +322,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Override
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().numberOfHosts();
+        return poolSize() * servers().numberOfThriftHosts();
     }
 
     @JsonIgnore

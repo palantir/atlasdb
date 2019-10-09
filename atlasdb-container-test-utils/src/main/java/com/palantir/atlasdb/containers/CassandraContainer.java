@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.containers;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 import java.util.Optional;
@@ -61,9 +62,8 @@ public class CassandraContainer extends Container {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
-                        .addHosts(name)
-                        .cqlPort(CASSANDRA_CQL_PORT)
-                        .thriftPort(CASSANDRA_THRIFT_PORT)
+                        .addCqlHosts(new InetSocketAddress(name, CASSANDRA_CQL_PORT))
+                        .addThriftHosts(new InetSocketAddress(name, CASSANDRA_THRIFT_PORT))
                         .build())
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
