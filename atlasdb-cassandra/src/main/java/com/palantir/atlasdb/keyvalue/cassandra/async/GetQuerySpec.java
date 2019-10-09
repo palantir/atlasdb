@@ -19,10 +19,11 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Row;
@@ -35,9 +36,9 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
     /**
-     * Since each query is constructed for one cell we are using an optimisation that we can ask the CQL to do most
-     * of the work internally. First of all we are using the fact that timestamps in column2 are ordered in ASC order
-     * and since we are interested in the most recent timestamp we use LIMIT 1 to get the latest value. This should help
+     * Since each query is constructed for one cell we are using an optimisation that we can ask the CQL to do most of
+     * the work internally. First of all we are using the fact that timestamps in column2 are ordered in ASC order and
+     * since we are interested in the most recent timestamp we use LIMIT 1 to get the latest value. This should help
      * with both cassandra workload and amount of transferred data.
      */
     private static final String QUERY_FORMAT = "SELECT value, column2 FROM \"%s\".\"%s\" "
@@ -73,22 +74,22 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
                 .setLong("timestamp", queryTimestamp());
     }
 
-    @NotThreadSafe
+    @ThreadSafe
     public static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
 
-        private Optional<Value> resultValue = Optional.empty();
+        private final AtomicReference<Optional<Value>> resultValue = new AtomicReference<>(Optional.empty());
 
         @Override
         public void accumulateRowStream(Stream<Row> rowStream) {
             Stream<Value> valueStream = rowStream.map(GetQueryAccumulator::parseValue);
-            resultValue = resultValue.map(value -> Streams.concat(Stream.of(value), valueStream))
-                    .orElse(valueStream)
-                    .max(Comparator.comparingLong(Value::getTimestamp));
+            resultValue.updateAndGet(oldValue ->
+                    Streams.concat(oldValue.map(Stream::of).orElse(Stream.empty()), valueStream)
+                            .max(Comparator.comparingLong(Value::getTimestamp)));
         }
 
         @Override
         public Optional<Value> result() {
-            return resultValue;
+            return resultValue.get();
         }
 
         private static Value parseValue(Row row) {
