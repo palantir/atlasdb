@@ -1,0 +1,7 @@
+type: break
+break:
+  description: 'AtlasDB will now fail to start if you have configured TimeLock with zero nodes. This was previously
+    maintained to support deployments running TimeLock on Kubernetes, but deployment infrastructure has improved
+    such that this case will no longer occur in practice. Please contact the AtlasDB team if you have concerns.'
+  links:
+    - https://github.com/palantir/atlasdb/pull/4266

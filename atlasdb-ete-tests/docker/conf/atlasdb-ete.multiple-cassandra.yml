@@ -14,12 +14,14 @@ atlasdb:
     type: cassandra
     servers:
       type: cqlCapable
-      hosts:
-        - cassandra1
-        - cassandra2
-        - cassandra3
-      cqlPort: 9042
-      thriftPort: 9160
+      cqlHosts:
+        - cassandra1:9042
+        - cassandra2:9042
+        - cassandra3:9042
+      thriftHosts:
+        - cassandra1:9160
+        - cassandra2:9160
+        - cassandra3:9160
     credentials:
       username: cassandra
       password: cassandra

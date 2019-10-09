@@ -39,8 +39,12 @@ public final class CassandraServersConfigs {
 
     }
 
-    private static final String SERVER_FORMAT_ERROR = "each server must specify a port ([host]:[port])";
     private static final String PORT_NUMBER_ERROR = "%s port number should be a positive number";
+
+    private static void checkPortNumbers(Set<InetSocketAddress> socketAddresses, String portName) {
+        socketAddresses.forEach(host -> Preconditions.checkState(host.getPort() > 0,
+                PORT_NUMBER_ERROR, SafeArg.of(portName, host.getPort())));
+    }
 
     public interface Visitor<T> {
         T visit(DefaultConfig defaultConfig);
@@ -79,7 +83,7 @@ public final class CassandraServersConfigs {
 
         <T> T accept(Visitor<T> visitor);
 
-        int numberOfHosts();
+        int numberOfThriftHosts();
     }
 
     @Value.Immutable
@@ -93,15 +97,13 @@ public final class CassandraServersConfigs {
         public abstract Set<InetSocketAddress> thriftHosts();
 
         @Override
-        public int numberOfHosts() {
+        public int numberOfThriftHosts() {
             return thriftHosts().size();
         }
 
         @Value.Check
         final void check() {
-            for (InetSocketAddress address : thriftHosts()) {
-                Preconditions.checkState(address.getPort() > 0, SERVER_FORMAT_ERROR);
-            }
+            checkPortNumbers(thriftHosts(), "'port'");
         }
 
         @Override
@@ -117,11 +119,9 @@ public final class CassandraServersConfigs {
     public abstract static class CqlCapableConfig implements CassandraServersConfig {
         static final String TYPE = "cqlCapable";
 
-        abstract Set<String> hosts();
+        public abstract Set<InetSocketAddress> thriftHosts();
 
-        abstract int thriftPort();
-
-        abstract int cqlPort();
+        public abstract Set<InetSocketAddress> cqlHosts();
 
         public abstract Optional<SocketAddress> socksProxy();
 
@@ -131,30 +131,25 @@ public final class CassandraServersConfigs {
         }
 
         @Override
-        public final int numberOfHosts() {
-            return hosts().size();
-        }
-
-        @Value.Derived
-        public Set<InetSocketAddress> thriftHosts() {
-            return constructHosts(thriftPort());
-        }
-
-        @Value.Derived
-        public Set<InetSocketAddress> cqlHosts() {
-            return constructHosts(cqlPort());
-        }
-
-        private Set<InetSocketAddress> constructHosts(int port) {
-            return hosts().stream()
-                    .map(host -> new InetSocketAddress(host, port))
-                    .collect(Collectors.toSet());
+        public final int numberOfThriftHosts() {
+            return thriftHosts().size();
         }
 
         @Value.Check
         final void check() {
-            Preconditions.checkState(thriftPort() > 0, PORT_NUMBER_ERROR, SafeArg.of("'thriftPort'", thriftPort()));
-            Preconditions.checkState(cqlPort() > 0, PORT_NUMBER_ERROR, SafeArg.of("'cqlPort'", cqlPort()));
+            checkPortNumbers(thriftHosts(), "'thriftPort'");
+
+            checkPortNumbers(cqlHosts(), "'cqlPort'");
+        }
+
+        public boolean validateHosts() {
+            return thriftHosts().stream()
+                    .map(InetSocketAddress::getHostName)
+                    .collect(Collectors.toSet())
+                    .equals(cqlHosts()
+                            .stream()
+                            .map(InetSocketAddress::getHostName)
+                            .collect(Collectors.toSet()));
         }
 
         @Override
