@@ -565,7 +565,7 @@ public class StreamStoreRenderer {
                     line("//Hash the data before compressing it");
                     line("MessageDigest digest = Sha256Hash.getMessageDigest();");
                     line("try (InputStream hashingStream = new DigestInputStream(stream, digest);");
-                    line("        InputStream compressingStream = new CompressorForwardingInputStream(hashingStream)) {"); {
+                    line("        InputStream compressingStream = clientSideCompressor.getCompressor(hashingStream)) {"); {
                         line("StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);");
                         line("return StreamMetadata.newBuilder(metadata)");
                         line("        .setHash(ByteString.copyFrom(digest.digest()))");

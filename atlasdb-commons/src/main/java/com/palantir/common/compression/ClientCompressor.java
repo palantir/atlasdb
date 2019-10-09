@@ -28,30 +28,42 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import com.google.common.collect.MoreCollectors;
+import com.google.common.io.ByteStreams;
 import com.palantir.common.base.Throwables;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 
 public enum ClientCompressor {
-    GZIP(GzipCompressingInputStream.class, in -> {
+    GZIP(in -> {
+        try {
+                return new GzipCompressingInputStream(in);
+            } catch (Exception exc) {
+                throw new RuntimeException(exc);
+            }
+        }, in -> {
         try {
             return new GZIPInputStream(in);
         } catch (Exception exc) {
             throw new RuntimeException(exc);
         }
     }, GzipCompressingInputStream.GZIP_HEADER),
-    LZ4(LZ4CompressingInputStream.class, LZ4BlockInputStream::new,
+    LZ4(LZ4CompressingInputStream::new, LZ4BlockInputStream::new,
             new byte[] {'L', 'Z', '4', 'B', 'l', 'o', 'c', 'k'}),
     NONE(null, UnaryOperator.identity(), new byte[] {});
 
-    private final Class<InputStream> compressorClass;
+    private final UnaryOperator<InputStream> compressorCreator;
     private UnaryOperator<InputStream> decompressorCreator;
     public final byte[] magic;
 
-    ClientCompressor(Class compressorClass, UnaryOperator<InputStream> decompressorCreator, byte[] magic) {
-        this.compressorClass = compressorClass;
+    ClientCompressor(UnaryOperator<InputStream> compressorCreator, UnaryOperator<InputStream> decompressorCreator,
+            byte[] magic) {
+        this.compressorCreator = compressorCreator;
         this.decompressorCreator = decompressorCreator;
         this.magic = magic;
+    }
+
+    public InputStream getCompressor(InputStream stream) {
+        return compressorCreator.apply(stream);
     }
 
     private boolean matchMagic(byte[] buffer, int bufferLen) {
@@ -74,7 +86,7 @@ public enum ClientCompressor {
         int maxLen = compressors.get(0).magic.length;
         buff.mark(maxLen);
         byte[] headerBuffer = new byte[maxLen];
-        int len = buff.read(headerBuffer);
+        int len = ByteStreams.read(buff, headerBuffer, 0, maxLen);
         buff.reset();
         ClientCompressor compressor = compressors.stream().filter(
                 t -> t.magic.length <= len && t.matchMagic(headerBuffer, len)).collect(MoreCollectors.onlyElement());

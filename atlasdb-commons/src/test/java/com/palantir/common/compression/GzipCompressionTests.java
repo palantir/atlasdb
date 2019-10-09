@@ -19,7 +19,7 @@ public class GzipCompressionTests extends AbstractCompressionTests {
 
     @Override
     protected void initializeCompressStreams() throws Exception {
-        compressingStream = new GzipCompressingInputStream(uncompressedStream, 512);
+        compressingStream = ClientCompressor.GZIP.getCompressor(uncompressedStream);
         decompressingStream = new CompressorForwardingInputStream(compressingStream);
     }
 }

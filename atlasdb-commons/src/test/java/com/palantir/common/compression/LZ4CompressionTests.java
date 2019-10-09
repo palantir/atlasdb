@@ -24,7 +24,7 @@ public class LZ4CompressionTests extends AbstractCompressionTests {
 
     @Override
     protected void initializeCompressStreams() throws Exception {
-        compressingStream = new LZ4CompressingInputStream(uncompressedStream);
+        compressingStream =  ClientCompressor.LZ4.getCompressor(uncompressedStream);
         decompressingStream = new CompressorForwardingInputStream(compressingStream);
     }
 
