@@ -1,6 +1,6 @@
 type: fix
 fix:
-  description: 'CQL capable config format change to give users more flexibility when configuring their service.
-    Also provides a soft transition to the new client with less risk.'
+  description: 'CQL capable config format change to give users more flexibility when configuring their service. Also
+    provides a soft transition to the new client with less risk.'
   links:
   - https://github.com/palantir/atlasdb/pull/4289
