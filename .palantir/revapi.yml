@@ -1,0 +1,8 @@
+versionOverrides: {}
+acceptedBreaks:
+  0.158.6:
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.field.removed"
+      old: "field com.palantir.atlasdb.http.AtlasDbHttpClients.DEFAULT_TARGET_FACTORY"
+      new: null
+      justification: "Clean slate"
