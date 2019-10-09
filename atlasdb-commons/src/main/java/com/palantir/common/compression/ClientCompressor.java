@@ -44,8 +44,8 @@ public enum ClientCompressor {
             new byte[] {'L', 'Z', '4', 'B', 'l', 'o', 'c', 'k'}),
     NONE(null, UnaryOperator.identity(), new byte[] {});
 
-    public final Class<InputStream> compressorClass;
-    public UnaryOperator<InputStream> decompressorCreator;
+    private final Class<InputStream> compressorClass;
+    private UnaryOperator<InputStream> decompressorCreator;
     public final byte[] magic;
 
     ClientCompressor(Class compressorClass, UnaryOperator<InputStream> decompressorCreator, byte[] magic) {
@@ -77,7 +77,7 @@ public enum ClientCompressor {
         int len = buff.read(headerBuffer);
         buff.reset();
         ClientCompressor compressor = compressors.stream().filter(
-                t -> t.matchMagic(headerBuffer, len)).collect(MoreCollectors.onlyElement());
+                t -> t.magic.length <= len && t.matchMagic(headerBuffer, len)).collect(MoreCollectors.onlyElement());
         return compressor.decompressorCreator.apply(buff);
     }
 }

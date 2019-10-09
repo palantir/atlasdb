@@ -29,17 +29,26 @@ public class CompressorForwardingInputStream extends InputStream {
 
     @Override
     public int read() throws IOException {
-        if (delegate == null) {
-            delegate = ClientCompressor.getDecompressorStream(compressedStream);
-        }
-        return delegate.read();
+       initializeDelegate();
+       return delegate.read();
+    }
+
+    @Override
+    public int read(byte b[], int off, int len) throws IOException {
+        initializeDelegate();
+        return delegate.read(b, off, len);
     }
 
     @Override
     public void close() throws IOException {
-        super.close();
         if (delegate != null) {
             delegate.close();
+        }
+    }
+
+    private void initializeDelegate() throws IOException {
+        if (delegate == null) {
+            delegate = ClientCompressor.getDecompressorStream(compressedStream);
         }
     }
 }

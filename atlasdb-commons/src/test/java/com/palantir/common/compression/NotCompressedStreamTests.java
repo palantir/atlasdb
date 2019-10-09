@@ -15,6 +15,8 @@
  */
 package com.palantir.common.compression;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.NoSuchElementException;
@@ -23,10 +25,10 @@ import org.junit.Test;
 
 public class NotCompressedStreamTests {
 
-    @Test(expected = NoSuchElementException.class)
-    public void testNonCompressedStreamRead() throws Exception {
+    @Test
+    public void testNonCompressedStreamRead() {
         ByteArrayInputStream compressingStream = new ByteArrayInputStream(new byte[10]);
         InputStream decompressingStream = new CompressorForwardingInputStream(compressingStream);
-        decompressingStream.read();
+        assertThatExceptionOfType(NoSuchElementException.class).isThrownBy(() -> decompressingStream.read());
     }
 }
