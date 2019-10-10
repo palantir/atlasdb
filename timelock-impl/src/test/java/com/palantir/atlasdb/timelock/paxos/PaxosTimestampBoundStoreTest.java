@@ -82,6 +82,8 @@ public class PaxosTimestampBoundStoreTest {
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
     private final List<PaxosLearner> learners = Lists.newArrayList();
     private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
+    private AutobatchingPaxosLearnerNetworkClientFactory learnerNetworkClientFactory;
+    private AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory;
 
     @Parameterized.Parameters
     public static Iterable<Boolean> data() {
@@ -141,13 +143,13 @@ public class PaxosTimestampBoundStoreTest {
         }
 
         if (useBatch) {
-            acceptorClient = AutobatchingPaxosAcceptorNetworkClientFactory.create(
-                    batchPaxosAcceptors, executor, QUORUM_SIZE)
-                    .paxosAcceptorForClient(CLIENT);
+            acceptorNetworkClientFactory = AutobatchingPaxosAcceptorNetworkClientFactory.create(
+                    batchPaxosAcceptors, executor, QUORUM_SIZE);
+            acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
 
-            PaxosLearnerNetworkClient batchLearnerClient = AutobatchingPaxosLearnerNetworkClientFactory.create(
-                    batchPaxosLearners, executor, QUORUM_SIZE)
-                    .paxosLearnerForClient(CLIENT);
+            learnerNetworkClientFactory = AutobatchingPaxosLearnerNetworkClientFactory
+                    .create(batchPaxosLearners, executor, QUORUM_SIZE);
+            PaxosLearnerNetworkClient batchLearnerClient = learnerNetworkClientFactory.paxosLearnerForClient(CLIENT);
 
             learnerClientsByNode = Stream.generate(() -> batchLearnerClient)
                     .limit(NUM_NODES)
@@ -170,6 +172,13 @@ public class PaxosTimestampBoundStoreTest {
 
     @After
     public void tearDown() throws InterruptedException {
+        if (learnerNetworkClientFactory != null) {
+            learnerNetworkClientFactory.close();
+        }
+
+        if (acceptorNetworkClientFactory != null) {
+            acceptorNetworkClientFactory.close();
+        }
         executor.shutdownNow();
         boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
         if (!terminated) {
