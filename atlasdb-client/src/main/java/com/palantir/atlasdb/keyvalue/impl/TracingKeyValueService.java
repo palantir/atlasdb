@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 
@@ -32,7 +31,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -80,6 +78,24 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
         return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
+    }
+
+    private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
+            DetachedSpan detachedSpan,
+            ListenableFuture<V> future, 
+            ExecutorService tracingExecutorService) {
+        Futures.addCallback(future, new FutureCallback<V>() {
+            @Override
+            public void onSuccess(@NullableDecl V result) {
+                detachedSpan.complete();
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                detachedSpan.complete();
+            }
+        }, tracingExecutorService);
+        return future;
     }
 
     @Override
@@ -435,18 +451,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
                 LoggingArgs.safeTableOrPlaceholder(tableRef), timestampByCell.size()));
 
         ListenableFuture<Map<Cell, Value>> future = delegate().getAsync(tableRef, timestampByCell);
-        Futures.addCallback(future, new FutureCallback<Map<Cell, Value>>() {
-            @Override
-            public void onSuccess(@NullableDecl Map<Cell, Value> result) {
-                detachedSpan.complete();
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                detachedSpan.complete();
-            }
-        }, tracingExecutorService);
-        return future;
+        return attachDetachedSpanCompletion(detachedSpan, future, tracingExecutorService);
     }
 }
-
