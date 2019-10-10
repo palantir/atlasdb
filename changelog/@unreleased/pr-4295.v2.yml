@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Tracing library bump to 3.2.0 from 2.16.0. See these [release notes](https://github.com/palantir/tracing-java/releases/tag/3.2.0).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4295
