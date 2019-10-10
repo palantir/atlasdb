@@ -98,8 +98,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncCellLoader;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
-import com.palantir.atlasdb.keyvalue.cassandra.async.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -152,6 +152,7 @@ import okio.ByteString;
  */
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
+
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
         @Override
@@ -216,6 +217,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
+    private final AsyncCellLoader asyncCellLoader;
     private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
@@ -422,6 +424,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
+        this.asyncCellLoader = AsyncCellLoader.create(cqlClient, executor, config.getKeyspaceOrThrow());
         this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
         this.cellValuePutter = new CellValuePutter(
                 config,
@@ -1937,36 +1940,27 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            log.info("Attempted get on '{}' table with no cells", LoggingArgs.tableRef(tableRef));
+            return Futures.immediateFuture(ImmutableMap.of());
+        }
+        SetMultimap<Long, Cell> cellsByTs = Multimaps.invertFrom(
+                Multimaps.forMap(timestampByCell), HashMultimap.create());
 
-        Map<Cell, ? extends ListenableFuture<? extends Optional<Value>>> cellsToFutureResults =
-                KeyedStream.stream(timestampByCell)
-                        .map((cell, timestamp) ->
-                                ImmutableGetQuerySpec.builder()
-                                        .tableReference(tableRef)
-                                        .keySpace(config.getKeyspaceOrThrow())
-                                        .row(ByteBuffer.wrap(cell.getRowName()))
-                                        .column(ByteBuffer.wrap(cell.getColumnName()))
-                                        .humanReadableTimestamp(timestamp)
-                                        .executor(executor)
-                                        .queryConsistency(com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM)
-                                        .build())
-                        .map(cqlClient::executeQuery)
-                        .collectToMap();
+        List<ListenableFuture<Map<Cell, Value>>> listOfMapFutures = cellsByTs.keySet()
+                .stream()
+                .map(timestamp ->
+                        asyncCellLoader.loadAllWithTimestamp(tableRef, cellsByTs.get(timestamp), timestamp))
+                .collect(Collectors.toList());
 
-        return Futures.whenAllSucceed(cellsToFutureResults.values())
-                .call(() -> KeyedStream.stream(cellsToFutureResults)
-                                .map(future -> {
-                                    try {
-                                        return future.get();
-                                    } catch (Exception e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                })
-                                .filter(Optional::isPresent)
-                                .map(Optional::get)
-                                .collectToMap(),
+        return Futures.whenAllSucceed(listOfMapFutures)
+                .call(() -> listOfMapFutures.stream()
+                                .map(AsyncCellLoader::getDone)
+                                .flatMap(map -> map.entrySet().stream())
+                                .collect(Collectors.toMap(Entry::getKey, Entry::getValue)),
                         executor);
     }
+
 
     private static class TableCellAndValue {
         private static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
