@@ -25,6 +25,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +46,7 @@ import org.junit.runners.Parameterized;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closer;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -80,8 +82,7 @@ public class PaxosTimestampBoundStoreTest {
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
     private final List<PaxosLearner> learners = Lists.newArrayList();
     private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
-    private List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories;
-    private AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory;
+    private final Closer closer = Closer.create();
 
     @Parameterized.Parameters
     public static Iterable<Boolean> data() {
@@ -141,11 +142,12 @@ public class PaxosTimestampBoundStoreTest {
         }
 
         if (useBatch) {
-            acceptorNetworkClientFactory = AutobatchingPaxosAcceptorNetworkClientFactory.create(
-                    batchPaxosAcceptors, executor, QUORUM_SIZE);
+            AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory =
+                    AutobatchingPaxosAcceptorNetworkClientFactory.create(batchPaxosAcceptors, executor, QUORUM_SIZE);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
 
-            learnerNetworkClientFactories = batchPaxosLearners.stream()
+            List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories = batchPaxosLearners
+                    .stream()
                     .map(localLearner -> LocalAndRemotes.of(
                             localLearner,
                             batchPaxosLearners.stream()
@@ -160,6 +162,9 @@ public class PaxosTimestampBoundStoreTest {
             learnerClientsByNode = learnerNetworkClientFactories.stream()
                     .map(factory -> factory.paxosLearnerForClient(CLIENT))
                     .collect(toList());
+
+            closer.register(acceptorNetworkClientFactory);
+            learnerNetworkClientFactories.forEach(closer::register);
         } else {
             acceptorClient = new SingleLeaderAcceptorNetworkClient(
                     acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor));
@@ -177,20 +182,8 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @After
-    public void tearDown() throws InterruptedException {
-        if (learnerNetworkClientFactories != null) {
-            for (AutobatchingPaxosLearnerNetworkClientFactory learnerFactory : learnerNetworkClientFactories) {
-                try {
-                    learnerFactory.close();
-                } catch (Exception e) {
-                    // continue closing everything else
-                }
-            }
-        }
-
-        if (acceptorNetworkClientFactory != null) {
-            acceptorNetworkClientFactory.close();
-        }
+    public void tearDown() throws InterruptedException, IOException {
+        closer.close();
         executor.shutdownNow();
         boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
         if (!terminated) {
