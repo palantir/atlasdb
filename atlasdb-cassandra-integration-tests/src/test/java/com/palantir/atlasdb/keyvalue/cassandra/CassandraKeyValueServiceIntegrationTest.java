@@ -94,42 +94,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
     private final String name;
 
-    private static class SynchronousDelegate
-            implements AutoDelegate_CassandraKeyValueService {
-        private final CassandraKeyValueServiceImpl delegate;
-
-        SynchronousDelegate(CassandraKeyValueServiceImpl cassandraKeyValueService) {
-            this.delegate = cassandraKeyValueService;
-        }
-
-        @Override
-        public CassandraKeyValueServiceImpl delegate() {
-            return delegate;
-        }
-    }
-
-    private static class AsyncDelegate implements AutoDelegate_CassandraKeyValueService {
-        private final CassandraKeyValueServiceImpl delegate;
-
-        AsyncDelegate(CassandraKeyValueServiceImpl cassandraKeyValueService) {
-            this.delegate = cassandraKeyValueService;
-        }
-
-        @Override
-        public CassandraKeyValueServiceImpl delegate() {
-            return delegate;
-        }
-
-        @Override
-        public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-            try {
-                return delegate.getAsync(tableRef, timestampByCell).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
@@ -146,10 +110,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
             logger));
 
-    public CassandraKeyValueServiceIntegrationTest(String name, Function<KeyValueService, KeyValueService> supplier) {
-        super(CASSANDRA, supplier);
+    public CassandraKeyValueServiceIntegrationTest(
+            String name,
+            Function<KeyValueService, KeyValueService> keyValueServiceWrapper) {
+        super(CASSANDRA, keyValueServiceWrapper);
         this.name = name;
-        keyValueService = supplier.apply(this.keyValueService);
     }
 
     @Override
@@ -214,19 +179,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testCfEqualityChecker() throws TException {
         CassandraKeyValueServiceImpl kvs;
-        if (keyValueService instanceof CassandraKeyValueServiceImpl) {
-            kvs = (CassandraKeyValueServiceImpl) keyValueService;
-        } else if (keyValueService instanceof SynchronousDelegate) {
-            kvs = (CassandraKeyValueServiceImpl) ((SynchronousDelegate) keyValueService).delegate();
-        } else if (keyValueService instanceof AsyncDelegate) {
-            kvs = (CassandraKeyValueServiceImpl) ((AsyncDelegate) keyValueService).delegate();
+        if (keyValueService instanceof CassandraKeyValueService) {
+            kvs = getUnderlyingKvs((CassandraKeyValueService) keyValueService);
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(NEVER_SEEN);
             assertTrue("The nesting of Key Value Services has apparently changed",
                     delegate instanceof CassandraKeyValueService);
             kvs = (CassandraKeyValueServiceImpl) delegate;
         } else {
-            throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
+            throw getUnrecognizedKeyValueServiceException();
         }
 
         kvs.createTable(NEVER_SEEN, getMetadata());
@@ -403,14 +364,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 System.currentTimeMillis());
         keyValueService.createTable(tableRef, ORIGINAL_METADATA);
 
-        if (keyValueService instanceof SynchronousDelegate) {
-            ((SynchronousDelegate) keyValueService).delegate().upgradeFromOlderInternalSchema();
-        } else if (keyValueService instanceof AsyncDelegate) {
-            ((AsyncDelegate) keyValueService).delegate().upgradeFromOlderInternalSchema();
-        } else {
-            ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
-        }
-
+        getUnderlyingKvs((CassandraKeyValueService) keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), eq(LoggingArgs.tableRef(tableRef)));
         keyValueService.dropTable(tableRef);
     }
@@ -425,13 +379,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 System.currentTimeMillis());
         keyValueService.createTable(tableRef, ORIGINAL_METADATA);
 
-        if (keyValueService instanceof SynchronousDelegate) {
-            ((SynchronousDelegate) keyValueService).delegate().upgradeFromOlderInternalSchema();
-        } else if (keyValueService instanceof AsyncDelegate) {
-            ((AsyncDelegate) keyValueService).delegate().upgradeFromOlderInternalSchema();
-        } else {
-            ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
-        }
+        getUnderlyingKvs((CassandraKeyValueService) keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), eq(LoggingArgs.tableRef(tableRef)));
         keyValueService.dropTable(tableRef);
     }
@@ -498,5 +446,58 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 cachePriority(TableMetadataPersistence.CachePriority.COLD);
             }
         }.toTableMetadata().persistToBytes();
+    }
+
+    private static CassandraKeyValueServiceImpl getUnderlyingKvs(CassandraKeyValueService keyValueService) {
+        if (keyValueService instanceof SynchronousDelegate) {
+            return ((SynchronousDelegate) keyValueService).delegate();
+        }
+        if (keyValueService instanceof AsyncDelegate) {
+            return ((AsyncDelegate) keyValueService).delegate();
+        }
+        if (keyValueService instanceof CassandraKeyValueServiceImpl) {
+            return (CassandraKeyValueServiceImpl) keyValueService;
+        }
+        throw getUnrecognizedKeyValueServiceException();
+    }
+
+    private static IllegalArgumentException getUnrecognizedKeyValueServiceException() {
+        return new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
+    }
+
+    private static class SynchronousDelegate
+            implements AutoDelegate_CassandraKeyValueService {
+        private final CassandraKeyValueServiceImpl delegate;
+
+        SynchronousDelegate(CassandraKeyValueServiceImpl cassandraKeyValueService) {
+            this.delegate = cassandraKeyValueService;
+        }
+
+        @Override
+        public CassandraKeyValueServiceImpl delegate() {
+            return delegate;
+        }
+    }
+
+    private static class AsyncDelegate implements AutoDelegate_CassandraKeyValueService {
+        private final CassandraKeyValueServiceImpl delegate;
+
+        AsyncDelegate(CassandraKeyValueServiceImpl cassandraKeyValueService) {
+            this.delegate = cassandraKeyValueService;
+        }
+
+        @Override
+        public CassandraKeyValueServiceImpl delegate() {
+            return delegate;
+        }
+
+        @Override
+        public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+            try {
+                return delegate.getAsync(tableRef, timestampByCell).get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

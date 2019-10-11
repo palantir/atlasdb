@@ -24,8 +24,9 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Statement;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Preconditions;
@@ -36,9 +37,9 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
     /**
      * Since each query is constructed for one cell we are using an optimisation that we can ask the CQL to do most of
-     * the work internally. First of all we are using the fact that timestamps in column2 are ordered in ASC order and
-     * since we are interested in the most recent timestamp we use LIMIT 1 to get the latest value. This should help
-     * with both cassandra workload and amount of transferred data.
+     * the work internally. First of all we are using the fact that timestamps in {@code column2} are ordered in
+     * {@code ASC} order and since we are interested in the most recent timestamp we use {@code LIMIT 1} to get the
+     * latest value. This should help with both cassandra workload and amount of transferred data.
      */
     private static final String QUERY_FORMAT = "SELECT value, column2 FROM \"%s\".\"%s\" "
             + "WHERE key = :row AND column1 = :column AND column2 > :timestamp "
@@ -54,23 +55,27 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     @org.immutables.value.Value.Auxiliary
     public abstract long humanReadableTimestamp();
 
+    @Override
     public final Supplier<RowStreamAccumulator<Optional<Value>>> rowStreamAccumulatorFactory() {
         return GetQueryAccumulator::new;
     }
 
-    private long queryTimestamp() {
-        return ~humanReadableTimestamp();
-    }
-
+    @Override
     public String formatQueryString() {
         return String.format(QUERY_FORMAT, keySpace(), AbstractKeyValueService.internalTableName(tableReference()));
     }
 
     @Override
-    public BoundStatement bind(BoundStatement boundStatement) {
-        return boundStatement.setBytes("row", row())
+    public Statement makeExecutableStatement(PreparedStatement preparedStatement) {
+        return preparedStatement.bind()
+                .setBytes("row", row())
                 .setBytes("column", column())
-                .setLong("timestamp", queryTimestamp());
+                .setLong("timestamp", queryTimestamp())
+                .setConsistencyLevel(queryConsistency());
+    }
+
+    private long queryTimestamp() {
+        return ~humanReadableTimestamp();
     }
 
     @ThreadSafe

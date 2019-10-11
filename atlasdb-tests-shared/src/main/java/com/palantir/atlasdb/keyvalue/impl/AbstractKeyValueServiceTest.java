@@ -100,18 +100,19 @@ public abstract class AbstractKeyValueServiceTest {
 
     private static final Cell TEST_CELL = Cell.create(row(0), column(0));
     private static final long TEST_TIMESTAMP = 1000000L;
-    private final Function<KeyValueService, KeyValueService> supplier;
+    private final Function<KeyValueService, KeyValueService> keyValueServiceWrapper;
 
     protected KeyValueService keyValueService;
 
     protected AbstractKeyValueServiceTest(KvsManager kvsManager) {
-        this.kvsManager = kvsManager;
-        this.supplier = Function.identity();
+        this(kvsManager, Function.identity());
     }
 
-    public AbstractKeyValueServiceTest(KvsManager kvsManager, Function<KeyValueService, KeyValueService> supplier) {
+    public AbstractKeyValueServiceTest(
+            KvsManager kvsManager,
+            Function<KeyValueService, KeyValueService> keyValueServiceWrapper) {
         this.kvsManager = kvsManager;
-        this.supplier = supplier;
+        this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
 
     protected boolean reverseRangesSupported() {
@@ -124,7 +125,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        keyValueService = supplier.apply(kvsManager.getDefaultKvs());
+        keyValueService = keyValueServiceWrapper.apply(kvsManager.getDefaultKvs());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 

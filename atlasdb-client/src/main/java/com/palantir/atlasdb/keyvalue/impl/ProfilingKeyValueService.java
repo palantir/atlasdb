@@ -504,7 +504,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
         long startTime = System.currentTimeMillis();
         return KvsProfilingLogger.maybeLogAsync(() -> delegate.getAsync(tableRef, timestampByCell),
                 (logger, stopwatch) ->
-                        logger.log("Call to KVS.get at time {}, on table {}, requesting {} cells took {} ms ",
+                        logger.log("Call to KVS.getAsync",
                                 LoggingArgs.startTimeMillis(startTime),
                                 LoggingArgs.tableRef(tableRef),
                                 LoggingArgs.cellCount(timestampByCell.size()),

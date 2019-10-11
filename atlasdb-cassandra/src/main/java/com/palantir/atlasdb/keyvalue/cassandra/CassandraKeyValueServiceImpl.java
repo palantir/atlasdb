@@ -413,7 +413,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry(), log.isTraceEnabled()));
+        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -444,14 +444,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static ExecutorService createInstrumentedFixedThreadPool(
             CassandraKeyValueServiceConfig config,
-            MetricRegistry registry,
-            boolean withTracing) {
-        ExecutorService executorService = new InstrumentedExecutorService(
+            MetricRegistry registry) {
+        return Tracers.wrap(new InstrumentedExecutorService(
                 createFixedThreadPool("Atlas Cassandra KVS",
                         config.poolSize() * config.servers().numberOfThriftHosts()),
                 registry,
-                MetricRegistry.name(CassandraKeyValueService.class, "executorService"));
-        return withTracing ? Tracers.wrap(executorService) : executorService;
+                MetricRegistry.name(CassandraKeyValueService.class, "executorService")));
     }
 
     @Override
@@ -1948,24 +1946,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
-            log.info("Attempted get on '{}' table with no cells", LoggingArgs.tableRef(tableRef));
+            log.info("Attempted get with no specified cells", LoggingArgs.tableRef(tableRef));
             return Futures.immediateFuture(ImmutableMap.of());
         }
-        SetMultimap<Long, Cell> cellsByTs = Multimaps.invertFrom(
-                Multimaps.forMap(timestampByCell), HashMultimap.create());
 
-        List<ListenableFuture<Map<Cell, Value>>> listOfMapFutures = cellsByTs.keySet()
-                .stream()
-                .map(timestamp ->
-                        asyncCellLoader.loadAllWithTimestamp(tableRef, cellsByTs.get(timestamp), timestamp))
-                .collect(Collectors.toList());
-
-        return Futures.whenAllSucceed(listOfMapFutures)
-                .call(() -> listOfMapFutures.stream()
-                                .map(AsyncCellLoader::getDone)
-                                .flatMap(map -> map.entrySet().stream())
-                                .collect(Collectors.toMap(Entry::getKey, Entry::getValue)),
-                        executor);
+        return asyncCellLoader.loadAllWithTimestamp(tableRef, timestampByCell);
     }
 
 

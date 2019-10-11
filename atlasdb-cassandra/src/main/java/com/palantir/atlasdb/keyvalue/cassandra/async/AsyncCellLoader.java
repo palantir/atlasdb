@@ -19,16 +19,13 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -58,22 +55,22 @@ public final class AsyncCellLoader {
 
     public ListenableFuture<Map<Cell, Value>> loadAllWithTimestamp(
             TableReference tableRef,
-            Set<Cell> cells,
-            long startTimestamp) {
+            Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
             log.trace(
-                    "Loading {} cells from {} starting at timestamp {}, using CQL.",
-                    SafeArg.of("cells", cells.size()),
-                    LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("startTs", startTimestamp));
+                    "Loading cells using CQL.",
+                    SafeArg.of("cells", timestampByCell.size()),
+                    LoggingArgs.tableRef(tableRef));
         }
 
-        Map<Cell, ListenableFuture<Optional<Value>>> cellsToFutureResults = cells.stream()
-                .map(cell -> Maps.immutableEntry(cell, loadCellWithTimestamp(tableRef, cell, startTimestamp)))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        Map<Cell, ListenableFuture<Optional<Value>>> cellListenableFutureMap =
+                KeyedStream.stream(timestampByCell)
+                        .map((cell, timestamp) ->
+                                loadCellWithTimestamp(tableRef, cell, timestamp))
+                        .collectToMap();
 
-        return Futures.whenAllSucceed(cellsToFutureResults.values())
-                .call(() -> KeyedStream.stream(cellsToFutureResults)
+        return Futures.whenAllSucceed(cellListenableFutureMap.values())
+                .call(() -> KeyedStream.stream(cellListenableFutureMap)
                                 .map(AsyncCellLoader::getDone)
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)

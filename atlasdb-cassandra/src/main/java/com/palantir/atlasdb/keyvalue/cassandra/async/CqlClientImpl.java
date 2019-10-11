@@ -18,11 +18,11 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.util.concurrent.Executor;
 
-import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
@@ -99,7 +99,7 @@ public final class CqlClientImpl implements CqlClient {
             Session session,
             int preparedStatementCacheSize) {
         QueryCache queryCache = QueryCache.create(
-                key -> session.prepare(key.formatQueryString()).setConsistencyLevel(key.queryConsistency()),
+                key -> session.prepare(key.formatQueryString()),
                 taggedMetricRegistry,
                 preparedStatementCacheSize);
 
@@ -121,16 +121,17 @@ public final class CqlClientImpl implements CqlClient {
     @Override
     public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
         PreparedStatement statement = statementPreparer.prepare(querySpec);
-        BoundStatement boundStatement = querySpec.bind(statement.bind());
-        return execute(boundStatement, querySpec.executor(), querySpec.rowStreamAccumulatorFactory().get());
+        Statement executableStatement = querySpec.makeExecutableStatement(statement);
+
+        return execute(executableStatement, querySpec.executor(), querySpec.rowStreamAccumulatorFactory().get());
     }
 
     private <V> ListenableFuture<V> execute(
-            BoundStatement boundStatement,
+            Statement executableStatement,
             Executor executor,
             RowStreamAccumulator<V> rowStreamAccumulator) {
         return Futures.transformAsync(
-                session.executeAsync(boundStatement),
+                session.executeAsync(executableStatement),
                 iterate(executor, rowStreamAccumulator),
                 executor);
     }

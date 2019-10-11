@@ -1,6 +1,5 @@
 type: improvement
 feature:
-  description: KVS now has a getAsync endpoint which returns ListenableFuture. CassandraKVS uses CQL client for
-    communicating with Cassandra.
+  description: Key/value services can now support asynchronous get operations. This has been implemented for the Cassandra key value service.
   links:
   - https://github.com/palantir/atlasdb/pull/4295
