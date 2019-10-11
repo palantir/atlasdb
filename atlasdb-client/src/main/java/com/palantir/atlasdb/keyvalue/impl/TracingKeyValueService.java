@@ -22,14 +22,10 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
-
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -53,7 +49,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.tracing.DetachedSpan;
+import com.palantir.tracing.Tracer;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -78,24 +74,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
         return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
-    }
-
-    private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
-            DetachedSpan detachedSpan,
-            ListenableFuture<V> future, 
-            ExecutorService tracingExecutorService) {
-        Futures.addCallback(future, new FutureCallback<V>() {
-            @Override
-            public void onSuccess(@NullableDecl V result) {
-                detachedSpan.complete();
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                detachedSpan.complete();
-            }
-        }, tracingExecutorService);
-        return future;
     }
 
     @Override
@@ -447,10 +425,10 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        DetachedSpan detachedSpan = DetachedSpan.start(String.format("getAsync(%s, %s cells)",
+        Tracer.fastStartSpan(String.format("getAsync(%s, %s cells)",
                 LoggingArgs.safeTableOrPlaceholder(tableRef), timestampByCell.size()));
-
         ListenableFuture<Map<Cell, Value>> future = delegate().getAsync(tableRef, timestampByCell);
-        return attachDetachedSpanCompletion(detachedSpan, future, tracingExecutorService);
+        Tracer.fastCompleteSpan();
+        return future;
     }
 }

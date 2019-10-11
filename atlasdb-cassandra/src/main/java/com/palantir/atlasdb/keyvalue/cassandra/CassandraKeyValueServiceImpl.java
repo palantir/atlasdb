@@ -131,6 +131,7 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tracing.Tracers;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -412,7 +413,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()));
+        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry(), log.isTraceEnabled()));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -441,13 +442,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 cassandraTableTruncator);
     }
 
-    private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
-            MetricRegistry registry) {
-        return new InstrumentedExecutorService(
+    private static ExecutorService createInstrumentedFixedThreadPool(
+            CassandraKeyValueServiceConfig config,
+            MetricRegistry registry,
+            boolean withTracing) {
+        ExecutorService executorService = new InstrumentedExecutorService(
                 createFixedThreadPool("Atlas Cassandra KVS",
                         config.poolSize() * config.servers().numberOfThriftHosts()),
                 registry,
                 MetricRegistry.name(CassandraKeyValueService.class, "executorService"));
+        return withTracing ? Tracers.wrap(executorService) : executorService;
     }
 
     @Override
