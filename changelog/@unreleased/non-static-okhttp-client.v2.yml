@@ -1,0 +1,4 @@
+type: improvement
+improvement:
+  description: |
+    Experimental functionality to route Cassandra calls to the same AZ - removed static okhttp client
