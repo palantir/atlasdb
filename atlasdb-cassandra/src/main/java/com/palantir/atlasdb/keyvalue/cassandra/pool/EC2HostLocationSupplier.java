@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import java.io.IOException;
 import java.util.function.Supplier;
 
+import com.google.common.base.Suppliers;
 import com.palantir.logsafe.Preconditions;
 
 import okhttp3.OkHttpClient;
@@ -33,16 +34,12 @@ import okhttp3.Response;
  */
 public final class EC2HostLocationSupplier implements Supplier<HostLocation> {
 
-    private final OkHttpClient client;
-
-    EC2HostLocationSupplier() {
-        this.client = new OkHttpClient.Builder().build();
-    }
+    private static final Supplier<OkHttpClient> client = Suppliers.memoize(() -> new OkHttpClient.Builder().build());
 
     @Override
     public HostLocation get() {
         try {
-            Response response = client.newCall(new Request.Builder()
+            Response response = client.get().newCall(new Request.Builder()
                     .get()
                     .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
                     .build())
