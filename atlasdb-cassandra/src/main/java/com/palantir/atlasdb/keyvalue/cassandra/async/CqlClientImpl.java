@@ -121,7 +121,8 @@ public final class CqlClientImpl implements CqlClient {
     @Override
     public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
         PreparedStatement statement = statementPreparer.prepare(querySpec);
-        Statement executableStatement = querySpec.makeExecutableStatement(statement);
+        Statement executableStatement = querySpec.makeExecutableStatement(statement)
+                .setConsistencyLevel(querySpec.queryConsistency());
 
         return execute(executableStatement, querySpec.executor(), querySpec.rowStreamAccumulatorFactory().get());
     }

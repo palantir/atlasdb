@@ -90,11 +90,10 @@ public final class AsyncCellLoader {
                         .column(ByteBuffer.wrap(cell.getColumnName()))
                         .humanReadableTimestamp(timestamp)
                         .executor(executor)
-                        .queryConsistency(com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM)
                         .build());
     }
 
-    public static  <V> V getDone(Future<V> listenableFuture) {
+    private static  <V> V getDone(Future<V> listenableFuture) {
         try {
             return Futures.getDone(listenableFuture);
         } catch (ExecutionException e) {

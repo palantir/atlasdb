@@ -112,7 +112,7 @@ public class KvsProfilingLogger {
     }
 
     /**
-     * Runs an action (which is a {@code CallableCheckedException}) through a {@link Monitor}, registering results on
+     * Runs an action (which is a {@link CallableCheckedException}) through a {@link Monitor}, registering results on
      * successful operations and exceptions on unsuccessful operations, as well as logging operations.
      *
      * Please see the documentation of {@link Monitor} for more information on how the logging functions are invoked.

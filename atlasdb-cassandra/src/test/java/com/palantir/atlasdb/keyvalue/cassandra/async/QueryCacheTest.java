@@ -157,8 +157,7 @@ public class QueryCacheTest {
                                 TABLE_REFERENCE,
                                 PtBytes.toBytes(10),
                                 PtBytes.toBytes(10),
-                                3,
-                                ConsistencyLevel.ONE)));
+                                3)));
     }
 
     private static GetQuerySpec getQuerySpecWithRandomData(
@@ -167,7 +166,6 @@ public class QueryCacheTest {
             byte[] rowValue,
             byte[] columnValue,
             int timestamp,
-            ConsistencyLevel consistencyLevel,
             Executor executor) {
         return ImmutableGetQuerySpec.builder()
                 .keySpace(keyspace)
@@ -175,43 +173,8 @@ public class QueryCacheTest {
                 .column(ByteBuffer.wrap(rowValue))
                 .row(ByteBuffer.wrap(columnValue))
                 .humanReadableTimestamp(timestamp)
-                .queryConsistency(consistencyLevel)
                 .executor(executor)
                 .build();
-    }
-
-    private static GetQuerySpec getQuerySpecWithRandomData(
-            String keyspace,
-            TableReference tableReference,
-            byte[] rowValue,
-            byte[] columnValue,
-            int timestamp,
-            ConsistencyLevel consistencyLevel) {
-        return getQuerySpecWithRandomData(
-                keyspace,
-                tableReference,
-                rowValue,
-                columnValue,
-                timestamp,
-                consistencyLevel,
-                TESTING_EXECUTOR);
-    }
-
-    private static GetQuerySpec getQuerySpecWithRandomData(
-            String keyspace,
-            TableReference tableReference,
-            byte[] rowValue,
-            byte[] columnValue,
-            int timestamp,
-            Executor executor) {
-        return getQuerySpecWithRandomData(
-                keyspace,
-                tableReference,
-                rowValue,
-                columnValue,
-                timestamp,
-                READ_CONSISTENCY,
-                executor);
     }
 
     private static GetQuerySpec getQuerySpecWithRandomData(
@@ -226,7 +189,6 @@ public class QueryCacheTest {
                 rowValue,
                 columnValue,
                 timestamp,
-                READ_CONSISTENCY,
                 TESTING_EXECUTOR);
     }
 }

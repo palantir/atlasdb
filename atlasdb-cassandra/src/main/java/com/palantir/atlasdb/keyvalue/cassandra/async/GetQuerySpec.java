@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
@@ -56,6 +57,11 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     public abstract long humanReadableTimestamp();
 
     @Override
+    public ConsistencyLevel queryConsistency() {
+        return ConsistencyLevel.LOCAL_QUORUM;
+    }
+
+    @Override
     public final Supplier<RowStreamAccumulator<Optional<Value>>> rowStreamAccumulatorFactory() {
         return GetQueryAccumulator::new;
     }
@@ -70,8 +76,7 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         return preparedStatement.bind()
                 .setBytes("row", row())
                 .setBytes("column", column())
-                .setLong("timestamp", queryTimestamp())
-                .setConsistencyLevel(queryConsistency());
+                .setLong("timestamp", queryTimestamp());
     }
 
     private long queryTimestamp() {
