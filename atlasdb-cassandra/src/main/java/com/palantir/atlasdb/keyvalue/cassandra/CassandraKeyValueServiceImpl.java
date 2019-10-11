@@ -1932,11 +1932,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     /**
-     * Asynchronously retrieves the data from the key-value store using Cassandra native protocol.
+     * Asynchronously gets values from the cassandra key-value store.
+     *
      * @param tableRef the name of the table to retrieve values from.
      * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
      *        retrieve that rows's value.
-     * @return listenable future containing the result
+     * @return listenable future map of retrieved values. Values which do not exist (either
+     *         because they were deleted or never created in the first place)
+     *         are simply not returned.
      */
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {

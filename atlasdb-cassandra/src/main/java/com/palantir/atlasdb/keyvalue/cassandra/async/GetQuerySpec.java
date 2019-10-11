@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -27,9 +26,9 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Row;
-import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.logsafe.Preconditions;
 
 
 @org.immutables.value.Value.Immutable
@@ -77,19 +76,19 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     @ThreadSafe
     public static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
 
-        private final AtomicReference<Optional<Value>> resultValue = new AtomicReference<>(Optional.empty());
+        private Optional<Value> resultValue = Optional.empty();
 
         @Override
-        public void accumulateRowStream(Stream<Row> rowStream) {
-            Stream<Value> valueStream = rowStream.map(GetQueryAccumulator::parseValue);
-            resultValue.updateAndGet(oldValue ->
-                    Streams.concat(oldValue.map(Stream::of).orElse(Stream.empty()), valueStream)
-                            .max(Comparator.comparingLong(Value::getTimestamp)));
+        public synchronized void accumulateRowStream(Stream<Row> rowStream) {
+            Preconditions.checkState(!resultValue.isPresent(),
+                    "There should not be multiple calls to this method");
+            resultValue = rowStream.map(GetQueryAccumulator::parseValue)
+                    .max(Comparator.comparingLong(Value::getTimestamp));
         }
 
         @Override
-        public Optional<Value> result() {
-            return resultValue.get();
+        public synchronized Optional<Value> result() {
+            return resultValue;
         }
 
         private static Value parseValue(Row row) {

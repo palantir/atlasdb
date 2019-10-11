@@ -17,7 +17,6 @@ package com.palantir.atlasdb.logging;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -34,6 +33,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 
 public class KvsProfilingLogger {
 
@@ -141,7 +141,7 @@ public class KvsProfilingLogger {
     }
 
     /**
-     * Runs an async action (which is a CallableCheckedException) through a {@link Monitor}, registering results on
+     * Runs an async action (which is a {@link CallableCheckedException}) through a {@link Monitor}, registering results on
      * successful operations and exceptions on unsuccessful operations, as well as logging operations.
      *
      * Please see the documentation of {@link Monitor} for more information on how the logging functions are invoked.
@@ -168,7 +168,7 @@ public class KvsProfilingLogger {
                     monitor.registerException(new Exception(t));
                     monitor.log();
                 }
-            }, Executors.newSingleThreadExecutor());
+            }, MoreExecutors.directExecutor());
             return future;
         } else {
             return action.call();
