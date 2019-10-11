@@ -17,15 +17,21 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.entry;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.verify;
 
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
@@ -38,14 +44,24 @@ public class LearnCoalescingConsumerTests {
     private static final Client CLIENT_2 = Client.of("client-2");
 
     @Mock
+    private BatchPaxosLearner local;
+
+    @Mock
     private BatchPaxosLearner remote;
+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+
+    @After
+    public void tearDown() {
+        executor.shutdown();
+    }
 
     @Test
     public void canProcessBatch() {
         PaxosValue paxosValue1 = paxosValue(10);
         PaxosValue paxosValue2 = paxosValue(14);
 
-        LearnCoalescingConsumer consumer = new LearnCoalescingConsumer(remote);
+        LearnCoalescingConsumer consumer = new LearnCoalescingConsumer(local, ImmutableList.of(remote), executor);
         consumer.apply(ImmutableSet.of(
                 entry(CLIENT_1, paxosValue1),
                 entry(CLIENT_1, paxosValue2),
@@ -56,7 +72,12 @@ public class LearnCoalescingConsumerTests {
                 .put(CLIENT_2, paxosValue1)
                 .build();
 
-        verify(remote).learn(remoteRequest);
+        verify(local).learn(remoteRequest);
+
+        // since remote requests are fired off and we don't wait for responses, we have to verify that they're called,
+        // *eventually*
+        await().atMost(5, TimeUnit.SECONDS)
+                .untilAsserted(() -> verify(remote).learn(remoteRequest));
     }
 
     private static PaxosValue paxosValue(long round) {

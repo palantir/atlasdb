@@ -43,13 +43,12 @@ abstract class BatchingNetworkClientFactories {
         AutobatchingPaxosAcceptorNetworkClientFactory acceptorFactory =
                 AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
 
-        List<BatchPaxosLearner> allBatchLearners = metrics()
+        LocalAndRemotes<BatchPaxosLearner> allBatchLearners = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
                         components().batchLearner(),
                         UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()),
-                        "batch-paxos-learner")
-                .all();
+                        "batch-paxos-learner");
 
         AutobatchingPaxosLearnerNetworkClientFactory learnerFactory =
                 AutobatchingPaxosLearnerNetworkClientFactory.create(allBatchLearners, sharedExecutor(), quorumSize());
