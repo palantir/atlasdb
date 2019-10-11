@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.palantir.logsafe.Preconditions;
 
 import okhttp3.OkHttpClient;
@@ -56,12 +57,15 @@ import okhttp3.Response;
  */
 public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
 
-    private static final OkHttpClient client = new OkHttpClient.Builder().build();
+    /*
+        This is a supplier to avoid class loading races breaking downstream internal products.
+     */
+    private static final Supplier<OkHttpClient> client = Suppliers.memoize(() -> new OkHttpClient.Builder().build());
 
     @Override
     public HostLocation get() {
         try {
-            Response response = client.newCall(new Request.Builder()
+            Response response = client.get().newCall(new Request.Builder()
                     .get()
                     .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
                     .build())
