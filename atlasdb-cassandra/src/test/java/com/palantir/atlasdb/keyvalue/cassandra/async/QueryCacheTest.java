@@ -20,10 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.Executor;
 
 import org.junit.Test;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -33,6 +36,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class QueryCacheTest {
 
+    public static final ConsistencyLevel READ_CONSISTENCY = ConsistencyLevel.ALL;
     private static Integer counter = 0;
     private static final StatementPreparer ALWAYS_INCREASING_ENTRY_CREATOR = querySpec -> mock(PreparedStatement.class);
 
@@ -42,6 +46,7 @@ public class QueryCacheTest {
     private static final String KEYSPACE = "foo";
     private static final TableReference TABLE_REFERENCE =
             TableReference.create(Namespace.DEFAULT_NAMESPACE, "bar");
+    private static final Executor TESTING_EXECUTOR = MoreExecutors.directExecutor();
 
 
     @Test
@@ -83,6 +88,8 @@ public class QueryCacheTest {
                 .column(ByteBuffer.wrap(rowValue))
                 .row(ByteBuffer.wrap(columnValue))
                 .humanReadableTimestamp(timestamp)
+                .queryConsistency(READ_CONSISTENCY)
+                .executor(TESTING_EXECUTOR)
                 .build();
     }
 }
