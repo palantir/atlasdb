@@ -50,7 +50,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
             new CacheLoader<TableReference, Map<Cell, byte[]>>() {
                 @Override
                 public Map<Cell, byte[]> load(TableReference input) {
-                    return Collections.synchronizedMap(Maps.<Cell, byte[]>newHashMap());
+                    return Collections.synchronizedMap(Maps.newHashMap());
                 }
             });
 
