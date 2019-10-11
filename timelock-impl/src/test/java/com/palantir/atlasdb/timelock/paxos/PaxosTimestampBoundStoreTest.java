@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,7 +31,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -82,7 +80,7 @@ public class PaxosTimestampBoundStoreTest {
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
     private final List<PaxosLearner> learners = Lists.newArrayList();
     private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
-    private AutobatchingPaxosLearnerNetworkClientFactory learnerNetworkClientFactory;
+    private List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories;
     private AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory;
 
     @Parameterized.Parameters
@@ -147,12 +145,20 @@ public class PaxosTimestampBoundStoreTest {
                     batchPaxosAcceptors, executor, QUORUM_SIZE);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
 
-            learnerNetworkClientFactory = AutobatchingPaxosLearnerNetworkClientFactory
-                    .create(batchPaxosLearners, executor, QUORUM_SIZE);
-            PaxosLearnerNetworkClient batchLearnerClient = learnerNetworkClientFactory.paxosLearnerForClient(CLIENT);
+            learnerNetworkClientFactories = batchPaxosLearners.stream()
+                    .map(localLearner -> LocalAndRemotes.of(
+                            localLearner,
+                            batchPaxosLearners.stream()
+                                    .filter(remoteLearners -> remoteLearners != localLearner)
+                                    .collect(toList())))
+                    .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.create(
+                            localAndRemotes,
+                            executor,
+                            QUORUM_SIZE))
+                    .collect(toList());
 
-            learnerClientsByNode = Stream.generate(() -> batchLearnerClient)
-                    .limit(NUM_NODES)
+            learnerClientsByNode = learnerNetworkClientFactories.stream()
+                    .map(factory -> factory.paxosLearnerForClient(CLIENT))
                     .collect(toList());
         } else {
             acceptorClient = new SingleLeaderAcceptorNetworkClient(
@@ -172,8 +178,15 @@ public class PaxosTimestampBoundStoreTest {
 
     @After
     public void tearDown() throws InterruptedException {
-        if (learnerNetworkClientFactory != null) {
-            learnerNetworkClientFactory.close();
+        if (learnerNetworkClientFactories != null) {
+            for (AutobatchingPaxosLearnerNetworkClientFactory learnerFactory : learnerNetworkClientFactories) {
+
+                try {
+                    learnerFactory.close();
+                } catch (Exception e) {
+                    // continue closing everything else
+                }
+            }
         }
 
         if (acceptorNetworkClientFactory != null) {
@@ -345,7 +358,7 @@ public class PaxosTimestampBoundStoreTest {
         store = createPaxosTimestampBoundStore(0, wrapper);
         store.forceAgreedState(1, TIMESTAMP_1);
         assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-        verify(wrapper, times(2)).propose(anyLong(), anyObject());
+        verify(wrapper, times(2)).propose(anyLong(), any(byte[].class));
     }
 
     private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex) {
