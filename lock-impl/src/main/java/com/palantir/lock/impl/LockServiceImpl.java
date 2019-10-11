@@ -1005,12 +1005,14 @@ public final class LockServiceImpl
                     if (realToken.getVersionId() != null
                             && isFromAtlasTransactionWithLockedImmutable(realToken)
                             && (currentTimeMillis() - realToken.getCreationDateMs()) > stuckTransactionTimeout.toMillis()) {
-                        log.warn("Reaped an actively refreshed lock from a transaction suppressing"
-                                        + " the immutable timestamp that couldn't possibly still be valid.",
-                                SafeArg.of("immutableTimestamp", realToken.getVersionId()),
-                                UnsafeArg.of("token", realToken));
+                        log.warn("Reaped an actively refreshed lock {} from a transaction suppressing"
+                                        + " the immutable timestamp {} that couldn't possibly still be valid.",
+                                UnsafeArg.of("token", realToken),
+                                SafeArg.of("immutableTimestamp", realToken.getVersionId()));
+                        unlockInternal(realToken, heldLocksMap);
+                    } else {
+                        queue.add(realToken);
                     }
-                    queue.add(realToken);
                 } else {
                     // TODO (jkong): Make both types of lock tokens identifiable.
                     log.info("Lock token {} was not properly refreshed and is now being reaped.",
