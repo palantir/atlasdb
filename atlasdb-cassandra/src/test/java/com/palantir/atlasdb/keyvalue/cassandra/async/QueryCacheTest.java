@@ -25,7 +25,6 @@ import java.util.concurrent.Executor;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -35,7 +34,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 
 public class QueryCacheTest {
 
-    private static final ConsistencyLevel READ_CONSISTENCY = ConsistencyLevel.ALL;
     private static final StatementPreparer MOCK_RETURNING_STATEMENT_PREPARER =
             querySpec -> mock(PreparedStatement.class);
     private static final MetricsManager METRICS_MANAGER = MetricsManagers.createForTests();
@@ -146,18 +144,6 @@ public class QueryCacheTest {
                                 PtBytes.toBytes(10),
                                 3,
                                 mock(Executor.class))));
-    }
-
-    @Test
-    public void testGetQuerySpecConsistencyNotIgnored() {
-        assertThat(expectedPreparedStatement)
-                .isNotEqualTo(
-                        cache.prepare(getQuerySpecWithRandomData(
-                                KEYSPACE,
-                                TABLE_REFERENCE,
-                                PtBytes.toBytes(10),
-                                PtBytes.toBytes(10),
-                                3)));
     }
 
     private static GetQuerySpec getQuerySpecWithRandomData(
