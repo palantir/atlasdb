@@ -180,7 +180,6 @@ public class PaxosTimestampBoundStoreTest {
     public void tearDown() throws InterruptedException {
         if (learnerNetworkClientFactories != null) {
             for (AutobatchingPaxosLearnerNetworkClientFactory learnerFactory : learnerNetworkClientFactories) {
-
                 try {
                     learnerFactory.close();
                 } catch (Exception e) {
