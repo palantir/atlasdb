@@ -94,7 +94,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
     private final String name;
 
-
     private static class SynchronousDelegate
             implements AutoDelegate_CassandraKeyValueService {
         private final CassandraKeyValueServiceImpl delegate;
