@@ -33,7 +33,11 @@ import okhttp3.Response;
  */
 public final class EC2HostLocationSupplier implements Supplier<HostLocation> {
 
-    private static final OkHttpClient client = new OkHttpClient.Builder().build();
+    private final OkHttpClient client;
+
+    EC2HostLocationSupplier() {
+        this.client = new OkHttpClient.Builder().build();
+    }
 
     @Override
     public HostLocation get() {
