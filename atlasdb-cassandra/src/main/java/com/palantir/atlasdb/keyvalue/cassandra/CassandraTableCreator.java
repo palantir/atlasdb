@@ -21,10 +21,12 @@ import java.util.UUID;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.thrift.TException;
 
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.schemabuilder.SchemaBuilder;
-import com.datastax.driver.core.schemabuilder.TableOptions.CompactionOptions;
-import com.datastax.driver.core.schemabuilder.TableOptions.CompressionOptions;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
+import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
+import com.datastax.oss.driver.api.querybuilder.schema.compaction.CompactionStrategy;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -38,6 +40,14 @@ class CassandraTableCreator {
     private static final String COLUMN = "column1";
     private static final String TIMESTAMP = "column2";
     private static final String VALUE = "value";
+    private static final String CACHING_OPTION = "caching";
+    private static final String CACHING_STRATEGY = "keys_only";
+    private static final String POPULATE_IO_CACHE_ON_FLUSH_OPTION = "populate_io_cache_on_flush";
+    private static final String COMPRESSION_OPTION = "compression";
+    private static final String SSTABLE_COMPRESSION = "sstable_compression";
+    private static final String SSTABLE_COMPRESSION_STRATEGY = "LZ4Compressor";
+    private static final String COMPRESSION_CHUNK_LENGTH_OPTION = "chunk_length_kb";
+    private static final String SPECULATIVE_RETRY_STRATEGY = "NONE";
 
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
@@ -73,30 +83,34 @@ class CassandraTableCreator {
         String keyspace = wrapInQuotes(config.getKeyspaceOrThrow());
         String internalTableName = wrapInQuotes(CassandraKeyValueServiceImpl.internalTableName(tableRef));
 
-        String query = SchemaBuilder.createTable(keyspace, internalTableName)
+        ImmutableMap<String, Object> compressionOptions = ImmutableMap.of(
+                SSTABLE_COMPRESSION, SSTABLE_COMPRESSION_STRATEGY,
+                COMPRESSION_CHUNK_LENGTH_OPTION, getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()));
+        boolean shouldPopulateIoCacheOnFlush = tableMetadata.getCachePriority() == CachePriority.HOTTEST;
+
+        SimpleStatement query = SchemaBuilder.createTable(keyspace, internalTableName)
                 .ifNotExists()
-                .addPartitionKey(ROW, DataType.blob())
-                .addClusteringColumn(COLUMN, DataType.blob())
-                .addClusteringColumn(TIMESTAMP, DataType.bigint())
-                .addColumn(VALUE, DataType.blob())
-                .withOptions()
-                .bloomFilterFPChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
-                .caching(SchemaBuilder.Caching.KEYS_ONLY)
-                .compactionOptions(getCompaction(appendHeavyReadLight))
-                .compactStorage()
-                .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
-                .dcLocalReadRepairChance(0.1)
-                .gcGraceSeconds(config.gcGraceSeconds())
-                .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
-                .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
-                .populateIOCacheOnFlush(tableMetadata.getCachePriority() == CachePriority.HOTTEST)
-                .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
-                .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
-                .clusteringOrder(TIMESTAMP, SchemaBuilder.Direction.ASC)
-                .buildInternal();
+                .withPartitionKey(ROW, DataTypes.BLOB)
+                .withClusteringColumn(COLUMN, DataTypes.BLOB)
+                .withClusteringColumn(TIMESTAMP, DataTypes.BIGINT)
+                .withColumn(VALUE, DataTypes.BLOB)
+                .withBloomFilterFpChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
+                .withOption(CACHING_OPTION, CACHING_STRATEGY)
+                .withOption(POPULATE_IO_CACHE_ON_FLUSH_OPTION, shouldPopulateIoCacheOnFlush)
+                .withCompaction(getCompaction(appendHeavyReadLight))
+                .withOption(COMPRESSION_OPTION, compressionOptions)
+                .withDcLocalReadRepairChance(0.1)
+                .withGcGraceSeconds(config.gcGraceSeconds())
+                .withMinIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
+                .withMaxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
+                .withSpeculativeRetry(SPECULATIVE_RETRY_STRATEGY)
+                .withClusteringOrder(COLUMN, ClusteringOrder.ASC)
+                .withClusteringOrder(TIMESTAMP, ClusteringOrder.ASC)
+                .withCompactStorage()
+                .build();
 
         return CqlQuery.builder()
-                .safeQueryFormat(query + " AND id = '%s'")
+                .safeQueryFormat(query.getQuery() + " AND id = '%s'")
                 .addArgs(SafeArg.of("cfId", getUuidForTable(tableRef)))
                 .build();
     }
@@ -105,14 +119,14 @@ class CassandraTableCreator {
         return "\"" + string + "\"";
     }
 
-    private CompactionOptions<?> getCompaction(boolean appendHeavyReadLight) {
-        return appendHeavyReadLight ? SchemaBuilder.sizedTieredStategy().minThreshold(4).maxThreshold(32)
-                : SchemaBuilder.leveledStrategy();
+    private CompactionStrategy<?> getCompaction(boolean appendHeavyReadLight) {
+        return appendHeavyReadLight
+                ? SchemaBuilder.sizeTieredCompactionStrategy().withMinThreshold(4).withMaxThreshold(32)
+                : SchemaBuilder.leveledCompactionStrategy();
     }
 
-    private CompressionOptions getCompression(int blockSize) {
-        int chunkLength = blockSize != 0 ? blockSize : AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
-        return SchemaBuilder.lz4().withChunkLengthInKb(chunkLength);
+    private Integer getCompression(int blockSize) {
+        return blockSize != 0 ? blockSize : AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
     }
 
     private UUID getUuidForTable(TableReference tableRef) {

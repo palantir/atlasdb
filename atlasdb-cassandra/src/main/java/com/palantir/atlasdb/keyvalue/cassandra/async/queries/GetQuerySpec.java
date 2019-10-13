@@ -17,14 +17,14 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Statement;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
@@ -73,15 +73,9 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     @Override
     public Statement makeExecutableStatement(PreparedStatement preparedStatement) {
         return preparedStatement.bind()
-                .setBytes("row",
-                        toReadOnlyByteBuffer(getQueryParameters.cell().getRowName()))
-                .setBytes("column",
-                        toReadOnlyByteBuffer(getQueryParameters.cell().getColumnName()))
+                .setByteBuffer("row", toReadOnlyByteBuffer(getQueryParameters.cell().getRowName()))
+                .setByteBuffer("column", toReadOnlyByteBuffer(getQueryParameters.cell().getColumnName()))
                 .setLong("timestamp", getQueryParameters.queryTimestamp());
-    }
-
-    private static ByteBuffer toReadOnlyByteBuffer(byte[] bytes) {
-        return ByteBuffer.wrap(bytes).asReadOnlyBuffer();
     }
 
     @Override
@@ -123,18 +117,24 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         return Objects.hash(cqlQueryContext, getQueryParameters);
     }
 
-    private static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
+    private static ByteBuffer toReadOnlyByteBuffer(byte[] bytes) {
+        return ByteBuffer.wrap(bytes).asReadOnlyBuffer();
+    }
 
+    private static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
         private volatile Value resultValue = null;
         private volatile boolean assigned = false;
 
         @Override
-        public void accumulateRowStream(Stream<Row> rowStream) {
+        public void accumulateRows(Iterable<Row> rows) {
             Preconditions.checkState(!assigned,
                     "Multiple calls to accumulateRowStream, wrong usage of this implementation");
             // the query can only ever return one page with one row
             assigned = true;
-            resultValue = rowStream.findFirst().map(GetQueryAccumulator::parseValue).orElse(null);
+            Iterator<Row> iterator = rows.iterator();
+            if (iterator.hasNext()) {
+                resultValue = parseValue(iterator.next());
+            }
         }
 
         @Override
@@ -144,7 +144,7 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         }
 
         private static Value parseValue(Row row) {
-            return Value.create(row.getBytes(0).array(), ~row.getLong(1));
+            return Value.create(row.getByteBuffer(0).array(), ~row.getLong(1));
         }
     }
 }
