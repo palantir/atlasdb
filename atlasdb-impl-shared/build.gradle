@@ -22,6 +22,7 @@ dependencies {
   compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'com.palantir.safe-logging', name: 'preconditions'
+  compile group: 'net.javacrumbs.future-converter', name: 'future-converter-java8-guava', version: '1.2.0'
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'

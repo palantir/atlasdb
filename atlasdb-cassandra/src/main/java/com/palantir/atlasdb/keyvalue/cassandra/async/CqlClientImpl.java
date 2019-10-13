@@ -16,20 +16,19 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.concurrent.Executor;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.google.common.collect.Streams;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.Futures;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowStreamAccumulator;
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.CachingStatementPreparer;
@@ -41,15 +40,15 @@ public final class CqlClientImpl implements CqlClient {
 
         private final TaggedMetricRegistry taggedMetricRegistry;
         private final int cacheSize;
-        private final Cluster cluster;
+        private final Supplier<CqlSession> cqlSessionSupplier;
         private volatile CqlClient internalImpl;
 
         InitializingWrapper(
                 TaggedMetricRegistry taggedMetricRegistry,
-                Cluster cluster,
+                Supplier<CqlSession> cqlSessionSupplier,
                 int cacheSize) {
             this.taggedMetricRegistry = taggedMetricRegistry;
-            this.cluster = cluster;
+            this.cqlSessionSupplier = cqlSessionSupplier;
             this.cacheSize = cacheSize;
         }
 
@@ -61,7 +60,7 @@ public final class CqlClientImpl implements CqlClient {
 
         @Override
         protected void tryInitialize() {
-            internalImpl = CqlClientImpl.create(taggedMetricRegistry, cluster.connect(), cacheSize);
+            internalImpl = CqlClientImpl.create(taggedMetricRegistry, cqlSessionSupplier, cacheSize);
         }
 
         @Override
@@ -77,49 +76,48 @@ public final class CqlClientImpl implements CqlClient {
         }
     }
 
-    private final Session session;
+    private final CqlSession session;
     private final StatementPreparer statementPreparer;
 
     public static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
-            Cluster cluster,
+            Supplier<CqlSession> sessionSupplier,
             CqlCapableConfigTuning tuningConfig,
             boolean initializeAsync) {
         if (initializeAsync) {
             return new InitializingWrapper(
                     taggedMetricRegistry,
-                    cluster,
+                    sessionSupplier,
                     tuningConfig.preparedStatementCacheSize());
         }
 
         return create(
                 taggedMetricRegistry,
-                cluster.connect(),
+                sessionSupplier,
                 tuningConfig.preparedStatementCacheSize());
     }
 
     private static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
-            Session session,
+            Supplier<CqlSession> cqlSessionSupplier,
             int preparedStatementCacheSize) {
+        CqlSession cqlSession = cqlSessionSupplier.get();
         CachingStatementPreparer cachingStatementPreparer = CachingStatementPreparer.create(
-                key -> session.prepare(key.formatQueryString()),
+                key -> cqlSession.prepare(key.formatQueryString()),
                 taggedMetricRegistry,
                 preparedStatementCacheSize);
 
-        return new CqlClientImpl(session, cachingStatementPreparer);
+        return new CqlClientImpl(cqlSession, cachingStatementPreparer);
     }
 
-    private CqlClientImpl(Session session, CachingStatementPreparer statementPreparer) {
+    private CqlClientImpl(CqlSession session, CachingStatementPreparer statementPreparer) {
         this.session = session;
         this.statementPreparer = statementPreparer;
     }
 
     @Override
     public void close() {
-        Cluster cluster = session.getCluster();
         session.close();
-        cluster.close();
     }
 
     @Override
@@ -128,34 +126,22 @@ public final class CqlClientImpl implements CqlClient {
         Statement executableStatement = querySpec.makeExecutableStatement(statement)
                 .setConsistencyLevel(querySpec.queryConsistency());
 
-        return execute(
-                executableStatement,
-                MoreExecutors.directExecutor(),
-                querySpec.rowStreamAccumulator());
+        return execute(executableStatement, querySpec.rowStreamAccumulator());
     }
 
-    private <V> ListenableFuture<V> execute(
-            Statement executableStatement,
-            Executor executor,
-            RowStreamAccumulator<V> rowStreamAccumulator) {
-        return Futures.transformAsync(
-                session.executeAsync(executableStatement),
-                iterate(executor, rowStreamAccumulator),
-                executor);
+    private <V> ListenableFuture<V> execute(Statement statement, RowStreamAccumulator<V> rowStreamAccumulator) {
+        CompletionStage<AsyncResultSet> futureRs = session.executeAsync(statement);
+        return AtlasFutures.toListenableFuture(futureRs.thenCompose(processRows(rowStreamAccumulator)));
     }
 
-    private <V> AsyncFunction<ResultSet, V> iterate(Executor executor, RowStreamAccumulator<V> rowStreamAccumulator) {
-        return resultSet -> {
-            rowStreamAccumulator.accumulateRowStream(Streams.stream(resultSet)
-                    .limit(resultSet.getAvailableWithoutFetching()));
+    private <V> Function<AsyncResultSet, CompletionStage<V>> processRows(RowStreamAccumulator<V> rowStreamAccumulator) {
+        return asyncResultSet -> {
+            rowStreamAccumulator.accumulateRows(asyncResultSet.currentPage());
 
-            boolean wasLastPage = resultSet.getExecutionInfo().getPagingState() == null;
-            if (wasLastPage) {
-                return Futures.immediateFuture(rowStreamAccumulator.result());
-            } else {
-                ListenableFuture<ResultSet> future = resultSet.fetchMoreResults();
-                return Futures.transformAsync(future, iterate(executor, rowStreamAccumulator), executor);
+            if (!asyncResultSet.hasMorePages()) {
+                return CompletableFuture.completedFuture(rowStreamAccumulator.result());
             }
+            return asyncResultSet.fetchNextPage().thenCompose(processRows(rowStreamAccumulator));
         };
     }
 }

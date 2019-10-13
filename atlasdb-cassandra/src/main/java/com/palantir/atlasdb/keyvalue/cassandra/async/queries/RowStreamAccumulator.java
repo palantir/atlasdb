@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
-import java.util.stream.Stream;
-
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.Row;
 
 /**
  * {@code RowStreamAccumulator} defines an interface which should be implemented to process {@code Stream} of
@@ -32,14 +30,16 @@ public interface RowStreamAccumulator<R> {
      * {@code result} should return the accumulated result of rows processed up to that moment. Implementations should
      * not block during processing of the passed stream as that would prevent the thread from doing other work.
      * If invoked concurrently with either {@code accumulateRowStream} or {@code result} the behaviour is not defined.
-     * @param rowStream of available rows without blocking
+     *
+     * @param rows to process
      */
-    void accumulateRowStream(Stream<Row> rowStream);
+    void accumulateRows(Iterable<Row> rows);
 
     /**
-     * Should be called after all intended streams are processed. Will return the current state of the accumulator
-     * without knowing if it is the end result. If invoked concurrently with either{@code accumulateRowStream}
+     * Should be called after all intended iterables are processed. Will return the current state of the accumulator
+     * without knowing if it is the end result. If invoked concurrently with either {@code accumulateRowStream}
      * or {@code result} the behaviour is not defined.
+     *
      * @return accumulated result
      */
     R result();
