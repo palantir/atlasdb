@@ -16,28 +16,56 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponseImpl;
 import com.palantir.paxos.PaxosValue;
 
 final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Entry<Client, PaxosValue>, PaxosResponse> {
+
+    private static final Logger log = LoggerFactory.getLogger(LearnCoalescingConsumer.class);
     private static final PaxosResponse SUCCESSFUL_RESPONSE = new PaxosResponseImpl(true);
 
-    private final BatchPaxosLearner delegate;
+    private final BatchPaxosLearner localLearner;
+    private final List<BatchPaxosLearner> remoteLearners;
+    private final ExecutorService executor;
 
-    LearnCoalescingConsumer(BatchPaxosLearner delegate) {
-        this.delegate = delegate;
+    LearnCoalescingConsumer(
+            BatchPaxosLearner localLearner,
+            List<BatchPaxosLearner> remoteLearners,
+            ExecutorService executor) {
+        this.localLearner = localLearner;
+        this.remoteLearners = remoteLearners;
+        this.executor = executor;
     }
 
     @Override
     public Map<Map.Entry<Client, PaxosValue>, PaxosResponse> apply(Set<Map.Entry<Client, PaxosValue>> request) {
-        delegate.learn(ImmutableSetMultimap.copyOf(request));
+        SetMultimap<Client, PaxosValue> requestAsMultimap = ImmutableSetMultimap.copyOf(request);
+
+        for (BatchPaxosLearner remoteLearner : remoteLearners) {
+            executor.execute(() -> {
+                try {
+                    remoteLearner.learn(requestAsMultimap);
+                } catch (Throwable e) {
+                    log.warn("Failed to teach learner.", e);
+                }
+            });
+        }
+
+        // force local learner to update
+        localLearner.learn(requestAsMultimap);
         return Maps.toMap(request, $ -> SUCCESSFUL_RESPONSE);
     }
 }
