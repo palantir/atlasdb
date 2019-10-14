@@ -164,7 +164,7 @@ Read/Write Conflicts
 --------------------
 
 The transaction protocol has write/write conflicts built into it. If two
-transactions touch the same row, one will be rolled back (as long as the
+transactions touch the same cell, one will be rolled back (as long as the
 table does write/write conflict detection (which is the default)). What
 if a user wanted some way to set up read write locks. This can be built
 into the protocol fairly easily. Currently a table can be set up either
