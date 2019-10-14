@@ -34,9 +34,4 @@ public final class ThrowingCqlClientImpl implements CqlClient {
     public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
         throw new UnsupportedOperationException("Not configured to use CQL client, check your KVS config file.");
     }
-
-    @Override
-    public <R> ListenableFuture<R> execute(Executable<R> executable) {
-        throw new UnsupportedOperationException("Not configured to use CQL client, check your KVS config file.");
-    }
 }
