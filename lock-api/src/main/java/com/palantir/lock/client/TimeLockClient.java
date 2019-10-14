@@ -145,14 +145,25 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         try {
             return callable.call();
         } catch (Exception e) {
-            if (e.getCause() instanceof ConnectException
-                    || e.getCause() instanceof UnknownHostException
-                    || e.getCause() instanceof NotCurrentLeaderException) {
+            if (isAtlasDbDependencyException(e)) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             } else {
                 throw Throwables.throwUncheckedException(e);
             }
         }
+    }
+
+    private static boolean isAtlasDbDependencyException(Exception e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof ConnectException
+                    || cause instanceof UnknownHostException
+                    || cause instanceof NotCurrentLeaderException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     @Override

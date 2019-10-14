@@ -21,11 +21,15 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.conjure.java.api.errors.QosException;
 
@@ -58,34 +62,66 @@ public class FastFailoverProxy<T> extends AbstractInvocationHandler {
                 proxy);
     }
 
-
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+        ResultOrThrowable attempt = singleInvocation(method, args);
+        Instant lastRetryInstant = clock.instant().plus(TIME_LIMIT);
+        while (clock.instant().isBefore(lastRetryInstant) && !attempt.isSuccessful()) {
+            Throwable cause = attempt.failure().get();
+            if (cause instanceof InvocationTargetException) {
+                Throwable ex = ((InvocationTargetException) cause).getTargetException();
+                if (!(ex instanceof RetryableException) || !isCausedByRetryOther((RetryableException) ex) ) {
+                    throw ex;
+                }
+            }
+            attempt = singleInvocation(method, args);
+        }
+        if (attempt.isSuccessful()) {
+            return attempt.result().orElse(null);
+        }
+        throw attempt.failure().get();
+    }
+
+    private ResultOrThrowable singleInvocation(Method method, Object[] args) {
         try {
-            return method.invoke(delegate, args);
-        } catch (InvocationTargetException e) {
-            Throwable ex = e.getTargetException();
-            if (!(ex instanceof RetryableException)) {
-                throw ex;
-            }
-            // is retryable
-            if (isCausedByRetryOther((RetryableException) ex)) {
-                // if time is happy
-                // retry
-            }
-            throw ex;
+            return ResultOrThrowable.success(method.invoke(delegate, args));
+        } catch (Throwable th) {
+            return ResultOrThrowable.exception(th);
         }
     }
 
     private static boolean isCausedByRetryOther(RetryableException ex) {
-        Throwable currentPointer = ex;
-        while (currentPointer != null) {
-            if (currentPointer instanceof QosException.RetryOther) {
+        Throwable cause = ex;
+        while (cause != null) {
+            if (cause instanceof QosException.RetryOther) {
                 return true;
             }
-            currentPointer = currentPointer.getCause();
+            cause = cause.getCause();
         }
         return false;
     }
 
+    @Value.Immutable
+    interface ResultOrThrowable {
+        boolean isSuccessful();
+        Optional<Object> result();
+        Optional<Throwable> failure();
+
+        @Value.Check
+        default void exactlyOneSet() {
+            Preconditions.checkState(result().isPresent() ^ failure().isPresent()
+                    || isSuccessful() && !failure().isPresent());
+        }
+
+        static ResultOrThrowable success(Object result) {
+            return ImmutableResultOrThrowable.builder()
+                    .isSuccessful(true)
+                    .result(result == null ? Optional.empty() : Optional.of(result))
+                    .build();
+        }
+
+        static ResultOrThrowable exception(Throwable throwable) {
+            return ImmutableResultOrThrowable.builder().isSuccessful(false).failure(throwable).build();
+        }
+    }
 }
