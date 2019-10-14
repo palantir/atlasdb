@@ -39,7 +39,7 @@ import feign.RetryableException;
  * we use a time limit. This exists to support perpetual {@code 308} responses from servers, which may happen if
  * leader election is still taking place.
  */
-public class FastFailoverProxy<T> extends AbstractInvocationHandler {
+public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
     private static final Duration TIME_LIMIT = Duration.ofSeconds(10);
 
     private final T delegate;
@@ -97,7 +97,7 @@ public class FastFailoverProxy<T> extends AbstractInvocationHandler {
         }
         InvocationTargetException exception = (InvocationTargetException) throwable;
         Throwable cause = exception.getCause();
-        if (!(cause instanceof RetryableException) || !isCausedByRetryOther((RetryableException) cause) ) {
+        if (!(cause instanceof RetryableException) || !isCausedByRetryOther((RetryableException) cause)) {
             return ResultOrThrowable.failure(cause);
         }
         return ResultOrThrowable.success(null);

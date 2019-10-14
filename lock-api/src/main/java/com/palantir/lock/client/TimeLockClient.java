@@ -153,8 +153,8 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         }
     }
 
-    private static boolean isAtlasDbDependencyException(Exception e) {
-        Throwable cause = e;
+    private static boolean isAtlasDbDependencyException(Exception ex) {
+        Throwable cause = ex;
         while (cause != null) {
             if (cause instanceof ConnectException
                     || cause instanceof UnknownHostException
