@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.http.v2;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Clock;
@@ -26,6 +27,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.conjure.java.api.errors.QosException;
+
+import feign.RetryableException;
 
 /**
  * This proxy exists to support "fast failover" behaviour with no limit as to the number of attempts made; instead,
@@ -57,6 +61,31 @@ public class FastFailoverProxy<T> extends AbstractInvocationHandler {
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        return null;
+        try {
+            return method.invoke(delegate, args);
+        } catch (InvocationTargetException e) {
+            Throwable ex = e.getTargetException();
+            if (!(ex instanceof RetryableException)) {
+                throw ex;
+            }
+            // is retryable
+            if (isCausedByRetryOther((RetryableException) ex)) {
+                // if time is happy
+                // retry
+            }
+            throw ex;
+        }
     }
+
+    private static boolean isCausedByRetryOther(RetryableException ex) {
+        Throwable currentPointer = ex;
+        while (currentPointer != null) {
+            if (currentPointer instanceof QosException.RetryOther) {
+                return true;
+            }
+            currentPointer = currentPointer.getCause();
+        }
+        return false;
+    }
+
 }
