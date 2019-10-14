@@ -63,11 +63,9 @@ public final class AsyncCellLoader {
                     LoggingArgs.tableRef(tableRef));
         }
 
-        Map<Cell, ListenableFuture<Optional<Value>>> cellListenableFutureMap =
-                KeyedStream.stream(timestampByCell)
-                        .map((cell, timestamp) ->
-                                loadCellWithTimestamp(tableRef, cell, timestamp))
-                        .collectToMap();
+        Map<Cell, ListenableFuture<Optional<Value>>> cellListenableFutureMap = KeyedStream.stream(timestampByCell)
+                .map((cell, timestamp) -> loadCellWithTimestamp(tableRef, cell, timestamp))
+                .collectToMap();
 
         return Futures.whenAllSucceed(cellListenableFutureMap.values())
                 .call(() -> KeyedStream.stream(cellListenableFutureMap)

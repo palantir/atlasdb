@@ -34,147 +34,87 @@ import com.palantir.atlasdb.util.MetricsManagers;
 
 public class QueryCacheTest {
 
-    private static final StatementPreparer MOCK_RETURNING_STATEMENT_PREPARER =
+    private static final StatementPreparer STATEMENT_PREPARER =
             querySpec -> mock(PreparedStatement.class);
     private static final MetricsManager METRICS_MANAGER = MetricsManagers.createForTests();
     private static final String KEYSPACE = "foo";
-    private static final TableReference TABLE_REFERENCE =
-            TableReference.create(Namespace.DEFAULT_NAMESPACE, "bar");
-    private static final Executor TESTING_EXECUTOR = mock(Executor.class);
+    private static final TableReference TABLE_REFERENCE = tableReference("bar");
 
     private QueryCache cache;
-    private PreparedStatement expectedPreparedStatement;
 
     @Before
     public void setUp() {
-        cache = QueryCache.create(
-                MOCK_RETURNING_STATEMENT_PREPARER,
-                METRICS_MANAGER.getTaggedRegistry(),
-                100);
-
-        expectedPreparedStatement = cache.prepare(
-                getQuerySpecWithRandomData(
-                        KEYSPACE,
-                        TABLE_REFERENCE,
-                        PtBytes.toBytes(10),
-                        PtBytes.toBytes(10),
-                        3));
+        cache = QueryCache.create(STATEMENT_PREPARER, METRICS_MANAGER.getTaggedRegistry(), 100);
     }
 
     @Test
     public void testGetQuerySpecAllSame() {
-        assertThat(expectedPreparedStatement)
-                .isEqualTo(
-                        cache.prepare(getQuerySpecWithRandomData(
-                                KEYSPACE,
-                                TABLE_REFERENCE,
-                                PtBytes.toBytes(10),
-                                PtBytes.toBytes(10),
-                                3)));
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
+        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3))
+                .isEqualTo(expectedPreparedStatement);
     }
 
     @Test
     public void testGetQuerySpecTimestampIgnored() {
-        assertThat(expectedPreparedStatement)
-                .isEqualTo(
-                        cache.prepare(getQuerySpecWithRandomData(
-                                KEYSPACE,
-                                TABLE_REFERENCE,
-                                PtBytes.toBytes(10),
-                                PtBytes.toBytes(10),
-                                1)));
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
+        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 1))
+                .isEqualTo(expectedPreparedStatement);
     }
 
     @Test
     public void testGetQuerySpecColumnIgnored() {
-        assertThat(expectedPreparedStatement)
-                .isEqualTo(
-                        cache.prepare(getQuerySpecWithRandomData(
-                                KEYSPACE,
-                                TABLE_REFERENCE,
-                                PtBytes.toBytes(10),
-                                PtBytes.toBytes(7),
-                                3)));
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
+        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 7, 3))
+                .isEqualTo(expectedPreparedStatement);
     }
 
     @Test
     public void testGetQuerySpecRowIgnored() {
-        assertThat(expectedPreparedStatement)
-                .isEqualTo(
-                        cache.prepare(getQuerySpecWithRandomData(
-                                KEYSPACE,
-                                TABLE_REFERENCE,
-                                PtBytes.toBytes(4),
-                                PtBytes.toBytes(10),
-                                3)));
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
+        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, 4, 10, 3))
+                .isEqualTo(expectedPreparedStatement);
     }
 
     @Test
     public void testGetQuerySpecKeyspaceNotIgnored() {
-        assertThat(expectedPreparedStatement)
-                .isNotEqualTo(
-                        cache.prepare(getQuerySpecWithRandomData(
-                                "baz",
-                                TABLE_REFERENCE,
-                                PtBytes.toBytes(10),
-                                PtBytes.toBytes(10),
-                                3)));
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
+        assertThat(prepareStatement("baz", TABLE_REFERENCE, 10, 10, 3))
+                .isNotEqualTo(expectedPreparedStatement);
     }
 
     @Test
     public void testGetQuerySpecTableRefNotIgnored() {
-        assertThat(expectedPreparedStatement)
-                .isNotEqualTo(
-                        cache.prepare(getQuerySpecWithRandomData(
-                                KEYSPACE,
-                                TableReference.create(Namespace.DEFAULT_NAMESPACE, "baz"),
-                                PtBytes.toBytes(10),
-                                PtBytes.toBytes(10),
-                                3)));
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
+        assertThat(prepareStatement(KEYSPACE, tableReference("baz"), 10, 10, 3))
+                .isNotEqualTo(expectedPreparedStatement);
     }
 
-    @Test
-    public void testGetQuerySpecExecutorNotIgnored() {
-        assertThat(expectedPreparedStatement)
-                .isNotEqualTo(
-                        cache.prepare(getQuerySpecWithRandomData(
-                                KEYSPACE,
-                                TABLE_REFERENCE,
-                                PtBytes.toBytes(10),
-                                PtBytes.toBytes(10),
-                                3,
-                                mock(Executor.class))));
-    }
-
-    private static GetQuerySpec getQuerySpecWithRandomData(
+    private PreparedStatement prepareStatement(
             String keyspace,
             TableReference tableReference,
-            byte[] rowValue,
-            byte[] columnValue,
-            int timestamp,
-            Executor executor) {
+            int row,
+            int column,
+            int timestamp) {
+        return cache.prepare(getQuerySpec(keyspace, tableReference, row, column, timestamp));
+    }
+
+    private static TableReference tableReference(String baz) {
+        return TableReference.create(Namespace.DEFAULT_NAMESPACE, baz);
+    }
+
+    private static GetQuerySpec getQuerySpec(
+            String keyspace,
+            TableReference tableReference,
+            long rowValue,
+            long columnValue,
+            int timestamp) {
         return ImmutableGetQuerySpec.builder()
                 .keySpace(keyspace)
                 .tableReference(tableReference)
-                .column(ByteBuffer.wrap(rowValue))
-                .row(ByteBuffer.wrap(columnValue))
+                .column(ByteBuffer.wrap(PtBytes.toBytes(rowValue)))
+                .row(ByteBuffer.wrap(PtBytes.toBytes(columnValue)))
                 .humanReadableTimestamp(timestamp)
-                .executor(executor)
+                .executor(mock(Executor.class))
                 .build();
-    }
-
-    private static GetQuerySpec getQuerySpecWithRandomData(
-            String keyspace,
-            TableReference tableReference,
-            byte[] rowValue,
-            byte[] columnValue,
-            int timestamp) {
-        return getQuerySpecWithRandomData(
-                keyspace,
-                tableReference,
-                rowValue,
-                columnValue,
-                timestamp,
-                TESTING_EXECUTOR);
     }
 }

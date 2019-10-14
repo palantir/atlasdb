@@ -180,7 +180,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void testCfEqualityChecker() throws TException {
         CassandraKeyValueServiceImpl kvs;
         if (keyValueService instanceof CassandraKeyValueService) {
-            kvs = getUnderlyingKvs((CassandraKeyValueService) keyValueService);
+            kvs = getUnderlyingKvs(keyValueService);
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(NEVER_SEEN);
             assertTrue("The nesting of Key Value Services has apparently changed",
@@ -364,7 +364,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 System.currentTimeMillis());
         keyValueService.createTable(tableRef, ORIGINAL_METADATA);
 
-        getUnderlyingKvs((CassandraKeyValueService) keyValueService).upgradeFromOlderInternalSchema();
+        getUnderlyingKvs(keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), eq(LoggingArgs.tableRef(tableRef)));
         keyValueService.dropTable(tableRef);
     }
@@ -379,7 +379,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 System.currentTimeMillis());
         keyValueService.createTable(tableRef, ORIGINAL_METADATA);
 
-        getUnderlyingKvs((CassandraKeyValueService) keyValueService).upgradeFromOlderInternalSchema();
+        getUnderlyingKvs(keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), eq(LoggingArgs.tableRef(tableRef)));
         keyValueService.dropTable(tableRef);
     }
@@ -448,7 +448,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         }.toTableMetadata().persistToBytes();
     }
 
-    private static CassandraKeyValueServiceImpl getUnderlyingKvs(CassandraKeyValueService keyValueService) {
+    private static CassandraKeyValueServiceImpl getUnderlyingKvs(KeyValueService keyValueService) {
         if (keyValueService instanceof SynchronousDelegate) {
             return ((SynchronousDelegate) keyValueService).delegate();
         }

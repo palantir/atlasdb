@@ -150,12 +150,12 @@ public class KvsProfilingLogger {
             CallableCheckedException<ListenableFuture<T>, E> action,
             BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
             BiConsumer<LoggingFunction, T> additionalLoggerWithAccessToResult) throws E {
+        ListenableFuture<T> future = action.call();
         if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
             Monitor<T> monitor = Monitor.createMonitor(
                     primaryLogger,
                     additionalLoggerWithAccessToResult,
                     slowLogPredicate);
-            ListenableFuture<T> future = action.call();
             Futures.addCallback(future, new FutureCallback<T>() {
                 @Override
                 public void onSuccess(@NullableDecl T result) {
@@ -169,10 +169,8 @@ public class KvsProfilingLogger {
                     monitor.log();
                 }
             }, MoreExecutors.directExecutor());
-            return future;
-        } else {
-            return action.call();
         }
+        return future;
     }
 
     private static class Monitor<R> {

@@ -74,28 +74,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         return new TracingKeyValueService(keyValueService);
     }
 
-    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
-        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
-    }
-
-    private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
-            DetachedSpan detachedSpan,
-            ListenableFuture<V> future,
-            Executor tracingExecutorService) {
-        Futures.addCallback(future, new FutureCallback<V>() {
-            @Override
-            public void onSuccess(V result) {
-                detachedSpan.complete();
-            }
-
-            @Override
-            public void onFailure(Throwable throwable) {
-                detachedSpan.complete();
-            }
-        }, tracingExecutorService);
-        return future;
-    }
-
     @Override
     protected KeyValueService delegate() {
         return delegate;
@@ -450,5 +428,27 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
         ListenableFuture<Map<Cell, Value>> future = delegate().getAsync(tableRef, timestampByCell);
         return attachDetachedSpanCompletion(detachedSpan, future, tracingExecutorService);
+    }
+
+    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
+        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
+    }
+
+    private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
+            DetachedSpan detachedSpan,
+            ListenableFuture<V> future,
+            Executor tracingExecutorService) {
+        Futures.addCallback(future, new FutureCallback<V>() {
+            @Override
+            public void onSuccess(V result) {
+                detachedSpan.complete();
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                detachedSpan.complete();
+            }
+        }, tracingExecutorService);
+        return future;
     }
 }

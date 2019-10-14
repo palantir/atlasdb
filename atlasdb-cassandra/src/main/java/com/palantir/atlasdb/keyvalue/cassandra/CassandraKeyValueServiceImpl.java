@@ -1953,7 +1953,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return asyncCellLoader.loadAllWithTimestamp(tableRef, timestampByCell);
     }
 
-
     private static class TableCellAndValue {
         private static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
                 input -> input.cell.getRowName();
