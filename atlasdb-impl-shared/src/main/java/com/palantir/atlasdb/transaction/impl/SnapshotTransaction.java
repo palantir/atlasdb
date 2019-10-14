@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -389,7 +388,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public Map<byte[], BatchingVisitable<Entry<Cell, byte[]>>> getRowsColumnRange(
+    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
@@ -398,7 +397,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
+    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
                                                                 Iterable<byte[]> rows,
                                                                 ColumnRangeSelection columnRangeSelection,
                                                                 int batchHint) {
@@ -417,8 +416,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         } // else the postFiltered iterator will check for each batch.
 
-        Iterator<Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
-        Iterator<Iterator<Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
+        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
+        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
             BatchColumnRangeSelection batchColumnRangeSelection =
@@ -430,7 +429,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public Map<byte[], Iterator<Entry<Cell, byte[]>>> getRowsColumnRangeIterator(TableReference tableRef,
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
         checkGetPreconditions(tableRef);
@@ -440,28 +439,28 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
-        Map<byte[], Iterator<Entry<Cell, byte[]>>> postFilteredResults =
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
                 Maps.newHashMapWithExpectedSize(rawResults.size());
-        for (Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
+        for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
-            Iterator<Entry<Cell, byte[]>> postFilteredIterator =
+            Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
             postFilteredResults.put(row, postFilteredIterator);
         }
         return postFilteredResults;
     }
 
-    private Iterator<Entry<Cell, byte[]>> getPostFilteredColumns(
+    private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
             byte[] row,
             RowColumnRangeIterator rawIterator) {
-        Iterator<Entry<Cell, byte[]>> postFilterIterator =
+        Iterator<Map.Entry<Cell, byte[]>> postFilterIterator =
                 getRowColumnRangePostFiltered(tableRef, row, batchColumnRangeSelection, rawIterator);
         SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, batchColumnRangeSelection, row);
-        Iterator<Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
-        Iterator<Entry<Cell, byte[]>> mergedIterator =
+        Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
+        Iterator<Map.Entry<Cell, byte[]>> mergedIterator =
                 IteratorUtils.mergeIterators(localIterator,
                         postFilterIterator,
                         Ordering.from(UnsignedBytes.lexicographicalComparator())
@@ -471,8 +470,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return filterDeletedValues(mergedIterator, tableRef);
     }
 
-    private Iterator<Entry<Cell, byte[]>> filterDeletedValues(
-            Iterator<Entry<Cell, byte[]>> unfiltered,
+    private Iterator<Map.Entry<Cell, byte[]>> filterDeletedValues(
+            Iterator<Map.Entry<Cell, byte[]>> unfiltered,
             TableReference tableReference) {
         Meter emptyValueMeter = getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference);
         return Iterators.filter(unfiltered, entry -> {
@@ -484,22 +483,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         });
     }
 
-    private Iterator<Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
+    private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
             TableReference tableRef,
             byte[] row,
             BatchColumnRangeSelection columnRangeSelection,
             RowColumnRangeIterator rawIterator) {
         ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(
                 keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
-        BatchSizeIncreasingIterator<Entry<Cell, Value>> batchIterator = new BatchSizeIncreasingIterator<>(
+        BatchSizeIncreasingIterator<Map.Entry<Cell, Value>> batchIterator = new BatchSizeIncreasingIterator<>(
                 batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrap(rawIterator));
-        Iterator<Iterator<Entry<Cell, byte[]>>> postFilteredBatches =
-                new AbstractIterator<Iterator<Entry<Cell, byte[]>>>() {
+        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFilteredBatches =
+                new AbstractIterator<Iterator<Map.Entry<Cell, byte[]>>>() {
             @Override
-            protected Iterator<Entry<Cell, byte[]>> computeNext() {
+            protected Iterator<Map.Entry<Cell, byte[]>> computeNext() {
                 ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
-                List<Entry<Cell, Value>> batch = batchIterator.getBatch();
-                for (Entry<Cell, Value> result : batch) {
+                List<Map.Entry<Cell, Value>> batch = batchIterator.getBatch();
+                for (Map.Entry<Cell, Value> result : batch) {
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
@@ -523,22 +522,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
      * entry per non-empty row.
      */
-    private Iterator<Entry<byte[], RowColumnRangeIterator>> partitionByRow(RowColumnRangeIterator rawResults) {
-        PeekingIterator<Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
-        return new AbstractIterator<Entry<byte[], RowColumnRangeIterator>>() {
+    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(RowColumnRangeIterator rawResults) {
+        PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
+        return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
             byte[] prevRowName;
 
             @Override
-            protected Entry<byte[], RowColumnRangeIterator> computeNext() {
+            protected Map.Entry<byte[], RowColumnRangeIterator> computeNext() {
                 finishConsumingPreviousRow(peekableRawResults);
                 if (!peekableRawResults.hasNext()) {
                     return endOfData();
                 }
                 byte[] nextRowName = peekableRawResults.peek().getKey().getRowName();
-                Iterator<Entry<Cell, Value>> columnsIterator =
-                        new AbstractIterator<Entry<Cell, Value>>() {
+                Iterator<Map.Entry<Cell, Value>> columnsIterator =
+                        new AbstractIterator<Map.Entry<Cell, Value>>() {
                     @Override
-                    protected Entry<Cell, Value> computeNext() {
+                    protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
                                 || !Arrays.equals(peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
                             return endOfData();
@@ -550,7 +549,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 return Maps.immutableEntry(nextRowName, new LocalRowColumnRangeIterator(columnsIterator));
             }
 
-            private void finishConsumingPreviousRow(PeekingIterator<Entry<Cell, Value>> iter) {
+            private void finishConsumingPreviousRow(PeekingIterator<Map.Entry<Cell, Value>> iter) {
                 int numConsumed = 0;
                 while (iter.hasNext() && Arrays.equals(iter.peek().getKey().getRowName(), prevRowName)) {
                     iter.next();
@@ -610,9 +609,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             byte[] row,
             ColumnSelection columnSelection) {
         Cell lowCell = Cells.createSmallestCellForRow(row);
-        Iterator<Entry<Cell, byte[]>> it = writes.tailMap(lowCell).entrySet().iterator();
+        Iterator<Map.Entry<Cell, byte[]>> it = writes.tailMap(lowCell).entrySet().iterator();
         while (it.hasNext()) {
-            Entry<Cell, byte[]> entry = it.next();
+            Map.Entry<Cell, byte[]> entry = it.next();
             Cell cell = entry.getKey();
             if (!Arrays.equals(row, cell.getRowName())) {
                 break;
@@ -779,7 +778,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         byte[] nextStartRowName = getNextStartRowName(
                                 rangeRequest,
                                 prePostFilter);
-                        List<Entry<Cell, byte[]>> mergeIterators = getPostFilteredWithLocalWrites(
+                        List<Map.Entry<Cell, byte[]>> mergeIterators = getPostFilteredWithLocalWrites(
                                 tableRef,
                                 postFiltered,
                                 rangeRequest,
@@ -905,18 +904,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
     }
 
-    private List<Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
+    private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
                                                                      final SortedMap<Cell, byte[]> postFiltered,
                                                                      final RangeRequest rangeRequest,
                                                                      List<RowResult<Value>> prePostFilter,
                                                                      final byte[] endRowExclusive) {
         Map<Cell, Value> prePostFilterCells = Cells.convertRowResultsToCells(prePostFilter);
-        Collection<Entry<Cell, byte[]>> postFilteredCells = Collections2.filter(
+        Collection<Map.Entry<Cell, byte[]>> postFilteredCells = Collections2.filter(
                 postFiltered.entrySet(),
                 Predicates.compose(
                         Predicates.in(prePostFilterCells.keySet()),
                         MapEntries.getKeyFunction()));
-        Collection<Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
+        Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
                 tableRef,
                 rangeRequest.getStartInclusive(),
                 endRowExclusive).entrySet();
@@ -1019,13 +1018,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         });
     }
 
-    private List<Entry<Cell, byte[]>> mergeInLocalWrites(
+    private List<Map.Entry<Cell, byte[]>> mergeInLocalWrites(
             TableReference tableRef,
-            Iterator<Entry<Cell, byte[]>> postFilterIterator,
-            Iterator<Entry<Cell, byte[]>> localWritesInRange,
+            Iterator<Map.Entry<Cell, byte[]>> postFilterIterator,
+            Iterator<Map.Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
-        Ordering<Entry<Cell, byte[]>> ordering = Ordering.natural().onResultOf(MapEntries.getKeyFunction());
-        Iterator<Entry<Cell, byte[]>> mergeIterators = IteratorUtils.mergeIterators(
+        Ordering<Map.Entry<Cell, byte[]>> ordering = Ordering.natural().onResultOf(MapEntries.getKeyFunction());
+        Iterator<Map.Entry<Cell, byte[]>> mergeIterators = IteratorUtils.mergeIterators(
                 postFilterIterator, localWritesInRange,
                 isReverse ? ordering.reverse() : ordering,
                 from -> from.rhSide); // always override their value with written values
@@ -1033,15 +1032,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilterEmptyValues(tableRef, mergeIterators);
     }
 
-    private List<Entry<Cell, byte[]>> postFilterEmptyValues(
+    private List<Map.Entry<Cell, byte[]>> postFilterEmptyValues(
             TableReference tableRef,
-            Iterator<Entry<Cell, byte[]>> mergeIterators) {
-        List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
-        Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value::isTombstone),
+            Iterator<Map.Entry<Cell, byte[]>> mergeIterators) {
+        List<Map.Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
+        Predicate<Map.Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value::isTombstone),
                 MapEntries.getValueFunction());
         long numEmptyValues = 0;
         while (mergeIterators.hasNext()) {
-            Entry<Cell, byte[]> next = mergeIterators.next();
+            Map.Entry<Cell, byte[]> next = mergeIterators.next();
             if (nonEmptyValuePredicate.apply(next)) {
                 mergedWritesWithoutEmptyValues.add(next);
             } else {
@@ -1152,7 +1151,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         Map<Cell, Value> rawResults = Maps.newHashMapWithExpectedSize(estimateSize(rangeRows));
         for (RowResult<Value> rowResult : rangeRows) {
-            for (Entry<byte[], Value> e : rowResult.getColumns().entrySet()) {
+            for (Map.Entry<byte[], Value> e : rowResult.getColumns().entrySet()) {
                 rawResults.put(Cell.create(rowResult.getRowName(), e.getKey()), e.getValue());
             }
         }
@@ -1175,7 +1174,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                           @Output ImmutableMap.Builder<Cell, T> results,
                                           Function<Value, T> transformer) {
         long bytes = 0;
-        for (Entry<Cell, Value> e : rawResults.entrySet()) {
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             bytes += e.getValue().getContents().length + Cells.getApproxSizeOfCell(e.getKey());
         }
         if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
@@ -1199,7 +1198,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
-            for (Entry<Cell, Value> e : rawResults.entrySet()) {
+            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
                 results.put(e.getKey(), transformer.apply(e.getValue()));
             }
             return;
@@ -1251,7 +1250,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
         Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
-        for (Entry<Cell, Value> e : rawResults.entrySet()) {
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
 
@@ -1369,7 +1368,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void ensureNoEmptyValues(Map<Cell, byte[]> values) {
-        for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
+        for (Map.Entry<Cell, byte[]> cellEntry : values.entrySet()) {
             if ((cellEntry.getValue() == null) || (cellEntry.getValue().length == 0)) {
                 throw new SafeIllegalArgumentException(
                         "AtlasDB does not currently support inserting null or empty (zero-byte) values.");
@@ -1378,7 +1377,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void putWritesAndLogIfTooLarge(Map<Cell, byte[]> values, SortedMap<Cell, byte[]> writes) {
-        for (Entry<Cell, byte[]> e : values.entrySet()) {
+        for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
             byte[] val = MoreObjects.firstNonNull(e.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
             Cell cell = e.getKey();
             if (writes.put(cell, val) == null) {
@@ -1493,7 +1492,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void checkConstraints() {
         List<String> violations = Lists.newArrayList();
-        for (Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
+        for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
             SortedMap<Cell, byte[]> sortedMap = writesByTable.get(entry.getKey());
             if (sortedMap != null) {
                 violations.addAll(entry.getValue().findConstraintFailures(sortedMap, this, constraintCheckingMode));
@@ -1672,7 +1671,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected void throwIfConflictOnCommit(LockToken commitLocksToken, TransactionService transactionService)
             throws TransactionConflictException {
-        for (Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write : writesByTable.entrySet()) {
+        for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write : writesByTable.entrySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(write.getKey());
             throwIfWriteAlreadyCommitted(
                     write.getKey(),
@@ -1736,7 +1735,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, Value> conflictingValues = keyValueService.get(table, cellToTs);
 
         Set<Cell> conflictingCells = Sets.newHashSet();
-        for (Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
+        for (Map.Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
             Cell cell = cellEntry.getKey();
             if (!writes.containsKey(cell)) {
                 Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), table);
@@ -1794,7 +1793,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, rawResults.values(), false);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
 
-        for (Entry<Cell, Long> e : rawResults.entrySet()) {
+        for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             long theirStartTimestamp = e.getValue();
             AssertUtils.assertAndLog(log, theirStartTimestamp != getStartTimestamp(),
@@ -2082,7 +2081,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         Map<Long, Long> rawResults = loadCommitTimestamps(gets);
 
-        for (Entry<Long, Long> e : rawResults.entrySet()) {
+        for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
             if (e.getValue() != null) {
                 long startTs = e.getKey();
                 long commitTs = e.getValue();
@@ -2212,7 +2211,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Multimap<Cell, TableReference> cellToTableName = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
-            for (Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
                 TableReference table = entry.getKey();
                 Set<Cell> cells = entry.getValue().keySet();
                 for (Cell c : cells) {
@@ -2230,7 +2229,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Multimap<TableReference, Cell> tableRefToCells = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
-            for (Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
                 TableReference table = entry.getKey();
                 Set<Cell> cells = entry.getValue().keySet();
                 tableRefToCells.putAll(table, cells);

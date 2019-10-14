@@ -148,5 +148,4 @@ public class ReadTransaction extends ForwardingTransaction {
         checkTableName(tableRef);
         return delegate().getAsync(tableRef, cells);
     }
-
 }
