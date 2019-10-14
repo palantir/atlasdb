@@ -15,20 +15,27 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -36,15 +43,38 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
+@RunWith(Parameterized.class)
 public class CachingTransactionTest {
     private static final byte[] ROW_BYTES = "row".getBytes();
     private static final byte[] COL_BYTES = "col".getBytes();
     private static final byte[] VALUE_BYTES = "value".getBytes();
+    private static final String SYNC = "sync";
+    private static final String ASYNC = "async";
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+        Object[][] data = new Object[][] {
+                {SYNC, (Function<CachingTransaction, CachingTransaction>) SynchronousDelegate::new},
+                {ASYNC, (Function<CachingTransaction, CachingTransaction>) AsyncDelegate::new}
+        };
+        return Arrays.asList(data);
+    }
 
     private final TableReference table = TableReference.createWithEmptyNamespace("table");
     private final Mockery mockery = new Mockery();
     private final Transaction txn = mockery.mock(Transaction.class);
-    private final CachingTransaction ct = new CachingTransaction(txn);
+    private final CachingTransaction ct;
+    private final String name;
+    private final Map<String, BiFunction<Set<Cell>, Map<Cell, byte[]>, Expectations>> expectationsMapping =
+            ImmutableMap.<String, BiFunction<Set<Cell>, Map<Cell, byte[]>, Expectations>>builder()
+                    .put(SYNC, CachingTransactionTest.this::syncGetExpectation)
+                    .put(ASYNC, CachingTransactionTest.this::asyncGetExpectation)
+                    .build();
+
+    public CachingTransactionTest(String name, Function<CachingTransaction, CachingTransaction> transactionWrapper) {
+        this.name = name;
+        ct = transactionWrapper.apply(new CachingTransaction(txn));
+    }
 
     @Test
     public void testCacheEmptyGets() {
@@ -125,7 +155,16 @@ public class CachingTransactionTest {
 
     private void testGetCellResults(Cell cell, Map<Cell, byte[]> cellValueMap) {
         final Set<Cell> cellSet = ImmutableSet.of(cell);
-        mockery.checking(new Expectations() {
+        mockery.checking(expectationsMapping.get(name).apply(cellSet, cellValueMap));
+
+        Assert.assertEquals(cellValueMap, ct.get(table, cellSet));
+        Assert.assertEquals(cellValueMap, ct.get(table, cellSet));
+
+        mockery.assertIsSatisfied();
+    }
+
+    private Expectations syncGetExpectation(Set<Cell> cellSet, Map<Cell, byte[]> cellValueMap) {
+        return new Expectations() {
             {
                 oneOf(txn).get(table, cellSet);
                 will(returnValue(cellValueMap));
@@ -133,11 +172,46 @@ public class CachingTransactionTest {
                 oneOf(txn).get(table, ImmutableSet.of());
                 will(returnValue(ImmutableMap.of()));
             }
-        });
+        };
+    }
 
-        Assert.assertEquals(cellValueMap, ct.get(table, cellSet));
-        Assert.assertEquals(cellValueMap, ct.get(table, cellSet));
+    private Expectations asyncGetExpectation(Set<Cell> cellSet, Map<Cell, byte[]> cellValueMap) {
+        return new Expectations() {
+            {
+                oneOf(txn).getAsync(table, cellSet);
+                will(returnValue(Futures.immediateFuture(cellValueMap)));
 
-        mockery.assertIsSatisfied();
+                oneOf(txn).getAsync(table, ImmutableSet.of());
+                will(returnValue(Futures.immediateFuture(ImmutableMap.of())));
+            }
+        };
+    }
+
+    private static class SynchronousDelegate extends CachingTransaction {
+
+        SynchronousDelegate(CachingTransaction transaction) {
+            super(transaction.delegate());
+        }
+
+        @Override
+        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+            return super.get(tableRef, cells);
+        }
+    }
+
+    private static class AsyncDelegate extends CachingTransaction {
+
+        AsyncDelegate(CachingTransaction transaction) {
+            super(transaction.delegate());
+        }
+
+        @Override
+        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+            try {
+                return super.getAsync(tableRef, cells).get();
+            } catch (Exception e) {
+                throw new RuntimeException(e.getCause());
+            }
+        }
     }
 }

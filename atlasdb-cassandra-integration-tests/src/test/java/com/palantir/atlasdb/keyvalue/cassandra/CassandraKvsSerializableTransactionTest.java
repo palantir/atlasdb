@@ -43,46 +43,6 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    private static class SynchronousDelegate extends ForwardingTransaction {
-        private final Transaction delegate;
-
-        SynchronousDelegate(Transaction transaction) {
-            this.delegate = transaction;
-        }
-
-        @Override
-        public Transaction delegate() {
-            return delegate;
-        }
-
-        @Override
-        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-            return delegate.get(tableRef, cells);
-        }
-    }
-
-    private static class AsyncDelegate extends ForwardingTransaction {
-        private final Transaction delegate;
-
-        AsyncDelegate(Transaction transaction) {
-            this.delegate = transaction;
-        }
-
-        @Override
-        public Transaction delegate() {
-            return delegate;
-        }
-
-        @Override
-        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-            try {
-                return delegate.getAsync(tableRef, cells).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e.getCause());
-            }
-        }
-    }
-
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
@@ -126,4 +86,43 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
         return false;
     }
 
+    private static class SynchronousDelegate extends ForwardingTransaction {
+        private final Transaction delegate;
+
+        SynchronousDelegate(Transaction transaction) {
+            this.delegate = transaction;
+        }
+
+        @Override
+        public Transaction delegate() {
+            return delegate;
+        }
+
+        @Override
+        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+            return delegate.get(tableRef, cells);
+        }
+    }
+
+    private static class AsyncDelegate extends ForwardingTransaction {
+        private final Transaction delegate;
+
+        AsyncDelegate(Transaction transaction) {
+            this.delegate = transaction;
+        }
+
+        @Override
+        public Transaction delegate() {
+            return delegate;
+        }
+
+        @Override
+        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+            try {
+                return delegate.getAsync(tableRef, cells).get();
+            } catch (Exception e) {
+                throw new RuntimeException(e.getCause());
+            }
+        }
+    }
 }
