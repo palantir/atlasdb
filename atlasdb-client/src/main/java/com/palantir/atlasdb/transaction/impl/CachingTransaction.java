@@ -156,6 +156,37 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        if (cells.isEmpty()) {
+            return Futures.immediateFuture(ImmutableMap.of());
+        }
+
+        Set<Cell> toLoad = Sets.newHashSet();
+        ImmutableMap.Builder<Cell, byte[]> cacheHitMapBuilder = ImmutableMap.builder();
+        for (Cell cell : cells) {
+            byte[] val = getCachedCellIfPresent(tableRef, cell);
+            if (val != null) {
+                if (val.length > 0) {
+                    cacheHitMapBuilder.put(cell, val);
+                }
+            } else {
+                toLoad.add(cell);
+            }
+        }
+
+        ImmutableMap<Cell, byte[]> cacheHit = cacheHitMapBuilder.build();
+
+        return Futures.transform(super.getAsync(tableRef, toLoad),
+                loaded -> {
+                    cacheLoadedCells(tableRef, toLoad, loaded);
+                    return ImmutableMap.<Cell, byte[]>builder()
+                            .putAll(loaded.entrySet())
+                            .putAll(cacheHit.entrySet())
+                            .build();
+                }, MoreExecutors.directExecutor());
+    }
+
+    @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
         super.delete(tableRef, cells);
         addToCache(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
