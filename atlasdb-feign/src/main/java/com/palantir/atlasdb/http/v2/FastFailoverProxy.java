@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.common.base.Throwables;
 import com.palantir.conjure.java.api.errors.QosException;
 
 import feign.RetryableException;
@@ -47,14 +48,19 @@ public class FastFailoverProxy<T> extends AbstractInvocationHandler {
     private final T delegate;
     private final Clock clock;
 
-    @VisibleForTesting
-    FastFailoverProxy(T delegate, Clock clock) {
+    private FastFailoverProxy(T delegate, Clock clock) {
         this.delegate = delegate;
         this.clock = clock;
     }
 
     public static <U> U newProxyInstance(Class<U> interfaceClass, U delegate) {
-        FastFailoverProxy<U> proxy = new FastFailoverProxy<>(delegate, Clock.systemUTC());
+        return newProxyInstance(interfaceClass, delegate, Clock.systemUTC());
+    }
+
+    @VisibleForTesting
+    @SuppressWarnings("unchecked") // Class guaranteed to be correct
+    static <U> U newProxyInstance(Class<U> interfaceClass, U delegate, Clock clock) {
+        FastFailoverProxy<U> proxy = new FastFailoverProxy<>(delegate, clock);
 
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
@@ -79,7 +85,7 @@ public class FastFailoverProxy<T> extends AbstractInvocationHandler {
         if (attempt.isSuccessful()) {
             return attempt.result().orElse(null);
         }
-        throw attempt.failure().get();
+        throw Throwables.unwrapIfPossible(attempt.failure().get());
     }
 
     private ResultOrThrowable singleInvocation(Method method, Object[] args) {
@@ -90,7 +96,8 @@ public class FastFailoverProxy<T> extends AbstractInvocationHandler {
         }
     }
 
-    private static boolean isCausedByRetryOther(RetryableException ex) {
+    @VisibleForTesting
+    static boolean isCausedByRetryOther(RetryableException ex) {
         Throwable cause = ex;
         while (cause != null) {
             if (cause instanceof QosException.RetryOther) {
