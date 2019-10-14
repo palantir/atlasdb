@@ -87,6 +87,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
@@ -149,23 +150,65 @@ import com.palantir.timestamp.TimestampService;
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
 public class SnapshotTransactionTest extends AtlasDbTestCase {
+    private static final String SYNC = "sync";
+    private static final String ASYNC = "async";
     private final String name;
     private final Function<Transaction, Transaction> transactionWrapper;
+    private final Map<String, ExpectationFactory<KeyValueService, Cell, Long, LockService, Expectations>>
+            expectationsMapping =
+            ImmutableMap.<String, ExpectationFactory<KeyValueService, Cell, Long, LockService, Expectations>>builder()
+                    .put(SYNC, SnapshotTransactionTest.this::syncGetExpectation)
+                    .put(ASYNC, SnapshotTransactionTest.this::asyncGetExpectation)
+                    .build();
+
+    @FunctionalInterface
+    interface ExpectationFactory<One, Two, Three, Four, Five> {
+        Five apply(One one, Two two, Three three, Four four) throws Exception;
+    }
+
+    private Expectations syncGetExpectation(
+            KeyValueService kvMock,
+            Cell cell,
+            long transactionTs,
+            LockService lockMock) {
+        try {
+            return new Expectations() {{
+                oneOf(kvMock).get(TABLE, ImmutableMap.of(cell, transactionTs));
+                will(throwException(new RuntimeException()));
+                never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
+            }};
+        } catch (Exception e) {
+            throw new RuntimeException(e.getCause());
+        }
+    }
+
+    private Expectations asyncGetExpectation(
+            KeyValueService kvMock,
+            Cell cell,
+            long transactionTs,
+            LockService lockMock) throws Exception {
+        return new Expectations() {{
+            oneOf(kvMock).getAsync(TABLE, ImmutableMap.of(cell, transactionTs));
+            will(returnValue(Futures.immediateFailedFuture(new RuntimeException())));
+            never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
+        }};
+    }
+
     private TransactionConfig transactionConfig;
 
-    protected final TimestampCache timestampCache = new DefaultTimestampCache(
+    private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
-    protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
-    protected final int defaultGetRangesConcurrency = 2;
-    protected final TransactionOutcomeMetrics transactionOutcomeMetrics
+    private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
+    private final int defaultGetRangesConcurrency = 2;
+    private final TransactionOutcomeMetrics transactionOutcomeMetrics
             = TransactionOutcomeMetrics.create(metricsManager);
     private WrappingTestTransactionManager wrappedSerializableTxManager;
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {"sync", (Function<Transaction, Transaction>) SynchronousDelegate::new},
-                {"async", (Function<Transaction, Transaction>) AsyncDelegate::new}
+                {SYNC, (Function<Transaction, Transaction>) SynchronousDelegate::new},
+                {ASYNC, (Function<Transaction, Transaction>) AsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -310,11 +353,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final long transactionTs = timestampService.getFreshTimestamp();
         keyValueService.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY), startTs);
 
-        m.checking(new Expectations() {{
-            oneOf(kvMock).get(TABLE, ImmutableMap.of(cell, transactionTs));
-            will(throwException(new RuntimeException()));
-            never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
-        }});
+        m.checking(expectationsMapping.get(name).apply(kvMock, cell, transactionTs, lockMock));
 
         Transaction snapshot = transactionWrapper.apply(new SnapshotTransaction(metricsManager,
                 kvMock,
@@ -1448,8 +1487,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
             try {
                 return delegate.getAsync(tableRef, cells).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e.getCause());
+            } catch (InterruptedException | ExecutionException e) {
+                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         }
     }
