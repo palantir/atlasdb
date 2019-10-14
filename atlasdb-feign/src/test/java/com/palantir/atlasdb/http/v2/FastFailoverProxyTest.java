@@ -45,14 +45,16 @@ public class FastFailoverProxyTest {
     private final Clock clock = mock(Clock.class);
     private final AtomicLong time = new AtomicLong();
 
+    private BinaryOperator<Integer> proxy;
+
     @Before
     public void setUp() {
         setUpClock();
+        createProxy();
     }
 
     @Test
     public void throwsNonRetryableExceptionsFromProxyWithoutRetrying() {
-        BinaryOperator<Integer> proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, binaryOperator, clock);
         IllegalStateException illegalStateException = new IllegalStateException();
         when(binaryOperator.apply(1, 2)).thenThrow(illegalStateException);
 
@@ -62,7 +64,6 @@ public class FastFailoverProxyTest {
 
     @Test
     public void throwsRetryableExceptionsNotCausedByRetryOther() {
-        BinaryOperator<Integer> proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, binaryOperator, clock);
         RetryableException retryableException = createRetryableException(QosException.throttle());
         when(binaryOperator.apply(1, 2)).thenThrow(retryableException);
 
@@ -72,7 +73,6 @@ public class FastFailoverProxyTest {
 
     @Test
     public void recoversFromRetryableExceptionsCausedByRetryOther() {
-        BinaryOperator<Integer> proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, binaryOperator, clock);
         RetryableException retryableException = createRetryableException(QosException.retryOther(createUrl()));
         when(binaryOperator.apply(1, 2))
                 .thenThrow(retryableException)
@@ -87,7 +87,6 @@ public class FastFailoverProxyTest {
 
     @Test
     public void eventuallyGivesUpFromRetryingRetryOther() {
-        BinaryOperator<Integer> proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, binaryOperator, clock);
         RetryableException retryableException = createRetryableException(QosException.retryOther(createUrl()));
         when(binaryOperator.apply(1, 2)).thenThrow(retryableException);
 
@@ -98,7 +97,6 @@ public class FastFailoverProxyTest {
     @Test
     public void alwaysInvokesMethodAtLeastOnce() {
         when(clock.instant()).thenAnswer($ -> Instant.ofEpochMilli(time.getAndAdd(1_000_000)));
-        BinaryOperator<Integer> proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, binaryOperator, clock);
         when(binaryOperator.apply(1, 2)).thenReturn(3);
 
         assertThat(proxy.apply(1, 2)).isEqualTo(3);
@@ -134,6 +132,11 @@ public class FastFailoverProxyTest {
     private void setUpClock() {
         when(clock.instant()).thenAnswer($ -> Instant.ofEpochMilli(time.getAndAdd(1_000)));
     }
+
+    private void createProxy() {
+        proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, binaryOperator, clock);
+    }
+
 
     private static RetryableException createRetryableException(Throwable throwable) {
         return new RetryableException("foo", throwable, Date.from(Instant.EPOCH));

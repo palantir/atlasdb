@@ -25,8 +25,6 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -42,7 +40,6 @@ import feign.RetryableException;
  * leader election is still taking place.
  */
 public class FastFailoverProxy<T> extends AbstractInvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(FastFailoverProxy.class);
     private static final Duration TIME_LIMIT = Duration.ofSeconds(10);
 
     private final T delegate;
@@ -73,27 +70,37 @@ public class FastFailoverProxy<T> extends AbstractInvocationHandler {
         ResultOrThrowable attempt = singleInvocation(method, args);
         Instant lastRetryInstant = clock.instant().plus(TIME_LIMIT);
         while (clock.instant().isBefore(lastRetryInstant) && !attempt.isSuccessful()) {
-            Throwable cause = attempt.failure().get();
-            if (cause instanceof InvocationTargetException) {
-                Throwable ex = ((InvocationTargetException) cause).getTargetException();
-                if (!(ex instanceof RetryableException) || !isCausedByRetryOther((RetryableException) ex) ) {
-                    throw ex;
-                }
+            Throwable cause = attempt.throwable().get();
+            ResultOrThrowable fastFailoverCheck = isRetriable(cause);
+            if (!fastFailoverCheck.isSuccessful()) {
+                throw fastFailoverCheck.throwable().get();
             }
             attempt = singleInvocation(method, args);
         }
         if (attempt.isSuccessful()) {
             return attempt.result().orElse(null);
         }
-        throw Throwables.unwrapIfPossible(attempt.failure().get());
+        throw Throwables.unwrapIfPossible(attempt.throwable().get());
     }
 
     private ResultOrThrowable singleInvocation(Method method, Object[] args) {
         try {
             return ResultOrThrowable.success(method.invoke(delegate, args));
         } catch (Throwable th) {
-            return ResultOrThrowable.exception(th);
+            return ResultOrThrowable.failure(th);
         }
+    }
+
+    private ResultOrThrowable isRetriable(Throwable throwable) {
+        if (!(throwable instanceof InvocationTargetException)) {
+            return ResultOrThrowable.failure(throwable);
+        }
+        InvocationTargetException exception = (InvocationTargetException) throwable;
+        Throwable cause = exception.getCause();
+        if (!(cause instanceof RetryableException) || !isCausedByRetryOther((RetryableException) cause) ) {
+            return ResultOrThrowable.failure(cause);
+        }
+        return ResultOrThrowable.success(null);
     }
 
     @VisibleForTesting
@@ -112,23 +119,26 @@ public class FastFailoverProxy<T> extends AbstractInvocationHandler {
     interface ResultOrThrowable {
         boolean isSuccessful();
         Optional<Object> result();
-        Optional<Throwable> failure();
+        Optional<Throwable> throwable();
 
         @Value.Check
         default void exactlyOneSet() {
-            Preconditions.checkState(result().isPresent() ^ failure().isPresent()
-                    || isSuccessful() && !failure().isPresent());
+            Preconditions.checkState(result().isPresent() ^ throwable().isPresent()
+                    || isSuccessful() && !throwable().isPresent());
         }
 
         static ResultOrThrowable success(Object result) {
             return ImmutableResultOrThrowable.builder()
                     .isSuccessful(true)
-                    .result(result == null ? Optional.empty() : Optional.of(result))
+                    .result(Optional.ofNullable(result))
                     .build();
         }
 
-        static ResultOrThrowable exception(Throwable throwable) {
-            return ImmutableResultOrThrowable.builder().isSuccessful(false).failure(throwable).build();
+        static ResultOrThrowable failure(Throwable throwable) {
+            return ImmutableResultOrThrowable.builder()
+                    .isSuccessful(false)
+                    .throwable(throwable)
+                    .build();
         }
     }
 }
