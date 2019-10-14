@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -174,8 +175,8 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
         public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
             try {
                 return delegate.getAsync(tableRef, cells).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e.getCause());
+            } catch (InterruptedException | ExecutionException e) {
+                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         }
     }

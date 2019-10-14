@@ -287,7 +287,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         txManager = new WrappingTestTransactionManager(txManager, transactionWrapper);
         wrappedSerializableTxManager = new WrappingTestTransactionManager(serializableTxManager, transactionWrapper);
-
         transactionConfig = ImmutableTransactionConfig.builder().build();
 
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);

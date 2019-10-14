@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -209,8 +210,8 @@ public class CachingTransactionTest {
         public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
             try {
                 return super.getAsync(tableRef, cells).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e.getCause());
+            } catch (InterruptedException | ExecutionException e) {
+                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         }
     }
