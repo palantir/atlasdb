@@ -277,6 +277,16 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        return Futures.transform(super.getAsync(tableRef, cells),
+                ret -> {
+                    markCellsRead(tableRef, cells, ret);
+                    return ret;
+                },
+                MoreExecutors.directExecutor());
+    }
+
+    @Override
     @Idempotent
     public BatchingVisitable<RowResult<byte[]>> getRange(TableReference tableRef, RangeRequest rangeRequest) {
         final BatchingVisitable<RowResult<byte[]>> ret = super.getRange(tableRef, rangeRequest);

@@ -323,21 +323,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         hasReads = true;
 
-        Map<Cell, byte[]> result = Maps.newHashMap();
+        ImmutableMap.Builder<Cell, byte[]> resultBuilder = ImmutableMap.builder();
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null) {
             for (Cell cell : cells) {
                 if (writes.containsKey(cell)) {
-                    result.put(cell, writes.get(cell));
+                    resultBuilder.put(cell, writes.get(cell));
                 }
             }
         }
 
+        Map<Cell, byte[]> writtenLocally = resultBuilder.build();
+
         return Futures.transform(
                 // We don't need to read any cells that were written locally.
-                getFromKeyValueServiceAsync(tableRef, Sets.difference(cells, result.keySet())),
+                getFromKeyValueServiceAsync(tableRef, Sets.difference(cells,  writtenLocally.keySet())),
                 keyValueResult -> {
-                    result.putAll(keyValueResult);
+                    ImmutableMap<Cell, byte[]> result = ImmutableMap.<Cell, byte[]>builder()
+                            .putAll(writtenLocally)
+                            .putAll(keyValueResult)
+                            .build();
 
                     long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
                     if (perfLogger.isDebugEnabled()) {
