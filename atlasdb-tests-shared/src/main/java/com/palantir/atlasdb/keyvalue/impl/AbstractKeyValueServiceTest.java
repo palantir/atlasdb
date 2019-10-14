@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -99,11 +100,19 @@ public abstract class AbstractKeyValueServiceTest {
 
     private static final Cell TEST_CELL = Cell.create(row(0), column(0));
     private static final long TEST_TIMESTAMP = 1000000L;
+    private final Function<KeyValueService, KeyValueService> keyValueServiceWrapper;
 
     protected KeyValueService keyValueService;
 
     protected AbstractKeyValueServiceTest(KvsManager kvsManager) {
+        this(kvsManager, Function.identity());
+    }
+
+    public AbstractKeyValueServiceTest(
+            KvsManager kvsManager,
+            Function<KeyValueService, KeyValueService> keyValueServiceWrapper) {
         this.kvsManager = kvsManager;
+        this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
 
     protected boolean reverseRangesSupported() {
@@ -116,7 +125,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        keyValueService = kvsManager.getDefaultKvs();
+        keyValueService = keyValueServiceWrapper.apply(kvsManager.getDefaultKvs());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 

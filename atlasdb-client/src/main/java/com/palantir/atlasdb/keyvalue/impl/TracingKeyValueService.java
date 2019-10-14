@@ -19,11 +19,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -45,7 +50,9 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.tracing.DetachedSpan;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -57,6 +64,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     private static final String SERVICE_NAME = "atlasdb-kvs";
 
     private final KeyValueService delegate;
+    private final ExecutorService tracingExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
 
     private TracingKeyValueService(KeyValueService delegate) {
         this.delegate = Preconditions.checkNotNull(delegate, "delegate");
@@ -64,10 +72,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     public static KeyValueService create(KeyValueService keyValueService) {
         return new TracingKeyValueService(keyValueService);
-    }
-
-    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
-        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
     }
 
     @Override
@@ -99,6 +103,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         try (CloseableTrace trace = startLocalTrace("close()")) {
             delegate().close();
         }
+        tracingExecutorService.shutdown();
     }
 
     @Override
@@ -415,5 +420,35 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     public boolean shouldTriggerCompactions() {
         return delegate().shouldTriggerCompactions();
     }
-}
 
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        DetachedSpan detachedSpan = DetachedSpan.start(String.format("getAsync(%s, %s cells)",
+                LoggingArgs.safeTableOrPlaceholder(tableRef), timestampByCell.size()));
+
+        ListenableFuture<Map<Cell, Value>> future = delegate().getAsync(tableRef, timestampByCell);
+        return attachDetachedSpanCompletion(detachedSpan, future, tracingExecutorService);
+    }
+
+    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
+        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
+    }
+
+    private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
+            DetachedSpan detachedSpan,
+            ListenableFuture<V> future,
+            Executor tracingExecutorService) {
+        Futures.addCallback(future, new FutureCallback<V>() {
+            @Override
+            public void onSuccess(V result) {
+                detachedSpan.complete();
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                detachedSpan.complete();
+            }
+        }, tracingExecutorService);
+        return future;
+    }
+}

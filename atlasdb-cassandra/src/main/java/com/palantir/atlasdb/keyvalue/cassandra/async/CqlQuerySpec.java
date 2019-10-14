@@ -16,9 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import com.datastax.driver.core.BoundStatement;
+import org.immutables.value.Value;
+
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface CqlQuerySpec<R> {
@@ -31,5 +36,10 @@ public interface CqlQuerySpec<R> {
 
     String formatQueryString();
 
-    BoundStatement bind(BoundStatement boundStatement);
+    ConsistencyLevel queryConsistency();
+
+    @Value.Auxiliary
+    Executor executor();
+
+    Statement makeExecutableStatement(PreparedStatement preparedStatement);
 }

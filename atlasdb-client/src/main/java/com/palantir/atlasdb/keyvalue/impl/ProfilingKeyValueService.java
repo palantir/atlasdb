@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -61,11 +62,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     /**
-     * @deprecated in favour of ProfilingKeyValueService#create(KeyValueService delegate). Use
-     * {@link KvsProfilingLogger#setSlowLogThresholdMillis(long)} to configure the slow logging threshold.
      * @param delegate the KeyValueService to be profiled
-     * Defaults to using a 1 second slowlog.
+     * @param slowLogThresholdMillis sets the threshold for slow log, Defaults to using a 1 second slowlog.
      * @return ProfilingKeyValueService that profiles the delegate KeyValueService
+     * @deprecated in favour of ProfilingKeyValueService#create(KeyValueService delegate). Use {@link
+     * KvsProfilingLogger#setSlowLogThresholdMillis(long)} to configure the slow logging threshold.
      */
     @Deprecated
     public static ProfilingKeyValueService create(KeyValueService delegate, long slowLogThresholdMillis) {
@@ -433,8 +434,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         long startTime = System.currentTimeMillis();
-        return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows,
-                batchColumnRangeSelection, timestamp),
+        return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp),
                 (logger, stopwatch) ->
                         logger.log("Call to KVS.getRowsColumnRange at time {}, on table {} for {} rows with range {} took {} ms.",
                                 LoggingArgs.startTimeMillis(startTime),
@@ -464,7 +464,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.durationMillis(stopwatch)));
     }
 
-    private  <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
+    private <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
         return KvsProfilingLogger.maybeLog(action, logger);
     }
 
@@ -497,5 +497,18 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public boolean shouldTriggerCompactions() {
         return delegate.shouldTriggerCompactions();
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        long startTime = System.currentTimeMillis();
+        return KvsProfilingLogger.maybeLogAsync(() -> delegate.getAsync(tableRef, timestampByCell),
+                (logger, stopwatch) ->
+                        logger.log("Call to KVS.getAsync",
+                                LoggingArgs.startTimeMillis(startTime),
+                                LoggingArgs.tableRef(tableRef),
+                                LoggingArgs.cellCount(timestampByCell.size()),
+                                LoggingArgs.durationMillis(stopwatch)),
+                logCellResultSize(4L));
     }
 }

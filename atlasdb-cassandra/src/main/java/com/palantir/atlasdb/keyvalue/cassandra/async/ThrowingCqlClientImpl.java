@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 public final class ThrowingCqlClientImpl implements CqlClient {
-    public static final ThrowingCqlClientImpl SINGLETON = new ThrowingCqlClientImpl();
+    static final ThrowingCqlClientImpl SINGLETON = new ThrowingCqlClientImpl();
 
     private ThrowingCqlClientImpl() {
         // Use SINGLETON
@@ -29,7 +31,7 @@ public final class ThrowingCqlClientImpl implements CqlClient {
     }
 
     @Override
-    public CqlQueryBuilder asyncQueryBuilder() {
+    public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
         throw new UnsupportedOperationException("Not configured to use CQL client, check your KVS config file.");
     }
 }

@@ -23,12 +23,17 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 
 public class KvsProfilingLogger {
 
@@ -107,7 +112,7 @@ public class KvsProfilingLogger {
     }
 
     /**
-     * Runs an action (which is a CallableCheckedException) through a {@link Monitor}, registering results on
+     * Runs an action (which is a {@link CallableCheckedException}) through a {@link Monitor}, registering results on
      * successful operations and exceptions on unsuccessful operations, as well as logging operations.
      *
      * Please see the documentation of {@link Monitor} for more information on how the logging functions are invoked.
@@ -133,6 +138,39 @@ public class KvsProfilingLogger {
         } else {
             return action.call();
         }
+    }
+
+    /**
+     * Runs an async action (which is a {@link CallableCheckedException}) through a {@link Monitor}, registering results on
+     * successful operations and exceptions on unsuccessful operations, as well as logging operations.
+     *
+     * Please see the documentation of {@link Monitor} for more information on how the logging functions are invoked.
+     */
+    public static <T, E extends Exception> ListenableFuture<T> maybeLogAsync(
+            CallableCheckedException<ListenableFuture<T>, E> action,
+            BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
+            BiConsumer<LoggingFunction, T> additionalLoggerWithAccessToResult) throws E {
+        ListenableFuture<T> future = action.call();
+        if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
+            Monitor<T> monitor = Monitor.createMonitor(
+                    primaryLogger,
+                    additionalLoggerWithAccessToResult,
+                    slowLogPredicate);
+            Futures.addCallback(future, new FutureCallback<T>() {
+                @Override
+                public void onSuccess(@NullableDecl T result) {
+                    monitor.registerResult(result);
+                    monitor.log();
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    monitor.registerException(new Exception(t));
+                    monitor.log();
+                }
+            }, MoreExecutors.directExecutor());
+        }
+        return future;
     }
 
     private static class Monitor<R> {

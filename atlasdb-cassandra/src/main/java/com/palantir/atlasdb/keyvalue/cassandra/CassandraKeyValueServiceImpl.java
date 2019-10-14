@@ -66,6 +66,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -96,6 +98,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncCellLoader;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -128,6 +131,7 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tracing.Tracers;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -149,6 +153,7 @@ import okio.ByteString;
  */
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
+
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
         @Override
@@ -213,6 +218,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
+    private final AsyncCellLoader asyncCellLoader;
     private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
@@ -419,6 +425,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
+        this.asyncCellLoader = AsyncCellLoader.create(cqlClient, executor, config.getKeyspaceOrThrow());
         this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
         this.cellValuePutter = new CellValuePutter(
                 config,
@@ -435,13 +442,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 cassandraTableTruncator);
     }
 
-    private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
+    private static ExecutorService createInstrumentedFixedThreadPool(
+            CassandraKeyValueServiceConfig config,
             MetricRegistry registry) {
-        return new InstrumentedExecutorService(
+        return Tracers.wrap(new InstrumentedExecutorService(
                 createFixedThreadPool("Atlas Cassandra KVS",
                         config.poolSize() * config.servers().numberOfThriftHosts()),
                 registry,
-                MetricRegistry.name(CassandraKeyValueService.class, "executorService"));
+                MetricRegistry.name(CassandraKeyValueService.class, "executorService")));
     }
 
     @Override
@@ -1923,6 +1931,26 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public boolean performanceIsSensitiveToTombstones() {
         return true;
+    }
+
+    /**
+     * Asynchronously gets values from the cassandra key-value store.
+     *
+     * @param tableRef the name of the table to retrieve values from.
+     * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
+     *        retrieve that rows's value.
+     * @return listenable future map of retrieved values. Values which do not exist (either
+     *         because they were deleted or never created in the first place)
+     *         are simply not returned.
+     */
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            log.info("Attempted get with no specified cells", LoggingArgs.tableRef(tableRef));
+            return Futures.immediateFuture(ImmutableMap.of());
+        }
+
+        return asyncCellLoader.loadAllWithTimestamp(tableRef, timestampByCell);
     }
 
     private static class TableCellAndValue {

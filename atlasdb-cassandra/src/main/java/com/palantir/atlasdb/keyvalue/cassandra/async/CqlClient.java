@@ -22,17 +22,5 @@ import com.palantir.processors.AutoDelegate;
 @AutoDelegate
 public interface CqlClient extends AutoCloseable {
 
-    interface CqlQuery<R> {
-        ListenableFuture<R> execute();
-    }
-
-    /**
-     * Visitor style interface which declares methods for constructing {@code CqlQuery} based on the
-     * {@code CqlQuerySpec}.
-     */
-    interface CqlQueryBuilder {
-        <R> CqlQuery<R> build(CqlQuerySpec<R> querySpec);
-    }
-
-    CqlQueryBuilder asyncQueryBuilder();
+    <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec);
 }

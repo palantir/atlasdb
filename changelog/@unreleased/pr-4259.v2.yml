@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Key/value services can now support asynchronous get operations. This has been implemented for the Cassandra key value service.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4295

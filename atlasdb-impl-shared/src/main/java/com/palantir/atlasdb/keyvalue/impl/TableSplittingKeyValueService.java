@@ -30,6 +30,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -392,5 +393,10 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public boolean shouldTriggerCompactions() {
         return delegates.stream().anyMatch(KeyValueService::shouldTriggerCompactions);
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return getDelegate(tableRef).getAsync(tableRef, timestampByCell);
     }
 }

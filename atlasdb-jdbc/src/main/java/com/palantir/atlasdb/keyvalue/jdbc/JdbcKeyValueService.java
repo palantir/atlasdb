@@ -109,6 +109,8 @@ import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -1052,6 +1054,11 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         throw new UnsupportedOperationException("getClusterAvailabilityStatus has not been implemented for Jdbc KVS");
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return Futures.immediateFuture(this.get(tableRef, timestampByCell));
     }
 
     @Override

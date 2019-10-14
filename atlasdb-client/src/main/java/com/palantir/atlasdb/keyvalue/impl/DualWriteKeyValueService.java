@@ -22,6 +22,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -70,9 +71,9 @@ public class DualWriteKeyValueService implements KeyValueService {
 
     @Override
     public Map<Cell, Value> getRows(TableReference tableRef,
-                                    Iterable<byte[]> rows,
-                                    ColumnSelection columnSelection,
-                                    long timestamp) {
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            long timestamp) {
         return delegate1.getRows(tableRef, rows, columnSelection, timestamp);
     }
 
@@ -231,8 +232,8 @@ public class DualWriteKeyValueService implements KeyValueService {
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
-                    TableReference tableRef,
-                    CandidateCellForSweepingRequest request) {
+            TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
         return delegate1.getCandidateCellsForSweeping(tableRef, request);
     }
 
@@ -280,10 +281,10 @@ public class DualWriteKeyValueService implements KeyValueService {
 
     @Override
     public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int cellBatchHint,
+            long timestamp) {
         return delegate1.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
     }
 
@@ -296,5 +297,10 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public boolean shouldTriggerCompactions() {
         return delegate1.shouldTriggerCompactions() || delegate2.shouldTriggerCompactions();
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate1.getAsync(tableRef, timestampByCell);
     }
 }
