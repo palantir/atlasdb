@@ -19,6 +19,8 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
+import org.immutables.value.Value;
+
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
@@ -36,6 +38,7 @@ public interface CqlQuerySpec<R> {
 
     ConsistencyLevel queryConsistency();
 
+    @Value.Auxiliary
     Executor executor();
 
     Statement makeExecutableStatement(PreparedStatement preparedStatement);
