@@ -583,9 +583,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
-            return get(
+            return getWithLoader(
                     "get",
                     tableRef,
                     cells,
@@ -599,10 +600,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return get("getAsync", tableRef, cells, keyValueService::getAsync);
+        return getWithLoader("getAsync", tableRef, cells, keyValueService::getAsync);
     }
 
-    private ListenableFuture<Map<Cell, byte[]>> get(
+    private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
             String operationName,
             TableReference tableRef,
             Set<Cell> cells,

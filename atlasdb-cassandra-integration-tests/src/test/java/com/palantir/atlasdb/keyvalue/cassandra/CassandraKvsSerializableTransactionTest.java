@@ -19,9 +19,6 @@ import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import org.junit.ClassRule;
@@ -29,15 +26,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
-import com.palantir.atlasdb.transaction.impl.ForwardingTransaction;
+import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
+import com.palantir.atlasdb.transaction.impl.GetSynchronousDelegate;
 
 @RunWith(Parameterized.class)
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
@@ -47,8 +43,8 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {"sync", (Function<Transaction, Transaction>) SynchronousDelegate::new},
-                {"async", (Function<Transaction, Transaction>) AsyncDelegate::new}
+                {"sync", (Function<Transaction, Transaction>) GetSynchronousDelegate::new},
+                {"async", (Function<Transaction, Transaction>) GetAsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -85,45 +81,5 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     @Override
     protected boolean supportsReverse() {
         return false;
-    }
-
-    private static class SynchronousDelegate extends ForwardingTransaction {
-        private final Transaction delegate;
-
-        SynchronousDelegate(Transaction transaction) {
-            this.delegate = transaction;
-        }
-
-        @Override
-        public Transaction delegate() {
-            return delegate;
-        }
-
-        @Override
-        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-            return delegate.get(tableRef, cells);
-        }
-    }
-
-    private static class AsyncDelegate extends ForwardingTransaction {
-        private final Transaction delegate;
-
-        AsyncDelegate(Transaction transaction) {
-            this.delegate = transaction;
-        }
-
-        @Override
-        public Transaction delegate() {
-            return delegate;
-        }
-
-        @Override
-        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-            try {
-                return delegate.getAsync(tableRef, cells).get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e.getCause());
-            }
-        }
     }
 }

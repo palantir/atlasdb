@@ -119,7 +119,7 @@ public class CachingTransaction extends ForwardingTransaction {
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
-            return get(
+            return getWithLoader(
                     tableRef,
                     cells,
                     (tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead))).get();
@@ -130,10 +130,13 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return get(tableRef, cells, (super::getAsync));
+        return getWithLoader(tableRef, cells, super::getAsync);
     }
 
-    private ListenableFuture<Map<Cell, byte[]>> get(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+    private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
+            TableReference tableRef,
+            Set<Cell> cells,
+            CellLoader cellLoader) {
         if (cells.isEmpty()) {
             return Futures.immediateFuture(ImmutableMap.of());
         }

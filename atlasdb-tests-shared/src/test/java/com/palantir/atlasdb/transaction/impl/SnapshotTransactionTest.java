@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -207,8 +206,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, (Function<Transaction, Transaction>) SynchronousDelegate::new},
-                {ASYNC, (Function<Transaction, Transaction>) AsyncDelegate::new}
+                {SYNC, (Function<Transaction, Transaction>) GetSynchronousDelegate::new},
+                {ASYNC, (Function<Transaction, Transaction>) GetAsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -1464,46 +1463,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static SnapshotTransaction unwrapSnapshotTransaction(Transaction cachingTransaction) {
         Transaction unwrapped = ((CachingTransaction) cachingTransaction).delegate();
         return (SnapshotTransaction) unwrapped;
-    }
-
-    private static class SynchronousDelegate extends ForwardingTransaction {
-        private final Transaction delegate;
-
-        SynchronousDelegate(Transaction transaction) {
-            this.delegate = transaction;
-        }
-
-        @Override
-        public Transaction delegate() {
-            return delegate;
-        }
-
-        @Override
-        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-            return delegate.get(tableRef, cells);
-        }
-    }
-
-    private static class AsyncDelegate extends ForwardingTransaction {
-        private final Transaction delegate;
-
-        AsyncDelegate(Transaction transaction) {
-            this.delegate = transaction;
-        }
-
-        @Override
-        public Transaction delegate() {
-            return delegate;
-        }
-
-        @Override
-        public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-            try {
-                return delegate.getAsync(tableRef, cells).get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e.getCause());
-            }
-        }
     }
 
     private static class WrappingTestTransactionManager
