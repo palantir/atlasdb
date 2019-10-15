@@ -69,14 +69,20 @@ public final class LeaderElectionServiceBuilder {
     }
 
     public LeaderElectionServiceBuilder pingRate(Duration pingRate) {
-        this.pingRate = Preconditions.checkNotNull(pingRate, "pingRate cannot be null");
+        Preconditions.checkNotNull(pingRate, "pingRate cannot be null");
+        Preconditions.checkArgument(!pingRate.isNegative(), "pingRate must be positive");
+        this.pingRate = pingRate;
         return this;
     }
 
     public LeaderElectionServiceBuilder randomWaitBeforeProposingLeadership(
             Duration randomWaitBeforeProposingLeadership) {
-        this.randomWaitBeforeProposingLeadership = Preconditions.checkNotNull(
+        Preconditions.checkNotNull(
                 randomWaitBeforeProposingLeadership, "randomWaitBeforeProposingLeadership cannot be null");
+        Preconditions.checkArgument(
+                !randomWaitBeforeProposingLeadership.isNegative(),
+                "randomWaitBeforeProposingLeadership must be positive");
+        this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         return this;
     }
 
