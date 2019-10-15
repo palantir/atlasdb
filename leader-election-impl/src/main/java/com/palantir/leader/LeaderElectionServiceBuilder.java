@@ -18,6 +18,7 @@ package com.palantir.leader;
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
@@ -41,6 +42,7 @@ public final class LeaderElectionServiceBuilder {
     @Nullable private Duration randomWaitBeforeProposingLeadership;
     @Nullable private UUID leaderUuid;
     private int quorumSize = -1;
+    private UnaryOperator<PaxosProposer> proposerDecorator = paxosProposer -> paxosProposer;
 
     public LeaderElectionServiceBuilder acceptorClient(PaxosAcceptorNetworkClient acceptorClient) {
         this.acceptorClient = Preconditions.checkNotNull(acceptorClient, "acceptorClient cannot be null");
@@ -89,9 +91,14 @@ public final class LeaderElectionServiceBuilder {
         return this;
     }
 
+    public LeaderElectionServiceBuilder decorateProposer(UnaryOperator<PaxosProposer> proposerDecorator) {
+        this.proposerDecorator = Preconditions.checkNotNull(proposerDecorator, "proposerDecorator cannot be null");
+        return this;
+    }
+
     public LeaderElectionService build() {
         return new PaxosLeaderElectionService(
-                buildProposer(),
+                proposerDecorator.apply(buildProposer()),
                 knowledge(),
                 leaderPinger(),
                 acceptorClient(),
