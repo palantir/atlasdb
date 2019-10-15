@@ -55,7 +55,7 @@ public final class HostLocationSupplier implements Supplier<Optional<HostLocatio
             }
 
             String snitch = snitchSupplier.get();
-            log.info("Snitch successfully detected:", SafeArg.of("snitch", snitch));
+            log.debug("Snitch successfully detected", SafeArg.of("snitch", snitch));
 
             switch (snitch) {
                 case "org.apache.cassandra.locator.Ec2Snitch":

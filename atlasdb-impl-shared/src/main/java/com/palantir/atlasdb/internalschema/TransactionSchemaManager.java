@@ -89,7 +89,7 @@ public class TransactionSchemaManager {
         long finalVersionTimestampThreshold = finalVersion.getKey().lowerEndpoint();
 
         if (transformResult.successful() && finalVersion.getValue() == newVersion) {
-            log.info("We attempted to install the transactions schema version {}, and this was successful."
+            log.debug("We attempted to install the transactions schema version {}, and this was successful."
                     + " This version will take effect no later than timestamp {}.",
                     SafeArg.of("newVersion", newVersion),
                     SafeArg.of("timestamp", finalVersionTimestampThreshold));
@@ -142,7 +142,7 @@ public class TransactionSchemaManager {
             return InternalSchemaMetadata.defaultValue();
         }
 
-        log.info("Attempting to install a new transactions schema version {}, on top of schema metadata"
+        log.debug("Attempting to install a new transactions schema version {}, on top of schema metadata"
                 + " that is valid up till timestamp {}.",
                 SafeArg.of("newVersion", newVersion),
                 SafeArg.of("oldDataValidity", valueAndBound.bound()));
