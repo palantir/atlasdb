@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -74,6 +75,9 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -125,6 +129,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.common.streams.MoreStreams;
@@ -579,10 +584,27 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        Timer.Context timer = getTimer("get").time();
+        try {
+            return get(
+                    "get",
+                    tableRef,
+                    cells,
+                    (tableReference, toRead) ->
+                            Futures.immediateFuture(keyValueService.get(tableReference, toRead))).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    private ListenableFuture<Map<Cell, byte[]>> get(
+            String operationName,
+            TableReference tableRef,
+            Set<Cell> cells,
+            CellLoader cellLoader) {
+        Timer.Context timer = getTimer(operationName).time();
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(cells)) {
-            return ImmutableMap.of();
+            return Futures.immediateFuture(ImmutableMap.of());
         }
         hasReads = true;
 
@@ -597,15 +619,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         // We don't need to read any cells that were written locally.
-        result.putAll(getFromKeyValueService(tableRef, Sets.difference(cells, result.keySet())));
+        return Futures.transform(getFromKeyValueService(tableRef, Sets.difference(cells, result.keySet()), cellLoader),
+                fromKeyValueService -> {
+                    result.putAll(fromKeyValueService);
 
-        long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
-        if (perfLogger.isDebugEnabled()) {
-            perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
-                    tableRef, cells.size(), result.size(), getMillis);
-        }
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-        return removeEmptyColumns(result, tableRef);
+                    long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
+                    if (perfLogger.isDebugEnabled()) {
+                        perfLogger.debug("Snapshot transaction get cells (some possibly deleted)",
+                                LoggingArgs.tableRef(tableRef),
+                                SafeArg.of("numberOfCells", cells.size()),
+                                SafeArg.of("numberOfCellsRetrieved", result.size()),
+                                SafeArg.of("getOperation", operationName),
+                                SafeArg.of("durationMillis", getMillis));
+                    }
+                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                    return removeEmptyColumns(result, tableRef);
+                },
+                MoreExecutors.directExecutor());
     }
 
     @Override
@@ -616,10 +646,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         hasReads = true;
 
-        Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
+        ListenableFuture<Map<Cell, byte[]>> result = getFromKeyValueService(
+                tableRef,
+                cells,
+                (tableReference, toRead) -> Futures.immediateFuture(keyValueService.get(tableReference, toRead)));
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
-        return Maps.filterValues(result, Predicates.not(Value::isTombstone));
+        return Maps.filterValues(Futures.getUnchecked(result), Predicates.not(Value::isTombstone));
     }
 
     /**
@@ -627,12 +660,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * so we have snapshot isolation.  If the value in the key value service is the empty array
      * this will be included here and needs to be filtered out.
      */
-    private Map<Cell, byte[]> getFromKeyValueService(TableReference tableRef, Set<Cell> cells) {
+    private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueService(
+            TableReference tableRef,
+            Set<Cell> cells,
+            CellLoader cellLoader) {
         ImmutableMap.Builder<Cell, byte[]> result = ImmutableMap.builderWithExpectedSize(cells.size());
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
-        Map<Cell, Value> rawResults = keyValueService.get(tableRef, toRead);
-        getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-        return result.build();
+        return Futures.transform(cellLoader.load(tableRef, toRead),
+                rawResults -> {
+                    getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
+                    return result.build();
+                },
+                MoreExecutors.directExecutor());
+    }
+
+    @FunctionalInterface
+    private interface CellLoader {
+        ListenableFuture<Map<Cell, Value>> load(TableReference tableReference, Map<Cell, Long> toRead);
     }
 
     private static byte[] getNextStartRowName(

@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
@@ -54,6 +55,9 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -82,6 +86,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.v2.LockToken;
@@ -247,9 +252,28 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        Map<Cell, byte[]> ret = super.get(tableRef, cells);
-        markCellsRead(tableRef, cells, ret);
-        return ret;
+        try {
+            return get(
+                    tableRef,
+                    cells,
+                    (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead))).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    public ListenableFuture<Map<Cell, byte[]>> get(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+        return Futures.transform(cellLoader.load(tableRef, cells),
+                loadedCells -> {
+                    markCellsRead(tableRef, cells, loadedCells);
+                    return loadedCells;
+                },
+                MoreExecutors.directExecutor());
+    }
+
+    @FunctionalInterface
+    private interface CellLoader {
+        ListenableFuture<Map<Cell, byte[]>> load(TableReference tableReference, Set<Cell> toRead);
     }
 
     @Override

@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -40,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 
 public class CachingTransaction extends ForwardingTransaction {
@@ -113,8 +118,19 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+        try {
+            return get(
+                    tableRef,
+                    cells,
+                    (tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead))).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    private ListenableFuture<Map<Cell, byte[]>> get(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         if (cells.isEmpty()) {
-            return ImmutableMap.of();
+            return Futures.immediateFuture(ImmutableMap.of());
         }
 
         Set<Cell> toLoad = Sets.newHashSet();
@@ -130,11 +146,13 @@ public class CachingTransaction extends ForwardingTransaction {
             }
         }
 
-        final Map<Cell, byte[]> loaded = super.get(tableRef, toLoad);
-
-        cacheLoadedCells(tableRef, toLoad, loaded);
-        cacheHit.putAll(loaded);
-        return cacheHit;
+        return Futures.transform(cellLoader.load(tableRef, toLoad),
+                loadedCells -> {
+                    cacheLoadedCells(tableRef, toLoad, loadedCells);
+                    cacheHit.putAll(loadedCells);
+                    return cacheHit;
+                },
+                MoreExecutors.directExecutor());
     }
 
     @Override
@@ -239,5 +257,10 @@ public class CachingTransaction extends ForwardingTransaction {
                 log.debug("CachingTransaction cache stats on abort: {}", cellCache.stats());
             }
         }
+    }
+
+    @FunctionalInterface
+    private interface CellLoader {
+        ListenableFuture<Map<Cell, byte[]>> load(TableReference tableReference, Set<Cell> toRead);
     }
 }
