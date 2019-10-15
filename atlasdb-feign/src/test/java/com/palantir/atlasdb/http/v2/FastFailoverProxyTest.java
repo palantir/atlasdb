@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.http.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,6 +32,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
+import java.util.function.LongConsumer;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -92,6 +95,17 @@ public class FastFailoverProxyTest {
 
         assertThatThrownBy(() -> proxy.apply(1, 2)).isEqualTo(retryableException);
         verify(binaryOperator, times(10)).apply(1, 2);
+    }
+
+    @Test
+    public void canInvokeVoidReturningMethodsSafely() {
+        LongConsumer longConsumer = mock(LongConsumer.class);
+        RetryableException retryableException = createRetryableException(QosException.retryOther(createUrl()));
+        doThrow(retryableException).doNothing().when(longConsumer).accept(42L);
+
+        LongConsumer proxy = FastFailoverProxy.newProxyInstance(LongConsumer.class, longConsumer, clock);
+        assertThatCode(() -> proxy.accept(42L)).doesNotThrowAnyException();
+        verify(longConsumer, times(2)).accept(42L);
     }
 
     @Test
