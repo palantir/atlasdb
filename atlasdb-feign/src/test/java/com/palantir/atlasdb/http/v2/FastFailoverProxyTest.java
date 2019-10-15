@@ -103,8 +103,8 @@ public class FastFailoverProxyTest {
         RetryableException retryableException = createRetryableException(QosException.retryOther(createUrl()));
         doThrow(retryableException).doNothing().when(longConsumer).accept(42L);
 
-        LongConsumer proxy = FastFailoverProxy.newProxyInstance(LongConsumer.class, longConsumer, clock);
-        assertThatCode(() -> proxy.accept(42L)).doesNotThrowAnyException();
+        LongConsumer proxyConsumer = FastFailoverProxy.newProxyInstance(LongConsumer.class, longConsumer, clock);
+        assertThatCode(() -> proxyConsumer.accept(42L)).doesNotThrowAnyException();
         verify(longConsumer, times(2)).accept(42L);
     }
 
