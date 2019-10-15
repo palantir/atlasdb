@@ -67,8 +67,8 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        ResultOrThrowable attempt = singleInvocation(method, args);
         Instant lastRetryInstant = clock.instant().plus(TIME_LIMIT);
+        ResultOrThrowable attempt = singleInvocation(method, args);
         while (clock.instant().isBefore(lastRetryInstant) && !attempt.isSuccessful()) {
             Throwable cause = attempt.throwable().get();
             ResultOrThrowable fastFailoverCheck = isRetriable(cause);
