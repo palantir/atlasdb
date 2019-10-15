@@ -31,6 +31,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -113,8 +116,15 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+        return Futures.getUnchecked(get(
+                tableRef,
+                cells,
+                ((tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead)))));
+    }
+
+    private ListenableFuture<Map<Cell, byte[]>> get(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         if (cells.isEmpty()) {
-            return ImmutableMap.of();
+            return Futures.immediateFuture(ImmutableMap.of());
         }
 
         Set<Cell> toLoad = Sets.newHashSet();
@@ -130,11 +140,13 @@ public class CachingTransaction extends ForwardingTransaction {
             }
         }
 
-        final Map<Cell, byte[]> loaded = super.get(tableRef, toLoad);
-
-        cacheLoadedCells(tableRef, toLoad, loaded);
-        cacheHit.putAll(loaded);
-        return cacheHit;
+        return Futures.transform(cellLoader.load(tableRef, toLoad),
+                loadedCells -> {
+                    cacheLoadedCells(tableRef, toLoad, loadedCells);
+                    cacheHit.putAll(loadedCells);
+                    return cacheHit;
+                },
+                MoreExecutors.directExecutor());
     }
 
     @Override
@@ -239,5 +251,10 @@ public class CachingTransaction extends ForwardingTransaction {
                 log.debug("CachingTransaction cache stats on abort: {}", cellCache.stats());
             }
         }
+    }
+
+    @FunctionalInterface
+    private interface CellLoader {
+        ListenableFuture<Map<Cell, byte[]>> load(TableReference tableReference, Set<Cell> toRead);
     }
 }
