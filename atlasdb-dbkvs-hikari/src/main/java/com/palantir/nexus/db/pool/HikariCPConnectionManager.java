@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
@@ -123,30 +125,6 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     // validating internally it would have given up rather
                     // than retry
                     throw e;
-                }
-            }
-        }
-    }
-
-    private void logPoolStats() {
-        if (log.isWarnEnabled()) {
-            State stateLocal = state;
-            HikariPoolMXBean poolProxy = stateLocal.poolProxy;
-            if (poolProxy != null) {
-                try {
-                    log.warn(
-                            "[{}] HikariCP: "
-                                    + "numBusyConnections = {}, "
-                                    + "numIdleConnections = {}, "
-                                    + "numConnections = {}, "
-                                    + "numThreadsAwaitingCheckout = {}",
-                            connConfig.getConnectionPoolName(),
-                            poolProxy.getActiveConnections(),
-                            poolProxy.getIdleConnections(),
-                            poolProxy.getTotalConnections(),
-                            poolProxy.getThreadsAwaitingConnection());
-                } catch (Exception e) {
-                    log.error("[{}] Unable to log pool statistics.", connConfig.getConnectionPoolName(), e);
                 }
             }
         }
@@ -382,19 +360,24 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         private void logQueryDuration() {
             long elapsedMillis = globalStopwatch.elapsed(TimeUnit.MILLISECONDS);
             if (elapsedMillis > 1000) {
-                log.warn("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
-                        connConfig.getConnectionPoolName(),
-                        elapsedMillis,
-                        acquisitionMillis,
-                        connectionTestMillis);
-                logPoolStats();
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
-                            connConfig.getConnectionPoolName(),
-                            elapsedMillis,
-                            acquisitionMillis,
-                            connectionTestMillis);
+                State stateLocal = state;
+                HikariPoolMXBean poolProxy = stateLocal.poolProxy;
+                if (poolProxy == null) {
+                    log.warn("Waited a long time to get a connection. Connection pool may be improperly sized.",
+                            UnsafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
+                            SafeArg.of("elapsedMillis", elapsedMillis),
+                            SafeArg.of("acquisitionMillis", acquisitionMillis),
+                            SafeArg.of("connectionTestMillis", connectionTestMillis));
+                } else {
+                    log.warn("Waited a long time to get a connection. Connection pool may be improperly sized.",
+                            UnsafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
+                            SafeArg.of("elapsedMillis", elapsedMillis),
+                            SafeArg.of("acquisitionMillis", acquisitionMillis),
+                            SafeArg.of("connectionTestMillis", connectionTestMillis),
+                            SafeArg.of("activeConnections", poolProxy.getActiveConnections()),
+                            SafeArg.of("idleConnections", poolProxy.getIdleConnections()),
+                            SafeArg.of("totalConnections", poolProxy.getTotalConnections()),
+                            SafeArg.of("threadsAwaitingConnection", poolProxy.getThreadsAwaitingConnection()));
                 }
             }
         }
