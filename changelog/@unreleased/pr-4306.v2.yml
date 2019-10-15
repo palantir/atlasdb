@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Remove most noisy logging
+  links:
+  - https://github.com/palantir/atlasdb/pull/4306
