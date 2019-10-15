@@ -118,7 +118,7 @@ public class PaxosLeaderElectionServiceBuilder {
     }
 
     private int quorumSize() {
-        Preconditions.checkArgument(quorumSize < 0, "quorum size not set");
+        Preconditions.checkArgument(quorumSize > 0, "quorum size not set");
         return quorumSize;
     }
 
