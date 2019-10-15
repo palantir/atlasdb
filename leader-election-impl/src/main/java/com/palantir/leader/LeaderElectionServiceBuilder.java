@@ -29,7 +29,7 @@ import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 
-@SuppressWarnings("HiddenField")
+@SuppressWarnings({"HiddenField", "OverloadMethodsDeclarationOrder"})
 public final class LeaderElectionServiceBuilder {
 
     @Nullable private PaxosAcceptorNetworkClient acceptorClient;
