@@ -618,9 +618,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
+        // We don't need to read any cells that were written locally.
         return Futures.transform(getFromKeyValueService(tableRef, Sets.difference(cells, result.keySet()), cellLoader),
                 fromKeyValueService -> {
-                    // We don't need to read any cells that were written locally.
                     result.putAll(fromKeyValueService);
 
                     long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());

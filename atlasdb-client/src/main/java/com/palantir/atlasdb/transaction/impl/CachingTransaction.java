@@ -122,7 +122,7 @@ public class CachingTransaction extends ForwardingTransaction {
             return get(
                     tableRef,
                     cells,
-                    ((tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead)))).get();
+                    (tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead))).get();
         } catch (InterruptedException | ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
