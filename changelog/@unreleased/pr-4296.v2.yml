@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Update value in CKVSC
+
+    Increase the local host routing probability from 0 to 25% for all services that use AtlasDB. Also correct specific term in the docs for localHostWeighting.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4296
