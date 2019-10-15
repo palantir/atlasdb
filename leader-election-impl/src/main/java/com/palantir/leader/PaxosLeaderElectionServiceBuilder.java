@@ -149,7 +149,7 @@ public class PaxosLeaderElectionServiceBuilder {
             String useCase,
             Function<String, ExecutorService> executorServiceFactory) {
         Map<T, ExecutorService> executors = Maps.newHashMap();
-        for (int index = 0; index < executors.size(); index++) {
+        for (int index = 0; index < services.size(); index++) {
             executors.put(services.get(index), executorServiceFactory.apply(String.format("%s-%d", useCase, index)));
         }
         return executors;
