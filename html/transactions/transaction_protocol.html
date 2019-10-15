@@ -316,7 +316,7 @@ completely and still support range scans.</p>
 <div class="section" id="read-write-conflicts">
 <h2>Read/Write Conflicts<a class="headerlink" href="#read-write-conflicts" title="Permalink to this headline">¶</a></h2>
 <p>The transaction protocol has write/write conflicts built into it. If two
-transactions touch the same row, one will be rolled back (as long as the
+transactions touch the same cell, one will be rolled back (as long as the
 table does write/write conflict detection (which is the default)). What
 if a user wanted some way to set up read write locks. This can be built
 into the protocol fairly easily. Currently a table can be set up either
