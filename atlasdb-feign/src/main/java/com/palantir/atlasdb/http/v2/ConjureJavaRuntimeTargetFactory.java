@@ -91,11 +91,13 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                                 serverListConfigSupplier, ClientOptions.DEFAULT_RETRYING::serverListToClient),
                         Duration.ofSeconds(5L))
                 .getRefreshable();
-        return wrapWithVersion(JaxRsClient.create(
+        T client = JaxRsClient.create(
                 type,
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 HOST_METRICS_REGISTRY,
-                refreshableConfig));
+                refreshableConfig);
+        client = FastFailoverProxy.newProxyInstance(type, client);
+        return wrapWithVersion(client);
     }
 
     private static UserAgent addAtlasDbRemotingAgent(UserAgent agent) {
