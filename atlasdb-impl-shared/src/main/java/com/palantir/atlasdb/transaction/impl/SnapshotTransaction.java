@@ -686,23 +686,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         ListenableFuture<Map<Cell, Value>> load(TableReference tableReference, Map<Cell, Long> toRead);
     }
 
-    /**
-     * This will load the given keys from the underlying key value service and apply postFiltering
-     * so we have snapshot isolation.  If the value in the key value service is the empty array
-     * this will be included here and needs to be filtered out.
-     */
-    private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueServiceAsync(TableReference tableRef, Set<Cell> cells) {
-        ImmutableMap.Builder<Cell, byte[]> result = ImmutableMap.builderWithExpectedSize(cells.size());
-        Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
-        return Futures.transform(
-                keyValueService.getAsync(tableRef, toRead),
-                rawResults -> {
-                    getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-                    return result.build();
-                },
-                MoreExecutors.directExecutor());
-    }
-
     private static byte[] getNextStartRowName(
             RangeRequest range,
             TokenBackedBasicResultsPage<RowResult<Value>, byte[]> prePostFilter) {
