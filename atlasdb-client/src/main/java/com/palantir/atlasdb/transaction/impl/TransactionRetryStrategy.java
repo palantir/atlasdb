@@ -115,7 +115,7 @@ public final class TransactionRetryStrategy {
                     log.warn("[{}] Failing after {} tries.",
                             SafeArg.of("runId", runId),
                             SafeArg.of("failureCount", failureCount), exception);
-                } else {
+                } else if (failureCount > 2) {
                     log.info("[{}] Retrying transaction after {} failure(s).",
                             SafeArg.of("runId", runId),
                             SafeArg.of("failureCount", failureCount), thrown);
@@ -123,7 +123,7 @@ public final class TransactionRetryStrategy {
             } else if (thrown instanceof NotInitializedException) {
                 log.info("TransactionManager is not initialized. Aborting transaction with runTaskWithRetry", thrown);
             } else if (thrown instanceof RuntimeException) {
-                log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), thrown);
+                log.debug("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), thrown);
             }
         }
     }

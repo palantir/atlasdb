@@ -157,7 +157,7 @@ public class BackgroundSweepThread implements Runnable {
                     SafeArg.of("sweepOutcome", outcome),
                     SafeArg.of("defaultLockTimeoutSeconds", AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS)
             );
-        } else {
+        } else if (!outcome.equals(SweepOutcome.DISABLED)) {
             log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
         }
     }
