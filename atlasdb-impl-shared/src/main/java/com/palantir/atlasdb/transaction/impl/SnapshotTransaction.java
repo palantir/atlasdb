@@ -119,6 +119,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbstractBatchingVisitable;
@@ -312,48 +313,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     public void disableReadWriteConflictChecking(TableReference tableRef) {
         conflictDetectionManager.disableReadWriteConflict(tableRef);
     }
-
-    @Override
-    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        Timer.Context timer = getTimer("get").time();
-        checkGetPreconditions(tableRef);
-        if (Iterables.isEmpty(cells)) {
-            return Futures.immediateFuture(ImmutableMap.of());
-        }
-        hasReads = true;
-
-        ImmutableMap.Builder<Cell, byte[]> resultBuilder = ImmutableMap.builder();
-        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes != null) {
-            for (Cell cell : cells) {
-                if (writes.containsKey(cell)) {
-                    resultBuilder.put(cell, writes.get(cell));
-                }
-            }
-        }
-
-        Map<Cell, byte[]> writtenLocally = resultBuilder.build();
-
-        return Futures.transform(
-                // We don't need to read any cells that were written locally.
-                getFromKeyValueServiceAsync(tableRef, Sets.difference(cells,  writtenLocally.keySet())),
-                keyValueResult -> {
-                    ImmutableMap<Cell, byte[]> result = ImmutableMap.<Cell, byte[]>builder()
-                            .putAll(writtenLocally)
-                            .putAll(keyValueResult)
-                            .build();
-
-                    long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
-                    if (perfLogger.isDebugEnabled()) {
-                        perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
-                                tableRef, cells.size(), result.size(), getMillis);
-                    }
-                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-                    return removeEmptyColumns(result, tableRef);
-                },
-                MoreExecutors.directExecutor());
-    }
-
 
     @Override
     public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
@@ -635,6 +594,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         } catch (InterruptedException | ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
+    }
+
+    @Override
+    @Idempotent
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        return get("getAsync", tableRef, cells, keyValueService::getAsync);
     }
 
     private ListenableFuture<Map<Cell, byte[]>> get(

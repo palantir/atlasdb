@@ -262,6 +262,12 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
+    @Override
+    @Idempotent
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        return get(tableRef, cells, (tableReference, toRead) -> super.getAsync(tableRef, toRead));
+    }
+
     public ListenableFuture<Map<Cell, byte[]>> get(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         return Futures.transform(cellLoader.load(tableRef, cells),
                 loadedCells -> {
@@ -274,16 +280,6 @@ public class SerializableTransaction extends SnapshotTransaction {
     @FunctionalInterface
     private interface CellLoader {
         ListenableFuture<Map<Cell, byte[]>> load(TableReference tableReference, Set<Cell> toRead);
-    }
-
-    @Override
-    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return Futures.transform(super.getAsync(tableRef, cells),
-                ret -> {
-                    markCellsRead(tableRef, cells, ret);
-                    return ret;
-                },
-                MoreExecutors.directExecutor());
     }
 
     @Override
