@@ -16,25 +16,25 @@
 package com.palantir.common.compression;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.Iterator;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterInputStream;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.io.CountingInputStream;
 
 
-public class GzipCompressingInputStream extends SequenceInputStream {
-    public static final int GZIP_MAGIC = 0x8b1f;
+public final class GzipCompressingInputStream {
+    private static final int GZIP_MAGIC = 0x8b1f;
     public static final byte[] GZIP_HEADER = new byte[] {
             (byte) GZIP_MAGIC,        // Magic number (short)
             (byte) (GZIP_MAGIC >> 8),  // Magic number (short)
@@ -48,73 +48,27 @@ public class GzipCompressingInputStream extends SequenceInputStream {
             0                         // Operating system (OS)
     };
 
-    public GzipCompressingInputStream(InputStream in) throws IOException {
-        this(in, 512);
+    public static InputStream compress(InputStream uncompressed) {
+        InputStream header = createHeaderStream();
+        CountingInputStream counting = new CountingInputStream(uncompressed);
+        CRC32 crc = new CRC32();
+        CheckedInputStream checked = new CheckedInputStream(counting, crc);
+        InputStream content = new DeflaterInputStream(checked, new Deflater(Deflater.DEFAULT_COMPRESSION, true));
+        List<Supplier<InputStream>> allStreams = ImmutableList.of(
+                () -> header, () -> content, () -> trailerStream(counting.getCount(), crc));
+        return new SequenceInputStream(Collections.enumeration(Lists.transform(allStreams, Supplier::get)));
     }
 
-    public GzipCompressingInputStream(InputStream in, int bufferSize) throws IOException {
-        super(new GzipStreamEnumeration(in, bufferSize));
+    private static InputStream trailerStream(long count, CRC32 crc) {
+        long checksum = crc.getValue();
+        byte[] trailer = new byte[Integer.BYTES * 2];
+        ByteBuffer buffer = ByteBuffer.wrap(trailer).order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putInt((int)(checksum & 0xffffffffL));
+        buffer.putInt((int) count);
+        return new ByteArrayInputStream(trailer);
     }
 
-    protected static class GzipStreamEnumeration implements Enumeration<InputStream> {
-
-        private static final int DEFAULT_DEFLATER_BUFFER_SIZE = 512;
-
-        private final InputStream in;
-        private final int bufferSize;
-        private final Iterator<Supplier<InputStream>> streamSupplierIt;
-        private CheckedInputStream checkedInputStream;
-        private DeflaterInputStream contentStream;
-        private CountingInputStream counting;
-
-        public GzipStreamEnumeration(InputStream in) {
-            this(in, DEFAULT_DEFLATER_BUFFER_SIZE);
-        }
-
-        public GzipStreamEnumeration(InputStream in, int bufferSize) {
-            this.in = in;
-            this.bufferSize = bufferSize;
-            streamSupplierIt = Arrays.<Supplier<InputStream>>asList(() -> createHeaderStream(),
-                    () -> createContentStream(),
-                    () -> createTrailerStream()
-            ).iterator();
-        }
-
-        public boolean hasMoreElements() {
-            return streamSupplierIt.hasNext();
-        }
-
-        public InputStream nextElement() {
-            if (hasMoreElements()) {
-                return streamSupplierIt.next().get();
-            } else {
-                return null;
-            }
-        }
-
-        private InputStream createHeaderStream() {
-            return new ByteArrayInputStream(GZIP_HEADER);
-        }
-
-        private InputStream createContentStream() {
-            counting = new CountingInputStream(in);
-            CRC32 crc = new CRC32();
-            checkedInputStream = new CheckedInputStream(counting, crc);
-            contentStream = new DeflaterInputStream(checkedInputStream,
-                    new Deflater(Deflater.DEFAULT_COMPRESSION, true), bufferSize);
-            return contentStream;
-        }
-
-        private InputStream createTrailerStream() {
-            long checksum = checkedInputStream.getChecksum().getValue();
-            long count = counting.getCount();
-            byte[] trailer = new byte[Integer.BYTES * 2];
-            ByteBuffer buffer = ByteBuffer.wrap(trailer).order(ByteOrder.LITTLE_ENDIAN);
-            buffer.putInt((int)(checksum & 0xffffffffL));
-            buffer.putInt((int) count);
-            return new ByteArrayInputStream(trailer);
-
-        }
+    private static InputStream createHeaderStream() {
+        return new ByteArrayInputStream(GZIP_HEADER);
     }
-
 }

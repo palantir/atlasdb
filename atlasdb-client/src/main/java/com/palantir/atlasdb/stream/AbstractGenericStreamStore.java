@@ -42,6 +42,7 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.compression.StreamCompression;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.ByteArrayIOStream;
 
@@ -49,9 +50,13 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
     protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
 
     @CheckForNull protected final TransactionManager txnMgr;
+    private final StreamCompression compression;
 
-    protected AbstractGenericStreamStore(TransactionManager txManager) {
+    protected AbstractGenericStreamStore(
+            TransactionManager txManager,
+            StreamCompression compression) {
         this.txnMgr = txManager;
+        this.compression = compression;
     }
 
     private long getNumberOfBlocksFromMetadata(StreamMetadata metadata) {
@@ -96,7 +101,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
 
     private InputStream getStream(Transaction transaction, T id, StreamMetadata metadata) {
         try {
-            return tryGetStream(transaction, id, metadata);
+            return compression.decompress(tryGetStream(transaction, id, metadata));
         } catch (FileNotFoundException e) {
             log.error("Error opening temp file for stream {}", id, e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);

@@ -17,7 +17,6 @@ package com.palantir.common.compression;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -26,25 +25,37 @@ import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.io.ByteStreams;
 
-public abstract class AbstractCompressionTests {
+@RunWith(Parameterized.class)
+public class StreamCompressionTests {
 
     private static final byte SINGLE_VALUE = 42;
     private static final int BLOCK_SIZE = 1 << 16; // 64 KB
 
-    protected ByteArrayInputStream uncompressedStream;
-    protected InputStream compressingStream;
-    protected InputStream decompressingStream;
+    private ByteArrayInputStream uncompressedStream;
+    private InputStream compressingStream;
+    private InputStream decompressingStream;
+
+    private final StreamCompression compression;
+
+    public StreamCompressionTests(StreamCompression compression) {
+        this.compression = compression;
+    }
+
+    @Parameterized.Parameters
+    public static Object[] parameters() {
+        return StreamCompression.values();
+    }
 
     @After
     public void close() throws IOException {
         decompressingStream.close();
     }
-
 
     @Test
     public void testEmptyStream() throws Exception {
@@ -126,14 +137,11 @@ public abstract class AbstractCompressionTests {
         verifyStreamContents(uncompressedData);
     }
 
-    protected abstract void initializeCompressStreams() throws Exception;
-
     private void initializeStreams(byte[] uncompressedData) throws Exception {
         uncompressedStream = new ByteArrayInputStream(uncompressedData);
-        initializeCompressStreams();
+        compressingStream = compression.compress(uncompressedStream);
+        decompressingStream = compression.decompress(compressingStream);
     }
-
-
 
     private void fillWithCompressibleData(byte[] data) {
         Arrays.fill(data, SINGLE_VALUE);

@@ -41,20 +41,25 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.compression.StreamCompression;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {
     private final StreamStoreBackoffStrategy backoffStrategy;
+    private final StreamCompression compression;
 
-    protected AbstractPersistentStreamStore(TransactionManager txManager) {
-        this(txManager, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+    protected AbstractPersistentStreamStore(TransactionManager txManager,
+            StreamCompression compression) {
+        this(txManager, compression, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
     }
 
     protected AbstractPersistentStreamStore(TransactionManager txManager,
+            StreamCompression compression,
             Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
-        super(txManager);
+        super(txManager, compression);
+        this.compression = compression;
         this.backoffStrategy = StandardPeriodicBackoffStrategy.create(persistenceConfiguration);
     }
 
@@ -145,8 +150,9 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     // This method is overridden in generated code. Changes to this method may have unintended consequences.
     protected StreamMetadata storeBlocksAndGetFinalMetadata(@Nullable Transaction tx, long id, InputStream stream) {
         MessageDigest digest = Sha256Hash.getMessageDigest();
-        try (InputStream hashingStream = new DigestInputStream(stream, digest)) {
-            StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(tx, id, hashingStream);
+        try (InputStream hashingStream = new DigestInputStream(stream, digest);
+                InputStream compressingStream = compression.compress(hashingStream)) {
+            StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(tx, id, compressingStream);
             return StreamMetadata.newBuilder(metadata)
                     .setHash(ByteString.copyFrom(digest.digest()))
                     .build();

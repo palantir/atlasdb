@@ -27,7 +27,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.compression.ClientCompressor;
+import com.palantir.common.compression.StreamCompression;
 
 public class StreamStoreDefinition {
     // from ArrayList.MAX_ARRAY_SIZE on 64-bit systems
@@ -37,7 +37,7 @@ public class StreamStoreDefinition {
     private final String shortName;
     private final String longName;
     private final ValueType idType;
-    private final ClientCompressor streamCompressType;
+    private final StreamCompression streamCompression;
     private final int numberOfRowComponentsHashed;
 
     private int inMemoryThreshold;
@@ -48,14 +48,14 @@ public class StreamStoreDefinition {
             String longName,
             ValueType idType,
             int inMemoryThreshold,
-            ClientCompressor streamCompressType,
+            StreamCompression streamCompression,
             int numberOfRowComponentsHashed) {
         this.streamStoreTables = streamStoreTables;
         this.shortName = shortName;
         this.longName = longName;
         this.idType = idType;
         this.inMemoryThreshold = inMemoryThreshold;
-        this.streamCompressType = streamCompressType;
+        this.streamCompression = streamCompression;
         this.numberOfRowComponentsHashed = numberOfRowComponentsHashed;
     }
 
@@ -73,7 +73,8 @@ public class StreamStoreDefinition {
 
     public StreamStoreRenderer getRenderer(String packageName, String name) {
         String renderedLongName = Renderers.CamelCase(longName);
-        return new StreamStoreRenderer(renderedLongName, idType, packageName, name, inMemoryThreshold, streamCompressType);
+        return new StreamStoreRenderer(renderedLongName, idType, packageName, name, inMemoryThreshold,
+                streamCompression);
     }
 
     public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(
