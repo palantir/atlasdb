@@ -35,7 +35,7 @@ import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
 
-@SuppressWarnings("HiddenField")
+@SuppressWarnings({"HiddenField", "OverloadMethodsDeclarationOrder"})
 public class PaxosLeaderElectionServiceBuilder {
     private PaxosLearner knowledge;
     private List<PingableLeader> otherPingables;
