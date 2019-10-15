@@ -18,6 +18,7 @@ package com.palantir.atlasdb.config;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,6 +28,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -61,18 +63,39 @@ public abstract class LeaderConfig {
     public abstract Optional<SslConfiguration> sslConfiguration();
 
     @Value.Default
-    public long pingRateMs() {
+    long pingRateMs() {
         return 5000L;
     }
 
+    @JsonIgnore
+    @Value.Derived
+    @Value.Auxiliary
+    public Duration pingRate() {
+        return Duration.ofMillis(pingRateMs());
+    }
+
     @Value.Default
-    public long randomWaitBeforeProposingLeadershipMs() {
+    long randomWaitBeforeProposingLeadershipMs() {
         return 1000L;
     }
 
+    @JsonIgnore
+    @Value.Derived
+    @Value.Auxiliary
+    public Duration randomWaitBeforeProposingLeadership() {
+        return Duration.ofMillis(randomWaitBeforeProposingLeadershipMs());
+    }
+
     @Value.Default
-    public long leaderPingResponseWaitMs() {
+    long leaderPingResponseWaitMs() {
         return 5000L;
+    }
+
+    @JsonIgnore
+    @Value.Derived
+    @Value.Auxiliary
+    public Duration leaderPingResponseWait() {
+        return Duration.ofMillis(leaderPingResponseWaitMs());
     }
 
     @Value.Check

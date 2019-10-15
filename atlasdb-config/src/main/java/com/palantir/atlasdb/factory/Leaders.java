@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.Collection;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +26,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -38,8 +36,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -54,17 +52,23 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosLeaderElectionService;
-import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
+import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
+import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
+import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
+import com.palantir.paxos.SingleLeaderPinger;
 
 public final class Leaders {
     private Leaders() {
@@ -141,6 +145,15 @@ public final class Leaders {
         List<PaxosLearner> learners = createProxyAndLocalList(
                 metricsManager.getRegistry(), ourLearner, remotePaxosServerSpec.remoteLearnerUris(),
                 trustContext, PaxosLearner.class, userAgent);
+        List<PaxosLearner> remoteLearners = learners.stream()
+                .filter(learner -> !learner.equals(ourLearner))
+                .collect(ImmutableList.toImmutableList());
+        PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
+                ourLearner,
+                remoteLearners,
+                config.quorumSize(),
+                createExecutorsForService(metricsManager, learners, "knowledge-update"));
+
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
                 metricsManager.getRegistry(),
                 ourAcceptor,
@@ -148,46 +161,37 @@ public final class Leaders {
                 trustContext,
                 PaxosAcceptor.class,
                 userAgent);
+        PaxosAcceptorNetworkClient acceptorNetworkClient = new SingleLeaderAcceptorNetworkClient(
+                acceptors,
+                config.quorumSize(),
+                createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"));
 
-        Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
+        List<PingableLeader> otherLeaders = generatePingables(
                 metricsManager, remotePaxosServerSpec.remoteLeaderUris(), trustContext, userAgent);
 
-        InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(daemonThreadFactory("atlas-proposer")),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosProposer.class, "executor"));
+        LeaderPinger leaderPinger = new SingleLeaderPinger(
+                createExecutorsForService(metricsManager, otherLeaders, "leader-ping"),
+                config.leaderPingResponseWait(),
+                leadershipEventRecorder,
+                leaderUuid);
 
-        // TODO (jkong): Make the limits configurable.
-        // Current use cases tend to have not more than 10 (<< 100) inflight tasks under normal circumstances.
-        Function<String, ExecutorService> leaderElectionExecutor = (useCase) -> new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        otherLeaders.size(),
-                        Math.max(otherLeaders.size(), 100),
-                        5000,
-                        TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(),
-                        daemonThreadFactory("atlas-leaders-election-" + useCase)),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
-
-        LeaderElectionService paxosLeaderElectionService = new PaxosLeaderElectionServiceBuilder()
-                .quorumSize(config.quorumSize())
+        LeaderElectionService uninstrumentedLeaderElectionService = new LeaderElectionServiceBuilder()
                 .leaderUuid(leaderUuid)
                 .knowledge(ourLearner)
-                .potentialLeadersToHosts(otherLeaders)
-                .acceptors(acceptors)
-                .learners(learners)
-                .executorServiceFactory(leaderElectionExecutor)
-                .pingRateMs(config.pingRateMs())
-                .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
-                .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .eventRecorder(leadershipEventRecorder)
+                .randomWaitBeforeProposingLeadership(config.randomWaitBeforeProposingLeadership())
+                .pingRate(config.pingRate())
+                .leaderPinger(leaderPinger)
+                .acceptorClient(acceptorNetworkClient)
+                .learnerClient(learnerNetworkClient)
+                .decorateProposer(proposer ->
+                        AtlasDbMetrics.instrument(metricsManager.getRegistry(), PaxosProposer.class, proposer))
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 LeaderElectionService.class,
-                paxosLeaderElectionService);
+                uninstrumentedLeaderElectionService);
         PingableLeader pingableLeader = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PingableLeader.class,
                 new LocalPingableLeader(ourLearner, leaderUuid));
@@ -198,6 +202,33 @@ public final class Leaders {
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .localPingableLeader(pingableLeader)
                 .build();
+    }
+
+    private static <T> Map<T, ExecutorService> createExecutorsForService(
+            MetricsManager metricsManager,
+            List<T> services,
+            String useCase) {
+        Map<T, ExecutorService> executors = Maps.newHashMap();
+        for (int index = 0; index < services.size(); index++) {
+            String indexedUseCase = String.format("%s-%d", useCase, index);
+            executors.put(services.get(index), createExecutor(metricsManager, indexedUseCase, services.size()));
+        }
+        return executors;
+    }
+
+    // TODO (jkong): Make the limits configurable.
+    // Current use cases tend to have not more than 10 (<< 100) inflight tasks under normal circumstances.
+    private static ExecutorService createExecutor(MetricsManager metricsManager, String useCase, int corePoolSize) {
+        return new InstrumentedExecutorService(
+                PTExecutors.newThreadPoolExecutor(
+                        corePoolSize,
+                        100,
+                        5000,
+                        TimeUnit.MILLISECONDS,
+                        new SynchronousQueue<>(),
+                        daemonThreadFactory("atlas-leaders-election-" + useCase)),
+                metricsManager.getRegistry(),
+                MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
     }
 
     private static ThreadFactory daemonThreadFactory(String name) {
@@ -234,31 +265,24 @@ public final class Leaders {
                 ImmutableList.of(localObject)));
     }
 
-    public static Map<PingableLeader, HostAndPort> generatePingables(
+    public static List<PingableLeader> generatePingables(
             MetricsManager metricsManager,
             Collection<String> remoteEndpoints,
             Optional<TrustContext> trustContext,
             UserAgent userAgent) {
-        /* The interface used as a key here may be a proxy, which may have strange .equals() behavior.
-         * This is circumvented by using an IdentityHashMap which will just use native == for equality.
-         */
-        Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
-        for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(
-                    metricsManager.getRegistry(),
-                    trustContext,
-                    endpoint,
-                    PingableLeader.class,
-                    AuxiliaryRemotingParameters.builder() // TODO (jkong): Configurable remoting client config.
-                            .shouldLimitPayload(false)
-                            .userAgent(userAgent)
-                            .shouldRetry(false)
-                            .shouldLimitPayload(true)
-                            .build());
-            HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
-            pingables.put(remoteInterface, hostAndPort);
-        }
-        return pingables;
+        return remoteEndpoints.stream()
+                .map(endpoint -> AtlasDbHttpClients.createProxy(
+                        metricsManager.getRegistry(),
+                        trustContext,
+                        endpoint,
+                        PingableLeader.class,
+                        AuxiliaryRemotingParameters.builder() // TODO (jkong): Configurable remoting client config.
+                                .shouldLimitPayload(false)
+                                .userAgent(userAgent)
+                                .shouldRetry(false)
+                                .shouldLimitPayload(true)
+                                .build()))
+                .collect(Collectors.toList());
     }
 
     @Value.Immutable
