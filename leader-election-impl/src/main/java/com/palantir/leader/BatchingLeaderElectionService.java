@@ -18,7 +18,6 @@ package com.palantir.leader;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -62,11 +61,6 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
         return delegate.isStillLeading(token);
-    }
-
-    @Override
-    public Set<PingableLeader> getPotentialLeaders() {
-        return delegate.getPotentialLeaders();
     }
 
     @Override

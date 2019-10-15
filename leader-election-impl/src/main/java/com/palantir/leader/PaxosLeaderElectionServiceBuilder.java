@@ -21,26 +21,22 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosLatestRoundVerifier;
-import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
-import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
 
 @SuppressWarnings("HiddenField")
 public class PaxosLeaderElectionServiceBuilder {
-    private PaxosProposer proposer;
     private PaxosLearner knowledge;
     private List<PingableLeader> otherPingables;
     private List<PaxosAcceptor> acceptors;
@@ -50,11 +46,8 @@ public class PaxosLeaderElectionServiceBuilder {
     private long randomWaitBeforeProposingLeadershipMs;
     private Duration leaderPingResponseWait;
     private PaxosLeaderElectionEventRecorder eventRecorder = PaxosLeaderElectionEventRecorder.NO_OP;
-
-    public PaxosLeaderElectionServiceBuilder proposer(PaxosProposer proposer) {
-        this.proposer = proposer;
-        return this;
-    }
+    private int quorumSize = -1;
+    private UUID leaderUuid;
 
     public PaxosLeaderElectionServiceBuilder knowledge(PaxosLearner knowledge) {
         this.knowledge = knowledge;
@@ -114,34 +107,51 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
+    public PaxosLeaderElectionServiceBuilder quorumSize(int quorumSize) {
+        this.quorumSize = quorumSize;
+        return this;
+    }
+
+    public PaxosLeaderElectionServiceBuilder leaderUuid(UUID leaderUuid) {
+        this.leaderUuid = leaderUuid;
+        return this;
+    }
+
+    private int quorumSize() {
+        Preconditions.checkArgument(quorumSize < 0, "quorum size not set");
+        return quorumSize;
+    }
+
+    private UUID leaderUuid() {
+        return Preconditions.checkNotNull(leaderUuid, "leader uuid not set");
+    }
+
     private static Map<PaxosLearner, ExecutorService> createKnowledgeUpdateExecutors(
             List<PaxosLearner> paxosLearners,
             Function<String, ExecutorService> executorServiceFactory) {
-        return IntStream.range(0, paxosLearners.size())
-                .boxed()
-                .collect(Collectors.toMap(
-                        paxosLearners::get,
-                        index -> executorServiceFactory.apply("knowledge-update-" + index)));
+        return createExecutorsForService(paxosLearners, "knowledge-update", executorServiceFactory);
     }
 
     private static Map<PaxosAcceptor, ExecutorService> createLatestRoundVerifierExecutors(
             List<PaxosAcceptor> paxosAcceptors,
             Function<String, ExecutorService> executorServiceFactory) {
-        Map<PaxosAcceptor, ExecutorService> executors = Maps.newHashMap();
-        for (int i = 0; i < paxosAcceptors.size(); i++) {
-            executors.put(paxosAcceptors.get(i), executorServiceFactory.apply("latest-round-verifier-" + i));
-        }
-        return executors;
+        return createExecutorsForService(paxosAcceptors, "latest-round-verifier", executorServiceFactory);
     }
 
     private static Map<PingableLeader, ExecutorService> createLeaderPingExecutors(
             List<PingableLeader> allPingables,
             Function<String, ExecutorService> executorServiceFactory) {
-        Map<PingableLeader, ExecutorService> executors = Maps.newHashMap();
-        for (int i = 0; i < allPingables.size(); i++) {
-            executors.put(allPingables.get(i), executorServiceFactory.apply("leader-ping-" + i));
-        }
+        return createExecutorsForService(allPingables, "leader-ping", executorServiceFactory);
+    }
 
+    private static <T> Map<T, ExecutorService> createExecutorsForService(
+            List<T> services,
+            String useCase,
+            Function<String, ExecutorService> executorServiceFactory) {
+        Map<T, ExecutorService> executors = Maps.newHashMap();
+        for (int index = 0; index < executors.size(); index++) {
+            executors.put(services.get(index), executorServiceFactory.apply(String.format("%s-%d", useCase, index)));
+        }
         return executors;
     }
 
@@ -152,16 +162,15 @@ public class PaxosLeaderElectionServiceBuilder {
         return new SingleLeaderLearnerNetworkClient(
                 knowledge,
                 remoteLearners,
-                proposer.getQuorumSize(),
+                quorumSize(),
                 createKnowledgeUpdateExecutors(learners, executorServiceFactory));
     }
 
-    private PaxosLatestRoundVerifier buildLatestRoundVerifier() {
-        SingleLeaderAcceptorNetworkClient acceptorClient = new SingleLeaderAcceptorNetworkClient(
+    private PaxosAcceptorNetworkClient buildAcceptorNetworkClient() {
+        return new SingleLeaderAcceptorNetworkClient(
                 acceptors,
-                proposer.getQuorumSize(),
+                quorumSize(),
                 createLatestRoundVerifierExecutors(acceptors, executorServiceFactory));
-        return new PaxosLatestRoundVerifierImpl(acceptorClient);
     }
 
     private LeaderPinger buildLeaderPinger(List<PingableLeader> otherPingables) {
@@ -169,21 +178,20 @@ public class PaxosLeaderElectionServiceBuilder {
                 createLeaderPingExecutors(otherPingables, executorServiceFactory),
                 leaderPingResponseWait,
                 eventRecorder,
-                UUID.fromString(proposer.getUuid()));
+                leaderUuid());
     }
 
-    public PaxosLeaderElectionService build() {
-        return new PaxosLeaderElectionService(
-                proposer,
-                knowledge,
-                buildLeaderPinger(otherPingables),
-                new LocalPingableLeader(knowledge, UUID.fromString(proposer.getUuid())),
-                otherPingables,
-                acceptors,
-                buildLatestRoundVerifier(),
-                buildLearnerNetworkClient(),
-                pingRateMs,
-                randomWaitBeforeProposingLeadershipMs,
-                eventRecorder);
+    public LeaderElectionService build() {
+        return new LeaderElectionServiceBuilder()
+                .leaderUuid(leaderUuid())
+                .quorumSize(quorumSize())
+                .acceptorClient(buildAcceptorNetworkClient())
+                .learnerClient(buildLearnerNetworkClient())
+                .knowledge(knowledge)
+                .leaderPinger(buildLeaderPinger(otherPingables))
+                .pingRate(Duration.ofMillis(pingRateMs))
+                .randomWaitBeforeProposingLeadership(Duration.ofMillis(randomWaitBeforeProposingLeadershipMs))
+                .eventRecorder(eventRecorder)
+                .build();
     }
 }

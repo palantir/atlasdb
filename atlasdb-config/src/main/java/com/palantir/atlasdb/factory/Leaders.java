@@ -36,6 +36,7 @@ import org.immutables.value.Value;
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
@@ -54,6 +55,7 @@ import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeadershipObserver;
+import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
@@ -63,7 +65,6 @@ import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosProposerImpl;
 
 public final class Leaders {
     private Leaders() {
@@ -85,7 +86,7 @@ public final class Leaders {
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
-        env.accept(localPaxosServices.pingableLeader());
+        env.accept(localPaxosServices.localPingableLeader());
         env.accept(new NotCurrentLeaderExceptionMapper());
         return localPaxosServices;
     }
@@ -155,9 +156,6 @@ public final class Leaders {
                 PTExecutors.newCachedThreadPool(daemonThreadFactory("atlas-proposer")),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosProposer.class, "executor"));
-        PaxosProposer proposer = AtlasDbMetrics.instrument(metricsManager.getRegistry(), PaxosProposer.class,
-                PaxosProposerImpl.newProposer(ourLearner, acceptors, learners, config.quorumSize(),
-                        leaderUuid, proposerExecutorService));
 
         // TODO (jkong): Make the limits configurable.
         // Current use cases tend to have not more than 10 (<< 100) inflight tasks under normal circumstances.
@@ -172,8 +170,9 @@ public final class Leaders {
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
 
-        PaxosLeaderElectionService paxosLeaderElectionService = new PaxosLeaderElectionServiceBuilder()
-                .proposer(proposer)
+        LeaderElectionService paxosLeaderElectionService = new PaxosLeaderElectionServiceBuilder()
+                .quorumSize(config.quorumSize())
+                .leaderUuid(leaderUuid)
                 .knowledge(ourLearner)
                 .potentialLeadersToHosts(otherLeaders)
                 .acceptors(acceptors)
@@ -185,19 +184,19 @@ public final class Leaders {
                 .eventRecorder(leadershipEventRecorder)
                 .build();
 
-        LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
+        LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
                 LeaderElectionService.class,
                 paxosLeaderElectionService);
         PingableLeader pingableLeader = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PingableLeader.class,
-                paxosLeaderElectionService);
+                new LocalPingableLeader(ourLearner, leaderUuid));
 
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
-                .pingableLeader(pingableLeader)
-                .isCurrentSuspectedLeader(paxosLeaderElectionService::ping)
+                .localPingableLeader(pingableLeader)
                 .build();
     }
 
@@ -267,8 +266,18 @@ public final class Leaders {
         PaxosAcceptor ourAcceptor();
         PaxosLearner ourLearner();
         LeaderElectionService leaderElectionService();
-        PingableLeader pingableLeader();
-        Supplier<Boolean> isCurrentSuspectedLeader();
+        PingableLeader localPingableLeader();
+        Set<PingableLeader> remotePingableLeaders();
+
+        @Value.Derived
+        default Supplier<Boolean> isCurrentSuspectedLeader() {
+            return localPingableLeader()::ping;
+        }
+
+        @Value.Derived
+        default Set<PingableLeader> allPingableLeaders() {
+            return Sets.union(ImmutableSet.of(localPingableLeader()), remotePingableLeaders());
+        }
     }
 
     @Value.Immutable
@@ -277,4 +286,5 @@ public final class Leaders {
         Set<String> remoteAcceptorUris();
         Set<String> remoteLearnerUris();
     }
+
 }

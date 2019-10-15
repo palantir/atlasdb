@@ -24,15 +24,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.net.HostAndPort;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
-import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -76,17 +72,12 @@ public final class PaxosConsensusTestUtils {
         }
 
         for (int i = 0; i < numLeaders; i++) {
-            PaxosProposer proposer = PaxosProposerImpl.newProposer(
-                    learners.get(i),
-                    ImmutableList.copyOf(acceptors),
-                    ImmutableList.copyOf(learners),
-                    quorumSize,
-                    UUID.randomUUID(),
-                    executor);
-            PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
-                    .proposer(proposer)
+            UUID leaderUuid = UUID.randomUUID();
+            LeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
+                    .leaderUuid(leaderUuid)
+                    .quorumSize(quorumSize)
                     .knowledge(learners.get(i))
-                    .potentialLeadersToHosts(ImmutableMap.<PingableLeader, HostAndPort>of())
+                    .potentialLeadersToHosts(ImmutableMap.of())
                     .acceptors(acceptors)
                     .learners(learners)
                     .executor(executor)
@@ -118,11 +109,11 @@ public final class PaxosConsensusTestUtils {
         }
     }
 
-    public static String getLearnerLogDir(int dir) {
+    private static String getLearnerLogDir(int dir) {
         return LEARNER_DIR_PREFIX + dir;
     }
 
-    public static String getAcceptorLogDir(int dir) {
+    private static String getAcceptorLogDir(int dir) {
         return ACCEPTOR_DIR_PREFIX + dir;
     }
 }

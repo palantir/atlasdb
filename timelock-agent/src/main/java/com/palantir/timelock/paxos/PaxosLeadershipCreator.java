@@ -57,6 +57,7 @@ class PaxosLeadershipCreator {
 
     private LeaderElectionService leaderElectionService;
     private Supplier<Boolean> isCurrentSuspectedLeader;
+    private LeaderPingHealthCheck healthCheck;
 
     PaxosLeadershipCreator(
             MetricsManager metricsManager,
@@ -89,11 +90,10 @@ class PaxosLeadershipCreator {
                 this::leadershipAwareLeadershipObserver);
         leaderElectionService = localPaxosServices.leaderElectionService();
         isCurrentSuspectedLeader = localPaxosServices.isCurrentSuspectedLeader();
+        healthCheck = new LeaderPingHealthCheck(localPaxosServices.allPingableLeaders());
 
-        registrar.accept(localPaxosServices.pingableLeader());
-        registrar.accept(new LeadershipResource(
-                localPaxosServices.ourAcceptor(),
-                localPaxosServices.ourLearner()));
+        registrar.accept(localPaxosServices.localPingableLeader());
+        registrar.accept(new LeadershipResource(localPaxosServices.ourAcceptor(), localPaxosServices.ourLearner()));
     }
 
     <T> T wrapInLeadershipProxy(Supplier<T> delegateSupplier, Class<T> clazz, String client) {
@@ -101,8 +101,8 @@ class PaxosLeadershipCreator {
         return instrument(metricsManager.getTaggedRegistry(), clazz, instance, client);
     }
 
-    Supplier<LeaderPingHealthCheck> getHealthCheck() {
-        return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
+    LeaderPingHealthCheck getHealthCheck() {
+        return healthCheck;
     }
 
     void shutdown() {

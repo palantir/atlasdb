@@ -1020,7 +1020,7 @@ public abstract class TransactionManagers {
             // deadlock entirely; so use PingableLeader's getUUID() to detect this situation and eliminate the redundant
             // call.
 
-            PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
+            PingableLeader localPingableLeader = localPaxosServices.localPingableLeader();
             String localServerId = localPingableLeader.getUUID();
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
                     ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
