@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 
 public class CachingTransaction extends ForwardingTransaction {
@@ -116,10 +118,14 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        return Futures.getUnchecked(get(
-                tableRef,
-                cells,
-                ((tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead)))));
+        try {
+            return get(
+                    tableRef,
+                    cells,
+                    ((tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead)))).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
     }
 
     private ListenableFuture<Map<Cell, byte[]>> get(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {

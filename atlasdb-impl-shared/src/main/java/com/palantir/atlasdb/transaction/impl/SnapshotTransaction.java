@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -128,6 +129,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.common.streams.MoreStreams;
@@ -582,11 +584,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        return Futures.getUnchecked(get(
-                "get",
-                tableRef,
-                cells,
-                ((tableReference, toRead) -> Futures.immediateFuture(keyValueService.get(tableReference, toRead)))));
+        try {
+            return get(
+                    "get",
+                    tableRef,
+                    cells,
+                    (tableReference, toRead) ->
+                            Futures.immediateFuture(keyValueService.get(tableReference, toRead))).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
     }
 
     private ListenableFuture<Map<Cell, byte[]>> get(
