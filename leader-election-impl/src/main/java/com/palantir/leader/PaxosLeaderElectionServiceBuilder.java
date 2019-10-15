@@ -25,7 +25,6 @@ import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -117,15 +116,6 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
-    private int quorumSize() {
-        Preconditions.checkArgument(quorumSize > 0, "quorum size not set");
-        return quorumSize;
-    }
-
-    private UUID leaderUuid() {
-        return Preconditions.checkNotNull(leaderUuid, "leader uuid not set");
-    }
-
     private static Map<PaxosLearner, ExecutorService> createKnowledgeUpdateExecutors(
             List<PaxosLearner> paxosLearners,
             Function<String, ExecutorService> executorServiceFactory) {
@@ -162,14 +152,14 @@ public class PaxosLeaderElectionServiceBuilder {
         return new SingleLeaderLearnerNetworkClient(
                 knowledge,
                 remoteLearners,
-                quorumSize(),
+                quorumSize,
                 createKnowledgeUpdateExecutors(learners, executorServiceFactory));
     }
 
     private PaxosAcceptorNetworkClient buildAcceptorNetworkClient() {
         return new SingleLeaderAcceptorNetworkClient(
                 acceptors,
-                quorumSize(),
+                quorumSize,
                 createLatestRoundVerifierExecutors(acceptors, executorServiceFactory));
     }
 
@@ -178,12 +168,12 @@ public class PaxosLeaderElectionServiceBuilder {
                 createLeaderPingExecutors(otherPingables, executorServiceFactory),
                 leaderPingResponseWait,
                 eventRecorder,
-                leaderUuid());
+                leaderUuid);
     }
 
     public LeaderElectionService build() {
         return new LeaderElectionServiceBuilder()
-                .leaderUuid(leaderUuid())
+                .leaderUuid(leaderUuid)
                 .acceptorClient(buildAcceptorNetworkClient())
                 .learnerClient(buildLearnerNetworkClient())
                 .knowledge(knowledge)
