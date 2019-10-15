@@ -31,26 +31,22 @@ public final class PaxosProposerImpl implements PaxosProposer {
 
     private final PaxosAcceptorNetworkClient acceptorClient;
     private final PaxosLearnerNetworkClient learnerClient;
-    private final int quorumSize;
     private final String uuid;
     private final AtomicLong proposalNumber;
 
     public static PaxosProposer newProposer(
             PaxosAcceptorNetworkClient acceptorClient,
             PaxosLearnerNetworkClient learnerClient,
-            int quorumSize,
             UUID leaderUuid) {
-        return new PaxosProposerImpl(acceptorClient, learnerClient, quorumSize, leaderUuid);
+        return new PaxosProposerImpl(acceptorClient, learnerClient, leaderUuid);
     }
 
     private PaxosProposerImpl(
             PaxosAcceptorNetworkClient acceptorClient,
             PaxosLearnerNetworkClient learnerClient,
-            int quorumSize,
             UUID leaderUuid) {
         this.acceptorClient = acceptorClient;
         this.learnerClient = learnerClient;
-        this.quorumSize = quorumSize;
         this.uuid = leaderUuid.toString();
         this.proposalNumber = new AtomicLong();
     }
@@ -131,11 +127,6 @@ public final class PaxosProposerImpl implements PaxosProposer {
         if (!responses.hasQuorum()) {
             throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase two");
         }
-    }
-
-    @Override
-    public int getQuorumSize() {
-        return quorumSize;
     }
 
     @Override

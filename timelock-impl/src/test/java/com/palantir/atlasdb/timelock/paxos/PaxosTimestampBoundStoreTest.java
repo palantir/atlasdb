@@ -371,7 +371,6 @@ public class PaxosTimestampBoundStoreTest {
         return PaxosProposerImpl.newProposer(
                 acceptorClient,
                 learnerClientsByNode.get(nodeIndex),
-                QUORUM_SIZE,
                 UUID.randomUUID());
     }
 
@@ -399,11 +398,6 @@ public class PaxosTimestampBoundStoreTest {
             }
             hasFailed = true;
             throw new PaxosRoundFailureException("paxos fail");
-        }
-
-        @Override
-        public int getQuorumSize() {
-            return delegate.getQuorumSize();
         }
 
         @Override

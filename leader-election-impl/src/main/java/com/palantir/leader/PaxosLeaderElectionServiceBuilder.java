@@ -184,7 +184,6 @@ public class PaxosLeaderElectionServiceBuilder {
     public LeaderElectionService build() {
         return new LeaderElectionServiceBuilder()
                 .leaderUuid(leaderUuid())
-                .quorumSize(quorumSize())
                 .acceptorClient(buildAcceptorNetworkClient())
                 .learnerClient(buildLearnerNetworkClient())
                 .knowledge(knowledge)

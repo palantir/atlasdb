@@ -41,7 +41,6 @@ public final class LeaderElectionServiceBuilder {
     @Nullable private Duration pingRate;
     @Nullable private Duration randomWaitBeforeProposingLeadership;
     @Nullable private UUID leaderUuid;
-    private int quorumSize = -1;
     private UnaryOperator<PaxosProposer> proposerDecorator = paxosProposer -> paxosProposer;
 
     public LeaderElectionServiceBuilder acceptorClient(PaxosAcceptorNetworkClient acceptorClient) {
@@ -86,11 +85,6 @@ public final class LeaderElectionServiceBuilder {
         return this;
     }
 
-    public LeaderElectionServiceBuilder quorumSize(int quorumSize) {
-        this.quorumSize = Preconditions.checkNotNull(quorumSize, "quorumSize cannot be null");
-        return this;
-    }
-
     public LeaderElectionServiceBuilder decorateProposer(UnaryOperator<PaxosProposer> proposerDecorator) {
         this.proposerDecorator = Preconditions.checkNotNull(proposerDecorator, "proposerDecorator cannot be null");
         return this;
@@ -109,12 +103,7 @@ public final class LeaderElectionServiceBuilder {
     }
 
     private PaxosProposer buildProposer() {
-        return PaxosProposerImpl.newProposer(acceptorClient(), learnerClient(), quorumSize(), leaderUuid());
-    }
-
-    private int quorumSize() {
-        Preconditions.checkArgument(quorumSize > 0, "quorumSize not set");
-        return quorumSize;
+        return PaxosProposerImpl.newProposer(acceptorClient(), learnerClient(), leaderUuid());
     }
 
     private PaxosAcceptorNetworkClient acceptorClient() {

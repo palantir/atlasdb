@@ -45,11 +45,6 @@ public interface PaxosProposer {
     byte[] proposeAnonymously(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException;
 
     /**
-     * Returns the number of acceptors that need to support a successful request.
-     */
-    int getQuorumSize();
-
-    /**
      * Returns a unique string identifier for the proposer.
      */
     String getUuid();
