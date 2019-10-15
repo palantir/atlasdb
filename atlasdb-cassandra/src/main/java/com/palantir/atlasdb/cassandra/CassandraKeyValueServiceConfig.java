@@ -132,12 +132,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * This increases the likelihood of selecting an instance that is hosted in the same data centre as the process.
-     * Weighting is a ratio from 0 to 1, where 0 disables the feature and 1 forces the same data centre if possible.
+     * This increases the likelihood of selecting an instance that is hosted in the same rack as the process.
+     * Weighting is a ratio from 0 to 1, where 0 disables the feature and 1 forces the same rack if possible.
      */
     @Value.Default
     default double localHostWeighting() {
-        return 0.0;
+        return 0.25;
     }
 
     /**
