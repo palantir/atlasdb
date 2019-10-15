@@ -195,7 +195,7 @@ public class TimeLockAgent {
 
     // No runtime configuration at the moment.
     private void registerPaxosResource() {
-        paxosResources.resourcesForRegistration().forEach(registrar);
+        paxosResources.resourcesForRegistration().forEach(registrar::accept);
     }
 
     private void registerExceptionMappers() {
