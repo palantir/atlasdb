@@ -25,6 +25,7 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import com.datastax.driver.core.schemabuilder.TableOptions.CompactionOptions;
 import com.datastax.driver.core.schemabuilder.TableOptions.CompressionOptions;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -69,36 +70,43 @@ class CassandraTableCreator {
 
     private CqlQuery constructQuery(TableReference tableRef, byte[] metadata) {
         TableMetadata tableMetadata = CassandraKeyValueServices.getMetadataOrDefaultToGeneric(metadata);
-        boolean appendHeavyReadLight = tableMetadata.isAppendHeavyAndReadLight();
-        String keyspace = wrapInQuotes(config.getKeyspaceOrThrow());
         String internalTableName = wrapInQuotes(CassandraKeyValueServiceImpl.internalTableName(tableRef));
 
-        String query = SchemaBuilder.createTable(keyspace, internalTableName)
-                .ifNotExists()
-                .addPartitionKey(ROW, DataType.blob())
-                .addClusteringColumn(COLUMN, DataType.blob())
-                .addClusteringColumn(TIMESTAMP, DataType.bigint())
-                .addColumn(VALUE, DataType.blob())
-                .withOptions()
-                .bloomFilterFPChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
-                .caching(SchemaBuilder.Caching.KEYS_ONLY)
-                .compactionOptions(getCompaction(appendHeavyReadLight))
-                .compactStorage()
-                .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
-                .dcLocalReadRepairChance(0.1)
-                .gcGraceSeconds(config.gcGraceSeconds())
-                .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
-                .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
-                .populateIOCacheOnFlush(tableMetadata.getCachePriority() == CachePriority.HOTTEST)
-                .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
-                .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
-                .clusteringOrder(TIMESTAMP, SchemaBuilder.Direction.ASC)
-                .buildInternal();
+        String query = createTableQueryString(tableMetadata, internalTableName);
 
         return CqlQuery.builder()
                 .safeQueryFormat(query + " AND id = '%s'")
                 .addArgs(SafeArg.of("cfId", getUuidForTable(tableRef)))
                 .build();
+    }
+
+    @VisibleForTesting
+    String createTableQueryString(
+            TableMetadata tableMetadata,
+            String internalTableName) {
+        String keyspace = wrapInQuotes(config.getKeyspaceOrThrow());
+        boolean appendHeavyReadLight = tableMetadata.isAppendHeavyAndReadLight();
+        return SchemaBuilder.createTable(keyspace, internalTableName)
+                    .ifNotExists()
+                    .addPartitionKey(ROW, DataType.blob())
+                    .addClusteringColumn(COLUMN, DataType.blob())
+                    .addClusteringColumn(TIMESTAMP, DataType.bigint())
+                    .addColumn(VALUE, DataType.blob())
+                    .withOptions()
+                    .bloomFilterFPChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
+                    .caching(SchemaBuilder.Caching.KEYS_ONLY)
+                    .compactionOptions(getCompaction(appendHeavyReadLight))
+                    .compactStorage()
+                    .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
+                    .dcLocalReadRepairChance(0.1)
+                    .gcGraceSeconds(config.gcGraceSeconds())
+                    .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
+                    .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
+                    .populateIOCacheOnFlush(tableMetadata.getCachePriority() == CachePriority.HOTTEST)
+                    .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
+                    .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
+                    .clusteringOrder(TIMESTAMP, SchemaBuilder.Direction.ASC)
+                    .buildInternal();
     }
 
     private String wrapInQuotes(String string) {
