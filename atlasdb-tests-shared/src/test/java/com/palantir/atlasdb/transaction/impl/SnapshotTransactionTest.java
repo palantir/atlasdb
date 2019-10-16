@@ -150,6 +150,7 @@ import com.palantir.timestamp.TimestampService;
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final String SYNC = "sync";
     private static final String ASYNC = "async";
+
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
@@ -158,6 +159,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         };
         return Arrays.asList(data);
     }
+
     private final String name;
     private final UnaryOperator<Transaction> transactionWrapper;
     private final Map<String, ExpectationFactory>
@@ -166,7 +168,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     .put(SYNC, SnapshotTransactionTest.this::syncGetExpectation)
                     .put(ASYNC, SnapshotTransactionTest.this::asyncGetExpectation)
                     .build();
-    private TransactionConfig transactionConfig;
     private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
@@ -174,8 +175,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private final TransactionOutcomeMetrics transactionOutcomeMetrics
             = TransactionOutcomeMetrics.create(metricsManager);
 
+    private TransactionConfig transactionConfig;
+
     @FunctionalInterface
     interface ExpectationFactory {
+
         Expectations apply(
                 KeyValueService keyValueService,
                 Cell cell,
@@ -209,8 +213,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         this.name = name;
         this.transactionWrapper = transactionWrapper;
     }
-
     private class UnstableKeyValueService implements AutoDelegate_KeyValueService {
+
         private final KeyValueService delegate;
         private final Random random;
 
@@ -291,10 +295,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Override
-    protected void setUpTransactionManagers() {
-        super.setUpTransactionManagers();
-        txManager = new WrappingTestTransactionManagerImpl(txManager, transactionWrapper);
-        serializableTxManager = new WrappingTestTransactionManagerImpl(serializableTxManager, transactionWrapper);
+    protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
+        return new WrappingTestTransactionManagerImpl(testTransactionManager, transactionWrapper);
     }
 
     @Test
@@ -711,8 +713,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final int batchHint = 1;
 
         tasks.add(Pair.of("get", (t, heldLocks) -> {
-            t.get(TABLE_SWEPT_THOROUGH,
-                    ImmutableSet.of(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
+            t.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
             return null;
         }));
 
@@ -752,9 +753,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         tasks.add(Pair.of("getRowsColumnRangeIterator",
                 (t, heldLocks) -> {
                     Collection<Iterator<Map.Entry<Cell, byte[]>>> results =
-                            t.getRowsColumnRangeIterator(
-                                    TABLE_SWEPT_THOROUGH,
-                                    Collections.singleton(PtBytes.toBytes("row1")),
+                            t.getRowsColumnRangeIterator(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
                                     BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
                                     .values();
                     results.forEach(Iterators::getLast);
@@ -901,23 +900,19 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void commitIfPreCommitConditionSucceeds() {
-        serializableTxManager.runTaskWithConditionThrowOnConflict(
-                PreCommitConditions.NO_OP,
-                (tx, condition) -> {
-                    tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                    return null;
-                });
+        serializableTxManager.runTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
     }
 
     @Test
     public void failToCommitIfPreCommitConditionFails() {
         try {
-            serializableTxManager.runTaskWithConditionThrowOnConflict(
-                    ALWAYS_FAILS_CONDITION,
-                    (tx, condition) -> {
-                        tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                        return null;
-                    });
+            serializableTxManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (tx, condition) -> {
+                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                return null;
+            });
             fail();
         } catch (TransactionFailedRetriableException e) {
             assertThat(e.getMessage(), containsString("Condition failed"));
@@ -930,12 +925,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
                 .thenReturn(PreCommitConditions.NO_OP);
 
-        serializableTxManager.runTaskWithConditionWithRetry(
-                conditionSupplier,
-                (tx, condition) -> {
-                    tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                    return null;
-                });
+        serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
     }
 
     @Test
@@ -986,12 +979,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         };
         Supplier<PreCommitCondition> conditionSupplier = Suppliers.ofInstance(nonRetriableFailure);
         try {
-            serializableTxManager.runTaskWithConditionWithRetry(
-                    conditionSupplier,
-                    (tx, condition) -> {
-                        tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                        return null;
-                    });
+            serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                return null;
+            });
             fail();
         } catch (TransactionFailedNonRetriableException e) {
             assertThat(e.getMessage(), containsString("Condition failed"));
@@ -1000,8 +991,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void readTransactionSucceedsIfConditionSucceeds() {
-        serializableTxManager.runTaskWithConditionReadOnly(
-                PreCommitConditions.NO_OP,
+        serializableTxManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP,
                 (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
         TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
                 .hasSuccessfulCommits(1);
@@ -1010,8 +1000,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void readTransactionFailsIfConditionFails() {
         try {
-            serializableTxManager.runTaskWithConditionReadOnly(
-                    ALWAYS_FAILS_CONDITION,
+            serializableTxManager.runTaskWithConditionReadOnly(ALWAYS_FAILS_CONDITION,
                     (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
             fail();
         } catch (TransactionFailedRetriableException e) {
@@ -1034,12 +1023,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             }
         };
 
-        serializableTxManager.runTaskWithConditionThrowOnConflict(
-                succeedsCondition,
-                (tx, condition) -> {
-                    tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                    return null;
-                });
+        serializableTxManager.runTaskWithConditionThrowOnConflict(succeedsCondition, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
         assertThat(counter.intValue(), is(1));
 
         serializableTxManager.runTaskWithConditionReadOnly(succeedsCondition,
@@ -1398,10 +1385,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private RowResult<byte[]> readRow(byte[] defaultRow) {
         Transaction readTransaction = txManager.createNewTransaction();
-        SortedMap<byte[], RowResult<byte[]>> allRows = readTransaction.getRows(
-                TABLE,
-                ImmutableSet.of(defaultRow),
-                ColumnSelection.all());
+        SortedMap<byte[], RowResult<byte[]>> allRows = readTransaction.getRows(TABLE, ImmutableSet.of(defaultRow), ColumnSelection.all());
         return allRows.get(defaultRow);
     }
 

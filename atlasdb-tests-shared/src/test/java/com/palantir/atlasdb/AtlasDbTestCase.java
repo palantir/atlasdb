@@ -91,8 +91,8 @@ public class AtlasDbTestCase {
                 () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
     }
 
-    protected void setUpTransactionManagers() {
-        serializableTxManager = new TestTransactionManagerImpl(
+    private void setUpTransactionManagers() {
+        serializableTxManager = wrapTestTransactionManager(new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
                 timestampService,
@@ -103,9 +103,13 @@ public class AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService()));
 
         txManager = new CachingTestTransactionManager(serializableTxManager);
+    }
+
+    protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
+        return testTransactionManager;
     }
 
     protected KeyValueService getBaseKeyValueService() {
