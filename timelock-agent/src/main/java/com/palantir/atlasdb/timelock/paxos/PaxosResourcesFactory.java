@@ -121,7 +121,6 @@ public final class PaxosResourcesFactory {
             PaxosProposer paxosProposer = PaxosProposerImpl.newProposer(
                     acceptorNetworkClient,
                     learnerNetworkClient,
-                    install.quorumSize(),
                     install.nodeUuid());
 
             return timelockMetrics.instrument(PaxosProposer.class, paxosProposer, "paxos-proposer", client);
