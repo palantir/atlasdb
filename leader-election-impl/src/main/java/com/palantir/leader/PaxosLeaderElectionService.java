@@ -15,9 +15,7 @@
  */
 package com.palantir.leader;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
@@ -27,15 +25,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosLatestRoundVerifier;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
@@ -50,19 +46,16 @@ import com.palantir.paxos.PaxosValue;
  *
  * @author rullman
  */
-public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
+public class PaxosLeaderElectionService implements LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
 
-    private final ReentrantLock lock;
+    private final ReentrantLock lock = new ReentrantLock();
     private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
 
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
 
     private final LeaderPinger leaderPinger;
-    private final PingableLeader localPingable;
-    private final ImmutableList<PingableLeader> otherPingables;
-    private final ImmutableList<PaxosAcceptor> acceptors;
     private final PaxosLearnerNetworkClient learnerClient;
 
     private final long updatePollingRateInMs;
@@ -72,13 +65,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
 
-    PaxosLeaderElectionService(PaxosProposer proposer,
+    PaxosLeaderElectionService(
+            PaxosProposer proposer,
             PaxosLearner knowledge,
             LeaderPinger leaderPinger,
-            PingableLeader localPingable,
-            List<PingableLeader> otherPingables,
-            List<PaxosAcceptor> acceptors,
-            PaxosLatestRoundVerifier latestRoundVerifier,
+            PaxosAcceptorNetworkClient acceptorClient,
             PaxosLearnerNetworkClient learnerClient,
             long updatePollingWaitInMs,
             long randomWaitBeforeProposingLeadership,
@@ -86,15 +77,12 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.leaderPinger = leaderPinger;
-        this.localPingable = localPingable;
-        this.otherPingables = ImmutableList.copyOf(otherPingables);
-        this.acceptors = ImmutableList.copyOf(acceptors);
         this.learnerClient = learnerClient;
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
-        lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
-        this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(latestRoundVerifier);
+        this.latestRoundVerifier =
+                new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
     }
 
     public void markNotEligibleForLeadership() {
@@ -166,21 +154,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 .map(UUID::fromString)
                 .map(leaderPinger::pingLeaderWithUuid)
                 .orElse(false);
-    }
-
-    @Override
-    public Set<PingableLeader> getPotentialLeaders() {
-        return Sets.union(ImmutableSet.of(localPingable), ImmutableSet.copyOf(otherPingables));
-    }
-
-    @Override
-    public String getUUID() {
-        return proposer.getUuid();
-    }
-
-    @Override
-    public boolean ping() {
-        return localPingable.ping();
     }
 
     private void proposeLeadershipAfter(Optional<PaxosValue> value) {
@@ -263,11 +236,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     private boolean isThisNodeTheLeaderFor(PaxosValue value) {
         return value.getLeaderUUID().equals(proposer.getUuid());
-    }
-
-    // This is used by an internal product CLI.
-    public ImmutableList<PaxosAcceptor> getAcceptors() {
-        return acceptors;
     }
 
     /**

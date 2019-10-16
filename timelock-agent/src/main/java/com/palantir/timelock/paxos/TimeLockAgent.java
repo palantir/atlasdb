@@ -21,9 +21,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
@@ -56,8 +53,6 @@ import com.palantir.timestamp.ManagedTimestampService;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
-    private static final Logger log = LoggerFactory.getLogger(TimeLockAgent.class);
-
     private static final Long SCHEMA_VERSION = 1L;
 
     private final MetricsManager metricsManager;
@@ -70,7 +65,7 @@ public class TimeLockAgent {
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
 
-    private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
+    private LeaderPingHealthCheck healthCheck;
     private TimeLockResource resource;
 
     public static TimeLockAgent create(
@@ -159,7 +154,7 @@ public class TimeLockAgent {
         leadershipCreator.registerLeaderElectionService();
 
         // Finally, register the health check, and endpoints associated with the clients.
-        healthCheckSupplier = leadershipCreator.getHealthCheck();
+        healthCheck = leadershipCreator.getHealthCheck();
         resource = TimeLockResource.create(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
@@ -173,7 +168,7 @@ public class TimeLockAgent {
             return TimeLockStatus.PENDING_ELECTION;
         }
 
-        return healthCheckSupplier.get().getStatus();
+        return healthCheck.getStatus();
     }
 
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks

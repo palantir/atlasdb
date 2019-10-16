@@ -16,6 +16,7 @@
 package com.palantir.paxos;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -27,12 +28,11 @@ import org.apache.commons.io.FileUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.net.HostAndPort;
+import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.PaxosLeaderElectionService;
-import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
-import com.palantir.leader.PingableLeader;
+import com.palantir.leader.LeaderElectionServiceBuilder;
+import com.palantir.leader.PaxosLeaderElectionEventRecorder;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -75,24 +75,29 @@ public final class PaxosConsensusTestUtils {
                     exception));
         }
 
+        PaxosAcceptorNetworkClient acceptorNetworkClient =
+                new SingleLeaderAcceptorNetworkClient(acceptors, quorumSize, Maps.toMap(acceptors, $ -> executor));
+
         for (int i = 0; i < numLeaders; i++) {
-            PaxosProposer proposer = PaxosProposerImpl.newProposer(
-                    learners.get(i),
-                    ImmutableList.copyOf(acceptors),
-                    ImmutableList.copyOf(learners),
-                    quorumSize,
-                    UUID.randomUUID(),
-                    executor);
-            PaxosLeaderElectionService leader = new PaxosLeaderElectionServiceBuilder()
-                    .proposer(proposer)
-                    .knowledge(learners.get(i))
-                    .potentialLeadersToHosts(ImmutableMap.<PingableLeader, HostAndPort>of())
-                    .acceptors(acceptors)
-                    .learners(learners)
-                    .executor(executor)
-                    .pingRateMs(0L)
-                    .randomWaitBeforeProposingLeadershipMs(0L)
-                    .leaderPingResponseWaitMs(0L)
+            UUID leaderUuid = UUID.randomUUID();
+
+            PaxosLearner ourLearner = learners.get(i);
+            List<PaxosLearner> remoteLearners = learners.stream()
+                    .filter(learner -> !learner.equals(ourLearner))
+                    .collect(ImmutableList.toImmutableList());
+            PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
+                    ourLearner, remoteLearners, quorumSize, Maps.toMap(learners, $ -> executor));
+
+            LeaderPinger leaderPinger = new SingleLeaderPinger(
+                    ImmutableMap.of(), Duration.ZERO, PaxosLeaderElectionEventRecorder.NO_OP, leaderUuid);
+            LeaderElectionService leader = new LeaderElectionServiceBuilder()
+                    .leaderUuid(leaderUuid)
+                    .pingRate(Duration.ZERO)
+                    .randomWaitBeforeProposingLeadership(Duration.ZERO)
+                    .knowledge(ourLearner)
+                    .acceptorClient(acceptorNetworkClient)
+                    .learnerClient(learnerNetworkClient)
+                    .leaderPinger(leaderPinger)
                     .build();
             leaders.add(SimulatingFailingServerProxy.newProxyInstance(
                     LeaderElectionService.class,
@@ -101,7 +106,7 @@ public final class PaxosConsensusTestUtils {
                     failureToggles.get(i)));
         }
 
-        return new PaxosTestState(leaders, acceptors, learners, failureToggles, executor);
+        return new PaxosTestState(leaders, learners, failureToggles, executor);
     }
 
     public static void teardown(PaxosTestState state) throws Exception {
@@ -118,11 +123,11 @@ public final class PaxosConsensusTestUtils {
         }
     }
 
-    public static String getLearnerLogDir(int dir) {
+    private static String getLearnerLogDir(int dir) {
         return LEARNER_DIR_PREFIX + dir;
     }
 
-    public static String getAcceptorLogDir(int dir) {
+    private static String getAcceptorLogDir(int dir) {
         return ACCEPTOR_DIR_PREFIX + dir;
     }
 }

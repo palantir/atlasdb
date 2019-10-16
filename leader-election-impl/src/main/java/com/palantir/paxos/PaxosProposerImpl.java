@@ -16,16 +16,10 @@
 package com.palantir.paxos;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 
 /**
  * Implementation of a paxos proposer than can be a designated proposer (leader) and designated
@@ -37,71 +31,22 @@ public final class PaxosProposerImpl implements PaxosProposer {
 
     private final PaxosAcceptorNetworkClient acceptorClient;
     private final PaxosLearnerNetworkClient learnerClient;
-    private final int quorumSize;
     private final String uuid;
     private final AtomicLong proposalNumber;
-
-    /**
-     * @deprecated use {@link #newProposer(PaxosLearner, List, List, int, UUID, ExecutorService)}.
-     */
-    @Deprecated
-    public static PaxosProposer newProposer(
-            PaxosLearner localLearner,
-            List<PaxosAcceptor> allAcceptors,
-            List<PaxosLearner> allLearners,
-            int quorumSize,
-            ExecutorService executor) {
-        return newProposer(
-                localLearner,
-                allAcceptors,
-                allLearners,
-                quorumSize,
-                UUID.randomUUID(),
-                executor
-        );
-    }
-
-    /**
-     * @deprecated use {@link #newProposer(PaxosAcceptorNetworkClient, PaxosLearnerNetworkClient, int, UUID)} instead.
-     */
-    @Deprecated
-    public static PaxosProposer newProposer(
-            PaxosLearner knowledge,
-            List<PaxosAcceptor> allAcceptors,
-            List<PaxosLearner> allLearners,
-            int quorumSize,
-            UUID leaderUuid,
-            ExecutorService singleExecutorService) {
-        SingleLeaderAcceptorNetworkClient acceptorClient = new SingleLeaderAcceptorNetworkClient(
-                allAcceptors,
-                quorumSize,
-                Maps.asMap(ImmutableSet.copyOf(allAcceptors), $ -> singleExecutorService));
-
-        SingleLeaderLearnerNetworkClient learnerClient = new SingleLeaderLearnerNetworkClient(
-                knowledge,
-                allLearners.stream().filter(learner -> !learner.equals(knowledge)).collect(Collectors.toList()),
-                quorumSize,
-                Maps.asMap(ImmutableSet.copyOf(allLearners), $ -> singleExecutorService));
-
-        return newProposer(acceptorClient, learnerClient, quorumSize, leaderUuid);
-    }
 
     public static PaxosProposer newProposer(
             PaxosAcceptorNetworkClient acceptorClient,
             PaxosLearnerNetworkClient learnerClient,
-            int quorumSize,
             UUID leaderUuid) {
-        return new PaxosProposerImpl(acceptorClient, learnerClient, quorumSize, leaderUuid);
+        return new PaxosProposerImpl(acceptorClient, learnerClient, leaderUuid);
     }
 
     private PaxosProposerImpl(
             PaxosAcceptorNetworkClient acceptorClient,
             PaxosLearnerNetworkClient learnerClient,
-            int quorumSize,
             UUID leaderUuid) {
         this.acceptorClient = acceptorClient;
         this.learnerClient = learnerClient;
-        this.quorumSize = quorumSize;
         this.uuid = leaderUuid.toString();
         this.proposalNumber = new AtomicLong();
     }
@@ -154,7 +99,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
                     .mapToLong(promise -> promise.promisedId.number)
                     .max()
                     .orElseGet(proposalNumber::get);
-            proposalNumber.getAndUpdate(currentNumber -> maxProposal > currentNumber ? maxProposal : currentNumber);
+            proposalNumber.getAndUpdate(currentNumber -> Math.max(maxProposal, currentNumber));
             throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase one");
         }
 
@@ -182,11 +127,6 @@ public final class PaxosProposerImpl implements PaxosProposer {
         if (!responses.hasQuorum()) {
             throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase two");
         }
-    }
-
-    @Override
-    public int getQuorumSize() {
-        return quorumSize;
     }
 
     @Override

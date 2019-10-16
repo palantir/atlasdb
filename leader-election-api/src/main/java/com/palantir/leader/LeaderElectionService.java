@@ -17,7 +17,6 @@ package com.palantir.leader;
 
 import java.io.Serializable;
 import java.util.Optional;
-import java.util.Set;
 
 public interface LeaderElectionService {
     interface LeadershipToken extends Serializable {
@@ -70,14 +69,6 @@ public interface LeaderElectionService {
      * @return LEADING if the token is still the leader
      */
     StillLeadingStatus isStillLeading(LeadershipToken token);
-
-    /**
-     * Get the set of potential leaders known by this leader election service. This will not do any network
-     * calls and is meant to be callable without major performance implications.
-     *
-     * @return the set of potential leaders known by this leader election service, including itself
-     */
-    Set<PingableLeader> getPotentialLeaders();
 
     /**
      * Attempts to give up leadership. Note that this does not guarantee that a different node will be elected the
