@@ -23,6 +23,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,7 +159,7 @@ public class KvsProfilingLogger {
                     slowLogPredicate);
             Futures.addCallback(future, new FutureCallback<T>() {
                 @Override
-                public void onSuccess(T result) {
+                public void onSuccess(@Nullable T result) {
                     monitor.registerResult(result);
                     monitor.log();
                 }

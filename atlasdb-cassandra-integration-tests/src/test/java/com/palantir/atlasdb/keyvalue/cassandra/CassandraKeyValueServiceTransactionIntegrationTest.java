@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -62,8 +62,8 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, (Function<Transaction, Transaction>) GetSynchronousDelegate::new},
-                {ASYNC, (Function<Transaction, Transaction>) GetAsyncDelegate::new}
+                {SYNC, (UnaryOperator<Transaction>) GetSynchronousDelegate::new},
+                {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -78,11 +78,11 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
     private final String name;
-    private final Function<Transaction, Transaction> transactionWrapper;
+    private final UnaryOperator<Transaction> transactionWrapper;
 
     public CassandraKeyValueServiceTransactionIntegrationTest(
             String name,
-            Function<Transaction, Transaction> transactionWrapper) {
+            UnaryOperator<Transaction> transactionWrapper) {
         super(CASSANDRA, CASSANDRA);
         this.name = name;
         this.transactionWrapper = transactionWrapper;

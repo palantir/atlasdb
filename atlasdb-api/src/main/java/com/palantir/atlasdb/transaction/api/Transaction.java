@@ -70,6 +70,17 @@ public interface Transaction {
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**
+     * Gets the values associated for each {@code cells} from table specified by {@code tableRef}. It is not guaranteed
+     * that the actual implementations are in fact asynchronous.
+     *
+     * @param tableRef the table from which to get the values
+     * @param cells the cells for which we want to get the values
+     * @return a {@link Map} from {@link Cell} to {@code byte[]} representing cell/value pairs
+     */
+    @Idempotent
+    ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells);
+
+    /**
      * Creates a visitable that scans the provided range.
      *
      * @param tableRef the table to scan
@@ -239,7 +250,4 @@ public interface Transaction {
     default void disableReadWriteConflictChecking(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
-
-    @Idempotent
-    ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells);
 }

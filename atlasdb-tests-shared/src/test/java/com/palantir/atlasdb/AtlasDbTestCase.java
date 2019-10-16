@@ -64,7 +64,7 @@ public class AtlasDbTestCase {
     protected InMemoryTimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
-    protected TestTransactionManagerImpl serializableTxManager;
+    protected TestTransactionManager serializableTxManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected TargetedSweeper sweepQueue;
@@ -85,7 +85,13 @@ public class AtlasDbTestCase {
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
+        setUpTransactionManagers();
+        sweepQueue.initialize(serializableTxManager);
+        sweepTimestampSupplier = new SpecialTimestampsSupplier(
+                () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
+    }
 
+    protected void setUpTransactionManagers() {
         serializableTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
@@ -99,10 +105,7 @@ public class AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService());
 
-        sweepQueue.initialize(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
-        sweepTimestampSupplier = new SpecialTimestampsSupplier(
-                () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
     }
 
     protected KeyValueService getBaseKeyValueService() {

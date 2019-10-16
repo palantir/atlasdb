@@ -42,7 +42,9 @@ public class GetAsyncDelegate extends ForwardingTransaction {
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
             return super.getAsync(tableRef, cells).get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }

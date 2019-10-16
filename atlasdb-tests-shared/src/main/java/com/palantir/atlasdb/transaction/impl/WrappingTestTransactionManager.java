@@ -42,4 +42,9 @@ public abstract class WrappingTestTransactionManager extends WrappingTransaction
     public void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
         delegate.overrideConflictHandlerForTable(table, conflictHandler);
     }
+
+    @Override
+    public void setUnreadableTimestamp(long timestamp) {
+        delegate.setUnreadableTimestamp(timestamp);
+    }
 }
