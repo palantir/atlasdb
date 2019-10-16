@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: |
+    Transactions can now support asynchronous get operations. This feature is designed for direct users of the `Transaction` API.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4301

@@ -17,22 +17,52 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.Mockito.mock;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.function.UnaryOperator;
+
 import org.junit.ClassRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
+import com.palantir.atlasdb.transaction.impl.GetSynchronousDelegate;
 
+@RunWith(Parameterized.class)
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
+    private static final String SYNC = "sync";
+    private static final String ASYNC = "async";
 
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+        Object[][] data = new Object[][] {
+                {SYNC, (UnaryOperator<Transaction>) GetSynchronousDelegate::new},
+                {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
+        };
+        return Arrays.asList(data);
+    }
 
-    public CassandraKvsSerializableTransactionTest() {
+    private final UnaryOperator<Transaction> transactionWrapper;
+
+    public CassandraKvsSerializableTransactionTest(
+            String name,
+            UnaryOperator<Transaction> transactionWrapper) {
         super(CASSANDRA, CASSANDRA);
+        this.transactionWrapper = transactionWrapper;
+    }
+
+    @Override
+    protected Transaction startTransaction() {
+        return transactionWrapper.apply(super.startTransaction());
     }
 
     @Override
@@ -54,5 +84,4 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     protected boolean supportsReverse() {
         return false;
     }
-
 }

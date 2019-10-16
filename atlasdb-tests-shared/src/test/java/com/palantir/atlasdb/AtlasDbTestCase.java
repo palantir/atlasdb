@@ -64,7 +64,7 @@ public class AtlasDbTestCase {
     protected InMemoryTimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
-    protected TestTransactionManagerImpl serializableTxManager;
+    protected TestTransactionManager serializableTxManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected TargetedSweeper sweepQueue;
@@ -85,8 +85,14 @@ public class AtlasDbTestCase {
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
+        setUpTransactionManagers();
+        sweepQueue.initialize(serializableTxManager);
+        sweepTimestampSupplier = new SpecialTimestampsSupplier(
+                () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
+    }
 
-        serializableTxManager = new TestTransactionManagerImpl(
+    private void setUpTransactionManagers() {
+        serializableTxManager = wrapTestTransactionManager(new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
                 timestampService,
@@ -97,12 +103,13 @@ public class AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService()));
 
-        sweepQueue.initialize(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
-        sweepTimestampSupplier = new SpecialTimestampsSupplier(
-                () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
+    }
+
+    protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
+        return testTransactionManager;
     }
 
     protected KeyValueService getBaseKeyValueService() {

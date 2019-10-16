@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -28,13 +31,18 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
+import com.palantir.atlasdb.transaction.impl.GetSynchronousDelegate;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -44,9 +52,21 @@ import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.TimestampManagementService;
 
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
+@RunWith(Parameterized.class)
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
+    private static final String SYNC = "sync";
+    private static final String ASYNC = "async";
     private static final Supplier<KeyValueService> KVS_SUPPLIER =
             Suppliers.memoize(CassandraKeyValueServiceTransactionIntegrationTest::createAndRegisterKeyValueService);
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+        Object[][] data = new Object[][] {
+                {SYNC, (UnaryOperator<Transaction>) GetSynchronousDelegate::new},
+                {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
+        };
+        return Arrays.asList(data);
+    }
 
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(KVS_SUPPLIER);
@@ -57,9 +77,15 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
+    private final String name;
+    private final UnaryOperator<Transaction> transactionWrapper;
 
-    public CassandraKeyValueServiceTransactionIntegrationTest() {
+    public CassandraKeyValueServiceTransactionIntegrationTest(
+            String name,
+            UnaryOperator<Transaction> transactionWrapper) {
         super(CASSANDRA, CASSANDRA);
+        this.name = name;
+        this.transactionWrapper = transactionWrapper;
     }
 
     @Before
@@ -106,4 +132,8 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
         return false;
     }
 
+    @Override
+    protected Transaction startTransaction() {
+        return transactionWrapper.apply(super.startTransaction());
+    }
 }

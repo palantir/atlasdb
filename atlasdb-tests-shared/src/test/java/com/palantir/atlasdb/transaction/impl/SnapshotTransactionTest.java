@@ -37,6 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -54,7 +55,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -70,6 +73,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
@@ -82,6 +87,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
@@ -140,17 +146,75 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
+@RunWith(Parameterized.class)
 public class SnapshotTransactionTest extends AtlasDbTestCase {
-    private TransactionConfig transactionConfig;
+    private static final String SYNC = "sync";
+    private static final String ASYNC = "async";
 
-    protected final TimestampCache timestampCache = new DefaultTimestampCache(
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+        Object[][] data = new Object[][] {
+                {SYNC, (UnaryOperator<Transaction>) GetSynchronousDelegate::new},
+                {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
+        };
+        return Arrays.asList(data);
+    }
+
+    private final String name;
+    private final UnaryOperator<Transaction> transactionWrapper;
+    private final Map<String, ExpectationFactory>
+            expectationsMapping =
+            ImmutableMap.<String, ExpectationFactory>builder()
+                    .put(SYNC, SnapshotTransactionTest.this::syncGetExpectation)
+                    .put(ASYNC, SnapshotTransactionTest.this::asyncGetExpectation)
+                    .build();
+    private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
-    protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
-    protected final int defaultGetRangesConcurrency = 2;
-    protected final TransactionOutcomeMetrics transactionOutcomeMetrics
+    private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
+    private final int defaultGetRangesConcurrency = 2;
+    private final TransactionOutcomeMetrics transactionOutcomeMetrics
             = TransactionOutcomeMetrics.create(metricsManager);
 
+    private TransactionConfig transactionConfig;
+
+    @FunctionalInterface
+    interface ExpectationFactory {
+
+        Expectations apply(
+                KeyValueService keyValueService,
+                Cell cell,
+                long transactionTs,
+                LockService lockService) throws InterruptedException;
+    }
+
+    private Expectations syncGetExpectation(
+            KeyValueService kvMock,
+            Cell cell,
+            long transactionTs,
+            LockService lockMock) {
+        return new Expectations() {{
+            oneOf(kvMock).get(TABLE, ImmutableMap.of(cell, transactionTs));
+            will(throwException(new RuntimeException()));
+        }};
+    }
+
+    private Expectations asyncGetExpectation(
+            KeyValueService kvMock,
+            Cell cell,
+            long transactionTs,
+            LockService lockMock) {
+        return new Expectations() {{
+            oneOf(kvMock).getAsync(TABLE, ImmutableMap.of(cell, transactionTs));
+            will(returnValue(Futures.immediateFailedFuture(new RuntimeException())));
+        }};
+    }
+
+    public SnapshotTransactionTest(String name, UnaryOperator<Transaction> transactionWrapper) {
+        this.name = name;
+        this.transactionWrapper = transactionWrapper;
+    }
     private class UnstableKeyValueService implements AutoDelegate_KeyValueService {
+
         private final KeyValueService delegate;
         private final Random random;
 
@@ -230,6 +294,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getTableMetadataForSweepStrategy(SweepStrategy.CONSERVATIVE).persistToBytes());
     }
 
+    @Override
+    protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
+        return new WrappingTestTransactionManagerImpl(testTransactionManager, transactionWrapper);
+    }
+
     @Test
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
@@ -270,10 +339,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testLockAfterGet() throws Exception {
         byte[] rowName = PtBytes.toBytes("1");
-        Mockery m = new Mockery();
-        m.setThreadingPolicy(new Synchroniser());
-        final KeyValueService kvMock = m.mock(KeyValueService.class);
-        final LockService lockMock = m.mock(LockService.class);
+        Mockery mockery = new Mockery();
+        mockery.setThreadingPolicy(new Synchroniser());
+        final KeyValueService kvMock = mockery.mock(KeyValueService.class);
+        final LockService lockMock = mockery.mock(LockService.class);
         LockService lock = MultiDelegateProxy.newProxyInstance(LockService.class, lockService, lockMock);
 
         final Cell cell = Cell.create(rowName, rowName);
@@ -282,12 +351,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final long transactionTs = timestampService.getFreshTimestamp();
         keyValueService.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY), startTs);
 
-        m.checking(new Expectations() {{
-            oneOf(kvMock).get(TABLE, ImmutableMap.of(cell, transactionTs)); will(throwException(new RuntimeException()));
+        mockery.checking(expectationsMapping.get(name).apply(kvMock, cell, transactionTs, lockMock));
+        mockery.checking(new Expectations() {{
             never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
         }});
 
-        SnapshotTransaction snapshot = new SnapshotTransaction(metricsManager,
+        Transaction snapshot = transactionWrapper.apply(new SnapshotTransaction(metricsManager,
                 kvMock,
                 new LegacyTimelockService(timestampService, lock, lockClient),
                 transactionService,
@@ -308,7 +377,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> transactionConfig);
+                () -> transactionConfig));
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -316,7 +385,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             //expected
         }
 
-        m.assertIsSatisfied();
+        mockery.assertIsSatisfied();
     }
 
     @Ignore("Was ignored long ago, and now we need to fix the mocking logic.")
@@ -353,7 +422,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             inSequence(seq);
         }});
 
-        SnapshotTransaction snapshot = new SnapshotTransaction(metricsManager,
+        Transaction snapshot = transactionWrapper.apply(new SnapshotTransaction(metricsManager,
                 keyValueService,
                 null,
                 transactionService,
@@ -374,7 +443,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> transactionConfig);
+                () -> transactionConfig));
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -391,18 +460,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Random random = new Random(1);
 
         final UnstableKeyValueService unstableKvs = new UnstableKeyValueService(keyValueService, random);
-        final TestTransactionManager unstableTransactionManager = new TestTransactionManagerImpl(
-                metricsManager,
-                unstableKvs,
-                timestampService,
-                timestampService,
-                lockClient,
-                lockService,
-                transactionService,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                sweepQueue,
-                MoreExecutors.newDirectExecutorService());
+        final TestTransactionManager unstableTransactionManager = new WrappingTestTransactionManagerImpl(
+                new TestTransactionManagerImpl(
+                        metricsManager,
+                        unstableKvs,
+                        timestampService,
+                        timestampService,
+                        lockClient,
+                        lockService,
+                        transactionService,
+                        conflictDetectionManager,
+                        sweepStrategyManager,
+                        sweepQueue,
+                        MoreExecutors.newDirectExecutorService()),
+                transactionWrapper);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -618,7 +689,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .collect(Collectors.toList());
         if (!successfulTasks.isEmpty()) {
             Assert.fail("Expected read to fail with TransactionFailedRetriableException, but it succeeded for: " +
-                            Joiner.on(", ").join(successfulTasks));
+                    Joiner.on(", ").join(successfulTasks));
         }
     }
 
@@ -791,7 +862,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void disallowPutOnEmptyObject() {
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY));
@@ -1013,15 +1084,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // this will write into the DB, because the protocol demands we write before we get a commit timestamp
         RuntimeException conditionFailure = new RuntimeException();
-        assertThatThrownBy(() ->  serializableTxManager.runTaskWithConditionWithRetry(() -> new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {
-                throw conditionFailure;
-            }
+        assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(() ->
+                new PreCommitCondition() {
+                    @Override
+                    public void throwIfConditionInvalid(long timestamp) {
+                        throw conditionFailure;
+                    }
 
-            @Override
-            public void cleanup() {}
-        }, (tx, condition) -> {
+                    @Override
+                    public void cleanup() {}
+                }, (tx, condition) -> {
             tx.put(TABLE, ImmutableMap.of(firstCell, value));
             return null;
         })).isSameAs(conditionFailure);
@@ -1139,7 +1211,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() ->
-            transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)));
+                transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)));
     }
 
     @Test
@@ -1179,7 +1251,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
         transaction.commit();
         timelockService.unlock(ImmutableSet.of(res.getLock()));
-        
+
         verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 
@@ -1250,7 +1322,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         transaction.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL));
         verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
-        
+
         transaction.commit();
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
@@ -1373,9 +1445,25 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
      * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at
      * {@link AtlasDbTestCase#setUp()}.
      */
-    private static SnapshotTransaction unwrapSnapshotTransaction(Transaction cachingTransaction) {
-        Transaction unwrapped = ((CachingTransaction) cachingTransaction).delegate();
-        return (SnapshotTransaction) unwrapped;
+    private static SnapshotTransaction unwrapSnapshotTransaction(Transaction transaction) {
+        if (transaction instanceof ForwardingTransaction)
+            return unwrapSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
+        return (SnapshotTransaction) transaction;
     }
 
+    private static class WrappingTestTransactionManagerImpl extends WrappingTestTransactionManager {
+        private final Function<Transaction, Transaction> transactionWrapper;
+
+        WrappingTestTransactionManagerImpl(
+                TestTransactionManager testTransactionManager,
+                Function<Transaction, Transaction> transactionWrapper) {
+            super(testTransactionManager);
+            this.transactionWrapper = transactionWrapper;
+        }
+
+        @Override
+        protected Transaction wrap(Transaction transaction) {
+            return transactionWrapper.apply(transaction);
+        }
+    }
 }

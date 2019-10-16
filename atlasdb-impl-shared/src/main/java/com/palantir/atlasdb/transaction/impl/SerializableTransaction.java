@@ -253,7 +253,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
-            return get(
+            return getWithLoader(
                     tableRef,
                     cells,
                     (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead))).get();
@@ -262,7 +262,15 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    public ListenableFuture<Map<Cell, byte[]>> get(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+    @Override
+    @Idempotent
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        return getWithLoader(tableRef, cells, super::getAsync);
+    }
+
+    private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
+            TableReference tableRef, Set<Cell> cells,
+            CellLoader cellLoader) {
         return Futures.transform(cellLoader.load(tableRef, cells),
                 loadedCells -> {
                     markCellsRead(tableRef, cells, loadedCells);

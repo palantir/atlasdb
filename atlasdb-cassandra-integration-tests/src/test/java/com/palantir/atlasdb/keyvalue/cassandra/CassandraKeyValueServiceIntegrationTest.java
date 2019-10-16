@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -80,6 +81,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -92,13 +94,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
     private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
+    private static final String ASYNC = "async";
+    private static final String SYNC = "sync";
     private final String name;
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {"sync", (Function<CassandraKeyValueServiceImpl, CassandraKeyValueService>) SynchronousDelegate::new},
-                {"async", (Function<CassandraKeyValueServiceImpl, CassandraKeyValueService>) AsyncDelegate::new}
+                {SYNC, (Function<CassandraKeyValueServiceImpl, CassandraKeyValueService>) SynchronousDelegate::new},
+                {ASYNC, (Function<CassandraKeyValueServiceImpl, CassandraKeyValueService>) AsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -465,8 +469,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
     }
 
-    private static class SynchronousDelegate
-            implements AutoDelegate_CassandraKeyValueService {
+    private static class SynchronousDelegate implements AutoDelegate_CassandraKeyValueService {
         private final CassandraKeyValueServiceImpl delegate;
 
         SynchronousDelegate(CassandraKeyValueServiceImpl cassandraKeyValueService) {
@@ -495,8 +498,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
             try {
                 return delegate.getAsync(tableRef, timestampByCell).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e);
+            } catch (ExecutionException e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         }
     }

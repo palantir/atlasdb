@@ -22,6 +22,7 @@ import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -67,6 +68,17 @@ public interface Transaction {
 
     @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
+
+    /**
+     * Gets the values associated for each {@code cells} from table specified by {@code tableRef}. It is not guaranteed
+     * that the actual implementations are in fact asynchronous.
+     *
+     * @param tableRef the table from which to get the values
+     * @param cells the cells for which we want to get the values
+     * @return a {@link Map} from {@link Cell} to {@code byte[]} representing cell/value pairs
+     */
+    @Idempotent
+    ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells);
 
     /**
      * Creates a visitable that scans the provided range.

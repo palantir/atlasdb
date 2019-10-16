@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -120,6 +119,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbstractBatchingVisitable;
@@ -400,7 +400,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 columnRangeSelection, getStartTimestamp());
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
                 Maps.newHashMapWithExpectedSize(rawResults.size());
-        for (Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
+        for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
             Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
@@ -568,9 +568,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             byte[] row,
             ColumnSelection columnSelection) {
         Cell lowCell = Cells.createSmallestCellForRow(row);
-        Iterator<Entry<Cell, byte[]>> it = writes.tailMap(lowCell).entrySet().iterator();
+        Iterator<Map.Entry<Cell, byte[]>> it = writes.tailMap(lowCell).entrySet().iterator();
         while (it.hasNext()) {
-            Entry<Cell, byte[]> entry = it.next();
+            Map.Entry<Cell, byte[]> entry = it.next();
             Cell cell = entry.getKey();
             if (!Arrays.equals(row, cell.getRowName())) {
                 break;
@@ -583,9 +583,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
-            return get(
+            return getWithLoader(
                     "get",
                     tableRef,
                     cells,
@@ -596,7 +597,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    private ListenableFuture<Map<Cell, byte[]>> get(
+    @Override
+    @Idempotent
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        return getWithLoader("getAsync", tableRef, cells, keyValueService::getAsync);
+    }
+
+    private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
             String operationName,
             TableReference tableRef,
             Set<Cell> cells,
@@ -720,7 +727,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         byte[] nextStartRowName = getNextStartRowName(
                                 rangeRequest,
                                 prePostFilter);
-                        List<Entry<Cell, byte[]>> mergeIterators = getPostFilteredWithLocalWrites(
+                        List<Map.Entry<Cell, byte[]>> mergeIterators = getPostFilteredWithLocalWrites(
                                 tableRef,
                                 postFiltered,
                                 rangeRequest,
@@ -846,18 +853,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
     }
 
-    private List<Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
+    private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
                                                                      final SortedMap<Cell, byte[]> postFiltered,
                                                                      final RangeRequest rangeRequest,
                                                                      List<RowResult<Value>> prePostFilter,
                                                                      final byte[] endRowExclusive) {
         Map<Cell, Value> prePostFilterCells = Cells.convertRowResultsToCells(prePostFilter);
-        Collection<Entry<Cell, byte[]>> postFilteredCells = Collections2.filter(
+        Collection<Map.Entry<Cell, byte[]>> postFilteredCells = Collections2.filter(
                 postFiltered.entrySet(),
                 Predicates.compose(
                         Predicates.in(prePostFilterCells.keySet()),
                         MapEntries.getKeyFunction()));
-        Collection<Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
+        Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
                 tableRef,
                 rangeRequest.getStartInclusive(),
                 endRowExclusive).entrySet();
@@ -960,13 +967,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         });
     }
 
-    private List<Entry<Cell, byte[]>> mergeInLocalWrites(
+    private List<Map.Entry<Cell, byte[]>> mergeInLocalWrites(
             TableReference tableRef,
-            Iterator<Entry<Cell, byte[]>> postFilterIterator,
-            Iterator<Entry<Cell, byte[]>> localWritesInRange,
+            Iterator<Map.Entry<Cell, byte[]>> postFilterIterator,
+            Iterator<Map.Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
-        Ordering<Entry<Cell, byte[]>> ordering = Ordering.natural().onResultOf(MapEntries.getKeyFunction());
-        Iterator<Entry<Cell, byte[]>> mergeIterators = IteratorUtils.mergeIterators(
+        Ordering<Map.Entry<Cell, byte[]>> ordering = Ordering.natural().onResultOf(MapEntries.getKeyFunction());
+        Iterator<Map.Entry<Cell, byte[]>> mergeIterators = IteratorUtils.mergeIterators(
                 postFilterIterator, localWritesInRange,
                 isReverse ? ordering.reverse() : ordering,
                 from -> from.rhSide); // always override their value with written values
@@ -974,15 +981,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilterEmptyValues(tableRef, mergeIterators);
     }
 
-    private List<Entry<Cell, byte[]>> postFilterEmptyValues(
+    private List<Map.Entry<Cell, byte[]>> postFilterEmptyValues(
             TableReference tableRef,
-            Iterator<Entry<Cell, byte[]>> mergeIterators) {
-        List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
-        Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value::isTombstone),
+            Iterator<Map.Entry<Cell, byte[]>> mergeIterators) {
+        List<Map.Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
+        Predicate<Map.Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(
+                Predicates.not(Value::isTombstone),
                 MapEntries.getValueFunction());
         long numEmptyValues = 0;
         while (mergeIterators.hasNext()) {
-            Entry<Cell, byte[]> next = mergeIterators.next();
+            Map.Entry<Cell, byte[]> next = mergeIterators.next();
             if (nonEmptyValuePredicate.apply(next)) {
                 mergedWritesWithoutEmptyValues.add(next);
             } else {
@@ -1310,7 +1318,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void ensureNoEmptyValues(Map<Cell, byte[]> values) {
-        for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
+        for (Map.Entry<Cell, byte[]> cellEntry : values.entrySet()) {
             if ((cellEntry.getValue() == null) || (cellEntry.getValue().length == 0)) {
                 throw new SafeIllegalArgumentException(
                         "AtlasDB does not currently support inserting null or empty (zero-byte) values.");
@@ -1613,7 +1621,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected void throwIfConflictOnCommit(LockToken commitLocksToken, TransactionService transactionService)
             throws TransactionConflictException {
-        for (Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write : writesByTable.entrySet()) {
+        for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write : writesByTable.entrySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(write.getKey());
             throwIfWriteAlreadyCommitted(
                     write.getKey(),
@@ -1677,7 +1685,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, Value> conflictingValues = keyValueService.get(table, cellToTs);
 
         Set<Cell> conflictingCells = Sets.newHashSet();
-        for (Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
+        for (Map.Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
             Cell cell = cellEntry.getKey();
             if (!writes.containsKey(cell)) {
                 Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), table);
@@ -2153,7 +2161,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Multimap<Cell, TableReference> cellToTableName = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
-            for (Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
                 TableReference table = entry.getKey();
                 Set<Cell> cells = entry.getValue().keySet();
                 for (Cell c : cells) {
@@ -2171,7 +2179,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Multimap<TableReference, Cell> tableRefToCells = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
-            for (Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
                 TableReference table = entry.getKey();
                 Set<Cell> cells = entry.getValue().keySet();
                 tableRefToCells.putAll(table, cells);
