@@ -1,5 +1,56 @@
 versionOverrides: {}
 acceptedBreaks:
+  0.162.2:
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder\
+        \ com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder::pingableLeader(com.palantir.leader.PingableLeader)"
+      new: null
+      justification: "this is internal code"
+    - code: "java.method.addedToInterface"
+      old: null
+      new: "method java.util.Set<com.palantir.leader.PingableLeader> com.palantir.atlasdb.factory.Leaders.LocalPaxosServices::remotePingableLeaders()"
+      justification: "this is internal code"
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.factory.ImmutableLocalPaxosServices com.palantir.atlasdb.factory.ImmutableLocalPaxosServices::withIsCurrentSuspectedLeader(java.util.function.Supplier<java.lang.Boolean>)"
+      new: null
+      justification: "this is internal code"
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.factory.ImmutableLocalPaxosServices com.palantir.atlasdb.factory.ImmutableLocalPaxosServices::withPingableLeader(com.palantir.leader.PingableLeader)"
+      new: null
+      justification: "this is internal code"
+    - code: "java.method.returnTypeChanged"
+      old: "method java.util.Map<com.palantir.leader.PingableLeader, com.google.common.net.HostAndPort>\
+        \ com.palantir.atlasdb.factory.Leaders::generatePingables(com.palantir.atlasdb.util.MetricsManager,\
+        \ java.util.Collection<java.lang.String>, java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>,\
+        \ com.palantir.conjure.java.api.config.service.UserAgent)"
+      new: "method java.util.List<com.palantir.leader.PingableLeader> com.palantir.atlasdb.factory.Leaders::generatePingables(com.palantir.atlasdb.util.MetricsManager,\
+        \ java.util.Collection<java.lang.String>, java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>,\
+        \ com.palantir.conjure.java.api.config.service.UserAgent)"
+      justification: "this is internal code"
+    - code: "java.method.addedToInterface"
+      old: null
+      new: "method com.palantir.leader.PingableLeader com.palantir.atlasdb.factory.Leaders.LocalPaxosServices::localPingableLeader()"
+      justification: "this is internal code"
+    - code: "java.method.removed"
+      old: "method com.palantir.leader.PingableLeader com.palantir.atlasdb.factory.ImmutableLocalPaxosServices::pingableLeader()"
+      new: null
+      justification: "this is internal code"
+    - code: "java.method.removed"
+      old: "method com.palantir.leader.PingableLeader com.palantir.atlasdb.factory.Leaders.LocalPaxosServices::pingableLeader()"
+      new: null
+      justification: "this is internal code"
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder\
+        \ com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder::isCurrentSuspectedLeader(java.util.function.Supplier<java.lang.Boolean>)"
+      new: null
+      justification: "this is internal code"
+  0.158.6:
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.field.removed"
+      old: "field com.palantir.atlasdb.http.AtlasDbHttpClients.DEFAULT_TARGET_FACTORY"
+      new: null
+      justification: "Clean slate"
   0.161.0:
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.method.removed"
@@ -45,12 +96,6 @@ acceptedBreaks:
       old: null
       new: "method com.palantir.leader.PingableLeader com.palantir.atlasdb.factory.Leaders.LocalPaxosServices::localPingableLeader()"
       justification: "this is all internal code"
-  0.158.6:
-    com.palantir.atlasdb:atlasdb-config:
-    - code: "java.field.removed"
-      old: "field com.palantir.atlasdb.http.AtlasDbHttpClients.DEFAULT_TARGET_FACTORY"
-      new: null
-      justification: "Clean slate"
   0.162.1:
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.method.removed"
