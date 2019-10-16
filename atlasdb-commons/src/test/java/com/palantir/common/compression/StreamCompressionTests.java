@@ -58,18 +58,18 @@ public class StreamCompressionTests {
     }
 
     @Test
-    public void testEmptyStream() throws Exception {
+    public void testEmptyStream() throws IOException {
         initializeStreams(new byte[0]);
         assertStreamIsEmpty(decompressingStream);
     }
 
     @Test
-    public void testSingleCharacterStream() throws Exception {
+    public void testSingleCharacterStream() throws IOException {
         testStream_incompressible(1); // 1 byte input will always be incompressible
     }
 
     @Test
-    public void testSingleCharacterStream_singleByteRead() throws Exception {
+    public void testSingleCharacterStream_singleByteRead() throws IOException {
         byte[] uncompressedData = new byte[] { SINGLE_VALUE };
         initializeStreams(uncompressedData);
         int value = decompressingStream.read();
@@ -79,27 +79,27 @@ public class StreamCompressionTests {
     }
 
     @Test
-    public void testSingleBlock_compressible() throws Exception {
+    public void testSingleBlock_compressible() throws IOException {
         testStream_compressible(BLOCK_SIZE);
     }
 
     @Test
-    public void testSingleBlock_incompressible() throws Exception {
+    public void testSingleBlock_incompressible() throws IOException {
         testStream_incompressible(BLOCK_SIZE);
     }
 
     @Test
-    public void testMultiBlock_compressible() throws Exception {
+    public void testMultiBlock_compressible() throws IOException {
         testStream_compressible(16 * BLOCK_SIZE);
     }
 
     @Test
-    public void testMultiBlock_incompressible() throws Exception {
+    public void testMultiBlock_incompressible() throws IOException {
         testStream_incompressible(16 * BLOCK_SIZE);
     }
 
     @Test
-    public void testMultiBlock_singleByteReads() throws Exception {
+    public void testMultiBlock_singleByteReads() throws IOException {
         byte[] uncompressedData = new byte[16 * BLOCK_SIZE];
         fillWithIncompressibleData(uncompressedData);
         initializeStreams(uncompressedData);
@@ -112,7 +112,7 @@ public class StreamCompressionTests {
     }
 
     @Test
-    public void testMultiBlock_readPastEnd() throws Exception {
+    public void testMultiBlock_readPastEnd() throws IOException {
         byte[] uncompressedData = new byte[16 * BLOCK_SIZE];
         fillWithCompressibleData(uncompressedData);
         initializeStreams(uncompressedData);
@@ -123,21 +123,21 @@ public class StreamCompressionTests {
         assertArrayEquals(uncompressedData, Arrays.copyOf(decompressedData, bytesRead));
     }
 
-    private void testStream_compressible(int streamSize) throws Exception {
+    private void testStream_compressible(int streamSize) throws IOException {
         byte[] uncompressedData = new byte[streamSize];
         fillWithCompressibleData(uncompressedData);
         initializeStreams(uncompressedData);
         verifyStreamContents(uncompressedData);
     }
 
-    private void testStream_incompressible(int streamSize) throws Exception {
+    private void testStream_incompressible(int streamSize) throws IOException {
         byte[] uncompressedData = new byte[streamSize];
         fillWithIncompressibleData(uncompressedData);
         initializeStreams(uncompressedData);
         verifyStreamContents(uncompressedData);
     }
 
-    private void initializeStreams(byte[] uncompressedData) throws Exception {
+    private void initializeStreams(byte[] uncompressedData) throws IOException {
         uncompressedStream = new ByteArrayInputStream(uncompressedData);
         compressingStream = compression.compress(uncompressedStream);
         decompressingStream = compression.decompress(compressingStream);
