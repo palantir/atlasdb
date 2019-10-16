@@ -57,7 +57,7 @@ public class CachingTransactionTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, (UnaryOperator<Transaction>) GetSynchronousDelegate::new},
+                {SYNC, UnaryOperator.identity()},
                 {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
         };
         return Arrays.asList(data);
