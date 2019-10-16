@@ -203,7 +203,6 @@ public class StreamStoreRenderer {
                 line("private static final Logger log = LoggerFactory.getLogger(", StreamStore, ".class);");
                 line();
                 line("private final ", TableFactory, " tables;");
-                line("private final StreamCompression streamCompression = StreamCompression." + streamCompression.name(), ";");
             }
 
             private void constructors() {
