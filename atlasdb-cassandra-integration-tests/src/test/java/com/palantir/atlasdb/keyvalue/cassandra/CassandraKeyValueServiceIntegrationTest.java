@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
@@ -101,8 +101,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, (Function<CassandraKeyValueServiceImpl, CassandraKeyValueService>) SynchronousDelegate::new},
-                {ASYNC, (Function<CassandraKeyValueServiceImpl, CassandraKeyValueService>) AsyncDelegate::new}
+                {SYNC, UnaryOperator.identity()},
+                {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -116,7 +116,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     public CassandraKeyValueServiceIntegrationTest(
             String name,
-            Function<KeyValueService, KeyValueService> keyValueServiceWrapper) {
+            UnaryOperator<KeyValueService> keyValueServiceWrapper) {
         super(CASSANDRA, keyValueServiceWrapper);
         this.name = name;
     }
@@ -453,11 +453,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private static CassandraKeyValueServiceImpl getUnderlyingKvs(KeyValueService keyValueService) {
-        if (keyValueService instanceof SynchronousDelegate) {
-            return ((SynchronousDelegate) keyValueService).delegate();
-        }
         if (keyValueService instanceof AsyncDelegate) {
-            return ((AsyncDelegate) keyValueService).delegate();
+            return (CassandraKeyValueServiceImpl) ((AsyncDelegate) keyValueService).delegate();
         }
         if (keyValueService instanceof CassandraKeyValueServiceImpl) {
             return (CassandraKeyValueServiceImpl) keyValueService;
@@ -469,28 +466,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
     }
 
-    private static class SynchronousDelegate implements AutoDelegate_CassandraKeyValueService {
-        private final CassandraKeyValueServiceImpl delegate;
-
-        SynchronousDelegate(CassandraKeyValueServiceImpl cassandraKeyValueService) {
-            this.delegate = cassandraKeyValueService;
-        }
-
-        @Override
-        public CassandraKeyValueServiceImpl delegate() {
-            return delegate;
-        }
-    }
-
     private static class AsyncDelegate implements AutoDelegate_CassandraKeyValueService {
-        private final CassandraKeyValueServiceImpl delegate;
+        private final CassandraKeyValueService delegate;
 
-        AsyncDelegate(CassandraKeyValueServiceImpl cassandraKeyValueService) {
+        AsyncDelegate(CassandraKeyValueService cassandraKeyValueService) {
             this.delegate = cassandraKeyValueService;
         }
 
         @Override
-        public CassandraKeyValueServiceImpl delegate() {
+        public CassandraKeyValueService delegate() {
             return delegate;
         }
 

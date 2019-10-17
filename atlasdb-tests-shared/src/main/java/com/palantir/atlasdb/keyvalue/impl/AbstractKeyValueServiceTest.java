@@ -41,6 +41,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -105,12 +106,10 @@ public abstract class AbstractKeyValueServiceTest {
     protected KeyValueService keyValueService;
 
     protected AbstractKeyValueServiceTest(KvsManager kvsManager) {
-        this(kvsManager, Function.identity());
+        this(kvsManager, UnaryOperator.identity());
     }
 
-    public AbstractKeyValueServiceTest(
-            KvsManager kvsManager,
-            Function<KeyValueService, KeyValueService> keyValueServiceWrapper) {
+    public AbstractKeyValueServiceTest(KvsManager kvsManager, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
         this.kvsManager = kvsManager;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }

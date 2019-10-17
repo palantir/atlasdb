@@ -33,7 +33,6 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
-import com.palantir.atlasdb.transaction.impl.GetSynchronousDelegate;
 
 @RunWith(Parameterized.class)
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
@@ -45,7 +44,7 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, (UnaryOperator<Transaction>) GetSynchronousDelegate::new},
+                {SYNC, UnaryOperator.identity()},
                 {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
         };
         return Arrays.asList(data);
@@ -53,9 +52,7 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
 
     private final UnaryOperator<Transaction> transactionWrapper;
 
-    public CassandraKvsSerializableTransactionTest(
-            String name,
-            UnaryOperator<Transaction> transactionWrapper) {
+    public CassandraKvsSerializableTransactionTest(String name, UnaryOperator<Transaction> transactionWrapper) {
         super(CASSANDRA, CASSANDRA);
         this.transactionWrapper = transactionWrapper;
     }

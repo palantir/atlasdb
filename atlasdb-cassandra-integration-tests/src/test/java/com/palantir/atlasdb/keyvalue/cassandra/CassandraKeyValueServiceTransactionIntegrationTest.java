@@ -42,7 +42,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
-import com.palantir.atlasdb.transaction.impl.GetSynchronousDelegate;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -62,7 +61,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, (UnaryOperator<Transaction>) GetSynchronousDelegate::new},
+                {SYNC, UnaryOperator.identity()},
                 {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
         };
         return Arrays.asList(data);
