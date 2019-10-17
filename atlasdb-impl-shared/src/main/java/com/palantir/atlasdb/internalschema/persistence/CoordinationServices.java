@@ -61,13 +61,6 @@ public final class CoordinationServices {
     }
 
     private static CoordinationStore<VersionedInternalSchemaMetadata> createCoordinationStore(
-            KeyValueService keyValueService,
-            LongSupplier timestampSupplier,
-            boolean initializeAsync) {
-        return createRawCoordinationStore(keyValueService, timestampSupplier, initializeAsync);
-    }
-
-    private static CoordinationStore<VersionedInternalSchemaMetadata> createRawCoordinationStore(
             KeyValueService keyValueService, LongSupplier timestampSupplier, boolean initializeAsync) {
         return KeyValueServiceCoordinationStore.create(
                 ObjectMappers.newServerObjectMapper(),
