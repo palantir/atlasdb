@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -43,17 +44,13 @@ public abstract class TimelockPaxosMetrics {
         return metrics;
     }
 
-    private void attachToParentMetricRegistry(TaggedMetricRegistry parent) {
-        parent.addMetrics("paxosUseCase", paxosUseCase().toString(), metrics());
-    }
-
     public <T, U extends T> T instrument(Class<T> clazz, U instance, String name) {
         Map<String, String> tags = ImmutableMap.of();
         return AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, instance, name, _context -> tags);
     }
 
     public <T, U extends T> T instrument(Class<T> clazz, U instance, String name, Client client) {
-        Map<String, String> tags = ImmutableMap.of("client", client.value());
+        Map<String, String> tags = ImmutableMap.of(AtlasDbMetricNames.TAG_CLIENT, client.value());
         return AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, instance, name, _context -> tags);
     }
 
@@ -70,6 +67,10 @@ public abstract class TimelockPaxosMetrics {
             Client client) {
         return LocalAndRemotes.of(local, remotes)
                 .map(instance -> instrument(clazz, instance, name, client));
+    }
+
+    private void attachToParentMetricRegistry(TaggedMetricRegistry parent) {
+        parent.addMetrics(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, paxosUseCase().toString(), metrics());
     }
 
 }
