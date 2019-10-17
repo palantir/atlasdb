@@ -40,7 +40,8 @@ public class AutobatchingLeadershipObserverFactory implements Factory<Leadership
         this.leadershipEventProcessor = leadershipEventProcessor;
     }
 
-    public static AutobatchingLeadershipObserverFactory create(Consumer<SetMultimap<LeadershipEvent, Client>> consumer) {
+    public static AutobatchingLeadershipObserverFactory create(
+            Consumer<SetMultimap<LeadershipEvent, Client>> consumer) {
         DisruptorAutobatcher<Map.Entry<Client, LeadershipEvent>, Void> leadershipEventProcessor = Autobatchers
                 .<Map.Entry<Client, LeadershipEvent>, Void>independent(leadershipEvents ->
                         processEvents(consumer, leadershipEvents))
@@ -48,6 +49,11 @@ public class AutobatchingLeadershipObserverFactory implements Factory<Leadership
                 .build();
 
         return new AutobatchingLeadershipObserverFactory(leadershipEventProcessor);
+    }
+
+    @Override
+    public LeadershipObserver create(Client client) {
+        return new AutobatchingMetricsDeregistrator(client);
     }
 
     static void processEvents(
@@ -70,11 +76,6 @@ public class AutobatchingLeadershipObserverFactory implements Factory<Leadership
     @Override
     public void close() {
         leadershipEventProcessor.close();
-    }
-
-    @Override
-    public LeadershipObserver create(Client client) {
-        return new AutobatchingMetricsDeregistrator(client);
     }
 
     enum LeadershipEvent {
