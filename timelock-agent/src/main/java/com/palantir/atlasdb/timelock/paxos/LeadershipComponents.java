@@ -152,7 +152,7 @@ public class LeadershipComponents {
     }
 
     @Value.Immutable
-    static abstract class LeadershipContext {
+    abstract static class LeadershipContext {
         abstract LeaderElectionService leaderElectionService();
         abstract TimelockLeadershipMetrics leadershipMetrics();
         abstract List<Closeable> closeables();
