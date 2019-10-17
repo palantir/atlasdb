@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
@@ -214,12 +215,10 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
         }
     }
 
-    // This method is overridden in generated code. Changes to this method may have unintended consequences.
-    protected void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
+    private void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
-        long numBlocks = getNumberOfBlocksFromMetadata(metadata);
-        for (long i = 0; i < numBlocks; i++) {
-            loadSingleBlockToOutputStream(transaction, id, i, fos);
+        try (InputStream in = loadStream(transaction, id)) {
+            ByteStreams.copy(in, fos);
         }
         fos.close();
     }
