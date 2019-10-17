@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
@@ -33,19 +34,20 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -58,6 +60,7 @@ class PaxosLeadershipCreator {
     private LeaderElectionService leaderElectionService;
     private Supplier<Boolean> isCurrentSuspectedLeader;
     private LeaderPingHealthCheck healthCheck;
+    private AutobatchingLeadershipObserverFactory leadershipObserverFactory;
 
     PaxosLeadershipCreator(
             MetricsManager metricsManager,
@@ -77,6 +80,12 @@ class PaxosLeadershipCreator {
 
         Set<String> paxosSubresourceUris = PaxosTimeLockUriUtils.getLeaderPaxosUris(remoteServers);
 
+        leadershipObserverFactory = AutobatchingLeadershipObserverFactory.create(
+                leadershipEvents -> deregisterTaggedMetrics(metricsManager, leadershipEvents));
+
+        LeadershipObserver leadershipObserver = leadershipObserverFactory.create(
+                PaxosTimeLockConstants.LEGACY_PAXOS_AS_CLIENT);
+
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
                 metricsManager,
                 leaderConfig,
@@ -87,7 +96,7 @@ class PaxosLeadershipCreator {
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
                 UserAgent.of(UserAgent.Agent.of("leader-election-service", UserAgent.Agent.DEFAULT_VERSION)),
-                this::leadershipAwareLeadershipObserver);
+                leadershipObserver);
         leaderElectionService = localPaxosServices.leaderElectionService();
         isCurrentSuspectedLeader = localPaxosServices.isCurrentSuspectedLeader();
         healthCheck = new LeaderPingHealthCheck(localPaxosServices.allPingableLeaders());
@@ -108,6 +117,7 @@ class PaxosLeadershipCreator {
     void shutdown() {
         leaderElectionService.markNotEligibleForLeadership();
         leaderElectionService.stepDown();
+        leadershipObserverFactory.close();
     }
 
     private <T> T instrument(TaggedMetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {
@@ -118,10 +128,11 @@ class PaxosLeadershipCreator {
                         AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(isCurrentSuspectedLeader())));
     }
 
-    private LeadershipObserver leadershipAwareLeadershipObserver() {
-        return AsyncLeadershipObserver.create(
-                () -> metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(false)),
-                () -> metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(true)));
+    private static void deregisterTaggedMetrics(
+            MetricsManager metricsManager,
+            SetMultimap<LeadershipEvent, Client> events) {
+        events.keySet().forEach(event -> metricsManager
+                .deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader())));
     }
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {

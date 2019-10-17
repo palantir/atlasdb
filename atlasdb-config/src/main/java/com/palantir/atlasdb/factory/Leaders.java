@@ -49,7 +49,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
@@ -114,7 +113,7 @@ public final class Leaders {
                 runtime,
                 remotePaxosServerSpec,
                 userAgent,
-                AsyncLeadershipObserver::create);
+                LeadershipObserver.NO_OP);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
@@ -123,13 +122,13 @@ public final class Leaders {
             Supplier<LeaderRuntimeConfig> runtime,
             RemotePaxosServerSpec remotePaxosServerSpec,
             UserAgent userAgent,
-            Supplier<LeadershipObserver> leadershipObserverFactory) {
+            LeadershipObserver leadershipObserver) {
         UUID leaderUuid = UUID.randomUUID();
 
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
                 metricsManager.getTaggedRegistry(),
                 leaderUuid.toString(),
-                leadershipObserverFactory.get(),
+                leadershipObserver,
                 ImmutableList.of());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),

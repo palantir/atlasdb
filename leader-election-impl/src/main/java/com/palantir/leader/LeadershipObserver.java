@@ -19,15 +19,15 @@ public interface LeadershipObserver {
     void gainedLeadership();
     void lostLeadership();
 
-    /**
-     * Guarantees ordered execution of the submitted tasks.
-     * @param task to be executed after gaining leadership.
-     */
-    void executeWhenGainedLeadership(Runnable task);
+    LeadershipObserver NO_OP = new LeadershipObserver() {
+        @Override
+        public void gainedLeadership() {
 
-    /**
-     * Guarantees ordered execution of the submitted tasks.
-     * @param task to be executed after losing leadership.
-     */
-    void executeWhenLostLeadership(Runnable task);
+        }
+
+        @Override
+        public void lostLeadership() {
+
+        }
+    };
 }
