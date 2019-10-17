@@ -44,23 +44,20 @@ public abstract class TimelockLeadershipMetrics {
     @Value.Parameter
     abstract PingableLeader localPingableLeader();
 
-    @Value.Parameter
-    abstract Client client();
-
     @Value.Derived
     MetricsManager metricsManager() {
         // we don't use the normal metric registry so we don't care about this
         return MetricsManagers.of(new MetricRegistry(), metrics().metrics());
     }
 
-    public <T> T instrument(String name, Class<T> clazz, T instance) {
+    public <T> T instrument(Client client, String name, Class<T> clazz, T instance) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 metrics().metrics(),
                 clazz,
                 instance,
                 name,
                 _context -> ImmutableMap.of(
-                        AtlasDbMetricNames.TAG_CLIENT, client().value(),
+                        AtlasDbMetricNames.TAG_CLIENT, client.value(),
                         AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
     }
 

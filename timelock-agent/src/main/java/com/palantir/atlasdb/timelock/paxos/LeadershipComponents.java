@@ -59,7 +59,7 @@ public class LeadershipComponents {
         Closeable closeableInstance = (Closeable) instance;
         closer.register(closeableInstance);
 
-        return context.leadershipMetrics().instrument(name, clazz, instance);
+        return context.leadershipMetrics().instrument(client, name, clazz, instance);
     }
 
     public void shutdown() {
