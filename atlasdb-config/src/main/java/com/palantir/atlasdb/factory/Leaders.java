@@ -69,6 +69,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class Leaders {
     private Leaders() {
@@ -143,7 +144,7 @@ public final class Leaders {
                 ServiceCreator.createTrustContext(config.sslConfiguration());
 
         List<PaxosLearner> learners = createProxyAndLocalList(
-                metricsManager.getRegistry(), ourLearner, remotePaxosServerSpec.remoteLearnerUris(),
+                metricsManager.getTaggedRegistry(), ourLearner, remotePaxosServerSpec.remoteLearnerUris(),
                 trustContext, PaxosLearner.class, userAgent);
         List<PaxosLearner> remoteLearners = learners.stream()
                 .filter(learner -> !learner.equals(ourLearner))
@@ -155,7 +156,7 @@ public final class Leaders {
                 createExecutorsForService(metricsManager, learners, "knowledge-update"));
 
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
-                metricsManager.getRegistry(),
+                metricsManager.getTaggedRegistry(),
                 ourAcceptor,
                 remotePaxosServerSpec.remoteAcceptorUris(),
                 trustContext,
@@ -239,7 +240,7 @@ public final class Leaders {
     }
 
     public static <T> List<T> createProxyAndLocalList(
-            MetricRegistry metrics,
+            TaggedMetricRegistry metrics,
             T localObject,
             Set<String> remoteUris,
             Optional<TrustContext> trustContext,
@@ -272,7 +273,7 @@ public final class Leaders {
             UserAgent userAgent) {
         return remoteEndpoints.stream()
                 .map(endpoint -> AtlasDbHttpClients.createProxy(
-                        metricsManager.getRegistry(),
+                        metricsManager.getTaggedRegistry(),
                         trustContext,
                         endpoint,
                         PingableLeader.class,

@@ -41,16 +41,17 @@ public final class AtlasDbHttpClients {
     }
 
     public static <T> T createProxy(
-            MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
+        return createExperimentallyWithFallback(
+                taggedMetricRegistry,
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters),
+                () -> LEGACY_FEIGN_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters),
                 type,
-                LEGACY_FEIGN_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters).instance(),
-                MetricRegistry.name(type));
+                parameters);
     }
 
     /**
