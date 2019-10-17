@@ -718,7 +718,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
                     validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
-                    SortedMap<Cell, byte[]> postFiltered = postFilterPages(
+                    Map<Cell, byte[]> postFiltered = postFilterPages(
                             tableRef,
                             firstPages.values());
 
@@ -856,7 +856,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
-                                                                     final SortedMap<Cell, byte[]> postFiltered,
+                                                                     final Map<Cell, byte[]> postFiltered,
                                                                      final RangeRequest rangeRequest,
                                                                      List<RowResult<Value>> prePostFilter,
                                                                      final byte[] endRowExclusive) {
@@ -1020,7 +1020,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
-                SortedMap<Cell, T> postFilter = postFilterRows(tableRef, batch, transformer);
+                Map<Cell, T> postFilter = postFilterRows(tableRef, batch, transformer);
                 results.markNumResultsNotDeleted(Cells.getRows(postFilter.keySet()).size());
                 return Cells.createRowView(postFilter.entrySet());
             }
@@ -1083,7 +1083,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return writes;
     }
 
-    private SortedMap<Cell, byte[]> postFilterPages(TableReference tableRef,
+    private Map<Cell, byte[]> postFilterPages(TableReference tableRef,
             Iterable<TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> rangeRows) {
         List<RowResult<Value>> results = Lists.newArrayList();
         for (TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page : rangeRows) {
@@ -1092,7 +1092,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilterRows(tableRef, results, Value.GET_VALUE);
     }
 
-    private <T> SortedMap<Cell, T> postFilterRows(TableReference tableRef,
+    private <T> Map<Cell, T> postFilterRows(TableReference tableRef,
                                                   List<RowResult<Value>> rangeRows,
                                                   Function<Value, T> transformer) {
         ensureUncommitted();
