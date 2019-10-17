@@ -55,7 +55,7 @@ public enum StreamCompression {
         stream.mark(data.length);
         try {
             for (int i = 0; i < data.length; i++) {
-                if ((byte) stream.read() != data[i]) {
+                if (stream.read() != Byte.toUnsignedInt(data[i])) {
                     return false;
                 }
             }
