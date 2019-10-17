@@ -453,25 +453,27 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrap(rawIterator));
         Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFilteredBatches =
                 new AbstractIterator<Iterator<Map.Entry<Cell, byte[]>>>() {
-            @Override
-            protected Iterator<Map.Entry<Cell, byte[]>> computeNext() {
-                ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
-                List<Map.Entry<Cell, Value>> batch = batchIterator.getBatch();
-                for (Map.Entry<Cell, Value> result : batch) {
-                    rawBuilder.put(result);
-                }
-                Map<Cell, Value> raw = rawBuilder.build();
-                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-                if (raw.isEmpty()) {
-                    return endOfData();
-                }
-                ImmutableSortedMap.Builder<Cell, byte[]> post = ImmutableSortedMap.naturalOrder();
-                getWithPostFiltering(tableRef, raw, post, Value.GET_VALUE);
-                SortedMap<Cell, byte[]> postFiltered = post.build();
-                batchIterator.markNumResultsNotDeleted(postFiltered.size());
-                return postFiltered.entrySet().iterator();
-            }
-        };
+                    @Override
+                    protected Iterator<Map.Entry<Cell, byte[]>> computeNext() {
+                        ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
+                        List<Map.Entry<Cell, Value>> batch = batchIterator.getBatch();
+                        for (Map.Entry<Cell, Value> result : batch) {
+                            rawBuilder.put(result);
+                        }
+                        Map<Cell, Value> raw = rawBuilder.build();
+                        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                        if (raw.isEmpty()) {
+                            return endOfData();
+                        }
+                        SortedMap<Cell, byte[]> postFiltered = getWithPostFiltering(
+                                tableRef,
+                                raw,
+                                ImmutableSortedMap.naturalOrder(),
+                                Value.GET_VALUE).build();
+                        batchIterator.markNumResultsNotDeleted(postFiltered.size());
+                        return postFiltered.entrySet().iterator();
+                    }
+                };
         return Iterators.concat(postFilteredBatches);
     }
 
@@ -671,13 +673,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Set<Cell> cells,
             CellLoader cellLoader) {
-        ImmutableMap.Builder<Cell, byte[]> result = ImmutableMap.builderWithExpectedSize(cells.size());
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
         return Futures.transform(cellLoader.load(tableRef, toRead),
-                rawResults -> {
-                    getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-                    return result.build();
-                },
+                rawResults -> getWithPostFiltering(
+                        tableRef,
+                        rawResults,
+                        ImmutableMap.builderWithExpectedSize(cells.size()),
+                        Value.GET_VALUE).build(),
                 MoreExecutors.directExecutor());
     }
 
@@ -1106,9 +1108,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        ImmutableSortedMap.Builder<Cell, T> postFilter = ImmutableSortedMap.naturalOrder();
-        getWithPostFiltering(tableRef, rawResults, postFilter, transformer);
-        return postFilter.build();
+        return getWithPostFiltering(tableRef, rawResults, ImmutableSortedMap.naturalOrder(), transformer).build();
     }
 
     private int estimateSize(List<RowResult<Value>> rangeRows) {
@@ -1119,10 +1119,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return estimatedSize;
     }
 
-    private <T> void getWithPostFiltering(TableReference tableRef,
-                                          Map<Cell, Value> rawResults,
-                                          @Output ImmutableMap.Builder<Cell, T> results,
-                                          Function<Value, T> transformer) {
+    private <T, R extends ImmutableMap.Builder<Cell, T>> R getWithPostFiltering(
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            R results,
+            Function<Value, T> transformer) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             bytes += e.getValue().getContents().length + Cells.getApproxSizeOfCell(e.getKey());
@@ -1151,7 +1152,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
                 results.put(e.getKey(), transformer.apply(e.getValue()));
             }
-            return;
+            return results;
         }
 
         Map<Cell, Value> remainingResultsToPostfilter = rawResults;
@@ -1162,6 +1163,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableRef).mark(resultCount.get());
+        return results;
     }
 
     /**
