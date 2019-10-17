@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.keyvalue.cassandra.async.query;
 
 import java.nio.ByteBuffer;
 import java.util.Comparator;
@@ -29,6 +29,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.async.RowStreamAccumulator;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Preconditions;
 
@@ -47,14 +48,21 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
             + "ORDER BY column1, column2 ASC "
             + "LIMIT 1;";
 
-    @org.immutables.value.Value.Auxiliary
-    public abstract ByteBuffer row();
+    @Override
+    public String formatQueryString() {
+        return String.format(
+                QUERY_FORMAT,
+                cqlQueryContext().keySpace(),
+                AbstractKeyValueService.internalTableName(cqlQueryContext().tableReference()));
+    }
 
-    @org.immutables.value.Value.Auxiliary
-    public abstract ByteBuffer column();
-
-    @org.immutables.value.Value.Auxiliary
-    public abstract long humanReadableTimestamp();
+    @Override
+    public Statement makeExecutableStatement(PreparedStatement preparedStatement) {
+        return preparedStatement.bind()
+                .setBytes("row", getQueryParameters().row())
+                .setBytes("column", getQueryParameters().column())
+                .setLong("timestamp", getQueryParameters().queryTimestamp());
+    }
 
     @Override
     public ConsistencyLevel queryConsistency() {
@@ -62,25 +70,24 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     }
 
     @Override
-    public final Supplier<RowStreamAccumulator<Optional<Value>>> rowStreamAccumulatorFactory() {
+    public Supplier<RowStreamAccumulator<Optional<Value>>> rowStreamAccumulatorFactory() {
         return GetQueryAccumulator::new;
     }
 
-    @Override
-    public String formatQueryString() {
-        return String.format(QUERY_FORMAT, keySpace(), AbstractKeyValueService.internalTableName(tableReference()));
-    }
+    @org.immutables.value.Value.Auxiliary
+    public abstract GetQueryParameters getQueryParameters();
 
-    @Override
-    public Statement makeExecutableStatement(PreparedStatement preparedStatement) {
-        return preparedStatement.bind()
-                .setBytes("row", row())
-                .setBytes("column", column())
-                .setLong("timestamp", queryTimestamp());
-    }
+    @org.immutables.value.Value.Immutable
+    public interface GetQueryParameters {
+        ByteBuffer row();
 
-    private long queryTimestamp() {
-        return ~humanReadableTimestamp();
+        ByteBuffer column();
+
+        long humanReadableTimestamp();
+
+        default long queryTimestamp() {
+            return ~humanReadableTimestamp();
+        }
     }
 
     @ThreadSafe

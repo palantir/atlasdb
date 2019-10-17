@@ -14,32 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.keyvalue.cassandra.async.query;
 
-import java.util.concurrent.Executor;
 import java.util.function.Supplier;
-
-import org.immutables.value.Value;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlQueryContext;
+import com.palantir.atlasdb.keyvalue.cassandra.async.RowStreamAccumulator;
 
 public interface CqlQuerySpec<R> {
 
-    String keySpace();
-
-    TableReference tableReference();
-
-    Supplier<RowStreamAccumulator<R>> rowStreamAccumulatorFactory();
+    CqlQueryContext cqlQueryContext();
 
     String formatQueryString();
 
+    Statement makeExecutableStatement(PreparedStatement preparedStatement);
+
     ConsistencyLevel queryConsistency();
 
-    @Value.Auxiliary
-    Executor executor();
-
-    Statement makeExecutableStatement(PreparedStatement preparedStatement);
+    Supplier<RowStreamAccumulator<R>> rowStreamAccumulatorFactory();
 }

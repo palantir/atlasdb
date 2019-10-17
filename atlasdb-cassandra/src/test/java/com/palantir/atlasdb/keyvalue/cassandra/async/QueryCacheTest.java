@@ -19,16 +19,17 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.Executor;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.datastax.driver.core.PreparedStatement;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.async.query.GetQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.query.GetQuerySpec.GetQueryParameters;
+import com.palantir.atlasdb.keyvalue.cassandra.async.query.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
@@ -39,6 +40,7 @@ public class QueryCacheTest {
     private static final MetricsManager METRICS_MANAGER = MetricsManagers.createForTests();
     private static final String KEYSPACE = "foo";
     private static final TableReference TABLE_REFERENCE = tableReference("bar");
+    private static final GetQueryParameters GET_QUERY_PARAMETERS = mock(GetQueryParameters.class);
 
     private QueryCache cache;
 
@@ -49,53 +51,37 @@ public class QueryCacheTest {
 
     @Test
     public void testGetQuerySpecAllSame() {
-        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
-        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3))
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, GET_QUERY_PARAMETERS);
+        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, GET_QUERY_PARAMETERS))
                 .isEqualTo(expectedPreparedStatement);
     }
 
     @Test
-    public void testGetQuerySpecTimestampIgnored() {
-        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
-        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 1))
-                .isEqualTo(expectedPreparedStatement);
-    }
-
-    @Test
-    public void testGetQuerySpecColumnIgnored() {
-        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
-        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 7, 3))
-                .isEqualTo(expectedPreparedStatement);
-    }
-
-    @Test
-    public void testGetQuerySpecRowIgnored() {
-        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
-        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, 4, 10, 3))
+    public void testGetQuerySpecParametersIgnored() {
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, GET_QUERY_PARAMETERS);
+        assertThat(prepareStatement(KEYSPACE, TABLE_REFERENCE, mock(GetQueryParameters.class)))
                 .isEqualTo(expectedPreparedStatement);
     }
 
     @Test
     public void testGetQuerySpecKeyspaceNotIgnored() {
-        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
-        assertThat(prepareStatement("baz", TABLE_REFERENCE, 10, 10, 3))
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, GET_QUERY_PARAMETERS);
+        assertThat(prepareStatement("baz", TABLE_REFERENCE, GET_QUERY_PARAMETERS))
                 .isNotEqualTo(expectedPreparedStatement);
     }
 
     @Test
     public void testGetQuerySpecTableRefNotIgnored() {
-        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, 10, 10, 3);
-        assertThat(prepareStatement(KEYSPACE, tableReference("baz"), 10, 10, 3))
+        PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, GET_QUERY_PARAMETERS);
+        assertThat(prepareStatement(KEYSPACE, tableReference("baz"), GET_QUERY_PARAMETERS))
                 .isNotEqualTo(expectedPreparedStatement);
     }
 
     private PreparedStatement prepareStatement(
             String keyspace,
             TableReference tableReference,
-            int row,
-            int column,
-            int timestamp) {
-        return cache.prepare(getQuerySpec(keyspace, tableReference, row, column, timestamp));
+            GetQueryParameters getQueryParameters) {
+        return cache.prepare(getQuerySpec(keyspace, tableReference, getQueryParameters));
     }
 
     private static TableReference tableReference(String baz) {
@@ -105,16 +91,13 @@ public class QueryCacheTest {
     private static GetQuerySpec getQuerySpec(
             String keyspace,
             TableReference tableReference,
-            long rowValue,
-            long columnValue,
-            int timestamp) {
+            GetQueryParameters getQueryParameters) {
         return ImmutableGetQuerySpec.builder()
-                .keySpace(keyspace)
-                .tableReference(tableReference)
-                .column(ByteBuffer.wrap(PtBytes.toBytes(rowValue)))
-                .row(ByteBuffer.wrap(PtBytes.toBytes(columnValue)))
-                .humanReadableTimestamp(timestamp)
-                .executor(mock(Executor.class))
+                .cqlQueryContext(ImmutableCqlQueryContext.builder()
+                        .keySpace(keyspace)
+                        .tableReference(tableReference)
+                        .executor(mock(Executor.class)).build())
+                .queryParameters(getQueryParameters)
                 .build();
     }
 }

@@ -20,6 +20,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.PreparedStatement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.palantir.atlasdb.keyvalue.cassandra.async.query.CqlQuerySpec;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 

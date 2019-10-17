@@ -16,23 +16,18 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.CqlQuerySpec;
+import java.util.concurrent.Executor;
 
-public final class ThrowingCqlClientImpl implements CqlClient {
-    static final ThrowingCqlClientImpl SINGLETON = new ThrowingCqlClientImpl();
+import org.immutables.value.Value;
 
-    private ThrowingCqlClientImpl() {
-        // Use SINGLETON
-    }
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-    @Override
-    public void close() {
+@Value.Immutable
+public interface CqlQueryContext {
+    String keySpace();
 
-    }
+    TableReference tableReference();
 
-    @Override
-    public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
-        throw new UnsupportedOperationException("Not configured to use CQL client, check your KVS config file.");
-    }
+    @Value.Auxiliary
+    Executor executor();
 }

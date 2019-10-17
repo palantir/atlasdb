@@ -31,6 +31,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.async.query.ImmutableGetQueryParameters;
+import com.palantir.atlasdb.keyvalue.cassandra.async.query.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
@@ -82,12 +84,15 @@ public final class AsyncCellLoader {
             long timestamp) {
         return cqlClient.executeQuery(
                 ImmutableGetQuerySpec.builder()
-                        .tableReference(tableRef)
-                        .keySpace(keyspace)
-                        .row(ByteBuffer.wrap(cell.getRowName()))
-                        .column(ByteBuffer.wrap(cell.getColumnName()))
-                        .humanReadableTimestamp(timestamp)
-                        .executor(executor)
+                        .cqlQueryContext(ImmutableCqlQueryContext.builder()
+                                .tableReference(tableRef)
+                                .keySpace(keyspace)
+                                .executor(executor).build())
+                        .queryParameters(ImmutableGetQueryParameters.builder()
+                                .row(ByteBuffer.wrap(cell.getRowName()))
+                                .column(ByteBuffer.wrap(cell.getColumnName()))
+                                .humanReadableTimestamp(timestamp)
+                                .build())
                         .build());
     }
 
