@@ -15,6 +15,7 @@
  */
 package com.palantir.common.compression;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -33,6 +34,9 @@ import com.google.common.io.ByteStreams;
 
 @RunWith(Parameterized.class)
 public class StreamCompressionTests {
+    private static final StreamCompression GZIP = StreamCompression.GZIP;
+    private static final StreamCompression LZ4 = StreamCompression.LZ4;
+    private static final StreamCompression NONE = StreamCompression.NONE;
 
     private static final byte SINGLE_VALUE = 42;
     private static final int BLOCK_SIZE = 1 << 16; // 64 KB
@@ -54,7 +58,27 @@ public class StreamCompressionTests {
 
     @After
     public void close() throws IOException {
-        decompressingStream.close();
+        if (decompressingStream != null) {
+            decompressingStream.close();
+        } else if (compressingStream != null) {
+            compressingStream.close();
+        }
+    }
+
+    @Test
+    public void testUncompressed_doesNotDecompressEvenIfDataCompressed() throws IOException {
+        byte[] data = new byte[1_000_000];
+        fillWithIncompressibleData(data);
+        assertThat(ByteStreams.toByteArray(GZIP.decompress(NONE.decompress(GZIP.compress(
+                        new ByteArrayInputStream(data)))))).isEqualTo(data);
+    }
+
+    @Test
+    public void testCanDecompressGzipAsLz4() throws IOException {
+        byte[] data = new byte[1_000_000];
+        fillWithIncompressibleData(data);
+        assertThat(ByteStreams.toByteArray(LZ4.decompress((GZIP.compress(
+                        new ByteArrayInputStream(data)))))).isEqualTo(data);
     }
 
     @Test
@@ -137,7 +161,7 @@ public class StreamCompressionTests {
         verifyStreamContents(uncompressedData);
     }
 
-    private void initializeStreams(byte[] uncompressedData) throws IOException {
+    private void initializeStreams(byte[] uncompressedData) {
         uncompressedStream = new ByteArrayInputStream(uncompressedData);
         compressingStream = compression.compress(uncompressedStream);
         decompressingStream = compression.decompress(compressingStream);
