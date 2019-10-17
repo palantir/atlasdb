@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -35,7 +36,7 @@ import com.google.common.io.CountingInputStream;
 
 public final class GzipCompressingInputStream {
     private static final int GZIP_MAGIC = 0x8b1f;
-    public static final byte[] GZIP_HEADER = new byte[] {
+    private static final byte[] GZIP_HEADER = new byte[] {
             (byte) GZIP_MAGIC,        // Magic number (short)
             (byte) (GZIP_MAGIC >> 8),  // Magic number (short)
             Deflater.DEFLATED,        // Compression method (CM)
@@ -47,6 +48,10 @@ public final class GzipCompressingInputStream {
             0,                        // Extra flags (XFLG)
             0                         // Operating system (OS)
     };
+
+    public static byte[] getMagicPrefix() {
+        return Arrays.copyOf(GZIP_HEADER, 2);
+    }
 
     public static InputStream compress(InputStream uncompressed) {
         InputStream header = createHeaderStream();

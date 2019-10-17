@@ -20,7 +20,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 
 import com.google.common.io.Closeables;
@@ -30,7 +29,7 @@ import net.jpountz.lz4.LZ4BlockInputStream;
 public enum StreamCompression {
     GZIP, LZ4, NONE;
 
-    private static final byte[] gzipMagic = Arrays.copyOf(GzipCompressingInputStream.GZIP_HEADER, 2);
+    private static final byte[] gzipMagic = GzipCompressingInputStream.getMagicPrefix();
     private static final byte[] lz4Magic = "LZ4Block".getBytes(StandardCharsets.UTF_8);
 
     public InputStream compress(InputStream stream) {
