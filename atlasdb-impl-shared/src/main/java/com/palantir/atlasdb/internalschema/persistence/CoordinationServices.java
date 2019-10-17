@@ -50,7 +50,7 @@ public final class CoordinationServices {
                 MetricsManager metricsManager,
                 boolean initializeAsync) {
         CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
-                createCoordinationStore(keyValueService, timestampSupplier, metricsManager, initializeAsync));
+                createCoordinationStore(keyValueService, timestampSupplier, initializeAsync));
 
         @SuppressWarnings("unchecked") // The service has the same type as the version-hiding service.
         CoordinationService<InternalSchemaMetadata> instrumentedService = AtlasDbMetrics.instrument(
@@ -63,17 +63,8 @@ public final class CoordinationServices {
     private static CoordinationStore<VersionedInternalSchemaMetadata> createCoordinationStore(
             KeyValueService keyValueService,
             LongSupplier timestampSupplier,
-            MetricsManager metricsManager,
             boolean initializeAsync) {
-        CoordinationStore<VersionedInternalSchemaMetadata> rawCoordinationStore
-                = createRawCoordinationStore(keyValueService, timestampSupplier, initializeAsync);
-
-        @SuppressWarnings("unchecked") // The store has the same type as the rawCoordinationStore.
-        CoordinationStore<VersionedInternalSchemaMetadata> store = AtlasDbMetrics.instrument(
-                metricsManager.getRegistry(),
-                CoordinationStore.class,
-                rawCoordinationStore);
-        return store;
+        return createRawCoordinationStore(keyValueService, timestampSupplier, initializeAsync);
     }
 
     private static CoordinationStore<VersionedInternalSchemaMetadata> createRawCoordinationStore(
