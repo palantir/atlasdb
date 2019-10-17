@@ -35,6 +35,7 @@ import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 
 public class LeadershipComponents {
 
@@ -45,10 +46,15 @@ public class LeadershipComponents {
 
     private final TimelockPaxosMetrics metrics;
     private final Factory<LeadershipContext> leadershipContextFactory;
+    private final LeaderPingHealthCheck leaderPingHealthCheck;
 
-    public LeadershipComponents(TimelockPaxosMetrics metrics, Factory<LeadershipContext> leadershipContextFactory) {
+    public LeadershipComponents(
+            TimelockPaxosMetrics metrics,
+            Factory<LeadershipContext> leadershipContextFactory,
+            LeaderPingHealthCheck leaderPingHealthCheck) {
         this.metrics = metrics;
         this.leadershipContextFactory = leadershipContextFactory;
+        this.leaderPingHealthCheck = leaderPingHealthCheck;
     }
 
     public <T> T wrapInLeadershipProxy(Client client, String name, Class<T> clazz, Supplier<T> delegateSupplier) {
@@ -64,6 +70,10 @@ public class LeadershipComponents {
 
     public void shutdown() {
         closer.shutdown();
+    }
+
+    public LeaderPingHealthCheck healthCheck() {
+        return leaderPingHealthCheck;
     }
 
     private LeadershipContext getOrCreateNewLeadershipContext(Client client) {
