@@ -26,7 +26,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
 import dagger.Provides;
@@ -60,8 +59,8 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public TimestampService provideTimestampService(TransactionManagers.LockAndTimestampServices lts) {
-        return lts.timestamp();
+    public ManagedTimestampService provideManagedTimestampService(TransactionManagers.LockAndTimestampServices lts) {
+        return lts.managedTimestampService();
     }
 
     @Provides
