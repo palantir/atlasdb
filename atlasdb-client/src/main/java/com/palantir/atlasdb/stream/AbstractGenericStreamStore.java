@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
@@ -42,6 +43,7 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.compression.StreamCompression;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.ByteArrayIOStream;
 
@@ -49,9 +51,13 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
     protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
 
     @CheckForNull protected final TransactionManager txnMgr;
+    private final StreamCompression compression;
 
-    protected AbstractGenericStreamStore(TransactionManager txManager) {
+    protected AbstractGenericStreamStore(
+            TransactionManager txManager,
+            StreamCompression compression) {
         this.txnMgr = txManager;
+        this.compression = compression;
     }
 
     private long getNumberOfBlocksFromMetadata(StreamMetadata metadata) {
@@ -96,7 +102,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
 
     private InputStream getStream(Transaction transaction, T id, StreamMetadata metadata) {
         try {
-            return tryGetStream(transaction, id, metadata);
+            return compression.decompress(tryGetStream(transaction, id, metadata));
         } catch (FileNotFoundException e) {
             log.error("Error opening temp file for stream {}", id, e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
@@ -209,12 +215,10 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
         }
     }
 
-    // This method is overridden in generated code. Changes to this method may have unintended consequences.
-    protected void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
+    private void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
-        long numBlocks = getNumberOfBlocksFromMetadata(metadata);
-        for (long i = 0; i < numBlocks; i++) {
-            loadSingleBlockToOutputStream(transaction, id, i, fos);
+        try (InputStream in = loadStream(transaction, id)) {
+            ByteStreams.copy(in, fos);
         }
         fos.close();
     }

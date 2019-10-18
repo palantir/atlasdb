@@ -61,6 +61,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.LZ4CompressingInputStream;
+import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
@@ -88,7 +89,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     }
 
     private UserPhotosStreamStore(TransactionManager txManager, ProfileTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
-        super(txManager, persistenceConfiguration);
+        super(txManager, StreamCompression.NONE, persistenceConfiguration);
         this.tables = tables;
     }
 

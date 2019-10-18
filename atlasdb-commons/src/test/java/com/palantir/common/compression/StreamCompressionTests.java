@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package com.palantir.common.compression;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -26,25 +27,58 @@ import java.util.Random;
 
 import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.io.ByteStreams;
 
-import net.jpountz.lz4.LZ4BlockInputStream;
-
-public class LZ4CompressionTests {
+@RunWith(Parameterized.class)
+public class StreamCompressionTests {
+    private static final StreamCompression GZIP = StreamCompression.GZIP;
+    private static final StreamCompression LZ4 = StreamCompression.LZ4;
+    private static final StreamCompression NONE = StreamCompression.NONE;
 
     private static final byte SINGLE_VALUE = 42;
     private static final int BLOCK_SIZE = 1 << 16; // 64 KB
 
     private ByteArrayInputStream uncompressedStream;
-    private LZ4CompressingInputStream compressingStream;
-    private LZ4BlockInputStream decompressingStream;
+    private InputStream compressingStream;
+    private InputStream decompressingStream;
+
+    private final StreamCompression compression;
+
+    public StreamCompressionTests(StreamCompression compression) {
+        this.compression = compression;
+    }
+
+    @Parameterized.Parameters
+    public static Object[] parameters() {
+        return StreamCompression.values();
+    }
 
     @After
-    public void after() throws IOException {
-        uncompressedStream.close();
-        compressingStream.close();
-        decompressingStream.close();
+    public void close() throws IOException {
+        if (decompressingStream != null) {
+            decompressingStream.close();
+        } else if (compressingStream != null) {
+            compressingStream.close();
+        }
+    }
+
+    @Test
+    public void testUncompressed_doesNotDecompressEvenIfDataCompressed() throws IOException {
+        byte[] data = new byte[1_000_000];
+        fillWithIncompressibleData(data);
+        assertThat(ByteStreams.toByteArray(GZIP.decompress(NONE.decompress(GZIP.compress(
+                        new ByteArrayInputStream(data)))))).isEqualTo(data);
+    }
+
+    @Test
+    public void testCanDecompressGzipAsLz4() throws IOException {
+        byte[] data = new byte[1_000_000];
+        fillWithIncompressibleData(data);
+        assertThat(ByteStreams.toByteArray(LZ4.decompress((GZIP.compress(
+                        new ByteArrayInputStream(data)))))).isEqualTo(data);
     }
 
     @Test
@@ -127,10 +161,10 @@ public class LZ4CompressionTests {
         verifyStreamContents(uncompressedData);
     }
 
-    private void initializeStreams(byte[] uncompressedData) throws IOException {
+    private void initializeStreams(byte[] uncompressedData) {
         uncompressedStream = new ByteArrayInputStream(uncompressedData);
-        compressingStream = new LZ4CompressingInputStream(uncompressedStream);
-        decompressingStream = new LZ4BlockInputStream(compressingStream);
+        compressingStream = compression.compress(uncompressedStream);
+        decompressingStream = compression.decompress(compressingStream);
     }
 
     private void fillWithCompressibleData(byte[] data) {

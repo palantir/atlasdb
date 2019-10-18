@@ -60,7 +60,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.compression.LZ4CompressingInputStream;
+import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
@@ -68,8 +68,6 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
-
-import net.jpountz.lz4.LZ4BlockInputStream;
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
 @SuppressWarnings("all")
@@ -88,7 +86,7 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
     }
 
     private SnapshotsStreamStore(TransactionManager txManager, TodoSchemaTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
-        super(txManager, persistenceConfiguration);
+        super(txManager, StreamCompression.NONE, persistenceConfiguration);
         this.tables = tables;
     }
 
@@ -411,8 +409,6 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
      * {@link ImmutableSet}
      * {@link InputStream}
      * {@link Ints}
-     * {@link LZ4BlockInputStream}
-     * {@link LZ4CompressingInputStream}
      * {@link List}
      * {@link Lists}
      * {@link Logger}
@@ -433,6 +429,7 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
      * {@link Sha256Hash}
      * {@link Status}
      * {@link StreamCleanedException}
+     * {@link StreamCompression}
      * {@link StreamMetadata}
      * {@link StreamStorePersistenceConfiguration}
      * {@link Supplier}

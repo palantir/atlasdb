@@ -51,11 +51,11 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     // Flag to indicate whether this stream has been exhausted.
     private boolean finished;
 
-    public LZ4CompressingInputStream(InputStream delegate) throws IOException {
+    public LZ4CompressingInputStream(InputStream delegate) {
         this(delegate, DEFAULT_BLOCK_SIZE);
     }
 
-    public LZ4CompressingInputStream(InputStream delegate, int blockSize) throws IOException {
+    public LZ4CompressingInputStream(InputStream delegate, int blockSize) {
         super(delegate, LZ4_HEADER_SIZE + COMPRESSOR.maxCompressedLength(blockSize));
         this.blockSize = blockSize;
         this.uncompressedBuffer = new byte[blockSize];

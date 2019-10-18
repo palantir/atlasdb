@@ -60,7 +60,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.compression.LZ4CompressingInputStream;
+import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
@@ -68,8 +68,6 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
-
-import net.jpountz.lz4.LZ4BlockInputStream;
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
 @SuppressWarnings("all")
@@ -88,7 +86,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     }
 
     private StreamTestWithHashStreamStore(TransactionManager txManager, StreamTestTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
-        super(txManager, persistenceConfiguration);
+        super(txManager, StreamCompression.LZ4, persistenceConfiguration);
         this.tables = tables;
     }
 
@@ -197,64 +195,6 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     private byte[] getBlock(Transaction t, StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow row) {
         StreamTestWithHashStreamValueTable valueTable = tables.getStreamTestWithHashStreamValueTable(t);
         return valueTable.getValues(ImmutableSet.of(row)).get(row);
-    }
-
-    @Override
-    protected StreamMetadata storeBlocksAndGetFinalMetadata(Transaction t, long id, InputStream stream) {
-        //Hash the data before compressing it
-        MessageDigest digest = Sha256Hash.getMessageDigest();
-        try (InputStream hashingStream = new DigestInputStream(stream, digest);
-                InputStream compressingStream = new LZ4CompressingInputStream(hashingStream)) {
-            StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);
-            return StreamMetadata.newBuilder(metadata)
-                    .setHash(ByteString.copyFrom(digest.digest()))
-                    .build();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public InputStream loadStream(Transaction t, final Long id) {
-        return new LZ4BlockInputStream(super.loadStream(t, id));
-    }
-
-    @Override
-    public Optional<InputStream> loadSingleStream(Transaction t, final Long id) {
-        Optional<InputStream> inputStream = super.loadSingleStream(t, id);
-        return inputStream.map(LZ4BlockInputStream::new);
-    }
-
-    @Override
-    public Map<Long, InputStream> loadStreams(Transaction t, Set<Long> ids) {
-        Map<Long, InputStream> compressedStreams = super.loadStreams(t, ids);
-        return Maps.transformValues(compressedStreams, stream -> {
-            return new LZ4BlockInputStream(stream);
-        });
-    }
-
-    @Override
-    protected void tryWriteStreamToFile(Transaction transaction, Long id, StreamMetadata metadata, FileOutputStream fos) throws IOException {
-        try (InputStream blockStream = makeStreamUsingTransaction(transaction, id, metadata);
-                InputStream decompressingStream = new LZ4BlockInputStream(blockStream);
-                OutputStream fileStream = fos;) {
-            ByteStreams.copy(decompressingStream, fileStream);
-        }
-    }
-
-    private InputStream makeStreamUsingTransaction(Transaction parent, Long id, StreamMetadata metadata) {
-        BiConsumer<Long, OutputStream> singleBlockLoader = (index, destination) ->
-                loadSingleBlockToOutputStream(parent, id, index, destination);
-
-        BlockGetter pageRefresher = new BlockLoader(singleBlockLoader, BLOCK_SIZE_IN_BYTES);
-        long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
-        int blocksInMemory = getNumberOfBlocksThatFitInMemory();
-
-        try {
-            return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);
-        } catch(IOException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
     }
 
     @Override
@@ -469,8 +409,6 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link ImmutableSet}
      * {@link InputStream}
      * {@link Ints}
-     * {@link LZ4BlockInputStream}
-     * {@link LZ4CompressingInputStream}
      * {@link List}
      * {@link Lists}
      * {@link Logger}
@@ -491,6 +429,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link Sha256Hash}
      * {@link Status}
      * {@link StreamCleanedException}
+     * {@link StreamCompression}
      * {@link StreamMetadata}
      * {@link StreamStorePersistenceConfiguration}
      * {@link Supplier}
