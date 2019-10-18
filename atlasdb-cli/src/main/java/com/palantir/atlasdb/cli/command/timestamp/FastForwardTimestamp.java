@@ -47,7 +47,7 @@ public class FastForwardTimestamp extends AbstractTimestampCommand {
         printer.warn(
                 "This CLI has been deprecated. Please use the timestamp-management/fast-forward endpoint instead.");
 
-        TimestampService ts = services.getTimestampService();
+        TimestampService ts = services.getManagedTimestampService();
         if (!(ts instanceof TimestampManagementService)) {
             printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
                     SafeArg.of("expected type", TimestampManagementService.class.toString()),

@@ -46,9 +46,10 @@ public final class KeyValueServiceMigrators {
         AtlasDbServices toServices = migratorSpec.toServices();
         TimestampManagementService toTimestampManagementService = getTimestampManagementService(toServices);
 
-        toTimestampManagementService.fastForwardTimestamp(fromServices.getTimestampService().getFreshTimestamp() + 1);
-        long migrationStartTimestamp = toServices.getTimestampService().getFreshTimestamp();
-        long migrationCommitTimestamp = toServices.getTimestampService().getFreshTimestamp();
+        toTimestampManagementService.fastForwardTimestamp(
+                fromServices.getManagedTimestampService().getFreshTimestamp() + 1);
+        long migrationStartTimestamp = toServices.getManagedTimestampService().getFreshTimestamp();
+        long migrationCommitTimestamp = toServices.getManagedTimestampService().getFreshTimestamp();
         toServices.getTransactionService().putUnlessExists(migrationStartTimestamp, migrationCommitTimestamp);
 
         return new KeyValueServiceMigrator(
@@ -84,7 +85,7 @@ public final class KeyValueServiceMigrators {
 
     @VisibleForTesting
     static TimestampManagementService getTimestampManagementService(AtlasDbServices toServices) {
-        TimestampService toTimestampService = toServices.getTimestampService();
+        TimestampService toTimestampService = toServices.getManagedTimestampService();
         if (toTimestampService instanceof TimestampManagementService) {
             return (TimestampManagementService) toTimestampService;
         }

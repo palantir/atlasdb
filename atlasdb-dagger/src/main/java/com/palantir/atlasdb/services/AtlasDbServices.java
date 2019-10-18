@@ -41,7 +41,7 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract TimelockService getTimelockService();
 
-    public abstract ManagedTimestampService getTimestampService();
+    public abstract ManagedTimestampService getManagedTimestampService();
 
     public abstract LockService getLockService();
 

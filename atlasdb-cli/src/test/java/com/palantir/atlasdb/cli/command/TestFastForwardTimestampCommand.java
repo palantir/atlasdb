@@ -69,7 +69,7 @@ public class TestFastForwardTimestampCommand {
     private static long fetchCurrentTimestamp() throws Exception {
         InMemoryTestRunner fetchRunner = new InMemoryTestRunner(FetchTimestamp.class, TIMESTAMP_GROUP, FETCH_COMMAND);
         AtlasDbServices services = fetchRunner.connect(moduleFactory);
-        return services.getTimestampService().getFreshTimestamp();
+        return services.getManagedTimestampService().getFreshTimestamp();
     }
 
     private static void checkFastForward(long target, long expected) throws Exception {
@@ -79,7 +79,7 @@ public class TestFastForwardTimestampCommand {
         String response = runner.run();
         // Unintuitive, but is consistent with existing CLI behaviour.
         assertThat(response).contains("Timestamp successfully fast-forwarded to " + target);
-        assertThat(atlasDbServices.getTimestampService().getFreshTimestamp()).isEqualTo(expected + 1);
+        assertThat(atlasDbServices.getManagedTimestampService().getFreshTimestamp()).isEqualTo(expected + 1);
     }
 
     private static InMemoryTestRunner makeRunnerWithTargetTimestamp(long targetTimestamp) {

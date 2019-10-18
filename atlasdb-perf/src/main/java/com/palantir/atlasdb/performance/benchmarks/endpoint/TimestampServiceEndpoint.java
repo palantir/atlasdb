@@ -42,7 +42,7 @@ public class TimestampServiceEndpoint {
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
-        this.timestampService = conn.connect().getTimestampService();
+        this.timestampService = conn.connect().getManagedTimestampService();
     }
 
     @TearDown(Level.Trial)
