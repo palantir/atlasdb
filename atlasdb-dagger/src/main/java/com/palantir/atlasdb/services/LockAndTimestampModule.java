@@ -26,16 +26,21 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.timestamp.TimestampService;
 
+import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 
 @Module
-public class LockAndTimestampModule {
+public abstract class LockAndTimestampModule {
+
+    @Binds
+    abstract TimestampService asTimestampService(ManagedTimestampService unused);
 
     @Provides
     @Singleton
-    public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(
+    static TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(
             MetricsManager metricsManager, ServicesConfig config) {
         ServiceDiscoveringAtlasSupplier atlasSupplier = config.atlasDbSupplier(metricsManager);
         Supplier<ManagedTimestampService> managedTimestampService = atlasSupplier::getManagedTimestampService;
@@ -53,19 +58,19 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public TimelockService provideTimelockService(TransactionManagers.LockAndTimestampServices lts) {
+    static TimelockService provideTimelockService(TransactionManagers.LockAndTimestampServices lts) {
         return lts.timelock();
     }
 
     @Provides
     @Singleton
-    public ManagedTimestampService provideManagedTimestampService(TransactionManagers.LockAndTimestampServices lts) {
+    static ManagedTimestampService provideManagedTimestampService(TransactionManagers.LockAndTimestampServices lts) {
         return lts.managedTimestampService();
     }
 
     @Provides
     @Singleton
-    public LockService provideLockService(TransactionManagers.LockAndTimestampServices lts) {
+    static LockService provideLockService(TransactionManagers.LockAndTimestampServices lts) {
         return lts.lock();
     }
 
