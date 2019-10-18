@@ -97,7 +97,7 @@ public class TransactionManagerModule {
                 metricsManager,
                 kvs,
                 lts.timelock(),
-                lts.timestampManagement(),
+                lts.managedTimestampService(),
                 lts.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),

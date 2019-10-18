@@ -66,7 +66,7 @@ public class FetchTimestamp extends AbstractTimestampCommand {
             timestamp = services.getTransactionManager().getImmutableTimestamp();
             printer.info("The immutable timestamp is: {}", SafeArg.of("timestamp", timestamp));
         } else {
-            timestamp = services.getTimestampService().getFreshTimestamp();
+            timestamp = services.getManagedTimestampService().getFreshTimestamp();
             printer.info("The fresh timestamp is: {}", SafeArg.of("timestamp", timestamp));
         }
         writeTimestampToFileIfSpecified();

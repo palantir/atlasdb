@@ -159,6 +159,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
@@ -335,7 +336,7 @@ public abstract class TransactionManagers {
                 managedTimestampSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent());
-        adapter.setTimestampService(lockAndTimestampServices.timestamp());
+        adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
 
@@ -418,7 +419,7 @@ public abstract class TransactionManagers {
                         metricsManager,
                         keyValueService,
                         lockAndTimestampServices.timelock(),
-                        lockAndTimestampServices.timestampManagement(),
+                        lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
                         transactionService,
                         Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
@@ -477,7 +478,7 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    private Callback<TransactionManager> createClearsTable() {
+    private static Callback<TransactionManager> createClearsTable() {
         TableReference clearsTableRef = TargetedSweepTableFactory.of().getTableClearsTable(null).getTableRef();
         byte[] clearsTableMetadata = TargetedSweepSchema.INSTANCE.getLatestSchema()
                 .getAllTablesAndIndexMetadata()
@@ -566,13 +567,13 @@ public abstract class TransactionManagers {
             KeyValueService keyValueService) {
         CoordinationService<InternalSchemaMetadata> metadataCoordinationService = CoordinationServices.createDefault(
                 keyValueService,
-                lockAndTimestampServices.timestamp(),
+                lockAndTimestampServices.managedTimestampService(),
                 metricsManager,
                 config().initializeAsync());
         MetadataCoordinationServiceMetrics.registerMetrics(
                 metricsManager,
                 metadataCoordinationService,
-                lockAndTimestampServices.timestamp());
+                lockAndTimestampServices.managedTimestampService());
         return metadataCoordinationService;
     }
 
@@ -916,7 +917,7 @@ public abstract class TransactionManagers {
                         timelockNamespace);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
-                lockAndTimestampServices.timestampManagement(),
+                lockAndTimestampServices.managedTimestampService(),
                 invalidator,
                 config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
@@ -1143,6 +1144,11 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagement();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
+
+        @Value.Derived
+        default ManagedTimestampService managedTimestampService() {
+            return new DelegatingManagedTimestampService(timestamp(), timestampManagement());
+        }
 
         @SuppressWarnings("checkstyle:WhitespaceAround")
         @Value.Default

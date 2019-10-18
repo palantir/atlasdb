@@ -26,7 +26,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 
 import dagger.Component;
 
@@ -41,7 +41,7 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract TimelockService getTimelockService();
 
-    public abstract TimestampService getTimestampService();
+    public abstract ManagedTimestampService getManagedTimestampService();
 
     public abstract LockService getLockService();
 

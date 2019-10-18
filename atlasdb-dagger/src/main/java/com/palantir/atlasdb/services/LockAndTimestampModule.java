@@ -28,11 +28,18 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
 
+import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 
-@Module
+@Module(includes = LockAndTimestampModule.Bindings.class)
 public class LockAndTimestampModule {
+
+    @Module
+    public abstract static class Bindings {
+        @Binds
+        abstract TimestampService asTimestampService(ManagedTimestampService unused);
+    }
 
     @Provides
     @Singleton
@@ -60,8 +67,8 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public TimestampService provideTimestampService(TransactionManagers.LockAndTimestampServices lts) {
-        return lts.timestamp();
+    public ManagedTimestampService provideManagedTimestampService(TransactionManagers.LockAndTimestampServices lts) {
+        return lts.managedTimestampService();
     }
 
     @Provides

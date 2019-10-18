@@ -62,8 +62,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 
 
 public class KeyValueServiceMigratorsTest {
@@ -97,12 +96,13 @@ public class KeyValueServiceMigratorsTest {
 
     @Test
     public void setupMigratorFastForwardsTimestamp() {
-        KeyValueServiceMigrators.getTimestampManagementService(fromServices).fastForwardTimestamp(FUTURE_TIMESTAMP);
-        assertThat(toServices.getTimestampService().getFreshTimestamp()).isLessThan(FUTURE_TIMESTAMP);
+        fromServices.getManagedTimestampService().fastForwardTimestamp(FUTURE_TIMESTAMP);
+        assertThat(toServices.getManagedTimestampService().getFreshTimestamp()).isLessThan(FUTURE_TIMESTAMP);
 
         KeyValueServiceMigrators.setupMigrator(migratorSpec);
 
-        assertThat(toServices.getTimestampService().getFreshTimestamp()).isGreaterThanOrEqualTo(FUTURE_TIMESTAMP);
+        assertThat(toServices.getManagedTimestampService().getFreshTimestamp())
+                .isGreaterThanOrEqualTo(FUTURE_TIMESTAMP);
     }
 
     @Test
@@ -115,7 +115,8 @@ public class KeyValueServiceMigratorsTest {
                 startTimestampCaptor.capture(),
                 commitTimestampCaptor.capture());
         assertThat(startTimestampCaptor.getValue()).isLessThan(commitTimestampCaptor.getValue());
-        assertThat(commitTimestampCaptor.getValue()).isLessThan(toServices.getTimestampService().getFreshTimestamp());
+        assertThat(commitTimestampCaptor.getValue())
+                .isLessThan(toServices.getManagedTimestampService().getFreshTimestamp());
     }
 
     @Test
@@ -189,7 +190,7 @@ public class KeyValueServiceMigratorsTest {
             tx.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE1));
             return tx.getTimestamp();
         });
-        long uncommittedTs = fromServices.getTimestampService().getFreshTimestamp();
+        long uncommittedTs = fromServices.getManagedTimestampService().getFreshTimestamp();
         fromKvs.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE2), uncommittedTs);
 
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(migratorSpec);
@@ -312,14 +313,14 @@ public class KeyValueServiceMigratorsTest {
         assertThat(toSplittingServices.getTransactionService().get(100_000)).isEqualTo(100_001L);
     }
 
-    private AtlasDbServices createMock(KeyValueService kvs) {
-        TimestampService timestampService = new InMemoryTimestampService();
+    private static AtlasDbServices createMock(KeyValueService kvs) {
+        ManagedTimestampService timestampService = new InMemoryTimestampService();
 
         TransactionTables.createTables(kvs);
         TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);
-        when(mockServices.getTimestampService()).thenReturn(timestampService);
+        when(mockServices.getManagedTimestampService()).thenReturn(timestampService);
         when(mockServices.getTransactionService()).thenReturn(transactionService);
         when(mockServices.getKeyValueService()).thenReturn(kvs);
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
@@ -327,7 +328,7 @@ public class KeyValueServiceMigratorsTest {
                 MetricsManagers.createForTests(),
                 kvs,
                 timestampService,
-                (TimestampManagementService) timestampService,
+                timestampService,
                 LockClient.of("test"),
                 LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build()),
                 transactionService,

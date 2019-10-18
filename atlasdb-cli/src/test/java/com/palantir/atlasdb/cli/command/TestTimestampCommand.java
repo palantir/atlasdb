@@ -237,7 +237,7 @@ public class TestTimestampCommand {
         try (SingleBackendCliTestRunner runner = makeRunner(cliArgs.toArray(new String[0]))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             LockService lockService = services.getLockService();
-            TimestampService tss = services.getTimestampService();
+            TimestampService tss = services.getManagedTimestampService();
             LockClient client = services.getTestLockClient();
 
             Clock clock = GlobalClock.create(lockService);
