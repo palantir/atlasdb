@@ -23,7 +23,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;

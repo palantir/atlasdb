@@ -43,7 +43,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;

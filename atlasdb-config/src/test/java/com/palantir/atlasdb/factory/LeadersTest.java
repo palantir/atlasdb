@@ -31,7 +31,6 @@ import java.util.Set;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;

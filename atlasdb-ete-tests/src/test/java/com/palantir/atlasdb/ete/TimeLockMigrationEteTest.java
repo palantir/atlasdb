@@ -31,7 +31,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
