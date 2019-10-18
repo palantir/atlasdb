@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Our Conjure-Java-Runtime client is now more resilient to transient
+    failures or rolling upgrades of TimeLock Server. Previously, we would give up
+    after an expected 1.5 seconds of being unable to contact TimeLock; we now try
+    for an expected 10 seconds.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4318
