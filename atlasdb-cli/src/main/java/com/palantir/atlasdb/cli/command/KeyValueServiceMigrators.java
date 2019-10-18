@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cli.command;
 import org.immutables.value.Value;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -29,7 +28,6 @@ import com.palantir.atlasdb.schema.TaskProgress;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 
 public final class KeyValueServiceMigrators {
     private static final OutputPrinter printer
@@ -44,7 +42,7 @@ public final class KeyValueServiceMigrators {
     public static KeyValueServiceMigrator setupMigrator(MigratorSpec migratorSpec) {
         AtlasDbServices fromServices = migratorSpec.fromServices();
         AtlasDbServices toServices = migratorSpec.toServices();
-        TimestampManagementService toTimestampManagementService = getTimestampManagementService(toServices);
+        TimestampManagementService toTimestampManagementService = toServices.getManagedTimestampService();
 
         toTimestampManagementService.fastForwardTimestamp(
                 fromServices.getManagedTimestampService().getFreshTimestamp() + 1);
@@ -81,19 +79,6 @@ public final class KeyValueServiceMigrators {
                     }
                 },
                 ImmutableSet.of());
-    }
-
-    @VisibleForTesting
-    static TimestampManagementService getTimestampManagementService(AtlasDbServices toServices) {
-        TimestampService toTimestampService = toServices.getManagedTimestampService();
-        if (toTimestampService instanceof TimestampManagementService) {
-            return (TimestampManagementService) toTimestampService;
-        }
-        String errorMessage = String.format("Timestamp service must be of type %s, but yours is %s. Exiting.",
-                TimestampManagementService.class.toString(),
-                toTimestampService.getClass().toString());
-        printer.error(errorMessage);
-        throw new IllegalArgumentException(errorMessage);
     }
 
     @Value.Immutable

@@ -96,7 +96,7 @@ public class KeyValueServiceMigratorsTest {
 
     @Test
     public void setupMigratorFastForwardsTimestamp() {
-        KeyValueServiceMigrators.getTimestampManagementService(fromServices).fastForwardTimestamp(FUTURE_TIMESTAMP);
+        fromServices.getManagedTimestampService().fastForwardTimestamp(FUTURE_TIMESTAMP);
         assertThat(toServices.getManagedTimestampService().getFreshTimestamp()).isLessThan(FUTURE_TIMESTAMP);
 
         KeyValueServiceMigrators.setupMigrator(migratorSpec);
