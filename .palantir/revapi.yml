@@ -64,6 +64,26 @@ acceptedBreaks:
         \ com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder::isCurrentSuspectedLeader(java.util.function.Supplier<java.lang.Boolean>)"
       new: null
       justification: "this is internal code"
+  0.162.3:
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createProxy(===com.codahale.metrics.MetricRegistry===,\
+        \ java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>, java.lang.String,\
+        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
+      new: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createProxy(===com.palantir.tritium.metrics.registry.TaggedMetricRegistry===,\
+        \ java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>, java.lang.String,\
+        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
+      justification: "Intentionally breaking AtlasDbHttpClients; users should provide\
+        \ a TaggedMetricsRegistry for version-selecting client purposes"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter <T> java.util.List<T> com.palantir.atlasdb.factory.Leaders::createProxyAndLocalList(===com.codahale.metrics.MetricRegistry===,\
+        \ T, java.util.Set<java.lang.String>, java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>,\
+        \ java.lang.Class<T>, com.palantir.conjure.java.api.config.service.UserAgent)"
+      new: "parameter <T> java.util.List<T> com.palantir.atlasdb.factory.Leaders::createProxyAndLocalList(===com.palantir.tritium.metrics.registry.TaggedMetricRegistry===,\
+        \ T, java.util.Set<java.lang.String>, java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>,\
+        \ java.lang.Class<T>, com.palantir.conjure.java.api.config.service.UserAgent)"
+      justification: "Intentionally breaking AtlasDbHttpClients; users should provide\
+        \ a TaggedMetricsRegistry for version-selecting client purposes"
   0.158.6:
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.field.removed"
