@@ -65,6 +65,7 @@ public final class AtlasDbMetricNames {
 
     public static final String TAG_CURRENT_SUSPECTED_LEADER = "isCurrentSuspectedLeader";
     public static final String TAG_CLIENT = "client";
+    public static final String TAG_PAXOS_USE_CASE = "paxosUseCase";
 
     public static final String COORDINATION_LAST_VALID_BOUND = "lastValidBound";
     public static final String COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION = "currentTransactionsSchemaVersion";
