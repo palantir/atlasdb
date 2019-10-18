@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Ensure CLIs get a `ManagedTimestampService` so they have access to
+    a `TimestampManagementService`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4319
