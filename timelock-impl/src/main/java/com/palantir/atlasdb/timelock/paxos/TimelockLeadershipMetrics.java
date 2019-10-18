@@ -29,8 +29,6 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.leader.AsyncLeadershipObserver;
-import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -59,13 +57,6 @@ public abstract class TimelockLeadershipMetrics {
                 _context -> ImmutableMap.of(
                         AtlasDbMetricNames.TAG_CLIENT, client.value(),
                         AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
-    }
-
-    @Value.Derived
-    public LeadershipObserver leadershipObserver() {
-        return AsyncLeadershipObserver.create(
-                () -> metricsManager().deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(false)),
-                () -> metricsManager().deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(true)));
     }
 
     @Value.Derived
