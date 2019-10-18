@@ -76,7 +76,7 @@ public abstract class TimelockLeadershipMetrics {
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
         return metricName ->
                 Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
-                        .filter(x -> x.equals(String.valueOf(currentLeader)))
+                        .filter(String.valueOf(currentLeader)::equals)
                         .isPresent();
     }
 }
