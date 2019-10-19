@@ -3,4 +3,4 @@ improvement:
   description: |
     Adding gzip compression support to the store streams.
   links:
-  - https://github.com/palantir/atlasdb/pull/4220
+  - https://github.com/palantir/atlasdb/pull/4311
