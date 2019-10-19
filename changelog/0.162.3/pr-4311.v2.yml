@@ -1,6 +1,9 @@
 type: improvement
 improvement:
   description: |
-    Adding gzip compression support to the store streams.
+    Added gzip compression support to the stream store. To use specify ``.compressStreamInClient(StreamCompression.GZIP)`` on your StreamStoreDefinitionBuilder in your schema.
+    The following limitations must be considered when using or changing compression on a pre-existing stream store:
+    - You cannot add any form of compression to a stream store that is currently not compressed
+    - You can freely switch between compression types of stream stores that are already compressed
   links:
   - https://github.com/palantir/atlasdb/pull/4311
