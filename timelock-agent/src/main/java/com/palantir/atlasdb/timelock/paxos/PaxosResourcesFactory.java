@@ -95,9 +95,7 @@ public final class PaxosResourcesFactory {
                     .leaderPingHealthCheckFactory(healthCheckFactory)
                     .build();
 
-            resourcesBuilder.leaderMetrics(timelockMetrics);
             resourcesBuilder.leadershipContextFactory(factory);
-            resourcesBuilder.healthCheck(factory.leaderPingHealthCheck());
             resourcesBuilder.addAdhocResources(
                     new LeadershipResource(
                             factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
