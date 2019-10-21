@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +47,7 @@ public class AsyncCellLoaderTests {
     private static final Cell VISIBLE_CELL_2 = Cell.create(PtBytes.toBytes(100), PtBytes.toBytes(300));
 
     private CqlClient cqlClient;
-    private final Executor testExecutor = MoreExecutors.directExecutor();
+    private final ExecutorService testExecutor = MoreExecutors.newDirectExecutorService();
 
     @Before
     public void setUp() {

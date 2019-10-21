@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
@@ -37,20 +37,20 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 
-public final class AsyncCellLoader {
+public final class AsyncCellLoader implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncCellLoader.class);
 
     private final CqlClient cqlClient;
-    private final Executor executor;
+    private final ExecutorService executorService;
     private final String keyspace;
 
-    public static AsyncCellLoader create(CqlClient cqlClient, Executor executor, String keyspace) {
-        return new AsyncCellLoader(cqlClient, executor, keyspace);
+    public static AsyncCellLoader create(CqlClient cqlClient, ExecutorService executorService, String keyspace) {
+        return new AsyncCellLoader(cqlClient, executorService, keyspace);
     }
 
-    private AsyncCellLoader(CqlClient cqlClient, Executor executor, String keyspace) {
+    private AsyncCellLoader(CqlClient cqlClient, ExecutorService executorService, String keyspace) {
         this.cqlClient = cqlClient;
-        this.executor = executor;
+        this.executorService = executorService;
         this.keyspace = keyspace;
     }
 
@@ -74,7 +74,7 @@ public final class AsyncCellLoader {
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
                                 .collectToMap(),
-                        executor);
+                        executorService);
     }
 
     private ListenableFuture<Optional<Value>> loadCellWithTimestamp(
@@ -101,5 +101,10 @@ public final class AsyncCellLoader {
         } catch (ExecutionException e) {
             throw new RuntimeException(e.getCause());
         }
+    }
+
+    @Override
+    public void close() {
+        executorService.shutdown();
     }
 }

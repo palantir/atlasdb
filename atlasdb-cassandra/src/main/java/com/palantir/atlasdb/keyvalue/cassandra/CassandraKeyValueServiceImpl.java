@@ -413,7 +413,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()));
+        super(createInstrumentedFixedThreadPool(
+                config,
+                metricsManager.getRegistry(),
+                "Atlas Cassandra KVS",
+                "executorService"));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -425,7 +429,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
-        this.asyncCellLoader = AsyncCellLoader.create(cqlClient, executor, config.getKeyspaceOrThrow());
+        this.asyncCellLoader = AsyncCellLoader.create(
+                cqlClient,
+                createInstrumentedFixedThreadPool(
+                        config,
+                        metricsManager.getRegistry(),
+                        "Atlas Cassandra KVS async",
+                        "asyncExecutorService"),
+                config.getKeyspaceOrThrow());
         this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
         this.cellValuePutter = new CellValuePutter(
                 config,
@@ -444,12 +455,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static ExecutorService createInstrumentedFixedThreadPool(
             CassandraKeyValueServiceConfig config,
-            MetricRegistry registry) {
+            MetricRegistry registry,
+            String threadNamePrefix,
+            String executorServiceMetricsPrefix) {
         return Tracers.wrap(new InstrumentedExecutorService(
-                createFixedThreadPool("Atlas Cassandra KVS",
+                createFixedThreadPool(threadNamePrefix,
                         config.poolSize() * config.servers().numberOfThriftHosts()),
                 registry,
-                MetricRegistry.name(CassandraKeyValueService.class, "executorService")));
+                MetricRegistry.name(CassandraKeyValueService.class, executorServiceMetricsPrefix)));
     }
 
     @Override
@@ -1671,6 +1684,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
+        asyncCellLoader.close();
         try {
             log.info("Trying to close a CQL client");
             cqlClient.close();
