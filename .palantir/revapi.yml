@@ -2,15 +2,6 @@ versionOverrides: {}
 acceptedBreaks:
   0.162.2:
     com.palantir.atlasdb:atlasdb-config:
-    - code: "java.method.parameterTypeChanged"
-      old: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createLiveReloadingProxyWithFailover(===com.palantir.tritium.metrics.registry.TaggedMetricRegistry===,\
-        \ java.util.function.Supplier<com.palantir.atlasdb.config.ServerListConfig>,\
-        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
-      new: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createLiveReloadingProxyWithFailover(===com.palantir.atlasdb.util.MetricsManager===,\
-        \ java.util.function.Supplier<com.palantir.atlasdb.config.ServerListConfig>,\
-        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
-      justification: "We need access to the MetricManager to manage the new metric\
-        \ properly"
     - code: "java.method.removed"
       old: "method com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder\
         \ com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder::pingableLeader(com.palantir.leader.PingableLeader)"
@@ -37,6 +28,15 @@ acceptedBreaks:
         \ java.util.Collection<java.lang.String>, java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>,\
         \ com.palantir.conjure.java.api.config.service.UserAgent)"
       justification: "this is internal code"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createLiveReloadingProxyWithFailover(===com.palantir.tritium.metrics.registry.TaggedMetricRegistry===,\
+        \ java.util.function.Supplier<com.palantir.atlasdb.config.ServerListConfig>,\
+        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
+      new: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createLiveReloadingProxyWithFailover(===com.palantir.atlasdb.util.MetricsManager===,\
+        \ java.util.function.Supplier<com.palantir.atlasdb.config.ServerListConfig>,\
+        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
+      justification: "We need access to the MetricManager to manage the new metric\
+        \ properly"
     - code: "java.method.addedToInterface"
       old: null
       new: "method com.palantir.leader.PingableLeader com.palantir.atlasdb.factory.Leaders.LocalPaxosServices::localPingableLeader()"
@@ -60,6 +60,16 @@ acceptedBreaks:
       old: "field com.palantir.atlasdb.http.AtlasDbHttpClients.DEFAULT_TARGET_FACTORY"
       new: null
       justification: "Clean slate"
+  0.162.5:
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createLiveReloadingProxyWithFailover(===com.palantir.tritium.metrics.registry.TaggedMetricRegistry===,\
+        \ java.util.function.Supplier<com.palantir.atlasdb.config.ServerListConfig>,\
+        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
+      new: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createLiveReloadingProxyWithFailover(===com.palantir.atlasdb.util.MetricsManager===,\
+        \ java.util.function.Supplier<com.palantir.atlasdb.config.ServerListConfig>,\
+        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
+      justification: "Just let me merge"
   0.161.0:
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.method.removed"
