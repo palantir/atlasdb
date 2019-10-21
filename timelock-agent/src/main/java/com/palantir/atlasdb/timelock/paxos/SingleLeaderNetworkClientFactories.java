@@ -44,7 +44,7 @@ abstract class SingleLeaderNetworkClientFactories {
     NetworkClientFactories factories() {
         Factory<PaxosAcceptorNetworkClient> acceptorClientFactory = client -> {
             List<PaxosAcceptor> remoteAcceptors = TimelockPaxosAcceptorAdapter
-                    .wrap(useCase(), remoteClients().nonBatchAcceptor())
+                    .wrap(useCase(), remoteClients())
                     .apply(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
             LocalAndRemotes<PaxosAcceptor> allAcceptors = metrics().instrumentLocalAndRemotesFor(
@@ -61,7 +61,7 @@ abstract class SingleLeaderNetworkClientFactories {
 
         Factory<PaxosLearnerNetworkClient> learnerClientFactory = client -> {
             List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapter
-                    .wrap(useCase(), remoteClients().nonBatchLearner())
+                    .wrap(useCase(), remoteClients())
                     .apply(client);
             PaxosLearner localLearner = components().learner(client);
             LocalAndRemotes<PaxosLearner> allLearners = metrics().instrumentLocalAndRemotesFor(
