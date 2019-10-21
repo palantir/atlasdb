@@ -1,18 +1,8 @@
 type: improvement
 improvement:
   description: |-
-    Track total number of errors in version selecting clients
-
-    **Goals (and why)**:
-    Make it easier to identify errors in CJR client
-
-    **Implementation Description (bullets)**:
-    A single AVM tracks all errors
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-    Existing tests, plus a test that different clients accumulate to the same metric
-
-    **Priority (whenever / two weeks / yesterday)**:
-    ASAP, want to release today
+    Added a new metric `com.palantir.common.proxy.ExperimentRunningProxy.experimentErrors` that counts the number of errors
+    encountered by all clients created using `VersionSelectingClients.createVersionSelectingClient`, i.e., errors occuring
+    while using the experimental CJR AtlasDB client.
   links:
   - https://github.com/palantir/atlasdb/pull/4324
