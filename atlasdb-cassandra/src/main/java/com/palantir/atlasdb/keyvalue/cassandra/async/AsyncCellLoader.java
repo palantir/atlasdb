@@ -89,8 +89,8 @@ public final class AsyncCellLoader {
                                 .keySpace(keyspace)
                                 .executor(executor).build())
                         .queryParameters(ImmutableGetQueryParameters.builder()
-                                .row(ByteBuffer.wrap(cell.getRowName()))
-                                .column(ByteBuffer.wrap(cell.getColumnName()))
+                                .row(ByteBuffer.wrap(cell.getRowName()).asReadOnlyBuffer())
+                                .column(ByteBuffer.wrap(cell.getColumnName()).asReadOnlyBuffer())
                                 .humanReadableTimestamp(timestamp)
                                 .build())
                         .build());

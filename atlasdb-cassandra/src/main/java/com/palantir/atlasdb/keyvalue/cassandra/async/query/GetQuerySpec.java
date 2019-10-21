@@ -17,12 +17,9 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async.query;
 
 import java.nio.ByteBuffer;
-import java.util.Comparator;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-
-import javax.annotation.concurrent.ThreadSafe;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
@@ -39,13 +36,13 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
     /**
      * Since each query is constructed for one cell we are using an optimisation that we can ask the CQL to do most of
-     * the work internally. First of all we are using the fact that timestamps in {@code column2} are ordered in
-     * {@code ASC} order and since we are interested in the most recent timestamp we use {@code LIMIT 1} to get the
-     * latest value. This should help with both cassandra workload and amount of transferred data.
+     * the work internally. First of all we are using the fact that cells are ordered by {@code column} and
+     * {@code timestamp} value in {@code ASC} order and since we are interested in the value with the most recent
+     * timestamp we use {@code LIMIT 1} to get the latest value. This helps with both cassandra workload and amount of
+     * transferred data.
      */
     private static final String QUERY_FORMAT = "SELECT value, column2 FROM \"%s\".\"%s\" "
             + "WHERE key = :row AND column1 = :column AND column2 > :timestamp "
-            + "ORDER BY column1, column2 ASC "
             + "LIMIT 1;";
 
     @Override
@@ -90,22 +87,23 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         }
     }
 
-    @ThreadSafe
-    public static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
+    private static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
 
-        private Optional<Value> resultValue = Optional.empty();
+        private volatile Value resultValue = null;
+        private volatile boolean assigned = false;
 
         @Override
-        public synchronized void accumulateRowStream(Stream<Row> rowStream) {
-            Preconditions.checkState(!resultValue.isPresent(),
-                    "There should not be multiple calls to this method");
-            resultValue = rowStream.map(GetQueryAccumulator::parseValue)
-                    .max(Comparator.comparingLong(Value::getTimestamp));
+        public void accumulateRowStream(Stream<Row> rowStream) {
+            Preconditions.checkState(!assigned,
+                    "Multiple calls to accumulateRowStream, wrong usage of this implementation");
+            // the query can only ever return one page with one row
+            assigned = true;
+            resultValue = rowStream.findFirst().map(GetQueryAccumulator::parseValue).orElse(null);
         }
 
         @Override
-        public synchronized Optional<Value> result() {
-            return resultValue;
+        public Optional<Value> result() {
+            return Optional.ofNullable(resultValue);
         }
 
         private static Value parseValue(Row row) {
