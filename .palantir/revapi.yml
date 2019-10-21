@@ -2,6 +2,16 @@ versionOverrides: {}
 acceptedBreaks:
   0.162.2:
     com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.factory.Leaders.LocalPaxosServices com.palantir.atlasdb.factory.Leaders::createInstrumentedLocalServices(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.config.LeaderConfig, java.util.function.Supplier<com.palantir.atlasdb.config.LeaderRuntimeConfig>,\
+        \ com.palantir.atlasdb.factory.Leaders.RemotePaxosServerSpec, com.palantir.conjure.java.api.config.service.UserAgent,\
+        \ ===java.util.function.Supplier<com.palantir.leader.LeadershipObserver>===)"
+      new: "parameter com.palantir.atlasdb.factory.Leaders.LocalPaxosServices com.palantir.atlasdb.factory.Leaders::createInstrumentedLocalServices(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.config.LeaderConfig, java.util.function.Supplier<com.palantir.atlasdb.config.LeaderRuntimeConfig>,\
+        \ com.palantir.atlasdb.factory.Leaders.RemotePaxosServerSpec, com.palantir.conjure.java.api.config.service.UserAgent,\
+        \ ===com.palantir.leader.LeadershipObserver===)"
+      justification: "this is internal code"
     - code: "java.method.removed"
       old: "method com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder\
         \ com.palantir.atlasdb.factory.ImmutableLocalPaxosServices.Builder::pingableLeader(com.palantir.leader.PingableLeader)"

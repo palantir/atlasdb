@@ -28,6 +28,8 @@ public final class PaxosTimeLockConstants {
     public static final String CLIENT_PAXOS_NAMESPACE = "clientPaxos";
     public static final String MULTI_LEADER_PAXOS_NAMESPACE = "multiLeaderPaxos";
 
+    public static final Client LEGACY_PAXOS_AS_CLIENT = Client.of(LEADER_PAXOS_NAMESPACE);
+
     private PaxosTimeLockConstants() {
     }
 }
