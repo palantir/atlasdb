@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    More efficient batch size increasing iterator
+
+    By remembering whether we've ran out of underlying iterator, we can omit
+    a KVS call each time and easily call ourselves done.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4326
