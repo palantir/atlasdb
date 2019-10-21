@@ -27,6 +27,7 @@ import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.common.base.ExhaustibleClosableIterator;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.AssertUtils;
 
@@ -36,7 +37,7 @@ public class BatchSizeIncreasingIterator<T> {
     final int originalBatchSize;
 
     final BatchProvider<T> batchProvider;
-    ClosableIterator<T> currentResults = null;
+    ExhaustibleClosableIterator<T> currentResults = null;
     byte[] lastToken;
 
     long numReturned = 0;
@@ -49,7 +50,7 @@ public class BatchSizeIncreasingIterator<T> {
         Preconditions.checkArgument(originalBatchSize > 0);
         this.batchProvider = batchProvider;
         this.originalBatchSize = originalBatchSize;
-        this.currentResults = currentResults;
+        this.currentResults = new ExhaustibleClosableIterator<>(currentResults);
         if (currentResults != null) {
             this.lastBatchSize = originalBatchSize;
         }
@@ -80,7 +81,7 @@ public class BatchSizeIncreasingIterator<T> {
 
     private void updateResultsIfNeeded() {
         if (currentResults == null) {
-            currentResults = batchProvider.getBatch(originalBatchSize, null);
+            currentResults = new ExhaustibleClosableIterator<>(batchProvider.getBatch(originalBatchSize, null));
             lastBatchSize = originalBatchSize;
             return;
         }
@@ -90,9 +91,15 @@ public class BatchSizeIncreasingIterator<T> {
             return;
         }
 
+        // If we already ran out of iterator, we are done.
+        if (currentResults.isExhausted()) {
+            return;
+        }
+
         // If the last row we got was the maximal row, then we are done.
         if (!batchProvider.hasNext(lastToken)) {
-            currentResults = ClosableIterators.wrap(ImmutableList.<T>of().iterator());
+            currentResults = new ExhaustibleClosableIterator<>(
+                    ClosableIterators.wrap(ImmutableList.<T>of().iterator()));
             return;
         }
 
@@ -100,7 +107,7 @@ public class BatchSizeIncreasingIterator<T> {
         // Only close and throw away our old iterator if the batch size has changed by a factor of 2 or more.
         if (bestBatchSize >= lastBatchSize * 2 || bestBatchSize <= lastBatchSize / 2) {
             currentResults.close();
-            currentResults = batchProvider.getBatch(bestBatchSize, lastToken);
+            currentResults = new ExhaustibleClosableIterator<>(batchProvider.getBatch(bestBatchSize, lastToken));
             lastBatchSize = bestBatchSize;
         }
     }
