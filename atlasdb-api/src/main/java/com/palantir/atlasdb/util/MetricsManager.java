@@ -130,6 +130,13 @@ public class MetricsManager {
         }
     }
 
+    public <M extends Gauge> M registerOrGetGauge(Class clazz, String metricName, Supplier<M> gaugeSupplier) {
+        String fullyQualifiedGaugeName = MetricRegistry.name(clazz, metricName);
+        M gauge = (M) metricRegistry.gauge(fullyQualifiedGaugeName, gaugeSupplier::get);
+        registerMetricName(fullyQualifiedGaugeName);
+        return gauge;
+    }
+
     public Histogram registerOrGetHistogram(Class clazz, String metricName) {
         return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
     }

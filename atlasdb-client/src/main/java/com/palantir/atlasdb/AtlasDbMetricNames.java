@@ -70,4 +70,6 @@ public final class AtlasDbMetricNames {
     public static final String COORDINATION_LAST_VALID_BOUND = "lastValidBound";
     public static final String COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION = "currentTransactionsSchemaVersion";
     public static final String COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION = "eventualTransactionsSchemaVersion";
+
+    public static final String EXPERIMENT_ERRORS = "experimentErrors";
 }

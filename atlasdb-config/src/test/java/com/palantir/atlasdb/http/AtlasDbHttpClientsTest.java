@@ -57,12 +57,12 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class AtlasDbHttpClientsTest {
     private static final Optional<TrustContext> NO_SSL = Optional.empty();
@@ -250,7 +250,7 @@ public class AtlasDbHttpClientsTest {
         List<String> servers = Lists.newArrayList(getUriForPort(unavailablePort));
 
         TestResource client = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                DefaultTaggedMetricRegistry.getDefault(),
+                MetricsManagers.createForTests(),
                 () -> ImmutableServerListConfig.builder()
                         .servers(servers)
                         .sslConfiguration(SSL_CONFIG)
@@ -274,7 +274,7 @@ public class AtlasDbHttpClientsTest {
     public void canConnectViaConjureJavaRuntime() {
         List<String> servers = Lists.newArrayList(getUriForPort(availablePort1));
         TestResource client = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                DefaultTaggedMetricRegistry.getDefault(),
+                MetricsManagers.createForTests(),
                 () -> ImmutableServerListConfig.builder()
                         .servers(servers)
                         .sslConfiguration(SSL_CONFIG)
@@ -303,7 +303,7 @@ public class AtlasDbHttpClientsTest {
                 .build());
 
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                DefaultTaggedMetricRegistry.getDefault(),
+                MetricsManagers.createForTests(),
                 config::get,
                 TestResource.class,
                 AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);

@@ -41,6 +41,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private final T fallbackService;
     private final BooleanSupplier useExperimental;
     private final Clock clock;
+    private final Runnable errorTask;
 
     private final AtomicReference<Instant> nextPermittedExperiment = new AtomicReference<>(Instant.MIN);
 
@@ -49,17 +50,19 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
             T experimentalService,
             T fallbackService,
             BooleanSupplier useExperimental,
-            Clock clock) {
+            Clock clock,
+            Runnable errorTask) {
         this.experimentalService = experimentalService;
         this.fallbackService = fallbackService;
         this.useExperimental = useExperimental;
         this.clock = clock;
+        this.errorTask = errorTask;
     }
 
-    public static <T> T newProxyInstance(
-            T experimentalService, T fallbackService, BooleanSupplier useExperimental, Class<T> clazz) {
-        ExperimentRunningProxy<T> service =
-                new ExperimentRunningProxy<>(experimentalService, fallbackService, useExperimental, Clock.systemUTC());
+    public static <T> T newProxyInstance(T experimentalService, T fallbackService, BooleanSupplier useExperimental,
+            Class<T> clazz, Runnable markErrorMetric) {
+        ExperimentRunningProxy<T> service = new ExperimentRunningProxy<>(
+                experimentalService, fallbackService, useExperimental, Clock.systemUTC(), markErrorMetric);
         return (T) Proxy.newProxyInstance(
                 clazz.getClassLoader(),
                 new Class[] { clazz },
@@ -90,6 +93,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private void markExperimentFailure(Exception exception) {
         nextPermittedExperiment.accumulateAndGet(Instant.now(clock).plus(REFRESH_INTERVAL),
                 (existing, current) -> existing.compareTo(current) > 0 ? existing : current);
+        errorTask.run();
         log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use the"
                 + " experimental service again after a timeout.", SafeArg.of("timeout", REFRESH_INTERVAL), exception);
     }

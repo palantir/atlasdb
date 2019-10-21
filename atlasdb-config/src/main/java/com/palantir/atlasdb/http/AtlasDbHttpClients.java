@@ -27,8 +27,8 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AtlasDbHttpClients {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbHttpClients.class);
@@ -73,12 +73,12 @@ public final class AtlasDbHttpClients {
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
-            TaggedMetricRegistry taggedMetricRegistry,
+            MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters clientParameters) {
         return createExperimentallyWithFallback(
-                taggedMetricRegistry,
+                metricsManager,
                 () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
@@ -92,7 +92,7 @@ public final class AtlasDbHttpClients {
     }
 
     private static <T> T createExperimentallyWithFallback(
-            TaggedMetricRegistry taggedMetricRegistry,
+            MetricsManager metricsManager,
             Supplier<TargetFactory.InstanceAndVersion<T>> experimentalProxySupplier,
             Supplier<TargetFactory.InstanceAndVersion<T>> fallbackProxySupplier,
             Class<T> type,
@@ -100,7 +100,7 @@ public final class AtlasDbHttpClients {
         TargetFactory.InstanceAndVersion<T> fallbackProxy = fallbackProxySupplier.get();
         try {
             return VersionSelectingClients.createVersionSelectingClient(
-                    taggedMetricRegistry,
+                    metricsManager,
                     experimentalProxySupplier.get(),
                     fallbackProxy,
                     () -> clientParameters.remotingClientConfig().get().maximumConjureRemotingProbability(),

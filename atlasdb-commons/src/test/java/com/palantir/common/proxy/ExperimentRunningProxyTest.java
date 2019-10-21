@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Proxy;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
 
@@ -40,9 +41,10 @@ public class ExperimentRunningProxyTest {
     private final IntSupplier fallbackIntSupplier = () -> FALLBACK_RESULT;
     private final BooleanSupplier useExperimental = mock(BooleanSupplier.class);
     private final Clock clock = mock(Clock.class);
+    private final AtomicLong errorCounter = new AtomicLong();
 
-    private final IntSupplier proxyInstance = intSupplierForProxy(
-            new ExperimentRunningProxy<>(experimentalIntSupplier, fallbackIntSupplier, useExperimental, clock));
+    private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(experimentalIntSupplier,
+            fallbackIntSupplier, useExperimental, clock, errorCounter::incrementAndGet));
 
     @Before
     public void setup() {
@@ -54,12 +56,14 @@ public class ExperimentRunningProxyTest {
     public void doesNotAttemptExperimentIfNotRequested() {
         disableExperiment();
         assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
+        assertErrors(0L);
     }
 
     @Test
     public void attemptsExperimentIfRequested() {
         enableExperiment();
         assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
+        assertErrors(0L);
     }
 
     @Test
@@ -69,6 +73,7 @@ public class ExperimentRunningProxyTest {
 
         assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
         assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
+        assertErrors(1L);
     }
 
     @Test
@@ -87,6 +92,7 @@ public class ExperimentRunningProxyTest {
 
         setTimeTo(Instant.ofEpochSecond(ExperimentRunningProxy.REFRESH_INTERVAL.getSeconds() + 1));
         assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
+        assertErrors(1L);
     }
 
     @Test
@@ -99,6 +105,7 @@ public class ExperimentRunningProxyTest {
 
         enableExperiment();
         assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
+        assertErrors(0L);
     }
 
     private static IntSupplier intSupplierForProxy(ExperimentRunningProxy<IntSupplier> proxy) {
@@ -125,5 +132,9 @@ public class ExperimentRunningProxyTest {
 
     private void disableExperiment() {
         when(useExperimental.getAsBoolean()).thenReturn(false);
+    }
+
+    private void assertErrors(long number) {
+        assertThat(errorCounter.get()).isEqualTo(number);
     }
 }

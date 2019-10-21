@@ -21,7 +21,10 @@ import java.util.function.DoubleSupplier;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.ExperimentRunningProxy;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -35,25 +38,28 @@ final class VersionSelectingClients {
     private static final String CLIENT_VERSION = "clientVersion";
 
     private VersionSelectingClients() {
-        // No, nein, etc.
+        // No, nein, 9, etc.
     }
 
     static <T> T createVersionSelectingClient(
-            TaggedMetricRegistry taggedMetricRegistry,
+            MetricsManager metricsManager,
             TargetFactory.InstanceAndVersion<T> newClient,
             TargetFactory.InstanceAndVersion<T> legacyClient,
             DoubleSupplier newClientProbabilitySupplier,
             Class<T> clazz) {
         T instrumentedNewClient = instrumentWithClientVersionTag(
-                taggedMetricRegistry, newClient, clazz);
+                metricsManager.getTaggedRegistry(), newClient, clazz);
         T instrumentedLegacyClient = instrumentWithClientVersionTag(
-                taggedMetricRegistry, legacyClient, clazz);
+                metricsManager.getTaggedRegistry(), legacyClient, clazz);
+
+        AccumulatingValueMetric errorMetric = registerOrGetErrorMetric(metricsManager);
 
         return ExperimentRunningProxy.newProxyInstance(
                 instrumentedNewClient,
                 instrumentedLegacyClient,
                 () -> ThreadLocalRandom.current().nextDouble() < newClientProbabilitySupplier.getAsDouble(),
-                clazz);
+                clazz,
+                errorMetric::increment);
     }
 
     private static <T> T instrumentWithClientVersionTag(
@@ -68,4 +74,10 @@ final class VersionSelectingClients {
                 $ -> ImmutableMap.of(CLIENT_VERSION, client.version()));
     }
 
+    private static AccumulatingValueMetric registerOrGetErrorMetric(MetricsManager metricsManager) {
+        return metricsManager.registerOrGetGauge(
+                ExperimentRunningProxy.class,
+                AtlasDbMetricNames.EXPERIMENT_ERRORS,
+                AccumulatingValueMetric::new);
+    }
 }

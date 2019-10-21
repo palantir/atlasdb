@@ -34,4 +34,8 @@ public class AccumulatingValueMetric implements Gauge<Long> {
     public void accumulateValue(Long newValue) {
         value.addAndGet(newValue);
     }
+
+    public void increment() {
+        value.incrementAndGet();
+    }
 }

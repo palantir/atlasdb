@@ -87,7 +87,7 @@ public final class ServiceCreator {
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                metricsManager.getTaggedRegistry(),
+                metricsManager,
                 serverListConfigSupplier,
                 type,
                 parameters);
