@@ -25,7 +25,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
@@ -36,10 +38,10 @@ public final class TimelockPaxosLearnerAdapter implements PaxosLearner {
 
     private TimelockPaxosLearnerAdapter(
             PaxosUseCase paxosUseCase,
-            Client client,
+            String client,
             TimelockPaxosLearnerRpcClient clientAwarePaxosLearner) {
         this.paxosUseCase = paxosUseCase;
-        this.client = client.value();
+        this.client = client;
         this.clientAwarePaxosLearner = clientAwarePaxosLearner;
     }
 
@@ -72,9 +74,23 @@ public final class TimelockPaxosLearnerAdapter implements PaxosLearner {
      */
     public static Function<Client, List<PaxosLearner>> wrap(
             PaxosUseCase paxosUseCase,
-            List<TimelockPaxosLearnerRpcClient> learners) {
-        return client -> learners.stream()
-                .map(learner -> new TimelockPaxosLearnerAdapter(paxosUseCase, client, learner))
-                .collect(Collectors.toList());
+            PaxosRemoteClients remoteClients) {
+        switch (paxosUseCase) {
+            case LEADER_FOR_ALL_CLIENTS:
+                return _client -> remoteClients.singleLeaderLearner().stream()
+                        .<PaxosLearner>map(Function.identity())
+                        .collect(Collectors.toList());
+            case LEADER_FOR_EACH_CLIENT:
+                throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
+            case TIMESTAMP:
+                return client -> remoteClients.nonBatchTimestampLearner().stream()
+                        .map(learner -> new TimelockPaxosLearnerAdapter(
+                                paxosUseCase,
+                                client.value(),
+                                learner)).collect(Collectors.toList());
+            default:
+                throw new IllegalStateException("Unexpected value: " + paxosUseCase);
+        }
     }
+
 }

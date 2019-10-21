@@ -19,6 +19,8 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.Path;
+
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
@@ -26,6 +28,8 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -40,13 +44,27 @@ public abstract class PaxosRemoteClients {
     public abstract TaggedMetricRegistry metrics();
 
     @Value.Derived
-    public List<TimelockPaxosAcceptorRpcClient> nonBatchAcceptor() {
+    public List<TimelockPaxosAcceptorRpcClient> nonBatchTimestampAcceptor() {
         return createInstrumentedRemoteProxies(TimelockPaxosAcceptorRpcClient.class, "paxos-acceptor-rpc-client");
     }
 
     @Value.Derived
-    public List<TimelockPaxosLearnerRpcClient> nonBatchLearner() {
+    public List<TimelockPaxosLearnerRpcClient> nonBatchTimestampLearner() {
         return createInstrumentedRemoteProxies(TimelockPaxosLearnerRpcClient.class, "paxos-learner-rpc-client");
+    }
+
+    @Value.Derived
+    public List<TimelockSingleLeaderPaxosLearnerRpcClient> singleLeaderLearner() {
+        return createInstrumentedRemoteProxies(
+                TimelockSingleLeaderPaxosLearnerRpcClient.class,
+                "paxos-leader-learner-rpc-client");
+    }
+
+    @Value.Derived
+    public List<TimelockSingleLeaderPaxosAcceptorRpcClient> singleLeaderAcceptor() {
+        return createInstrumentedRemoteProxies(
+                TimelockSingleLeaderPaxosAcceptorRpcClient.class,
+                "paxos-leader-acceptor-rpc-client");
     }
 
     @Value.Derived
@@ -82,5 +100,17 @@ public abstract class PaxosRemoteClients {
                         name,
                         _unused -> ImmutableMap.of()))
                 .collect(Collectors.toList());
+    }
+
+    @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+            + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
+    public interface TimelockSingleLeaderPaxosLearnerRpcClient extends PaxosLearner {
+
+    }
+
+    @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+            + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
+    public interface TimelockSingleLeaderPaxosAcceptorRpcClient extends PaxosAcceptor {
+
     }
 }
