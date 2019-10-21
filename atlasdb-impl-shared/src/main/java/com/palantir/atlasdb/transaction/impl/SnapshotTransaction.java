@@ -323,7 +323,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
         hasReads = true;
-        ImmutableMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
+        ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
@@ -541,14 +541,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getStartTimestamp()));
 
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-        return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
+        return filterRowResults(tableRef, rawResults, ImmutableSortedMap.naturalOrder());
     }
 
-    private SortedMap<byte[], RowResult<byte[]>> filterRowResults(TableReference tableRef,
-                                                                  Map<Cell, Value> rawResults,
-                                                                  ImmutableMap.Builder<Cell, byte[]> result) {
-        getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-        Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(result.build(), tableRef);
+    private SortedMap<byte[], RowResult<byte[]>> filterRowResults(
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            ImmutableSortedMap.Builder<Cell, byte[]> result) {
+        ImmutableSortedMap.Builder<Cell, byte[]> collected =
+                getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
+        Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected.build(), tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }
 
@@ -1092,9 +1094,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilterRows(tableRef, results, Value.GET_VALUE);
     }
 
-    private <T> Map<Cell, T> postFilterRows(TableReference tableRef,
-                                                  List<RowResult<Value>> rangeRows,
-                                                  Function<Value, T> transformer) {
+    private <T> Map<Cell, T> postFilterRows(
+            TableReference tableRef,
+            List<RowResult<Value>> rangeRows,
+            Function<Value, T> transformer) {
         ensureUncommitted();
 
         if (rangeRows.isEmpty()) {
@@ -1125,12 +1128,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             R resultsAccumulator,
             Function<Value, T> transformer) {
         long bytes = 0;
-        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-            bytes += e.getValue().getContents().length + Cells.getApproxSizeOfCell(e.getKey());
+        for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
+            bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
         }
         if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
             log.warn("A single get had quite a few bytes: {} for table {}. The number of results was {}. "
-                    + "Enable debug logging for more information.",
+                            + "Enable debug logging for more information.",
                     SafeArg.of("numBytes", bytes),
                     LoggingArgs.tableRef(tableRef),
                     SafeArg.of("numResults", rawResults.size()));
