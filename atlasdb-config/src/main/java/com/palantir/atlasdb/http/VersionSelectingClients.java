@@ -38,7 +38,7 @@ final class VersionSelectingClients {
     private static final String CLIENT_VERSION = "clientVersion";
 
     private VersionSelectingClients() {
-        // No, nein, 9, etc.
+        // No, nein, 9, U+39, U+FE0F, etc.
     }
 
     static <T> T createVersionSelectingClient(
