@@ -38,7 +38,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 
 public final class AsyncCellLoader {
-
     private static final Logger log = LoggerFactory.getLogger(AsyncCellLoader.class);
 
     private final CqlClient cqlClient;
@@ -96,7 +95,7 @@ public final class AsyncCellLoader {
                         .build());
     }
 
-    private static  <V> V getDone(Future<V> listenableFuture) {
+    private static <V> V getDone(Future<V> listenableFuture) {
         try {
             return Futures.getDone(listenableFuture);
         } catch (ExecutionException e) {
