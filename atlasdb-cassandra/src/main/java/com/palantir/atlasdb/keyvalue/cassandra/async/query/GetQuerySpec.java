@@ -49,7 +49,7 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     public String formatQueryString() {
         return String.format(
                 QUERY_FORMAT,
-                cqlQueryContext().keySpace(),
+                cqlQueryContext().keyspace(),
                 AbstractKeyValueService.internalTableName(cqlQueryContext().tableReference()));
     }
 

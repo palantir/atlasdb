@@ -19,10 +19,16 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public interface CqlQueryContext {
-    String keySpace();
+    String keyspace();
 
     TableReference tableReference();
+
+    @Value.Check
+    default void check() {
+        Preconditions.checkState(!keyspace().contains("\""), "Keyspace should not be quoted");
+    }
 }

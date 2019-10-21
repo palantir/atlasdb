@@ -92,7 +92,7 @@ public class QueryCacheTest {
             GetQueryParameters getQueryParameters) {
         return ImmutableGetQuerySpec.builder()
                 .cqlQueryContext(ImmutableCqlQueryContext.builder()
-                        .keySpace(keyspace)
+                        .keyspace(keyspace)
                         .tableReference(tableReference)
                         .build())
                 .queryParameters(getQueryParameters)

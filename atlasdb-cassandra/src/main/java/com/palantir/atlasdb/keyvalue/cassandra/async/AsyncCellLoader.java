@@ -85,7 +85,7 @@ public final class AsyncCellLoader {
                 ImmutableGetQuerySpec.builder()
                         .cqlQueryContext(ImmutableCqlQueryContext.builder()
                                 .tableReference(tableRef)
-                                .keySpace(keyspace)
+                                .keyspace(keyspace)
                                 .build())
                         .queryParameters(ImmutableGetQueryParameters.builder()
                                 .row(ByteBuffer.wrap(cell.getRowName()).asReadOnlyBuffer())
