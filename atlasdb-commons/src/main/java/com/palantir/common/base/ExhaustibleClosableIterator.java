@@ -19,7 +19,7 @@ package com.palantir.common.base;
 /**
  * An iterator which remembers if it has been totally consumed. hasNext sometimes does work.
  */
-public class ExhaustibleClosableIterator<T> implements ClosableIterator<T> {
+public final class ExhaustibleClosableIterator<T> implements ClosableIterator<T> {
     private final ClosableIterator<T> delegate;
     private boolean exhausted = false;
 
@@ -34,7 +34,7 @@ public class ExhaustibleClosableIterator<T> implements ClosableIterator<T> {
     @Override
     public boolean hasNext() {
         boolean hasNext = delegate.hasNext();
-        exhausted |= hasNext;
+        exhausted |= !hasNext;
         return hasNext;
     }
 
