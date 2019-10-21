@@ -35,7 +35,7 @@ public class AutobatchingLeadershipObserverFactory implements Factory<Leadership
 
     private final DisruptorAutobatcher<Map.Entry<Client, LeadershipEvent>, Void> leadershipEventProcessor;
 
-    public AutobatchingLeadershipObserverFactory(
+    private AutobatchingLeadershipObserverFactory(
             DisruptorAutobatcher<Map.Entry<Client, LeadershipEvent>, Void> leadershipEventProcessor) {
         this.leadershipEventProcessor = leadershipEventProcessor;
     }
@@ -57,7 +57,7 @@ public class AutobatchingLeadershipObserverFactory implements Factory<Leadership
     }
 
     static void processEvents(
-            Consumer<SetMultimap<LeadershipEvent, Client>> metricsManager,
+            Consumer<SetMultimap<LeadershipEvent, Client>> consumer,
             List<BatchElement<Map.Entry<Client, LeadershipEvent>, Void>> events) {
 
         SetMultimap<LeadershipEvent, Client> leadershipEventsToClients = KeyedStream
@@ -65,7 +65,7 @@ public class AutobatchingLeadershipObserverFactory implements Factory<Leadership
                 .mapEntries((client, leadershipEvent) -> Maps.immutableEntry(leadershipEvent, client))
                 .collectToSetMultimap();
 
-        metricsManager.accept(leadershipEventsToClients);
+        consumer.accept(leadershipEventsToClients);
 
         // complete requests to unblock the autobatcher
         events.stream()
@@ -82,14 +82,14 @@ public class AutobatchingLeadershipObserverFactory implements Factory<Leadership
         GAINED_LEADERSHIP(true),
         LOST_LEADERSHIP(false);
 
-        private final boolean asCurrentSuspectedLeader;
+        private final boolean isCurrentSuspectedLeader;
 
-        LeadershipEvent(boolean asCurrentSuspectedLeader) {
-            this.asCurrentSuspectedLeader = asCurrentSuspectedLeader;
+        LeadershipEvent(boolean isCurrentSuspectedLeader) {
+            this.isCurrentSuspectedLeader = isCurrentSuspectedLeader;
         }
 
         public boolean isCurrentSuspectedLeader() {
-            return asCurrentSuspectedLeader;
+            return isCurrentSuspectedLeader;
         }
     }
 
