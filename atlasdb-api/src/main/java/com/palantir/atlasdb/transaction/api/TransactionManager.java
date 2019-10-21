@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.HeldLocksToken;
@@ -77,6 +78,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E;
 
     /**
@@ -105,6 +107,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws TransactionConflictException if a write-write conflict occurs
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException;
 
@@ -119,6 +122,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
 
     /**
@@ -135,6 +139,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
@@ -148,6 +153,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @DoNotDelegate
     @Deprecated
+    @Timed
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
             com.google.common.base.Supplier<LockRequest> guavaSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException {
@@ -167,6 +173,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
@@ -181,6 +188,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @DoNotDelegate
     @Deprecated
+    @Timed
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             com.google.common.base.Supplier<LockRequest> guavaSupplier,
@@ -200,6 +208,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
             Iterable<HeldLocksToken> lockTokens,
             LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
@@ -218,6 +227,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
@@ -230,6 +240,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @DoNotDelegate
     @Deprecated
+    @Timed
     default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             com.google.common.base.Supplier<C> guavaSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
         Supplier<C> javaSupplier = guavaSupplier::get;
@@ -249,6 +260,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task)
             throws E, TransactionFailedRetriableException;
@@ -267,6 +279,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
@@ -353,6 +366,7 @@ public interface TransactionManager extends AutoCloseable {
      * <p>
      * This call must be implemented so that it completes synchronously.
      */
+    // There are metrics for the individual call
     KeyValueServiceStatus getKeyValueServiceStatus();
 
     /**
@@ -363,6 +377,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @return status of the timelock service
      */
+    // Just looks at in-memory metrics
     TimelockServiceStatus getTimelockServiceStatus();
 
     /**
@@ -379,12 +394,14 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    // I would say we don't really care about this? If we want this metric it should be in the puncher store.
     long getUnreadableTimestamp();
 
     /**
      * Clear the timestamp cache. This is mostly useful for tests that perform operations that would invalidate
      * the cache, although this can also be used to free up some memory.
      */
+    //
     void clearTimestampCache();
 
     /**
