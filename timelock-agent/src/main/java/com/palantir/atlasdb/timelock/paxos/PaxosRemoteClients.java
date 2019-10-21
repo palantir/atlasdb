@@ -64,7 +64,7 @@ public abstract class PaxosRemoteClients {
     public List<TimelockSingleLeaderPaxosAcceptorRpcClient> singleLeaderAcceptor() {
         return createInstrumentedRemoteProxies(
                 TimelockSingleLeaderPaxosAcceptorRpcClient.class,
-                "paxos-leader-acceptor  -rpc-client");
+                "paxos-leader-acceptor-rpc-client");
     }
 
     @Value.Derived
