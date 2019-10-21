@@ -676,12 +676,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Set<Cell> cells,
             CellLoader cellLoader) {
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
-        return Futures.transform(cellLoader.load(tableRef, toRead),
-                rawResults -> getWithPostFiltering(
-                        tableRef,
-                        rawResults,
-                        ImmutableMap.builderWithExpectedSize(cells.size()),
-                        Value.GET_VALUE).build(),
+        ListenableFuture<ImmutableMap.Builder<Cell, byte[]>> futureBuilder =
+                Futures.transformAsync(
+                        cellLoader.load(tableRef, toRead),
+                        rawResults -> getWithPostFilteringFuture(
+                                tableRef,
+                                rawResults,
+                                ImmutableMap.builderWithExpectedSize(cells.size()),
+                                Value.GET_VALUE,
+                                cellLoader),
+                        MoreExecutors.directExecutor());
+
+        return Futures.transform(
+                futureBuilder,
+                builder -> builder.build(),
                 MoreExecutors.directExecutor());
     }
 
@@ -1177,18 +1185,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return Futures.immediateFuture(resultsAccumulator);
         }
 
-        Map<Cell, Value> remainingResultsToPostfilter = rawResults;
         AtomicInteger resultCount = new AtomicInteger();
-        while (!remainingResultsToPostfilter.isEmpty()) {
-            remainingResultsToPostfilter = getWithPostFilteringInternal(
-                    tableRef,
+
+        return Futures.transformAsync(
+                Futures.immediateFuture(rawResults),
+                remainingResultsToPostfilter ->
+                        iterate(tableRef, remainingResultsToPostfilter, resultCount, resultsAccumulator, transformer, cellLoader),
+                MoreExecutors.directExecutor());
+    }
+
+    private <T, R extends ImmutableMap.Builder<Cell, T>> ListenableFuture<R> iterate(
+            TableReference tableReference,
+            Map<Cell, Value> remainingResultsToPostfilter,
+            AtomicInteger resultCounter,
+            R resultsAccumulator,
+            Function<Value, T> transformer,
+            CellLoader cellLoader) {
+        if (!remainingResultsToPostfilter.isEmpty()) {
+            return Futures.transformAsync(getWithPostFilteringInternal(
+                    tableReference,
                     remainingResultsToPostfilter,
                     resultsAccumulator,
-                    resultCount,
-                    transformer);
+                    resultCounter,
+                    transformer,
+                    cellLoader),
+                    remaining -> iterate(tableReference, remaining, resultCounter, resultsAccumulator, transformer, cellLoader),
+                    MoreExecutors.directExecutor());
         }
 
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableRef).mark(resultCount.get());
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference).mark(resultCounter.get());
         return Futures.immediateFuture(resultsAccumulator);
     }
 
@@ -1216,11 +1241,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This will return all the keys that still need to be postFiltered.  It will output properly
      * postFiltered keys to the results output param.
      */
-    private <T> Map<Cell, Value> getWithPostFilteringInternal(TableReference tableRef,
+    private <T> ListenableFuture<Map<Cell, Value>> getWithPostFilteringInternal(
+            TableReference tableRef,
             Map<Cell, Value> rawResults,
             @Output ImmutableMap.Builder<Cell, T> results,
             @Output AtomicInteger count,
-            Function<Value, T> transformer) {
+            Function<Value, T> transformer,
+            CellLoader cellLoader) {
         Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
@@ -1285,17 +1312,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
             if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
-                return getRemainingResults(rawResults, keysAddedToResults);
+                return Futures.immediateFuture(getRemainingResults(rawResults, keysAddedToResults));
             }
         }
 
         if (!keysToReload.isEmpty()) {
-            Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
-            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-            return getRemainingResults(nextRawResults, keysAddedToResults);
-        } else {
-            return ImmutableMap.of();
+            return Futures.transform(cellLoader.load(tableRef, keysToReload),
+                    nextRawResults -> {
+                        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                        return getRemainingResults(nextRawResults, keysAddedToResults);
+                    },
+                    MoreExecutors.directExecutor());
         }
+        return Futures.immediateFuture(ImmutableMap.of());
     }
 
     private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
