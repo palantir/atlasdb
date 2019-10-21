@@ -27,13 +27,13 @@ import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
 import com.palantir.atlasdb.keyvalue.cassandra.async.query.CqlQuerySpec;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class CqlClientImpl implements CqlClient {
-
     private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
 
         private final TaggedMetricRegistry taggedMetricRegistry;
@@ -127,7 +127,7 @@ public final class CqlClientImpl implements CqlClient {
 
         return execute(
                 executableStatement,
-                querySpec.cqlQueryContext().executor(),
+                MoreExecutors.directExecutor(),
                 querySpec.rowStreamAccumulatorFactory().get());
     }
 

@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.concurrent.Executor;
-
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,7 +25,4 @@ public interface CqlQueryContext {
     String keySpace();
 
     TableReference tableReference();
-
-    @Value.Auxiliary
-    Executor executor();
 }

@@ -19,8 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.concurrent.Executor;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -96,7 +94,7 @@ public class QueryCacheTest {
                 .cqlQueryContext(ImmutableCqlQueryContext.builder()
                         .keySpace(keyspace)
                         .tableReference(tableReference)
-                        .executor(mock(Executor.class)).build())
+                        .build())
                 .queryParameters(getQueryParameters)
                 .build();
     }
