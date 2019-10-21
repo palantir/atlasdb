@@ -31,7 +31,7 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeadershipObserver;
 
-public class AutobatchingLeadershipObserverFactory implements Factory<LeadershipObserver>, Closeable {
+public final class AutobatchingLeadershipObserverFactory implements Factory<LeadershipObserver>, Closeable {
 
     private final DisruptorAutobatcher<Map.Entry<Client, LeadershipEvent>, Void> leadershipEventProcessor;
 
@@ -56,7 +56,7 @@ public class AutobatchingLeadershipObserverFactory implements Factory<Leadership
         return new AutobatchingMetricsDeregistrator(client);
     }
 
-    static void processEvents(
+    private static void processEvents(
             Consumer<SetMultimap<LeadershipEvent, Client>> consumer,
             List<BatchElement<Map.Entry<Client, LeadershipEvent>, Void>> events) {
 
