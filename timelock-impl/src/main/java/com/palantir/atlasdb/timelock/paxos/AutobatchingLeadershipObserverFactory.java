@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.paxos;
+package com.palantir.atlasdb.timelock.paxos;
 
 import java.io.Closeable;
 import java.util.List;
@@ -26,12 +26,10 @@ import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeadershipObserver;
 
-public final class AutobatchingLeadershipObserverFactory implements Factory<LeadershipObserver>, Closeable {
+public final class AutobatchingLeadershipObserverFactory implements Closeable {
 
     private final DisruptorAutobatcher<Map.Entry<Client, LeadershipEvent>, Void> leadershipEventProcessor;
 
@@ -51,7 +49,6 @@ public final class AutobatchingLeadershipObserverFactory implements Factory<Lead
         return new AutobatchingLeadershipObserverFactory(leadershipEventProcessor);
     }
 
-    @Override
     public LeadershipObserver create(Client client) {
         return new AutobatchingMetricsDeregistrator(client);
     }
@@ -78,7 +75,7 @@ public final class AutobatchingLeadershipObserverFactory implements Factory<Lead
         leadershipEventProcessor.close();
     }
 
-    enum LeadershipEvent {
+    public enum LeadershipEvent {
         GAINED_LEADERSHIP(true),
         LOST_LEADERSHIP(false);
 

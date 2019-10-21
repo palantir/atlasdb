@@ -16,58 +16,120 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_CLIENT;
+import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER;
+import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_PAXOS_USE_CASE;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
+import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.leader.LeadershipObserver;
+import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 @Value.Immutable
 public abstract class TimelockLeadershipMetrics {
 
-    @Value.Parameter
-    abstract TimelockPaxosMetrics metrics();
-
-    @Value.Parameter
-    abstract PingableLeader localPingableLeader();
+    public abstract TimelockPaxosMetrics metrics();
+    public abstract UUID leaderUuid();
+    public abstract PingableLeader localPingableLeader();
+    public abstract AutobatchingLeadershipObserverFactory leadershipObserverFactory();
+    abstract Client client();
 
     @Value.Derived
-    MetricsManager metricsManager() {
-        // we don't use the normal metric registry so we don't care about this
-        return MetricsManagers.of(new MetricRegistry(), metrics().metrics());
+    List<SafeArg<String>> namespaceAsArgs() {
+        return ImmutableList.of(
+                SafeArg.of(TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()),
+                SafeArg.of(TAG_CLIENT, client().value()));
     }
 
-    public <T> T instrument(Client client, String name, Class<T> clazz, T instance) {
+    @Value.Derived
+    public PaxosLeadershipEventRecorder eventRecorder() {
+        return PaxosLeadershipEventRecorder.create(
+                metrics().metrics(),
+                leaderUuid().toString(),
+                leadershipObserver(),
+                namespaceAsArgs());
+    }
+
+    @Value.Derived
+    LeadershipObserver leadershipObserver() {
+        return leadershipObserverFactory().create(client());
+    }
+
+    public <T> T instrument(String name, Class<T> clazz, T instance) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 metrics().metrics(),
                 clazz,
                 instance,
                 name,
                 _context -> ImmutableMap.of(
-                        AtlasDbMetricNames.TAG_CLIENT, client.value(),
-                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
+                        TAG_CLIENT, client().value(),
+                        TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
     }
 
-    @Value.Derived
-    public List<SafeArg<Object>> namespaceAsArgs() {
-        return ImmutableList.of(SafeArg.of(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()));
+    public static AutobatchingLeadershipObserverFactory createFactory(TimelockPaxosMetrics metrics) {
+        return AutobatchingLeadershipObserverFactory.create(getMetricDeregistrator(metrics));
+    }
+
+    private static Consumer<SetMultimap<LeadershipEvent, Client>> getMetricDeregistrator(TimelockPaxosMetrics metrics) {
+        PaxosUseCase paxosUseCase = metrics.paxosUseCase();
+        switch (paxosUseCase) {
+            case LEADER_FOR_ALL_CLIENTS:
+                return deregisterMetricsForSingleLeader(metrics);
+            case LEADER_FOR_EACH_CLIENT:
+                return deregisterMetricsForPartitionedLeader(metrics);
+            case TIMESTAMP:
+                throw new SafeIllegalArgumentException("Timestamp paxos not supported");
+            default:
+                throw new SafeIllegalArgumentException("Unexpected paxosUseCase",  SafeArg.of("useCase", paxosUseCase));
+        }
+    }
+
+    private static Consumer<SetMultimap<LeadershipEvent, Client>> deregisterMetricsForSingleLeader(
+            TimelockPaxosMetrics metrics) {
+        return eventsToDeregister -> eventsToDeregister.keySet().forEach(event -> metrics.asMetricsManager()
+                .deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader())));
+    }
+
+    private static Consumer<SetMultimap<LeadershipEvent, Client>> deregisterMetricsForPartitionedLeader(
+            TimelockPaxosMetrics metrics) {
+        return eventsToDeregister -> {
+            Map<LeadershipEvent, Set<String>> eventsToClients = Multimaps.asMap(KeyedStream.stream(eventsToDeregister)
+                    .map(Client::value)
+                    .collectToSetMultimap());
+            eventsToClients.forEach((event, clients) -> metrics.asMetricsManager().deregisterTaggedMetrics(
+                    withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader())
+                            .and(withClientTag(clients))));
+        };
     }
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
         return metricName ->
-                Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
+                Optional.ofNullable(metricName.safeTags().get(TAG_CURRENT_SUSPECTED_LEADER))
                         .filter(String.valueOf(currentLeader)::equals)
                         .isPresent();
     }
+
+    private static Predicate<MetricName> withClientTag(Set<String> clients) {
+        return metricName -> clients.contains(metricName.safeTags().get(TAG_CLIENT));
+    }
+
 }
