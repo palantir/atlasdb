@@ -16,26 +16,36 @@
 
 package com.palantir.atlasdb.http;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.stream.IntStream;
 
 import org.junit.Test;
 
 import com.google.common.util.concurrent.AtomicDouble;
+import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.util.AccumulatingValueMetric;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.proxy.ExperimentRunningProxy;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class VersionSelectingClientsTest {
     private final AtomicDouble probability = new AtomicDouble(0.0);
     private final TimestampService newService = mock(TimestampService.class);
     private final TimestampService oldService = mock(TimestampService.class);
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+
     private final TimestampService selectingService = VersionSelectingClients.createVersionSelectingClient(
-            SharedTaggedMetricRegistries.getSingleton(),
+            metricsManager,
             ImmutableInstanceAndVersion.of(newService, "new"),
             ImmutableInstanceAndVersion.of(oldService, "old"),
             probability::get,
@@ -68,5 +78,37 @@ public class VersionSelectingClientsTest {
                 .forEach($ -> selectingService.getFreshTimestamp());
         verify(oldService, atLeast(10)).getFreshTimestamp();
         verify(newService, atLeast(10)).getFreshTimestamp();
+    }
+
+    @Test
+    public void allServicesUseTheSameErrorMetric() {
+        probability.set(1.0);
+        when(newService.getFreshTimestamp()).thenThrow(new RuntimeException());
+
+        Runnable oldTask = mock(Runnable.class);
+        Runnable newTask = mock(Runnable.class);
+
+        doThrow(new RuntimeException()).when(oldTask).run();
+
+        Runnable selectingTask = VersionSelectingClients.createVersionSelectingClient(
+                metricsManager,
+                ImmutableInstanceAndVersion.of(oldTask, "old"),
+                ImmutableInstanceAndVersion.of(newTask, "new"),
+                () -> 1.0,
+                Runnable.class);
+
+        assertThatThrownBy(selectingService::getFreshTimestamp).isInstanceOf(RuntimeException.class);
+        assertErrorMetricEquals(1L);
+
+        assertThatThrownBy(selectingTask::run).isInstanceOf(RuntimeException.class);
+        assertErrorMetricEquals(2L);
+    }
+
+    private void assertErrorMetricEquals(long errors) {
+        AccumulatingValueMetric gauge = metricsManager.registerOrGetGauge(
+                ExperimentRunningProxy.class,
+                AtlasDbMetricNames.EXPERIMENT_ERRORS,
+                AccumulatingValueMetric::new);
+        assertThat(gauge.getValue()).isEqualTo(errors);
     }
 }

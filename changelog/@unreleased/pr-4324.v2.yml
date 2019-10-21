@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Added a new metric `com.palantir.common.proxy.ExperimentRunningProxy.experimentErrors` that counts the number of errors
+    encountered by all clients created using `VersionSelectingClients.createVersionSelectingClient`, i.e., errors occuring
+    while using the experimental CJR AtlasDB client.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4324
