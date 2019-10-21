@@ -1127,6 +1127,25 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Map<Cell, Value> rawResults,
             R resultsAccumulator,
             Function<Value, T> transformer) {
+        try {
+            return getWithPostFilteringFuture(
+                    tableRef,
+                    rawResults,
+                    resultsAccumulator,
+                    transformer,
+                    (tableReference, toRead) ->
+                            Futures.immediateFuture(keyValueService.get(tableReference, toRead))).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    private <T, R extends ImmutableMap.Builder<Cell, T>> ListenableFuture<R> getWithPostFilteringFuture(
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            R resultsAccumulator,
+            Function<Value, T> transformer,
+            CellLoader cellLoader) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
             bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
@@ -1155,18 +1174,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
                 resultsAccumulator.put(e.getKey(), transformer.apply(e.getValue()));
             }
-            return resultsAccumulator;
+            return Futures.immediateFuture(resultsAccumulator);
         }
 
         Map<Cell, Value> remainingResultsToPostfilter = rawResults;
         AtomicInteger resultCount = new AtomicInteger();
         while (!remainingResultsToPostfilter.isEmpty()) {
             remainingResultsToPostfilter = getWithPostFilteringInternal(
-                    tableRef, remainingResultsToPostfilter, resultsAccumulator, resultCount, transformer);
+                    tableRef,
+                    remainingResultsToPostfilter,
+                    resultsAccumulator,
+                    resultCount,
+                    transformer);
         }
 
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableRef).mark(resultCount.get());
-        return resultsAccumulator;
+        return Futures.immediateFuture(resultsAccumulator);
     }
 
     /**
