@@ -18,27 +18,35 @@ package com.palantir.atlasdb.util;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.atlasdb.metrics.Timed;
 
 public class AtlasDbMetricsTest {
 
     private static final String CUSTOM_METRIC_NAME = "foo";
     private static final String PING_REQUEST = "ping";
+    private static final String PING_NOT_TIMED_REQUEST = "ping"
     private static final String PING_RESPONSE = "pong";
 
-    private static final MetricRegistry metricRegistry = mock(MetricRegistry.class);
-    private static final TaggedMetricRegistry taggedMetricRegistry = mock(TaggedMetricRegistry.class);
-
     private final MetricRegistry metrics = new MetricRegistry();
+    private final TestService testService = new TestService() {
+        @Override
+        public String ping() {
+            return PING_RESPONSE;
+        }
+
+        @Override
+        public String pingNotTimed() {
+            return PING_RESPONSE;
+        }
+    };
 
     @Test
     public void instrumentWithDefaultName() {
-        TestService service = AtlasDbMetrics.instrument(metrics, TestService.class, () -> PING_RESPONSE);
+        TestService service = AtlasDbMetrics.instrumentTimed(metrics, TestService.class, testService);
 
         assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(TestService.class, PING_REQUEST));
     }
@@ -46,7 +54,7 @@ public class AtlasDbMetricsTest {
     @Test
     public void instrumentWithCustomName() {
         TestService service = AtlasDbMetrics.instrument(
-                metrics, TestService.class, () -> PING_RESPONSE, CUSTOM_METRIC_NAME);
+                metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
 
         assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(CUSTOM_METRIC_NAME, PING_REQUEST));
     }
@@ -54,7 +62,8 @@ public class AtlasDbMetricsTest {
     private void assertMetricCountIncrementsAfterPing(
             MetricRegistry metrics,
             TestService service,
-            String methodTimerName) {
+            String methodTimerName,
+            Runnable runnable) {
         assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(0L)));
 
         assertThat(service.ping(), is(equalTo(PING_RESPONSE)));
@@ -63,6 +72,9 @@ public class AtlasDbMetricsTest {
     }
 
     public interface TestService {
+        @Timed
         String ping();
+
+        String pingNotTimed();
     }
 }
