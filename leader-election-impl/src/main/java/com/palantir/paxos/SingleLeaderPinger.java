@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
-import com.palantir.leader.PaxosLeaderElectionEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -46,25 +45,22 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final ConcurrentMap<UUID, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
     private final Map<PingableLeader, ExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
-    private final PaxosLeaderElectionEventRecorder eventRecorder;
     private final UUID localUuid;
 
     public SingleLeaderPinger(
             Map<PingableLeader, ExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
-            PaxosLeaderElectionEventRecorder eventRecorder,
             UUID localUuid) {
         this.leaderPingExecutors = otherPingableExecutors;
         this.leaderPingResponseWait = leaderPingResponseWait;
-        this.eventRecorder = eventRecorder;
         this.localUuid = localUuid;
     }
 
     @Override
-    public boolean pingLeaderWithUuid(UUID uuid) {
+    public LeaderPingResult pingLeaderWithUuid(UUID uuid) {
         Optional<PingableLeader> suspectedLeader = getSuspectedLeader(uuid);
         if (!suspectedLeader.isPresent()) {
-            return false;
+            return LeaderPingResults.pingReturnedFalse();
         }
 
         PingableLeader leader = suspectedLeader.get();
@@ -81,26 +77,21 @@ public class SingleLeaderPinger implements LeaderPinger {
             return getAndRecordLeaderPingResult(pingFuture);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            return false;
+            return LeaderPingResults.pingCallFailure(ex);
         }
     }
 
-    private boolean getAndRecordLeaderPingResult(@Nullable Future<Map.Entry<PingableLeader, Boolean>> pingFuture)
-            throws InterruptedException {
+    private static LeaderPingResult getAndRecordLeaderPingResult(
+            @Nullable Future<Map.Entry<PingableLeader, Boolean>> pingFuture) throws InterruptedException {
         if (pingFuture == null) {
-            eventRecorder.recordLeaderPingTimeout();
-            return false;
+            return LeaderPingResults.pingTimedOut();
         }
 
         try {
             boolean isLeader = pingFuture.get().getValue();
-            if (!isLeader) {
-                eventRecorder.recordLeaderPingReturnedFalse();
-            }
-            return isLeader;
+            return LeaderPingResult.fromBooleanResult(isLeader);
         } catch (ExecutionException ex) {
-            eventRecorder.recordLeaderPingFailure(ex.getCause());
-            return false;
+            return LeaderPingResults.pingCallFailure(ex.getCause());
         }
     }
 

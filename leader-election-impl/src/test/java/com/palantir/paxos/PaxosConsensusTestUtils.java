@@ -32,7 +32,6 @@ import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
-import com.palantir.leader.PaxosLeaderElectionEventRecorder;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -88,8 +87,6 @@ public final class PaxosConsensusTestUtils {
             PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
                     ourLearner, remoteLearners, quorumSize, Maps.toMap(learners, $ -> executor));
 
-            LeaderPinger leaderPinger = new SingleLeaderPinger(
-                    ImmutableMap.of(), Duration.ZERO, PaxosLeaderElectionEventRecorder.NO_OP, leaderUuid);
             LeaderElectionService leader = new LeaderElectionServiceBuilder()
                     .leaderUuid(leaderUuid)
                     .pingRate(Duration.ZERO)
@@ -97,7 +94,7 @@ public final class PaxosConsensusTestUtils {
                     .knowledge(ourLearner)
                     .acceptorClient(acceptorNetworkClient)
                     .learnerClient(learnerNetworkClient)
-                    .leaderPinger(leaderPinger)
+                    .leaderPinger(new SingleLeaderPinger(ImmutableMap.of(), Duration.ZERO, leaderUuid))
                     .build();
             leaders.add(SimulatingFailingServerProxy.newProxyInstance(
                     LeaderElectionService.class,

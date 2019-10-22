@@ -24,8 +24,9 @@ public interface LeaderPinger {
      * Tries to find the host that has leadership identifier equal to {@code uuid}. If a host is found, it queries
      * whether it is the leader. Every failure case <b>must</b> result in {@code false}.
 
-     * @return whether a leader was found with leadership identifier being {@code uuid}
+     * @return whether a leader was found with leadership identifier being {@code uuid} or a different descriptive
+     * result
      */
-    boolean pingLeaderWithUuid(UUID uuid);
+    LeaderPingResult pingLeaderWithUuid(UUID uuid);
 
 }

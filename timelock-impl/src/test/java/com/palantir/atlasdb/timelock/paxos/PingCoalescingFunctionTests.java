@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.paxos.LeaderPingResults;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PingCoalescingFunctionTests {
@@ -45,9 +46,9 @@ public class PingCoalescingFunctionTests {
 
         PingCoalescingFunction function = new PingCoalescingFunction(remote);
         assertThat(function.apply(clients))
-                .containsEntry(CLIENT_1, true)
-                .containsEntry(CLIENT_3, true)
-                .doesNotContainEntry(CLIENT_2, true)
-                .containsEntry(CLIENT_2, false);
+                .containsEntry(CLIENT_1, LeaderPingResults.pingReturnedTrue())
+                .containsEntry(CLIENT_3, LeaderPingResults.pingReturnedTrue())
+                .doesNotContainEntry(CLIENT_2, LeaderPingResults.pingReturnedTrue())
+                .containsEntry(CLIENT_2, LeaderPingResults.pingReturnedFalse());
     }
 }

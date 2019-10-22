@@ -171,7 +171,6 @@ public final class Leaders {
         LeaderPinger leaderPinger = new SingleLeaderPinger(
                 createExecutorsForService(metricsManager, otherLeaders, "leader-ping"),
                 config.leaderPingResponseWait(),
-                leadershipEventRecorder,
                 leaderUuid);
 
         LeaderElectionService uninstrumentedLeaderElectionService = new LeaderElectionServiceBuilder()

@@ -35,6 +35,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 
 public class AutobatchingPingableLeaderFactoryTests {
@@ -57,10 +58,10 @@ public class AutobatchingPingableLeaderFactoryTests {
         LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
         assertThat(client1Pinger.pingLeaderWithUuid(rpc.uuid()))
-                .isTrue();
+                .isEqualTo(LeaderPingResults.pingReturnedTrue());
 
         assertThat(client2Pinger.pingLeaderWithUuid(rpc.uuid()))
-                .isFalse();
+                .isEqualTo(LeaderPingResults.pingReturnedFalse());
     }
 
     @Test
@@ -72,10 +73,10 @@ public class AutobatchingPingableLeaderFactoryTests {
         LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
         assertThat(client1Pinger.pingLeaderWithUuid(UUID.randomUUID()))
-                .isFalse();
+                .isEqualTo(LeaderPingResults.pingReturnedFalse());
 
         assertThat(client2Pinger.pingLeaderWithUuid(UUID.randomUUID()))
-                .isFalse();
+                .isEqualTo(LeaderPingResults.pingReturnedFalse());
     }
 
     @Test
@@ -88,10 +89,10 @@ public class AutobatchingPingableLeaderFactoryTests {
         LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
         assertThat(client1Pinger.pingLeaderWithUuid(client1Leader.uuid))
-                .isTrue();
+                .isEqualTo(LeaderPingResults.pingReturnedTrue());
 
         assertThat(client2Pinger.pingLeaderWithUuid(client2Leader.uuid))
-                .isTrue();
+                .isEqualTo(LeaderPingResults.pingReturnedTrue());
     }
 
     @Test
@@ -99,14 +100,15 @@ public class AutobatchingPingableLeaderFactoryTests {
         UUID uuid = UUID.randomUUID();
         BatchPingableLeader rpc = mock(BatchPingableLeader.class);
         when(rpc.uuid()).thenReturn(uuid);
-        when(rpc.ping(anySet())).thenThrow(new RuntimeException("ping failure"));
+        RuntimeException error = new RuntimeException("ping failure");
+        when(rpc.ping(anySet())).thenThrow(error);
 
         AutobatchingPingableLeaderFactory factory = factoryForPingables(rpc);
 
         assertThat(factory.leaderPingerFor(CLIENT_1).pingLeaderWithUuid(uuid))
-                .isFalse();
+                .isEqualTo(LeaderPingResults.pingCallFailure(error));
         assertThat(factory.leaderPingerFor(CLIENT_2).pingLeaderWithUuid(uuid))
-                .isFalse();
+                .isEqualTo(LeaderPingResults.pingCallFailure(error));
 
         // assert that the rpc call did actually take place!
         verify(rpc).uuid();
