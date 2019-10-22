@@ -31,6 +31,10 @@ final class TimedOnlyInstrumentationFilter implements InstrumentationFilter {
 
     @Override
     public boolean shouldInstrument(@Nonnull Object instance, @Nonnull Method method, @Nonnull Object[] args) {
-        return filtered.computeIfAbsent(method, _method -> method.getAnnotation(Timed.class) != null);
+        return filtered.computeIfAbsent(method, this::shouldInstrument);
+    }
+
+    private boolean shouldInstrument(Method method) {
+        return method.getAnnotation(Timed.class) != null;
     }
 }
