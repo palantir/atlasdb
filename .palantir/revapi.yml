@@ -80,6 +80,18 @@ acceptedBreaks:
         \ java.util.function.Supplier<com.palantir.atlasdb.config.ServerListConfig>,\
         \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
       justification: "Just let me merge"
+  0.162.6:
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.factory.Leaders.LocalPaxosServices com.palantir.atlasdb.factory.Leaders::createInstrumentedLocalServices(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.config.LeaderConfig, java.util.function.Supplier<com.palantir.atlasdb.config.LeaderRuntimeConfig>,\
+        \ com.palantir.atlasdb.factory.Leaders.RemotePaxosServerSpec, com.palantir.conjure.java.api.config.service.UserAgent,\
+        \ ===java.util.function.Supplier<com.palantir.leader.LeadershipObserver>===)"
+      new: "parameter com.palantir.atlasdb.factory.Leaders.LocalPaxosServices com.palantir.atlasdb.factory.Leaders::createInstrumentedLocalServices(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.config.LeaderConfig, java.util.function.Supplier<com.palantir.atlasdb.config.LeaderRuntimeConfig>,\
+        \ com.palantir.atlasdb.factory.Leaders.RemotePaxosServerSpec, com.palantir.conjure.java.api.config.service.UserAgent,\
+        \ ===com.palantir.leader.LeadershipObserver===)"
+      justification: "this is internal code"
   0.161.0:
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.method.removed"
