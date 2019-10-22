@@ -101,11 +101,15 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     }
 
     private boolean useExperimental() {
-        return useExperimental.getAsBoolean() && !fallback();
-    }
+        if (!useExperimental.getAsBoolean()) {
+            return false;
+        }
 
-    private boolean fallback() {
-        return enableFallback.getAsBoolean() && !sufficientTimeSinceFailure();
+        if (!enableFallback.getAsBoolean()) {
+            return true;
+        }
+
+        return sufficientTimeSinceFailure();
     }
 
     private boolean sufficientTimeSinceFailure() {
