@@ -186,12 +186,6 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public String system_add_column_family(CfDef cf_def)
-            throws InvalidRequestException, SchemaDisagreementException, TException {
-        return executeHandlingExceptions(() -> client.system_add_column_family(cf_def));
-    }
-
-    @Override
     public String system_update_column_family(CfDef cf_def)
             throws InvalidRequestException, SchemaDisagreementException, TException {
         return executeHandlingExceptions(() -> client.system_update_column_family(cf_def));

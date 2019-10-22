@@ -83,7 +83,7 @@ public interface CassandraClient extends Closeable {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    // Instrumented manually
+    @Timed
     void batch_mutate(String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
@@ -150,9 +150,6 @@ public interface CassandraClient extends Closeable {
             throws InvalidRequestException, SchemaDisagreementException, TException;
 
     String system_update_keyspace(KsDef ks_def)
-            throws InvalidRequestException, SchemaDisagreementException, TException;
-
-    String system_add_column_family(CfDef cf_def)
             throws InvalidRequestException, SchemaDisagreementException, TException;
 
     String system_update_column_family(CfDef cf_def)
