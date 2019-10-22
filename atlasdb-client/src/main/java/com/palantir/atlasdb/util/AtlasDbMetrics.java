@@ -72,21 +72,6 @@ public final class AtlasDbMetrics {
                 instrumentAllMethods());
     }
 
-    public static <T, U extends T> T instrumentWithTaggedMetricsTimed(
-            TaggedMetricRegistry taggedMetrics,
-            Class<T> serviceInterface,
-            U service,
-            String name,
-            Function<InvocationContext, Map<String, String>> tagFunction) {
-        return instrumentWithTaggedMetrics(
-                taggedMetrics,
-                serviceInterface,
-                service,
-                name,
-                tagFunction,
-                instrumentTimedOnly());
-    }
-
     public static void registerCache(MetricRegistry metricRegistry, Cache<?, ?> cache, String metricsPrefix) {
         Set<String> existingMetrics = metricRegistry.getMetrics().keySet().stream()
                 .filter(name -> name.startsWith(metricsPrefix))
