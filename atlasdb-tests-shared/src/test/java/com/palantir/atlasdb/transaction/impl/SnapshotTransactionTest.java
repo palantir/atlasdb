@@ -55,6 +55,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -77,6 +78,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -104,6 +106,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -150,18 +153,23 @@ import com.palantir.timestamp.TimestampService;
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final String SYNC = "sync";
     private static final String ASYNC = "async";
+    private static final AtomicBoolean ASYNC_FLAG = new AtomicBoolean(false);
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, UnaryOperator.identity()},
-                {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
+                {SYNC, UnaryOperator.identity(), UnaryOperator.identity()},
+                {ASYNC,
+                 (UnaryOperator<Transaction>) transaction ->
+                         new GetAsyncDelegate(transaction, () -> ASYNC_FLAG.set(true), () -> ASYNC_FLAG.set(false)), (
+                         UnaryOperator<KeyValueService>) VerifyingDelegate::new}
         };
         return Arrays.asList(data);
     }
 
     private final String name;
     private final UnaryOperator<Transaction> transactionWrapper;
+    private final UnaryOperator<KeyValueService> keyValueServiceWrapper;
     private final Map<String, ExpectationFactory>
             expectationsMapping =
             ImmutableMap.<String, ExpectationFactory>builder()
@@ -209,9 +217,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }};
     }
 
-    public SnapshotTransactionTest(String name, UnaryOperator<Transaction> transactionWrapper) {
+    public SnapshotTransactionTest(
+            String name,
+            UnaryOperator<Transaction> transactionWrapper,
+            UnaryOperator<KeyValueService> keyValueServiceUnaryOperator) {
         this.name = name;
         this.transactionWrapper = transactionWrapper;
+        this.keyValueServiceWrapper = keyValueServiceUnaryOperator;
     }
     private class UnstableKeyValueService implements AutoDelegate_KeyValueService {
 
@@ -297,6 +309,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Override
     protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
         return new WrappingTestTransactionManagerImpl(testTransactionManager, transactionWrapper);
+    }
+
+    @Override
+    protected KeyValueService wrapKeyValueService(KeyValueService trackingKeyValueService) {
+        return keyValueServiceWrapper.apply(trackingKeyValueService);
     }
 
     @Test
@@ -1464,6 +1481,31 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         @Override
         protected Transaction wrap(Transaction transaction) {
             return transactionWrapper.apply(transaction);
+        }
+    }
+
+    private static class VerifyingDelegate implements AutoDelegate_KeyValueService {
+        private final KeyValueService delegate;
+
+        VerifyingDelegate(KeyValueService cassandraKeyValueService) {
+            this.delegate = cassandraKeyValueService;
+        }
+
+        @Override
+        public KeyValueService delegate() {
+            return delegate;
+        }
+
+        @Override
+        public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+            try {
+                Preconditions.checkState(!ASYNC_FLAG.get(), "Calling sync get on KVS even though it should be async");
+                return delegate.getAsync(tableRef, timestampByCell).get();
+            } catch (InterruptedException e) {
+                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e);
+            } catch (ExecutionException e) {
+                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e.getCause());
+            }
         }
     }
 }

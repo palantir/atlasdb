@@ -28,9 +28,17 @@ import com.palantir.common.base.Throwables;
 public class GetAsyncDelegate extends ForwardingTransaction {
 
     private final Transaction delegate;
+    private final Runnable markEntryFunction;
+    private final Runnable markExitFunction;
 
     public GetAsyncDelegate(Transaction transaction) {
+        this(transaction, () -> {}, () -> {});
+    }
+
+    public GetAsyncDelegate(Transaction transaction, Runnable markEntryFunction, Runnable markExitFunction) {
         this.delegate = transaction;
+        this.markEntryFunction = markEntryFunction;
+        this.markExitFunction = markExitFunction;
     }
 
     @Override
@@ -41,11 +49,15 @@ public class GetAsyncDelegate extends ForwardingTransaction {
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
+            markEntryFunction.run();
             return super.getAsync(tableRef, cells).get();
         } catch (InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+        finally {
+            markExitFunction.run();
         }
     }
 }

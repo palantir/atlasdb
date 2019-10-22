@@ -76,10 +76,7 @@ public class AtlasDbTestCase {
         lockClient = LockClient.of("fake lock client");
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         timestampService = new InMemoryTimestampService();
-        KeyValueService kvs = getBaseKeyValueService();
-        keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
-        keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
-        TransactionTables.createTables(kvs);
+        TransactionTables.createTables(setUpKeyValueService());
         transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -106,6 +103,17 @@ public class AtlasDbTestCase {
                 MoreExecutors.newDirectExecutorService()));
 
         txManager = new CachingTestTransactionManager(serializableTxManager);
+    }
+
+    protected TrackingKeyValueService setUpKeyValueService() {
+        KeyValueService kvs = wrapKeyValueService(getBaseKeyValueService());
+        keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
+        keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
+        return keyValueService;
+    }
+
+    protected KeyValueService wrapKeyValueService(KeyValueService trackingKeyValueService) {
+        return trackingKeyValueService;
     }
 
     protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
