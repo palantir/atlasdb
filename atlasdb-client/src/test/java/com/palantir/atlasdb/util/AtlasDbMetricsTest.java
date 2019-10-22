@@ -24,11 +24,12 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.metrics.Timed;
 
-public class AtlasDbMetricsTest {
+public final class AtlasDbMetricsTest {
 
     private static final String CUSTOM_METRIC_NAME = "foo";
-    private static final String PING_REQUEST = "ping";
-    private static final String PING_NOT_TIMED_REQUEST = "pingNotTimed";
+    private static final String PING_METHOD = "ping";
+    private static final String PING_REQUEST_METRIC = MetricRegistry.name(TestService.class, PING_METHOD);
+    private static final String PING_NOT_TIMED_REQUEST = MetricRegistry.name(TestService.class, "pingNotTimed");
     private static final String PING_RESPONSE = "pong";
 
     private final MetricRegistry metrics = new MetricRegistry();
@@ -48,28 +49,16 @@ public class AtlasDbMetricsTest {
     public void instrumentWithDefaultNameTimed() {
         TestService service = AtlasDbMetrics.instrumentTimed(metrics, TestService.class, testService);
 
-        assertMetricCountAfterInvocation(
-                MetricRegistry.name(TestService.class, PING_REQUEST),
-                service::ping,
-                true);
-        assertMetricCountAfterInvocation(
-                MetricRegistry.name(TestService.class, PING_NOT_TIMED_REQUEST),
-                service::pingNotTimed,
-                false);
+        assertMethodInstrumented(PING_REQUEST_METRIC, service::ping);
+        assertMethodNotInstrumented(PING_NOT_TIMED_REQUEST, service::pingNotTimed);
     }
 
     @Test
     public void instrumentWithDefaultNameAll() {
         TestService service = AtlasDbMetrics.instrument(metrics, TestService.class, testService);
 
-        assertMetricCountAfterInvocation(
-                MetricRegistry.name(TestService.class, PING_REQUEST),
-                service::ping,
-                true);
-        assertMetricCountAfterInvocation(
-                MetricRegistry.name(TestService.class, PING_NOT_TIMED_REQUEST),
-                service::pingNotTimed,
-                true);
+        assertMethodInstrumented(PING_REQUEST_METRIC, service::ping);
+        assertMethodInstrumented(PING_NOT_TIMED_REQUEST, service::pingNotTimed);
     }
 
     @Test
@@ -77,18 +66,30 @@ public class AtlasDbMetricsTest {
         TestService service = AtlasDbMetrics.instrument(
                 metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
 
-        assertMetricCountAfterInvocation(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_REQUEST), service::ping, true);
+        assertMethodInstrumented(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_METHOD), service::ping);
     }
 
-    private void assertMetricCountAfterInvocation(
+    private void assertMethodInstrumented(
+            String methodTimerName,
+            Supplier<String> invocation) {
+        assertMethodInstrumentation(methodTimerName, invocation, true);
+    }
+
+    private void assertMethodNotInstrumented(
+            String methodTimerName,
+            Supplier<String> invocation) {
+        assertMethodInstrumentation(methodTimerName, invocation, false);
+    }
+
+    private void assertMethodInstrumentation(
             String methodTimerName,
             Supplier<String> invocation,
-            boolean shouldBeInvoked) {
+            boolean isInstrumented) {
         assertTimerNotRegistered(methodTimerName);
 
         assertThat(invocation.get()).isEqualTo(PING_RESPONSE);
 
-        if (shouldBeInvoked) {
+        if (isInstrumented) {
             assertThat(metrics.timer(methodTimerName).getCount()).isEqualTo(1);
         } else {
             assertTimerNotRegistered(methodTimerName);
