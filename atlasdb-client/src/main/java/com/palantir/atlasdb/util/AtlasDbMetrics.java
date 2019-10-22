@@ -44,6 +44,11 @@ public final class AtlasDbMetrics {
         return instrument(metricRegistry, serviceInterface, service, serviceInterface.getName(), instrumentTimedOnly());
     }
 
+    public static <T, U extends T> T instrumentTimed(
+            MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
+        return instrument(metricRegistry, serviceInterface, service, name, instrumentTimedOnly());
+    }
+
     /**
      * @deprecated use {@link #instrumentTimed(MetricRegistry, Class, Object)}
      */
@@ -53,6 +58,10 @@ public final class AtlasDbMetrics {
         return instrument(metricRegistry, serviceInterface, service, serviceInterface.getName());
     }
 
+    /**
+     * @deprecated use {@link #instrumentTimed(MetricRegistry, Class, Object, String)}
+     */
+    @Deprecated
     public static <T, U extends T> T instrument(
             MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
         return instrument(metricRegistry, serviceInterface, service, name, instrumentAllMethods());
