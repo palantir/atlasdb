@@ -392,6 +392,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     long getUnreadableTimestamp();
 
     /**
