@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -28,17 +29,15 @@ import com.palantir.common.base.Throwables;
 public class GetAsyncDelegate extends ForwardingTransaction {
 
     private final Transaction delegate;
-    private final Runnable markEntryFunction;
-    private final Runnable markExitFunction;
+    private final AtomicInteger atomicInteger;
 
     public GetAsyncDelegate(Transaction transaction) {
-        this(transaction, () -> {}, () -> {});
+        this(transaction, new AtomicInteger());
     }
 
-    public GetAsyncDelegate(Transaction transaction, Runnable markEntryFunction, Runnable markExitFunction) {
+    public GetAsyncDelegate(Transaction transaction, AtomicInteger atomicInteger) {
         this.delegate = transaction;
-        this.markEntryFunction = markEntryFunction;
-        this.markExitFunction = markExitFunction;
+        this.atomicInteger = atomicInteger;
     }
 
     @Override
@@ -49,15 +48,16 @@ public class GetAsyncDelegate extends ForwardingTransaction {
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
-            markEntryFunction.run();
-            return super.getAsync(tableRef, cells).get();
+            atomicInteger.incrementAndGet();
+            return delegate().getAsync(tableRef, cells).get();
         } catch (InterruptedException e) {
+            atomicInteger.decrementAndGet();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         } catch (ExecutionException e) {
+            atomicInteger.decrementAndGet();
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
-        }
-        finally {
-            markExitFunction.run();
+        } finally {
+            atomicInteger.decrementAndGet();
         }
     }
 }

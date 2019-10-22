@@ -224,6 +224,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
+    private final CellLoader immediateCellLoader;
+    private final CellLoader asyncCellLoader;
 
     protected volatile boolean hasReads;
 
@@ -280,6 +282,63 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.immediateCellLoader = createImmediateCellLoader(keyValueService, defaultTransactionService);
+        this.asyncCellLoader = createAsyncCellLoader(keyValueService, defaultTransactionService);
+    }
+
+    private static CellLoader createAsyncCellLoader(
+            KeyValueService keyValueService,
+            TransactionService defaultTransactionService) {
+        return new CellLoader() {
+            private final TimestampLoader timestampLoader = new TimestampLoader() {
+                @Override
+                public ListenableFuture<Long> get(long startTs) {
+                    return defaultTransactionService.getAsync(startTs);
+                }
+
+                @Override
+                public ListenableFuture<Map<Long, Long>> get(Iterable<Long> startTimestamps) {
+                    return defaultTransactionService.getAsync(startTimestamps);
+                }
+            };
+
+            @Override
+            public ListenableFuture<Map<Cell, Value>> load(TableReference tableReference, Map<Cell, Long> toRead) {
+                return keyValueService.getAsync(tableReference, toRead);
+            }
+
+            @Override
+            public TimestampLoader timestampLoader() {
+                return timestampLoader;
+            }
+        };
+    }
+
+    private static CellLoader createImmediateCellLoader(KeyValueService keyValueService,
+            TransactionService defaultTransactionService) {
+        return new CellLoader() {
+            private final TimestampLoader timestampLoader = new TimestampLoader() {
+                @Override
+                public ListenableFuture<Long> get(long startTs) {
+                    return Futures.immediateFuture(defaultTransactionService.get(startTs));
+                }
+
+                @Override
+                public ListenableFuture<Map<Long, Long>> get(Iterable<Long> startTimestamps) {
+                    return Futures.immediateFuture(defaultTransactionService.get(startTimestamps));
+                }
+            };
+
+            @Override
+            public ListenableFuture<Map<Cell, Value>> load(TableReference tableReference, Map<Cell, Long> toRead) {
+                return Futures.immediateFuture(keyValueService.get(tableReference, toRead));
+            }
+
+            @Override
+            public TimestampLoader timestampLoader() {
+                return timestampLoader;
+            }
+        };
     }
 
     @Override
@@ -590,12 +649,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
-            return getWithLoader(
-                    "get",
-                    tableRef,
-                    cells,
-                    (tableReference, toRead) ->
-                            Futures.immediateFuture(keyValueService.get(tableReference, toRead))).get();
+            return getWithLoader("get", tableRef, cells, immediateCellLoader).get();
         } catch (InterruptedException | ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
@@ -604,7 +658,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return getWithLoader("getAsync", tableRef, cells, keyValueService::getAsync);
+        return getWithLoader("getAsync", tableRef, cells, asyncCellLoader);
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
@@ -657,10 +711,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         hasReads = true;
 
-        ListenableFuture<Map<Cell, byte[]>> result = getFromKeyValueService(
-                tableRef,
-                cells,
-                (tableReference, toRead) -> Futures.immediateFuture(keyValueService.get(tableReference, toRead)));
+        ListenableFuture<Map<Cell, byte[]>> result = getFromKeyValueService(tableRef, cells, immediateCellLoader);
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
         return Maps.filterValues(Futures.getUnchecked(result), Predicates.not(Value::isTombstone));
@@ -689,13 +740,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         return Futures.transform(
                 futureBuilder,
-                builder -> builder.build(),
+                ImmutableMap.Builder::build,
                 MoreExecutors.directExecutor());
     }
 
-    @FunctionalInterface
     private interface CellLoader {
         ListenableFuture<Map<Cell, Value>> load(TableReference tableReference, Map<Cell, Long> toRead);
+
+        TimestampLoader timestampLoader();
+    }
+
+    private interface TimestampLoader {
+        ListenableFuture<Long> get(long startTimestamp);
+
+        ListenableFuture<Map<Long, Long>> get(Iterable<Long> startTimestamps);
     }
 
     private static byte[] getNextStartRowName(
@@ -1248,13 +1306,37 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Output AtomicInteger count,
             Function<Value, T> transformer,
             CellLoader cellLoader) {
-        Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
-        Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
+
+        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
+
+        return Futures.transformAsync(
+                getCommitTimestamps(tableRef, getStartTimestampsForValues(rawResults.values()), true, cellLoader),
+                commitTimestamps ->
+                        collectToPostFilter(
+                                tableRef,
+                                rawResults,
+                                results,
+                                count,
+                                transformer,
+                                cellLoader,
+                                orphanedSentinels,
+                                commitTimestamps),
+                MoreExecutors.directExecutor());
+    }
+
+    private <T> ListenableFuture<Map<Cell, Value>> collectToPostFilter(
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            @Output ImmutableMap.Builder<Cell, T> results,
+            @Output AtomicInteger count,
+            Function<Value, T> transformer,
+            CellLoader cellLoader,
+            Set<Cell> orphanedSentinels,
+            Map<Long, Long> commitTimestamps) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
-        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
@@ -1269,20 +1351,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         break;
                     case THROW_EXCEPTION:
                         if (!orphanedSentinels.contains(key)) {
-                            throw new TransactionFailedRetriableException("Tried to read a value that has been "
-                                    + "deleted. This can be caused by hard delete transactions using the type "
-                                    + TransactionType.AGGRESSIVE_HARD_DELETE
-                                    + ". It can also be caused by transactions taking too long, or"
-                                    + " its locks expired. Retrying it should work.");
+                            throw new TransactionFailedRetriableException(
+                                    "Tried to read a value that has been "
+                                            + "deleted. This can be caused by hard delete transactions using the type "
+                                            + TransactionType.AGGRESSIVE_HARD_DELETE
+                                            + ". It can also be caused by transactions taking too long, or"
+                                            + " its locks expired. Retrying it should work.");
 
                         }
                         break;
                     default:
-                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
+                        throw new IllegalStateException(
+                                "Invalid read sentinel behavior " + getReadSentinelBehavior());
                 }
             } else {
                 Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
-                if (theirCommitTimestamp == null || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
+                if (theirCommitTimestamp == null
+                        || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
                     keysToReload.put(key, value.getTimestamp());
                     if (shouldDeleteAndRollback()) {
                         // This is from a failed transaction so we can roll it back and then reload it.
@@ -1295,7 +1380,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
-                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
+                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS,
+                            tableRef)
                             .mark();
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
@@ -1311,7 +1397,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
-            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
+            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps,
+                    defaultTransactionService)) {
                 return Futures.immediateFuture(getRemainingResults(rawResults, keysAddedToResults));
             }
         }
@@ -2031,8 +2118,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected Map<Long, Long> getCommitTimestamps(@Nullable TableReference tableRef,
                                                   Iterable<Long> startTimestamps,
                                                   boolean waitForCommitterToComplete) {
+        try {
+            return getCommitTimestamps(
+                    tableRef,
+                    startTimestamps,
+                    waitForCommitterToComplete,
+                    immediateCellLoader).get();
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+
+    private ListenableFuture<Map<Long, Long>> getCommitTimestamps(@Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps,
+            boolean waitForCommitterToComplete,
+            CellLoader cellLoader) {
         if (Iterables.isEmpty(startTimestamps)) {
-            return ImmutableMap.of();
+            return Futures.immediateFuture(ImmutableMap.of());
         }
         Map<Long, Long> result = Maps.newHashMap();
         Set<Long> gets = Sets.newHashSet();
@@ -2046,7 +2151,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         if (gets.isEmpty()) {
-            return result;
+            return Futures.immediateFuture(result);
         }
 
         // Before we do the reads, we need to make sure the committer is done writing.
@@ -2086,27 +2191,34 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         getHistogram(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).update(gets.size());
 
-        Map<Long, Long> rawResults = loadCommitTimestamps(gets);
-
-        for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
-            if (e.getValue() != null) {
-                long startTs = e.getKey();
-                long commitTs = e.getValue();
-                result.put(startTs, commitTs);
-                timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
-            }
-        }
-        return result;
+        return Futures.transform(loadCommitTimestamps(gets, cellLoader),
+                rawResults -> {
+                    for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
+                        if (e.getValue() != null) {
+                            long startTs = e.getKey();
+                            long commitTs = e.getValue();
+                            result.put(startTs, commitTs);
+                            timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
+                        }
+                    }
+                    return result;
+                },
+                MoreExecutors.directExecutor());
     }
 
-    private Map<Long, Long> loadCommitTimestamps(Set<Long> startTimestamps) {
+
+
+    private ListenableFuture<Map<Long, Long>> loadCommitTimestamps(Set<Long> startTimestamps,
+            CellLoader cellLoader) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             long singleTs = startTimestamps.iterator().next();
-            Long commitTsOrNull = defaultTransactionService.get(singleTs);
-            return commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull);
+            return Futures.transform(cellLoader.timestampLoader().get(singleTs),
+                    commitTsOrNull -> commitTsOrNull == null ? ImmutableMap.of()
+                            : ImmutableMap.of(singleTs, commitTsOrNull),
+                    MoreExecutors.directExecutor());
         } else {
-            return defaultTransactionService.get(startTimestamps);
+            return cellLoader.timestampLoader().get(startTimestamps);
         }
     }
 

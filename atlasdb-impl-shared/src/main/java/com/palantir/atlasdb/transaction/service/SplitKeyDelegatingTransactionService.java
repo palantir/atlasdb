@@ -17,17 +17,25 @@
 package com.palantir.atlasdb.transaction.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -49,22 +57,83 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public class SplitKeyDelegatingTransactionService<T> implements TransactionService {
     private final Function<Long, T> timestampToServiceKey;
     private final Map<T, TransactionService> keyedServices;
+    private final TimestampLoader immediateTimestampLoader;
+    private final TimestampLoader asyncTimestampLoader;
 
     public SplitKeyDelegatingTransactionService(
             Function<Long, T> timestampToServiceKey,
             Map<T, TransactionService> keyedServices) {
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
+        this.immediateTimestampLoader = new TimestampLoader() {
+            @Override
+            public ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp) {
+                return Futures.immediateFuture(transactionService.get(startTimestamp));
+            }
+
+            @Override
+            public ListenableFuture<Map<Long, Long>> get(
+                    TransactionService transactionService,
+                    Iterable<Long> startTimestamps) {
+                return Futures.immediateFuture(transactionService.get(startTimestamps));
+            }
+        };
+
+        this.asyncTimestampLoader = new TimestampLoader() {
+            @Override
+            public ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp) {
+                return transactionService.getAsync(startTimestamp);
+            }
+
+            @Override
+            public ListenableFuture<Map<Long, Long>> get(
+                    TransactionService transactionService,
+                    Iterable<Long> startTimestamps) {
+                return transactionService.getAsync(startTimestamps);
+            }
+        };
     }
 
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return getServiceForTimestamp(startTimestamp).map(service -> service.get(startTimestamp)).orElse(null);
+        try {
+            return getInternal(startTimestamp, immediateTimestampLoader).get();
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
+        try {
+            return getInternal(startTimestamps, immediateTimestampLoader).get();
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    @Override
+    public ListenableFuture<Long> getAsync(long startTimestamp) {
+        return getInternal(startTimestamp, asyncTimestampLoader);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
+        return getInternal(startTimestamps, asyncTimestampLoader);
+    }
+
+    private ListenableFuture<Long> getInternal(long startTimestamp, TimestampLoader cellLoader) {
+        return getServiceForTimestamp(startTimestamp)
+                .map(service -> cellLoader.get(service, startTimestamp))
+                .orElse(Futures.immediateFuture(null));
+    }
+
+    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps, TimestampLoader cellLoader) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
             T mappedValue = timestampToServiceKey.apply(startTimestamp);
@@ -82,11 +151,23 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
 
-        return queryMap.asMap()
-                .entrySet()
-                .stream()
-                .map(entry -> keyedServices.get(entry.getKey()).get(entry.getValue()))
-                .collect(HashMap::new, Map::putAll, Map::putAll);
+        List<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
+                .entries()
+                .map(entry -> cellLoader.get(keyedServices.get(entry.getKey()), entry.getValue()))
+                .collect(Collectors.toList());
+
+        return Futures.whenAllSucceed(futures).call(
+                () -> futures.stream()
+                        .map(SplitKeyDelegatingTransactionService::getDone)
+                        .collect(HashMap::new, Map::putAll, Map::putAll),
+                MoreExecutors.directExecutor());
+    }
+
+    private interface TimestampLoader {
+
+        ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp);
+
+        ListenableFuture<Map<Long, Long>> get(TransactionService transactionService, Iterable<Long> startTimestamps);
     }
 
     @Override
@@ -116,5 +197,13 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
         return Optional.of(service);
+    }
+
+    private static Map<Long, Long> getDone(ListenableFuture<Map<Long, Long>> result) {
+        try {
+            return Futures.getDone(result);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
     }
 }

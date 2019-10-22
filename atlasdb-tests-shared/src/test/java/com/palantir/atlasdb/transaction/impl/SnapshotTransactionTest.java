@@ -55,10 +55,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -127,6 +126,8 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableEx
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
@@ -146,6 +147,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
@@ -153,23 +155,24 @@ import com.palantir.timestamp.TimestampService;
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final String SYNC = "sync";
     private static final String ASYNC = "async";
-    private static final AtomicBoolean ASYNC_FLAG = new AtomicBoolean(false);
-
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, UnaryOperator.identity(), UnaryOperator.identity()},
+                {SYNC,
+                 (BiFunction<Transaction, AtomicInteger, Transaction>) (transaction, counter) -> transaction,
+                 (BiFunction<KeyValueService, AtomicInteger, KeyValueService>) (keyValueService, counter) ->
+                         keyValueService},
                 {ASYNC,
-                 (UnaryOperator<Transaction>) transaction ->
-                         new GetAsyncDelegate(transaction, () -> ASYNC_FLAG.set(true), () -> ASYNC_FLAG.set(false)), (
-                         UnaryOperator<KeyValueService>) VerifyingDelegate::new}
+                 (BiFunction<Transaction, AtomicInteger, Transaction>) GetAsyncDelegate::new,
+                 (BiFunction<KeyValueService, AtomicInteger, KeyValueService>) VerifyingDelegate::new}
         };
         return Arrays.asList(data);
     }
 
+
     private final String name;
-    private final UnaryOperator<Transaction> transactionWrapper;
-    private final UnaryOperator<KeyValueService> keyValueServiceWrapper;
+    private final BiFunction<Transaction, AtomicInteger, Transaction> transactionWrapper;
+    private final BiFunction<KeyValueService, AtomicInteger, KeyValueService> keyValueServiceWrapper;
     private final Map<String, ExpectationFactory>
             expectationsMapping =
             ImmutableMap.<String, ExpectationFactory>builder()
@@ -219,11 +222,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     public SnapshotTransactionTest(
             String name,
-            UnaryOperator<Transaction> transactionWrapper,
-            UnaryOperator<KeyValueService> keyValueServiceUnaryOperator) {
+            BiFunction<Transaction, AtomicInteger, Transaction> transactionWrapper,
+            BiFunction<KeyValueService, AtomicInteger, KeyValueService> keyValueServiceWrapper) {
         this.name = name;
         this.transactionWrapper = transactionWrapper;
-        this.keyValueServiceWrapper = keyValueServiceUnaryOperator;
+        this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
     private class UnstableKeyValueService implements AutoDelegate_KeyValueService {
 
@@ -307,13 +310,19 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Override
-    protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
-        return new WrappingTestTransactionManagerImpl(testTransactionManager, transactionWrapper);
-    }
-
-    @Override
-    protected KeyValueService wrapKeyValueService(KeyValueService trackingKeyValueService) {
-        return keyValueServiceWrapper.apply(trackingKeyValueService);
+    protected TestTransactionManager constructTestTransactionManager() {
+        return new TestTransactionManagerImpl(
+                metricsManager,
+                keyValueService,
+                timestampService,
+                timestampService,
+                lockClient,
+                lockService,
+                transactionService,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                sweepQueue,
+                MoreExecutors.newDirectExecutorService());
     }
 
     @Test
@@ -373,28 +382,30 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
         }});
 
+        AtomicInteger counter = new AtomicInteger();
         Transaction snapshot = transactionWrapper.apply(new SnapshotTransaction(metricsManager,
-                kvMock,
-                new LegacyTimelockService(timestampService, lock, lockClient),
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                () -> transactionTs,
-                ConflictDetectionManagers.create(keyValueService),
-                SweepStrategyManagers.createDefault(keyValueService),
-                transactionTs,
-                Optional.empty(),
-                PreCommitConditions.NO_OP,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                null,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false,
-                timestampCache,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
-                true,
-                () -> transactionConfig));
+                        keyValueServiceWrapper.apply(kvMock, counter),
+                        new LegacyTimelockService(timestampService, lock, lockClient),
+                        transactionService,
+                        NoOpCleaner.INSTANCE,
+                        () -> transactionTs,
+                        ConflictDetectionManagers.create(keyValueService),
+                        SweepStrategyManagers.createDefault(keyValueService),
+                        transactionTs,
+                        Optional.empty(),
+                        PreCommitConditions.NO_OP,
+                        AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                        null,
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        false,
+                        timestampCache,
+                        getRangesExecutor,
+                        defaultGetRangesConcurrency,
+                        MultiTableSweepQueueWriter.NO_OP,
+                        MoreExecutors.newDirectExecutorService(),
+                        true,
+                        () -> transactionConfig),
+                counter);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -439,28 +450,30 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             inSequence(seq);
         }});
 
+        AtomicInteger counter = new AtomicInteger();
         Transaction snapshot = transactionWrapper.apply(new SnapshotTransaction(metricsManager,
-                keyValueService,
-                null,
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                () -> transactionTs,
-                ConflictDetectionManagers.create(keyValueService),
-                SweepStrategyManagers.createDefault(keyValueService),
-                transactionTs,
-                Optional.empty(),
-                PreCommitConditions.NO_OP,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                null,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false,
-                timestampCache,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
-                true,
-                () -> transactionConfig));
+                        keyValueServiceWrapper.apply(keyValueService, counter),
+                        null,
+                        transactionService,
+                        NoOpCleaner.INSTANCE,
+                        () -> transactionTs,
+                        ConflictDetectionManagers.create(keyValueService),
+                        SweepStrategyManagers.createDefault(keyValueService),
+                        transactionTs,
+                        Optional.empty(),
+                        PreCommitConditions.NO_OP,
+                        AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                        null,
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        false,
+                        timestampCache,
+                        getRangesExecutor,
+                        defaultGetRangesConcurrency,
+                        MultiTableSweepQueueWriter.NO_OP,
+                        MoreExecutors.newDirectExecutorService(),
+                        true,
+                        () -> transactionConfig),
+                counter);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -478,7 +491,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         final UnstableKeyValueService unstableKvs = new UnstableKeyValueService(keyValueService, random);
         final TestTransactionManager unstableTransactionManager = new WrappingTestTransactionManagerImpl(
-                new TestTransactionManagerImpl(
                         metricsManager,
                         unstableKvs,
                         timestampService,
@@ -489,7 +501,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         conflictDetectionManager,
                         sweepStrategyManager,
                         sweepQueue,
-                        MoreExecutors.newDirectExecutorService()),
+                        MoreExecutors.newDirectExecutorService(),
                 transactionWrapper);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
@@ -1468,27 +1480,67 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         return (SnapshotTransaction) transaction;
     }
 
-    private static class WrappingTestTransactionManagerImpl extends WrappingTestTransactionManager {
-        private final Function<Transaction, Transaction> transactionWrapper;
+    private static class WrappingTestTransactionManagerImpl extends TestTransactionManagerImpl {
+        private final BiFunction<Transaction, AtomicInteger, Transaction> transactionWrapper;
 
-        WrappingTestTransactionManagerImpl(
-                TestTransactionManager testTransactionManager,
-                Function<Transaction, Transaction> transactionWrapper) {
-            super(testTransactionManager);
+        public WrappingTestTransactionManagerImpl(
+                MetricsManager metricsManager,
+                KeyValueService keyValueService,
+                TimestampService timestampService,
+                TimestampManagementService timestampManagementService,
+                LockClient lockClient,
+                LockService lockService,
+                TransactionService transactionService,
+                ConflictDetectionManager conflictDetectionManager,
+                SweepStrategyManager sweepStrategyManager,
+                MultiTableSweepQueueWriter sweepQueue,
+                ExecutorService deleteExecutor,
+                BiFunction<Transaction, AtomicInteger, Transaction> transactionWrapper) {
+            super(metricsManager, keyValueService, timestampService, timestampManagementService, lockClient,
+                    lockService,
+                    transactionService, conflictDetectionManager, sweepStrategyManager, sweepQueue,
+                    deleteExecutor);
             this.transactionWrapper = transactionWrapper;
         }
 
+
         @Override
-        protected Transaction wrap(Transaction transaction) {
-            return transactionWrapper.apply(transaction);
+        public Transaction createNewTransaction() {
+            AtomicInteger counter = new AtomicInteger();
+            long startTimestamp = timelockService.getFreshTimestamp();
+            return transactionWrapper.apply(new SnapshotTransaction(metricsManager,
+                            new VerifyingDelegate(keyValueService, counter),
+                            timelockService,
+                            transactionService,
+                            NoOpCleaner.INSTANCE,
+                            () -> startTimestamp,
+                            getConflictDetectionManager(),
+                            SweepStrategyManagers.createDefault(keyValueService),
+                            startTimestamp,
+                            Optional.empty(),
+                            PreCommitConditions.NO_OP,
+                            AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                            null,
+                            TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                            false,
+                            timestampValidationReadCache,
+                            getRangesExecutor,
+                            defaultGetRangesConcurrency,
+                            sweepQueueWriter,
+                            deleteExecutor,
+                            validateLocksOnReads,
+                            () -> TRANSACTION_CONFIG),
+                    counter);
         }
     }
 
     private static class VerifyingDelegate implements AutoDelegate_KeyValueService {
         private final KeyValueService delegate;
+        private final AtomicInteger atomicInteger;
 
-        VerifyingDelegate(KeyValueService cassandraKeyValueService) {
-            this.delegate = cassandraKeyValueService;
+        VerifyingDelegate(KeyValueService keyValueService, AtomicInteger atomicInteger) {
+            this.delegate = keyValueService;
+            this.atomicInteger = atomicInteger;
         }
 
         @Override
@@ -1499,7 +1551,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         @Override
         public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
             try {
-                Preconditions.checkState(!ASYNC_FLAG.get(), "Calling sync get on KVS even though it should be async");
+                Preconditions.checkState(atomicInteger.get() == 0, "Calling sync get on KVS even though it should be async");
                 return delegate.getAsync(tableRef, timestampByCell).get();
             } catch (InterruptedException e) {
                 throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e);

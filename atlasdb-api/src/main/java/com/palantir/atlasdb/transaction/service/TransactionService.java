@@ -19,6 +19,7 @@ import java.util.Map;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.metrics.Timed;
 
@@ -52,6 +53,10 @@ public interface TransactionService extends AutoCloseable {
 
     @Timed
     Map<Long, Long> get(Iterable<Long> startTimestamps);
+
+    ListenableFuture<Long> getAsync(long startTimestamp);
+
+    ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps);
 
     /**
      * This operation is guaranteed to be atomic and only set the value if it hasn't already been

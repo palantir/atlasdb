@@ -89,18 +89,7 @@ public class AtlasDbTestCase {
     }
 
     private void setUpTransactionManagers() {
-        serializableTxManager = wrapTestTransactionManager(new TestTransactionManagerImpl(
-                metricsManager,
-                keyValueService,
-                timestampService,
-                timestampService,
-                lockClient,
-                lockService,
-                transactionService,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                sweepQueue,
-                MoreExecutors.newDirectExecutorService()));
+        serializableTxManager = constructTestTransactionManager();
 
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
@@ -116,8 +105,19 @@ public class AtlasDbTestCase {
         return trackingKeyValueService;
     }
 
-    protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
-        return testTransactionManager;
+    protected TestTransactionManager constructTestTransactionManager() {
+        return new TestTransactionManagerImpl(
+                metricsManager,
+                keyValueService,
+                timestampService,
+                timestampService,
+                lockClient,
+                lockService,
+                transactionService,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                sweepQueue,
+                MoreExecutors.newDirectExecutorService());
     }
 
     protected KeyValueService getBaseKeyValueService() {

@@ -43,7 +43,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
-    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+    static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     private Optional<Long> unreadableTs = Optional.empty();
