@@ -1,5 +1,0 @@
-type: improvement
-improvement:
-  description: Lazily create timers.
-  links:
-  - https://github.com/palantir/atlasdb/pull/4329
