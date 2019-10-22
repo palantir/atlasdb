@@ -15,54 +15,95 @@
  */
 package com.palantir.atlasdb.util;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.function.Supplier;
 
 import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.atlasdb.metrics.Timed;
 
-public class AtlasDbMetricsTest {
+public final class AtlasDbMetricsTest {
 
     private static final String CUSTOM_METRIC_NAME = "foo";
-    private static final String PING_REQUEST = "ping";
+    private static final String PING_METHOD = "ping";
+    private static final String PING_REQUEST_METRIC = MetricRegistry.name(TestService.class, PING_METHOD);
+    private static final String PING_NOT_TIMED_REQUEST = MetricRegistry.name(TestService.class, "pingNotTimed");
     private static final String PING_RESPONSE = "pong";
 
-    private static final MetricRegistry metricRegistry = mock(MetricRegistry.class);
-    private static final TaggedMetricRegistry taggedMetricRegistry = mock(TaggedMetricRegistry.class);
-
     private final MetricRegistry metrics = new MetricRegistry();
+    private final TestService testService = new TestService() {
+        @Override
+        public String ping() {
+            return PING_RESPONSE;
+        }
+
+        @Override
+        public String pingNotTimed() {
+            return PING_RESPONSE;
+        }
+    };
 
     @Test
-    public void instrumentWithDefaultName() throws Exception {
-        TestService service = AtlasDbMetrics.instrument(metrics, TestService.class, () -> PING_RESPONSE);
+    public void instrumentWithDefaultNameTimed() {
+        TestService service = AtlasDbMetrics.instrumentTimed(metrics, TestService.class, testService);
 
-        assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(TestService.class, PING_REQUEST));
+        assertMethodInstrumented(PING_REQUEST_METRIC, service::ping);
+        assertMethodNotInstrumented(PING_NOT_TIMED_REQUEST, service::pingNotTimed);
     }
 
     @Test
-    public void instrumentWithCustomName() throws Exception {
+    public void instrumentWithDefaultNameAll() {
+        TestService service = AtlasDbMetrics.instrument(metrics, TestService.class, testService);
+
+        assertMethodInstrumented(PING_REQUEST_METRIC, service::ping);
+        assertMethodInstrumented(PING_NOT_TIMED_REQUEST, service::pingNotTimed);
+    }
+
+    @Test
+    public void instrumentWithCustomName() {
         TestService service = AtlasDbMetrics.instrument(
-                metrics, TestService.class, () -> PING_RESPONSE, CUSTOM_METRIC_NAME);
+                metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
 
-        assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(CUSTOM_METRIC_NAME, PING_REQUEST));
+        assertMethodInstrumented(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_METHOD), service::ping);
     }
 
-    private void assertMetricCountIncrementsAfterPing(
-            MetricRegistry metrics,
-            TestService service,
-            String methodTimerName) {
-        assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(0L)));
+    private void assertMethodInstrumented(
+            String methodTimerName,
+            Supplier<String> invocation) {
+        assertMethodInstrumentation(methodTimerName, invocation, true);
+    }
 
-        assertThat(service.ping(), is(equalTo(PING_RESPONSE)));
+    private void assertMethodNotInstrumented(
+            String methodTimerName,
+            Supplier<String> invocation) {
+        assertMethodInstrumentation(methodTimerName, invocation, false);
+    }
 
-        assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(1L)));
+    private void assertMethodInstrumentation(
+            String methodTimerName,
+            Supplier<String> invocation,
+            boolean isInstrumented) {
+        assertTimerNotRegistered(methodTimerName);
+
+        assertThat(invocation.get()).isEqualTo(PING_RESPONSE);
+
+        if (isInstrumented) {
+            assertThat(metrics.timer(methodTimerName).getCount()).isEqualTo(1);
+        } else {
+            assertTimerNotRegistered(methodTimerName);
+        }
+    }
+
+    private void assertTimerNotRegistered(String timer) {
+        assertThat(metrics.getTimers().get(timer)).isNull();
     }
 
     public interface TestService {
+        @Timed
         String ping();
+
+        String pingNotTimed();
     }
 }

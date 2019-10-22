@@ -382,7 +382,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig);
 
         if (shouldInstrument) {
-            transactionManager = AtlasDbMetrics.instrument(
+            transactionManager = AtlasDbMetrics.instrumentTimed(
                     metricsManager.getRegistry(),
                     TransactionManager.class,
                     transactionManager);
