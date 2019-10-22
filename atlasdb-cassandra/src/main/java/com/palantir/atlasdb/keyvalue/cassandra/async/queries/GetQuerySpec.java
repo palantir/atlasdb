@@ -36,10 +36,10 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
     /**
      * Since each query is constructed for one cell we are using an optimisation that we can ask the CQL to do most of
-     * the work internally. First of all we are using the fact that cells are ordered by {@code column} and
-     * {@code timestamp} value in {@code ASC} order and since we are interested in the value with the most recent
-     * timestamp we use {@code LIMIT 1} to get the latest value. This helps with both cassandra workload and amount of
-     * transferred data.
+     * the work internally. First of all we are using the fact that cells are clustered in ASC ordered by
+     * {@code column1/column} and {@code column2/timestamp} value and since we are interested in the freshest value
+     * before a certain timestamp we use {@code LIMIT 1} to get the latest value. This helps with both cassandra
+     * workload and amount of transferred data. Timestamps are stored as bitwise complements of the original values.
      */
     private static final String QUERY_FORMAT = "SELECT value, column2 FROM \"%s\".\"%s\" "
             + "WHERE key = :row AND column1 = :column AND column2 > :timestamp "
