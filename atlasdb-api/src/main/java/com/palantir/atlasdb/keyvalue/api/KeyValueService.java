@@ -297,6 +297,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param checkAndSetRequest the request, including table, cell, old value and new value.
      * @throws CheckAndSetException if the stored value for the cell was not as expected.
      */
+    @Timed
     void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
 
     /**
