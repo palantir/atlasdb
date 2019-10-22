@@ -34,6 +34,11 @@ public interface RemotingClientConfig {
         return 0.0;
     }
 
+    @Value.Default
+    default boolean enableLegacyClientFallback() {
+        return true;
+    }
+
     @Value.Check
     default void check() {
         Preconditions.checkState(0.0 <= maximumConjureRemotingProbability()
