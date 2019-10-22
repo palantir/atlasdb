@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -31,8 +30,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.ImmutableGetQueryParameters;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.ImmutableGetQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
@@ -81,17 +83,19 @@ public final class AsyncCellLoader implements AutoCloseable {
             TableReference tableRef,
             Cell cell,
             long timestamp) {
+        CqlQueryContext queryContext = ImmutableCqlQueryContext.builder()
+                .tableReference(tableRef)
+                .keyspace(keyspace)
+                .build();
+        GetQueryParameters getQueryParameters = ImmutableGetQueryParameters.builder()
+                .cell(cell)
+                .humanReadableTimestamp(timestamp)
+                .build();
+
         return cqlClient.executeQuery(
                 ImmutableGetQuerySpec.builder()
-                        .cqlQueryContext(ImmutableCqlQueryContext.builder()
-                                .tableReference(tableRef)
-                                .keyspace(keyspace)
-                                .build())
-                        .queryParameters(ImmutableGetQueryParameters.builder()
-                                .row(ByteBuffer.wrap(cell.getRowName()).asReadOnlyBuffer())
-                                .column(ByteBuffer.wrap(cell.getColumnName()).asReadOnlyBuffer())
-                                .humanReadableTimestamp(timestamp)
-                                .build())
+                        .cqlQueryContext(queryContext)
+                        .queryParameters(getQueryParameters)
                         .build());
     }
 

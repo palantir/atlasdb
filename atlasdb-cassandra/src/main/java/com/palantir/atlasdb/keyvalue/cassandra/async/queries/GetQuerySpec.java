@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.query;
+package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.async.RowStreamAccumulator;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
@@ -56,9 +56,15 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     @Override
     public Statement makeExecutableStatement(PreparedStatement preparedStatement) {
         return preparedStatement.bind()
-                .setBytes("row", getQueryParameters().row())
-                .setBytes("column", getQueryParameters().column())
+                .setBytes("row",
+                        toReadOnlyByteBuffer(getQueryParameters().cell().getRowName()))
+                .setBytes("column",
+                        toReadOnlyByteBuffer(getQueryParameters().cell().getColumnName()))
                 .setLong("timestamp", getQueryParameters().queryTimestamp());
+    }
+
+    private static ByteBuffer toReadOnlyByteBuffer(byte[] bytes) {
+        return ByteBuffer.wrap(bytes).asReadOnlyBuffer();
     }
 
     @Override
@@ -67,18 +73,16 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     }
 
     @Override
-    public Supplier<RowStreamAccumulator<Optional<Value>>> rowStreamAccumulatorFactory() {
-        return GetQueryAccumulator::new;
+    @org.immutables.value.Value.Lazy
+    public RowStreamAccumulator<Optional<Value>> rowStreamAccumulator() {
+        return new GetQueryAccumulator();
     }
 
-    @org.immutables.value.Value.Auxiliary
     public abstract GetQueryParameters getQueryParameters();
 
     @org.immutables.value.Value.Immutable
     public interface GetQueryParameters {
-        ByteBuffer row();
-
-        ByteBuffer column();
+        Cell cell();
 
         long humanReadableTimestamp();
 

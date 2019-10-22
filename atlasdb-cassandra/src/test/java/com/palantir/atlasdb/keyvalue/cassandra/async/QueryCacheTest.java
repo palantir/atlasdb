@@ -25,9 +25,10 @@ import org.junit.Test;
 import com.datastax.driver.core.PreparedStatement;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.GetQuerySpec;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.GetQuerySpec.GetQueryParameters;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.ImmutableGetQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 

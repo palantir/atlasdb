@@ -30,7 +30,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.CqlQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class CqlClientImpl implements CqlClient {
@@ -128,7 +128,7 @@ public final class CqlClientImpl implements CqlClient {
         return execute(
                 executableStatement,
                 MoreExecutors.directExecutor(),
-                querySpec.rowStreamAccumulatorFactory().get());
+                querySpec.rowStreamAccumulator());
     }
 
     private <V> ListenableFuture<V> execute(

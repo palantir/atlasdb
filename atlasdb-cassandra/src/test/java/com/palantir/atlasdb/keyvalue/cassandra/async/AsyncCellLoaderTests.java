@@ -17,14 +17,13 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,62 +35,96 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQuerySpec;
 
 public class AsyncCellLoaderTests {
-    private static final String DEFAULT_KEYSPACE = "test";
-    private static final TableReference DEFAULT_TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "foo");
+    private static final String KEYSPACE = "test";
+    private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "foo");
     // tests are imagined as if the visible data has a timestamp lower than 20 and non visible data has timestamp higher
     private static final long TIMESTAMP = 20L;
     private static final Cell NON_VISIBLE_CELL = Cell.create(PtBytes.toBytes(100), PtBytes.toBytes(100));
     private static final Cell VISIBLE_CELL_1 = Cell.create(PtBytes.toBytes(100), PtBytes.toBytes(200));
     private static final Cell VISIBLE_CELL_2 = Cell.create(PtBytes.toBytes(100), PtBytes.toBytes(300));
+    private static final CqlQueryContext cqlQueryContext = ImmutableCqlQueryContext.builder()
+            .keyspace(KEYSPACE)
+            .tableReference(TABLE)
+            .build();
 
-    private CqlClient cqlClient;
-    private final ExecutorService testExecutor = MoreExecutors.newDirectExecutorService();
+    private AsyncCellLoader asyncCellLoader;
 
     @Before
     public void setUp() {
-        cqlClient = mock(CqlClient.class);
+        CqlClient cqlClient = mock(CqlClient.class);
+
+        when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(NON_VISIBLE_CELL))))
+                .thenReturn(Futures.immediateFuture(Optional.empty()));
+        when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(VISIBLE_CELL_1))))
+                .thenReturn(Futures.immediateFuture(Optional.of(Value.create(PtBytes.toBytes("dummy"), 13))));
+        when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(VISIBLE_CELL_2))))
+                .thenReturn(Futures.immediateFuture(Optional.of(Value.create(PtBytes.toBytes("dummy"), 11))));
+
+        asyncCellLoader = AsyncCellLoader.create(cqlClient, MoreExecutors.newDirectExecutorService(), KEYSPACE);
+    }
+
+    @After
+    public void tearDown() {
+        asyncCellLoader.close();
     }
 
     @Test
     public void testNoDataVisible() throws Exception {
-        when(cqlClient.executeQuery(any()))
-                .thenReturn(Futures.immediateFuture(Optional.empty()));
-
         Map<Cell, Long> request = ImmutableMap.of(NON_VISIBLE_CELL, TIMESTAMP);
-        AsyncCellLoader asyncCellLoader = AsyncCellLoader.create(cqlClient, testExecutor, DEFAULT_KEYSPACE);
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(DEFAULT_TABLE, request).get();
-        assertThat(result.isEmpty()).isTrue();
+
+        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
+
+        assertThat(result).isEmpty();
     }
 
     @Test
     public void testFilteringNonVisible() throws Exception {
-        when(cqlClient.executeQuery(any()))
-                .thenReturn(Futures.immediateFuture(Optional.empty()))
-                .thenReturn(Futures.immediateFuture(Optional.of(Value.create(PtBytes.toBytes("dummy"), 13))));
+        Map<Cell, Long> request = ImmutableMap.of(
+                NON_VISIBLE_CELL, TIMESTAMP,
+                VISIBLE_CELL_1, TIMESTAMP);
 
-        Map<Cell, Long> request = ImmutableMap.of(NON_VISIBLE_CELL, TIMESTAMP, VISIBLE_CELL_1, TIMESTAMP);
-        AsyncCellLoader asyncCellLoader = AsyncCellLoader.create(cqlClient, testExecutor, DEFAULT_KEYSPACE);
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(DEFAULT_TABLE, request).get();
+        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
 
-        assertThat(result.isEmpty()).isFalse();
-        assertThat(result.containsKey(VISIBLE_CELL_1)).isTrue();
-        assertThat(result.containsKey(NON_VISIBLE_CELL)).isFalse();
+        assertThat(result)
+                .isNotEmpty()
+                .containsKey(VISIBLE_CELL_1)
+                .doesNotContainKey(NON_VISIBLE_CELL);
     }
 
     @Test
     public void testAllVisible() throws Exception {
-        when(cqlClient.executeQuery(any()))
-                .thenReturn(Futures.immediateFuture(Optional.of(Value.create(PtBytes.toBytes("dummy"), 11))))
-                .thenReturn(Futures.immediateFuture(Optional.of(Value.create(PtBytes.toBytes("dummy"), 13))));
+        Map<Cell, Long> request = ImmutableMap.of(
+                VISIBLE_CELL_1, TIMESTAMP,
+                VISIBLE_CELL_2, TIMESTAMP);
 
-        Map<Cell, Long> request = ImmutableMap.of(VISIBLE_CELL_1, TIMESTAMP, VISIBLE_CELL_2, TIMESTAMP);
-        AsyncCellLoader asyncCellLoader = AsyncCellLoader.create(cqlClient, testExecutor, DEFAULT_KEYSPACE);
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(DEFAULT_TABLE, request).get();
+        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
 
-        assertThat(result.isEmpty()).isFalse();
-        assertThat(result.containsKey(VISIBLE_CELL_1)).isTrue();
-        assertThat(result.containsKey(VISIBLE_CELL_2)).isTrue();
+        assertThat(result)
+                .isNotEmpty()
+                .containsKey(VISIBLE_CELL_1)
+                .containsKey(VISIBLE_CELL_2);
+    }
+
+    private GetQuerySpec buildGetQuerySpec(GetQueryParameters getQueryParameters) {
+        return ImmutableGetQuerySpec
+                .builder()
+                .cqlQueryContext(cqlQueryContext)
+                .queryParameters(getQueryParameters)
+                .build();
+    }
+
+    private GetQueryParameters buildGetQueryParameter(Cell cell) {
+        return ImmutableGetQueryParameters.builder()
+                .cell(cell)
+                .humanReadableTimestamp(TIMESTAMP)
+                .build();
     }
 }

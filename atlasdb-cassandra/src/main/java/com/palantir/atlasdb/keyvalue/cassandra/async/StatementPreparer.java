@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import com.datastax.driver.core.PreparedStatement;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.CqlQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 
 public interface StatementPreparer {
     PreparedStatement prepare(CqlQuerySpec querySpec);

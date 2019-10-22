@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.CqlQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate

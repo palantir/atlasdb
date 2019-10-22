@@ -20,7 +20,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.PreparedStatement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.palantir.atlasdb.keyvalue.cassandra.async.query.CqlQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -31,25 +32,25 @@ public final class QueryCache implements StatementPreparer {
             "prepared",
             "statements");
 
-    public static  QueryCache create(
+    public static QueryCache create(
             StatementPreparer statementPreparer,
             TaggedMetricRegistry taggedMetricRegistry,
             int cacheSize) {
-        Cache<CqlQuerySpec, PreparedStatement> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
+        Cache<CqlQueryContext, PreparedStatement> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
         CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, CACHE_NAME_PREFIX);
         return new QueryCache(statementPreparer, cache);
     }
 
     private final StatementPreparer statementPreparer;
-    private final Cache<CqlQuerySpec, PreparedStatement> cache;
+    private final Cache<CqlQueryContext, PreparedStatement> cache;
 
-    private QueryCache(StatementPreparer statementPreparer, Cache<CqlQuerySpec, PreparedStatement> cache) {
+    private QueryCache(StatementPreparer statementPreparer, Cache<CqlQueryContext, PreparedStatement> cache) {
         this.statementPreparer = statementPreparer;
         this.cache = cache;
     }
 
     @Override
     public PreparedStatement prepare(CqlQuerySpec querySpec) {
-        return cache.get(querySpec, statementPreparer::prepare);
+        return cache.get(querySpec.cqlQueryContext(), context -> statementPreparer.prepare(querySpec));
     }
 }
