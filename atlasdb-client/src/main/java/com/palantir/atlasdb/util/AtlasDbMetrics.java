@@ -64,8 +64,13 @@ public final class AtlasDbMetrics {
             U service,
             String name,
             Function<InvocationContext, Map<String, String>> tagFunction) {
-        return instrumentWithTaggedMetrics(taggedMetrics, serviceInterface, service, name, tagFunction,
-                instrumentAllMethods());
+        return Instrumentation.builder(serviceInterface, service)
+                .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
+                .withLogging(
+                        LoggerFactory.getLogger("performance." + name),
+                        LoggingLevel.TRACE,
+                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
+                .build();
     }
 
     public static void registerCache(MetricRegistry metricRegistry, Cache<?, ?> cache, String metricsPrefix) {
@@ -89,23 +94,6 @@ public final class AtlasDbMetrics {
         return Instrumentation.builder(serviceInterface, service)
                 .withFilter(instrumentationFilter)
                 .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
-                .withLogging(
-                        LoggerFactory.getLogger("performance." + name),
-                        LoggingLevel.TRACE,
-                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
-                .build();
-    }
-
-    private static <T, U extends T> T instrumentWithTaggedMetrics(
-            TaggedMetricRegistry taggedMetrics,
-            Class<T> serviceInterface,
-            U service,
-            String name,
-            Function<InvocationContext, Map<String, String>> tagFunction,
-            InstrumentationFilter instrumentationFilter) {
-        return Instrumentation.builder(serviceInterface, service)
-                .withFilter(instrumentationFilter)
-                .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
