@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.util;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.function.Supplier;
 
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ public class AtlasDbMetricsTest {
 
     private static final String CUSTOM_METRIC_NAME = "foo";
     private static final String PING_REQUEST = "ping";
-    private static final String PING_NOT_TIMED_REQUEST = "ping"
+    private static final String PING_NOT_TIMED_REQUEST = "pingNotTimed";
     private static final String PING_RESPONSE = "pong";
 
     private final MetricRegistry metrics = new MetricRegistry();
@@ -48,7 +48,14 @@ public class AtlasDbMetricsTest {
     public void instrumentWithDefaultName() {
         TestService service = AtlasDbMetrics.instrumentTimed(metrics, TestService.class, testService);
 
-        assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(TestService.class, PING_REQUEST));
+        assertMetricCountAfterInvocation(
+                MetricRegistry.name(TestService.class, PING_REQUEST),
+                service::ping,
+                true);
+        assertMetricCountAfterInvocation(
+                MetricRegistry.name(TestService.class, PING_NOT_TIMED_REQUEST),
+                service::pingNotTimed,
+                false);
     }
 
     @Test
@@ -56,19 +63,26 @@ public class AtlasDbMetricsTest {
         TestService service = AtlasDbMetrics.instrument(
                 metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
 
-        assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(CUSTOM_METRIC_NAME, PING_REQUEST));
+        assertMetricCountAfterInvocation(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_REQUEST), service::ping, true);
     }
 
-    private void assertMetricCountIncrementsAfterPing(
-            MetricRegistry metrics,
-            TestService service,
+    private void assertMetricCountAfterInvocation(
             String methodTimerName,
-            Runnable runnable) {
-        assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(0L)));
+            Supplier<String> invocation,
+            boolean shouldBeInvoked) {
+        assertTimerNotRegistered(methodTimerName);
 
-        assertThat(service.ping(), is(equalTo(PING_RESPONSE)));
+        assertThat(invocation.get()).isEqualTo(PING_RESPONSE);
 
-        assertThat(metrics.timer(methodTimerName).getCount(), is(equalTo(1L)));
+        if (shouldBeInvoked) {
+            assertThat(metrics.timer(methodTimerName).getCount()).isEqualTo(1);
+        } else {
+            assertTimerNotRegistered(methodTimerName);
+        }
+    }
+
+    private void assertTimerNotRegistered(String timer) {
+        assertThat(metrics.getTimers().get(timer)).isNull();
     }
 
     public interface TestService {
