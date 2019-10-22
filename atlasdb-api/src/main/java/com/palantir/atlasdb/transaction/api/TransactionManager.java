@@ -366,7 +366,6 @@ public interface TransactionManager extends AutoCloseable {
      * <p>
      * This call must be implemented so that it completes synchronously.
      */
-    // There are metrics for the individual call
     KeyValueServiceStatus getKeyValueServiceStatus();
 
     /**
@@ -377,7 +376,6 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @return status of the timelock service
      */
-    // Just looks at in-memory metrics
     TimelockServiceStatus getTimelockServiceStatus();
 
     /**
@@ -394,14 +392,12 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    // I would say we don't really care about this? If we want this metric it should be in the puncher store.
     long getUnreadableTimestamp();
 
     /**
      * Clear the timestamp cache. This is mostly useful for tests that perform operations that would invalidate
      * the cache, although this can also be used to free up some memory.
      */
-    //
     void clearTimestampCache();
 
     /**
@@ -424,6 +420,7 @@ public interface TransactionManager extends AutoCloseable {
      * @return the transaction and associated immutable timestamp lock for the task
      */
     @Deprecated
+    @Timed
     TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
 
     /**
@@ -436,6 +433,7 @@ public interface TransactionManager extends AutoCloseable {
      * @return value returned by the task
      */
     @Deprecated
+    @Timed
     <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
             TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException;

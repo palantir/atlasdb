@@ -37,14 +37,14 @@ public class AtlasDbMetricsTest {
     private final MetricRegistry metrics = new MetricRegistry();
 
     @Test
-    public void instrumentWithDefaultName() throws Exception {
+    public void instrumentWithDefaultName() {
         TestService service = AtlasDbMetrics.instrument(metrics, TestService.class, () -> PING_RESPONSE);
 
         assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(TestService.class, PING_REQUEST));
     }
 
     @Test
-    public void instrumentWithCustomName() throws Exception {
+    public void instrumentWithCustomName() {
         TestService service = AtlasDbMetrics.instrument(
                 metrics, TestService.class, () -> PING_RESPONSE, CUSTOM_METRIC_NAME);
 

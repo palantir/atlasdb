@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
+import com.palantir.tritium.api.event.InstrumentationFilter;
+import com.palantir.tritium.event.InstrumentationFilters;
 import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingLevel;
@@ -37,20 +39,27 @@ public final class AtlasDbMetrics {
 
     private AtlasDbMetrics() {}
 
+    public static <T, U extends T> T instrumentTimed(
+            MetricRegistry metricRegistry, Class<T> serviceInterface, U service) {
+        return instrument(metricRegistry, serviceInterface, service, serviceInterface.getName(), instrumentTimedOnly());
+    }
+
+    /**
+     * @deprecated use {@link #instrumentTimed(MetricRegistry, Class, Object)}
+     */
+    @Deprecated
     public static <T, U extends T> T instrument(
             MetricRegistry metricRegistry, Class<T> serviceInterface, U service) {
         return instrument(metricRegistry, serviceInterface, service, serviceInterface.getName());
     }
 
+    /**
+     * @deprecated use {@link #instrumentTimed(MetricRegistry, Class, Object)}
+     */
+    @Deprecated
     public static <T, U extends T> T instrument(
             MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
-        return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
-                .withLogging(
-                        LoggerFactory.getLogger("performance." + name),
-                        LoggingLevel.TRACE,
-                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
-                .build();
+        return instrument(metricRegistry, serviceInterface, service, name, instrumentAllMethods());
     }
 
     public static <T, U extends T> T instrumentWithTaggedMetrics(
@@ -59,13 +68,23 @@ public final class AtlasDbMetrics {
             U service,
             String name,
             Function<InvocationContext, Map<String, String>> tagFunction) {
-        return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
-                .withLogging(
-                        LoggerFactory.getLogger("performance." + name),
-                        LoggingLevel.TRACE,
-                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
-                .build();
+        return instrumentWithTaggedMetrics(taggedMetrics, serviceInterface, service, name, tagFunction,
+                instrumentAllMethods());
+    }
+
+    public static <T, U extends T> T instrumentWithTaggedMetricsTimed(
+            TaggedMetricRegistry taggedMetrics,
+            Class<T> serviceInterface,
+            U service,
+            String name,
+            Function<InvocationContext, Map<String, String>> tagFunction) {
+        return instrumentWithTaggedMetrics(
+                taggedMetrics,
+                serviceInterface,
+                service,
+                name,
+                tagFunction,
+                instrumentTimedOnly());
     }
 
     public static void registerCache(MetricRegistry metricRegistry, Cache<?, ?> cache, String metricsPrefix) {
@@ -78,5 +97,46 @@ public final class AtlasDbMetrics {
             log.info("Not registering cache with prefix '{}' as metric registry already contains metrics: {}",
                     metricsPrefix, existingMetrics);
         }
+    }
+
+    private static <T, U extends T> T instrument(
+            MetricRegistry metricRegistry,
+            Class<T> serviceInterface,
+            U service,
+            String name,
+            InstrumentationFilter instrumentationFilter) {
+        return Instrumentation.builder(serviceInterface, service)
+                .withFilter(instrumentationFilter)
+                .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
+                .withLogging(
+                        LoggerFactory.getLogger("performance." + name),
+                        LoggingLevel.TRACE,
+                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
+                .build();
+    }
+
+    private static <T, U extends T> T instrumentWithTaggedMetrics(
+            TaggedMetricRegistry taggedMetrics,
+            Class<T> serviceInterface,
+            U service,
+            String name,
+            Function<InvocationContext, Map<String, String>> tagFunction,
+            InstrumentationFilter instrumentationFilter) {
+        return Instrumentation.builder(serviceInterface, service)
+                .withFilter(instrumentationFilter)
+                .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
+                .withLogging(
+                        LoggerFactory.getLogger("performance." + name),
+                        LoggingLevel.TRACE,
+                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
+                .build();
+    }
+
+    private static InstrumentationFilter instrumentTimedOnly() {
+        return new TimedOnlyInstrumentationFilter();
+    }
+
+    private static InstrumentationFilter instrumentAllMethods() {
+        return InstrumentationFilters.INSTRUMENT_ALL;
     }
 }
