@@ -34,7 +34,7 @@ import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
-public class PaxosComponentsTest {
+public class LocalPaxosComponentsTest {
     private static final Client CLIENT = Client.of("alice");
 
     private static final long PAXOS_ROUND_ONE = 1;
@@ -48,13 +48,13 @@ public class PaxosComponentsTest {
     @Rule
     public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
-    private PaxosComponents paxosComponents;
+    private LocalPaxosComponents paxosComponents;
     private Path logDirectory;
 
     @Before
     public void setUp() throws IOException {
         logDirectory = TEMPORARY_FOLDER.newFolder().toPath();
-        paxosComponents = new PaxosComponents(
+        paxosComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, new DefaultTaggedMetricRegistry()),
                 logDirectory);
     }

@@ -35,9 +35,9 @@ import com.palantir.paxos.PaxosProposalId;
 public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
 
     private final AcceptorCache acceptorCache;
-    private final PaxosComponents paxosComponents;
+    private final LocalPaxosComponents paxosComponents;
 
-    LocalBatchPaxosAcceptor(PaxosComponents paxosComponents, AcceptorCache acceptorCache) {
+    LocalBatchPaxosAcceptor(LocalPaxosComponents paxosComponents, AcceptorCache acceptorCache) {
         this.paxosComponents = paxosComponents;
         this.acceptorCache = acceptorCache;
     }

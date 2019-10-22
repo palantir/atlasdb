@@ -24,10 +24,10 @@ import com.palantir.paxos.PaxosLearner;
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
         + "/{client: [a-zA-Z0-9_-]+}")
-public final class PaxosResource {
-    private final PaxosComponents paxosComponents;
+public final class TimestampPaxosResource {
+    private final LocalPaxosComponents paxosComponents;
 
-    PaxosResource(PaxosComponents paxosComponents) {
+    TimestampPaxosResource(LocalPaxosComponents paxosComponents) {
         this.paxosComponents = paxosComponents;
     }
 

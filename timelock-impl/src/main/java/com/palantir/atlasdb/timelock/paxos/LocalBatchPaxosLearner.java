@@ -27,9 +27,9 @@ import com.palantir.paxos.PaxosValue;
 
 public class LocalBatchPaxosLearner implements BatchPaxosLearner {
 
-    private final PaxosComponents paxosComponents;
+    private final LocalPaxosComponents paxosComponents;
 
-    public LocalBatchPaxosLearner(PaxosComponents paxosComponents) {
+    public LocalBatchPaxosLearner(LocalPaxosComponents paxosComponents) {
         this.paxosComponents = paxosComponents;
     }
 

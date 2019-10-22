@@ -45,7 +45,7 @@ public class LocalBatchPaxosLearnerTests {
     private static final Client CLIENT_2 = Client.of("client2");
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private PaxosComponents paxosComponents;
+    private LocalPaxosComponents paxosComponents;
 
     private BatchPaxosLearner resource;
 

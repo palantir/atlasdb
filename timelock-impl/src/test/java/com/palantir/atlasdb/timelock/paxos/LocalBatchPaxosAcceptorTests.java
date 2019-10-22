@@ -50,7 +50,7 @@ public class LocalBatchPaxosAcceptorTests {
     private static final PaxosProposalId PROPOSAL_ID_2 = proposalId();
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private PaxosComponents components;
+    private LocalPaxosComponents components;
 
     @Mock
     private AcceptorCache cache;
