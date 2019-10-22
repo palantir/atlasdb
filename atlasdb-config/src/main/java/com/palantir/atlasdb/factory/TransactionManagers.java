@@ -521,7 +521,7 @@ public abstract class TransactionManagers {
                 metricsManager, lockAndTimestampServices, keyValueService);
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
-        TransactionService transactionService = initializeCloseable(() -> AtlasDbMetrics.instrumentTimed(
+        TransactionService transactionService = initializeCloseable(() -> AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 TransactionService.class,
                 TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
