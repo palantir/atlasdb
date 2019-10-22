@@ -45,7 +45,7 @@ public final class AtlasDbMetrics {
     public static <T, U extends T> T instrument(
             MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
         return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name, serviceInterface))
+                .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
