@@ -45,7 +45,7 @@ public class AtlasDbMetricsTest {
     };
 
     @Test
-    public void instrumentWithDefaultName() {
+    public void instrumentWithDefaultNameTimed() {
         TestService service = AtlasDbMetrics.instrumentTimed(metrics, TestService.class, testService);
 
         assertMetricCountAfterInvocation(
@@ -56,6 +56,20 @@ public class AtlasDbMetricsTest {
                 MetricRegistry.name(TestService.class, PING_NOT_TIMED_REQUEST),
                 service::pingNotTimed,
                 false);
+    }
+
+    @Test
+    public void instrumentWithDefaultNameAll() {
+        TestService service = AtlasDbMetrics.instrument(metrics, TestService.class, testService);
+
+        assertMetricCountAfterInvocation(
+                MetricRegistry.name(TestService.class, PING_REQUEST),
+                service::ping,
+                true);
+        assertMetricCountAfterInvocation(
+                MetricRegistry.name(TestService.class, PING_NOT_TIMED_REQUEST),
+                service::pingNotTimed,
+                true);
     }
 
     @Test
