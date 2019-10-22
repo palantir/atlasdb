@@ -63,10 +63,20 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> T newProxyInstance(T experimentalService, T fallbackService, BooleanSupplier useExperimental,
-            BooleanSupplier enableFallback, Class<T> clazz, Runnable markErrorMetric) {
-        ExperimentRunningProxy<T> service = new ExperimentRunningProxy<>(experimentalService, fallbackService,
-                useExperimental, enableFallback, Clock.systemUTC(), markErrorMetric);
+    public static <T> T newProxyInstance(
+            T experimentalService,
+            T fallbackService,
+            BooleanSupplier useExperimental,
+            BooleanSupplier enableFallback,
+            Class<T> clazz,
+            Runnable markErrorMetric) {
+        ExperimentRunningProxy<T> service = new ExperimentRunningProxy<>(
+                experimentalService,
+                fallbackService,
+                useExperimental,
+                enableFallback,
+                Clock.systemUTC(),
+                markErrorMetric);
         return (T) Proxy.newProxyInstance(
                 clazz.getClassLoader(),
                 new Class[] { clazz },
