@@ -28,6 +28,8 @@ import com.google.common.collect.ImmutableCollection;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
+import com.palantir.paxos.LeaderPingResult;
+import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -115,7 +117,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState)
             throws InterruptedException {
-        if (pingLeader(currentState.greatestLearnedValue())) {
+        if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {
             Thread.sleep(updatePollingRateInMs);
             return;
         }
@@ -148,12 +150,13 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         return LeadershipState.of(greatestLearnedValue, leadingStatus);
     }
 
-    private boolean pingLeader(Optional<PaxosValue> maybeGreatestLearnedValue) {
-        return maybeGreatestLearnedValue
+    private LeaderPingResult pingLeader(Optional<PaxosValue> maybeGreatestLearnedValue) {
+        Optional<LeaderPingResult> maybeLeaderPingResult = maybeGreatestLearnedValue
                 .map(PaxosValue::getLeaderUUID)
                 .map(UUID::fromString)
-                .map(leaderPinger::pingLeaderWithUuid)
-                .orElse(false);
+                .map(leaderPinger::pingLeaderWithUuid);
+        maybeLeaderPingResult.ifPresent(leaderPingResult -> leaderPingResult.recordEvent(eventRecorder));
+        return maybeLeaderPingResult.orElseGet(LeaderPingResults::pingReturnedFalse);
     }
 
     private void proposeLeadershipAfter(Optional<PaxosValue> value) {

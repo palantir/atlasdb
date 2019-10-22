@@ -35,6 +35,8 @@ import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.LeaderPingResult;
+import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 
 public class AutobatchingPingableLeaderFactory implements Closeable {
@@ -95,18 +97,18 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
 
     private static final class ClientAwarePingableLeaderImpl implements ClientAwarePingableLeader {
 
-        private final DisruptorAutobatcher<Client, Boolean> pingAutobatcher;
+        private final DisruptorAutobatcher<Client, LeaderPingResult> pingAutobatcher;
         private final BatchPingableLeader remoteClient;
 
         ClientAwarePingableLeaderImpl(
-                DisruptorAutobatcher<Client, Boolean> pingAutobatcher,
+                DisruptorAutobatcher<Client, LeaderPingResult> pingAutobatcher,
                 BatchPingableLeader remoteClient) {
             this.pingAutobatcher = pingAutobatcher;
             this.remoteClient = remoteClient;
         }
 
         static ClientAwarePingableLeaderImpl create(BatchPingableLeader remoteClient) {
-            DisruptorAutobatcher<Client, Boolean> pingAutobatcher =
+            DisruptorAutobatcher<Client, LeaderPingResult> pingAutobatcher =
                     Autobatchers.coalescing(new PingCoalescingFunction(remoteClient))
                             .safeLoggablePurpose("batch-pingable-leader.ping")
                             .build();
@@ -115,7 +117,7 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
         }
 
         @Override
-        public boolean ping(Client client) {
+        public LeaderPingResult ping(Client client) {
             try {
                 return pingAutobatcher.apply(client).get();
             } catch (InterruptedException | ExecutionException e) {
@@ -143,29 +145,29 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
         }
 
         @Override
-        public boolean pingLeaderWithUuid(UUID uuid) {
+        public LeaderPingResult pingLeaderWithUuid(UUID uuid) {
             try {
                 Optional<ClientAwarePingableLeader> maybePingableLeader = uuidToRemoteAutobatcher.apply(uuid).get();
                 if (!maybePingableLeader.isPresent()) {
-                    return false;
+                    return LeaderPingResults.pingReturnedFalse();
                 }
 
-                ClientAwarePingableLeader pingableLeader = maybePingableLeader.get();
-                return executors.get(pingableLeader).submit(() -> pingableLeader.ping(client))
+                ClientAwarePingableLeader pingableLeaderWithUuid = maybePingableLeader.get();
+                return executors.get(pingableLeaderWithUuid).submit(() -> pingableLeaderWithUuid.ping(client))
                         .get(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 log.warn("received interrupt whilst trying to ping leader",
                         SafeArg.of("client", client));
                 Thread.currentThread().interrupt();
-                return false;
+                return LeaderPingResults.pingCallFailure(e);
             } catch (ExecutionException e) {
                 log.warn("received error whilst trying to ping leader", e.getCause(),
                         SafeArg.of("client", client));
-                return false;
+                return LeaderPingResults.pingCallFailure(e.getCause());
             } catch (TimeoutException e) {
                 log.warn("timed out whilst trying to ping leader",
                         SafeArg.of("client", client));
-                return false;
+                return LeaderPingResults.pingTimedOut();
             }
         }
 

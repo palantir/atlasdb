@@ -21,8 +21,9 @@ import java.util.Set;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.paxos.LeaderPingResult;
 
-final class PingCoalescingFunction implements CoalescingRequestFunction<Client, Boolean> {
+final class PingCoalescingFunction implements CoalescingRequestFunction<Client, LeaderPingResult> {
 
     private final BatchPingableLeader batchPingableLeader;
 
@@ -31,8 +32,8 @@ final class PingCoalescingFunction implements CoalescingRequestFunction<Client, 
     }
 
     @Override
-    public Map<Client, Boolean> apply(Set<Client> request) {
-        Set<Client> ping = batchPingableLeader.ping(request);
-        return Maps.toMap(request, ping::contains);
+    public Map<Client, LeaderPingResult> apply(Set<Client> request) {
+        Set<Client> pingResults = batchPingableLeader.ping(request);
+        return Maps.toMap(request, client -> LeaderPingResult.fromBooleanResult(pingResults.contains(client)));
     }
 }
