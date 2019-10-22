@@ -29,9 +29,10 @@ import com.palantir.atlasdb.metrics.Timed;
 @RunWith(MockitoJUnitRunner.class)
 public final class TimedOnlyInstrumentationFilterTest {
 
+    private final TimedOnlyInstrumentationFilter filter = new TimedOnlyInstrumentationFilter();
+
     @Mock
     private TestService testService;
-    private final TimedOnlyInstrumentationFilter filter = new TimedOnlyInstrumentationFilter();
 
     @Test
     public void testFiltersNotAnnotatedMethods() throws NoSuchMethodException {
