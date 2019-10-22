@@ -28,8 +28,9 @@ public final class AtlasDbMetricsTest {
 
     private static final String CUSTOM_METRIC_NAME = "foo";
     private static final String PING_METHOD = "ping";
+    private static final String PING_NOT_TIMED_METHOD = "pingNotTimed";
     private static final String PING_REQUEST_METRIC = MetricRegistry.name(TestService.class, PING_METHOD);
-    private static final String PING_NOT_TIMED_REQUEST = MetricRegistry.name(TestService.class, "pingNotTimed");
+    private static final String PING_NOT_TIMED_METRIC = MetricRegistry.name(TestService.class, PING_NOT_TIMED_METHOD);
     private static final String PING_RESPONSE = "pong";
 
     private final MetricRegistry metrics = new MetricRegistry();
@@ -50,7 +51,7 @@ public final class AtlasDbMetricsTest {
         TestService service = AtlasDbMetrics.instrumentTimed(metrics, TestService.class, testService);
 
         assertMethodInstrumented(PING_REQUEST_METRIC, service::ping);
-        assertMethodNotInstrumented(PING_NOT_TIMED_REQUEST, service::pingNotTimed);
+        assertMethodNotInstrumented(PING_NOT_TIMED_METRIC, service::pingNotTimed);
     }
 
     @Test
@@ -58,15 +59,27 @@ public final class AtlasDbMetricsTest {
         TestService service = AtlasDbMetrics.instrument(metrics, TestService.class, testService);
 
         assertMethodInstrumented(PING_REQUEST_METRIC, service::ping);
-        assertMethodInstrumented(PING_NOT_TIMED_REQUEST, service::pingNotTimed);
+        assertMethodInstrumented(PING_NOT_TIMED_METRIC, service::pingNotTimed);
     }
 
     @Test
-    public void instrumentWithCustomName() {
+    public void instrumentWithCustomNameTimed() {
+        TestService service = AtlasDbMetrics.instrumentTimed(
+                metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
+
+        assertMethodInstrumented(
+                MetricRegistry.name(CUSTOM_METRIC_NAME, PING_METHOD), service::ping);
+        assertMethodNotInstrumented(
+                MetricRegistry.name(CUSTOM_METRIC_NAME, PING_NOT_TIMED_METHOD), service::pingNotTimed);
+    }
+
+    @Test
+    public void instrumentWithCustomNameAll() {
         TestService service = AtlasDbMetrics.instrument(
                 metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
 
         assertMethodInstrumented(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_METHOD), service::ping);
+        assertMethodInstrumented(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_NOT_TIMED_METHOD), service::pingNotTimed);
     }
 
     private void assertMethodInstrumented(

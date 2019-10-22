@@ -358,7 +358,7 @@ public abstract class TransactionManagers {
             }
 
             kvs = TracingKeyValueService.create(kvs);
-            kvs = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
+            kvs = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
                     KeyValueService.class,
                     kvs,
                     MetricRegistry.name(KeyValueService.class));
