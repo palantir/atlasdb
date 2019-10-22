@@ -53,10 +53,6 @@ public final class AtlasDbMetrics {
         return instrument(metricRegistry, serviceInterface, service, serviceInterface.getName());
     }
 
-    /**
-     * @deprecated use {@link #instrumentTimed(MetricRegistry, Class, Object)}
-     */
-    @Deprecated
     public static <T, U extends T> T instrument(
             MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
         return instrument(metricRegistry, serviceInterface, service, name, instrumentAllMethods());
