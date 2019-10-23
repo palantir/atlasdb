@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: We now handle blacklisting and un-blacklisting of Cassandra nodes correctly
+    when the nodes in the cluster have changed underneath us. Previously, when attempting
+    to un-blacklist a node that was no longer part of the cluster, we would encounter
+    a `NullPointerException`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4338
