@@ -126,8 +126,6 @@ public class BackgroundSweepThread implements Runnable {
             log.info(
                     "Shutting down background sweeper. Please restart the service to rerun background sweep.");
             closeTableLockIfHeld();
-            sweepOutcomeMetrics.registerOccurrenceOf(
-                    SweepOutcome.SHUTDOWN);
         } catch (Throwable t) {
             log.error("BackgroundSweeper failed fatally and will not rerun until restarted: {}",
                     UnsafeArg.of("message", t.getMessage()), t);

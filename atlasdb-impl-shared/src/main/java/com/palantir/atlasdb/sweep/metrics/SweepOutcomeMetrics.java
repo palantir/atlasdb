@@ -34,7 +34,6 @@ public final class SweepOutcomeMetrics {
             SweepOutcome.DISABLED, SweepOutcome.SUCCESS, SweepOutcome.ERROR, SweepOutcome.NOTHING_TO_SWEEP);
 
     private final Reservoir reservoir;
-    private volatile boolean shutdown = false;
     private volatile boolean fatal = false;
 
     private SweepOutcomeMetrics() {
@@ -64,9 +63,6 @@ public final class SweepOutcomeMetrics {
     }
 
     private Long getOutcomeCount(SweepOutcome outcome) {
-        if (outcome == SweepOutcome.SHUTDOWN) {
-            return shutdown ? 1L : 0L;
-        }
         if (outcome == SweepOutcome.FATAL) {
             return fatal ? 1L : 0L;
         }
@@ -77,10 +73,6 @@ public final class SweepOutcomeMetrics {
     }
 
     public void registerOccurrenceOf(SweepOutcome outcome) {
-        if (outcome == SweepOutcome.SHUTDOWN) {
-            shutdown = true;
-            return;
-        }
         if (outcome == SweepOutcome.FATAL) {
             fatal = true;
             return;
