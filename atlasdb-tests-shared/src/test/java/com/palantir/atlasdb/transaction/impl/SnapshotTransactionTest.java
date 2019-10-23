@@ -79,7 +79,6 @@ import org.junit.runners.Parameterized;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -132,6 +131,7 @@ import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -732,7 +732,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         } catch (TransactionFailedNonRetriableException expected) {
             return Optional.empty();
         } catch (Exception e) {
-            throw Throwables.propagate(e);
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
@@ -1554,9 +1554,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 Preconditions.checkState(atomicInteger.get() == 0, "Calling sync get on KVS even though it should be async");
                 return delegate.getAsync(tableRef, timestampByCell).get();
             } catch (InterruptedException e) {
-                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e);
+                throw Throwables.rewrapAndThrowUncheckedException(e);
             } catch (ExecutionException e) {
-                throw com.palantir.common.base.Throwables.rewrapAndThrowUncheckedException(e.getCause());
+                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         }
     }

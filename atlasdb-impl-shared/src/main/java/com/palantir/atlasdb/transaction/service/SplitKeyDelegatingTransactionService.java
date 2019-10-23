@@ -130,7 +130,7 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
     private ListenableFuture<Long> getInternal(long startTimestamp, TimestampLoader cellLoader) {
         return getServiceForTimestamp(startTimestamp)
                 .map(service -> cellLoader.get(service, startTimestamp))
-                .orElse(Futures.immediateFuture(null));
+                .orElseGet(() -> Futures.immediateFuture(null));
     }
 
     private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps, TimestampLoader cellLoader) {

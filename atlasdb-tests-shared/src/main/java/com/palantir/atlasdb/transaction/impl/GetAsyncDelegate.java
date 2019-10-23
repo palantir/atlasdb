@@ -30,14 +30,21 @@ public class GetAsyncDelegate extends ForwardingTransaction {
 
     private final Transaction delegate;
     private final AtomicInteger atomicInteger;
+    private final Runnable enterFunction;
+    private final Runnable exitFunction;
 
     public GetAsyncDelegate(Transaction transaction) {
-        this(transaction, new AtomicInteger());
+        this.delegate = transaction;
+        this.atomicInteger = new AtomicInteger();
+        this.enterFunction = () -> {};
+        this.exitFunction = () -> {};
     }
 
     public GetAsyncDelegate(Transaction transaction, AtomicInteger atomicInteger) {
         this.delegate = transaction;
         this.atomicInteger = atomicInteger;
+        this.enterFunction = atomicInteger::incrementAndGet;
+        this.exitFunction = atomicInteger::decrementAndGet;
     }
 
     @Override
@@ -48,16 +55,16 @@ public class GetAsyncDelegate extends ForwardingTransaction {
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
-            atomicInteger.incrementAndGet();
+            enterFunction.run();
             return delegate().getAsync(tableRef, cells).get();
         } catch (InterruptedException e) {
-            atomicInteger.decrementAndGet();
+            exitFunction.run();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         } catch (ExecutionException e) {
-            atomicInteger.decrementAndGet();
+            exitFunction.run();
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         } finally {
-            atomicInteger.decrementAndGet();
+            exitFunction.run();
         }
     }
 }

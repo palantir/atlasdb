@@ -600,14 +600,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getStartTimestamp()));
 
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-        return filterRowResults(tableRef, rawResults, ImmutableSortedMap.naturalOrder());
+        return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
     private SortedMap<byte[], RowResult<byte[]>> filterRowResults(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
-            ImmutableSortedMap.Builder<Cell, byte[]> result) {
-        ImmutableSortedMap.Builder<Cell, byte[]> collected =
+            ImmutableMap.Builder<Cell, byte[]> result) {
+        ImmutableMap.Builder<Cell, byte[]> collected =
                 getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
         Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected.build(), tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
@@ -786,7 +786,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
                     validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
-                    Map<Cell, byte[]> postFiltered = postFilterPages(
+                    SortedMap<Cell, byte[]> postFiltered = postFilterPages(
                             tableRef,
                             firstPages.values());
 
@@ -924,7 +924,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
-                                                                     final Map<Cell, byte[]> postFiltered,
+                                                                     final SortedMap<Cell, byte[]> postFiltered,
                                                                      final RangeRequest rangeRequest,
                                                                      List<RowResult<Value>> prePostFilter,
                                                                      final byte[] endRowExclusive) {
@@ -1088,7 +1088,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
-                Map<Cell, T> postFilter = postFilterRows(tableRef, batch, transformer);
+                SortedMap<Cell, T> postFilter = postFilterRows(tableRef, batch, transformer);
                 results.markNumResultsNotDeleted(Cells.getRows(postFilter.keySet()).size());
                 return Cells.createRowView(postFilter.entrySet());
             }
@@ -1151,7 +1151,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return writes;
     }
 
-    private Map<Cell, byte[]> postFilterPages(TableReference tableRef,
+    private SortedMap<Cell, byte[]> postFilterPages(
+            TableReference tableRef,
             Iterable<TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> rangeRows) {
         List<RowResult<Value>> results = Lists.newArrayList();
         for (TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page : rangeRows) {
@@ -1160,7 +1161,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilterRows(tableRef, results, Value.GET_VALUE);
     }
 
-    private <T> Map<Cell, T> postFilterRows(
+    private <T> SortedMap<Cell, T> postFilterRows(
             TableReference tableRef,
             List<RowResult<Value>> rangeRows,
             Function<Value, T> transformer) {
@@ -1248,21 +1249,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
                 remainingResultsToPostfilter ->
-                        iterate(tableRef, remainingResultsToPostfilter, resultCount, resultsAccumulator, transformer, cellLoader),
+                        iterate(tableRef, remainingResultsToPostFilter, resultCount, resultsAccumulator, transformer, cellLoader),
                 MoreExecutors.directExecutor());
     }
 
     private <T, R extends ImmutableMap.Builder<Cell, T>> ListenableFuture<R> iterate(
             TableReference tableReference,
-            Map<Cell, Value> remainingResultsToPostfilter,
+            Map<Cell, Value> remainingResultsToPostFilter,
             AtomicInteger resultCounter,
             R resultsAccumulator,
             Function<Value, T> transformer,
             CellLoader cellLoader) {
-        if (!remainingResultsToPostfilter.isEmpty()) {
+        if (!remainingResultsToPostFilter.isEmpty()) {
             return Futures.transformAsync(getWithPostFilteringInternal(
                     tableReference,
-                    remainingResultsToPostfilter,
+                    remainingResultsToPostFilter,
                     resultsAccumulator,
                     resultCounter,
                     transformer,
