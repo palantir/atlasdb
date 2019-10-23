@@ -24,11 +24,18 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
+import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
+import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 
 @Value.Immutable
 public abstract class PaxosResources {
     public abstract PaxosResourcesFactory.PaxosUseCaseContext timestamp();
     abstract List<Object> adhocResources();
+
+    abstract TimelockPaxosMetrics leaderMetrics();
+    abstract Factory<LeadershipContext> leadershipContextFactory();
+    abstract LeaderPingHealthCheck healthCheck();
 
     @Value.Derived
     public List<Object> resourcesForRegistration() {
@@ -44,6 +51,11 @@ public abstract class PaxosResources {
                 .addAll(adhocResources())
                 .add(combinedBatchResource)
                 .build();
+    }
+
+    @Value.Derived
+    public LeadershipComponents leadershipComponents() {
+        return new LeadershipComponents(leaderMetrics(), leadershipContextFactory(), healthCheck());
     }
 
     private static BatchPaxosResources batchResourcesForUseCase(

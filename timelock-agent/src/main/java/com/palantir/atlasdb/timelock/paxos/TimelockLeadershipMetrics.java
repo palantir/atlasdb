@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -39,25 +38,18 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
-import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 @Value.Immutable
-public abstract class TimelockLeadershipMetrics {
-
-    public abstract TimelockPaxosMetrics metrics();
-    public abstract UUID leaderUuid();
-    public abstract PingableLeader localPingableLeader();
-    public abstract AutobatchingLeadershipObserverFactory leadershipObserverFactory();
-    abstract Client client();
+public abstract class TimelockLeadershipMetrics implements Dependencies.LeadershipMetrics {
 
     @Value.Derived
     List<SafeArg<String>> namespaceAsArgs() {
         return ImmutableList.of(
                 SafeArg.of(TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()),
-                SafeArg.of(TAG_CLIENT, client().value()));
+                SafeArg.of(TAG_CLIENT, proxyClient().value()));
     }
 
     @Value.Derived
@@ -71,7 +63,7 @@ public abstract class TimelockLeadershipMetrics {
 
     @Value.Derived
     LeadershipObserver leadershipObserver() {
-        return leadershipObserverFactory().create(client());
+        return leadershipObserverFactory().create(proxyClient());
     }
 
     public <T> T instrument(String name, Class<T> clazz, T instance) {
@@ -81,7 +73,7 @@ public abstract class TimelockLeadershipMetrics {
                 instance,
                 name,
                 _context -> ImmutableMap.of(
-                        TAG_CLIENT, client().value(),
+                        TAG_CLIENT, proxyClient().value(),
                         TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
     }
 
