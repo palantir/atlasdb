@@ -20,6 +20,7 @@ import java.util.Map;
 import javax.annotation.CheckForNull;
 
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.metrics.Timed;
 
 /**
  * Transaction service is used by the atlas protocol to determine is a given transaction has been
@@ -46,8 +47,10 @@ public interface TransactionService extends AutoCloseable {
      * @return timestamp which the transaction committed at, or null if the transaction had not committed yet
      */
     @CheckForNull
+    @Timed
     Long get(long startTimestamp);
 
+    @Timed
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
     /**
@@ -58,6 +61,7 @@ public interface TransactionService extends AutoCloseable {
      * @throws RuntimeException If a runtime exception is thrown, this operation may or may
      * not have ran.
      */
+    @Timed
     void putUnlessExists(long startTimestamp, long commitTimestamp)
             throws KeyAlreadyExistsException;
 
