@@ -671,7 +671,6 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
-                persistentLockManager,
                 specificTableSweeper);
 
         transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
