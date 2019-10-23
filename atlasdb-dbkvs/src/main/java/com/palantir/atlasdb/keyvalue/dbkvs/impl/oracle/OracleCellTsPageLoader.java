@@ -169,7 +169,8 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             FullQuery.Builder queryBuilder = FullQuery.builder()
                     .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING */ ")
                     .append("SELECT * FROM (")
-                    .append("  SELECT /*+ INDEX_ASC(t ").append(pkIndex).append(") ")
+                    .append("  SELECT /*+ FIRST_ROWS(").append(sqlRowLimit).append(") ")
+                    .append("             INDEX_ASC(t ").append(pkIndex).append(") ")
                     .append("             NO_INDEX_SS(t ").append(pkIndex).append(")")
                     .append("             NO_INDEX_FFS(t ").append(pkIndex).append(") */")
                     .append("  row_name, col_name, ts");
