@@ -36,8 +36,8 @@ public class GetAsyncDelegate extends ForwardingTransaction {
     public GetAsyncDelegate(Transaction transaction) {
         this.delegate = transaction;
         this.atomicInteger = new AtomicInteger();
-        this.enterFunction = () -> {};
-        this.exitFunction = () -> {};
+        this.enterFunction = () -> { };
+        this.exitFunction = () -> { };
     }
 
     public GetAsyncDelegate(Transaction transaction, AtomicInteger atomicInteger) {

@@ -744,7 +744,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 MoreExecutors.directExecutor());
     }
 
-    private interface CellLoader {
+    protected interface CellLoader {
         ListenableFuture<Map<Cell, Value>> load(TableReference tableReference, Map<Cell, Long> toRead);
 
         TimestampLoader timestampLoader();
@@ -2111,20 +2111,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return results;
     }
 
-    /**
-     * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't
-     * committed, then it will be missing from the map.  This method will block until the
-     * transactions for these start timestamps are complete.
-     */
-    protected Map<Long, Long> getCommitTimestamps(@Nullable TableReference tableRef,
-                                                  Iterable<Long> startTimestamps,
-                                                  boolean waitForCommitterToComplete) {
+    private Map<Long, Long> getCommitTimestamps(
+            @Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps,
+            boolean waitForCommitterToComplete) {
         try {
             return getCommitTimestamps(
                     tableRef,
                     startTimestamps,
                     waitForCommitterToComplete,
-                    immediateCellLoader).get();
+                    this.immediateCellLoader).get();
         } catch (InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         } catch (ExecutionException e) {
@@ -2132,8 +2128,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-
-    private ListenableFuture<Map<Long, Long>> getCommitTimestamps(@Nullable TableReference tableRef,
+    /**
+     * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't
+     * committed, then it will be missing from the map.  This method will block until the
+     * transactions for these start timestamps are complete.
+     */
+    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+            @Nullable TableReference tableRef,
             Iterable<Long> startTimestamps,
             boolean waitForCommitterToComplete,
             CellLoader cellLoader) {
