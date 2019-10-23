@@ -15,47 +15,67 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
+import java.util.function.Supplier;
+
+import org.immutables.value.Value;
+
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
 public class LegacySweepMetrics {
-    public static final String METRIC_BASE_NAME = LegacySweepMetrics.class.getName();
+    static final String METRIC_BASE_NAME = LegacySweepMetrics.class.getName();
 
-    private final Counter cellsExamined;
-    private final Counter cellsDeleted;
-    private final Counter timeSweeping;
-    private final Counter sweepErrors;
-    private final CurrentValueMetric<Long> totalTime;
+    private final Supplier<Metrics> metrics;
 
     public LegacySweepMetrics(MetricRegistry metricRegistry) {
-        this.cellsExamined = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
-        this.cellsDeleted = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
-        this.timeSweeping = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));
-        this.sweepErrors = metricRegistry.counter(getMetricName(AtlasDbMetricNames.SWEEP_ERROR));
-        this.totalTime = new CurrentValueMetric<>();
-
-        metricRegistry.gauge(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING), () -> totalTime);
+        metrics = Suppliers.memoize(() -> buildMetrics(metricRegistry));
     }
 
     public void updateCellsExaminedDeleted(long cellTsPairsExamined, long staleValuesDeleted) {
-        cellsExamined.inc(cellTsPairsExamined);
-        cellsDeleted.inc(staleValuesDeleted);
+        metrics.get().cellsExamined().inc(cellTsPairsExamined);
+        metrics.get().cellsDeleted().inc(staleValuesDeleted);
     }
 
     public void updateSweepTime(long sweepTime, long totalTimeElapsedSweeping) {
-        timeSweeping.inc(sweepTime);
-        totalTime.setValue(totalTimeElapsedSweeping);
+        metrics.get().timeSweeping().inc(sweepTime);
+        metrics.get().totalTime().setValue(totalTimeElapsedSweeping);
     }
 
     public void sweepError() {
-        sweepErrors.inc();
+        metrics.get().sweepErrors().inc();
+    }
+
+    private Metrics buildMetrics(MetricRegistry metricRegistry) {
+        CurrentValueMetric totalTime = new CurrentValueMetric<>();
+        metricRegistry.gauge(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING), () -> totalTime);
+        return ImmutableMetrics.builder()
+                .cellsExamined(getCounter(metricRegistry, AtlasDbMetricNames.CELLS_EXAMINED))
+                .cellsDeleted(getCounter(metricRegistry, AtlasDbMetricNames.CELLS_SWEPT))
+                .timeSweeping(getCounter(metricRegistry, AtlasDbMetricNames.TIME_SPENT_SWEEPING))
+                .sweepErrors(getCounter(metricRegistry, AtlasDbMetricNames.SWEEP_ERROR))
+                .totalTime(totalTime)
+                .build();
+    }
+
+    private Counter getCounter(MetricRegistry metricRegistry, String name) {
+        return metricRegistry.counter(getMetricName(name));
     }
 
     private String getMetricName(String name) {
         return MetricRegistry.name(METRIC_BASE_NAME, name);
+    }
+
+    @Value.Immutable
+    interface Metrics {
+        Counter cellsExamined();
+        Counter cellsDeleted();
+        Counter timeSweeping();
+        Counter sweepErrors();
+        CurrentValueMetric<Long> totalTime();
     }
 }
