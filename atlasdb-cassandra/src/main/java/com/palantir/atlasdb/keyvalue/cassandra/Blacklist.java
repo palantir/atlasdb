@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.time.Clock;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -37,11 +39,19 @@ public class Blacklist {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
     private final CassandraKeyValueServiceConfig config;
+    private final Clock clock;
+
     private Map<InetSocketAddress, Long> blacklist;
 
     public Blacklist(CassandraKeyValueServiceConfig config) {
+        this(config, Clock.systemUTC());
+    }
+
+    @VisibleForTesting
+    Blacklist(CassandraKeyValueServiceConfig config, Clock clock) {
         this.config = config;
         this.blacklist = Maps.newConcurrentMap();
+        this.clock = clock;
     }
 
     void checkAndUpdate(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
@@ -65,7 +75,7 @@ public class Blacklist {
 
     private boolean coolOffPeriodExpired(Map.Entry<InetSocketAddress, Long> blacklistedEntry) {
         long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
-        return blacklistedEntry.getValue() + backoffTimeMillis < System.currentTimeMillis();
+        return blacklistedEntry.getValue() + backoffTimeMillis < clock.millis();
     }
 
     private boolean isHostHealthy(CassandraClientPoolingContainer container) {
@@ -92,7 +102,7 @@ public class Blacklist {
     }
 
     public void add(InetSocketAddress host) {
-        blacklist.put(host, System.currentTimeMillis());
+        blacklist.put(host, clock.millis());
         log.info("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
 
