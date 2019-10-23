@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_CLIENT;
-import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER;
-import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_PAXOS_USE_CASE;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.streams.KeyedStream;
@@ -48,8 +45,8 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
     @Value.Derived
     List<SafeArg<String>> namespaceAsArgs() {
         return ImmutableList.of(
-                SafeArg.of(TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()),
-                SafeArg.of(TAG_CLIENT, proxyClient().value()));
+                SafeArg.of(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()),
+                SafeArg.of(AtlasDbMetricNames.TAG_CLIENT, proxyClient().value()));
     }
 
     @Value.Derived
@@ -73,8 +70,8 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 instance,
                 name,
                 _context -> ImmutableMap.of(
-                        TAG_CLIENT, proxyClient().value(),
-                        TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
+                        AtlasDbMetricNames.TAG_CLIENT, proxyClient().value(),
+                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
     }
 
     public static AutobatchingLeadershipObserverFactory createFactory(TimelockPaxosMetrics metrics) {
@@ -115,13 +112,13 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
         return metricName ->
-                Optional.ofNullable(metricName.safeTags().get(TAG_CURRENT_SUSPECTED_LEADER))
+                Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
                         .filter(String.valueOf(currentLeader)::equals)
                         .isPresent();
     }
 
     private static Predicate<MetricName> withClientTag(Set<String> clients) {
-        return metricName -> clients.contains(metricName.safeTags().get(TAG_CLIENT));
+        return metricName -> clients.contains(metricName.safeTags().get(AtlasDbMetricNames.TAG_CLIENT));
     }
 
 }
