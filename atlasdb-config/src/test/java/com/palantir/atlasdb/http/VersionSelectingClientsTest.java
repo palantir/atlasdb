@@ -26,12 +26,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.http.VersionSelectingClients.VersionSelectingConfig;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -40,6 +42,9 @@ import com.palantir.timestamp.TimestampService;
 
 public class VersionSelectingClientsTest {
     private final AtomicDouble probability = new AtomicDouble(0.0);
+    private final AtomicBoolean fallback = new AtomicBoolean(true);
+    private final VersionSelectingConfig config = VersionSelectingConfig
+            .withNewClientProbability(probability::get, fallback::get);
     private final TimestampService newService = mock(TimestampService.class);
     private final TimestampService oldService = mock(TimestampService.class);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
@@ -48,7 +53,7 @@ public class VersionSelectingClientsTest {
             metricsManager,
             ImmutableInstanceAndVersion.of(newService, "new"),
             ImmutableInstanceAndVersion.of(oldService, "old"),
-            probability::get,
+            config,
             TimestampService.class);
 
     @Test
@@ -81,9 +86,29 @@ public class VersionSelectingClientsTest {
     }
 
     @Test
+    public void supportsLiveReloadableFallback() {
+        probability.set(1.0);
+        fallback.set(true);
+        setNewServiceToThrow();
+
+        assertThatThrownBy(selectingService::getFreshTimestamp).isInstanceOf(RuntimeException.class);
+        selectingService.getFreshTimestamp();
+
+        verify(newService).getFreshTimestamp();
+        verify(oldService).getFreshTimestamp();
+
+        fallback.set(false);
+        assertThatThrownBy(selectingService::getFreshTimestamp).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(selectingService::getFreshTimestamp).isInstanceOf(RuntimeException.class);
+
+        verify(newService, times(3)).getFreshTimestamp();
+        verify(oldService).getFreshTimestamp();
+    }
+
+    @Test
     public void allServicesUseTheSameErrorMetric() {
         probability.set(1.0);
-        when(newService.getFreshTimestamp()).thenThrow(new RuntimeException());
+        setNewServiceToThrow();
 
         Runnable oldTask = mock(Runnable.class);
         Runnable newTask = mock(Runnable.class);
@@ -94,14 +119,20 @@ public class VersionSelectingClientsTest {
                 metricsManager,
                 ImmutableInstanceAndVersion.of(oldTask, "old"),
                 ImmutableInstanceAndVersion.of(newTask, "new"),
-                () -> 1.0,
+                VersionSelectingConfig.withNewClientProbability(() -> 1.0, () -> true),
                 Runnable.class);
 
         assertThatThrownBy(selectingService::getFreshTimestamp).isInstanceOf(RuntimeException.class);
+        selectingService.getFreshTimestamp();
         assertErrorMetricEquals(1L);
 
         assertThatThrownBy(selectingTask::run).isInstanceOf(RuntimeException.class);
+        selectingTask.run();
         assertErrorMetricEquals(2L);
+    }
+
+    private void setNewServiceToThrow() {
+        when(newService.getFreshTimestamp()).thenThrow(new RuntimeException());
     }
 
     private void assertErrorMetricEquals(long errors) {
