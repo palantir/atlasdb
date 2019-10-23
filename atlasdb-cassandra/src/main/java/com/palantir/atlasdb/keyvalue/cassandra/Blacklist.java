@@ -49,7 +49,12 @@ public class Blacklist {
         for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklist.entrySet()) {
             if (coolOffPeriodExpired(blacklistedEntry)) {
                 InetSocketAddress host = blacklistedEntry.getKey();
-                if (isHostHealthy(pools.get(host))) {
+                if (!pools.containsKey(host)) {
+                    // Probably the pool changed underneath us
+                    blacklist.remove(host);
+                    log.info("Removing host {} from the blacklist as it wasn't found in the pool.",
+                            SafeArg.of("host", CassandraLogHelper.host(host)));
+                } else if (isHostHealthy(pools.get(host))) {
                     blacklist.remove(host);
                     log.info("Added host {} back into the pool after a waiting period and successful health check.",
                             SafeArg.of("host", CassandraLogHelper.host(host)));
