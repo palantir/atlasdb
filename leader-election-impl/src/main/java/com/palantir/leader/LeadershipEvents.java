@@ -16,12 +16,14 @@
 package com.palantir.leader;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
@@ -46,15 +48,16 @@ class LeadershipEvents {
     private final Meter leaderPingReturnedFalse;
     private final Object[] contextArgs;
 
-    LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<Object>> contextArgs) {
-        gainedLeadership = metrics.meter(withName("leadership.gained"));
-        lostLeadership = metrics.meter(withName("leadership.lost"));
-        noQuorum = metrics.meter(withName("leadership.no-quorum"));
-        proposedLeadership = metrics.meter(withName("leadership.proposed"));
-        proposalFailure = metrics.meter(withName("leadership.proposed.failure"));
-        leaderPingFailure = metrics.meter(withName("leadership.ping-leader.failure"));
-        leaderPingTimeout = metrics.meter(withName("leadership.ping-leader.timeout"));
-        leaderPingReturnedFalse = metrics.meter(withName("leadership.ping-leader.returned-false"));
+    LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<String>> contextArgs) {
+        Map<String, String> safeTags = safeTags(contextArgs);
+        gainedLeadership = metrics.meter(withName("leadership.gained", safeTags));
+        lostLeadership = metrics.meter(withName("leadership.lost", safeTags));
+        noQuorum = metrics.meter(withName("leadership.no-quorum", safeTags));
+        proposedLeadership = metrics.meter(withName("leadership.proposed", safeTags));
+        proposalFailure = metrics.meter(withName("leadership.proposed.failure", safeTags));
+        leaderPingFailure = metrics.meter(withName("leadership.ping-leader.failure", safeTags));
+        leaderPingTimeout = metrics.meter(withName("leadership.ping-leader.timeout", safeTags));
+        leaderPingReturnedFalse = metrics.meter(withName("leadership.ping-leader.returned-false", safeTags));
         this.contextArgs = contextArgs.toArray(new Object[0]);
     }
 
@@ -112,7 +115,17 @@ class LeadershipEvents {
         }
     }
 
-    private static MetricName withName(String name) {
-        return MetricName.builder().safeName(name).build();
+    private static MetricName withName(String name, Map<String, String> safeTags) {
+        return MetricName.builder()
+                .safeName(name)
+                .safeTags(safeTags)
+                .build();
+    }
+
+    private static Map<String, String> safeTags(List<SafeArg<String>> contextArgs) {
+        return KeyedStream.of(contextArgs)
+                .mapKeys(SafeArg::getName)
+                .map(SafeArg::getValue)
+                .collectToMap();
     }
 }
