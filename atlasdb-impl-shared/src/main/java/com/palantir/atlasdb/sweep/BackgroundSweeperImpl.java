@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcomeMetrics;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
@@ -125,7 +124,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     @Override
     public synchronized void shutdown() {
-        sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
         if (daemons == null) {
             return;
         }
