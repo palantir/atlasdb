@@ -49,7 +49,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
     private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
-    private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
     private final SweepOutcomeMetrics sweepOutcomeMetrics;
 
@@ -62,7 +61,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Supplier<Integer> sweepThreads,
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
-            PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         this.sweepOutcomeMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
         this.lockService = lockService;
@@ -72,7 +70,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         this.sweepThreads = sweepThreads;
         this.sweepPauseMillis = sweepPauseMillis;
         this.sweepPriorityOverrideConfig = sweepPriorityOverrideConfig;
-        this.persistentLockManager = persistentLockManager;
         this.specificTableSweeper = specificTableSweeper;
     }
 
@@ -83,7 +80,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Supplier<Integer> sweepThreads,
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
-            PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider
                 .create(specificTableSweeper.getKvs(),
@@ -99,7 +95,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                 sweepThreads,
                 sweepPauseMillis,
                 sweepPriorityOverrideConfig,
-                persistentLockManager,
                 specificTableSweeper);
     }
 
