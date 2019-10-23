@@ -114,7 +114,6 @@ public interface CassandraClient extends Closeable {
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    @Timed
     CqlResult execute_cql3_query(CqlQuery cqlQuery,
             Compression compression,
             ConsistencyLevel consistency)
