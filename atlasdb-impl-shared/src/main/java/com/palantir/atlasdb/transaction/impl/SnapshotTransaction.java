@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -84,6 +83,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -132,7 +132,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.common.streams.MoreStreams;
@@ -190,6 +189,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final TimelockService timelockService;
     final KeyValueService keyValueService;
+    final KeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
     private final AsyncTransactionService immediateTransactionService;
     private final Cleaner cleaner;
@@ -238,7 +238,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            com.palantir.atlasdb.keyvalue.api.KeyValueService keyValueService,
             TimelockService timelockService,
             TransactionService transactionService,
             Cleaner cleaner,
@@ -262,6 +262,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
+        this.immediateKeyValueService = new AutoDelegate_KeyValueService() {
+            @Override
+            public com.palantir.atlasdb.keyvalue.api.KeyValueService delegate() {
+                return keyValueService;
+            }
+
+            @Override
+            public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+                return Futures.immediateFuture(keyValueService.get(tableRef, timestampByCell));
+            }
+        };
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
@@ -484,7 +495,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     /**
      * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name.
-     * {@link KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees
+     * {@link com.palantir.atlasdb.keyvalue.api.KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees
      * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
      * entry per non-empty row.
      */
@@ -549,11 +560,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
-    private SortedMap<byte[], RowResult<byte[]>> filterRowResults(TableReference tableRef,
-                                                                  Map<Cell, Value> rawResults,
-                                                                  ImmutableMap.Builder<Cell, byte[]> result) {
-        getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-        Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(result.build(), tableRef);
+    private SortedMap<byte[], RowResult<byte[]>> filterRowResults(
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            ImmutableMap.Builder<Cell, byte[]> result) {
+        ImmutableMap.Builder<Cell, byte[]> collected =
+                getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
+        Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected.build(), tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }
 
@@ -592,29 +605,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        try {
-            return getWithLoader(
-                    "get",
-                    tableRef,
-                    cells,
-                    (tableReference, toRead) ->
-                            Futures.immediateFuture(keyValueService.get(tableReference, toRead))).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
-        }
+        return AtlasFutures.getUnchecked(getWithLoader(
+                "get",
+                tableRef,
+                cells,
+                immediateKeyValueService,
+                immediateTransactionService));
     }
 
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return getWithLoader("getAsync", tableRef, cells, keyValueService::getAsync);
+        return getWithLoader("getAsync", tableRef, cells, keyValueService, defaultTransactionService);
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
             String operationName,
             TableReference tableRef,
             Set<Cell> cells,
-            CellLoader cellLoader) {
+            KeyValueService keyValueService,
+            AsyncTransactionService asyncTransactionService) {
         Timer.Context timer = getTimer(operationName).time();
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(cells)) {
@@ -633,7 +643,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         // We don't need to read any cells that were written locally.
-        return Futures.transform(getFromKeyValueService(tableRef, Sets.difference(cells, result.keySet()), cellLoader),
+        return Futures.transform(getFromKeyValueService(
+                tableRef,
+                Sets.difference(cells, result.keySet()),
+                keyValueService,
+                asyncTransactionService),
                 fromKeyValueService -> {
                     result.putAll(fromKeyValueService);
 
@@ -663,7 +677,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         ListenableFuture<Map<Cell, byte[]>> result = getFromKeyValueService(
                 tableRef,
                 cells,
-                (tableReference, toRead) -> Futures.immediateFuture(keyValueService.get(tableReference, toRead)));
+                immediateKeyValueService,
+                immediateTransactionService);
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
         return Maps.filterValues(Futures.getUnchecked(result), Predicates.not(Value::isTombstone));
@@ -677,20 +692,24 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueService(
             TableReference tableRef,
             Set<Cell> cells,
-            CellLoader cellLoader) {
+            KeyValueService keyValueService,
+            AsyncTransactionService asyncTransactionService) {
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
-        return Futures.transform(cellLoader.load(tableRef, toRead),
-                rawResults -> getWithPostFiltering(
-                        tableRef,
-                        rawResults,
-                        ImmutableMap.builderWithExpectedSize(cells.size()),
-                        Value.GET_VALUE).build(),
-                MoreExecutors.directExecutor());
-    }
+        ListenableFuture<ImmutableMap.Builder<Cell, byte[]>> futureBuilder =
+                Futures.transformAsync(
+                        keyValueService.getAsync(tableRef, toRead),
+                        rawResults -> getWithPostFilteringFuture(
+                                tableRef,
+                                rawResults,
+                                ImmutableMap.builderWithExpectedSize(cells.size()),
+                                Value.GET_VALUE,
+                                asyncTransactionService),
+                        MoreExecutors.directExecutor());
 
-    @FunctionalInterface
-    private interface CellLoader {
-        ListenableFuture<Map<Cell, Value>> load(TableReference tableReference, Map<Cell, Long> toRead);
+        return Futures.transform(
+                futureBuilder,
+                ImmutableMap.Builder::build,
+                MoreExecutors.directExecutor());
     }
 
     private static byte[] getNextStartRowName(
@@ -1088,7 +1107,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return writes;
     }
 
-    private SortedMap<Cell, byte[]> postFilterPages(TableReference tableRef,
+    private SortedMap<Cell, byte[]> postFilterPages(
+            TableReference tableRef,
             Iterable<TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> rangeRows) {
         List<RowResult<Value>> results = Lists.newArrayList();
         for (TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page : rangeRows) {
@@ -1097,9 +1117,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilterRows(tableRef, results, Value.GET_VALUE);
     }
 
-    private <T> SortedMap<Cell, T> postFilterRows(TableReference tableRef,
-                                                  List<RowResult<Value>> rangeRows,
-                                                  Function<Value, T> transformer) {
+    private <T> SortedMap<Cell, T> postFilterRows(
+            TableReference tableRef,
+            List<RowResult<Value>> rangeRows,
+            Function<Value, T> transformer) {
         ensureUncommitted();
 
         if (rangeRows.isEmpty()) {
@@ -1129,13 +1150,28 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Map<Cell, Value> rawResults,
             R resultsAccumulator,
             Function<Value, T> transformer) {
+        return AtlasFutures.getUnchecked(
+                getWithPostFilteringFuture(
+                        tableRef,
+                        rawResults,
+                        resultsAccumulator,
+                        transformer,
+                        immediateTransactionService));
+    }
+
+    private <T, R extends ImmutableMap.Builder<Cell, T>> ListenableFuture<R> getWithPostFilteringFuture(
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            R resultsAccumulator,
+            Function<Value, T> transformer,
+            AsyncTransactionService asyncTransactionService) {
         long bytes = 0;
-        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-            bytes += e.getValue().getContents().length + Cells.getApproxSizeOfCell(e.getKey());
+        for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
+            bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
         }
         if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
             log.warn("A single get had quite a few bytes: {} for table {}. The number of results was {}. "
-                    + "Enable debug logging for more information.",
+                            + "Enable debug logging for more information.",
                     SafeArg.of("numBytes", bytes),
                     LoggingArgs.tableRef(tableRef),
                     SafeArg.of("numResults", rawResults.size()));
@@ -1157,18 +1193,52 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
                 resultsAccumulator.put(e.getKey(), transformer.apply(e.getValue()));
             }
-            return resultsAccumulator;
+            return Futures.immediateFuture(resultsAccumulator);
         }
 
-        Map<Cell, Value> remainingResultsToPostfilter = rawResults;
         AtomicInteger resultCount = new AtomicInteger();
-        while (!remainingResultsToPostfilter.isEmpty()) {
-            remainingResultsToPostfilter = getWithPostFilteringInternal(
-                    tableRef, remainingResultsToPostfilter, resultsAccumulator, resultCount, transformer);
+
+        return Futures.transformAsync(
+                Futures.immediateFuture(rawResults),
+                remainingResultsToPostFilter ->
+                        iterate(tableRef,
+                                remainingResultsToPostFilter,
+                                resultCount,
+                                resultsAccumulator,
+                                transformer,
+                                asyncTransactionService),
+                MoreExecutors.directExecutor());
+    }
+
+    private <T, R extends ImmutableMap.Builder<Cell, T>> ListenableFuture<R> iterate(
+            TableReference tableReference,
+            Map<Cell, Value> remainingResultsToPostFilter,
+            AtomicInteger resultCounter,
+            R resultsAccumulator,
+            Function<Value, T> transformer,
+            AsyncTransactionService asyncTransactionService) {
+        if (!remainingResultsToPostFilter.isEmpty()) {
+            return Futures.transformAsync(
+                    getWithPostFilteringInternal(
+                            tableReference,
+                            remainingResultsToPostFilter,
+                            resultsAccumulator,
+                            resultCounter,
+                            transformer,
+                            asyncTransactionService),
+                    remaining ->
+                            iterate(
+                                    tableReference,
+                                    remaining,
+                                    resultCounter,
+                                    resultsAccumulator,
+                                    transformer,
+                                    asyncTransactionService),
+                    MoreExecutors.directExecutor());
         }
 
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableRef).mark(resultCount.get());
-        return resultsAccumulator;
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference).mark(resultCounter.get());
+        return Futures.immediateFuture(resultsAccumulator);
     }
 
     /**
@@ -1195,18 +1265,44 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This will return all the keys that still need to be postFiltered.  It will output properly
      * postFiltered keys to the results output param.
      */
-    private <T> Map<Cell, Value> getWithPostFilteringInternal(TableReference tableRef,
+    private <T> ListenableFuture<Map<Cell, Value>> getWithPostFilteringInternal(
+            TableReference tableRef,
             Map<Cell, Value> rawResults,
             @Output ImmutableMap.Builder<Cell, T> results,
             @Output AtomicInteger count,
-            Function<Value, T> transformer) {
-        Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
-        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, startTimestampsForValues, true);
+            Function<Value, T> transformer,
+            AsyncTransactionService asyncTransactionService) {
+
+        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
+
+        return Futures.transformAsync(
+                getCommitTimestamps(tableRef, getStartTimestampsForValues(rawResults.values()), true, asyncTransactionService),
+                commitTimestamps ->
+                        collectToPostFilter(
+                                tableRef,
+                                rawResults,
+                                results,
+                                count,
+                                transformer,
+                                keyValueService,
+                                orphanedSentinels,
+                                commitTimestamps),
+                MoreExecutors.directExecutor());
+    }
+
+    private <T> ListenableFuture<Map<Cell, Value>> collectToPostFilter(
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            @Output ImmutableMap.Builder<Cell, T> results,
+            @Output AtomicInteger count,
+            Function<Value, T> transformer,
+            KeyValueService keyValueService,
+            Set<Cell> orphanedSentinels,
+            Map<Long, Long> commitTimestamps) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
-        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
@@ -1221,11 +1317,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         break;
                     case THROW_EXCEPTION:
                         if (!orphanedSentinels.contains(key)) {
-                            throw new TransactionFailedRetriableException("Tried to read a value that has been "
-                                    + "deleted. This can be caused by hard delete transactions using the type "
-                                    + TransactionType.AGGRESSIVE_HARD_DELETE
-                                    + ". It can also be caused by transactions taking too long, or"
-                                    + " its locks expired. Retrying it should work.");
+                            throw new TransactionFailedRetriableException(
+                                    "Tried to read a value that has been "
+                                            + "deleted. This can be caused by hard delete transactions using the type "
+                                            + TransactionType.AGGRESSIVE_HARD_DELETE
+                                            + ". It can also be caused by transactions taking too long, or"
+                                            + " its locks expired. Retrying it should work.");
 
                         }
                         break;
@@ -1247,7 +1344,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
-                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
+                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS,
+                            tableRef)
                             .mark();
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
@@ -1264,17 +1362,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
             if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
-                return getRemainingResults(rawResults, keysAddedToResults);
+                return Futures.immediateFuture(getRemainingResults(rawResults, keysAddedToResults));
             }
         }
 
         if (!keysToReload.isEmpty()) {
-            Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
-            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-            return getRemainingResults(nextRawResults, keysAddedToResults);
-        } else {
-            return ImmutableMap.of();
+            return Futures.transform(keyValueService.getAsync(tableRef, keysToReload),
+                    nextRawResults -> {
+                        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                        return getRemainingResults(nextRawResults, keysAddedToResults);
+                    },
+                    MoreExecutors.directExecutor());
         }
+        return Futures.immediateFuture(ImmutableMap.of());
     }
 
     private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
@@ -2188,7 +2288,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    protected KeyValueService getKeyValueService() {
+    protected com.palantir.atlasdb.keyvalue.api.KeyValueService getKeyValueService() {
         return keyValueService;
     }
 
