@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,7 +57,8 @@ public class LocalPaxosComponentsTest {
         logDirectory = TEMPORARY_FOLDER.newFolder().toPath();
         paxosComponents = new LocalPaxosComponents(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, new DefaultTaggedMetricRegistry()),
-                logDirectory);
+                logDirectory,
+                UUID.randomUUID());
     }
 
     @Test

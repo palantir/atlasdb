@@ -116,7 +116,8 @@ public final class PaxosResourcesFactory {
 
         LocalPaxosComponents paxosComponents = new LocalPaxosComponents(
                 timelockMetrics,
-                useCase.logDirectoryRelativeToDataDirectory(install.dataDirectory()));
+                useCase.logDirectoryRelativeToDataDirectory(install.dataDirectory()),
+                install.nodeUuid());
 
         NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
                 .useCase(useCase)
