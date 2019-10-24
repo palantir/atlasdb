@@ -48,19 +48,25 @@ public class SweepOutcomeMetricsTest {
     }
 
     @Test
+    public void testMetricsAreNotRegisteredEagerly() {
+        SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(outcome -> {
+            assertThat(metricsManager).hasNotRegisteredLegacyOutcome(outcome);
+        });
+        SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(outcome -> {
+            assertThat(metricsManager).hasNotRegisteredTargetedOutcome(CONSERVATIVE, outcome);
+            assertThat(metricsManager).hasNotRegisteredTargetedOutcome(THOROUGH, outcome);
+        });
+    }
+
+    @Test
     public void testAllOutcomes() {
         SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(outcome -> {
-            assertThat(metricsManager).hasLegacyOutcomeEqualTo(outcome, 0L);
             legacyMetrics.registerOccurrenceOf(outcome);
             assertThat(metricsManager).hasLegacyOutcomeEqualTo(outcome, 1L);
         });
         SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(outcome -> {
-            assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, outcome, 0L);
-            assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, outcome, 0L);
-
             targetedSweepMetrics.registerOccurrenceOf(ShardAndStrategy.conservative(3), outcome);
             assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, outcome, 1L);
-            assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, outcome, 0L);
 
             targetedSweepMetrics.registerOccurrenceOf(ShardAndStrategy.thorough(1), outcome);
             assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, outcome, 1L);
@@ -94,6 +100,8 @@ public class SweepOutcomeMetricsTest {
 
     @Test
     public void targetedSweepDoesNotRegisterExcludedOutcomes() {
+        targetedSweepMetrics.registerOccurrenceOf(CONSERVATIVE, SweepOutcome.SUCCESS);
+        targetedSweepMetrics.registerOccurrenceOf(THOROUGH, SweepOutcome.SUCCESS);
         Arrays.stream(SweepOutcome.values())
                 .filter(outcome -> !SweepOutcomeMetrics.TARGETED_OUTCOMES.contains(outcome))
                 .forEach(outcome -> assertThat(metricsManager).hasNotRegisteredTargetedOutcome(CONSERVATIVE, outcome));

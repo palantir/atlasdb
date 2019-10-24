@@ -27,6 +27,7 @@ import com.palantir.atlasdb.util.CurrentValueMetric;
 
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
+@Value.Enclosing
 public class LegacySweepMetrics {
     static final String METRIC_BASE_NAME = LegacySweepMetrics.class.getName();
 
@@ -51,9 +52,9 @@ public class LegacySweepMetrics {
     }
 
     private Metrics buildMetrics(MetricRegistry metricRegistry) {
-        CurrentValueMetric totalTime = new CurrentValueMetric<>();
+        CurrentValueMetric<Long> totalTime = new CurrentValueMetric<>();
         metricRegistry.gauge(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING), () -> totalTime);
-        return ImmutableMetrics.builder()
+        return ImmutableLegacySweepMetrics.Metrics.builder()
                 .cellsExamined(getCounter(metricRegistry, AtlasDbMetricNames.CELLS_EXAMINED))
                 .cellsDeleted(getCounter(metricRegistry, AtlasDbMetricNames.CELLS_SWEPT))
                 .timeSweeping(getCounter(metricRegistry, AtlasDbMetricNames.TIME_SPENT_SWEEPING))
