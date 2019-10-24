@@ -88,7 +88,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
                 },
                 transactionServiceMap);
 
-        assertThatThrownBy(() -> unusableService.get(5L)).isEqualTo(ex);
+        assertThatThrownBy(() -> unusableService.get(5L))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("bad");
     }
 
     @Test
