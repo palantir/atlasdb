@@ -465,9 +465,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
-                ImmutableSortedMap.Builder<Cell, byte[]> post = ImmutableSortedMap.naturalOrder();
-                getWithPostFiltering(tableRef, raw, post, Value.GET_VALUE);
-                SortedMap<Cell, byte[]> postFiltered = post.build();
+                SortedMap<Cell, byte[]> postFiltered = getWithPostFiltering(
+                        tableRef,
+                        raw,
+                        ImmutableSortedMap.naturalOrder(),
+                        Value.GET_VALUE).build();
                 batchIterator.markNumResultsNotDeleted(postFiltered.size());
                 return postFiltered.entrySet().iterator();
             }
@@ -671,13 +673,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Set<Cell> cells,
             CellLoader cellLoader) {
-        ImmutableMap.Builder<Cell, byte[]> result = ImmutableMap.builderWithExpectedSize(cells.size());
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
         return Futures.transform(cellLoader.load(tableRef, toRead),
-                rawResults -> {
-                    getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-                    return result.build();
-                },
+                rawResults -> getWithPostFiltering(
+                        tableRef,
+                        rawResults,
+                        ImmutableMap.builderWithExpectedSize(cells.size()),
+                        Value.GET_VALUE).build(),
                 MoreExecutors.directExecutor());
     }
 
@@ -1106,9 +1108,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        ImmutableSortedMap.Builder<Cell, T> postFilter = ImmutableSortedMap.naturalOrder();
-        getWithPostFiltering(tableRef, rawResults, postFilter, transformer);
-        return postFilter.build();
+        return getWithPostFiltering(tableRef, rawResults, ImmutableSortedMap.naturalOrder(), transformer).build();
     }
 
     private int estimateSize(List<RowResult<Value>> rangeRows) {
@@ -1119,10 +1119,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return estimatedSize;
     }
 
-    private <T> void getWithPostFiltering(TableReference tableRef,
-                                          Map<Cell, Value> rawResults,
-                                          @Output ImmutableMap.Builder<Cell, T> results,
-                                          Function<Value, T> transformer) {
+    private <T, R extends ImmutableMap.Builder<Cell, T>> R getWithPostFiltering(
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            R resultsAccumulator,
+            Function<Value, T> transformer) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             bytes += e.getValue().getContents().length + Cells.getApproxSizeOfCell(e.getKey());
@@ -1149,19 +1150,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
             for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-                results.put(e.getKey(), transformer.apply(e.getValue()));
+                resultsAccumulator.put(e.getKey(), transformer.apply(e.getValue()));
             }
-            return;
+            return resultsAccumulator;
         }
 
         Map<Cell, Value> remainingResultsToPostfilter = rawResults;
         AtomicInteger resultCount = new AtomicInteger();
         while (!remainingResultsToPostfilter.isEmpty()) {
             remainingResultsToPostfilter = getWithPostFilteringInternal(
-                    tableRef, remainingResultsToPostfilter, results, resultCount, transformer);
+                    tableRef, remainingResultsToPostfilter, resultsAccumulator, resultCount, transformer);
         }
 
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableRef).mark(resultCount.get());
+        return resultsAccumulator;
     }
 
     /**
