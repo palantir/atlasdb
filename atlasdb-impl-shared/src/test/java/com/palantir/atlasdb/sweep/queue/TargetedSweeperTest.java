@@ -229,7 +229,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         punchTimeAtTimestamp(2_000, LOW_TS);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(5_000L - 2_000L);
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, SweepOutcome.SUCCESS, 1L);
-        assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, SweepOutcome.SUCCESS, 0L);
+        assertThat(metricsManager).hasNotRegisteredTargetedOutcome(THOROUGH, SweepOutcome.SUCCESS);
     }
 
     @Test
@@ -238,7 +238,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, SweepOutcome.NOTHING_TO_SWEEP, 1L);
-        assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, SweepOutcome.NOTHING_TO_SWEEP, 0L);
+        assertThat(metricsManager).hasNotRegisteredTargetedOutcome(THOROUGH, SweepOutcome.NOTHING_TO_SWEEP);
     }
 
     @Test
