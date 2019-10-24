@@ -176,7 +176,11 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private void sleepUntilNextRun(Optional<SweepOutcome> maybeOutcome) throws InterruptedException {
-        Duration sleepDuration = maybeOutcome.flatMap(outcome -> {
+        sleepFor(getSleepDuration(maybeOutcome));
+    }
+
+    private Duration getSleepDuration(Optional<SweepOutcome> maybeOutcome) {
+        return maybeOutcome.flatMap(outcome -> {
             if (outcome == SweepOutcome.SUCCESS) {
                 return Optional.of(Duration.ofMillis(sweepPauseMillis.get()));
             } else if (outcome == SweepOutcome.NOTHING_TO_SWEEP) {
@@ -185,8 +189,6 @@ public class BackgroundSweepThread implements Runnable {
                 return Optional.empty();
             }
         }).orElseGet(this::getBackoffTimeWhenSweepHasNotRun);
-
-        sleepFor(sleepDuration);
     }
 
     @VisibleForTesting
