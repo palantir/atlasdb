@@ -29,20 +29,17 @@ import com.palantir.common.base.Throwables;
 public class GetAsyncDelegate extends ForwardingTransaction {
 
     private final Transaction delegate;
-    private final AtomicInteger atomicInteger;
     private final Runnable enterFunction;
     private final Runnable exitFunction;
 
     public GetAsyncDelegate(Transaction transaction) {
         this.delegate = transaction;
-        this.atomicInteger = new AtomicInteger();
         this.enterFunction = () -> { };
         this.exitFunction = () -> { };
     }
 
     public GetAsyncDelegate(Transaction transaction, AtomicInteger atomicInteger) {
         this.delegate = transaction;
-        this.atomicInteger = atomicInteger;
         this.enterFunction = atomicInteger::incrementAndGet;
         this.exitFunction = atomicInteger::decrementAndGet;
     }
