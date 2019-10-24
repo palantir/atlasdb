@@ -45,6 +45,10 @@ public class SweepOutcomeMetricsTest {
         legacyMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
         targetedSweepMetrics = TargetedSweepMetrics
                 .create(metricsManager, mock(TimelockService.class), new InMemoryKeyValueService(true), Long.MAX_VALUE);
+    }
+
+    @Test
+    public void testMetricsAreNotRegisteredEagerly() {
         SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(outcome -> {
             assertThat(metricsManager).hasNotRegisteredLegacyOutcome(outcome);
         });
