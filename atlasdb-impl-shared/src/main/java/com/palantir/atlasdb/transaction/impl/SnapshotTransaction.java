@@ -83,6 +83,7 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -117,7 +118,9 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
+import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.Output;
@@ -174,6 +177,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
 
+
     private enum State {
         UNCOMMITTED,
         COMMITTED,
@@ -182,12 +186,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         /**
          * Commit has failed during commit.
          */
-        FAILED
+        FAILED;
     }
 
     protected final TimelockService timelockService;
     final KeyValueService keyValueService;
-    final TransactionService defaultTransactionService;
+    final TransactionService transactionService;
+    private final AsyncTransactionService immediateTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
     protected final MetricsManager metricsManager;
@@ -259,7 +264,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
-        this.defaultTransactionService = transactionService;
+        this.transactionService = transactionService;
+        this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;
         this.startTimestamp = startTimeStamp;
         this.conflictDetectionManager = new TransactionConflictDetectionManager(conflictDetectionManager);
@@ -323,7 +329,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
         hasReads = true;
-        ImmutableMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
+        ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
@@ -1258,7 +1264,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
-            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
+            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, transactionService)) {
                 return getRemainingResults(rawResults, keysAddedToResults);
             }
         }
@@ -1388,7 +1394,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public void commit() {
-        commit(defaultTransactionService);
+        commit(transactionService);
     }
 
     @Override
@@ -1968,16 +1974,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return results;
     }
 
+    private Map<Long, Long> getCommitTimestamps(
+            @Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps,
+            boolean waitForCommitterToComplete) {
+        return AtlasFutures.getUnchecked(getCommitTimestamps(
+                tableRef,
+                startTimestamps,
+                waitForCommitterToComplete,
+                immediateTransactionService));
+    }
+
     /**
      * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't
      * committed, then it will be missing from the map.  This method will block until the
      * transactions for these start timestamps are complete.
      */
-    protected Map<Long, Long> getCommitTimestamps(@Nullable TableReference tableRef,
-                                                  Iterable<Long> startTimestamps,
-                                                  boolean waitForCommitterToComplete) {
+    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+            @Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps,
+            boolean waitForCommitterToComplete,
+            AsyncTransactionService asyncTransactionService) {
         if (Iterables.isEmpty(startTimestamps)) {
-            return ImmutableMap.of();
+            return Futures.immediateFuture(ImmutableMap.of());
         }
         Map<Long, Long> result = Maps.newHashMap();
         Set<Long> gets = Sets.newHashSet();
@@ -1991,7 +2010,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         if (gets.isEmpty()) {
-            return result;
+            return Futures.immediateFuture(result);
         }
 
         // Before we do the reads, we need to make sure the committer is done writing.
@@ -2031,27 +2050,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         getHistogram(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).update(gets.size());
 
-        Map<Long, Long> rawResults = loadCommitTimestamps(gets);
-
-        for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
-            if (e.getValue() != null) {
-                long startTs = e.getKey();
-                long commitTs = e.getValue();
-                result.put(startTs, commitTs);
-                timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
-            }
-        }
-        return result;
+        return Futures.transform(loadCommitTimestamps(gets, asyncTransactionService),
+                rawResults -> {
+                    for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
+                        if (e.getValue() != null) {
+                            long startTs = e.getKey();
+                            long commitTs = e.getValue();
+                            result.put(startTs, commitTs);
+                            timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
+                        }
+                    }
+                    return result;
+                },
+                MoreExecutors.directExecutor());
     }
 
-    private Map<Long, Long> loadCommitTimestamps(Set<Long> startTimestamps) {
+
+
+    private ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
+            Set<Long> startTimestamps,
+            AsyncTransactionService asyncTransactionService) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             long singleTs = startTimestamps.iterator().next();
-            Long commitTsOrNull = defaultTransactionService.get(singleTs);
-            return commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull);
+            return Futures.transform(asyncTransactionService.getAsync(singleTs),
+                    commitTsOrNull -> commitTsOrNull == null ? ImmutableMap.of()
+                            : ImmutableMap.of(singleTs, commitTsOrNull),
+                    MoreExecutors.directExecutor());
         } else {
-            return defaultTransactionService.get(startTimestamps);
+            return asyncTransactionService.getAsync(startTimestamps);
         }
     }
 

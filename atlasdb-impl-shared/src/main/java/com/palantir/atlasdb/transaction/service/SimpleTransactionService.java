@@ -93,9 +93,11 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
         Map<Cell, byte[]> values = new HashMap<>(startTimestampToCommitTimestamp.size());
-        startTimestampToCommitTimestamp.forEach((start, commit) -> values.put(
-                getTransactionCell(start),
-                encodingStrategy.encodeCommitTimestampAsValue(start, commit)));
+        startTimestampToCommitTimestamp.forEach(
+                (start, commit) ->
+                        values.put(
+                                getTransactionCell(start),
+                                encodingStrategy.encodeCommitTimestampAsValue(start, commit)));
         kvs.putUnlessExists(transactionsTable, values);
     }
 

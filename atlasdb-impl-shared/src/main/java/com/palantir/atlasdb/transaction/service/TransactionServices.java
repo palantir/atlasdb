@@ -111,7 +111,7 @@ public final class TransactionServices {
      * @param transactionService on which to call synchronous requests
      * @return {@link AsyncTransactionService} which delegates to synchronous methods
      */
-    static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService transactionService) {
+    public static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService transactionService) {
         return new AsyncTransactionService() {
             @Override
             public ListenableFuture<Long> getAsync(long startTimestamp) {
