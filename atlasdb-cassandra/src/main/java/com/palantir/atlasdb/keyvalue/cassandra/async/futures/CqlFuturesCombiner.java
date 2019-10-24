@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.keyvalue.cassandra.async.futures;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
+import java.util.Map;
+import java.util.Optional;
 
-public interface StatementPreparer {
-    PreparedStatement prepare(CqlQuerySpec querySpec);
+import com.google.common.util.concurrent.ListenableFuture;
+
+public interface CqlFuturesCombiner extends AutoCloseable {
+    <T, R> ListenableFuture<Map<T, R>> combineToMap(Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap);
+
+    @Override
+    void close();
 }

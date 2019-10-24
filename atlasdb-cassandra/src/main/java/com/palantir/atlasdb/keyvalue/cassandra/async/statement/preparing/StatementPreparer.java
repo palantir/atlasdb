@@ -14,21 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
+package com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Statement;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 
-public interface CqlQuerySpec<R> {
-
-    CqlQueryContext cqlQueryContext();
-
-    String formatQueryString();
-
-    Statement makeExecutableStatement(PreparedStatement preparedStatement);
-
-    ConsistencyLevel queryConsistency();
-
-    RowStreamAccumulator<R> rowStreamAccumulator();
+public interface StatementPreparer {
+    PreparedStatement prepare(CqlQuerySpec querySpec);
 }

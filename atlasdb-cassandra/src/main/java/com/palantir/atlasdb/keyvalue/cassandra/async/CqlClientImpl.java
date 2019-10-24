@@ -31,6 +31,9 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowStreamAccumulator;
+import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.CachingStatementPreparer;
+import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class CqlClientImpl implements CqlClient {
@@ -99,15 +102,15 @@ public final class CqlClientImpl implements CqlClient {
             TaggedMetricRegistry taggedMetricRegistry,
             Session session,
             int preparedStatementCacheSize) {
-        QueryCache queryCache = QueryCache.create(
+        CachingStatementPreparer cachingStatementPreparer = CachingStatementPreparer.create(
                 key -> session.prepare(key.formatQueryString()),
                 taggedMetricRegistry,
                 preparedStatementCacheSize);
 
-        return new CqlClientImpl(session, queryCache);
+        return new CqlClientImpl(session, cachingStatementPreparer);
     }
 
-    private CqlClientImpl(Session session, QueryCache statementPreparer) {
+    private CqlClientImpl(Session session, CachingStatementPreparer statementPreparer) {
         this.session = session;
         this.statementPreparer = statementPreparer;
     }

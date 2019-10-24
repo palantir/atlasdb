@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.PreparedStatement;
@@ -25,26 +25,29 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public final class QueryCache implements StatementPreparer {
+public final class CachingStatementPreparer implements StatementPreparer {
 
     private static final String CACHE_NAME_PREFIX = MetricRegistry.name(
-            QueryCache.class,
+            CachingStatementPreparer.class,
             "prepared",
             "statements");
 
-    public static QueryCache create(
+    public static CachingStatementPreparer create(
             StatementPreparer statementPreparer,
             TaggedMetricRegistry taggedMetricRegistry,
             int cacheSize) {
         Cache<CqlQueryContext, PreparedStatement> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
         CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, CACHE_NAME_PREFIX);
-        return new QueryCache(statementPreparer, cache);
+        return new CachingStatementPreparer(statementPreparer, cache);
     }
 
     private final StatementPreparer statementPreparer;
     private final Cache<CqlQueryContext, PreparedStatement> cache;
 
-    private QueryCache(StatementPreparer statementPreparer, Cache<CqlQueryContext, PreparedStatement> cache) {
+    private CachingStatementPreparer(
+            StatementPreparer statementPreparer,
+            Cache<CqlQueryContext,
+                    PreparedStatement> cache) {
         this.statementPreparer = statementPreparer;
         this.cache = cache;
     }

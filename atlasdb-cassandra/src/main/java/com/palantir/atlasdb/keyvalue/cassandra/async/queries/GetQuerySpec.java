@@ -26,7 +26,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.async.RowStreamAccumulator;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Preconditions;
 

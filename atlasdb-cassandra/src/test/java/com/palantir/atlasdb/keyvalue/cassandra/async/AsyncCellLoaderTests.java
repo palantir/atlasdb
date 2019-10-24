@@ -35,6 +35,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.async.futures.CqlFuturesCombiner;
+import com.palantir.atlasdb.keyvalue.cassandra.async.futures.DefaultCqlFuturesCombiner;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
@@ -56,6 +58,7 @@ public class AsyncCellLoaderTests {
             .build();
 
     private AsyncCellLoader asyncCellLoader;
+    private CqlFuturesCombiner cqlFuturesCombiner;
 
     @Before
     public void setUp() {
@@ -68,12 +71,13 @@ public class AsyncCellLoaderTests {
         when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(VISIBLE_CELL_2))))
                 .thenReturn(Futures.immediateFuture(Optional.of(Value.create(PtBytes.toBytes("dummy"), 11))));
 
-        asyncCellLoader = AsyncCellLoader.create(cqlClient, MoreExecutors.newDirectExecutorService(), KEYSPACE);
+        cqlFuturesCombiner = new DefaultCqlFuturesCombiner(MoreExecutors.newDirectExecutorService());
+        asyncCellLoader = AsyncCellLoader.create(cqlClient, cqlFuturesCombiner, KEYSPACE);
     }
 
     @After
-    public void tearDown() {
-        asyncCellLoader.close();
+    public void tearDown() throws Exception {
+        cqlFuturesCombiner.close();
     }
 
     @Test

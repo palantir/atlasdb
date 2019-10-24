@@ -29,10 +29,12 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.CachingStatementPreparer;
+import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
-public class QueryCacheTest {
+public class CachingStatementPreparerTest {
 
     private static final StatementPreparer STATEMENT_PREPARER =
             querySpec -> mock(PreparedStatement.class);
@@ -41,11 +43,11 @@ public class QueryCacheTest {
     private static final TableReference TABLE_REFERENCE = tableReference("bar");
     private static final GetQueryParameters GET_QUERY_PARAMETERS = mock(GetQueryParameters.class);
 
-    private QueryCache cache;
+    private CachingStatementPreparer cache;
 
     @Before
     public void setUp() {
-        cache = QueryCache.create(STATEMENT_PREPARER, METRICS_MANAGER.getTaggedRegistry(), 100);
+        cache = CachingStatementPreparer.create(STATEMENT_PREPARER, METRICS_MANAGER.getTaggedRegistry(), 100);
     }
 
     @Test
