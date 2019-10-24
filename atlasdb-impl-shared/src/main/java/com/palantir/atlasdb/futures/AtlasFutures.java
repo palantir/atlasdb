@@ -44,5 +44,4 @@ public final class AtlasFutures {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
-
 }
