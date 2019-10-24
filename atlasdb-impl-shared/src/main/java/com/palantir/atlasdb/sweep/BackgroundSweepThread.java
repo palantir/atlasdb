@@ -114,13 +114,15 @@ public class BackgroundSweepThread implements Runnable {
                     throw new InterruptedException("The background sweeper thread is interrupted.");
                 }
 
-                SweepOutcome outcome = checkConfigAndRunSweep(locks);
+                Optional<SweepOutcome> maybeOutcome = checkConfigAndRunSweep(locks);
 
-                logOutcome(outcome);
-                updateBatchSize(outcome);
-                updateMetrics(outcome);
+                maybeOutcome.ifPresent(outcome -> {
+                    logOutcome(outcome);
+                    updateBatchSize(outcome);
+                    updateMetrics(outcome);
+                });
 
-                sleepUntilNextRun(outcome);
+                sleepUntilNextRun(maybeOutcome);
             }
         } catch (InterruptedException e) {
             log.info(
@@ -155,7 +157,7 @@ public class BackgroundSweepThread implements Runnable {
                     SafeArg.of("sweepOutcome", outcome),
                     SafeArg.of("defaultLockTimeoutSeconds", AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS)
             );
-        } else if (!outcome.equals(SweepOutcome.DISABLED)) {
+        } else {
             log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
         }
     }
@@ -173,20 +175,24 @@ public class BackgroundSweepThread implements Runnable {
         sweepOutcomeMetrics.registerOccurrenceOf(outcome);
     }
 
-    private void sleepUntilNextRun(SweepOutcome outcome) throws InterruptedException {
-        Duration sleepDuration = getBackoffTimeWhenSweepHasNotRun();
-        if (outcome == SweepOutcome.SUCCESS) {
-            sleepDuration = Duration.ofMillis(sweepPauseMillis.get());
-        } else if (outcome == SweepOutcome.NOTHING_TO_SWEEP) {
-            sleepDuration = getBackoffTimeWhenNothingToSweep();
-        }
+    private void sleepUntilNextRun(Optional<SweepOutcome> maybeOutcome) throws InterruptedException {
+        Duration sleepDuration = maybeOutcome.flatMap(outcome -> {
+            if (outcome == SweepOutcome.SUCCESS) {
+                return Optional.of(Duration.ofMillis(sweepPauseMillis.get()));
+            } else if (outcome == SweepOutcome.NOTHING_TO_SWEEP) {
+                return Optional.of(getBackoffTimeWhenNothingToSweep());
+            } else {
+                return Optional.empty();
+            }
+        }).orElseGet(this::getBackoffTimeWhenSweepHasNotRun);
+
         sleepFor(sleepDuration);
     }
 
     @VisibleForTesting
-    SweepOutcome checkConfigAndRunSweep(SingleLockService locks) throws InterruptedException {
+    Optional<SweepOutcome> checkConfigAndRunSweep(SingleLockService locks) throws InterruptedException {
         if (isSweepEnabled.get()) {
-            return grabLocksAndRun(locks);
+            return Optional.of(grabLocksAndRun(locks));
         }
 
         log.debug("Skipping background sweep because it is currently disabled. Note that AtlasDB automatically"
@@ -194,7 +200,7 @@ public class BackgroundSweepThread implements Runnable {
                 + " and reading from the queue are enabled); if you still want to run Background Sweep under these"
                 + " circumstances, please explicitly enable Background Sweep in configuration. ");
         closeTableLockIfHeld();
-        return SweepOutcome.DISABLED;
+        return Optional.empty();
     }
 
     private SweepOutcome grabLocksAndRun(SingleLockService locks) throws InterruptedException {

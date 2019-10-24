@@ -30,8 +30,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 
 public final class SweepOutcomeMetrics {
     public static final List<SweepOutcome> LEGACY_OUTCOMES = Arrays.asList(SweepOutcome.values());
-    public static final List<SweepOutcome> TARGETED_OUTCOMES = ImmutableList.of(SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE,
-            SweepOutcome.DISABLED, SweepOutcome.SUCCESS, SweepOutcome.ERROR, SweepOutcome.NOTHING_TO_SWEEP);
+    public static final List<SweepOutcome> TARGETED_OUTCOMES = ImmutableList.of(
+            SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE,
+            SweepOutcome.SUCCESS,
+            SweepOutcome.ERROR,
+            SweepOutcome.NOTHING_TO_SWEEP);
 
     private final Reservoir reservoir;
     private volatile boolean fatal = false;
