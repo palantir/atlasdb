@@ -18,19 +18,25 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.common.base.Throwables;
 
 public class GetAsyncDelegate extends ForwardingTransaction {
 
     private final Transaction delegate;
+    private final SynchronousTracker tracker;
 
     public GetAsyncDelegate(Transaction transaction) {
         this.delegate = transaction;
+        this.tracker = SynchronousTracker.NO_OP;
+    }
+
+    public GetAsyncDelegate(Transaction transaction, SynchronousTracker tracker) {
+        this.delegate = transaction;
+        this.tracker = tracker;
     }
 
     @Override
@@ -40,12 +46,8 @@ public class GetAsyncDelegate extends ForwardingTransaction {
 
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        try {
-            return super.getAsync(tableRef, cells).get();
-        } catch (InterruptedException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        } catch (ExecutionException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        try (SynchronousTracker resource = tracker.enterAsyncCall()) {
+            return AtlasFutures.getUnchecked(delegate().getAsync(tableRef, cells));
         }
     }
 }

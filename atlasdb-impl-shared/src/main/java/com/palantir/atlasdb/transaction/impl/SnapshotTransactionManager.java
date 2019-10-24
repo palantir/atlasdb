@@ -44,6 +44,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -161,8 +162,11 @@ import com.palantir.timestamp.TimestampService;
             Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
                     transactionResponse.startTimestampAndPartition().timestamp());
 
-            SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
-                    immutableTsLock, condition);
+            Transaction transaction = createTransaction(
+                    immutableTs,
+                    startTimestampSupplier,
+                    immutableTsLock,
+                    condition);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
             timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
@@ -179,7 +183,7 @@ import com.palantir.timestamp.TimestampService;
 
         TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
 
-        SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
+        Transaction tx = txAndLock.transaction();
         T result;
         try {
             result = runTaskThrowOnConflict(wrappedTask, tx);
@@ -187,7 +191,7 @@ import com.palantir.timestamp.TimestampService;
             postTaskContext = postTaskTimer.time();
             timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
         }
-        scrubForAggressiveHardDelete(tx);
+        scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
         postTaskContext.stop();
         return result;
     }
@@ -214,7 +218,7 @@ import com.palantir.timestamp.TimestampService;
         return !validateLocksOnReads;
     }
 
-    protected SnapshotTransaction createTransaction(
+    protected Transaction createTransaction(
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
@@ -243,6 +247,7 @@ import com.palantir.timestamp.TimestampService;
                 validateLocksOnReads,
                 transactionConfig);
     }
+
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
@@ -466,5 +471,16 @@ import com.palantir.timestamp.TimestampService;
 
     private Timer getTimer(String name) {
         return metricsManager.registerOrGetTimer(SnapshotTransactionManager.class, name);
+    }
+
+    private static SnapshotTransaction extractSnapshotTransaction(Transaction transaction) {
+        if (transaction instanceof SnapshotTransaction) {
+            return (SnapshotTransaction) transaction;
+        }
+        if (transaction instanceof ForwardingTransaction) {
+            return extractSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
+        }
+        throw new IllegalArgumentException("Can't use a transaction which is not SnapshotTransaction in "
+                + "SnapshotTransactionManager");
     }
 }

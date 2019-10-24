@@ -2157,7 +2157,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         log.trace("Getting commit timestamps.", SafeArg.of("numTimestamps", gets.size()));
-
     }
 
     private void logLargeNumberOfTransactions(@Nullable TableReference tableRef, Set<Long> gets) {
