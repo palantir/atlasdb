@@ -106,6 +106,7 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
         @Override
         public Optional<Value> result() {
+            Preconditions.checkState(assigned, "Result has never been assigned(query associated never ran).");
             return Optional.ofNullable(resultValue);
         }
 
