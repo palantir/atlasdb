@@ -46,9 +46,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
     private final Map<Long, TransactionService> transactionServiceMap = ImmutableMap.of(
             1L, delegate1, 2L, delegate2, 3L, delegate3);
     private final TransactionService delegatingTransactionService
-            = new SplitKeyDelegatingTransactionService<>(EXTRACT_LAST_DIGIT, transactionServiceMap);
+            = SplitKeyDelegatingTransactionService.create(EXTRACT_LAST_DIGIT, transactionServiceMap);
     private final TransactionService lastDigitFiveImpliesUnknownTransactionService
-            = new SplitKeyDelegatingTransactionService<>(num -> num % 10 == 5 ? null : num % 10, transactionServiceMap);
+            = SplitKeyDelegatingTransactionService.create(num -> num % 10 == 5 ? null : num % 10, transactionServiceMap);
 
     @After
     public void verifyNoMoreInteractions() {
@@ -82,7 +82,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
     @Test
     public void rethrowsExceptionsFromMappingFunction() {
         RuntimeException ex = new IllegalStateException("bad");
-        TransactionService unusableService = new SplitKeyDelegatingTransactionService<>(
+        TransactionService unusableService = SplitKeyDelegatingTransactionService.create(
                 num -> {
                     throw ex;
                 },

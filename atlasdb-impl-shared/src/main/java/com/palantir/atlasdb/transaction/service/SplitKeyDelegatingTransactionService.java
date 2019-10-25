@@ -34,6 +34,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.service.TransactionServices.TimestampLoader;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -53,29 +54,27 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  *
  * Service keys are expected to be safe for logging.
  */
-public class SplitKeyDelegatingTransactionService<T> implements TransactionService {
+public final class SplitKeyDelegatingTransactionService<T> implements TransactionService {
     private final Function<Long, T> timestampToServiceKey;
     private final Map<T, TransactionService> keyedServices;
     private final TimestampLoader immediateTimestampLoader;
 
-    public SplitKeyDelegatingTransactionService(
+    public static <R> TransactionService create(
+            Function<Long, R> timestampToServiceKey,
+            Map<R, TransactionService> keyedServices) {
+        return new SplitKeyDelegatingTransactionService<>(
+                timestampToServiceKey,
+                keyedServices,
+                TransactionServices.immediateTimestampLoader());
+    }
+
+    private SplitKeyDelegatingTransactionService(
             Function<Long, T> timestampToServiceKey,
-            Map<T, TransactionService> keyedServices) {
+            Map<T, TransactionService> keyedServices,
+            TimestampLoader immediateTimestampLoader) {
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
-        this.immediateTimestampLoader = new TimestampLoader() {
-            @Override
-            public ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp) {
-                return Futures.immediateFuture(transactionService.get(startTimestamp));
-            }
-
-            @Override
-            public ListenableFuture<Map<Long, Long>> get(
-                    TransactionService transactionService,
-                    Iterable<Long> startTimestamps) {
-                return Futures.immediateFuture(transactionService.get(startTimestamps));
-            }
-        };
+        this.immediateTimestampLoader = immediateTimestampLoader;
     }
 
     @CheckForNull
@@ -87,6 +86,18 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.runWithException(() -> getInternal(startTimestamps, immediateTimestampLoader));
+    }
+
+    @Override
+    public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
+        TransactionService service = getServiceForTimestamp(startTimestamp).orElseThrow(
+                () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
+        service.putUnlessExists(startTimestamp, commitTimestamp);
+    }
+
+    @Override
+    public void close() {
+        keyedServices.values().forEach(TransactionService::close);
     }
 
     private ListenableFuture<Long> getInternal(long startTimestamp, TimestampLoader cellLoader) {
@@ -125,18 +136,6 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                 MoreExecutors.directExecutor());
     }
 
-    @Override
-    public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        TransactionService service = getServiceForTimestamp(startTimestamp).orElseThrow(
-                () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
-        service.putUnlessExists(startTimestamp, commitTimestamp);
-    }
-
-    @Override
-    public void close() {
-        keyedServices.values().forEach(TransactionService::close);
-    }
-
     private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
         T key = timestampToServiceKey.apply(startTimestamp);
         if (key == null) {
@@ -152,12 +151,5 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
         return Optional.of(service);
-    }
-
-    private interface TimestampLoader {
-
-        ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp);
-
-        ListenableFuture<Map<Long, Long>> get(TransactionService transactionService, Iterable<Long> startTimestamps);
     }
 }

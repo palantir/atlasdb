@@ -15,7 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
+import java.util.Map;
+
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
@@ -34,6 +38,20 @@ public final class TransactionServices {
         // Utility class
     }
 
+    private static final TimestampLoader IMMEDIATE_TIMESTAMP_LOADER = new TimestampLoader() {
+        @Override
+        public ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp) {
+            return Futures.immediateFuture(transactionService.get(startTimestamp));
+        }
+
+        @Override
+        public ListenableFuture<Map<Long, Long>> get(
+                TransactionService transactionService,
+                Iterable<Long> startTimestamps) {
+            return Futures.immediateFuture(transactionService.get(startTimestamps));
+        }
+    };
+
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
@@ -46,8 +64,8 @@ public final class TransactionServices {
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
-        return new PreStartHandlingTransactionService(
-                new SplitKeyDelegatingTransactionService<>(
+        return PreStartHandlingTransactionService.create(
+                SplitKeyDelegatingTransactionService.create(
                         transactionSchemaManager::getTransactionsSchemaVersion,
                         ImmutableMap.of(
                                 TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
@@ -57,11 +75,11 @@ public final class TransactionServices {
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(SimpleTransactionService.createV1(keyValueService));
+        return PreStartHandlingTransactionService.create(SimpleTransactionService.createV1(keyValueService));
     }
 
     private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
+        return PreStartHandlingTransactionService.create(WriteBatchingTransactionService.create(
                         SimpleTransactionService.createV2(keyValueService)));
     }
 
@@ -93,11 +111,22 @@ public final class TransactionServices {
                     false);
             ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager
                     = new ReadOnlyTransactionSchemaManager(coordinationService);
-            return new PreStartHandlingTransactionService(
-                    new SplitKeyDelegatingTransactionService<>(
+            return PreStartHandlingTransactionService.create(
+                    SplitKeyDelegatingTransactionService.create(
                             readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
                             ImmutableMap.of(1, createV1TransactionService(keyValueService))));
         }
         return createV1TransactionService(keyValueService);
+    }
+
+    static TimestampLoader immediateTimestampLoader() {
+        return IMMEDIATE_TIMESTAMP_LOADER;
+    }
+
+    interface TimestampLoader {
+
+        ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp);
+
+        ListenableFuture<Map<Long, Long>> get(TransactionService transactionService, Iterable<Long> startTimestamps);
     }
 }
