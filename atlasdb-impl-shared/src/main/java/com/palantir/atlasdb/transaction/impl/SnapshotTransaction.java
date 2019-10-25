@@ -1200,8 +1200,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawResults,
                     resultsAccumulator,
                     transformer,
-                    (tableReference, toRead) ->
-                            Futures.immediateFuture(keyValueService.get(tableReference, toRead))).get();
+                    immediateCellLoader).get();
         } catch (InterruptedException | ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
@@ -1248,7 +1247,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
-                remainingResultsToPostfilter ->
+                remainingResultsToPostFilter ->
                         iterate(tableRef, remainingResultsToPostFilter, resultCount, resultsAccumulator, transformer, cellLoader),
                 MoreExecutors.directExecutor());
     }
