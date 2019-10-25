@@ -48,22 +48,32 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  */
 public class PreStartHandlingTransactionService implements TransactionService {
     private final TransactionService delegate;
-    private final AsyncTransactionService immediateAsyncTransactionService;
+    private final AsyncTransactionService synchronousAsyncTransactionService;
 
     PreStartHandlingTransactionService(TransactionService delegate) {
         this.delegate = delegate;
-        this.immediateAsyncTransactionService = TransactionServices.synchronousAsAsyncTransactionService(delegate);
+        this.synchronousAsyncTransactionService = TransactionServices.synchronousAsAsyncTransactionService(delegate);
     }
 
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateAsyncTransactionService));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamp, synchronousAsyncTransactionService));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateAsyncTransactionService));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamps, synchronousAsyncTransactionService));
+    }
+
+    @Override
+    public ListenableFuture<Long> getAsync(long startTimestamp) {
+        return getInternal(startTimestamp, delegate);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
+        return getInternal(startTimestamps, delegate);
     }
 
     @Override
