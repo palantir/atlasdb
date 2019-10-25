@@ -48,7 +48,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
     private final TransactionService delegatingTransactionService
             = SplitKeyDelegatingTransactionService.create(EXTRACT_LAST_DIGIT, transactionServiceMap);
     private final TransactionService lastDigitFiveImpliesUnknownTransactionService
-            = SplitKeyDelegatingTransactionService.create(num -> num % 10 == 5 ? null : num % 10, transactionServiceMap);
+            = SplitKeyDelegatingTransactionService.create(
+                    num -> num % 10 == 5 ? null : num % 10,
+                    transactionServiceMap);
 
     @After
     public void verifyNoMoreInteractions() {
