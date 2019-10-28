@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Route 50% of queries to the same AZ
+  links:
+  - https://github.com/palantir/atlasdb/pull/4354
