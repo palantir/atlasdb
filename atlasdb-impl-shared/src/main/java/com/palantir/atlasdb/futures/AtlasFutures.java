@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.futures;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.util.concurrent.Futures;
@@ -46,7 +45,4 @@ public final class AtlasFutures {
         }
     }
 
-    public interface FutureCallable<R> extends Callable<ListenableFuture<R>> {
-
-    }
 }
