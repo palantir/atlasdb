@@ -63,12 +63,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.runWithException(() -> getInternal(startTimestamp, immediateCellLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateCellLoader));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.runWithException(() -> getInternal(startTimestamps, immediateCellLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateCellLoader));
     }
 
     @Override
@@ -103,15 +103,9 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     private ListenableFuture<Long> getInternal(long startTimestamp, CellLoader cellLoader) {
         Cell cell = getTransactionCell(startTimestamp);
-        return Futures.transform(cellLoader.get(ImmutableMap.of(cell, MAX_TIMESTAMP)),
-                returnMap -> {
-                    if (returnMap.containsKey(cell)) {
-                        return encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp,
-                                returnMap.get(cell).getContents());
-                    } else {
-                        return null;
-                    }
-                },
+        return Futures.transform(
+                cellLoader.get(ImmutableMap.of(cell, MAX_TIMESTAMP)),
+                returnMap -> getTransactionCells(startTimestamp, cell, returnMap),
                 MoreExecutors.directExecutor());
     }
 
@@ -123,18 +117,25 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         }
 
         return Futures.transform(cellLoader.get(startTsMap),
-                rawResults -> {
-                    Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
-                    for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-                        long startTs = encodingStrategy.decodeCellAsStartTimestamp(e.getKey());
-                        long commitTs = encodingStrategy
-                                .decodeValueAsCommitTimestamp(startTs, e.getValue().getContents());
-                        result.put(startTs, commitTs);
-                    }
-
-                    return result;
-                },
+                rawResults -> decodeTimestamps(rawResults),
                 MoreExecutors.directExecutor());
+    }
+
+    private Long getTransactionCells(long startTimestamp, Cell cell, Map<Cell, Value> returnMap) {
+        if (returnMap.containsKey(cell)) {
+            return encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, returnMap.get(cell).getContents());
+        }
+        return null;
+    }
+
+    private Map<Long, Long> decodeTimestamps(Map<Cell, Value> rawResults) {
+        Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+            long startTs = encodingStrategy.decodeCellAsStartTimestamp(e.getKey());
+            long commitTs = encodingStrategy.decodeValueAsCommitTimestamp(startTs, e.getValue().getContents());
+            result.put(startTs, commitTs);
+        }
+        return result;
     }
 
     private interface CellLoader {

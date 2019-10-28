@@ -46,11 +46,15 @@ public class SplitKeyDelegatingTransactionServiceTest {
     private final Map<Long, TransactionService> transactionServiceMap = ImmutableMap.of(
             1L, delegate1, 2L, delegate2, 3L, delegate3);
     private final TransactionService delegatingTransactionService
-            = SplitKeyDelegatingTransactionService.create(EXTRACT_LAST_DIGIT, transactionServiceMap);
+            = new SplitKeyDelegatingTransactionService<>(
+            EXTRACT_LAST_DIGIT,
+            transactionServiceMap,
+            TransactionServices.immediateTimestampLoader());
     private final TransactionService lastDigitFiveImpliesUnknownTransactionService
-            = SplitKeyDelegatingTransactionService.create(
-                    num -> num % 10 == 5 ? null : num % 10,
-                    transactionServiceMap);
+            = new SplitKeyDelegatingTransactionService<>(
+            num -> num % 10 == 5 ? null : num % 10,
+            transactionServiceMap,
+            TransactionServices.immediateTimestampLoader());
 
     @After
     public void verifyNoMoreInteractions() {
@@ -84,15 +88,14 @@ public class SplitKeyDelegatingTransactionServiceTest {
     @Test
     public void rethrowsExceptionsFromMappingFunction() {
         RuntimeException ex = new IllegalStateException("bad");
-        TransactionService unusableService = SplitKeyDelegatingTransactionService.create(
+        TransactionService unusableService = new SplitKeyDelegatingTransactionService<>(
                 num -> {
                     throw ex;
                 },
-                transactionServiceMap);
+                transactionServiceMap,
+                TransactionServices.immediateTimestampLoader());
 
-        assertThatThrownBy(() -> unusableService.get(5L))
-                .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessage("bad");
+        assertThatThrownBy(() -> unusableService.get(5L)).isEqualTo(ex);
     }
 
     @Test

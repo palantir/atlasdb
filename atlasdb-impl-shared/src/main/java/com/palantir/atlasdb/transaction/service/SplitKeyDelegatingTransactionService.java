@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.transaction.service;
 
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
@@ -59,16 +58,7 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     private final Map<T, TransactionService> keyedServices;
     private final TimestampLoader immediateTimestampLoader;
 
-    public static <R> TransactionService create(
-            Function<Long, R> timestampToServiceKey,
-            Map<R, TransactionService> keyedServices) {
-        return new SplitKeyDelegatingTransactionService<>(
-                timestampToServiceKey,
-                keyedServices,
-                TransactionServices.immediateTimestampLoader());
-    }
-
-    private SplitKeyDelegatingTransactionService(
+    SplitKeyDelegatingTransactionService(
             Function<Long, T> timestampToServiceKey,
             Map<T, TransactionService> keyedServices,
             TimestampLoader immediateTimestampLoader) {
@@ -80,12 +70,12 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.runWithException(() -> getInternal(startTimestamp, immediateTimestampLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateTimestampLoader));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.runWithException(() -> getInternal(startTimestamps, immediateTimestampLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateTimestampLoader));
     }
 
     @Override
@@ -124,10 +114,10 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
 
-        List<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
-                .entries()
-                .map(entry -> cellLoader.get(keyedServices.get(entry.getKey()), entry.getValue()))
-                .collect(Collectors.toList());
+        Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
+                .map((key, value) -> cellLoader.get(keyedServices.get(key), value))
+                .collectToMap()
+                .values();
 
         return Futures.whenAllSucceed(futures).call(
                 () -> futures.stream()

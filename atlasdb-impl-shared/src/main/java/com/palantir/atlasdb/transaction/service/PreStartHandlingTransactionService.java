@@ -51,11 +51,8 @@ public class PreStartHandlingTransactionService implements TransactionService {
     private final TransactionService delegate;
     private final TimestampLoader immediateTimestampLoader;
 
-    public static TransactionService create(TransactionService delegate) {
-        return new PreStartHandlingTransactionService(delegate, TransactionServices.immediateTimestampLoader());
-    }
-
-    PreStartHandlingTransactionService(TransactionService delegate,
+    PreStartHandlingTransactionService(
+            TransactionService delegate,
             TimestampLoader immediateTimestampLoader) {
         this.delegate = delegate;
         this.immediateTimestampLoader = immediateTimestampLoader;
@@ -64,12 +61,12 @@ public class PreStartHandlingTransactionService implements TransactionService {
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.runWithException(() -> getInternal(startTimestamp, immediateTimestampLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateTimestampLoader));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.runWithException(() -> getInternal(startTimestamps, immediateTimestampLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateTimestampLoader));
     }
 
     @Override

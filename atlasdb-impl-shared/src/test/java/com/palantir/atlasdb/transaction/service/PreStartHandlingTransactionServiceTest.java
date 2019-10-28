@@ -113,10 +113,9 @@ public class PreStartHandlingTransactionServiceTest {
     @Test
     public void doesNotInvokeDelegateIfNoValidTimestamps() {
         Map<Long, Long> result = preStartHandlingService.get(TWO_INVALID_TIMESTAMPS);
-        assertThat(result).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(
-                        ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP,
-                        NEGATIVE_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
+        assertThat(result).containsOnly(
+                Maps.immutableEntry(ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP),
+                Maps.immutableEntry(NEGATIVE_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
     }
 
     @Test

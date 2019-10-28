@@ -88,7 +88,7 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        AtlasFutures.runWithException(() -> autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)));
+        AtlasFutures.getUnchecked(autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)));
     }
 
     @Override

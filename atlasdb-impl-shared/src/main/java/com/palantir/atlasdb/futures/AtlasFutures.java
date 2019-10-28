@@ -28,9 +28,9 @@ public final class AtlasFutures {
 
     }
 
-    public static <R> R runWithException(FutureCallable<R> futureCallable) {
+    public static <R> R getUnchecked(ListenableFuture<R> listenableFuture) {
         try {
-            return futureCallable.call().get();
+            return listenableFuture.get();
         } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         } catch (Exception e) {
