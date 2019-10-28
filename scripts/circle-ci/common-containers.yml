@@ -5,7 +5,7 @@ cassandra2:
 #  image: palantirtechnologies/docker-cassandra-atlasdb:3.7
 
 postgres:
-  image: kiasaki/alpine-postgres:9.6
+  image: postgres:9.6-alpine
 
 nginx:
   image: 1science/nginx

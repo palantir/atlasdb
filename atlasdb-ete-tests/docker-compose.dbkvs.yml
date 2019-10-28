@@ -2,7 +2,7 @@ version: '2'
 
 services:
   postgres:
-    image: kiasaki/alpine-postgres:9.6
+    image: postgres:9.6-alpine
     environment:
        POSTGRES_PASSWORD: palantir
        POSTGRES_USER: palantir
