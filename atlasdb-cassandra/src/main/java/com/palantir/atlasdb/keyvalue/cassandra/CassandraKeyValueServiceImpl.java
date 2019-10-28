@@ -298,7 +298,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log) {
-        return create(metricsManager,
+        return create(
+                metricsManager,
                 config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 mutationTimestampProvider,
@@ -313,7 +314,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
-        CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
+        CassandraClientPool clientPool = CassandraClientPoolImpl.create(
+                metricsManager,
                 config,
                 runtimeConfigSupplier,
                 initializeAsync);
@@ -417,10 +419,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
         super(createInstrumentedFixedThreadPool(
-                config,
-                metricsManager.getRegistry(),
-                "Atlas Cassandra KVS",
-                "executorService"));
+                config.poolSize() * config.servers().numberOfThriftHosts(),
+                metricsManager.getRegistry()
+        ));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -431,8 +432,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
-        this.cqlFuturesCombiner = new DefaultCqlFuturesCombiner(createInstrumentedFixedThreadPool(
-                config,
+        this.cqlFuturesCombiner = new DefaultCqlFuturesCombiner(createInstrumentedDynamicThreadPool(
+                0,
+                config.poolSize() * config.servers().numberOfThriftHosts(),
                 metricsManager.getRegistry(),
                 "Atlas Cassandra KVS async",
                 "asyncExecutorService"));
@@ -455,15 +457,27 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(
-            CassandraKeyValueServiceConfig config,
+            int corePoolSize,
+            MetricRegistry registry) {
+        return createInstrumentedDynamicThreadPool(
+                corePoolSize,
+                corePoolSize,
+                registry,
+                "Atlas Cassandra KVS",
+                "executorService");
+    }
+
+    private static ExecutorService createInstrumentedDynamicThreadPool(
+            int corePoolSize,
+            int maxPoolSize,
             MetricRegistry registry,
             String threadNamePrefix,
             String executorServiceMetricsPrefix) {
-        return Tracers.wrap(new InstrumentedExecutorService(
-                createFixedThreadPool(threadNamePrefix,
-                        config.poolSize() * config.servers().numberOfThriftHosts()),
-                registry,
-                MetricRegistry.name(CassandraKeyValueService.class, executorServiceMetricsPrefix)));
+        return Tracers.wrap(
+                new InstrumentedExecutorService(
+                        createThreadPool(threadNamePrefix, corePoolSize, maxPoolSize),
+                        registry,
+                        MetricRegistry.name(CassandraKeyValueService.class, executorServiceMetricsPrefix)));
     }
 
     @Override

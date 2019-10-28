@@ -21,8 +21,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.HashMultimap;
@@ -74,14 +74,25 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * Creates a fixed thread pool.
      *
      * @param threadNamePrefix thread name prefix
-     * @param poolSize fixed thread pool size
+     * @param corePoolSize size of the core pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int poolSize) {
-        ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
-                new NamedThreadFactory(threadNamePrefix, false));
-        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
-        return executor;
+    protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int corePoolSize) {
+        return createThreadPool(threadNamePrefix, corePoolSize, corePoolSize);
+    }
+
+    /**
+     * Creates a fixed thread pool.
+     *
+     * @param threadNamePrefix thread name prefix
+     * @param corePoolSize size of the core pool
+     * @param maxPoolSize maximum size of the pool
+     * @return a new fixed size thread pool with a keep alive time of 1 minute
+     */
+    protected static ExecutorService createThreadPool(String threadNamePrefix, int corePoolSize, int maxPoolSize) {
+        return PTExecutors.newThreadPoolExecutor(corePoolSize, maxPoolSize,
+                1, TimeUnit.MINUTES,
+                new LinkedBlockingQueue<>(), new NamedThreadFactory(threadNamePrefix, false));
     }
 
     @Override
