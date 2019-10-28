@@ -59,6 +59,17 @@ public class PostgresVersionCheckTest {
     }
 
     @Test
+    public void shouldFailOn_9_5_0() {
+        thrown.expectMessage("Versions 9.5.0 and 9.5.1 contain a known bug");
+        PostgresVersionCheck.checkDatabaseVersion("9.5.0", Mockito.mock(Logger.class));
+    }
+
+    @Test
+    public void shouldFailOn_9_5_1() {
+        thrown.expectMessage("Versions 9.5.0 and 9.5.1 contain a known bug");
+        PostgresVersionCheck.checkDatabaseVersion("9.5.1", Mockito.mock(Logger.class));
+    }
+    @Test
     public void shouldBeFineOn_9_6_12() {
         Logger log = Mockito.mock(Logger.class);
         PostgresVersionCheck.checkDatabaseVersion("9.6.12", log);
