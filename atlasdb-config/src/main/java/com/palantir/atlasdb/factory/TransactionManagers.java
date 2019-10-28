@@ -122,6 +122,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
+import com.palantir.atlasdb.transaction.impl.LockWatchingCache;
+import com.palantir.atlasdb.transaction.impl.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -241,6 +243,11 @@ public abstract class TransactionManagers {
     @Value.Default
     Callback<TransactionManager> asyncInitializationCallback() {
         return Callback.noOp();
+    }
+
+    @Value.Default
+    LockWatchingCache lockWatchingCache() {
+        return NoOpLockWatchingCache.INSTANCE;
     }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
@@ -437,7 +444,8 @@ public abstract class TransactionManagers {
                         targetedSweep,
                         callbacks,
                         validateLocksOnReads(),
-                        transactionConfigSupplier),
+                        transactionConfigSupplier,
+                        lockWatchingCache()),
                 closeables);
 
         transactionManager.registerClosingCallback(lockAndTimestampServices.close());

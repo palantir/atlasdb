@@ -16,52 +16,25 @@
 package com.palantir.atlasdb.memory;
 
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.CleanupFollower;
-import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
-import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.table.description.Schemas;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
-import com.palantir.atlasdb.transaction.impl.TransactionTables;
-import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
-import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 
@@ -139,66 +112,5 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryTimestampService();
-    }
-
-    /**
-     * @deprecated use {@link TransactionManagers#createInMemory(...)}
-     *
-     * There are some differences in set up between the methods though they are unlikely to cause breaks.
-     * This method has been deprecated as all testing should be conducted on the code path used for
-     * production TransactionManager instantiation (regardless of the backing store).  It will be removed in
-     * future versions.
-     */
-    @Deprecated
-    public static TransactionManager createInMemoryTransactionManager(AtlasSchema schema,
-            AtlasSchema... otherSchemas) {
-
-        Set<Schema> schemas = Lists.asList(schema, otherSchemas).stream()
-                .map(AtlasSchema::getLatestSchema)
-                .collect(Collectors.toSet());
-
-        return createInMemoryTransactionManagerInternal(schemas);
-    }
-
-    private static TransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        KeyValueService keyValueService = new InMemoryKeyValueService(false);
-
-        schemas.forEach(s -> Schemas.createTablesAndIndexes(s, keyValueService));
-        TransactionTables.createTables(keyValueService);
-
-        TransactionService transactionService
-                = TransactionServices.createRaw(keyValueService, ts, false);
-        LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(
-                 LockServerOptions.builder().isStandaloneServer(false).build()));
-        LockClient client = LockClient.of("in memory atlasdb instance");
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
-        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-
-        CleanupFollower follower = CleanupFollower.create(schemas);
-        Cleaner cleaner = new DefaultCleanerBuilder(
-                keyValueService,
-                lock,
-                ts,
-                client,
-                ImmutableList.of(follower),
-                transactionService).buildCleaner();
-        TransactionManager ret = SerializableTransactionManager.createForTest(
-                MetricsManagers.createForTests(),
-                keyValueService,
-                ts,
-                ts,
-                client,
-                lock,
-                transactionService,
-                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
-                conflictManager,
-                sweepStrategyManager,
-                cleaner,
-                DEFAULT_MAX_CONCURRENT_RANGES,
-                DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
-        cleaner.start(ret);
-        return ret;
     }
 }

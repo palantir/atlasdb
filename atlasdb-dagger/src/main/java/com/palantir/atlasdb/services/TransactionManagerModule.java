@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -113,7 +114,8 @@ public class TransactionManagerModule {
                 Executors.newSingleThreadExecutor(
                         new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
                 true,
-                () -> config.atlasDbRuntimeConfig().transaction());
+                () -> config.atlasDbRuntimeConfig().transaction(),
+                NoOpLockWatchingCache.INSTANCE);
     }
 
 }

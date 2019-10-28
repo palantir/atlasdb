@@ -126,7 +126,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                NoOpLockWatchingCache.INSTANCE);
 
         // fetch an immutable timestamp once so it's cached
         when(mockTimestampService.getFreshTimestamp()).thenReturn(1L);
@@ -188,7 +189,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> ImmutableTransactionConfig.builder().build());
+                () -> ImmutableTransactionConfig.builder().build(),
+                NoOpLockWatchingCache.INSTANCE);
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp()).thenReturn(

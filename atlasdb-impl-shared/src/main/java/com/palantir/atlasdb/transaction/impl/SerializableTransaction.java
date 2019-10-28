@@ -36,9 +36,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -105,8 +102,6 @@ import com.palantir.util.Pair;
  * write/write conflict checking as well as preventing read/write conflicts to attain serializability.
  */
 public class SerializableTransaction extends SnapshotTransaction {
-    private static final Logger log = LoggerFactory.getLogger(SerializableTransaction.class);
-
     private static final int BATCH_SIZE = 1000;
 
     final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = Maps.newConcurrentMap();
@@ -116,50 +111,53 @@ public class SerializableTransaction extends SnapshotTransaction {
     final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
 
-    public SerializableTransaction(MetricsManager metricsManager,
-                                   KeyValueService keyValueService,
-                                   TimelockService timelockService,
-                                   TransactionService transactionService,
-                                   Cleaner cleaner,
-                                   Supplier<Long> startTimeStamp,
-                                   ConflictDetectionManager conflictDetectionManager,
-                                   SweepStrategyManager sweepStrategyManager,
-                                   long immutableTimestamp,
-                                   Optional<LockToken> immutableTsLock,
-                                   PreCommitCondition preCommitCondition,
-                                   AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                   Long transactionTimeoutMillis,
-                                   TransactionReadSentinelBehavior readSentinelBehavior,
-                                   boolean allowHiddenTableAccess,
-                                   TimestampCache timestampCache,
-                                   ExecutorService getRangesExecutor,
-                                   int defaultGetRangesConcurrency,
-                                   MultiTableSweepQueueWriter sweepQueue,
-                                   ExecutorService deleteExecutor,
-                                   boolean validateLocksOnReads,
-                                   Supplier<TransactionConfig> transactionConfig) {
+    public SerializableTransaction(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            TransactionService transactionService,
+            Cleaner cleaner,
+            Supplier<Long> startTimeStamp,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            long immutableTimestamp,
+            Optional<LockToken> immutableTsLock,
+            PreCommitCondition preCommitCondition,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Long transactionTimeoutMillis,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            boolean allowHiddenTableAccess,
+            TimestampCache timestampCache,
+            ExecutorService getRangesExecutor,
+            int defaultGetRangesConcurrency,
+            MultiTableSweepQueueWriter sweepQueue,
+            ExecutorService deleteExecutor,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig,
+            TransactionLockWatchingCacheView transactionCache) {
         super(metricsManager,
-              keyValueService,
-              timelockService,
-              transactionService,
-              cleaner,
-              startTimeStamp,
-              conflictDetectionManager,
-              sweepStrategyManager,
-              immutableTimestamp,
-              immutableTsLock,
-              preCommitCondition,
-              constraintCheckingMode,
-              transactionTimeoutMillis,
-              readSentinelBehavior,
-              allowHiddenTableAccess,
-              timestampCache,
-              getRangesExecutor,
-              defaultGetRangesConcurrency,
-              sweepQueue,
-              deleteExecutor,
-              validateLocksOnReads,
-              transactionConfig);
+                keyValueService,
+                timelockService,
+                transactionService,
+                cleaner,
+                startTimeStamp,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                immutableTimestamp,
+                immutableTsLock,
+                preCommitCondition,
+                constraintCheckingMode,
+                transactionTimeoutMillis,
+                readSentinelBehavior,
+                allowHiddenTableAccess,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue,
+                deleteExecutor,
+                validateLocksOnReads,
+                transactionConfig,
+                transactionCache);
     }
 
     @Override
@@ -777,7 +775,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig) {
+                transactionConfig,
+                transactionCache) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

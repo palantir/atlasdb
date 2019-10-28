@@ -180,7 +180,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG) {
+                () -> TRANSACTION_CONFIG,
+                TransactionLockWatchingCacheView.EMPTY) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

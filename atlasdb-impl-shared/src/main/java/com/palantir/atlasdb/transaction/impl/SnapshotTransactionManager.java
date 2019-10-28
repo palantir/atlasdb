@@ -55,6 +55,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -82,6 +83,7 @@ import com.palantir.timestamp.TimestampService;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
     final Supplier<TransactionConfig> transactionConfig;
+    final LockWatchingCache lockWatchingCache;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -104,7 +106,8 @@ import com.palantir.timestamp.TimestampService;
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            LockWatchingCache lockWatchingCache) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -126,6 +129,7 @@ import com.palantir.timestamp.TimestampService;
         this.deleteExecutor = deleteExecutor;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.lockWatchingCache = lockWatchingCache;
     }
 
     @Override
@@ -150,22 +154,26 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        StartIdentifiedAtlasDbTransactionResponse transactionResponse
-                = timelockService.startIdentifiedAtlasDbTransaction();
+        StartTransactionWithWatchesResponse transactionResponse = timelockService.startTransactionWithWatches();
+        StartIdentifiedAtlasDbTransactionResponse response = transactionResponse.response();
+
         try {
-            LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
-            long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
+            LockToken immutableTsLock = response.immutableTimestamp().getLock();
+            long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
 
-            cleaner.punch(transactionResponse.startTimestampAndPartition().timestamp());
+            cleaner.punch(response.startTimestampAndPartition().timestamp());
             Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                    transactionResponse.startTimestampAndPartition().timestamp());
+                    response.startTimestampAndPartition().timestamp());
+
+            TransactionLockWatchingCacheView transactionCache = lockWatchingCache
+                    .getView(startTimestampSupplier.get(), transactionResponse.watchState(), keyValueService);
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
-                    immutableTsLock, condition);
+                    immutableTsLock, condition, transactionCache);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
-            timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
+            timelockService.tryUnlock(ImmutableSet.of(response.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
@@ -218,7 +226,8 @@ import com.palantir.timestamp.TimestampService;
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
-            PreCommitCondition condition) {
+            PreCommitCondition condition,
+            TransactionLockWatchingCacheView transactionCache) {
         return new SnapshotTransaction(
                 metricsManager,
                 keyValueService,
@@ -241,7 +250,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                transactionCache);
     }
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
@@ -257,13 +267,17 @@ import com.palantir.timestamp.TimestampService;
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
+        StartTransactionWithWatchesResponse response = timelockService.startTransactionWithWatches();
+        long startTimestamp = response.response().startTimestampAndPartition().timestamp();
+        cleaner.punch(startTimestamp);
+
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
                 keyValueService,
                 timelockService,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                getStartTimestampSupplier(),
+                () -> startTimestamp,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTs,
@@ -279,7 +293,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                lockWatchingCache.getView(startTimestamp, response.watchState(), keyValueService));
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

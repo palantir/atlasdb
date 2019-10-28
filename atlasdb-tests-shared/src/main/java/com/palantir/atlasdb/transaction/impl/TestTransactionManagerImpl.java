@@ -77,7 +77,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                NoOpLockWatchingCache.INSTANCE);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -106,7 +107,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                NoOpLockWatchingCache.INSTANCE);
     }
 
     @Override
@@ -148,7 +150,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                TransactionLockWatchingCacheView.EMPTY);
     }
 
     @Override

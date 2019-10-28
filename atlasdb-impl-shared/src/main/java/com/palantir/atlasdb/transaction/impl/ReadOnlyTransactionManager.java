@@ -41,7 +41,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
+public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager {
     private final MetricsManager metricsManager;
     private final KeyValueService keyValueService;
     private final TransactionService transactionService;

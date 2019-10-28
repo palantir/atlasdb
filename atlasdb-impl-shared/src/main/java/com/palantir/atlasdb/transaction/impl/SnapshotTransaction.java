@@ -224,6 +224,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
+    protected final TransactionLockWatchingCacheView transactionCache;
 
     protected volatile boolean hasReads;
 
@@ -254,7 +255,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            TransactionLockWatchingCacheView transactionCache) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -280,6 +282,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.transactionCache = transactionCache;
     }
 
     @Override

@@ -218,7 +218,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            LockWatchingCache lockWatchingCache) {
 
         return create(metricsManager,
                 keyValueService,
@@ -242,7 +243,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
                 transactionConfig,
-                true);
+                true,
+                lockWatchingCache);
     }
 
     public static TransactionManager create(
@@ -265,7 +267,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            LockWatchingCache lockWatchingCache) {
 
         return create(metricsManager,
                 keyValueService,
@@ -288,7 +291,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                lockWatchingCache);
     }
 
     public static TransactionManager create(
@@ -312,7 +316,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            LockWatchingCache lockWatchingCache) {
         return create(
                 metricsManager,
                 keyValueService,
@@ -335,7 +340,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 initializer,
                 validateLocksOnReads,
                 transactionConfig,
-                false);
+                false,
+                lockWatchingCache);
     }
 
     private static TransactionManager create(
@@ -360,7 +366,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            boolean shouldInstrument) {
+            boolean shouldInstrument,
+            LockWatchingCache lockWatchingCache) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -379,7 +386,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                lockWatchingCache);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -410,7 +418,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            MultiTableSweepQueueWriter sweepQueue) {
+            MultiTableSweepQueueWriter sweepQueue,
+            LockWatchingCache lockWatchingCache) {
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -429,7 +438,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueue,
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 true,
-                () -> ImmutableTransactionConfig.builder().build());
+                () -> ImmutableTransactionConfig.builder().build(),
+                lockWatchingCache);
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -449,7 +459,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            LockWatchingCache lockWatchingCache) {
         super(
                 metricsManager,
                 keyValueService,
@@ -468,15 +479,16 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig
-        );
+                transactionConfig,
+                lockWatchingCache);
     }
 
     @Override
     protected SnapshotTransaction createTransaction(long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
-            PreCommitCondition preCommitCondition) {
+            PreCommitCondition preCommitCondition,
+            TransactionLockWatchingCacheView transactionCache) {
         return new SerializableTransaction(
                 metricsManager,
                 keyValueService,
@@ -499,7 +511,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                transactionCache);
     }
 
     @VisibleForTesting
