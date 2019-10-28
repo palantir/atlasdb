@@ -103,11 +103,13 @@ public class PreStartHandlingTransactionService implements TransactionService {
                 ImmutableSet.copyOf(classifiedTimestamps.get(false)), unused -> AtlasDbConstants.STARTING_TS - 1));
 
         if (!validTimestamps.isEmpty()) {
-            return Futures.transform(timestampLoader.get(delegate, validTimestamps),
+            return Futures.transform(
+                    timestampLoader.get(delegate, validTimestamps),
                     timestampMap -> {
                         result.putAll(timestampMap);
                         return result;
-                    }, MoreExecutors.directExecutor());
+                    },
+                    MoreExecutors.directExecutor());
         }
         return Futures.immediateFuture(result);
     }

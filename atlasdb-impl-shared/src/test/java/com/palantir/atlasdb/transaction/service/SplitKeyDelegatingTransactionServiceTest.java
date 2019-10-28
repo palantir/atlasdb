@@ -52,9 +52,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
             TransactionServices.immediateTimestampLoader());
     private final TransactionService lastDigitFiveImpliesUnknownTransactionService
             = new SplitKeyDelegatingTransactionService<>(
-            num -> num % 10 == 5 ? null : num % 10,
-            transactionServiceMap,
-            TransactionServices.immediateTimestampLoader());
+                    num -> num % 10 == 5 ? null : num % 10,
+                    transactionServiceMap,
+                    TransactionServices.immediateTimestampLoader());
 
     @After
     public void verifyNoMoreInteractions() {
