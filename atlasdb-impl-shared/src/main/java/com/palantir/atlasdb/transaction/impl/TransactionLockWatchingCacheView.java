@@ -63,6 +63,10 @@ public class TransactionLockWatchingCacheView {
         cache.maybeCacheEntriesRead(tableRef, result);
     }
 
+    void cacheWrittenValues(TableReference tableRef, Map<Cell, byte[]> writes, long lockTimestamp) {
+        cache.maybeCacheCommittedWrites(tableRef, writes, lockTimestamp);
+    }
+
     // todo(gmaretic): implement
     private LockDescriptor getLockDescriptor(TableReference tableRef, Cell key) {
         return null;

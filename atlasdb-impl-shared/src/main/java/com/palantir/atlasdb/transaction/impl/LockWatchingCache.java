@@ -42,7 +42,7 @@ public interface LockWatchingCache {
      *
      * @param tableRef the table to which the transaction wrote
      * @param writes actual writes
-     * @param lockTimestamp the timestamp of the {@link com.palantir.lock.v2.TimestampedLockToken} from acquiring
+     * @param lockTimestamp the timestamp of the {@link com.palantir.lock.v2.TimestampedLockResponse} from acquiring
      * write locks
      */
     void maybeCacheCommittedWrites(TableReference tableRef, Map<Cell, byte[]> writes, long lockTimestamp);

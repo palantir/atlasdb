@@ -137,9 +137,9 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampedLockResponse;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Preconditions;
@@ -1483,7 +1483,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // Acquire row locks and a lock on the start timestamp row in the transactions table.
             // This must happen before conflict checking, otherwise we could complete the checks and then have someone
             // else write underneath us before we proceed (thus missing a write/write conflict).
-            LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
+            TimestampedLockResponse commitLocks = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
+            LockToken commitLocksToken = commitLocks.lockResponse().getToken();
+            boolean committed = false;
+
             try {
                 // Conflict checking. We can actually do this later without compromising correctness, but there is no
                 // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
@@ -1527,13 +1530,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 timedAndTraced("commitPutCommitTs",
                         () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
+                committed = true;
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
             } finally {
-                timedAndTraced("postCommitUnlock",
-                        () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
+                if (committed) {
+                    timedAndTraced("postCommitUnlock", () -> timelockService.unlockAfterSuccessfulCommit(commitLocks));
+                    writesByTable.forEach((tableRef, map)
+                            -> transactionCache.cacheWrittenValues(tableRef, map, commitLocks.timestamp()));
+                } else {
+                    timedAndTraced("postCommitUnlock",
+                            () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
+                }
             }
         });
     }
@@ -1874,11 +1884,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /**
      * This method should acquire any locks needed to do proper concurrency control at commit time.
      */
-    protected LockToken acquireLocksForCommit() {
+    protected TimestampedLockResponse acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
         LockRequest request = LockRequest.of(lockDescriptors, transactionConfig.get().getLockAcquireTimeoutMillis());
-        LockResponse lockResponse = timelockService.lock(request);
+        TimestampedLockResponse lockResponse = timelockService.acquireLocksForWrites(request);
         if (!lockResponse.wasSuccessful()) {
             log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
                             + "First ten required locks were {}.",
@@ -1886,7 +1896,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
-        return lockResponse.getToken();
+        return lockResponse;
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {

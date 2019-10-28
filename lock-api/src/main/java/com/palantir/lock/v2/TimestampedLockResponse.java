@@ -21,13 +21,17 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(as = ImmutableTimestampedLockToken.class)
-@JsonDeserialize(as = ImmutableTimestampedLockToken.class)
+@JsonSerialize(as = ImmutableTimestampedLockResponse.class)
+@JsonDeserialize(as = ImmutableTimestampedLockResponse.class)
 @Value.Immutable
-public interface TimestampedLockToken {
+public interface TimestampedLockResponse {
     @Value.Parameter
     long timestamp();
 
     @Value.Parameter
-    LockToken lockToken();
+    LockResponse lockResponse();
+
+    default boolean wasSuccessful() {
+        return lockResponse().wasSuccessful();
+    }
 }

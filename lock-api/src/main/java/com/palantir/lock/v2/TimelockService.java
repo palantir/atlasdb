@@ -89,11 +89,11 @@ public interface TimelockService {
                 ImmutableMap.of());
     }
 
-    default TimestampedLockToken acquireLocksForWrites(LockRequest lockRequest) {
-        return ImmutableTimestampedLockToken.of(getFreshTimestamp(), lock(lockRequest).getToken());
+    default TimestampedLockResponse acquireLocksForWrites(LockRequest lockRequest) {
+        return ImmutableTimestampedLockResponse.of(getFreshTimestamp(), lock(lockRequest));
     }
 
-    default void unlockAfterSuccessfulCommit(TimestampedLockToken locks) {
-        unlock(ImmutableSet.of(locks.lockToken()));
+    default void unlockAfterSuccessfulCommit(TimestampedLockResponse locks) {
+        unlock(ImmutableSet.of(locks.lockResponse().getToken()));
     }
 }
