@@ -1,0 +1,25 @@
+type: break
+break:
+  description: |-
+    Bump Postgres min version to 9.6
+
+    **Goals (and why)**:
+    Stop supporting old versions. Enable using new Postgres features.
+
+    **Implementation Description (bullets)**:
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+
+    **Concerns (what feedback would you like?)**:
+
+    **Where should we start reviewing?**:
+
+    **Priority (whenever / two weeks / yesterday)**:
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/4353
