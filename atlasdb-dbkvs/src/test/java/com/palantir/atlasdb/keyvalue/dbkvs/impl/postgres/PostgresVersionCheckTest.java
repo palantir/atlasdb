@@ -33,10 +33,19 @@ public class PostgresVersionCheckTest {
     @Test
     @SuppressWarnings(value = "Slf4jConstantLogMessage")
     public void shouldLogErrorOn_9_2_24() {
+        verifyLowVersionLogsError("9.2.24");
+    }
+
+    @Test
+    public void shouldLogErrorOn_9_5_2() {
+        verifyLowVersionLogsError("9.5.2");
+    }
+
+    private void verifyLowVersionLogsError(String lowVersion) {
         Logger log = Mockito.mock(Logger.class);
         String expectedMessage = "The minimum supported version is " + PostgresVersionCheck.MIN_POSTGRES_VERSION;
         try {
-            PostgresVersionCheck.checkDatabaseVersion("9.2.24", log);
+            PostgresVersionCheck.checkDatabaseVersion(lowVersion, log);
             Assert.fail("Expected an AssertionError");
         } catch (AssertionError error) {
             Assert.assertTrue("Error did not contain expected message. Actual error: " + error,
@@ -46,13 +55,6 @@ public class PostgresVersionCheckTest {
                 eq("Assertion {} with exception "),
                 contains(expectedMessage),
                 Mockito.any(Exception.class));
-        Mockito.verifyNoMoreInteractions(log);
-    }
-
-    @Test
-    public void shouldBeFineOn_9_5_2() {
-        Logger log = Mockito.mock(Logger.class);
-        PostgresVersionCheck.checkDatabaseVersion("9.5.2", log);
         Mockito.verifyNoMoreInteractions(log);
     }
 
