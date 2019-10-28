@@ -38,20 +38,6 @@ public final class TransactionServices {
         // Utility class
     }
 
-    private static final TimestampLoader IMMEDIATE_TIMESTAMP_LOADER = new TimestampLoader() {
-        @Override
-        public ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp) {
-            return Futures.immediateFuture(transactionService.get(startTimestamp));
-        }
-
-        @Override
-        public ListenableFuture<Map<Long, Long>> get(
-                TransactionService transactionService,
-                Iterable<Long> startTimestamps) {
-            return Futures.immediateFuture(transactionService.get(startTimestamps));
-        }
-    };
-
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
@@ -70,19 +56,17 @@ public final class TransactionServices {
                         TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV1TransactionService(keyValueService),
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV2TransactionService(keyValueService)),
-                immediateTimestampLoader()), immediateTimestampLoader());
+                        createV2TransactionService(keyValueService))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
         return new PreStartHandlingTransactionService(
-                SimpleTransactionService.createV1(keyValueService),
-                immediateTimestampLoader());
+                SimpleTransactionService.createV1(keyValueService));
     }
 
     private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
         return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
-                        SimpleTransactionService.createV2(keyValueService)), immediateTimestampLoader());
+                        SimpleTransactionService.createV2(keyValueService)));
     }
 
     /**
@@ -115,20 +99,22 @@ public final class TransactionServices {
                     = new ReadOnlyTransactionSchemaManager(coordinationService);
             return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
                     readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
-                    ImmutableMap.of(1, createV1TransactionService(keyValueService)),
-                    immediateTimestampLoader()), immediateTimestampLoader());
+                    ImmutableMap.of(1, createV1TransactionService(keyValueService))));
         }
         return createV1TransactionService(keyValueService);
     }
 
-    static TimestampLoader immediateTimestampLoader() {
-        return IMMEDIATE_TIMESTAMP_LOADER;
-    }
+    static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService delegate) {
+        return new AsyncTransactionService() {
+            @Override
+            public ListenableFuture<Long> getAsync(long startTimestamp) {
+                return Futures.immediateFuture(delegate.get(startTimestamp));
+            }
 
-    interface TimestampLoader {
-
-        ListenableFuture<Long> get(TransactionService transactionService, long startTimestamp);
-
-        ListenableFuture<Map<Long, Long>> get(TransactionService transactionService, Iterable<Long> startTimestamps);
+            @Override
+            public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
+                return Futures.immediateFuture(delegate.get(startTimestamps));
+            }
+        };
     }
 }

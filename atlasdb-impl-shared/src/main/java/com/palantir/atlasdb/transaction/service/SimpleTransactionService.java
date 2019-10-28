@@ -42,14 +42,14 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     // in transaction table.
     // All entries in transaction table are stored with timestamp 0
     private static final long MAX_TIMESTAMP = 1L;
-    private final CellLoader immediateCellLoader;
+    private final AsyncCellLoader immediateAsyncCellLoader;
 
     private SimpleTransactionService(KeyValueService kvs, TimestampEncodingStrategy encodingStrategy,
             TableReference transactionsTable) {
         this.kvs = kvs;
         this.encodingStrategy = encodingStrategy;
         this.transactionsTable = transactionsTable;
-        this.immediateCellLoader = startTsMap -> Futures.immediateFuture(kvs.get(transactionsTable, startTsMap));
+        this.immediateAsyncCellLoader = startTsMap -> Futures.immediateFuture(kvs.get(transactionsTable, startTsMap));
     }
 
     public static SimpleTransactionService createV1(KeyValueService kvs) {
@@ -63,12 +63,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateCellLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateAsyncCellLoader));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateCellLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateAsyncCellLoader));
     }
 
     @Override
@@ -101,22 +101,24 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         // we do not close the injected kvs
     }
 
-    private ListenableFuture<Long> getInternal(long startTimestamp, CellLoader cellLoader) {
+    private ListenableFuture<Long> getInternal(long startTimestamp, AsyncCellLoader asyncCellLoader) {
         Cell cell = getTransactionCell(startTimestamp);
         return Futures.transform(
-                cellLoader.get(ImmutableMap.of(cell, MAX_TIMESTAMP)),
+                asyncCellLoader.get(ImmutableMap.of(cell, MAX_TIMESTAMP)),
                 returnMap -> getTransactionCells(startTimestamp, cell, returnMap),
                 MoreExecutors.directExecutor());
     }
 
-    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps, CellLoader cellLoader) {
+    private ListenableFuture<Map<Long, Long>> getInternal(
+            Iterable<Long> startTimestamps,
+            AsyncCellLoader asyncCellLoader) {
         Map<Cell, Long> startTsMap = Maps.newHashMap();
         for (Long startTimestamp : startTimestamps) {
             Cell cell = getTransactionCell(startTimestamp);
             startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
-        return Futures.transform(cellLoader.get(startTsMap),
+        return Futures.transform(asyncCellLoader.get(startTsMap),
                 rawResults -> decodeTimestamps(rawResults),
                 MoreExecutors.directExecutor());
     }
@@ -138,7 +140,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         return result;
     }
 
-    private interface CellLoader {
+    private interface AsyncCellLoader {
 
         ListenableFuture<Map<Cell, Value>> get(Map<Cell, Long> startTsMap);
     }

@@ -31,7 +31,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.transaction.service.TransactionServices.TimestampLoader;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -49,24 +48,22 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  */
 public class PreStartHandlingTransactionService implements TransactionService {
     private final TransactionService delegate;
-    private final TimestampLoader immediateTimestampLoader;
+    private final AsyncTransactionService immediateAsyncTransactionService;
 
-    PreStartHandlingTransactionService(
-            TransactionService delegate,
-            TimestampLoader immediateTimestampLoader) {
+    PreStartHandlingTransactionService(TransactionService delegate) {
         this.delegate = delegate;
-        this.immediateTimestampLoader = immediateTimestampLoader;
+        this.immediateAsyncTransactionService = TransactionServices.synchronousAsAsyncTransactionService(delegate);
     }
 
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateTimestampLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateAsyncTransactionService));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateTimestampLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateAsyncTransactionService));
     }
 
     @Override
@@ -84,16 +81,16 @@ public class PreStartHandlingTransactionService implements TransactionService {
         delegate.close();
     }
 
-    private ListenableFuture<Long> getInternal(long startTimestamp, TimestampLoader timestampLoader) {
+    private ListenableFuture<Long> getInternal(long startTimestamp, AsyncTransactionService asyncTransactionService) {
         if (!isTimestampValid(startTimestamp)) {
             return Futures.immediateFuture(AtlasDbConstants.STARTING_TS - 1);
         }
-        return timestampLoader.get(delegate, startTimestamp);
+        return asyncTransactionService.getAsync(startTimestamp);
     }
 
     private ListenableFuture<Map<Long, Long>> getInternal(
             Iterable<Long> startTimestamps,
-            TimestampLoader timestampLoader) {
+            AsyncTransactionService asyncTransactionService) {
         Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
@@ -104,7 +101,7 @@ public class PreStartHandlingTransactionService implements TransactionService {
 
         if (!validTimestamps.isEmpty()) {
             return Futures.transform(
-                    timestampLoader.get(delegate, validTimestamps),
+                    asyncTransactionService.getAsync(validTimestamps),
                     timestampMap -> {
                         result.putAll(timestampMap);
                         return result;

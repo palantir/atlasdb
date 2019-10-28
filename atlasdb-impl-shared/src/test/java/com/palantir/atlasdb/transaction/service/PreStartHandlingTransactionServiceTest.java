@@ -42,9 +42,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class PreStartHandlingTransactionServiceTest {
     private final TransactionService delegate = mock(TransactionService.class);
-    private final TransactionService preStartHandlingService = new PreStartHandlingTransactionService(
-            delegate,
-            TransactionServices.immediateTimestampLoader());
+    private final TransactionService preStartHandlingService = new PreStartHandlingTransactionService(delegate);
 
     private static final long START_TIMESTAMP = 44L;
     private static final long COMMIT_TIMESTAMP = 88L;

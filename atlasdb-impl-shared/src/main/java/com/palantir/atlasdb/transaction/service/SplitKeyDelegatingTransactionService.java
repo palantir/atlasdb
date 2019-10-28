@@ -33,7 +33,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.transaction.service.TransactionServices.TimestampLoader;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -56,31 +55,32 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public final class SplitKeyDelegatingTransactionService<T> implements TransactionService {
     private final Function<Long, T> timestampToServiceKey;
     private final Map<T, TransactionService> keyedServices;
-    private final TimestampLoader immediateTimestampLoader;
+    private final Map<T, AsyncTransactionService> keyedAsyncServices;
 
     SplitKeyDelegatingTransactionService(
             Function<Long, T> timestampToServiceKey,
-            Map<T, TransactionService> keyedServices,
-            TimestampLoader immediateTimestampLoader) {
+            Map<T, TransactionService> keyedServices) {
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
-        this.immediateTimestampLoader = immediateTimestampLoader;
+        this.keyedAsyncServices = KeyedStream.stream(keyedServices)
+                .map(TransactionServices::synchronousAsAsyncTransactionService)
+                .collectToMap();
     }
 
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateTimestampLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamp));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateTimestampLoader));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamps));
     }
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        TransactionService service = getServiceForTimestamp(startTimestamp).orElseThrow(
+        TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp).orElseThrow(
                 () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
         service.putUnlessExists(startTimestamp, commitTimestamp);
     }
@@ -90,13 +90,13 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         keyedServices.values().forEach(TransactionService::close);
     }
 
-    private ListenableFuture<Long> getInternal(long startTimestamp, TimestampLoader cellLoader) {
-        return getServiceForTimestamp(startTimestamp)
-                .map(service -> cellLoader.get(service, startTimestamp))
+    private ListenableFuture<Long> getInternal(long startTimestamp) {
+        return getServiceForTimestamp(keyedAsyncServices, startTimestamp)
+                .map(service -> service.getAsync(startTimestamp))
                 .orElseGet(() -> Futures.immediateFuture(null));
     }
 
-    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps, TimestampLoader cellLoader) {
+    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
             T mappedValue = timestampToServiceKey.apply(startTimestamp);
@@ -115,7 +115,7 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         }
 
         Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
-                .map((key, value) -> cellLoader.get(keyedServices.get(key), value))
+                .map((key, value) -> keyedAsyncServices.get(key).getAsync(value))
                 .collectToMap()
                 .values();
 
@@ -126,19 +126,19 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
                 MoreExecutors.directExecutor());
     }
 
-    private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
+    private <R> Optional<R> getServiceForTimestamp(Map<T, R> servicesMap, long startTimestamp) {
         T key = timestampToServiceKey.apply(startTimestamp);
         if (key == null) {
             return Optional.empty();
         }
-        TransactionService service = keyedServices.get(key);
+        R service = servicesMap.get(key);
 
         if (service == null) {
             throw new SafeIllegalStateException("Could not find a transaction service for timestamp {}, which"
                     + " produced a key of {}. Known transaction service keys were {}.",
                     SafeArg.of("timestamp", startTimestamp),
                     SafeArg.of("serviceKey", key),
-                    SafeArg.of("knownServiceKeys", keyedServices.keySet()));
+                    SafeArg.of("knownServiceKeys", servicesMap.keySet()));
         }
         return Optional.of(service);
     }
