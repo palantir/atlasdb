@@ -118,7 +118,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
-        return Futures.transform(asyncCellLoader.get(startTsMap),
+        return Futures.transform(
+                asyncCellLoader.get(startTsMap),
                 rawResults -> decodeTimestamps(rawResults),
                 MoreExecutors.directExecutor());
     }
