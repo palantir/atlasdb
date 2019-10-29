@@ -4,7 +4,6 @@ dependencies {
   compile project(':commons-executors')
 
   compile group: 'com.palantir.conjure.java.api', name: 'service-config'
-  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   compile group: 'com.palantir.conjure.java.runtime', name: 'keystores'
   compile group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'
   compile group: 'com.palantir.common', name: 'streams'

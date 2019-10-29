@@ -4,6 +4,7 @@ apply plugin: 'com.palantir.revapi'
 
 dependencies {
     compile project(':atlasdb-api')
+    compile project(':atlasdb-conjure')
     compile project(path: ':atlasdb-feign', configuration: 'shadow')
     compile project(':atlasdb-impl-shared')
     compile project(':leader-election-impl')
