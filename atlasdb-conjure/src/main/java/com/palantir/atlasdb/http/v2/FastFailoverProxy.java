@@ -97,7 +97,8 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
         }
         InvocationTargetException exception = (InvocationTargetException) throwable;
         Throwable cause = exception.getCause();
-        cause.printStackTrace();
+        // THE PROBLEM IS THAT THE FIRST CONDITION IS NOT TRUE.
+        // BECAUSE WE RECEIVE A feign.retryableException BUT WE EXPECT A atlasdb feign shaded retryable exception
         if (!(cause instanceof RetryableException) || !isCausedByRetryOther((RetryableException) cause)) {
             return ResultOrThrowable.failure(cause);
         }
