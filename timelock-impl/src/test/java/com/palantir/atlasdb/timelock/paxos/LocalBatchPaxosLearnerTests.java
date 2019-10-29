@@ -79,7 +79,7 @@ public class LocalBatchPaxosLearnerTests {
         when(paxosComponents.learner(CLIENT_1).getLearnedValue(1)).thenReturn(Optional.of(paxosValue1));
         when(paxosComponents.learner(CLIENT_1).getLearnedValue(2)).thenReturn(Optional.empty());
         when(paxosComponents.learner(CLIENT_2).getLearnedValue(1)).thenReturn(Optional.of(paxosValue1));
-        when(paxosComponents.learner(CLIENT_2).getLearnedValue(2)).thenReturn(Optional.of(paxosValue1));
+        when(paxosComponents.learner(CLIENT_2).getLearnedValue(2)).thenReturn(Optional.of(paxosValue2));
 
         SetMultimap<Client, PaxosValue> expected = ImmutableSetMultimap.<Client, PaxosValue>builder()
                 .putAll(CLIENT_1, paxosValue1)
