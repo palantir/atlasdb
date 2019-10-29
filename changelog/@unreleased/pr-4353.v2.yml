@@ -1,20 +1,6 @@
 type: break
 break:
-  description: |-
-    Bump Postgres min version to 9.6
-
-    **Goals (and why)**:
-    Stop supporting old versions. Enable using new Postgres features.
-
-    **Implementation Description (bullets)**:
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-
-    **Concerns (what feedback would you like?)**:
-
-    **Where should we start reviewing?**:
-
-    **Priority (whenever / two weeks / yesterday)**:
-
+  description: The minimum version of Postgres allowed for use with AtlasDB is now
+    9.6. AtlasDB no longer supports older versions of Postgres (9.2-9.5).
   links:
   - https://github.com/palantir/atlasdb/pull/4353
