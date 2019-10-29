@@ -16,21 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Statement;
-
-public interface CqlQuerySpec<R> {
-
-    QueryType queryType();
-
-    CqlQueryContext cqlQueryContext();
-
-    String formatQueryString();
-
-    Statement makeExecutableStatement(PreparedStatement preparedStatement);
-
-    ConsistencyLevel queryConsistency();
-
-    RowStreamAccumulator<R> rowStreamAccumulator();
+public enum QueryType {
+    GET
 }

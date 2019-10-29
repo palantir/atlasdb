@@ -28,10 +28,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.async.futures.CqlFuturesCombiner;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
@@ -67,7 +67,7 @@ public final class AsyncCellLoader {
                 .map((cell, timestamp) -> loadCellWithTimestamp(tableReference, cell, timestamp))
                 .collectToMap();
 
-        return cqlFuturesCombiner.combineToMap(cellListenableFutureMap);
+        return cqlFuturesCombiner.allAsMap(cellListenableFutureMap);
     }
 
     private ListenableFuture<Optional<Value>> loadCellWithTimestamp(
@@ -83,10 +83,6 @@ public final class AsyncCellLoader {
                 .humanReadableTimestamp(timestamp)
                 .build();
 
-        return cqlClient.executeQuery(
-                ImmutableGetQuerySpec.builder()
-                        .cqlQueryContext(queryContext)
-                        .queryParameters(getQueryParameters)
-                        .build());
+        return cqlClient.executeQuery(new GetQuerySpec(queryContext, getQueryParameters));
     }
 }

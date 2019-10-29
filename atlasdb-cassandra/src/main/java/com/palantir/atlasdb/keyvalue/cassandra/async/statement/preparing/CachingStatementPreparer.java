@@ -16,12 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing;
 
+import org.immutables.value.Value;
+
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.PreparedStatement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.QueryType;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -36,24 +39,34 @@ public final class CachingStatementPreparer implements StatementPreparer {
             StatementPreparer statementPreparer,
             TaggedMetricRegistry taggedMetricRegistry,
             int cacheSize) {
-        Cache<CqlQueryContext, PreparedStatement> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
+        Cache<CacheKey, PreparedStatement> cache = Caffeine.newBuilder().maximumSize(cacheSize).build();
         CaffeineCacheStats.registerCache(taggedMetricRegistry, cache, CACHE_NAME_PREFIX);
         return new CachingStatementPreparer(statementPreparer, cache);
     }
 
     private final StatementPreparer statementPreparer;
-    private final Cache<CqlQueryContext, PreparedStatement> cache;
+    private final Cache<CacheKey, PreparedStatement> cache;
 
     private CachingStatementPreparer(
             StatementPreparer statementPreparer,
-            Cache<CqlQueryContext,
-                    PreparedStatement> cache) {
+            Cache<CacheKey, PreparedStatement> cache) {
         this.statementPreparer = statementPreparer;
         this.cache = cache;
     }
 
     @Override
     public PreparedStatement prepare(CqlQuerySpec querySpec) {
-        return cache.get(querySpec.cqlQueryContext(), context -> statementPreparer.prepare(querySpec));
+        CacheKey cacheKey = ImmutableCacheKey.builder()
+                .cqlQueryContext(querySpec.cqlQueryContext())
+                .queryType(querySpec.queryType())
+                .build();
+        return cache.get(cacheKey, key -> statementPreparer.prepare(querySpec));
+    }
+
+    @Value.Immutable
+    interface CacheKey {
+        CqlQueryContext cqlQueryContext();
+
+        QueryType queryType();
     }
 }

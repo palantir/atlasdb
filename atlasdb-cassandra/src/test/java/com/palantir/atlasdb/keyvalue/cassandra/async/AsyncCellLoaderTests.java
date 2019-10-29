@@ -17,15 +17,18 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
@@ -42,8 +45,9 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQuerySpec;
+import com.palantir.common.random.RandomBytes;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AsyncCellLoaderTests {
     private static final String KEYSPACE = "test";
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "foo");
@@ -52,36 +56,31 @@ public class AsyncCellLoaderTests {
     private static final Cell NON_VISIBLE_CELL = Cell.create(PtBytes.toBytes(100), PtBytes.toBytes(100));
     private static final Cell VISIBLE_CELL_1 = Cell.create(PtBytes.toBytes(100), PtBytes.toBytes(200));
     private static final Cell VISIBLE_CELL_2 = Cell.create(PtBytes.toBytes(100), PtBytes.toBytes(300));
-    private static final CqlQueryContext cqlQueryContext = ImmutableCqlQueryContext.builder()
+    private static final CqlQueryContext CQL_QUERY_CONTEXT = ImmutableCqlQueryContext.builder()
             .keyspace(KEYSPACE)
             .tableReference(TABLE)
             .build();
 
     private AsyncCellLoader asyncCellLoader;
     private CqlFuturesCombiner cqlFuturesCombiner;
+    @Mock
+    private CqlClient cqlClient;
 
     @Before
     public void setUp() {
-        CqlClient cqlClient = mock(CqlClient.class);
-
-        when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(NON_VISIBLE_CELL))))
-                .thenReturn(Futures.immediateFuture(Optional.empty()));
-        when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(VISIBLE_CELL_1))))
-                .thenReturn(Futures.immediateFuture(Optional.of(Value.create(PtBytes.toBytes("dummy"), 13))));
-        when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(VISIBLE_CELL_2))))
-                .thenReturn(Futures.immediateFuture(Optional.of(Value.create(PtBytes.toBytes("dummy"), 11))));
-
         cqlFuturesCombiner = new DefaultCqlFuturesCombiner(MoreExecutors.newDirectExecutorService());
         asyncCellLoader = AsyncCellLoader.create(cqlClient, cqlFuturesCombiner, KEYSPACE);
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         cqlFuturesCombiner.close();
     }
 
     @Test
     public void testNoDataVisible() throws Exception {
+        setUpNonVisibleCells(NON_VISIBLE_CELL);
+
         Map<Cell, Long> request = ImmutableMap.of(NON_VISIBLE_CELL, TIMESTAMP);
 
         Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
@@ -91,6 +90,9 @@ public class AsyncCellLoaderTests {
 
     @Test
     public void testFilteringNonVisible() throws Exception {
+        setUpVisibleCells(VISIBLE_CELL_1);
+        setUpNonVisibleCells(NON_VISIBLE_CELL);
+
         Map<Cell, Long> request = ImmutableMap.of(
                 NON_VISIBLE_CELL, TIMESTAMP,
                 VISIBLE_CELL_1, TIMESTAMP);
@@ -98,13 +100,13 @@ public class AsyncCellLoaderTests {
         Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
 
         assertThat(result)
-                .isNotEmpty()
-                .containsKey(VISIBLE_CELL_1)
-                .doesNotContainKey(NON_VISIBLE_CELL);
+                .containsOnlyKeys(VISIBLE_CELL_1);
     }
 
     @Test
     public void testAllVisible() throws Exception {
+        setUpVisibleCells(VISIBLE_CELL_1, VISIBLE_CELL_2);
+
         Map<Cell, Long> request = ImmutableMap.of(
                 VISIBLE_CELL_1, TIMESTAMP,
                 VISIBLE_CELL_2, TIMESTAMP);
@@ -112,20 +114,29 @@ public class AsyncCellLoaderTests {
         Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
 
         assertThat(result)
-                .isNotEmpty()
-                .containsKey(VISIBLE_CELL_1)
-                .containsKey(VISIBLE_CELL_2);
+                .containsOnlyKeys(VISIBLE_CELL_1, VISIBLE_CELL_2);
     }
 
-    private GetQuerySpec buildGetQuerySpec(GetQueryParameters getQueryParameters) {
-        return ImmutableGetQuerySpec
-                .builder()
-                .cqlQueryContext(cqlQueryContext)
-                .queryParameters(getQueryParameters)
-                .build();
+    private void setUpVisibleCells(Cell... cells) {
+        for (Cell cell : cells) {
+            when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(cell))))
+                    .thenReturn(Futures.immediateFuture(
+                            Optional.of(Value.create(RandomBytes.ofLength(10), Math.abs(new Random().nextInt())))));
+        }
     }
 
-    private GetQueryParameters buildGetQueryParameter(Cell cell) {
+    private void setUpNonVisibleCells(Cell... nonVisibleCells) {
+        for (Cell cell : nonVisibleCells) {
+            when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(cell))))
+                    .thenReturn(Futures.immediateFuture(Optional.empty()));
+        }
+    }
+
+    private static GetQuerySpec buildGetQuerySpec(GetQueryParameters getQueryParameters) {
+        return new GetQuerySpec(CQL_QUERY_CONTEXT, getQueryParameters);
+    }
+
+    private static GetQueryParameters buildGetQueryParameter(Cell cell) {
         return ImmutableGetQueryParameters.builder()
                 .cell(cell)
                 .humanReadableTimestamp(TIMESTAMP)

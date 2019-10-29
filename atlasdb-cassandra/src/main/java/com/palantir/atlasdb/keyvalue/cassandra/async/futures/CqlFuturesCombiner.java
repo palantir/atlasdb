@@ -21,8 +21,21 @@ import java.util.Optional;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+/**
+ * Declares an interface for combining futures which represent results of queries.
+ */
 public interface CqlFuturesCombiner extends AutoCloseable {
-    <T, R> ListenableFuture<Map<T, R>> combineToMap(Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap);
+    /**
+     * Creates a new {@code ListenableFuture} whose value is a map containing the values of all its
+     * input futures, if all succeed. Input key-value pairs for which the input futures resolve to
+     * {@link Optional#empty()} are filtered out.
+     *
+     * @param inputToListenableFutureMap query input to {@link ListenableFuture} of the query result
+     * @param <T> type of query input
+     * @param <R> type of query result
+     * @return {@link ListenableFuture} of the combined map
+     */
+    <T, R> ListenableFuture<Map<T, R>> allAsMap(Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap);
 
     @Override
     void close();

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -28,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.CachingStatementPreparer;
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -67,14 +67,14 @@ public class CachingStatementPreparerTest {
     @Test
     public void testGetQuerySpecKeyspaceNotIgnored() {
         PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, GET_QUERY_PARAMETERS);
-        assertThat(prepareStatement("baz", TABLE_REFERENCE, GET_QUERY_PARAMETERS))
+        assertThat(prepareStatement(randomAlphabetic(5), TABLE_REFERENCE, GET_QUERY_PARAMETERS))
                 .isNotEqualTo(expectedPreparedStatement);
     }
 
     @Test
     public void testGetQuerySpecTableRefNotIgnored() {
         PreparedStatement expectedPreparedStatement = prepareStatement(KEYSPACE, TABLE_REFERENCE, GET_QUERY_PARAMETERS);
-        assertThat(prepareStatement(KEYSPACE, tableReference("baz"), GET_QUERY_PARAMETERS))
+        assertThat(prepareStatement(KEYSPACE, tableReference(randomAlphabetic(5)), GET_QUERY_PARAMETERS))
                 .isNotEqualTo(expectedPreparedStatement);
     }
 
@@ -93,12 +93,11 @@ public class CachingStatementPreparerTest {
             String keyspace,
             TableReference tableReference,
             GetQueryParameters getQueryParameters) {
-        return ImmutableGetQuerySpec.builder()
-                .cqlQueryContext(ImmutableCqlQueryContext.builder()
+        return new GetQuerySpec(
+                ImmutableCqlQueryContext.builder()
                         .keyspace(keyspace)
                         .tableReference(tableReference)
-                        .build())
-                .queryParameters(getQueryParameters)
-                .build();
+                        .build(),
+                getQueryParameters);
     }
 }

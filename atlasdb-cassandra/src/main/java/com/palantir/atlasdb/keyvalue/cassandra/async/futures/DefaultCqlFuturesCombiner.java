@@ -26,6 +26,10 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.streams.KeyedStream;
 
+/**
+ * Default implementation of {@link CqlFuturesCombiner}. This implementation combines the futures on a passed
+ * {@link ExecutorService}. Also it takes ownership of the passed {@link ExecutorService}.
+ */
 public class DefaultCqlFuturesCombiner implements CqlFuturesCombiner {
     private final ExecutorService executorService;
 
@@ -34,7 +38,7 @@ public class DefaultCqlFuturesCombiner implements CqlFuturesCombiner {
     }
 
     @Override
-    public <T, R> ListenableFuture<Map<T, R>> combineToMap(
+    public <T, R> ListenableFuture<Map<T, R>> allAsMap(
             Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap) {
         return Futures.whenAllSucceed(inputToListenableFutureMap.values())
                 .call(() -> KeyedStream.stream(inputToListenableFutureMap)

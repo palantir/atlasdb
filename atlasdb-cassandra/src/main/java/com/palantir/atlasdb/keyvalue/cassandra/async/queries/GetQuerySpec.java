@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -29,9 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Preconditions;
 
-
-@org.immutables.value.Value.Immutable
-public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
+public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
     /**
      * Since each query is constructed for one cell we are using an optimisation that we can ask the CQL to do most of
@@ -44,6 +43,20 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
             + "WHERE key = :row AND column1 = :column AND column2 > :timestamp "
             + "LIMIT 1;";
 
+    private final CqlQueryContext cqlQueryContext;
+    private final GetQueryParameters getQueryParameters;
+    private final GetQueryAccumulator getQueryAccumulator = new GetQueryAccumulator();
+
+    public GetQuerySpec(CqlQueryContext cqlQueryContext, GetQueryParameters getQueryParameters) {
+        this.cqlQueryContext = cqlQueryContext;
+        this.getQueryParameters = getQueryParameters;
+    }
+
+    @Override
+    public CqlQueryContext cqlQueryContext() {
+        return cqlQueryContext;
+    }
+
     @Override
     public String formatQueryString() {
         return String.format(
@@ -53,13 +66,18 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     }
 
     @Override
+    public QueryType queryType() {
+        return QueryType.GET;
+    }
+
+    @Override
     public Statement makeExecutableStatement(PreparedStatement preparedStatement) {
         return preparedStatement.bind()
                 .setBytes("row",
-                        toReadOnlyByteBuffer(getQueryParameters().cell().getRowName()))
+                        toReadOnlyByteBuffer(getQueryParameters.cell().getRowName()))
                 .setBytes("column",
-                        toReadOnlyByteBuffer(getQueryParameters().cell().getColumnName()))
-                .setLong("timestamp", getQueryParameters().queryTimestamp());
+                        toReadOnlyByteBuffer(getQueryParameters.cell().getColumnName()))
+                .setLong("timestamp", getQueryParameters.queryTimestamp());
     }
 
     private static ByteBuffer toReadOnlyByteBuffer(byte[] bytes) {
@@ -72,12 +90,9 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     }
 
     @Override
-    @org.immutables.value.Value.Lazy
     public RowStreamAccumulator<Optional<Value>> rowStreamAccumulator() {
-        return new GetQueryAccumulator();
+        return getQueryAccumulator;
     }
-
-    public abstract GetQueryParameters getQueryParameters();
 
     @org.immutables.value.Value.Immutable
     public interface GetQueryParameters {
@@ -88,6 +103,24 @@ public abstract class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         default long queryTimestamp() {
             return ~humanReadableTimestamp();
         }
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        GetQuerySpec that = (GetQuerySpec) other;
+        return cqlQueryContext.equals(that.cqlQueryContext)
+                && getQueryParameters.equals(that.getQueryParameters);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(cqlQueryContext, getQueryParameters);
     }
 
     private static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
