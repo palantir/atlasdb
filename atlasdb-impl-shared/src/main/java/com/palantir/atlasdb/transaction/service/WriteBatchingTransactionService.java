@@ -34,6 +34,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -84,6 +85,16 @@ public final class WriteBatchingTransactionService implements TransactionService
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return delegate.get(startTimestamps);
+    }
+
+    @Override
+    public ListenableFuture<Long> getAsync(long startTimestamp) {
+        return delegate.getAsync(startTimestamp);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
+        return delegate.getAsync(startTimestamps);
     }
 
     @Override

@@ -105,16 +105,22 @@ public final class TransactionServices {
         return createV1TransactionService(keyValueService);
     }
 
-    static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService delegate) {
+    /**
+     * Constructs an {@link AsyncTransactionService} such that methods are blocking and return immediate futures.
+     *
+     * @param transactionService on which to call synchronous requests
+     * @return {@link AsyncTransactionService} which delegates to synchronous methods
+     */
+    static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService transactionService) {
         return new AsyncTransactionService() {
             @Override
             public ListenableFuture<Long> getAsync(long startTimestamp) {
-                return Futures.immediateFuture(delegate.get(startTimestamp));
+                return Futures.immediateFuture(transactionService.get(startTimestamp));
             }
 
             @Override
             public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-                return Futures.immediateFuture(delegate.get(startTimestamps));
+                return Futures.immediateFuture(transactionService.get(startTimestamps));
             }
         };
     }

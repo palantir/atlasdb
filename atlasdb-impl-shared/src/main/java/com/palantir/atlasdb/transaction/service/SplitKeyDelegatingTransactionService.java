@@ -79,6 +79,16 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
+    public ListenableFuture<Long> getAsync(long startTimestamp) {
+        return getInternal(keyedServices, startTimestamp);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
+        return getInternal(keyedServices, startTimestamps);
+    }
+
+    @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp).orElseThrow(
                 () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
@@ -91,7 +101,7 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     private ListenableFuture<Long> getInternal(
-            Map<T, AsyncTransactionService> keyedTransactionServices,
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices,
             long startTimestamp) {
         return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
                 .map(service -> service.getAsync(startTimestamp))
@@ -99,7 +109,7 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     private ListenableFuture<Map<Long, Long>> getInternal(
-            Map<T, AsyncTransactionService> keyedTransactionServices,
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices,
             Iterable<Long> startTimestamps) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
