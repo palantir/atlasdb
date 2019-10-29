@@ -1,0 +1,5 @@
+type: break
+break:
+  description: Stop using a hardcoded password for the truststore used when TCPS connections are configured. This is a break because truststore passwords now need to be specified for TCPS.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4356
