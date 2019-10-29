@@ -82,7 +82,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     /**
-     * Creates a fixed thread pool.
+     * Creates a thread pool with number of threads between {@code corePoolSize} and {@code maxPoolSize}.
      *
      * @param threadNamePrefix thread name prefix
      * @param corePoolSize size of the core pool
