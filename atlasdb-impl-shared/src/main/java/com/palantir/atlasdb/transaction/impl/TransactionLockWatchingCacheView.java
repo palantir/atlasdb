@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.GuardedValue;
 import com.palantir.atlasdb.keyvalue.api.ImmutableGuardedValue;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockWatch;
 
@@ -48,9 +49,13 @@ public class TransactionLockWatchingCacheView {
 
     Map<Cell, byte[]> readCached(TableReference tableRef, Set<Cell> cells) {
         return cache.getCached(tableRef, cells).entrySet().stream()
-                .filter(entry -> entry.getValue().guardTimestamp() == lockWatchState
-                        .get(getLockDescriptor(tableRef, entry.getKey())).timestamp())
+                .filter(entry -> notStale(tableRef, entry))
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().value()));
+    }
+
+    private boolean notStale(TableReference tableRef, Map.Entry<Cell, GuardedValue> entry) {
+        LockWatch currentState = lockWatchState.get(getLockDescriptor(tableRef, entry.getKey()));
+        return currentState != null && entry.getValue().guardTimestamp() == currentState.timestamp();
     }
 
     void cacheNewValuesRead(TableReference tableRef, Map<Cell, byte[]> writes) {
@@ -67,8 +72,7 @@ public class TransactionLockWatchingCacheView {
         cache.maybeCacheCommittedWrites(tableRef, writes, lockTimestamp);
     }
 
-    // todo(gmaretic): implement
-    private LockDescriptor getLockDescriptor(TableReference tableRef, Cell key) {
-        return null;
+    private static LockDescriptor getLockDescriptor(TableReference tableRef, Cell cell) {
+        return AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName());
     }
 }
