@@ -23,6 +23,7 @@ configurations {
 }
 
 dependencies {
+  explicitShadow project(':atlasdb-remoting-api')
   explicitShadow project(':lock-api')
   explicitShadow group: 'com.squareup.okhttp3', name: 'okhttp'
   explicitShadow group: 'com.palantir.conjure.java.api', name: 'service-config'
