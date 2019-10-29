@@ -81,7 +81,7 @@ public class BatchPingableLeaderResourceTests {
         when(components.learner(CLIENT_1).getGreatestLearnedValue())
                 .thenReturn(paxosValue(LEADER_UUID));
         when(components.learner(clientWhereNothingHasBeenLearnt).getGreatestLearnedValue())
-                .thenReturn(null);
+                .thenReturn(Optional.empty());
 
         assertThat(resource.ping(ImmutableSet.of(CLIENT_1, clientWhereNothingHasBeenLearnt)))
                 .containsOnly(CLIENT_1);

@@ -127,7 +127,7 @@ public class TransactionManagersTest {
     private static final String USER_AGENT_VERSION = "3.1415926.5358979";
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
     private static final String EXPECTED_USER_AGENT_STRING = UserAgents.format(USER_AGENT.addAgent(
-            AtlasDbRemotingConstants.LEGACY_ATLASDB_HTTP_CLIENT_AGENT));
+            AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT));
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
@@ -139,7 +139,7 @@ public class TransactionManagersTest {
             MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
-    private static final Map<String, String> LEGACY_CLIENT_TAGS = ImmutableMap.of("clientVersion", "AtlasDB-Feign");
+    private static final Map<String, String> CLIENT_TAGS = ImmutableMap.of("clientVersion", "Conjure-Java-Runtime");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
@@ -281,9 +281,9 @@ public class TransactionManagersTest {
         lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
@@ -461,14 +461,14 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void metricsAreReportedExactlyOnceWhenUsingRemoteService() throws IOException, InterruptedException {
+    public void metricsAreReportedExactlyOnceWhenUsingRemoteService() throws IOException {
         setUpForRemoteServices();
         setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsWithTagsAreRecorded(
                 TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC,
-                LEGACY_CLIENT_TAGS);
+                CLIENT_TAGS);
     }
 
     @Test
@@ -478,7 +478,7 @@ public class TransactionManagersTest {
         assertThatTimeAndLockMetricsWithTagsAreRecorded(
                 TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
                 TIMELOCK_SERVICE_CURRENT_TIME_METRIC,
-                LEGACY_CLIENT_TAGS);
+                CLIENT_TAGS);
     }
 
     @Test
@@ -771,9 +771,9 @@ public class TransactionManagersTest {
         verifyUserAgentOnTimestampAndLockRequests(TIMELOCK_TIMESTAMP_PATH, TIMELOCK_LOCK_PATH);
         verify(invalidator, times(1)).backupAndInvalidate();
         availableServer.verify(getRequestedFor(urlEqualTo(TIMELOCK_PING_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_FF_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
@@ -792,9 +792,9 @@ public class TransactionManagersTest {
         lockAndTimestamp.timelock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlMatching(lockPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
