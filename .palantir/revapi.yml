@@ -84,12 +84,6 @@ acceptedBreaks:
         \ java.lang.Class<T>, com.palantir.conjure.java.api.config.service.UserAgent)"
       justification: "Intentionally breaking AtlasDbHttpClients; users should provide\
         \ a TaggedMetricsRegistry for version-selecting client purposes"
-  0.158.6:
-    com.palantir.atlasdb:atlasdb-config:
-    - code: "java.field.removed"
-      old: "field com.palantir.atlasdb.http.AtlasDbHttpClients.DEFAULT_TARGET_FACTORY"
-      new: null
-      justification: "Clean slate"
   0.162.5:
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.method.parameterTypeChanged"
@@ -112,6 +106,30 @@ acceptedBreaks:
         \ com.palantir.atlasdb.factory.Leaders.RemotePaxosServerSpec, com.palantir.conjure.java.api.config.service.UserAgent,\
         \ ===com.palantir.leader.LeadershipObserver===)"
       justification: "this is internal code"
+  0.168.0:
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter <T> java.util.List<T> com.palantir.atlasdb.factory.Leaders::createProxyAndLocalList(===com.codahale.metrics.MetricRegistry===,\
+        \ T, java.util.Set<java.lang.String>, java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>,\
+        \ java.lang.Class<T>, com.palantir.conjure.java.api.config.service.UserAgent)"
+      new: "parameter <T> java.util.List<T> com.palantir.atlasdb.factory.Leaders::createProxyAndLocalList(===com.palantir.atlasdb.util.MetricsManager===,\
+        \ T, java.util.Set<java.lang.String>, java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>,\
+        \ java.lang.Class<T>, com.palantir.conjure.java.api.config.service.UserAgent)"
+      justification: "Internal API, not actually used by AtlasDB users directly"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createProxy(===com.codahale.metrics.MetricRegistry===,\
+        \ java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>, java.lang.String,\
+        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
+      new: "parameter <T> T com.palantir.atlasdb.http.AtlasDbHttpClients::createProxy(===com.palantir.atlasdb.util.MetricsManager===,\
+        \ java.util.Optional<com.palantir.conjure.java.config.ssl.TrustContext>, java.lang.String,\
+        \ java.lang.Class<T>, com.palantir.atlasdb.config.AuxiliaryRemotingParameters)"
+      justification: "Internal API, not actually used by AtlasDB users directly"
+  0.158.6:
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.field.removed"
+      old: "field com.palantir.atlasdb.http.AtlasDbHttpClients.DEFAULT_TARGET_FACTORY"
+      new: null
+      justification: "Clean slate"
   0.161.0:
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.method.removed"
