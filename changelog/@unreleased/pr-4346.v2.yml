@@ -1,5 +1,5 @@
 type: feature
 feature:
-  feature: "`TransactionService` supports asynchronous get operations."
+  description: "`TransactionService` supports asynchronous get operations."
   links:
   - https://github.com/palantir/atlasdb/pull/4346

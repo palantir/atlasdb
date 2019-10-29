@@ -22,9 +22,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 public interface AsyncTransactionService {
     /**
-     * Asynchronously gets the commit timestamp associated with a given {@code startTimestamp}.
-     * Non-null future result responses may be cached on the client-side. Null responses must not be cached, as they
-     * could subsequently be updated.
+     * Gets the commit timestamp associated with a given {@code startTimestamp} in a future, potentially computing
+     * it asynchronously. Non-null future result responses may be cached on the client-side. Null responses must not be
+     * cached, as they could subsequently be updated.
      *
      * Future result may return null, which means that the transaction in question had not been committed, at
      * least at some point between the request being made and it returning.
@@ -36,17 +36,17 @@ public interface AsyncTransactionService {
     ListenableFuture<Long> getAsync(long startTimestamp);
 
     /**
-     * Asynchronously gets the commit timestamp associated with start timestamps given in {@code startTimestamps}.
-     * Returned entries may be cached on the client-side. Entries which are missing which are equivalent to null
-     * responses in {@link AsyncTransactionService#getAsync(long)} must not be cached, as they could subsequently be
-     * updated.
+     * Gets the commit timestamps associated with start timestamps given in {@code startTimestamps}, potentially
+     * computing them asynchronously. Returned entries may be cached on the client-side. Entries which are missing which
+     * are equivalent to null responses in {@link AsyncTransactionService#getAsync(long)} must not be cached, as they
+     * could subsequently be updated.
      *
      * Future result is never null. However, missing key-value pairs mean that transactions in question have not been
-     * committed, at least at the point between the request being made and it returning.
+     * committed, at least at some point between the request being made and it returning.
      *
      * @param startTimestamps start timestamps of the transactions being looked up
      * @return {@link ListenableFuture} containing the map from a transaction start timestamp to transaction commit
-     * timestamp, or missing entries if transaction has not committed yet
+     * timestamp, possibly missing entries if transaction has not committed yet
      */
     ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps);
 }
