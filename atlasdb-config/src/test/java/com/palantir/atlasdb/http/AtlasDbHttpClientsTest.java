@@ -63,7 +63,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class AtlasDbHttpClientsTest {
     private static final Optional<TrustContext> NO_SSL = Optional.empty();

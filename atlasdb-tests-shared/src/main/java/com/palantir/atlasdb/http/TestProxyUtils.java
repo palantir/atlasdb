@@ -17,14 +17,22 @@
 package com.palantir.atlasdb.http;
 
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 
 public final class TestProxyUtils {
+    private static final RemotingClientConfig REMOTING_CLIENT_CONFIG = ImmutableRemotingClientConfig.builder()
+            .maximumConjureRemotingProbability(1.0)
+            .enableLegacyClientFallback(false)
+            .build();
+
     public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS
             = AuxiliaryRemotingParameters.builder()
                     .shouldLimitPayload(false)
                     .userAgent(UserAgent.of(UserAgent.Agent.of("bla", "0.1.2")))
                     .shouldRetry(true)
+                    .remotingClientConfig(() -> REMOTING_CLIENT_CONFIG)
                     .build();
 
     private TestProxyUtils() {

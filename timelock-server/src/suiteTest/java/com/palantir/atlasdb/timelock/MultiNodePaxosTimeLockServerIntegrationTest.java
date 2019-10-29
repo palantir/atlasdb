@@ -65,7 +65,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> PaxosSuite.NON_BATCHED_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> PaxosSuite.BATCHED_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -108,10 +108,10 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         cluster.nonLeaders().forEach(TestableTimelockServer::kill);
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
         assertThatThrownBy(() -> leader.remoteLock(CLIENT_3, BLOCKING_LOCK_REQUEST))
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
 
         assertThat(catchThrowable(lockRefreshTokenCompletableFuture::get).getCause())
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
     }
 
     @Test
@@ -127,19 +127,19 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         cluster.nonLeaders().forEach(TestableTimelockServer::kill);
         // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
         assertThatThrownBy(() -> leader.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
 
         assertThat(catchThrowable(token2::get).getCause())
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
     }
 
     @Test
     public void nonLeadersReturn503() {
         cluster.nonLeaders().forEach(server -> {
             assertThatThrownBy(server::getFreshTimestamp)
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                    .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
             assertThatThrownBy(() -> server.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                    .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
         });
     }
 
@@ -164,7 +164,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         cluster.nonLeaders().forEach(TestableTimelockServer::kill);
 
         assertThatThrownBy(leader::getFreshTimestamp)
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
     }
 
     @Test
@@ -244,7 +244,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         String client = UUID.randomUUID().toString();
         cluster.nonLeaders().forEach(server -> {
             assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                    .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
         });
 
         cluster.failoverToNewLeader();
@@ -266,7 +266,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         String client = UUID.randomUUID().toString();
         cluster.nonLeaders().forEach(server -> {
             assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+                    .satisfies(ExceptionMatchers::shouldRetryOnAnotherNode);
         });
 
         long ts1 = cluster.timelockServiceForClient(client).getFreshTimestamp();
