@@ -15,7 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
+import java.util.Map;
+
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
@@ -99,5 +103,19 @@ public final class TransactionServices {
                             ImmutableMap.of(1, createV1TransactionService(keyValueService))));
         }
         return createV1TransactionService(keyValueService);
+    }
+
+    static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService delegate) {
+        return new AsyncTransactionService() {
+            @Override
+            public ListenableFuture<Long> getAsync(long startTimestamp) {
+                return Futures.immediateFuture(delegate.get(startTimestamp));
+            }
+
+            @Override
+            public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
+                return Futures.immediateFuture(delegate.get(startTimestamps));
+            }
+        };
     }
 }

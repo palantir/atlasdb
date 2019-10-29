@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.service;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +28,12 @@ import javax.annotation.CheckForNull;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -46,52 +52,35 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  *
  * Service keys are expected to be safe for logging.
  */
-public class SplitKeyDelegatingTransactionService<T> implements TransactionService {
+public final class SplitKeyDelegatingTransactionService<T> implements TransactionService {
     private final Function<Long, T> timestampToServiceKey;
     private final Map<T, TransactionService> keyedServices;
+    private final Map<T, AsyncTransactionService> keyedSyncServices;
 
-    public SplitKeyDelegatingTransactionService(
+    SplitKeyDelegatingTransactionService(
             Function<Long, T> timestampToServiceKey,
             Map<T, TransactionService> keyedServices) {
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
+        this.keyedSyncServices = KeyedStream.stream(keyedServices)
+                .map(TransactionServices::synchronousAsAsyncTransactionService)
+                .collectToMap();
     }
 
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return getServiceForTimestamp(startTimestamp).map(service -> service.get(startTimestamp)).orElse(null);
+        return AtlasFutures.getUnchecked(getInternal(keyedSyncServices, startTimestamp));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        Multimap<T, Long> queryMap = HashMultimap.create();
-        for (Long startTimestamp : startTimestamps) {
-            T mappedValue = timestampToServiceKey.apply(startTimestamp);
-            if (mappedValue != null) {
-                queryMap.put(mappedValue, startTimestamp);
-            }
-        }
-
-        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
-        if (!unknownKeys.isEmpty()) {
-            throw new SafeIllegalStateException("A batch of timestamps {} produced some transaction service keys which"
-                    + " are unknown: {}. Known transaction service keys were {}.",
-                    SafeArg.of("timestamps", startTimestamps),
-                    SafeArg.of("unknownKeys", unknownKeys),
-                    SafeArg.of("knownServiceKeys", keyedServices.keySet()));
-        }
-
-        return queryMap.asMap()
-                .entrySet()
-                .stream()
-                .map(entry -> keyedServices.get(entry.getKey()).get(entry.getValue()))
-                .collect(HashMap::new, Map::putAll, Map::putAll);
+        return AtlasFutures.getUnchecked(getInternal(keyedSyncServices, startTimestamps));
     }
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        TransactionService service = getServiceForTimestamp(startTimestamp).orElseThrow(
+        TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp).orElseThrow(
                 () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
         service.putUnlessExists(startTimestamp, commitTimestamp);
     }
@@ -101,19 +90,59 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
         keyedServices.values().forEach(TransactionService::close);
     }
 
-    private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
+    private ListenableFuture<Long> getInternal(
+            Map<T, AsyncTransactionService> keyedTransactionServices,
+            long startTimestamp) {
+        return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
+                .map(service -> service.getAsync(startTimestamp))
+                .orElseGet(() -> Futures.immediateFuture(null));
+    }
+
+    private ListenableFuture<Map<Long, Long>> getInternal(
+            Map<T, AsyncTransactionService> keyedTransactionServices,
+            Iterable<Long> startTimestamps) {
+        Multimap<T, Long> queryMap = HashMultimap.create();
+        for (Long startTimestamp : startTimestamps) {
+            T mappedValue = timestampToServiceKey.apply(startTimestamp);
+            if (mappedValue != null) {
+                queryMap.put(mappedValue, startTimestamp);
+            }
+        }
+
+        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedTransactionServices.keySet());
+        if (!unknownKeys.isEmpty()) {
+            throw new SafeIllegalStateException("A batch of timestamps {} produced some transaction service keys which"
+                    + " are unknown: {}. Known transaction service keys were {}.",
+                    SafeArg.of("timestamps", startTimestamps),
+                    SafeArg.of("unknownKeys", unknownKeys),
+                    SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
+        }
+
+        Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
+                .map((key, value) -> keyedTransactionServices.get(key).getAsync(value))
+                .collectToMap()
+                .values();
+
+        return Futures.whenAllSucceed(futures).call(
+                () -> futures.stream()
+                        .map(AtlasFutures::getDone)
+                        .collect(HashMap::new, Map::putAll, Map::putAll),
+                MoreExecutors.directExecutor());
+    }
+
+    private <R> Optional<R> getServiceForTimestamp(Map<T, R> servicesMap, long startTimestamp) {
         T key = timestampToServiceKey.apply(startTimestamp);
         if (key == null) {
             return Optional.empty();
         }
-        TransactionService service = keyedServices.get(key);
+        R service = servicesMap.get(key);
 
         if (service == null) {
             throw new SafeIllegalStateException("Could not find a transaction service for timestamp {}, which"
                     + " produced a key of {}. Known transaction service keys were {}.",
                     SafeArg.of("timestamp", startTimestamp),
                     SafeArg.of("serviceKey", key),
-                    SafeArg.of("knownServiceKeys", keyedServices.keySet()));
+                    SafeArg.of("knownServiceKeys", servicesMap.keySet()));
         }
         return Optional.of(service);
     }
