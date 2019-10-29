@@ -46,7 +46,7 @@ public class LeadersTest {
     @Test
     public void canCreateProxyAndLocalListOfPaxosLearners() {
         PaxosLearner localLearner = mock(PaxosLearner.class);
-        PaxosValue value = mock(PaxosValue.class);
+        Optional<PaxosValue> value = Optional.of(mock(PaxosValue.class));
         when(localLearner.getGreatestLearnedValue()).thenReturn(value);
 
         List<PaxosLearner> paxosLearners = Leaders.createProxyAndLocalList(

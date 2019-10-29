@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -75,10 +76,10 @@ public class LocalBatchPaxosLearnerTests {
     public void weProxyGetLearnedValuesThrough() {
         PaxosValue paxosValue1 = paxosValue(1);
         PaxosValue paxosValue2 = paxosValue(2);
-        when(paxosComponents.learner(CLIENT_1).getLearnedValue(1)).thenReturn(paxosValue1);
-        when(paxosComponents.learner(CLIENT_1).getLearnedValue(2)).thenReturn(null);
-        when(paxosComponents.learner(CLIENT_2).getLearnedValue(1)).thenReturn(paxosValue1);
-        when(paxosComponents.learner(CLIENT_2).getLearnedValue(2)).thenReturn(paxosValue2);
+        when(paxosComponents.learner(CLIENT_1).getLearnedValue(1)).thenReturn(Optional.of(paxosValue1));
+        when(paxosComponents.learner(CLIENT_1).getLearnedValue(2)).thenReturn(Optional.empty());
+        when(paxosComponents.learner(CLIENT_2).getLearnedValue(1)).thenReturn(Optional.of(paxosValue1));
+        when(paxosComponents.learner(CLIENT_2).getLearnedValue(2)).thenReturn(Optional.of(paxosValue1));
 
         SetMultimap<Client, PaxosValue> expected = ImmutableSetMultimap.<Client, PaxosValue>builder()
                 .putAll(CLIENT_1, paxosValue1)

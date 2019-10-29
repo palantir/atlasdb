@@ -45,7 +45,7 @@ public final class LocalPingableLeader implements PingableLeader {
     }
 
     private Optional<PaxosValue> getGreatestLearnedPaxosValue() {
-        return Optional.ofNullable(knowledge.getGreatestLearnedValue());
+        return knowledge.getGreatestLearnedValue();
     }
 
     private boolean isThisNodeTheLeaderFor(PaxosValue value) {

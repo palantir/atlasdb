@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
@@ -86,7 +87,7 @@ public class BatchPingableLeaderResourceTests {
                 .containsOnly(CLIENT_1);
     }
 
-    private static PaxosValue paxosValue(UUID uuid) {
-        return new PaxosValue(uuid.toString(), new Random().nextLong(), null);
+    private static Optional<PaxosValue> paxosValue(UUID uuid) {
+        return Optional.of(new PaxosValue(uuid.toString(), new Random().nextLong(), null));
     }
 }

@@ -65,9 +65,10 @@ public class LocalPaxosComponentsTest {
     public void newClientCanBeCreated() {
         PaxosLearner learner = paxosComponents.learner(CLIENT);
         learner.learn(PAXOS_ROUND_ONE, PAXOS_VALUE);
-        assertThat(learner.getGreatestLearnedValue()).isNotNull();
-        assertThat(learner.getGreatestLearnedValue().getLeaderUUID()).isEqualTo(PAXOS_UUID);
-        assertThat(learner.getGreatestLearnedValue().getData()).isEqualTo(PAXOS_DATA);
+        PaxosValue greatestLearnedValue = learner.getGreatestLearnedValue()
+                .orElseThrow(() -> new IllegalStateException("Expected a value to be learned."));
+        assertThat(greatestLearnedValue.getLeaderUUID()).isEqualTo(PAXOS_UUID);
+        assertThat(greatestLearnedValue.getData()).isEqualTo(PAXOS_DATA);
 
         PaxosAcceptor acceptor = paxosComponents.acceptor(CLIENT);
         acceptor.accept(PAXOS_ROUND_TWO, PAXOS_PROPOSAL);

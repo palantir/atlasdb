@@ -16,14 +16,17 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.logsafe.SafeArg;
 
@@ -69,7 +72,7 @@ public final class PaxosLearnerImpl implements PaxosLearner {
     }
 
     @Override
-    public PaxosValue getLearnedValue(long seq) {
+    public Optional<PaxosValue> getLearnedValue(long seq) {
         try {
             if (!state.containsKey(seq)) {
                 byte[] bytes = log.readRound(seq);
@@ -78,38 +81,34 @@ public final class PaxosLearnerImpl implements PaxosLearner {
                     state.put(seq, value);
                 }
             }
-            return state.get(seq);
+            return Optional.of(state.get(seq));
         } catch (IOException e) {
             logger.error("Unable to get corrupt learned value for sequence {}",
                     SafeArg.of("sequence", seq), e);
-            return null;
+            return Optional.empty();
         }
     }
 
     @Override
     public Collection<PaxosValue> getLearnedValuesSince(long seq) {
-        PaxosValue greatestLearnedValue = getGreatestLearnedValue();
-        long greatestSeq = -1L;
-        if (greatestLearnedValue != null) {
-            greatestSeq = greatestLearnedValue.seq;
+        Optional<Long> greatestSeq = getGreatestLearnedValue().map(PaxosValue::getRound);
+        if (!greatestSeq.isPresent()) {
+            return ImmutableList.of();
         }
 
-        Collection<PaxosValue> values = new ArrayList<>();
-        for (long i = seq; i <= greatestSeq; i++) {
-            PaxosValue value;
-            value = getLearnedValue(i);
-            if (value != null) {
-                values.add(value);
-            }
-        }
-        return values;
+        return LongStream.rangeClosed(seq, greatestSeq.get())
+                .boxed()
+                .map(this::getLearnedValue)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public PaxosValue getGreatestLearnedValue() {
+    public Optional<PaxosValue> getGreatestLearnedValue() {
         if (!state.isEmpty()) {
-            return state.get(state.lastKey());
+            return Optional.of(state.get(state.lastKey()));
         }
-        return null;
+        return Optional.empty();
     }
 }

@@ -182,7 +182,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private Optional<PaxosValue> getGreatestLearnedPaxosValue() {
-        return Optional.ofNullable(knowledge.getGreatestLearnedValue());
+        return knowledge.getGreatestLearnedValue();
     }
 
     @Override
@@ -256,7 +256,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         for (PaxosUpdate update : updates.get()) {
             ImmutableCollection<PaxosValue> values = update.getValues();
             for (PaxosValue value : values) {
-                if (knowledge.getLearnedValue(value.getRound()) == null) {
+                if (knowledge.getLearnedValue(value.getRound()).isPresent()) {
                     knowledge.learn(value.getRound(), value);
                     learned = true;
                 }
