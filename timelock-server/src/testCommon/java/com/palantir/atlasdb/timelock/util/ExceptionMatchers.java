@@ -17,6 +17,8 @@ package com.palantir.atlasdb.timelock.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import feign.RetryableException;
+
 public final class ExceptionMatchers {
 
     private ExceptionMatchers() { }
@@ -28,5 +30,12 @@ public final class ExceptionMatchers {
         // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
         assertThat(throwable.getClass().getName())
                 .contains("RetryableException");
+    }
+
+    public static void shouldRetryOnAnotherNode(Throwable throwable) {
+        assertThat(throwable)
+                .hasMessageContaining("receiving QosException.RetryOther")
+                .isInstanceOf(RetryableException.class);
+
     }
 }
