@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -620,20 +621,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         hasReads = true;
 
-        Map<Cell, byte[]> result = Maps.newHashMap();
-        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes != null) {
-            for (Cell cell : cells) {
-                if (writes.containsKey(cell)) {
-                    result.put(cell, writes.get(cell));
-                }
-            }
-        }
+        Map<Cell, byte[]> result = getLocalWrites(tableRef, cells);
 
-        // We don't need to read any cells that were written locally.
-        return Futures.transform(getFromKeyValueService(tableRef, Sets.difference(cells, result.keySet()), cellLoader),
+        result.putAll(transactionCache.readCached(tableRef, Sets.difference(cells, result.keySet())));
+        Set<Cell> cellsToReadFromKvs = Sets.difference(cells, result.keySet());
+
+        return Futures.transform(getFromKeyValueService(tableRef, cellsToReadFromKvs, cellLoader),
                 fromKeyValueService -> {
                     result.putAll(fromKeyValueService);
+                    transactionCache.cacheNewValuesRead(tableRef, fromKeyValueService);
 
                     long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
                     if (perfLogger.isDebugEnabled()) {
@@ -648,6 +644,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     return removeEmptyColumns(result, tableRef);
                 },
                 MoreExecutors.directExecutor());
+    }
+
+    private Map<Cell, byte[]> getLocalWrites(TableReference tableRef, Set<Cell> cells) {
+        Map<Cell, byte[]> writes = writesByTable.get(tableRef);
+        if (writes != null) {
+            return cells.stream().filter(writes::containsKey).collect(Collectors.toMap(cell -> cell, writes::get));
+        }
+        return Maps.newHashMap();
     }
 
     @Override
