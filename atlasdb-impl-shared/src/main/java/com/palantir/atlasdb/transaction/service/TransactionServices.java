@@ -106,7 +106,7 @@ public final class TransactionServices {
     }
 
     /**
-     * Constructs an {@link AsyncTransactionService} which returns immediate futures of results.
+     * Constructs an {@link AsyncTransactionService} such that methods are blocking and return immediate futures.
      *
      * @param transactionService on which to call synchronous requests
      * @return {@link AsyncTransactionService} which delegates to synchronous methods

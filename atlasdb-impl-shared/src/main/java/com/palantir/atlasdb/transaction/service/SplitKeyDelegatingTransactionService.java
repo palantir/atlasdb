@@ -100,16 +100,16 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         keyedServices.values().forEach(TransactionService::close);
     }
 
-    private <R extends AsyncTransactionService> ListenableFuture<Long> getInternal(
-            Map<T, R> keyedTransactionServices,
+    private ListenableFuture<Long> getInternal(
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices,
             long startTimestamp) {
         return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
                 .map(service -> service.getAsync(startTimestamp))
                 .orElseGet(() -> Futures.immediateFuture(null));
     }
 
-    private <R extends AsyncTransactionService> ListenableFuture<Map<Long, Long>> getInternal(
-            Map<T, R> keyedTransactionServices,
+    private ListenableFuture<Map<Long, Long>> getInternal(
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices,
             Iterable<Long> startTimestamps) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
