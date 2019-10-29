@@ -46,7 +46,7 @@ public interface AsyncTransactionService {
      *
      * @param startTimestamps start timestamps of the transactions being looked up
      * @return {@link ListenableFuture} containing the map from a transaction start timestamp to transaction commit
-     * timestamp, possibly missing entries if transaction has not committed yet
+     * timestamp, possibly missing entries if relevant transactions have not committed yet
      */
     ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps);
 }
