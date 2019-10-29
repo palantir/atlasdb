@@ -29,6 +29,7 @@ import org.immutables.value.Value;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.common.base.Throwables;
 import com.palantir.conjure.java.api.errors.QosException;
 
 import feign.RetryableException;
@@ -79,8 +80,7 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
         if (attempt.isSuccessful()) {
             return attempt.result().orElse(null);
         }
-        throw new IllegalStateException("spin spin spin");
-        //throw Throwables.unwrapIfPossible(attempt.throwable().get());
+        throw Throwables.unwrapIfPossible(attempt.throwable().get());
     }
 
     private ResultOrThrowable singleInvocation(Method method, Object[] args) {
@@ -97,6 +97,7 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
         }
         InvocationTargetException exception = (InvocationTargetException) throwable;
         Throwable cause = exception.getCause();
+        cause.printStackTrace();
         if (!(cause instanceof RetryableException) || !isCausedByRetryOther((RetryableException) cause)) {
             return ResultOrThrowable.failure(cause);
         }
