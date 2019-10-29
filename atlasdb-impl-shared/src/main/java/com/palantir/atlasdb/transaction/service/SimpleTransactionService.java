@@ -105,7 +105,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         Cell cell = getTransactionCell(startTimestamp);
         return Futures.transform(
                 asyncCellGetter.get(ImmutableMap.of(cell, MAX_TIMESTAMP)),
-                returnMap -> getTransactionCells(startTimestamp, cell, returnMap),
+                returnMap -> decodeTimestamp(startTimestamp, cell, returnMap),
                 MoreExecutors.directExecutor());
     }
 
@@ -120,13 +120,13 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
         return Futures.transform(
                 asyncCellGetter.get(startTsMap),
-                rawResults -> decodeTimestamps(rawResults),
+                this::decodeTimestamps,
                 MoreExecutors.directExecutor());
     }
 
-    private Long getTransactionCells(long startTimestamp, Cell cell, Map<Cell, Value> returnMap) {
-        if (returnMap.containsKey(cell)) {
-            return encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, returnMap.get(cell).getContents());
+    private Long decodeTimestamp(long startTimestamp, Cell cell, Map<Cell, Value> rawResults) {
+        if (rawResults.containsKey(cell)) {
+            return encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, rawResults.get(cell).getContents());
         }
         return null;
     }

@@ -50,18 +50,18 @@ public final class TransactionServices {
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
-        return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
-                transactionSchemaManager::getTransactionsSchemaVersion,
-                ImmutableMap.of(
-                        TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV1TransactionService(keyValueService),
-                        TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV2TransactionService(keyValueService))));
+        return new PreStartHandlingTransactionService(
+                new SplitKeyDelegatingTransactionService<>(
+                        transactionSchemaManager::getTransactionsSchemaVersion,
+                        ImmutableMap.of(
+                                TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                                createV1TransactionService(keyValueService),
+                                TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                                createV2TransactionService(keyValueService))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(
-                SimpleTransactionService.createV1(keyValueService));
+        return new PreStartHandlingTransactionService(SimpleTransactionService.createV1(keyValueService));
     }
 
     private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
@@ -97,9 +97,10 @@ public final class TransactionServices {
                     false);
             ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager
                     = new ReadOnlyTransactionSchemaManager(coordinationService);
-            return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
-                    readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
-                    ImmutableMap.of(1, createV1TransactionService(keyValueService))));
+            return new PreStartHandlingTransactionService(
+                    new SplitKeyDelegatingTransactionService<>(
+                            readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
+                            ImmutableMap.of(1, createV1TransactionService(keyValueService))));
         }
         return createV1TransactionService(keyValueService);
     }

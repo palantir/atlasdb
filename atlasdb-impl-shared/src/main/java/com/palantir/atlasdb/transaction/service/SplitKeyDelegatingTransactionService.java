@@ -55,14 +55,14 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public final class SplitKeyDelegatingTransactionService<T> implements TransactionService {
     private final Function<Long, T> timestampToServiceKey;
     private final Map<T, TransactionService> keyedServices;
-    private final Map<T, AsyncTransactionService> keyedAsyncServices;
+    private final Map<T, AsyncTransactionService> keyedSyncServices;
 
     SplitKeyDelegatingTransactionService(
             Function<Long, T> timestampToServiceKey,
             Map<T, TransactionService> keyedServices) {
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
-        this.keyedAsyncServices = KeyedStream.stream(keyedServices)
+        this.keyedSyncServices = KeyedStream.stream(keyedServices)
                 .map(TransactionServices::synchronousAsAsyncTransactionService)
                 .collectToMap();
     }
@@ -70,12 +70,12 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp));
+        return AtlasFutures.getUnchecked(getInternal(keyedSyncServices, startTimestamp));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps));
+        return AtlasFutures.getUnchecked(getInternal(keyedSyncServices, startTimestamps));
     }
 
     @Override
@@ -90,13 +90,17 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         keyedServices.values().forEach(TransactionService::close);
     }
 
-    private ListenableFuture<Long> getInternal(long startTimestamp) {
-        return getServiceForTimestamp(keyedAsyncServices, startTimestamp)
+    private ListenableFuture<Long> getInternal(
+            Map<T, AsyncTransactionService> keyedTransactionServices,
+            long startTimestamp) {
+        return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
                 .map(service -> service.getAsync(startTimestamp))
                 .orElseGet(() -> Futures.immediateFuture(null));
     }
 
-    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps) {
+    private ListenableFuture<Map<Long, Long>> getInternal(
+            Map<T, AsyncTransactionService> keyedTransactionServices,
+            Iterable<Long> startTimestamps) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
             T mappedValue = timestampToServiceKey.apply(startTimestamp);
@@ -105,17 +109,17 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
             }
         }
 
-        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
+        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedTransactionServices.keySet());
         if (!unknownKeys.isEmpty()) {
             throw new SafeIllegalStateException("A batch of timestamps {} produced some transaction service keys which"
                     + " are unknown: {}. Known transaction service keys were {}.",
                     SafeArg.of("timestamps", startTimestamps),
                     SafeArg.of("unknownKeys", unknownKeys),
-                    SafeArg.of("knownServiceKeys", keyedServices.keySet()));
+                    SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
         }
 
         Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
-                .map((key, value) -> keyedAsyncServices.get(key).getAsync(value))
+                .map((key, value) -> keyedTransactionServices.get(key).getAsync(value))
                 .collectToMap()
                 .values();
 
