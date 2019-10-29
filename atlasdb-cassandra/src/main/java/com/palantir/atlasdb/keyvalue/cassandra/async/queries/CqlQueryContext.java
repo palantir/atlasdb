@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
-import com.palantir.processors.AutoDelegate;
+import org.immutables.value.Value;
 
-@AutoDelegate
-public interface CqlClient extends AutoCloseable {
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-    <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec);
+@Value.Immutable
+public interface CqlQueryContext {
+    String keyspace();
+
+    TableReference tableReference();
 }

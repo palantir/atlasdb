@@ -27,12 +27,16 @@ import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowStreamAccumulator;
+import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.CachingStatementPreparer;
+import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class CqlClientImpl implements CqlClient {
-
     private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
 
         private final TaggedMetricRegistry taggedMetricRegistry;
@@ -98,15 +102,15 @@ public final class CqlClientImpl implements CqlClient {
             TaggedMetricRegistry taggedMetricRegistry,
             Session session,
             int preparedStatementCacheSize) {
-        QueryCache queryCache = QueryCache.create(
+        CachingStatementPreparer cachingStatementPreparer = CachingStatementPreparer.create(
                 key -> session.prepare(key.formatQueryString()),
                 taggedMetricRegistry,
                 preparedStatementCacheSize);
 
-        return new CqlClientImpl(session, queryCache);
+        return new CqlClientImpl(session, cachingStatementPreparer);
     }
 
-    private CqlClientImpl(Session session, QueryCache statementPreparer) {
+    private CqlClientImpl(Session session, CachingStatementPreparer statementPreparer) {
         this.session = session;
         this.statementPreparer = statementPreparer;
     }
@@ -124,7 +128,10 @@ public final class CqlClientImpl implements CqlClient {
         Statement executableStatement = querySpec.makeExecutableStatement(statement)
                 .setConsistencyLevel(querySpec.queryConsistency());
 
-        return execute(executableStatement, querySpec.executor(), querySpec.rowStreamAccumulatorFactory().get());
+        return execute(
+                executableStatement,
+                MoreExecutors.directExecutor(),
+                querySpec.rowStreamAccumulator());
     }
 
     private <V> ListenableFuture<V> execute(
