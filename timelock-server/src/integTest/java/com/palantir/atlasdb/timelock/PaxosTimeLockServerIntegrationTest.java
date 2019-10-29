@@ -166,28 +166,6 @@ public class PaxosTimeLockServerIntegrationTest {
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, MAX_CONCURRENT_LOCK_REQUESTS / 3)).isEqualTo(0);
     }
 
-    @Test
-    public void throwsOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(getLockService(CLIENT_1));
-
-        int exceedingRequests = 10;
-        int maxRequestsForOneClient = MAX_CONCURRENT_LOCK_REQUESTS;
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, exceedingRequests + maxRequestsForOneClient))
-                .isEqualTo(exceedingRequests);
-    }
-
-    @Test
-    public void throwsOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(
-                getLockService(CLIENT_1), getLockService(CLIENT_2));
-        int exceedingRequests = 10;
-        int requestsPerClient = (MAX_CONCURRENT_LOCK_REQUESTS + exceedingRequests) / 2;
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
-                .isEqualTo(exceedingRequests);
-    }
-
     private int lockAndUnlockAndCountExceptions(List<LockService> lockServices, int numRequestsPerClient)
             throws Exception {
         ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequestsPerClient);

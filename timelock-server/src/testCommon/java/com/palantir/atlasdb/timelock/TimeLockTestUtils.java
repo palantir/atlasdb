@@ -17,15 +17,20 @@ package com.palantir.atlasdb.timelock;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -55,11 +60,16 @@ public final class TimeLockTestUtils {
                                 .build())
                         .build())
                 .build();
+        AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
+                .remotingClient(TestProxyUtils.REMOTING_CLIENT_CONFIG)
+                .build();
+        Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier = () -> Optional.of(runtimeConfig);
         return TransactionManagers.builder()
                 .config(config)
                 .userAgent(UserAgent.of(UserAgent.Agent.of("u" + agent, "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .runtimeConfigSupplier(runtimeConfigSupplier)
                 .build()
                 .serializable();
     }

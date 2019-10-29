@@ -22,7 +22,7 @@ import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 
 public final class TestProxyUtils {
-    private static final RemotingClientConfig REMOTING_CLIENT_CONFIG = ImmutableRemotingClientConfig.builder()
+    public static final RemotingClientConfig REMOTING_CLIENT_CONFIG = ImmutableRemotingClientConfig.builder()
             .maximumConjureRemotingProbability(1.0)
             .enableLegacyClientFallback(false)
             .build();
