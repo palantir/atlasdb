@@ -15,9 +15,12 @@
  */
 package com.palantir.lock.client;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,9 +39,10 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class LockRefreshingLockServiceTest {
-    private LockService server;
+    private LockRefreshingLockService server;
     private LockDescriptor lock1;
 
     @Before public void setUp() {
@@ -46,6 +50,12 @@ public class LockRefreshingLockServiceTest {
                 .isStandaloneServer(false)
                 .build()));
         lock1 = StringLockDescriptor.of("lock1");
+    }
+
+    @After public void tearDown() {
+        if (server != null) {
+            server.close();
+        }
     }
 
     @Test
@@ -56,5 +66,13 @@ public class LockRefreshingLockServiceTest {
         Thread.sleep(10000);
         Set<HeldLocksToken> refreshTokens = server.refreshTokens(ImmutableList.of(lock.getToken()));
         Assert.assertEquals(1, refreshTokens.size());
+    }
+
+    @Test
+    public void testClosed() {
+        server.close();
+        assertThatThrownBy(() -> server.currentTimeMillis())
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessage("LockRefreshingLockService is closed");
     }
 }
