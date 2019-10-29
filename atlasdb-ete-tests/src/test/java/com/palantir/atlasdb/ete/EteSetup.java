@@ -37,6 +37,7 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
@@ -48,7 +49,6 @@ import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 // Important: Some internal tests depend on this class.
 // Please recompile Oracle internal tests if any breaking changes are made to the setup.
@@ -204,7 +204,7 @@ public abstract class EteSetup {
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 clazz,

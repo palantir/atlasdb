@@ -55,6 +55,7 @@ import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
@@ -75,7 +76,6 @@ import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 import io.dropwizard.testing.ResourceHelpers;
 import okhttp3.MediaType;
@@ -129,7 +129,7 @@ public class PaxosTimeLockServerIntegrationTest {
     @BeforeClass
     public static void waitForClusterToStabilize() {
         PingableLeader leader = AtlasDbHttpClients.createProxy(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class,
@@ -462,7 +462,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static <T> T getProxyForRootService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getGenericRootUri(),
                 clazz,
@@ -471,7 +471,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
                 clazz,

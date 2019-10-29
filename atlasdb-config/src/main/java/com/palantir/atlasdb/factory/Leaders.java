@@ -68,7 +68,6 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderPinger;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class Leaders {
     private Leaders() {
@@ -143,8 +142,12 @@ public final class Leaders {
                 ServiceCreator.createTrustContext(config.sslConfiguration());
 
         List<PaxosLearner> learners = createProxyAndLocalList(
-                metricsManager.getTaggedRegistry(), ourLearner, remotePaxosServerSpec.remoteLearnerUris(),
-                trustContext, PaxosLearner.class, userAgent);
+                metricsManager,
+                ourLearner,
+                remotePaxosServerSpec.remoteLearnerUris(),
+                trustContext,
+                PaxosLearner.class,
+                userAgent);
         List<PaxosLearner> remoteLearners = learners.stream()
                 .filter(learner -> !learner.equals(ourLearner))
                 .collect(ImmutableList.toImmutableList());
@@ -155,7 +158,7 @@ public final class Leaders {
                 createExecutorsForService(metricsManager, learners, "knowledge-update"));
 
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
-                metricsManager.getTaggedRegistry(),
+                metricsManager,
                 ourAcceptor,
                 remotePaxosServerSpec.remoteAcceptorUris(),
                 trustContext,
@@ -238,7 +241,7 @@ public final class Leaders {
     }
 
     public static <T> List<T> createProxyAndLocalList(
-            TaggedMetricRegistry metrics,
+            MetricsManager metricsManager,
             T localObject,
             Set<String> remoteUris,
             Optional<TrustContext> trustContext,
@@ -248,7 +251,7 @@ public final class Leaders {
         // TODO (jkong): Enable runtime config for leader election services.
         List<T> remotes = remoteUris.stream()
                 .map(uri -> AtlasDbHttpClients.createProxy(
-                        metrics,
+                        metricsManager,
                         trustContext,
                         uri,
                         clazz,
@@ -271,7 +274,7 @@ public final class Leaders {
             UserAgent userAgent) {
         return remoteEndpoints.stream()
                 .map(endpoint -> AtlasDbHttpClients.createProxy(
-                        metricsManager.getTaggedRegistry(),
+                        metricsManager,
                         trustContext,
                         endpoint,
                         PingableLeader.class,

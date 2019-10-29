@@ -34,10 +34,10 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class LeadersTest {
 
@@ -50,7 +50,7 @@ public class LeadersTest {
         when(localLearner.getGreatestLearnedValue()).thenReturn(value);
 
         List<PaxosLearner> paxosLearners = Leaders.createProxyAndLocalList(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -70,7 +70,7 @@ public class LeadersTest {
         when(localAcceptor.getLatestSequencePreparedOrAccepted()).thenReturn(1L);
 
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -91,7 +91,7 @@ public class LeadersTest {
         when(localAcceptor.getLatestSequencePreparedOrAccepted()).thenReturn(1L);
 
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 localAcceptor,
                 ImmutableSet.of(),
                 Optional.empty(),
@@ -110,7 +110,7 @@ public class LeadersTest {
         BigInteger localBigInteger = new BigInteger("0");
 
         Leaders.createProxyAndLocalList(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -123,7 +123,7 @@ public class LeadersTest {
         PaxosAcceptor localAcceptor = mock(PaxosAcceptor.class);
 
         Leaders.createProxyAndLocalList(
-                SharedTaggedMetricRegistries.getSingleton(),
+                MetricsManagers.createForTests(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
