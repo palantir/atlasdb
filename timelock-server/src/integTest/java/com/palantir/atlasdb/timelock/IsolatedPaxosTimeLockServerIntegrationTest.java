@@ -31,6 +31,7 @@ import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 /**
  * This test creates a single TimeLock server that is configured in a three node configuration.
@@ -86,7 +87,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                SharedTaggedMetricRegistries.getSingleton(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 String.format("https://localhost:%d/%s/%s/%s",
                         SERVER.serverHolder().getTimelockPort(),

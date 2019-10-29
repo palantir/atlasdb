@@ -258,8 +258,10 @@ public final class PaxosQuorumChecker {
                 boolean isCanceled = future.cancel(true);
                 if (isCanceled) {
                     cancelOutstandingRequestSuccess.mark();
+                    log.error("SUCCESS");
                 } else {
                     cancelOutstandingRequestNoOp.mark();
+                    log.error("FAILURE");
                 }
             }
         }, OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);

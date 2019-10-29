@@ -38,6 +38,7 @@ import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class LeadersTest {
 
@@ -50,7 +51,7 @@ public class LeadersTest {
         when(localLearner.getGreatestLearnedValue()).thenReturn(value);
 
         List<PaxosLearner> paxosLearners = Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                SharedTaggedMetricRegistries.getSingleton(),
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -70,7 +71,7 @@ public class LeadersTest {
         when(localAcceptor.getLatestSequencePreparedOrAccepted()).thenReturn(1L);
 
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                SharedTaggedMetricRegistries.getSingleton(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -91,7 +92,7 @@ public class LeadersTest {
         when(localAcceptor.getLatestSequencePreparedOrAccepted()).thenReturn(1L);
 
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                SharedTaggedMetricRegistries.getSingleton(),
                 localAcceptor,
                 ImmutableSet.of(),
                 Optional.empty(),
@@ -110,7 +111,7 @@ public class LeadersTest {
         BigInteger localBigInteger = new BigInteger("0");
 
         Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                SharedTaggedMetricRegistries.getSingleton(),
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -123,7 +124,7 @@ public class LeadersTest {
         PaxosAcceptor localAcceptor = mock(PaxosAcceptor.class);
 
         Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                SharedTaggedMetricRegistries.getSingleton(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),

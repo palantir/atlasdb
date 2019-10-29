@@ -63,6 +63,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class AtlasDbHttpClientsTest {
     private static final Optional<TrustContext> NO_SSL = Optional.empty();
@@ -153,7 +154,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 NO_SSL,
                 getUriForPort(availablePort1),
                 TestResource.class,
@@ -169,9 +170,8 @@ public class AtlasDbHttpClientsTest {
 
     @Test
     public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
-        TestResource client
-                = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+        TestResource client = AtlasDbHttpClients.createProxy(
+                MetricsManagers.createForTests(),
                 NO_SSL,
                 getUriForPort(availablePort1),
                 TestResource.class,
@@ -199,7 +199,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void userAgentIsPresentOnClientRequests() {
         TestResource client = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 NO_SSL,
                 getUriForPort(availablePort1),
                 TestResource.class,
