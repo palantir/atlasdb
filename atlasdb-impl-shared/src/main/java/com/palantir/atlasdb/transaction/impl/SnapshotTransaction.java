@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -186,12 +187,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         /**
          * Commit has failed during commit.
          */
-        FAILED;
+        FAILED
     }
 
     protected final TimelockService timelockService;
     final KeyValueService keyValueService;
-    final TransactionService transactionService;
+    final TransactionService defaultTransactionService;
     private final AsyncTransactionService immediateTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
@@ -264,7 +265,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
-        this.transactionService = transactionService;
+        this.defaultTransactionService = transactionService;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;
         this.startTimestamp = startTimeStamp;
@@ -1264,7 +1265,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
-            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, transactionService)) {
+            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
                 return getRemainingResults(rawResults, keysAddedToResults);
             }
         }
@@ -1394,7 +1395,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public void commit() {
-        commit(transactionService);
+        commit(defaultTransactionService);
     }
 
     @Override
@@ -1993,83 +1994,98 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
             @Nullable TableReference tableRef,
             Iterable<Long> startTimestamps,
-            boolean waitForCommitterToComplete,
+            boolean shouldWaitForCommitterToComplete,
             AsyncTransactionService asyncTransactionService) {
         if (Iterables.isEmpty(startTimestamps)) {
-            return Futures.immediateFuture(ImmutableMap.of());
+            return Futures.immediateFuture(new HashMap<>());
         }
-        Map<Long, Long> result = Maps.newHashMap();
+        Map<Long, Long> startToCommitTimestampMap = Maps.newHashMap();
         Set<Long> gets = Sets.newHashSet();
         for (long startTs : startTimestamps) {
             Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
             if (cached != null) {
-                result.put(startTs, cached);
+                startToCommitTimestampMap.put(startTs, cached);
             } else {
                 gets.add(startTs);
             }
         }
 
         if (gets.isEmpty()) {
-            return Futures.immediateFuture(result);
+            return Futures.immediateFuture(startToCommitTimestampMap);
         }
 
         // Before we do the reads, we need to make sure the committer is done writing.
-        if (waitForCommitterToComplete) {
-            Timer.Context timer = getTimer("waitForCommitTsMillis").time();
-            waitForCommitToComplete(startTimestamps);
-            long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
-
-            if (tableRef != null) {
-                perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
-                        SafeArg.of("commitTsMillis", waitForCommitTsMillis),
-                        LoggingArgs.tableRef(tableRef));
-            } else {
-                perfLogger.debug("Waited {} ms to get commit timestamps",
-                        SafeArg.of("commitTsMillis", waitForCommitTsMillis));
-            }
+        if (shouldWaitForCommitterToComplete) {
+            waitForCommitterToComplete(tableRef, startTimestamps);
         }
 
-        if (tableRef != null) {
-            log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
-                    SafeArg.of("numTimestamps", gets.size()),
-                    LoggingArgs.tableRef(tableRef));
-        } else {
-            log.trace("Getting commit timestamps for {} start timestamps",
-                    SafeArg.of("numTimestamps", gets.size()));
-        }
+        traceGetCommitTimestamps(tableRef, gets);
 
         if (gets.size() > transactionConfig.get().getThresholdForLoggingLargeNumberOfTransactionLookups()) {
-            log.info(
-                    "Looking up a large number of transactions ({}) for table {}",
-                    SafeArg.of("numberOfTransactionIds", gets.size()),
-                    tableRef == null
-                            ? SafeArg.of("tableRef", "no_table")
-                            : LoggingArgs.tableRef(tableRef)
-            );
+            logLargeNumberOfTransactions(tableRef, gets);
         }
 
         getHistogram(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).update(gets.size());
 
-        return Futures.transform(loadCommitTimestamps(gets, asyncTransactionService),
+        return Futures.transform(loadCommitTimestamps(asyncTransactionService, gets),
                 rawResults -> {
                     for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
                         if (e.getValue() != null) {
                             long startTs = e.getKey();
                             long commitTs = e.getValue();
-                            result.put(startTs, commitTs);
+                            startToCommitTimestampMap.put(startTs, commitTs);
                             timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
                         }
                     }
-                    return result;
+                    return startToCommitTimestampMap;
                 },
                 MoreExecutors.directExecutor());
     }
 
+    private void waitForCommitterToComplete(
+            @Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps) {
+        Timer.Context timer = getTimer("waitForCommitTsMillis").time();
+        waitForCommitToComplete(startTimestamps);
+        long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
+
+        if (tableRef != null) {
+            perfLogger.debug("Waited get commit timestamps.",
+                    SafeArg.of("commitTsMillis", waitForCommitTsMillis),
+                    LoggingArgs.tableRef(tableRef));
+        } else {
+            perfLogger.debug("Waited to get commit timestamps",
+                    SafeArg.of("commitTsMillis", waitForCommitTsMillis));
+        }
+    }
+
+    private void traceGetCommitTimestamps(@Nullable TableReference tableRef, Set<Long> gets) {
+        if (tableRef != null) {
+            log.trace("Getting commit timestamps for a read",
+                    SafeArg.of("numTimestamps", gets.size()),
+                    LoggingArgs.tableRef(tableRef));
+            return;
+        }
+
+        log.trace("Getting commit timestamps",
+                SafeArg.of("numTimestamps", gets.size()));
+
+    }
+
+    private void logLargeNumberOfTransactions(@Nullable TableReference tableRef, Set<Long> gets) {
+        log.info(
+                "Looking up a large number of transactions.",
+                SafeArg.of("numberOfTransactionIds", gets.size()),
+                tableRef == null
+                        ? SafeArg.of("tableRef", "no_table")
+                        : LoggingArgs.tableRef(tableRef)
+        );
+    }
 
 
     private ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
-            Set<Long> startTimestamps,
-            AsyncTransactionService asyncTransactionService) {
+            AsyncTransactionService asyncTransactionService,
+            Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             long singleTs = startTimestamps.iterator().next();
