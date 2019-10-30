@@ -23,7 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -40,6 +42,11 @@ public class ThreeNodeCassandraCluster extends Container {
     public static final String FIRST_CASSANDRA_CONTAINER_NAME = "cassandra1";
     public static final String SECOND_CASSANDRA_CONTAINER_NAME = "cassandra2";
     public static final String THIRD_CASSANDRA_CONTAINER_NAME = "cassandra3";
+    private static final CassandraCredentialsConfig CREDENTIALS =
+            ImmutableCassandraCredentialsConfig.builder()
+                    .username("username")
+                    .password("password")
+                    .build();
 
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
             .addServers(new InetSocketAddress(FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT))
@@ -52,6 +59,7 @@ public class ThreeNodeCassandraCluster extends Container {
             .mutationBatchSizeBytes(10000000)
             .fetchBatchCount(1000)
             .autoRefreshNodes(false)
+            .credentials(CREDENTIALS)
             .build();
 
     public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
