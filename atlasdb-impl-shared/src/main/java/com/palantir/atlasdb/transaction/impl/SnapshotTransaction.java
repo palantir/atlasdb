@@ -621,7 +621,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         hasReads = true;
 
-        Map<Cell, byte[]> result = getLocalWrites(tableRef, cells);
+        Map<Cell, byte[]> result = localWrites(tableRef, cells);
 
         result.putAll(transactionCache.readCached(tableRef, Sets.difference(cells, result.keySet())));
         Set<Cell> cellsToReadFromKvs = Sets.difference(cells, result.keySet());
@@ -646,7 +646,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 MoreExecutors.directExecutor());
     }
 
-    private Map<Cell, byte[]> getLocalWrites(TableReference tableRef, Set<Cell> cells) {
+    private Map<Cell, byte[]> localWrites(TableReference tableRef, Set<Cell> cells) {
         Map<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null) {
             return cells.stream().filter(writes::containsKey).collect(Collectors.toMap(cell -> cell, writes::get));

@@ -1,0 +1,10 @@
+
+apply plugin: 'com.palantir.sls-recommended-dependencies'
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    compile project(":atlasdb-api")
+
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
+}

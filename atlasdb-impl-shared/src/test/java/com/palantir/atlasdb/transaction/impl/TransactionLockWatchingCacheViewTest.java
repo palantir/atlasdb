@@ -29,27 +29,33 @@ import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.GuardedValue;
 import com.palantir.atlasdb.keyvalue.api.ImmutableGuardedValue;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.ImmutableLockWatch;
 import com.palantir.lock.v2.LockWatch;
 
 public class TransactionLockWatchingCacheViewTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
     private static final byte[] VALUE = PtBytes.toBytes("value");
+    private static final byte[] VALUE2 = PtBytes.toBytes("value_2");
+
 
     private final LockWatchingCache cache = mock(LockWatchingCache.class);
-    private final Map<Cell, GuardedValue> cachedValues = Maps.newHashMap();
+    private final Map<Cell, GuardedValue> cachedValues = ImmutableMap.of(
+            cell(1), ImmutableGuardedValue.of(VALUE, 1L),
+            cell(2), ImmutableGuardedValue.of(VALUE, 100L),
+            cell(3), ImmutableGuardedValue.of(VALUE, 1000L),
+            cell(4), ImmutableGuardedValue.of(VALUE2, 100L));
 
     @Before
     public void setupMock() {
@@ -62,36 +68,88 @@ public class TransactionLockWatchingCacheViewTest {
                 });
     }
 
-
     private TransactionLockWatchingCacheView view;
 
     @Test
     public void nothingIsReturnedWhenViewHasNoWatches() {
-        cachedValues.putAll(ImmutableMap.of(
-                cell(1), ImmutableGuardedValue.of(VALUE, 1L),
-                cell(2), ImmutableGuardedValue.of(VALUE, 100L),
-                cell(3), ImmutableGuardedValue.of(VALUE, 1000L)
-        ));
-        view = new TransactionLockWatchingCacheView(100L, ImmutableMap.of(), mock(KeyValueService.class), cache);
+        setupView(ImmutableMap.of());
         assertThat(view.readCached(TABLE, ImmutableSet.of(cell(1), cell(2), cell(3)))).isEmpty();
     }
 
     @Test
-    public void () {
-        cachedValues.putAll(ImmutableMap.of(
-                cell(1), ImmutableGuardedValue.of(VALUE, 1L),
-                cell(2), ImmutableGuardedValue.of(VALUE, 100L),
-                cell(3), ImmutableGuardedValue.of(VALUE, 1000L)
-        ));
-        view = new TransactionLockWatchingCacheView(100L, ImmutableMap.of(lockDescriptor(1), 1L, lockDescriptor(2), 100L), mock(KeyValueService.class), cache);
-        assertThat(view.readCached(TABLE, ImmutableSet.of(cell(1), cell(2), cell(3)))).isEmpty();
+    public void nothingIsReturnedWhenNothingIsRequested() {
+        setupView(ImmutableMap.of(1, committed(1L)));
+        assertThat(view.readCached(TABLE, ImmutableSet.of())).isEmpty();
     }
 
-    private static Cell cell(int a) {
-        return Cell.create(PtBytes.toBytes(a), PtBytes.toBytes(a));
+    @Test
+    public void returnsCachedValuesFromCommittedTransactionsWithMatchingTimestamps() {
+        setupView(ImmutableMap.of(1, committed(1L), 2, committed(100L)));
+        Map<Cell, byte[]> result = view.readCached(TABLE, ImmutableSet.of(cell(1), cell(2)));
+
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result).containsAllEntriesOf(ImmutableMap.of(cell(1), VALUE, cell(2), VALUE));
     }
 
-    private static LockDescriptor lockDescriptor(int a) {
-        return AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), cell(a).getRowName());
+    @Test
+    public void returnsOnlyRequestedCachedValues() {
+        setupView(ImmutableMap.of(1, committed(1L), 2, committed(100L)));
+        Map<Cell, byte[]> result = view.readCached(TABLE, ImmutableSet.of(cell(1)));
+
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).containsAllEntriesOf(ImmutableMap.of(cell(1), VALUE));
+    }
+
+    @Test
+    public void doesNotReturnValuesThatAreNotCached() {
+        setupView(ImmutableMap.of(1, committed(1L), 5, committed(42L)));
+        Map<Cell, byte[]> result = view.readCached(TABLE, ImmutableSet.of(cell(1), cell(5)));
+
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).containsAllEntriesOf(ImmutableMap.of(cell(1), VALUE));
+    }
+
+    @Test
+    public void doesNotReturnCachedValuesWithNonMatchingTimestamp() {
+        setupView(ImmutableMap.of(1, committed(1L), 2, committed(42L)));
+        Map<Cell, byte[]> result = view.readCached(TABLE, ImmutableSet.of(cell(1), cell(2)));
+
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).containsAllEntriesOf(ImmutableMap.of(cell(1), VALUE));
+    }
+
+    @Test
+    public void doesNotReturnCachedValuesFromUncommittedTransactions() {
+        setupView(ImmutableMap.of(1, committed(1L), 2, uncommitted(100L), 4, committed(100L)));
+        Map<Cell, byte[]> result = view.readCached(TABLE, ImmutableSet.of(cell(1), cell(2), cell(4)));
+
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result).containsAllEntriesOf(ImmutableMap.of(cell(1), VALUE, cell(4), VALUE2));
+    }
+
+    private void setupView(Map<Integer, LockWatch> watches) {
+        view = new TransactionLockWatchingCacheView(
+                5000L,
+                KeyedStream.stream(watches)
+                        .mapKeys(TransactionLockWatchingCacheViewTest::lockDescriptor)
+                        .collectToMap(),
+                mock(KeyValueService.class),
+                cache);
+    }
+
+    private static Cell cell(int num) {
+        return Cell.create(PtBytes.toBytes(num), PtBytes.toBytes(num));
+    }
+
+    private static LockDescriptor lockDescriptor(int num) {
+        return AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), cell(num).getRowName());
+    }
+
+    private static LockWatch committed(long timestamp) {
+        return ImmutableLockWatch.of(timestamp, true);
+    }
+
+    private static LockWatch uncommitted(long timestamp) {
+        return ImmutableLockWatch.of(timestamp, false);
     }
 }

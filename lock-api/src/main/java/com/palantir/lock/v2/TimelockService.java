@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 @AutoDelegate
@@ -80,19 +81,19 @@ public interface TimelockService {
 
     long currentTimeMillis();
 
-
-
-    // todo(gmaretic): Actually use lock watches in below methods instead of sketchy placeholders
+    @DoNotDelegate
     default StartTransactionWithWatchesResponse startTransactionWithWatches() {
         return ImmutableStartTransactionWithWatchesResponse.of(
                 startIdentifiedAtlasDbTransaction(),
                 ImmutableMap.of());
     }
 
+    @DoNotDelegate
     default TimestampedLockResponse acquireLocksForWrites(LockRequest lockRequest) {
         return ImmutableTimestampedLockResponse.of(getFreshTimestamp(), lock(lockRequest));
     }
 
+    @DoNotDelegate
     default void unlockAfterSuccessfulCommit(TimestampedLockResponse locks) {
         unlock(ImmutableSet.of(locks.lockResponse().getToken()));
     }
