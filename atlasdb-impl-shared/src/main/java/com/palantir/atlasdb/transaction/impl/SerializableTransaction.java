@@ -793,7 +793,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         myStart,
                         startTimestamps);
 
-                ListenableFuture<Map<Long, Long>> commitTimestampsForPreStart =
+                ListenableFuture<Map<Long, Long>> postStartCommitTimestamps =
                         getCommitTimestampsForTransactionsStartedAfterMe(
                                 tableRef,
                                 asyncTransactionService,
@@ -801,18 +801,18 @@ public class SerializableTransaction extends SnapshotTransaction {
 
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
-                ListenableFuture<Map<Long, Long>> commitTimestampsForPostStart = super.getCommitTimestamps(
+                ListenableFuture<Map<Long, Long>> preStartCommitTimestamps = super.getCommitTimestamps(
                         tableRef,
-                        partitionedTimestamps.afterStart(),
+                        partitionedTimestamps.beforeStart(),
                         shouldWaitForCommitterToComplete,
                         asyncTransactionService);
 
-                return Futures.whenAllComplete(commitTimestampsForPreStart, commitTimestampsForPostStart).call(
+                return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps).call(
                         () -> {
                             ImmutableMap.Builder<Long, Long> startToCommitTimestampsBuilder =
                                     ImmutableMap.<Long, Long>builder()
-                                            .putAll(AtlasFutures.getDone(commitTimestampsForPostStart))
-                                            .putAll(AtlasFutures.getDone(commitTimestampsForPreStart));
+                                            .putAll(AtlasFutures.getDone(preStartCommitTimestamps))
+                                            .putAll(AtlasFutures.getDone(postStartCommitTimestamps));
                             partitionedTimestamps.splittingTimestamp()
                                     .ifPresent(start -> startToCommitTimestampsBuilder.put(start, commitTs));
                             return startToCommitTimestampsBuilder.build();
