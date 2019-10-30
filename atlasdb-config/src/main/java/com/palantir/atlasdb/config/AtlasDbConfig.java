@@ -320,6 +320,10 @@ public abstract class AtlasDbConfig {
     private String checkNamespaceConfigAndGetNamespace() {
         if (namespace().isPresent()) {
             String namespaceConfigValue = namespace().get();
+
+            Preconditions.checkState(!namespaceConfigValue.contains("\""),
+                    "Namespace should not be quoted");
+
             keyValueService().namespace().ifPresent(kvsNamespace ->
                     com.palantir.logsafe.Preconditions.checkState(kvsNamespace.equals(namespaceConfigValue),
                             "If present, keyspace/dbName/sid config should be the same as the"
@@ -336,6 +340,9 @@ public abstract class AtlasDbConfig {
                             + " or the keyspace/dbName/sid config needs to be set.");
 
             String keyValueServiceNamespace = keyValueService().namespace().get();
+
+            Preconditions.checkState(!keyValueServiceNamespace.contains("\""),
+                    "KeyValueService namespace should not be quoted");
 
             if (timelock().isPresent()) {
                 TimeLockClientConfig timeLockConfig = timelock().get();
@@ -357,7 +364,7 @@ public abstract class AtlasDbConfig {
             return keyValueServiceNamespace;
         } else {
             Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
-                    "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
+                    "Expecting KeyValueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
                     keyValueService().getClass());
             if (timelock().isPresent()) {
                 return timelock().get().client().orElseThrow(() -> new SafeIllegalStateException(

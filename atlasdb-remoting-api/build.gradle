@@ -1,0 +1,20 @@
+apply from: '../gradle/shared.gradle'
+
+dependencies {
+  compile project(':commons-executors')
+
+  compile group: 'com.palantir.conjure.java.api', name: 'service-config'
+  compile group: 'com.palantir.conjure.java.runtime', name: 'keystores'
+  compile group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'
+  compile group: 'com.palantir.common', name: 'streams'
+
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
+
+  testCompile group: 'junit', name: 'junit'
+  testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'org.hamcrest', name: 'hamcrest-core'
+  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+  testCompile group: 'org.jmock', name: 'jmock'
+  testCompile group: 'org.mockito', name: 'mockito-core'
+}

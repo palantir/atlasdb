@@ -34,7 +34,7 @@ import com.palantir.atlasdb.metrics.Timed;
  *
  * @author carrino
  */
-public interface TransactionService extends AutoCloseable {
+public interface TransactionService extends AutoCloseable, AsyncTransactionService {
     /**
      * Gets the commit timestamp associated with a given start timestamp.
      * Non-null responses may be cached on the client-side. Null responses must not be cached, as they could

@@ -1,0 +1,6 @@
+type: break
+break:
+  description: The minimum version of Postgres allowed for use with AtlasDB is now
+    9.6. AtlasDB no longer supports older versions of Postgres (9.2-9.5).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4353

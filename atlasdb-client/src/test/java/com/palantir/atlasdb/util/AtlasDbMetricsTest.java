@@ -45,6 +45,15 @@ public final class AtlasDbMetricsTest {
             return PING_RESPONSE;
         }
     };
+    private final TestService testServiceDelegate = (TestServiceAutoDelegate) () -> testService;
+
+    @Test
+    public void instrumentWithDefaultNameTimedDoesNotWorkWithDelegates() {
+        TestService service = AtlasDbMetrics.instrumentTimed(metrics, TestService.class, testServiceDelegate);
+
+        assertMethodNotInstrumented(PING_REQUEST_METRIC, service::ping);
+        assertMethodNotInstrumented(PING_NOT_TIMED_METRIC, service::pingNotTimed);
+    }
 
     @Test
     public void instrumentWithDefaultNameTimed() {
@@ -118,5 +127,20 @@ public final class AtlasDbMetricsTest {
         String ping();
 
         String pingNotTimed();
+    }
+
+    public interface TestServiceAutoDelegate extends TestService {
+
+        TestService getDelegate();
+
+        @Override
+        default String ping() {
+            return getDelegate().ping();
+        }
+
+        @Override
+        default String pingNotTimed() {
+            return getDelegate().pingNotTimed();
+        }
     }
 }

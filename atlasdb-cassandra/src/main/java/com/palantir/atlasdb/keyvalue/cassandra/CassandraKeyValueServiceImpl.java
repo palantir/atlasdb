@@ -100,6 +100,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncCellLoader;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.atlasdb.keyvalue.cassandra.async.futures.CqlFuturesCombiner;
+import com.palantir.atlasdb.keyvalue.cassandra.async.futures.DefaultCqlFuturesCombiner;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -221,6 +223,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final AsyncCellLoader asyncCellLoader;
     private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
+    private final CqlFuturesCombiner cqlFuturesCombiner;
     private final CellValuePutter cellValuePutter;
     private final CassandraTableMetadata tableMetadata;
     private final CassandraTableCreator cassandraTableCreator;
@@ -295,7 +298,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log) {
-        return create(metricsManager,
+        return create(
+                metricsManager,
                 config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 mutationTimestampProvider,
@@ -310,7 +314,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
-        CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
+        CassandraClientPool clientPool = CassandraClientPoolImpl.create(
+                metricsManager,
                 config,
                 runtimeConfigSupplier,
                 initializeAsync);
@@ -413,7 +418,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()));
+        super(createInstrumentedFixedThreadPool(
+                config.poolSize() * config.servers().numberOfThriftHosts(),
+                metricsManager.getRegistry()
+        ));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -424,8 +432,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
+        this.cqlFuturesCombiner = new DefaultCqlFuturesCombiner(createInstrumentedDynamicThreadPool(
+                0,
+                config.poolSize() * config.servers().numberOfThriftHosts(),
+                metricsManager.getRegistry(),
+                "Atlas Cassandra KVS async",
+                "asyncExecutorService"));
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
-        this.asyncCellLoader = AsyncCellLoader.create(cqlClient, executor, config.getKeyspaceOrThrow());
+        this.asyncCellLoader = AsyncCellLoader.create(cqlClient, cqlFuturesCombiner, config.getKeyspaceOrThrow());
         this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
         this.cellValuePutter = new CellValuePutter(
                 config,
@@ -443,13 +457,27 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(
-            CassandraKeyValueServiceConfig config,
+            int corePoolSize,
             MetricRegistry registry) {
-        return Tracers.wrap(new InstrumentedExecutorService(
-                createFixedThreadPool("Atlas Cassandra KVS",
-                        config.poolSize() * config.servers().numberOfThriftHosts()),
+        return createInstrumentedDynamicThreadPool(
+                corePoolSize,
+                corePoolSize,
                 registry,
-                MetricRegistry.name(CassandraKeyValueService.class, "executorService")));
+                "Atlas Cassandra KVS",
+                "executorService");
+    }
+
+    private static ExecutorService createInstrumentedDynamicThreadPool(
+            int corePoolSize,
+            int maxPoolSize,
+            MetricRegistry registry,
+            String threadNamePrefix,
+            String executorServiceMetricsPrefix) {
+        return Tracers.wrap(
+                new InstrumentedExecutorService(
+                        createThreadPool(threadNamePrefix, corePoolSize, maxPoolSize),
+                        registry,
+                        MetricRegistry.name(CassandraKeyValueService.class, executorServiceMetricsPrefix)));
     }
 
     @Override
@@ -1671,6 +1699,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
+        cqlFuturesCombiner.close();
         try {
             log.info("Trying to close a CQL client");
             cqlClient.close();
