@@ -62,12 +62,16 @@ public class TransactionLockWatchingCacheView {
 
     void cacheNewValuesRead(TableReference tableRef, Map<Cell, byte[]> writes) {
         Map<Cell, GuardedValue> result = writes.entrySet().stream()
-                .filter(entry -> lockWatchState.get(
-                        getLockDescriptor(tableRef, entry.getKey())).fromCommittedTransaction())
+                .filter(entry -> eligibleToBeCached(tableRef, entry))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> ImmutableGuardedValue.of(entry.getValue(), startTimestamp)));
         cache.maybeCacheEntriesRead(tableRef, result);
+    }
+
+    private boolean eligibleToBeCached(TableReference tableRef, Map.Entry<Cell, byte[]> entry) {
+        LockWatch currentState = lockWatchState.get(getLockDescriptor(tableRef, entry.getKey()));
+        return currentState != null && currentState.fromCommittedTransaction();
     }
 
     void cacheWrittenValues(TableReference tableRef, Map<Cell, byte[]> writes, long lockTimestamp) {
