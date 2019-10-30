@@ -96,8 +96,4 @@ task allCompileDeps(type: DependencyReportTask) {
     configurations = [project.configurations.getByName("compile")]
 }
 
-compileJava {
-    options.compilerArgs << '-Xep:StrictUnusedVariable:OFF'
-}
-
 ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded.'
