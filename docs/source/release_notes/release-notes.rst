@@ -50,10 +50,6 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak|
-         - Cassandra clients are now required to supply credentials in the KVS config.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4076>`__)
-
     *    - |improved|
          - We now use jetty-alpn-agent 2.0.9
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3763>`__)
