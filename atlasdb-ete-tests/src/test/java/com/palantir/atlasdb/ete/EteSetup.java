@@ -37,6 +37,7 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
@@ -203,7 +204,7 @@ public abstract class EteSetup {
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 clazz,

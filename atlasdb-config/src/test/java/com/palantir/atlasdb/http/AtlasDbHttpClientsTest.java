@@ -153,7 +153,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 NO_SSL,
                 getUriForPort(availablePort1),
                 TestResource.class,
@@ -171,7 +171,7 @@ public class AtlasDbHttpClientsTest {
     public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
         TestResource client
                 = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 NO_SSL,
                 getUriForPort(availablePort1),
                 TestResource.class,
@@ -199,7 +199,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void userAgentIsPresentOnClientRequests() {
         TestResource client = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 NO_SSL,
                 getUriForPort(availablePort1),
                 TestResource.class,
