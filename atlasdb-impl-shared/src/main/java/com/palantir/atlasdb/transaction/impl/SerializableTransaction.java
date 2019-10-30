@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +37,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +87,6 @@ import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
@@ -788,24 +789,21 @@ public class SerializableTransaction extends SnapshotTransaction {
                     boolean shouldWaitForCommitterToComplete,
                     AsyncTransactionService asyncTransactionService) {
                 long myStart = SerializableTransaction.this.getTimestamp();
-                Set<Long> startTimestampsBeforeMyStart = Sets.newHashSet();
-                Set<Long> startTimestampsAfterMyStart = Sets.newHashSet();
-                boolean containsMyStartFinal = splitTransactionBeforeAndAfter(
+                PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(
                         myStart,
-                        startTimestamps,
-                        startTimestampsBeforeMyStart,
-                        startTimestampsAfterMyStart);
+                        startTimestamps);
 
-                ListenableFuture<Map<Long, Long>> commitTimestampsForPreStart = getStartToCommitTimestampsAfterMyStart(
-                        tableRef,
-                        asyncTransactionService,
-                        startTimestampsAfterMyStart);
+                ListenableFuture<Map<Long, Long>> commitTimestampsForPreStart =
+                        getCommitTimestampsForTransactionsStartedAfterMe(
+                                tableRef,
+                                asyncTransactionService,
+                                partitionedTimestamps.afterStart());
 
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
                 ListenableFuture<Map<Long, Long>> commitTimestampsForPostStart = super.getCommitTimestamps(
                         tableRef,
-                        startTimestampsBeforeMyStart,
+                        partitionedTimestamps.afterStart(),
                         shouldWaitForCommitterToComplete,
                         asyncTransactionService);
 
@@ -815,19 +813,18 @@ public class SerializableTransaction extends SnapshotTransaction {
                                     .putAll(AtlasFutures.getDone(commitTimestampsForPostStart))
                                     .putAll(AtlasFutures.getDone(commitTimestampsForPreStart))
                                     .build();
-                            if (containsMyStartFinal) {
-                                startToCommitTimestampMap.put(myStart, commitTs);
-                            }
+                            partitionedTimestamps.splittingTimestamp()
+                                    .ifPresent(start -> startToCommitTimestampMap.put(start, commitTs));
                             return startToCommitTimestampMap;
                         },
                         MoreExecutors.directExecutor());
             }
 
-            private ListenableFuture<Map<Long, Long>> getStartToCommitTimestampsAfterMyStart(
+            private ListenableFuture<Map<Long, Long>> getCommitTimestampsForTransactionsStartedAfterMe(
                     TableReference tableRef,
                     AsyncTransactionService asyncTransactionService,
-                    Set<Long> afterStart) {
-                if (afterStart.isEmpty()) {
+                    Set<Long> startTimestamps) {
+                if (startTimestamps.isEmpty()) {
                     return Futures.immediateFuture(ImmutableMap.of());
                 }
 
@@ -835,9 +832,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                         // We do not block when waiting for results that were written after our start timestamp.
                         // If we block here it may lead to deadlock if two transactions (or a cycle of any length) have
                         // all written their data and all doing checks before committing.
-                        super.getCommitTimestamps(tableRef, afterStart, false, asyncTransactionService),
+                        super.getCommitTimestamps(tableRef, startTimestamps, false, asyncTransactionService),
                         startToCommitTimestampMap -> {
-                            if (startToCommitTimestampMap.keySet().containsAll(afterStart)) {
+                            if (startToCommitTimestampMap.keySet().containsAll(startTimestamps)) {
                                 return startToCommitTimestampMap;
                             }
                             // If we do not get back all these results we may be in the deadlock case so we
@@ -856,32 +853,29 @@ public class SerializableTransaction extends SnapshotTransaction {
             }
 
             /**
-             * Partitions {@code startTimestamps} in two sets. Timestamps before {@code myStart} are accumulated in
-             * {@code beforeStart} and timestamps after {@code myStart} are accumulated in {@code afterStart}.
+             * Partitions {@code startTimestamps} in two sets. Returns a {@link PartitionedTimestamps} such that
+             * {@link PartitionedTimestamps#afterStart()} returns timestamps which are greater than {@code myStart},
+             * {@link PartitionedTimestamps#beforeStart()} returns timestamps which are less than {@code myStart} and
+             * {@link PartitionedTimestamps#splittingTimestamp()} contains {@code myStart} if it is contained in
+             * {@code startTimestamps}.
              *
              * @param myStart start timestamp of this transaction
              * @param startTimestamps of transactions we are interested in
-             * @param beforeStart output parameter where the timestamps before {@code myStart} will be accumulated
-             * @param afterStart output parameter where the timestamps after {@code myStart} will be accumulated
-             * @return flag if {@code myStart} is contained in {@code startTimestamps}
+             * @return a {@link PartitionedTimestamps} object containing split timestamps
              */
-            private boolean splitTransactionBeforeAndAfter(
-                    long myStart,
-                    Iterable<Long> startTimestamps,
-                    @Output Set<Long> beforeStart,
-                    @Output Set<Long> afterStart) {
-                boolean containsMyStart = false;
-                for (long startTs : startTimestamps) {
-                    if (startTs == myStart) {
-                        containsMyStart = true;
-                    } else if (startTs < myStart) {
-                        beforeStart.add(startTs);
+            private PartitionedTimestamps splitTransactionBeforeAndAfter(long myStart, Iterable<Long> startTimestamps) {
+                ImmutablePartitionedTimestamps.Builder builder = ImmutablePartitionedTimestamps.builder();
+                startTimestamps.forEach(startTimestamp -> {
+                    if (startTimestamp == myStart) {
+                        builder.splittingTimestamp(myStart);
+                    } else if (startTimestamp < myStart) {
+                        builder.addBeforeStart(startTimestamp);
                     } else {
-                        afterStart.add(startTs);
+                        builder.addAfterStart(startTimestamp);
                     }
-                }
+                });
 
-                return containsMyStart;
+                return builder.build();
             }
         };
     }
@@ -890,5 +884,12 @@ public class SerializableTransaction extends SnapshotTransaction {
         transactionOutcomeMetrics.markReadWriteConflict(tableRef);
         throw TransactionSerializableConflictException.create(tableRef, getTimestamp(),
                 System.currentTimeMillis() - timeCreated);
+    }
+
+    @Value.Immutable
+    interface PartitionedTimestamps {
+        Set<Long> afterStart();
+        Set<Long> beforeStart();
+        OptionalLong splittingTimestamp();
     }
 }
