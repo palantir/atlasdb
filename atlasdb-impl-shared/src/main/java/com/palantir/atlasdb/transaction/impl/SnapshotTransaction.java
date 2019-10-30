@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1203,7 +1202,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Output AtomicInteger count,
             Function<Value, T> transformer) {
         Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
-        Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
+        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
@@ -1749,7 +1748,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                   @Output Set<CellConflict> dominatingWrites,
                                                                   TransactionService transactionService) {
         Map<Cell, Long> rawResults = keyValueService.getLatestTimestamps(tableRef, keysToLoad);
-        Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, rawResults.values(), false);
+        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, rawResults.values(), false);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
 
         for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
@@ -1975,7 +1974,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return results;
     }
 
-    private Map<Long, Long> getCommitTimestamps(
+    private Map<Long, Long> getCommitTimestampsSync(
             @Nullable TableReference tableRef,
             Iterable<Long> startTimestamps,
             boolean waitForCommitterToComplete) {
@@ -1997,7 +1996,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             boolean shouldWaitForCommitterToComplete,
             AsyncTransactionService asyncTransactionService) {
         if (Iterables.isEmpty(startTimestamps)) {
-            return Futures.immediateFuture(new HashMap<>());
+            return Futures.immediateFuture(ImmutableMap.of());
         }
         Map<Long, Long> startToCommitTimestampMap = Maps.newHashMap();
         Set<Long> gets = Sets.newHashSet();
@@ -2160,7 +2159,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean wasCommitSuccessful(long commitTs) throws Exception {
-        Map<Long, Long> commitTimestamps = getCommitTimestamps(null, Collections.singleton(getStartTimestamp()), false);
+        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(
+                null,
+                Collections.singleton(getStartTimestamp()),
+                false);
         long storedCommit = commitTimestamps.get(getStartTimestamp());
         if (storedCommit != commitTs && storedCommit != TransactionConstants.FAILED_COMMIT_TS) {
             Validate.isTrue(false, "Commit value is wrong. startTs %s  commitTs: %s", getStartTimestamp(), commitTs);

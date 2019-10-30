@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -797,23 +796,23 @@ public class SerializableTransaction extends SnapshotTransaction {
                         startTimestampsBeforeMyStart,
                         startTimestampsAfterMyStart);
 
-                ListenableFuture<Map<Long, Long>> afterMyStartMapFuture = getStartToCommitTimestampsAfterMyStart(
+                ListenableFuture<Map<Long, Long>> commitTimestampsForPreStart = getStartToCommitTimestampsAfterMyStart(
                         tableRef,
                         asyncTransactionService,
                         startTimestampsAfterMyStart);
 
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
-                ListenableFuture<Map<Long, Long>> beforeMyStartMapFuture = super.getCommitTimestamps(
+                ListenableFuture<Map<Long, Long>> commitTimestampsForPostStart = super.getCommitTimestamps(
                         tableRef,
                         startTimestampsBeforeMyStart,
                         shouldWaitForCommitterToComplete,
                         asyncTransactionService);
 
-                return Futures.whenAllComplete(afterMyStartMapFuture, beforeMyStartMapFuture).call(
+                return Futures.whenAllComplete(commitTimestampsForPreStart, commitTimestampsForPostStart).call(
                     () -> {
-                        Map<Long, Long> startToCommitTimestampMap = AtlasFutures.getDone(beforeMyStartMapFuture);
-                        startToCommitTimestampMap.putAll(AtlasFutures.getDone(afterMyStartMapFuture));
+                        Map<Long, Long> startToCommitTimestampMap = AtlasFutures.getDone(commitTimestampsForPostStart);
+                        startToCommitTimestampMap.putAll(AtlasFutures.getDone(commitTimestampsForPreStart));
                         if (containsMyStartFinal) {
                             startToCommitTimestampMap.put(myStart, commitTs);
                         }
@@ -822,18 +821,18 @@ public class SerializableTransaction extends SnapshotTransaction {
                     MoreExecutors.directExecutor());
             }
 
-            // We do not block when waiting for results that were written after our
-            // start timestamp. If we block here it may lead to deadlock if two transactions
-            // (or a cycle of any length) have all written their data and all doing checks before committing.
             private ListenableFuture<Map<Long, Long>> getStartToCommitTimestampsAfterMyStart(
                     TableReference tableRef,
                     AsyncTransactionService asyncTransactionService,
                     Set<Long> afterStart) {
                 if (afterStart.isEmpty()) {
-                    return Futures.immediateFuture(new HashMap<>());
+                    return Futures.immediateFuture(ImmutableMap.of());
                 }
 
                 return Futures.transform(
+                        // We do not block when waiting for results that were written after our start timestamp.
+                        // If we block here it may lead to deadlock if two transactions (or a cycle of any length) have
+                        // all written their data and all doing checks before committing.
                         super.getCommitTimestamps(tableRef, afterStart, false, asyncTransactionService),
                         startToCommitTimestampMap -> {
                             if (startToCommitTimestampMap.keySet().containsAll(afterStart)) {
@@ -854,6 +853,16 @@ public class SerializableTransaction extends SnapshotTransaction {
                         MoreExecutors.directExecutor());
             }
 
+            /**
+             * Partitions {@code startTimestamps} in two sets. Timestamps before {@code myStart} are accumulated in
+             * {@code beforeStart} and timestamps after {@code myStart} are accumulated in {@code afterStart}.
+             *
+             * @param myStart start timestamp of this transaction
+             * @param startTimestamps of transactions we are interested in
+             * @param beforeStart output parameter where the timestamps before {@code myStart} will be accumulated
+             * @param afterStart output parameter where the timestamps after {@code myStart} will be accumulated
+             * @return flag if {@code myStart} is contained in {@code startTimestamps}
+             */
             private boolean splitTransactionBeforeAndAfter(
                     long myStart,
                     Iterable<Long> startTimestamps,
