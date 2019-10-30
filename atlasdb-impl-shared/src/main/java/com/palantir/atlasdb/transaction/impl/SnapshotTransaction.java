@@ -2059,13 +2059,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void traceGetCommitTimestamps(@Nullable TableReference tableRef, Set<Long> gets) {
         if (tableRef != null) {
-            log.trace("Getting commit timestamps for a read",
+            log.trace("Getting commit timestamps for a read while reading table.",
                     SafeArg.of("numTimestamps", gets.size()),
                     LoggingArgs.tableRef(tableRef));
             return;
         }
 
-        log.trace("Getting commit timestamps", SafeArg.of("numTimestamps", gets.size()));
+        log.trace("Getting commit timestamps.", SafeArg.of("numTimestamps", gets.size()));
 
     }
 
