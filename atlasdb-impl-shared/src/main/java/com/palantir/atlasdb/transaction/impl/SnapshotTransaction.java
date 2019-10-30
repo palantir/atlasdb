@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -556,9 +555,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private SortedMap<byte[], RowResult<byte[]>> filterRowResults(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
-            ImmutableMap.Builder<Cell, byte[]> result) {
+            ImmutableMap.Builder<Cell, byte[]> resultCollector) {
         ImmutableMap<Cell, byte[]> collected =
-                getWithPostFiltering(tableRef, rawResults, input -> result.putAll(input).build(), Value.GET_VALUE);
+                getWithPostFiltering(
+                        tableRef,
+                        rawResults,
+                        input -> resultCollector.putAll(input).build(),
+                        Value.GET_VALUE);
         Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected, tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }
@@ -1146,9 +1149,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private <S extends Map<Cell, T>, T> S getWithPostFiltering(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
-            Function<Iterable<Map.Entry<Cell, T>>, S> builderBuilder,
+            Function<Iterable<Map.Entry<Cell, T>>, S> mapFactory,
             Function<Value, T> transformer) {
-        return builderBuilder.apply(AtlasFutures.getUnchecked(
+        return mapFactory.apply(AtlasFutures.getUnchecked(
                 getWithPostFilteringAsync(
                         tableRef,
                         rawResults,
@@ -1183,6 +1186,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
 
+        // LinkedList is chosen for fast append operation since we just add to this collection.
         Collection<Map.Entry<Cell, T>> resultsAccumulator = new LinkedList<>();
 
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
@@ -1192,7 +1196,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // this case is hit when reading a hidden table from console
             for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
                 resultsAccumulator.add(
-                        new AbstractMap.SimpleImmutableEntry<>(e.getKey(), transformer.apply(e.getValue())));
+                        Maps.immutableEntry(e.getKey(), transformer.apply(e.getValue())));
             }
             return Futures.immediateFuture(resultsAccumulator);
         }
@@ -1267,14 +1271,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * This will return all the keys that still need to be postFiltered.  It will output properly
-     * postFiltered keys to the results output param.
+     * This will return all the key-value pairs that still need to be postFiltered.  It will output properly
+     * postFiltered keys to the resultsCollector output param.
      */
     private <T> ListenableFuture<Map<Cell, Value>> getWithPostFilteringInternal(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
-            @Output Collection<Map.Entry<Cell, T>> results,
-            @Output AtomicInteger count,
+            @Output Collection<Map.Entry<Cell, T>> resultsCollector,
+            @Output AtomicInteger resultsCounter,
             Function<Value, T> transformer,
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
@@ -1287,8 +1291,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         collectCellsToPostFilter(
                                 tableRef,
                                 rawResults,
-                                results,
-                                count,
+                                resultsCollector,
+                                resultsCounter,
                                 transformer,
                                 asyncKeyValueService,
                                 orphanedSentinels,
@@ -1299,8 +1303,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private <T> ListenableFuture<Map<Cell, Value>> collectCellsToPostFilter(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
-            @Output Collection<Map.Entry<Cell, T>> results,
-            @Output AtomicInteger count,
+            @Output Collection<Map.Entry<Cell, T>> resultsCollector,
+            @Output AtomicInteger resultsCounter,
             Function<Value, T> transformer,
             AsyncKeyValueService asyncKeyValueService,
             Set<Cell> orphanedSentinels,
@@ -1354,14 +1358,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
-                        results.add(new AbstractMap.SimpleImmutableEntry<>(key, transformer.apply(value)));
+                        resultsCollector.add(Maps.immutableEntry(key, transformer.apply(value)));
                         keysAddedBuilder.add(key);
                     }
                 }
             }
         }
         Set<Cell> keysAddedToResults = keysAddedBuilder.build();
-        count.addAndGet(keysAddedToResults.size());
+        resultsCounter.addAndGet(keysAddedToResults.size());
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
