@@ -29,6 +29,7 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
@@ -61,7 +62,7 @@ public class TestProxies {
     public <T> T singleNode(Class<T> serviceInterface, String uri) {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,

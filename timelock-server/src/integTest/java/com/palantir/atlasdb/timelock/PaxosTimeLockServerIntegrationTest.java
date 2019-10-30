@@ -43,7 +43,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -56,6 +55,7 @@ import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
@@ -129,7 +129,7 @@ public class PaxosTimeLockServerIntegrationTest {
     @BeforeClass
     public static void waitForClusterToStabilize() {
         PingableLeader leader = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class,
@@ -164,28 +164,6 @@ public class PaxosTimeLockServerIntegrationTest {
                 getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, MAX_CONCURRENT_LOCK_REQUESTS / 3)).isEqualTo(0);
-    }
-
-    @Test
-    public void throwsOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(getLockService(CLIENT_1));
-
-        int exceedingRequests = 10;
-        int maxRequestsForOneClient = MAX_CONCURRENT_LOCK_REQUESTS;
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, exceedingRequests + maxRequestsForOneClient))
-                .isEqualTo(exceedingRequests);
-    }
-
-    @Test
-    public void throwsOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(
-                getLockService(CLIENT_1), getLockService(CLIENT_2));
-        int exceedingRequests = 10;
-        int requestsPerClient = (MAX_CONCURRENT_LOCK_REQUESTS + exceedingRequests) / 2;
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
-                .isEqualTo(exceedingRequests);
     }
 
     private int lockAndUnlockAndCountExceptions(List<LockService> lockServices, int numRequestsPerClient)
@@ -462,7 +440,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static <T> T getProxyForRootService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getGenericRootUri(),
                 clazz,
@@ -471,7 +449,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
                 clazz,

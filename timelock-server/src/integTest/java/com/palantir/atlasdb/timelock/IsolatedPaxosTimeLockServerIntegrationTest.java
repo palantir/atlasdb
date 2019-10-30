@@ -23,12 +23,12 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 
@@ -86,7 +86,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 String.format("https://localhost:%d/%s/%s/%s",
                         SERVER.serverHolder().getTimelockPort(),
