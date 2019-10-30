@@ -58,11 +58,13 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 ImmutableList.of(uri),
                 Optional.empty(),
                 trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
-        return wrapWithVersion(JaxRsClient.create(
+        T client = JaxRsClient.create(
                 type,
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 HOST_METRICS_REGISTRY,
-                clientConfiguration));
+                clientConfiguration);
+        client = FastFailoverProxy.newProxyInstance(type, client);
+        return wrapWithVersion(client);
     }
 
     @Override
