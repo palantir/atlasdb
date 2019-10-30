@@ -199,6 +199,7 @@ public final class Leaders {
                 .ourLearner(ourLearner)
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .localPingableLeader(pingableLeader)
+                .remotePingableLeaders(otherLeaders)
                 .build();
     }
 
