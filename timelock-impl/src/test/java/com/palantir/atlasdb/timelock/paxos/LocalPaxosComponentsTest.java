@@ -66,11 +66,8 @@ public class LocalPaxosComponentsTest {
         PaxosLearner learner = paxosComponents.learner(CLIENT);
         learner.learn(PAXOS_ROUND_ONE, PAXOS_VALUE);
 
-        assertThat(learner.getGreatestLearnedValue())
-                .hasValueSatisfying(paxosValue -> {
-                    assertThat(paxosValue.getLeaderUUID()).isEqualTo(PAXOS_UUID);
-                    assertThat(paxosValue.getData()).isEqualTo(PAXOS_DATA);
-                });
+        assertThat(learner.getGreatestLearnedValue()).map(PaxosValue::getLeaderUUID).isEqualTo(PAXOS_UUID);
+        assertThat(learner.getGreatestLearnedValue()).map(PaxosValue::getData).isEqualTo(PAXOS_DATA);
 
         PaxosAcceptor acceptor = paxosComponents.acceptor(CLIENT);
         acceptor.accept(PAXOS_ROUND_TWO, PAXOS_PROPOSAL);
