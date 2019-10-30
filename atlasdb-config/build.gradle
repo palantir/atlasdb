@@ -41,7 +41,7 @@ dependencies {
     testCompileOnly 'org.immutables:value::annotations'
 
     testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
-    testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
+    testCompile group: 'org.jmock', name: 'jmock'
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.github.tomakehurst', name: 'wiremock'
     testCompile group: 'org.assertj', name: 'assertj-core'
