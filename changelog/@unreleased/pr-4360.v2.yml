@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: '`FastFailoverProxy` now correctly identifies retryable exceptions
+    and deals with them. Previously, the proxy would expect a _shaded_ retryable exception,
+    when the exceptions it received would have been unshaded as they would have originated
+    from TimeLock and thus external to the `atlasdb-feign` client project.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4360
