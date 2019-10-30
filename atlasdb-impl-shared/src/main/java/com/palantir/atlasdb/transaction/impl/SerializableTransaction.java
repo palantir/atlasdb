@@ -810,15 +810,17 @@ public class SerializableTransaction extends SnapshotTransaction {
                         asyncTransactionService);
 
                 return Futures.whenAllComplete(commitTimestampsForPreStart, commitTimestampsForPostStart).call(
-                    () -> {
-                        Map<Long, Long> startToCommitTimestampMap = AtlasFutures.getDone(commitTimestampsForPostStart);
-                        startToCommitTimestampMap.putAll(AtlasFutures.getDone(commitTimestampsForPreStart));
-                        if (containsMyStartFinal) {
-                            startToCommitTimestampMap.put(myStart, commitTs);
-                        }
-                        return startToCommitTimestampMap;
-                    },
-                    MoreExecutors.directExecutor());
+                        () -> {
+                            Map<Long, Long> startToCommitTimestampMap = ImmutableMap.<Long, Long>builder()
+                                    .putAll(AtlasFutures.getDone(commitTimestampsForPostStart))
+                                    .putAll(AtlasFutures.getDone(commitTimestampsForPreStart))
+                                    .build();
+                            if (containsMyStartFinal) {
+                                startToCommitTimestampMap.put(myStart, commitTs);
+                            }
+                            return startToCommitTimestampMap;
+                        },
+                        MoreExecutors.directExecutor());
             }
 
             private ListenableFuture<Map<Long, Long>> getStartToCommitTimestampsAfterMyStart(
