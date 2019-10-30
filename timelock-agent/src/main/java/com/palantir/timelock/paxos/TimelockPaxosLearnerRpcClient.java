@@ -17,9 +17,9 @@
 package com.palantir.timelock.paxos;
 
 import java.util.Collection;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -54,20 +54,20 @@ public interface TimelockPaxosLearnerRpcClient {
             @PathParam("seq") long seq,
             PaxosValue val);
 
-    @Nullable
+    @Nonnull
     @GET
     @Path("learned-value/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
-    PaxosValue getLearnedValue(
+    Optional<PaxosValue> getLearnedValue(
             @PathParam("useCase") PaxosUseCase paxosUseCase,
             @PathParam("client") String client,
             @PathParam("seq") long seq);
 
-    @Nullable
+    @Nonnull
     @GET
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
-    PaxosValue getGreatestLearnedValue(
+    Optional<PaxosValue> getGreatestLearnedValue(
             @PathParam("useCase") PaxosUseCase paxosUseCase,
             @PathParam("client") String client);
 
