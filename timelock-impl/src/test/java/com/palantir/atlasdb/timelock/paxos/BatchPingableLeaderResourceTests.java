@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
@@ -80,13 +81,13 @@ public class BatchPingableLeaderResourceTests {
         when(components.learner(CLIENT_1).getGreatestLearnedValue())
                 .thenReturn(paxosValue(LEADER_UUID));
         when(components.learner(clientWhereNothingHasBeenLearnt).getGreatestLearnedValue())
-                .thenReturn(null);
+                .thenReturn(Optional.empty());
 
         assertThat(resource.ping(ImmutableSet.of(CLIENT_1, clientWhereNothingHasBeenLearnt)))
                 .containsOnly(CLIENT_1);
     }
 
-    private static PaxosValue paxosValue(UUID uuid) {
-        return new PaxosValue(uuid.toString(), new Random().nextLong(), null);
+    private static Optional<PaxosValue> paxosValue(UUID uuid) {
+        return Optional.of(new PaxosValue(uuid.toString(), new Random().nextLong(), null));
     }
 }

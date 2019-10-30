@@ -84,7 +84,7 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
             Function<Optional<PaxosValue>, T> mapper) {
         return PaxosQuorumChecker.collectQuorumResponses(
                 allLearners,
-                learner -> mapper.apply(Optional.ofNullable(learner.getLearnedValue(seq))),
+                learner -> mapper.apply(learner.getLearnedValue(seq)),
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
