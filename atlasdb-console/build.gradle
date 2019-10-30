@@ -10,7 +10,7 @@ dependencies {
     compile group: 'org.codehaus.groovy', name: 'groovy-groovysh'
     compile group: 'org.codehaus.groovy', name: 'groovy-json'
 
-    testCompile 'org.jmock:jmock-legacy:' + libVersions.jmock
-    testCompile 'org.jmock:jmock:' + libVersions.jmock
+    testCompile group: 'org.jmock', name: 'jmock-legacy'
+    testCompile group: 'org.jmock', name: 'jmock'
     testCompile 'org.gmock:gmock:0.8.3'
 }
