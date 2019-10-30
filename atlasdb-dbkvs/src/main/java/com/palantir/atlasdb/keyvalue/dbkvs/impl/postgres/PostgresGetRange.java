@@ -25,7 +25,6 @@ import java.util.Set;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
-import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -38,9 +37,9 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableMetadataCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeHelpers;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -139,9 +138,8 @@ public class PostgresGetRange implements DbKvsGetRange {
                                                RangeRequest rangeRequest,
                                                long timestamp) {
         int maxRowsPerPage = RangeHelpers.getMaxRowsPerPage(rangeRequest);
-        int cellsPerRowEstimate = getCellsPerRowEstimate(tableRef, rangeRequest);
-        int maxCellsPerPage = Math.min(
-                AtlasDbPerformanceConstants.MAX_BATCH_SIZE, maxRowsPerPage * cellsPerRowEstimate) + 1;
+        int maxCellsPerPage = DbKvsGetRanges.getMaxCellsPerPage(
+                tableRef, rangeRequest, maxRowsPerPage, connectionPool, tableMetadataCache);
         String tableName = DbKvs.internalTableName(tableRef);
         Iterator<Iterator<RowResult<Value>>> pageIterator = new PageIterator(
                 rangeRequest.getStartInclusive(),
@@ -154,25 +152,6 @@ public class PostgresGetRange implements DbKvsGetRange {
                 tableName,
                 prefixedTableNames.get(tableRef));
         return Iterators.concat(pageIterator);
-    }
-
-    private int getCellsPerRowEstimate(TableReference tableRef, RangeRequest rangeRequest) {
-        if (!rangeRequest.getColumnNames().isEmpty()) {
-            return rangeRequest.getColumnNames().size();
-        } else {
-            TableMetadata metadata = getTableMetadataUsingNewConnection(tableRef);
-            if (metadata.getColumns().hasDynamicColumns()) {
-                return 100;
-            } else {
-                return Math.max(1, metadata.getColumns().getNamedColumns().size());
-            }
-        }
-    }
-
-    private TableMetadata getTableMetadataUsingNewConnection(TableReference tableRef) {
-        try (ConnectionSupplier conns = new ConnectionSupplier(connectionPool)) {
-            return tableMetadataCache.getTableMetadata(tableRef, conns);
-        }
     }
 
     private class PageIterator extends AbstractIterator<Iterator<RowResult<Value>>> {
