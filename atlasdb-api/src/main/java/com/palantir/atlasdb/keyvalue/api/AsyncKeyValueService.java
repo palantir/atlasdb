@@ -29,7 +29,7 @@ public interface AsyncKeyValueService {
      *
      * @param tableRef        the name of the table to retrieve values from.
      * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to retrieve that
-     *                        rows's value.
+     *                        row's value.
      * @return listenable future containing map of retrieved values. Values which do not exist (either because they were
      * deleted or never created in the first place) are simply not returned.
      */
