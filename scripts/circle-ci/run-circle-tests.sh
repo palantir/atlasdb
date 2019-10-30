@@ -78,5 +78,5 @@ case $CIRCLE_NODE_INDEX in
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
-    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true && checkDocsBuild ;;
+    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} && checkDocsBuild ;;
 esac
