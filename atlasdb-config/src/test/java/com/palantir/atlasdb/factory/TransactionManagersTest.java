@@ -84,7 +84,6 @@ import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -128,10 +127,6 @@ public class TransactionManagersTest {
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
     private static final String EXPECTED_USER_AGENT_STRING = UserAgents.format(USER_AGENT);
     private static final String USER_AGENT_HEADER = "User-Agent";
-    // TODO (jkong): Unfortunately this is an implementation detail, but it is not generally correct to add the
-    // AtlasDB HTTP agent as an informational agent on the USER_AGENT and check for equality, because other agents
-    // may be registered.
-    private static final String HTTP_CLIENT_AGENT_STRING = AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT + "/2.0";
 
     private static final long EMBEDDED_BOUND = 3;
 
@@ -143,6 +138,7 @@ public class TransactionManagersTest {
             MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
+    private static final Map<String, String> LEGACY_CLIENT_TAGS = ImmutableMap.of("clientVersion", "AtlasDB-Feign");
     private static final Map<String, String> CLIENT_TAGS = ImmutableMap.of("clientVersion", "Conjure-Java-Runtime");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
@@ -287,12 +283,11 @@ public class TransactionManagersTest {
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.lock().currentTimeMillis();
 
+        // TODO (jkong): Assert v2 once we move Leader Block to v2 as well
         availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(HTTP_CLIENT_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(HTTP_CLIENT_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
@@ -477,7 +472,7 @@ public class TransactionManagersTest {
         assertThatTimeAndLockMetricsWithTagsAreRecorded(
                 TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC,
-                CLIENT_TAGS);
+                LEGACY_CLIENT_TAGS);
     }
 
     @Test
@@ -800,12 +795,11 @@ public class TransactionManagersTest {
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
+        // TODO (jkong): Assert v2 once we move all paths to v2
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(HTTP_CLIENT_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(postRequestedFor(urlMatching(lockPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(HTTP_CLIENT_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
