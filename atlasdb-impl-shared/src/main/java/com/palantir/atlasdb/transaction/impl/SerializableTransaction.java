@@ -809,13 +809,13 @@ public class SerializableTransaction extends SnapshotTransaction {
 
                 return Futures.whenAllComplete(commitTimestampsForPreStart, commitTimestampsForPostStart).call(
                         () -> {
-                            Map<Long, Long> startToCommitTimestampMap = ImmutableMap.<Long, Long>builder()
-                                    .putAll(AtlasFutures.getDone(commitTimestampsForPostStart))
-                                    .putAll(AtlasFutures.getDone(commitTimestampsForPreStart))
-                                    .build();
+                            ImmutableMap.Builder<Long, Long> startToCommitTimestampsBuilder =
+                                    ImmutableMap.<Long, Long>builder()
+                                            .putAll(AtlasFutures.getDone(commitTimestampsForPostStart))
+                                            .putAll(AtlasFutures.getDone(commitTimestampsForPreStart));
                             partitionedTimestamps.splittingTimestamp()
-                                    .ifPresent(start -> startToCommitTimestampMap.put(start, commitTs));
-                            return startToCommitTimestampMap;
+                                    .ifPresent(start -> startToCommitTimestampsBuilder.put(start, commitTs));
+                            return startToCommitTimestampsBuilder.build();
                         },
                         MoreExecutors.directExecutor());
             }
