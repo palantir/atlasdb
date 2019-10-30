@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -26,8 +27,6 @@ import com.palantir.atlasdb.keyvalue.api.GuardedValue;
 import com.palantir.atlasdb.keyvalue.api.ImmutableGuardedValue;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockWatch;
 
 public class TransactionLockWatchingCacheView {
@@ -35,14 +34,14 @@ public class TransactionLockWatchingCacheView {
             .getView(0, ImmutableMap.of(), null);
 
     private final long startTimestamp;
-    private final Map<LockDescriptor, LockWatch> lockWatchState;
+    private final BiFunction<TableReference, Cell, LockWatch> cellToWatch;
     private final KeyValueService kvs;
     private final LockWatchingCache cache;
 
-    public TransactionLockWatchingCacheView(long startTimestamp, Map<LockDescriptor, LockWatch> lockWatchState,
-            KeyValueService kvs, LockWatchingCache cache) {
+    public TransactionLockWatchingCacheView(long startTimestamp,
+            BiFunction<TableReference, Cell, LockWatch> cellToWatch, KeyValueService kvs, LockWatchingCache cache) {
         this.startTimestamp = startTimestamp;
-        this.lockWatchState = lockWatchState;
+        this.cellToWatch = cellToWatch;
         this.kvs = kvs;
         this.cache = cache;
     }
@@ -54,10 +53,8 @@ public class TransactionLockWatchingCacheView {
     }
 
     private boolean eligibleToReadCached(TableReference tableRef, Map.Entry<Cell, GuardedValue> entry) {
-        LockWatch currentState = lockWatchState.get(getLockDescriptor(tableRef, entry.getKey()));
-        return currentState != null
-                && currentState.fromCommittedTransaction()
-                && entry.getValue().guardTimestamp() == currentState.timestamp();
+        LockWatch currentState = cellToWatch.apply(tableRef, entry.getKey());
+        return currentState.fromCommittedTransaction() && entry.getValue().guardTimestamp() == currentState.timestamp();
     }
 
     void cacheNewValuesRead(TableReference tableRef, Map<Cell, byte[]> writes) {
@@ -70,15 +67,11 @@ public class TransactionLockWatchingCacheView {
     }
 
     private boolean eligibleToBeCached(TableReference tableRef, Map.Entry<Cell, byte[]> entry) {
-        LockWatch currentState = lockWatchState.get(getLockDescriptor(tableRef, entry.getKey()));
-        return currentState != null && currentState.fromCommittedTransaction();
+        LockWatch currentState = cellToWatch.apply(tableRef, entry.getKey());
+        return currentState.fromCommittedTransaction();
     }
 
     void cacheWrittenValues(TableReference tableRef, Map<Cell, byte[]> writes, long lockTimestamp) {
         cache.maybeCacheCommittedWrites(tableRef, writes, lockTimestamp);
-    }
-
-    private static LockDescriptor getLockDescriptor(TableReference tableRef, Cell cell) {
-        return AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName());
     }
 }

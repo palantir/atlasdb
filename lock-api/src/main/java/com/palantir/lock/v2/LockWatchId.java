@@ -22,15 +22,11 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
 
-@JsonSerialize(as = ImmutableWatchId.class)
-@JsonDeserialize(as = ImmutableWatchId.class)
+@JsonSerialize(as = ImmutableLockWatchId.class)
+@JsonDeserialize(as = ImmutableLockWatchId.class)
 @Value.Immutable
-public interface WatchId {
-    @Value.Parameter
-    LockDescriptor lock();
-
+public interface LockWatchId {
     @Value.Parameter
     UUID clientId();
 }

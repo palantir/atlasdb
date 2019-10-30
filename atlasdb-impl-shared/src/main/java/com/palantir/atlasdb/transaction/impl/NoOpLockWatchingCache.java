@@ -24,11 +24,15 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.GuardedValue;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockWatch;
+import com.palantir.lock.v2.LockWatchId;
 
-public class NoOpLockWatchingCache implements LockWatchingCache {
+public final class NoOpLockWatchingCache implements LockWatchingCache {
     public static final NoOpLockWatchingCache INSTANCE = new NoOpLockWatchingCache();
+
+    private NoOpLockWatchingCache() {
+        // you wanted to be tricky?
+    }
 
     @Override
     public Map<Cell, GuardedValue> getCached(TableReference tableRef, Set<Cell> reads) {
@@ -46,8 +50,8 @@ public class NoOpLockWatchingCache implements LockWatchingCache {
     }
 
     @Override
-    public TransactionLockWatchingCacheView getView(long startTimestamp, Map<LockDescriptor, LockWatch> lockWatchState,
+    public TransactionLockWatchingCacheView getView(long startTimestamp, Map<LockWatchId, LockWatch> lockWatchState,
             KeyValueService kvs) {
-        return new TransactionLockWatchingCacheView(startTimestamp, lockWatchState, kvs, this);
+        return new TransactionLockWatchingCacheView(startTimestamp, (ig, nore) -> LockWatch.INVALID, kvs, this);
     }
 }

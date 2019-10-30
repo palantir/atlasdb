@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableLockWatch.class)
 @JsonDeserialize(as = ImmutableLockWatch.class)
 public interface LockWatch {
+    LockWatch INVALID = ImmutableLockWatch.of(0L, false);
+
     @Value.Parameter
     long timestamp();
 

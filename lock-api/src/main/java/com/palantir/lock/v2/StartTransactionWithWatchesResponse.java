@@ -22,7 +22,6 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
 
 @JsonSerialize(as = ImmutableStartTransactionWithWatchesResponse.class)
 @JsonDeserialize(as = ImmutableStartTransactionWithWatchesResponse.class)
@@ -32,5 +31,5 @@ public interface StartTransactionWithWatchesResponse {
     StartIdentifiedAtlasDbTransactionResponse response();
 
     @Value.Parameter
-    Map<LockDescriptor, LockWatch> watchState();
+    Map<LockWatchId, LockWatch> watchState();
 }

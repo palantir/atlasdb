@@ -267,9 +267,6 @@ import com.palantir.timestamp.TimestampService;
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
-        StartTransactionWithWatchesResponse response = timelockService.startTransactionWithWatches();
-        long startTimestamp = response.response().startTimestampAndPartition().timestamp();
-        cleaner.punch(startTimestamp);
 
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
@@ -277,7 +274,7 @@ import com.palantir.timestamp.TimestampService;
                 timelockService,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                () -> startTimestamp,
+                getStartTimestampSupplier(),
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTs,
@@ -294,7 +291,7 @@ import com.palantir.timestamp.TimestampService;
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                lockWatchingCache.getView(startTimestamp, response.watchState(), keyValueService));
+                TransactionLockWatchingCacheView.EMPTY);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

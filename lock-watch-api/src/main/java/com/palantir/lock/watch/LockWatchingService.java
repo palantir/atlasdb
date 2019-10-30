@@ -18,6 +18,7 @@ package com.palantir.lock.watch;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.v2.LockWatchId;
 
 public interface LockWatchingService {
     LockWatchId registerCellWatch(TableReference tableRef, Cell cell);

@@ -21,4 +21,11 @@ import org.immutables.value.Value;
 public interface CellReference {
     TableReference tableRef();
     Cell cell();
+
+    default CellReference of(TableReference tableRef, Cell cell) {
+        return ImmutableCellReference.builder()
+                .tableRef(tableRef)
+                .cell(cell)
+                .build();
+    }
 }
