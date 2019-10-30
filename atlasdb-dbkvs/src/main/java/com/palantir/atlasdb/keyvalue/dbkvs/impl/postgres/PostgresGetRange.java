@@ -268,8 +268,8 @@ public class PostgresGetRange implements DbKvsGetRange {
 
         private ClosableIterator<AgnosticLightResultRow> selectNextPage(ConnectionSupplier conns) {
             FullQuery query = getRangeQuery();
-            AgnosticLightResultSet rs = conns.get().selectLightResultSetUnregisteredQuery(
-                    query.getQuery(), query.getArgs());
+            AgnosticLightResultSet rs = conns.get().selectLightResultSetUnregisteredQueryWithFetchSize(
+                    query.getQuery(), maxCellsPerPage, query.getArgs());
             return ClosableIterators.wrap(rs.iterator(), rs);
         }
 
