@@ -177,7 +177,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
 
-
     private enum State {
         UNCOMMITTED,
         COMMITTED,
@@ -2049,11 +2048,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
 
         if (tableRef != null) {
-            perfLogger.debug("Waited get commit timestamps.",
+            perfLogger.debug("Waited to get commit timestamps when reading from a known table.",
                     SafeArg.of("commitTsMillis", waitForCommitTsMillis),
                     LoggingArgs.tableRef(tableRef));
         } else {
-            perfLogger.debug("Waited to get commit timestamps",
+            perfLogger.debug("Waited to get commit timestamps.",
                     SafeArg.of("commitTsMillis", waitForCommitTsMillis));
         }
     }
@@ -2066,8 +2065,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        log.trace("Getting commit timestamps",
-                SafeArg.of("numTimestamps", gets.size()));
+        log.trace("Getting commit timestamps", SafeArg.of("numTimestamps", gets.size()));
 
     }
 
@@ -2075,12 +2073,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         log.info(
                 "Looking up a large number of transactions.",
                 SafeArg.of("numberOfTransactionIds", gets.size()),
-                tableRef == null
-                        ? SafeArg.of("tableRef", "no_table")
-                        : LoggingArgs.tableRef(tableRef)
+                tableRef == null ? SafeArg.of("tableRef", "no_table") : LoggingArgs.tableRef(tableRef)
         );
     }
-
 
     private ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
             AsyncTransactionService asyncTransactionService,

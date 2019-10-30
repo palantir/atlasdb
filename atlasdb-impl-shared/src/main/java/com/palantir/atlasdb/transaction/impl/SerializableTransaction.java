@@ -853,11 +853,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             }
 
             /**
-             * Partitions {@code startTimestamps} in two sets. Returns a {@link PartitionedTimestamps} such that
-             * {@link PartitionedTimestamps#afterStart()} returns timestamps which are greater than {@code myStart},
-             * {@link PartitionedTimestamps#beforeStart()} returns timestamps which are less than {@code myStart} and
-             * {@link PartitionedTimestamps#splittingTimestamp()} contains {@code myStart} if it is contained in
-             * {@code startTimestamps}.
+             * Partitions {@code startTimestamps} in two sets, based on their relation to the start timestamp provided.
              *
              * @param myStart start timestamp of this transaction
              * @param startTimestamps of transactions we are interested in
