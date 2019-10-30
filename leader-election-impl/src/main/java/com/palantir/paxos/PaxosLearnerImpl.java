@@ -107,9 +107,9 @@ public final class PaxosLearnerImpl implements PaxosLearner {
 
     @Override
     public Optional<PaxosValue> getGreatestLearnedValue() {
-        if (!state.isEmpty()) {
-            return Optional.ofNullable(state.get(state.lastKey()));
+        if (state.isEmpty()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        return Optional.ofNullable(state.get(state.lastKey()));
     }
 }

@@ -67,7 +67,6 @@ public class LocalPaxosComponentsTest {
         learner.learn(PAXOS_ROUND_ONE, PAXOS_VALUE);
 
         assertThat(learner.getGreatestLearnedValue())
-                .isPresent()
                 .hasValueSatisfying(paxosValue -> {
                     assertThat(paxosValue.getLeaderUUID()).isEqualTo(PAXOS_UUID);
                     assertThat(paxosValue.getData()).isEqualTo(PAXOS_DATA);
