@@ -17,6 +17,8 @@ package com.palantir.atlasdb.timelock.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.conjure.java.api.errors.QosException;
+
 import feign.RetryableException;
 
 public final class ExceptionMatchers {
@@ -26,6 +28,7 @@ public final class ExceptionMatchers {
     public static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
         assertThat(throwable)
                 .hasMessageContaining("receiving QosException.RetryOther")
-                .isInstanceOf(RetryableException.class);
+                .isInstanceOf(RetryableException.class)
+                .hasRootCauseInstanceOf(QosException.RetryOther.class);
     }
 }

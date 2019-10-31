@@ -21,19 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.BeforeClass;
@@ -44,7 +36,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -53,7 +44,6 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
-import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgents;
@@ -92,8 +82,6 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String ACCEPTOR = "acceptor";
     private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
     private static final String INVALID_CLIENT = "test2\b";
-
-    private static final int MAX_CONCURRENT_LOCK_REQUESTS = CombinedTimeLockServerConfiguration.threadPoolSize();
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
@@ -149,64 +137,6 @@ public class PaxosTimeLockServerIntegrationTest {
                         return false;
                     }
                 });
-    }
-
-    @Test
-    public void singleClientCanUseLocalAndSharedThreads() throws Exception {
-        List<LockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
-
-        assertThat(lockAndUnlockAndCountExceptions(lockService, MAX_CONCURRENT_LOCK_REQUESTS)).isEqualTo(0);
-    }
-
-    @Test
-    public void multipleClientsCanUseSharedThreads() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(
-                getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, MAX_CONCURRENT_LOCK_REQUESTS / 3)).isEqualTo(0);
-    }
-
-    private int lockAndUnlockAndCountExceptions(List<LockService> lockServices, int numRequestsPerClient)
-            throws Exception {
-        ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequestsPerClient);
-
-        Map<LockService, LockRefreshToken> tokenMap = new HashMap<>();
-        for (LockService service : lockServices) {
-            LockRefreshToken token = service.lock(CLIENT_1, REQUEST_LOCK_WITH_LONG_TIMEOUT);
-            assertThat(token).isNotNull();
-            tokenMap.put(service, token);
-        }
-
-        List<Future<LockRefreshToken>> futures = Lists.newArrayList();
-        for (LockService lockService : lockServices) {
-            for (int i = 0; i < numRequestsPerClient; i++) {
-                int currentTrial = i;
-                futures.add(executorService.submit(() ->
-                        lockService.lock(CLIENT_2 + currentTrial, REQUEST_LOCK_WITH_LONG_TIMEOUT))
-                );
-            }
-        }
-
-        executorService.shutdown();
-        executorService.awaitTermination(2, TimeUnit.SECONDS);
-
-        AtomicInteger exceptionCounter = new AtomicInteger(0);
-        futures.forEach(future -> {
-            try {
-                assertThat(future.get()).isNull();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                assertThat(cause.getClass().getName()).contains("RetryableException");
-                assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
-                exceptionCounter.getAndIncrement();
-            } catch (InterruptedException e) {
-                throw Throwables.propagate(e);
-            }
-        });
-
-        tokenMap.forEach((service, token) -> assertThat(service.unlock(token)).isTrue());
-
-        return exceptionCounter.get();
     }
 
     @Test
