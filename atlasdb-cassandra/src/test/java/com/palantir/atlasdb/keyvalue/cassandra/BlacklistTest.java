@@ -60,7 +60,7 @@ public class BlacklistTest {
 
     @Before
     @SuppressWarnings("unchecked") // Mock type is correct
-    public void setUp() throws Exception {
+    public void setUp() {
         when(clock.millis()).thenAnswer(invocation -> time.addAndGet(ONE_SECOND.toMillis() + 1));
         when(badContainer.runWithPooledResource(any(FunctionCheckedException.class))).thenThrow(new RuntimeException());
         when(badContainer.getHost()).thenReturn(ADDRESS_1);

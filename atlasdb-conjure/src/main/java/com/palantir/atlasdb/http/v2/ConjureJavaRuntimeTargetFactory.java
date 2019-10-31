@@ -63,7 +63,6 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 HOST_METRICS_REGISTRY,
                 clientConfiguration);
-        client = FastFailoverProxy.newProxyInstance(type, client);
         return wrapWithVersion(client);
     }
 
