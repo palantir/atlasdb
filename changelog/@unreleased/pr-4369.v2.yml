@@ -1,5 +1,5 @@
 type: improvement
 improvement:
-  description: Make RetryLimitReachedException SafeLoggable.
+  description: Make `RetryLimitReachedException` SafeLoggable.
   links:
   - https://github.com/palantir/atlasdb/pull/4369
