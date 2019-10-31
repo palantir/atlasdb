@@ -1,9 +1,10 @@
 type: fix
 fix:
-  description: We no longer create a `FastFailoverProxy` should not be created when
-    creating a single node proxy. Previously, if this was created when talking to
-    an individual TimeLock node that was not the leader, we would spin for about 10
-    seconds before returning. Users of failover proxies to TimeLock (e.g. if using
-    the timestamp or lock services from a `TransactionManager`) are unaffected.
+  description: We no longer create a `FastFailoverProxy` when creating a single node
+    proxy. Previously, if this was created when talking to an individual TimeLock
+    node that was not the leader (or a service that would otherwise return `308`s),
+    we would spin for about 10 seconds before returning. Users of failover proxies
+    to TimeLock (e.g. if using the timestamp or lock services from a `TransactionManager`)
+    are unaffected.
   links:
   - https://github.com/palantir/atlasdb/pull/4370
