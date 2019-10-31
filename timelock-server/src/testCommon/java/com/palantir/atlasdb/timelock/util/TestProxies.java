@@ -66,7 +66,7 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_NON_RETRYING));
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {
