@@ -198,7 +198,7 @@ public abstract class EteSetup {
                         .sslConfiguration(SSL_CONFIGURATION)
                         .build(),
                 clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
@@ -208,6 +208,6 @@ public abstract class EteSetup {
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 }

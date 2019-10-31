@@ -66,7 +66,7 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS));
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_NON_RETRYING));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {
@@ -79,7 +79,7 @@ public class TestProxies {
                 new MetricRegistry(),
                 ImmutableServerListConfig.builder().addAllServers(uris).sslConfiguration(SSL_CONFIGURATION).build(),
                 serviceInterface,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS));
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING));
     }
 
     public List<String> getServerUris() {

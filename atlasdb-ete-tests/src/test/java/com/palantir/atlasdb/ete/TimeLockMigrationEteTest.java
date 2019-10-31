@@ -187,7 +187,7 @@ public class TimeLockMigrationEteTest {
                 Optional.empty(),
                 uri,
                 clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
@@ -197,6 +197,6 @@ public class TimeLockMigrationEteTest {
                 Optional.empty(),
                 uri,
                 TimestampService.class,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 }

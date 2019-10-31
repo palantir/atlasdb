@@ -27,13 +27,19 @@ public final class TestProxyUtils {
             .maximumConjureRemotingProbability(1.0)
             .build();
 
-    public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS
+    public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_RETRYING
             = AuxiliaryRemotingParameters.builder()
-                    .shouldLimitPayload(false)
-                    .userAgent(UserAgent.of(UserAgent.Agent.of("bla", "0.1.2")))
-                    .remotingClientConfig(() -> REMOTING_CLIENT_CONFIG)
-                    .shouldRetry(true)
-                    .build();
+            .shouldLimitPayload(false)
+            .userAgent(UserAgent.of(UserAgent.Agent.of("bla", "0.1.2")))
+            .remotingClientConfig(() -> REMOTING_CLIENT_CONFIG)
+            .shouldRetry(true)
+            .build();
+
+    public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_NON_RETRYING
+            = AuxiliaryRemotingParameters.builder()
+            .from(AUXILIARY_REMOTING_PARAMETERS_RETRYING)
+            .shouldRetry(false)
+            .build();
 
     private TestProxyUtils() {
         // constants
