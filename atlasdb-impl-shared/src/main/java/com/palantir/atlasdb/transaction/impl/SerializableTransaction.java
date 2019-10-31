@@ -808,15 +808,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                         asyncTransactionService);
 
                 return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps).call(
-                        () -> {
-                            ImmutableMap.Builder<Long, Long> startToCommitTimestampsBuilder =
-                                    ImmutableMap.<Long, Long>builder()
-                                            .putAll(AtlasFutures.getDone(preStartCommitTimestamps))
-                                            .putAll(AtlasFutures.getDone(postStartCommitTimestamps));
-                            partitionedTimestamps.splittingTimestamp()
-                                    .ifPresent(start -> startToCommitTimestampsBuilder.put(start, commitTs));
-                            return startToCommitTimestampsBuilder.build();
-                        },
+                        () -> ImmutableMap.<Long, Long>builder()
+                                .putAll(AtlasFutures.getDone(preStartCommitTimestamps))
+                                .putAll(AtlasFutures.getDone(postStartCommitTimestamps))
+                                .putAll(partitionedTimestamps.myCommittedTransaction())
+                                .build(),
                         MoreExecutors.directExecutor());
             }
 
@@ -833,9 +829,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                         // If we block here it may lead to deadlock if two transactions (or a cycle of any length) have
                         // all written their data and all doing checks before committing.
                         super.getCommitTimestamps(tableRef, startTimestamps, false, asyncTransactionService),
-                        startToCommitTimestampMap -> {
-                            if (startToCommitTimestampMap.keySet().containsAll(startTimestamps)) {
-                                return startToCommitTimestampMap;
+                        startToCommitTimestamps -> {
+                            if (startToCommitTimestamps.keySet().containsAll(startTimestamps)) {
+                                return startToCommitTimestamps;
                             }
                             // If we do not get back all these results we may be in the deadlock case so we
                             // should just fail out early.  It may be the case that abort more transactions
@@ -860,10 +856,11 @@ public class SerializableTransaction extends SnapshotTransaction {
              * @return a {@link PartitionedTimestamps} object containing split timestamps
              */
             private PartitionedTimestamps splitTransactionBeforeAndAfter(long myStart, Iterable<Long> startTimestamps) {
-                ImmutablePartitionedTimestamps.Builder builder = ImmutablePartitionedTimestamps.builder();
+                ImmutablePartitionedTimestamps.Builder builder = ImmutablePartitionedTimestamps.builder()
+                        .myCommitTimestamp(commitTs);
                 startTimestamps.forEach(startTimestamp -> {
                     if (startTimestamp == myStart) {
-                        builder.splittingTimestamp(myStart);
+                        builder.splittingStartTimestamp(myStart);
                     } else if (startTimestamp < myStart) {
                         builder.addBeforeStart(startTimestamp);
                     } else {
@@ -884,8 +881,16 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Value.Immutable
     interface PartitionedTimestamps {
+        long myCommitTimestamp();
         Set<Long> afterStart();
         Set<Long> beforeStart();
-        OptionalLong splittingTimestamp();
+        OptionalLong splittingStartTimestamp();
+
+        @Value.Derived
+        default Map<Long, Long> myCommittedTransaction() {
+            return splittingStartTimestamp().isPresent()
+                    ? ImmutableMap.of(splittingStartTimestamp().getAsLong(), myCommitTimestamp())
+                    : ImmutableMap.of();
+        }
     }
 }

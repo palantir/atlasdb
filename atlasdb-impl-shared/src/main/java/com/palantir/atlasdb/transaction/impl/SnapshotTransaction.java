@@ -1997,19 +1997,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(startTimestamps)) {
             return Futures.immediateFuture(ImmutableMap.of());
         }
-        Map<Long, Long> startToCommitTimestampMap = Maps.newHashMap();
+        Map<Long, Long> startToCommitTimestamps = Maps.newHashMap();
         Set<Long> gets = Sets.newHashSet();
         for (long startTs : startTimestamps) {
             Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
             if (cached != null) {
-                startToCommitTimestampMap.put(startTs, cached);
+                startToCommitTimestamps.put(startTs, cached);
             } else {
                 gets.add(startTs);
             }
         }
 
         if (gets.isEmpty()) {
-            return Futures.immediateFuture(startToCommitTimestampMap);
+            return Futures.immediateFuture(startToCommitTimestamps);
         }
 
         // Before we do the reads, we need to make sure the committer is done writing.
@@ -2031,11 +2031,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         if (e.getValue() != null) {
                             long startTs = e.getKey();
                             long commitTs = e.getValue();
-                            startToCommitTimestampMap.put(startTs, commitTs);
+                            startToCommitTimestamps.put(startTs, commitTs);
                             timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
                         }
                     }
-                    return startToCommitTimestampMap;
+                    return startToCommitTimestamps;
                 },
                 MoreExecutors.directExecutor());
     }
@@ -2077,14 +2077,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         );
     }
 
-    private ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
+    private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
             AsyncTransactionService asyncTransactionService,
             Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             long singleTs = startTimestamps.iterator().next();
             return Futures.transform(asyncTransactionService.getAsync(singleTs),
-                    commitTsOrNull -> commitTsOrNull == null ? ImmutableMap.of()
+                    commitTsOrNull -> commitTsOrNull == null
+                            ? ImmutableMap.of()
                             : ImmutableMap.of(singleTs, commitTsOrNull),
                     MoreExecutors.directExecutor());
         } else {
