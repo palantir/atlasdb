@@ -144,7 +144,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private LeadershipState determineLeadershipState() {
-        Optional<PaxosValue> greatestLearnedValue = getGreatestLearnedPaxosValue();
+        Optional<PaxosValue> greatestLearnedValue = knowledge.getGreatestLearnedValue();
         StillLeadingStatus leadingStatus = determineLeadershipStatus(greatestLearnedValue);
 
         return LeadershipState.of(greatestLearnedValue, leadingStatus);
@@ -179,10 +179,6 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         } finally {
             lock.unlock();
         }
-    }
-
-    private Optional<PaxosValue> getGreatestLearnedPaxosValue() {
-        return Optional.ofNullable(knowledge.getGreatestLearnedValue());
     }
 
     @Override
@@ -224,7 +220,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private boolean isLatestRound(Optional<PaxosValue> valueIfAny) {
-        return valueIfAny.equals(getGreatestLearnedPaxosValue());
+        return valueIfAny.equals(knowledge.getGreatestLearnedValue());
     }
 
     private void recordLeadershipStatus(
@@ -256,7 +252,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         for (PaxosUpdate update : updates.get()) {
             ImmutableCollection<PaxosValue> values = update.getValues();
             for (PaxosValue value : values) {
-                if (knowledge.getLearnedValue(value.getRound()) == null) {
+                if (!knowledge.getLearnedValue(value.getRound()).isPresent()) {
                     knowledge.learn(value.getRound(), value);
                     learned = true;
                 }
