@@ -1259,7 +1259,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     /**
      * This will return all the key-value pairs that still need to be postFiltered.  It will output properly
-     * postFiltered keys to the resultsCollector output param.
+     * post filtered keys to the {@code resultsCollector} output param.
      */
     private <T> ListenableFuture<Map<Cell, Value>> getWithPostFilteringInternal(
             TableReference tableRef,
