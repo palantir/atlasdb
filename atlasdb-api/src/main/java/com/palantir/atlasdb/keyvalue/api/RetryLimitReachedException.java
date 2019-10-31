@@ -31,7 +31,7 @@ public class RetryLimitReachedException extends AtlasDbDependencyException imple
     private final int numRetries;
 
     public RetryLimitReachedException(List<Exception> exceptions) {
-        super("");
+        super(MESSAGE);
         exceptions.forEach(this::addSuppressed);
         this.numRetries = exceptions.size();
     }
