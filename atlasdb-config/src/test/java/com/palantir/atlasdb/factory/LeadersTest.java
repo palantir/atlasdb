@@ -31,10 +31,10 @@ import java.util.Set;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
@@ -50,7 +50,7 @@ public class LeadersTest {
         when(localLearner.getGreatestLearnedValue()).thenReturn(presentPaxosValue);
 
         List<PaxosLearner> paxosLearners = Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -70,7 +70,7 @@ public class LeadersTest {
         when(localAcceptor.getLatestSequencePreparedOrAccepted()).thenReturn(1L);
 
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -91,7 +91,7 @@ public class LeadersTest {
         when(localAcceptor.getLatestSequencePreparedOrAccepted()).thenReturn(1L);
 
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 localAcceptor,
                 ImmutableSet.of(),
                 Optional.empty(),
@@ -110,7 +110,7 @@ public class LeadersTest {
         BigInteger localBigInteger = new BigInteger("0");
 
         Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
@@ -123,7 +123,7 @@ public class LeadersTest {
         PaxosAcceptor localAcceptor = mock(PaxosAcceptor.class);
 
         Leaders.createProxyAndLocalList(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),

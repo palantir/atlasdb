@@ -142,8 +142,12 @@ public final class Leaders {
                 ServiceCreator.createTrustContext(config.sslConfiguration());
 
         List<PaxosLearner> learners = createProxyAndLocalList(
-                metricsManager.getRegistry(), ourLearner, remotePaxosServerSpec.remoteLearnerUris(),
-                trustContext, PaxosLearner.class, userAgent);
+                metricsManager,
+                ourLearner,
+                remotePaxosServerSpec.remoteLearnerUris(),
+                trustContext,
+                PaxosLearner.class,
+                userAgent);
         List<PaxosLearner> remoteLearners = learners.stream()
                 .filter(learner -> !learner.equals(ourLearner))
                 .collect(ImmutableList.toImmutableList());
@@ -154,7 +158,7 @@ public final class Leaders {
                 createExecutorsForService(metricsManager, learners, "knowledge-update"));
 
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
-                metricsManager.getRegistry(),
+                metricsManager,
                 ourAcceptor,
                 remotePaxosServerSpec.remoteAcceptorUris(),
                 trustContext,
@@ -238,7 +242,7 @@ public final class Leaders {
     }
 
     public static <T> List<T> createProxyAndLocalList(
-            MetricRegistry metrics,
+            MetricsManager metricsManager,
             T localObject,
             Set<String> remoteUris,
             Optional<TrustContext> trustContext,
@@ -248,7 +252,7 @@ public final class Leaders {
         // TODO (jkong): Enable runtime config for leader election services.
         List<T> remotes = remoteUris.stream()
                 .map(uri -> AtlasDbHttpClients.createProxy(
-                        metrics,
+                        metricsManager,
                         trustContext,
                         uri,
                         clazz,
@@ -271,7 +275,7 @@ public final class Leaders {
             UserAgent userAgent) {
         return remoteEndpoints.stream()
                 .map(endpoint -> AtlasDbHttpClients.createProxy(
-                        metricsManager.getRegistry(),
+                        metricsManager,
                         trustContext,
                         endpoint,
                         PingableLeader.class,
