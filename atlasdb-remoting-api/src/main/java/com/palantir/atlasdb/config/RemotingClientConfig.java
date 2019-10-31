@@ -28,6 +28,10 @@ import com.palantir.logsafe.SafeArg;
 @Value.Immutable
 public interface RemotingClientConfig {
     RemotingClientConfig DEFAULT = ImmutableRemotingClientConfig.builder().build();
+    RemotingClientConfig ALWAYS_USE_CONJURE = ImmutableRemotingClientConfig.builder()
+            .maximumConjureRemotingProbability(1.0)
+            .enableLegacyClientFallback(false)
+            .build();
 
     @Value.Default
     default double maximumConjureRemotingProbability() {
