@@ -17,19 +17,36 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.SafeLoggable;
 
-public class RetryLimitReachedException extends AtlasDbDependencyException {
-    private static final String MESSAGE = "Request was retried %d times and failed each time for the request.";
+public class RetryLimitReachedException extends AtlasDbDependencyException implements SafeLoggable {
+    private static final String MESSAGE = "Request was retried and failed each time for the request.";
+
+    private final int numRetries;
 
     public RetryLimitReachedException(List<Exception> exceptions) {
-        super(String.format(MESSAGE, exceptions.size()));
+        super("");
         exceptions.forEach(this::addSuppressed);
+        this.numRetries = exceptions.size();
     }
 
     public <E extends Exception> boolean suppressed(Class<E> type) {
         return Arrays.stream(getSuppressed()).anyMatch(type::isInstance);
+    }
+
+    @Override
+    public String getLogMessage() {
+        return MESSAGE;
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return Collections.singletonList(SafeArg.of("numRetries", numRetries));
     }
 }
