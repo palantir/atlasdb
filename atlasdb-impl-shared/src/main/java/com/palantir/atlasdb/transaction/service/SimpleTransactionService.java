@@ -45,7 +45,9 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     private final AsyncCellGetter immediateAsyncCellGetter;
     private final AsyncCellGetter asyncCellGetter;
 
-    private SimpleTransactionService(KeyValueService kvs, TimestampEncodingStrategy encodingStrategy,
+    private SimpleTransactionService(
+            KeyValueService kvs,
+            TimestampEncodingStrategy encodingStrategy,
             TableReference transactionsTable) {
         this.kvs = kvs;
         this.encodingStrategy = encodingStrategy;

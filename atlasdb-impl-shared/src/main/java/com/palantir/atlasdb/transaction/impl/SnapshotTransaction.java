@@ -83,6 +83,7 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -117,7 +118,9 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
+import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.Output;
@@ -188,6 +191,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TimelockService timelockService;
     final KeyValueService keyValueService;
     final TransactionService defaultTransactionService;
+    private final AsyncTransactionService immediateTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
     protected final MetricsManager metricsManager;
@@ -260,6 +264,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
+        this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;
         this.startTimestamp = startTimeStamp;
         this.conflictDetectionManager = new TransactionConflictDetectionManager(conflictDetectionManager);
@@ -323,7 +328,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
         hasReads = true;
-        ImmutableMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
+        ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
@@ -1196,7 +1201,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Output AtomicInteger count,
             Function<Value, T> transformer) {
         Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
-        Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
+        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
@@ -1742,7 +1747,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                   @Output Set<CellConflict> dominatingWrites,
                                                                   TransactionService transactionService) {
         Map<Cell, Long> rawResults = keyValueService.getLatestTimestamps(tableRef, keysToLoad);
-        Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, rawResults.values(), false);
+        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, rawResults.values(), false);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
 
         for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
@@ -1968,90 +1973,123 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return results;
     }
 
+    private Map<Long, Long> getCommitTimestampsSync(
+            @Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps,
+            boolean waitForCommitterToComplete) {
+        return AtlasFutures.getUnchecked(getCommitTimestamps(
+                tableRef,
+                startTimestamps,
+                waitForCommitterToComplete,
+                immediateTransactionService));
+    }
+
     /**
      * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't
      * committed, then it will be missing from the map.  This method will block until the
      * transactions for these start timestamps are complete.
      */
-    protected Map<Long, Long> getCommitTimestamps(@Nullable TableReference tableRef,
-                                                  Iterable<Long> startTimestamps,
-                                                  boolean waitForCommitterToComplete) {
+    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+            @Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps,
+            boolean shouldWaitForCommitterToComplete,
+            AsyncTransactionService asyncTransactionService) {
         if (Iterables.isEmpty(startTimestamps)) {
-            return ImmutableMap.of();
+            return Futures.immediateFuture(ImmutableMap.of());
         }
-        Map<Long, Long> result = Maps.newHashMap();
+        Map<Long, Long> startToCommitTimestamps = Maps.newHashMap();
         Set<Long> gets = Sets.newHashSet();
         for (long startTs : startTimestamps) {
             Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
             if (cached != null) {
-                result.put(startTs, cached);
+                startToCommitTimestamps.put(startTs, cached);
             } else {
                 gets.add(startTs);
             }
         }
 
         if (gets.isEmpty()) {
-            return result;
+            return Futures.immediateFuture(startToCommitTimestamps);
         }
 
         // Before we do the reads, we need to make sure the committer is done writing.
-        if (waitForCommitterToComplete) {
-            Timer.Context timer = getTimer("waitForCommitTsMillis").time();
-            waitForCommitToComplete(startTimestamps);
-            long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
-
-            if (tableRef != null) {
-                perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
-                        SafeArg.of("commitTsMillis", waitForCommitTsMillis),
-                        LoggingArgs.tableRef(tableRef));
-            } else {
-                perfLogger.debug("Waited {} ms to get commit timestamps",
-                        SafeArg.of("commitTsMillis", waitForCommitTsMillis));
-            }
+        if (shouldWaitForCommitterToComplete) {
+            waitForCommitterToComplete(tableRef, startTimestamps);
         }
 
-        if (tableRef != null) {
-            log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
-                    SafeArg.of("numTimestamps", gets.size()),
-                    LoggingArgs.tableRef(tableRef));
-        } else {
-            log.trace("Getting commit timestamps for {} start timestamps",
-                    SafeArg.of("numTimestamps", gets.size()));
-        }
+        traceGetCommitTimestamps(tableRef, gets);
 
         if (gets.size() > transactionConfig.get().getThresholdForLoggingLargeNumberOfTransactionLookups()) {
-            log.info(
-                    "Looking up a large number of transactions ({}) for table {}",
-                    SafeArg.of("numberOfTransactionIds", gets.size()),
-                    tableRef == null
-                            ? SafeArg.of("tableRef", "no_table")
-                            : LoggingArgs.tableRef(tableRef)
-            );
+            logLargeNumberOfTransactions(tableRef, gets);
         }
 
         getHistogram(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).update(gets.size());
 
-        Map<Long, Long> rawResults = loadCommitTimestamps(gets);
-
-        for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
-            if (e.getValue() != null) {
-                long startTs = e.getKey();
-                long commitTs = e.getValue();
-                result.put(startTs, commitTs);
-                timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
-            }
-        }
-        return result;
+        return Futures.transform(loadCommitTimestamps(asyncTransactionService, gets),
+                rawResults -> {
+                    for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
+                        if (e.getValue() != null) {
+                            long startTs = e.getKey();
+                            long commitTs = e.getValue();
+                            startToCommitTimestamps.put(startTs, commitTs);
+                            timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
+                        }
+                    }
+                    return startToCommitTimestamps;
+                },
+                MoreExecutors.directExecutor());
     }
 
-    private Map<Long, Long> loadCommitTimestamps(Set<Long> startTimestamps) {
+    private void waitForCommitterToComplete(
+            @Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps) {
+        Timer.Context timer = getTimer("waitForCommitTsMillis").time();
+        waitForCommitToComplete(startTimestamps);
+        long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
+
+        if (tableRef != null) {
+            perfLogger.debug("Waited to get commit timestamps when reading from a known table.",
+                    SafeArg.of("commitTsMillis", waitForCommitTsMillis),
+                    LoggingArgs.tableRef(tableRef));
+        } else {
+            perfLogger.debug("Waited to get commit timestamps.",
+                    SafeArg.of("commitTsMillis", waitForCommitTsMillis));
+        }
+    }
+
+    private void traceGetCommitTimestamps(@Nullable TableReference tableRef, Set<Long> gets) {
+        if (tableRef != null) {
+            log.trace("Getting commit timestamps for a read while reading table.",
+                    SafeArg.of("numTimestamps", gets.size()),
+                    LoggingArgs.tableRef(tableRef));
+            return;
+        }
+
+        log.trace("Getting commit timestamps.", SafeArg.of("numTimestamps", gets.size()));
+
+    }
+
+    private void logLargeNumberOfTransactions(@Nullable TableReference tableRef, Set<Long> gets) {
+        log.info(
+                "Looking up a large number of transactions.",
+                SafeArg.of("numberOfTransactionIds", gets.size()),
+                tableRef == null ? SafeArg.of("tableRef", "no_table") : LoggingArgs.tableRef(tableRef)
+        );
+    }
+
+    private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
+            AsyncTransactionService asyncTransactionService,
+            Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             long singleTs = startTimestamps.iterator().next();
-            Long commitTsOrNull = defaultTransactionService.get(singleTs);
-            return commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull);
+            return Futures.transform(asyncTransactionService.getAsync(singleTs),
+                    commitTsOrNull -> commitTsOrNull == null
+                            ? ImmutableMap.of()
+                            : ImmutableMap.of(singleTs, commitTsOrNull),
+                    MoreExecutors.directExecutor());
         } else {
-            return defaultTransactionService.get(startTimestamps);
+            return asyncTransactionService.getAsync(startTimestamps);
         }
     }
 
@@ -2117,7 +2155,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean wasCommitSuccessful(long commitTs) throws Exception {
-        Map<Long, Long> commitTimestamps = getCommitTimestamps(null, Collections.singleton(getStartTimestamp()), false);
+        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(
+                null,
+                Collections.singleton(getStartTimestamp()),
+                false);
         long storedCommit = commitTimestamps.get(getStartTimestamp());
         if (storedCommit != commitTs && storedCommit != TransactionConstants.FAILED_COMMIT_TS) {
             Validate.isTrue(false, "Commit value is wrong. startTs %s  commitTs: %s", getStartTimestamp(), commitTs);

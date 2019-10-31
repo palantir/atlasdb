@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +37,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +64,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -80,6 +83,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
@@ -512,24 +516,24 @@ public class SerializableTransaction extends SnapshotTransaction {
             SortedMap<byte[], RowResult<byte[]>> currentRows = ro.getRows(table, batch, columns);
             for (byte[] row : batch) {
                 RowResult<byte[]> currentRow = currentRows.get(row);
-                Map<Cell, byte[]> orignalReads = readsForTable
+                Map<Cell, byte[]> originalReads = readsForTable
                         .tailMap(Cells.createSmallestCellForRow(row), true)
                         .headMap(Cells.createLargestCellForRow(row), true);
 
                 // We want to filter out all our reads to just the set that matches our column selection.
-                orignalReads = Maps.filterKeys(orignalReads, input -> columns.contains(input.getColumnName()));
+                originalReads = Maps.filterKeys(originalReads, input -> columns.contains(input.getColumnName()));
 
                 if (writesByTable.get(table) != null) {
                     // We don't want to verify any reads that we wrote to cause
                     // we will just read our own values.
                     // NB: We filter our write set out here because our normal SI
                     // checking handles this case to ensure the value hasn't changed.
-                    orignalReads = Maps.filterKeys(
-                            orignalReads,
+                    originalReads = Maps.filterKeys(
+                            originalReads,
                             Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
                 }
 
-                if (currentRow == null && orignalReads.isEmpty()) {
+                if (currentRow == null && originalReads.isEmpty()) {
                     continue;
                 }
 
@@ -547,7 +551,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                             currentCells,
                             Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
                 }
-                if (!areMapsEqual(orignalReads, currentCells)) {
+                if (!areMapsEqual(originalReads, currentCells)) {
                     handleTransactionConflict(table);
                 }
             }
@@ -779,47 +783,92 @@ public class SerializableTransaction extends SnapshotTransaction {
                 validateLocksOnReads,
                 transactionConfig) {
             @Override
-            protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
-                                                          Iterable<Long> startTimestamps,
-                                                          boolean waitForCommitterToComplete) {
-                Set<Long> beforeStart = Sets.newHashSet();
-                Set<Long> afterStart = Sets.newHashSet();
-                boolean containsMyStart = false;
+            protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+                    TableReference tableRef,
+                    Iterable<Long> startTimestamps,
+                    boolean shouldWaitForCommitterToComplete,
+                    AsyncTransactionService asyncTransactionService) {
                 long myStart = SerializableTransaction.this.getTimestamp();
-                for (long startTs : startTimestamps) {
-                    if (startTs == myStart) {
-                        containsMyStart = true;
-                    } else if (startTs < myStart) {
-                        beforeStart.add(startTs);
-                    } else {
-                        afterStart.add(startTs);
-                    }
-                }
-                Map<Long, Long> ret = Maps.newHashMap();
-                if (!afterStart.isEmpty()) {
-                    // We do not block when waiting for results that were written after our
-                    // start timestamp.  If we block here it may lead to deadlock if two transactions
-                    // (or a cycle of any length) have all written their data and all doing checks before committing.
-                    Map<Long, Long> afterResults = super.getCommitTimestamps(tableRef, afterStart, false);
-                    if (!afterResults.keySet().containsAll(afterStart)) {
-                        // If we do not get back all these results we may be in the deadlock case so we should just
-                        // fail out early.  It may be the case that abort more transactions than needed to break the
-                        // deadlock cycle, but this should be pretty rare.
-                        transactionOutcomeMetrics.markReadWriteConflict(tableRef);
-                        throw new TransactionSerializableConflictException("An uncommitted conflicting read was "
-                                + "written after our start timestamp for table " + tableRef + ".  "
-                                + "This case can cause deadlock and is very likely to be a read write conflict.");
-                    } else {
-                        ret.putAll(afterResults);
-                    }
-                }
+                PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(
+                        myStart,
+                        startTimestamps);
+
+                ListenableFuture<Map<Long, Long>> postStartCommitTimestamps =
+                        getCommitTimestampsForTransactionsStartedAfterMe(
+                                tableRef,
+                                asyncTransactionService,
+                                partitionedTimestamps.afterStart());
+
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
-                ret.putAll(super.getCommitTimestamps(tableRef, beforeStart, waitForCommitterToComplete));
-                if (containsMyStart) {
-                    ret.put(myStart, commitTs);
+                ListenableFuture<Map<Long, Long>> preStartCommitTimestamps = super.getCommitTimestamps(
+                        tableRef,
+                        partitionedTimestamps.beforeStart(),
+                        shouldWaitForCommitterToComplete,
+                        asyncTransactionService);
+
+                return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps).call(
+                        () -> ImmutableMap.<Long, Long>builder()
+                                .putAll(AtlasFutures.getDone(preStartCommitTimestamps))
+                                .putAll(AtlasFutures.getDone(postStartCommitTimestamps))
+                                .putAll(partitionedTimestamps.myCommittedTransaction())
+                                .build(),
+                        MoreExecutors.directExecutor());
+            }
+
+            private ListenableFuture<Map<Long, Long>> getCommitTimestampsForTransactionsStartedAfterMe(
+                    TableReference tableRef,
+                    AsyncTransactionService asyncTransactionService,
+                    Set<Long> startTimestamps) {
+                if (startTimestamps.isEmpty()) {
+                    return Futures.immediateFuture(ImmutableMap.of());
                 }
-                return ret;
+
+                return Futures.transform(
+                        // We do not block when waiting for results that were written after our start timestamp.
+                        // If we block here it may lead to deadlock if two transactions (or a cycle of any length) have
+                        // all written their data and all doing checks before committing.
+                        super.getCommitTimestamps(tableRef, startTimestamps, false, asyncTransactionService),
+                        startToCommitTimestamps -> {
+                            if (startToCommitTimestamps.keySet().containsAll(startTimestamps)) {
+                                return startToCommitTimestamps;
+                            }
+                            // If we do not get back all these results we may be in the deadlock case so we
+                            // should just fail out early.  It may be the case that abort more transactions
+                            // than needed to break the deadlock cycle, but this should be pretty rare.
+                            transactionOutcomeMetrics.markReadWriteConflict(tableRef);
+                            throw new TransactionSerializableConflictException(
+                                    "An uncommitted conflicting read was "
+                                            + "written after our start timestamp for table "
+                                            + tableRef + ".  "
+                                            + "This case can cause deadlock and is very likely to be a "
+                                            + "read write conflict.");
+
+                        },
+                        MoreExecutors.directExecutor());
+            }
+
+            /**
+             * Partitions {@code startTimestamps} in two sets, based on their relation to the start timestamp provided.
+             *
+             * @param myStart start timestamp of this transaction
+             * @param startTimestamps of transactions we are interested in
+             * @return a {@link PartitionedTimestamps} object containing split timestamps
+             */
+            private PartitionedTimestamps splitTransactionBeforeAndAfter(long myStart, Iterable<Long> startTimestamps) {
+                ImmutablePartitionedTimestamps.Builder builder = ImmutablePartitionedTimestamps.builder()
+                        .myCommitTimestamp(commitTs);
+                startTimestamps.forEach(startTimestamp -> {
+                    if (startTimestamp == myStart) {
+                        builder.splittingStartTimestamp(myStart);
+                    } else if (startTimestamp < myStart) {
+                        builder.addBeforeStart(startTimestamp);
+                    } else {
+                        builder.addAfterStart(startTimestamp);
+                    }
+                });
+
+                return builder.build();
             }
         };
     }
@@ -828,5 +877,20 @@ public class SerializableTransaction extends SnapshotTransaction {
         transactionOutcomeMetrics.markReadWriteConflict(tableRef);
         throw TransactionSerializableConflictException.create(tableRef, getTimestamp(),
                 System.currentTimeMillis() - timeCreated);
+    }
+
+    @Value.Immutable
+    interface PartitionedTimestamps {
+        long myCommitTimestamp();
+        Set<Long> afterStart();
+        Set<Long> beforeStart();
+        OptionalLong splittingStartTimestamp();
+
+        @Value.Derived
+        default Map<Long, Long> myCommittedTransaction() {
+            return splittingStartTimestamp().isPresent()
+                    ? ImmutableMap.of(splittingStartTimestamp().getAsLong(), myCommitTimestamp())
+                    : ImmutableMap.of();
+        }
     }
 }
