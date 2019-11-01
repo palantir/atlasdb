@@ -31,6 +31,6 @@ ext.libVersions =
     checkstyle: '6.18',
     findbugsAnnotations: '2.0.3',
     ant: '1.9.4',
-    postgresql: '42.2.1',
+    postgresql: '42.2.8',
     c3p0: '0.9.5.1'
 ]
