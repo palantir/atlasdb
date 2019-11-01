@@ -24,5 +24,5 @@ interface WrapperWithTracker<T> {
 
     WrapperWithTracker<KeyValueService> KEY_VALUE_SERVICE_NO_OP = (delegate, synchronousTracker) -> delegate;
 
-    T apply(T delegate, SynchronousTracker synchronousTracker);
+    T apply(T delegate, PathTypeTracker pathTypeTracker);
 }

@@ -166,10 +166,10 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @Override
     public Transaction createNewTransaction() {
         long startTimestamp = timelockService.getFreshTimestamp();
-        SynchronousTracker synchronousTracker = SynchronousTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
         return transactionWrapper.apply(
                 new SnapshotTransaction(metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, synchronousTracker),
+                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
                         transactionService,
                         NoOpCleaner.INSTANCE,
@@ -190,7 +190,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         deleteExecutor,
                         validateLocksOnReads,
                         () -> TRANSACTION_CONFIG),
-                synchronousTracker);
+                pathTypeTracker);
     }
 
     @Override
@@ -199,11 +199,11 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
-        SynchronousTracker synchronousTracker = SynchronousTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, synchronousTracker),
+                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
                         transactionService,
                         cleaner,
@@ -224,7 +224,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         deleteExecutor,
                         validateLocksOnReads,
                         transactionConfig),
-                synchronousTracker);
+                pathTypeTracker);
     }
 
     @Override

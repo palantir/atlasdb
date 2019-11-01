@@ -27,14 +27,14 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 public class GetAsyncDelegate extends ForwardingTransaction {
 
     private final Transaction delegate;
-    private final SynchronousTracker tracker;
+    private final PathTypeTracker tracker;
 
     public GetAsyncDelegate(Transaction transaction) {
         this.delegate = transaction;
-        this.tracker = SynchronousTracker.NO_OP;
+        this.tracker = PathTypeTracker.NO_OP;
     }
 
-    public GetAsyncDelegate(Transaction transaction, SynchronousTracker tracker) {
+    public GetAsyncDelegate(Transaction transaction, PathTypeTracker tracker) {
         this.delegate = transaction;
         this.tracker = tracker;
     }
@@ -46,7 +46,7 @@ public class GetAsyncDelegate extends ForwardingTransaction {
 
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        try (SynchronousTracker resource = tracker.enterAsyncCall()) {
+        try (PathTypeTracker resource = tracker.enterAsyncPath()) {
             return AtlasFutures.getUnchecked(delegate().getAsync(tableRef, cells));
         }
     }

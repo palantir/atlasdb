@@ -384,11 +384,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
         }});
 
-        SynchronousTracker synchronousTracker = SynchronousTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
-                        keyValueServiceWrapper.apply(kvMock, synchronousTracker),
+                        keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
                         new LegacyTimelockService(timestampService, lock, lockClient),
                         transactionService,
                         NoOpCleaner.INSTANCE,
@@ -409,7 +409,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         true,
                         () -> transactionConfig),
-                synchronousTracker);
+                pathTypeTracker);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -454,11 +454,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             inSequence(seq);
         }});
 
-        SynchronousTracker synchronousTracker = SynchronousTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, synchronousTracker),
+                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         null,
                         transactionService,
                         NoOpCleaner.INSTANCE,
@@ -479,7 +479,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         true,
                         () -> transactionConfig),
-                synchronousTracker);
+                pathTypeTracker);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -496,7 +496,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Random random = new Random(1);
 
         final UnstableKeyValueService unstableKvs = new UnstableKeyValueService(keyValueService, random);
-        SynchronousTracker synchronousTracker = SynchronousTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
         final TestTransactionManager unstableTransactionManager = new TestTransactionManagerImpl(
                 metricsManager,
                 unstableKvs,
@@ -1390,11 +1390,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
             PreCommitCondition preCommitCondition,
             boolean validateLocksOnReads) {
-        SynchronousTracker synchronousTracker = SynchronousTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
         return transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, synchronousTracker),
+                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
                         transactionService,
                         NoOpCleaner.INSTANCE,
@@ -1416,7 +1416,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         validateLocksOnReads,
                         () -> transactionConfig),
-                synchronousTracker);
+                pathTypeTracker);
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
@@ -1495,11 +1495,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private static class VerifyingKeyValueServiceDelegate extends ForwardingKeyValueService {
         private final KeyValueService delegate;
-        private final SynchronousTracker synchronousTracker;
+        private final PathTypeTracker pathTypeTracker;
 
-        VerifyingKeyValueServiceDelegate(KeyValueService keyValueService, SynchronousTracker synchronousTracker) {
+        VerifyingKeyValueServiceDelegate(KeyValueService keyValueService, PathTypeTracker pathTypeTracker) {
             this.delegate = keyValueService;
-            this.synchronousTracker = synchronousTracker;
+            this.pathTypeTracker = pathTypeTracker;
         }
 
         @Override
@@ -1509,13 +1509,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         @Override
         public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-            synchronousTracker.checkInSync();
+            pathTypeTracker.checkInSync();
             return AtlasFutures.getUnchecked(delegate.getAsync(tableRef, timestampByCell));
         }
 
         @Override
         public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-            synchronousTracker.checkInAsync();
+            pathTypeTracker.checkInAsync();
             return delegate.getAsync(tableRef, timestampByCell);
         }
     }

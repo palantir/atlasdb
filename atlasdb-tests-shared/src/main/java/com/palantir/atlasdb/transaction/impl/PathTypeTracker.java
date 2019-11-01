@@ -18,15 +18,15 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Preconditions;
 
-interface SynchronousTracker extends AutoCloseable {
-    SynchronousTracker NO_OP = new SynchronousTracker() {
+interface PathTypeTracker extends AutoCloseable {
+    PathTypeTracker NO_OP = new PathTypeTracker() {
         @Override
-        public SynchronousTracker enterAsyncCall() {
+        public PathTypeTracker enterAsyncPath() {
             return this;
         }
 
         @Override
-        public SynchronousTracker exitAsyncCall() {
+        public PathTypeTracker exitAsyncPath() {
             return this;
         }
 
@@ -41,18 +41,18 @@ interface SynchronousTracker extends AutoCloseable {
         }
     };
 
-    static SynchronousTracker constructSynchronousTracker() {
-        return new SynchronousTracker() {
+    static PathTypeTracker constructSynchronousTracker() {
+        return new PathTypeTracker() {
             volatile boolean inAsyncBoolean;
 
             @Override
-            public SynchronousTracker enterAsyncCall() {
+            public PathTypeTracker enterAsyncPath() {
                 inAsyncBoolean = true;
                 return this;
             }
 
             @Override
-            public SynchronousTracker exitAsyncCall() {
+            public PathTypeTracker exitAsyncPath() {
                 inAsyncBoolean = false;
                 return this;
             }
@@ -69,9 +69,9 @@ interface SynchronousTracker extends AutoCloseable {
         };
     }
 
-    SynchronousTracker enterAsyncCall();
+    PathTypeTracker enterAsyncPath();
 
-    SynchronousTracker exitAsyncCall();
+    PathTypeTracker exitAsyncPath();
 
     void checkInAsync();
 
@@ -79,6 +79,6 @@ interface SynchronousTracker extends AutoCloseable {
 
     @Override
     default void close() {
-        exitAsyncCall();
+        exitAsyncPath();
     }
 }
