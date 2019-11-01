@@ -113,6 +113,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
     }
 
+    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
