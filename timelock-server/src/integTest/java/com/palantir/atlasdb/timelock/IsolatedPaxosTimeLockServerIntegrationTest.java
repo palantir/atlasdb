@@ -94,7 +94,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
                         PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
                         CLIENT),
                 clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
 }

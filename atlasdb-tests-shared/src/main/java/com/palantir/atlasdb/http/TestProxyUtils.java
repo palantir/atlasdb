@@ -27,7 +27,7 @@ public final class TestProxyUtils {
             .maximumConjureRemotingProbability(1.0)
             .build();
 
-    public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS
+    public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_RETRYING
             = AuxiliaryRemotingParameters.builder()
                     .shouldLimitPayload(false)
                     .userAgent(UserAgent.of(UserAgent.Agent.of("bla", "0.1.2")))

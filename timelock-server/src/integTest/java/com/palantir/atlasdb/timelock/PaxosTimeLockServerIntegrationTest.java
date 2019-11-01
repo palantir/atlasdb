@@ -121,7 +121,7 @@ public class PaxosTimeLockServerIntegrationTest {
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
