@@ -94,8 +94,8 @@ public class AtlasDbTestCase {
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 
-    private TrackingKeyValueService trackingKeyValueService(KeyValueService keyValueService) {
-        return spy(new TrackingKeyValueService(new StatsTrackingKeyValueService(keyValueService)));
+    private TrackingKeyValueService trackingKeyValueService(KeyValueService originalKeyValueService) {
+        return spy(new TrackingKeyValueService(new StatsTrackingKeyValueService(originalKeyValueService)));
     }
 
     protected TestTransactionManager constructTestTransactionManager() {
