@@ -90,7 +90,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockService lockService,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode) {
-        super(metricsManager,
+        super(
+                metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 timestampManagementService,
@@ -126,7 +127,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             ExecutorService deleteExecutor,
             WrapperWithTracker<Transaction> transactionWrapper,
             WrapperWithTracker<KeyValueService> keyValueServiceWrapper) {
-        super(metricsManager,
+        super(
+                metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 timestampManagementService,
