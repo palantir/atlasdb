@@ -472,11 +472,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
-                SortedMap<Cell, byte[]> postFiltered = getWithPostFilteringSync(
-                        tableRef,
-                        raw,
-                        ImmutableSortedMap::copyOf,
-                        Value.GET_VALUE);
+                SortedMap<Cell, byte[]> postFiltered = ImmutableSortedMap.copyOf(
+                        getWithPostFilteringSync(
+                                tableRef,
+                                raw,
+                                Value.GET_VALUE));
                 batchIterator.markNumResultsNotDeleted(postFiltered.size());
                 return postFiltered.entrySet().iterator();
             }
@@ -556,11 +556,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Map<Cell, Value> rawResults,
             ImmutableMap.Builder<Cell, byte[]> resultCollector) {
         ImmutableMap<Cell, byte[]> collected =
-                getWithPostFilteringSync(
-                        tableRef,
-                        rawResults,
-                        input -> resultCollector.putAll(input).build(),
-                        Value.GET_VALUE);
+                resultCollector.putAll(
+                        getWithPostFilteringSync(
+                                tableRef,
+                                rawResults,
+                                Value.GET_VALUE))
+                        .build();
         Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected, tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }
@@ -1127,7 +1128,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        return getWithPostFilteringSync(tableRef, rawResults, ImmutableSortedMap::copyOf, transformer);
+        return ImmutableSortedMap.copyOf(getWithPostFilteringSync(tableRef, rawResults, transformer));
     }
 
     private int estimateSize(List<RowResult<Value>> rangeRows) {
@@ -1138,18 +1139,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return estimatedSize;
     }
 
-    private <S extends Map<Cell, T>, T> S getWithPostFilteringSync(
+    private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
-            Function<Iterable<Map.Entry<Cell, T>>, S> mapFactory,
             Function<Value, T> transformer) {
-        return mapFactory.apply(AtlasFutures.getUnchecked(
+        return AtlasFutures.getUnchecked(
                 getWithPostFilteringAsync(
                         tableRef,
                         rawResults,
                         transformer,
                         immediateKeyValueService,
-                        immediateTransactionService)));
+                        immediateTransactionService));
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
