@@ -64,7 +64,7 @@ interface SynchronousTracker extends AutoCloseable {
 
             @Override
             public void checkInSync() {
-                Preconditions.checkState(inAsyncBoolean, "Not expected to be in async path");
+                Preconditions.checkState(!inAsyncBoolean, "Not expected to be in async path");
             }
         };
     }
