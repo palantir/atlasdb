@@ -111,7 +111,7 @@ public final class Leaders {
                 metricsManager,
                 config,
                 remotePaxosServerSpec,
-                () -> RemotingClientConfig.DEFAULT, // TODO (jkong): Wire this up or change it to Conjure
+                () -> RemotingClientConfig.ALWAYS_USE_LEGACY, // TODO (jkong): Wire this up or change it to Conjure
                 userAgent,
                 LeadershipObserver.NO_OP);
     }

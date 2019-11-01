@@ -44,7 +44,7 @@ import com.palantir.paxos.PaxosValue;
 public class LeadersTest {
 
     private static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("foo:1234", "bar:5678");
-    private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG = () -> RemotingClientConfig.DEFAULT;
+    private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG = () -> RemotingClientConfig.ALWAYS_USE_LEGACY;
 
     @Test
     public void canCreateProxyAndLocalListOfPaxosLearners() {
