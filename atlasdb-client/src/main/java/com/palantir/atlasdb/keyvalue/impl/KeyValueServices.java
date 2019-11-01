@@ -35,6 +35,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -214,5 +216,16 @@ public class KeyValueServices {
         // Return results in the same order as the provided rows.
         Iterable<RowColumnRangeIterator> orderedRanges = Iterables.transform(rows, rowsColumnRanges::get);
         return new LocalRowColumnRangeIterator(Iterators.concat(orderedRanges.iterator()));
+    }
+
+    /**
+     * Constructs an {@link AsyncKeyValueService} such that methods are blocking and return immediate futures.
+     *
+     * @param keyValueService on which to call synchronous requests
+     * @return {@link AsyncKeyValueService} which delegates to synchronous methods
+     */
+    public static AsyncKeyValueService synchronousAsAsyncKeyValueService(KeyValueService keyValueService) {
+        return (tableRef, timestampByCell) ->
+                Futures.immediateFuture(keyValueService.get(tableRef, timestampByCell));
     }
 }
