@@ -38,10 +38,6 @@ public abstract class WriteReference {
         return ImmutableCellReference.builder().tableRef(tableRef()).cell(cell()).build();
     }
 
-    public static final WriteReference DUMMY = WriteReference.of(
-            TableReference.createFromFullyQualifiedName("dum.my"),
-            Cell.create(new byte[] {0}, new byte[] {0}), false);
-
     public static WriteReference tombstone(TableReference tableRef, Cell cell) {
         return WriteReference.of(tableRef, cell, true);
     }
