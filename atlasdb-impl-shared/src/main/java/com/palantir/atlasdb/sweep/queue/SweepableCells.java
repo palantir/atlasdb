@@ -68,6 +68,10 @@ public class SweepableCells extends SweepQueueTable {
     private final CommitTsCache commitTsCache;
     private final WriteReferencePersister writeReferencePersister;
 
+    private static final WriteReference DUMMY = WriteReference.of(
+            TableReference.createFromFullyQualifiedName("dum.my"),
+            Cell.create(new byte[] {0}, new byte[] {0}), false);
+
     public SweepableCells(
             KeyValueService kvs,
             WriteInfoPartitioner partitioner,
@@ -102,7 +106,7 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     private Map<Cell, byte[]> addReferenceToDedicatedRows(PartitionInfo info, List<WriteInfo> writes) {
-        return addCell(info, WriteReference.DUMMY, false, 0, entryIndicatingNumberOfRequiredRows(writes));
+        return addCell(info, DUMMY, false, 0, entryIndicatingNumberOfRequiredRows(writes));
     }
 
     private long entryIndicatingNumberOfRequiredRows(List<WriteInfo> writes) {
