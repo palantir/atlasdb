@@ -89,17 +89,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
     private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
-    private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
-    private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
-    private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
-    private static final String ASYNC = "async";
-    private static final String SYNC = "sync";
-    private static final String CASSANDRA_DEFAULT_TABLE_NAME = "ns__default_table";
-    private static final String ATLAS_DEFAULT_TABLE_NAME = "ns.default_table";
-    private final String name;
-    private static final byte[] DEFAULT_TABLE_METADATA = {10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1,
-            48, 1, 24, 0, 18, 30, 18, 28, 10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1, 48, 1, 24, 0,
-            18, 6, 8, 4, 24, 1, 32, 3, 24, 2, 32, 64, 48, 0, 64, 0, 72, 1, 88, 0, 96, 0};
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -116,6 +105,20 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
             CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
             logger));
+
+    private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
+    private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
+    private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
+    private static final String ASYNC = "async";
+    private static final String SYNC = "sync";
+    private static final String CASSANDRA_DEFAULT_TABLE_NAME = "ns__default_table";
+    private static final String ATLAS_DEFAULT_TABLE_NAME = "ns.default_table";
+
+    private static final byte[] DEFAULT_TABLE_METADATA = {10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1,
+            48, 1, 24, 0, 18, 30, 18, 28, 10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1, 48, 1, 24, 0,
+            18, 6, 8, 4, 24, 1, 32, 3, 24, 2, 32, 64, 48, 0, 64, 0, 72, 1, 88, 0, 96, 0};
+
+    private final String name;
 
     public CassandraKeyValueServiceIntegrationTest(
             String name,
@@ -170,13 +173,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         List<CfDef> cfDefs = ((CassandraKeyValueService) keyValueService).getClientPool()
                 .run(client -> client.describe_keyspace(keyspace).getCf_defs());
-        CfDef defaultCfDef = cfDefs.stream()
+        List<CfDef> matches = cfDefs.stream()
                 .filter(cfDef -> cfDef.name.equals(CASSANDRA_DEFAULT_TABLE_NAME))
-                .findFirst()
-                .get();
+                .collect(Collectors.toList());
 
-        assertThat(defaultCfDef)
-                .isEqualTo(expectedCfDef);
+        assertThat(matches).containsExactly(expectedCfDef);
     }
 
     @Test
@@ -222,8 +223,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             kvs = getUnderlyingKvs(keyValueService);
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(NEVER_SEEN);
-            assertThat(delegate instanceof CassandraKeyValueService)
-                    .isTrue();
+            assertThat(delegate).as("The nesting of Key Value Services has apparently changed")
+                    .isInstanceOf(CassandraKeyValueService.class);
+
             kvs = (CassandraKeyValueServiceImpl) delegate;
         } else {
             throw getUnrecognizedKeyValueServiceException();
@@ -241,6 +243,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ColumnFamilyDefinitions.isMatchingCf(
                         kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS),
                         clusterSideCf))
+                .as("After serialization and deserialization to database, Cf metadata did not match.")
                 .isTrue();
     }
 
@@ -550,7 +553,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private static class AsyncDelegate implements AutoDelegate_CassandraKeyValueService {
-
         private final CassandraKeyValueService delegate;
 
         AsyncDelegate(CassandraKeyValueService cassandraKeyValueService) {
