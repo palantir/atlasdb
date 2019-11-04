@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: The default RemontigClientConfig has been changed so that AtlasDB clients
+    now use conjure java runtime without fallbacks to the legacy client.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4377
