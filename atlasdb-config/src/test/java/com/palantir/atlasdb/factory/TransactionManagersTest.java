@@ -472,7 +472,7 @@ public class TransactionManagersTest {
         assertThatTimeAndLockMetricsWithTagsAreRecorded(
                 TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC,
-                LEGACY_CLIENT_TAGS);
+                CLIENT_TAGS);
     }
 
     @Test
