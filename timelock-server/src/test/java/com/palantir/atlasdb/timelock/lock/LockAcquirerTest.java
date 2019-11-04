@@ -60,7 +60,7 @@ public class LockAcquirerTest {
     private final LockAcquirer lockAcquirer = new LockAcquirer(
             new LockLog(new MetricRegistry(), () -> 2L),
             executor,
-            leaderClock);
+            leaderClock, lockWatcher);
 
     @Test
     public void acquiresLocksInOrder() {

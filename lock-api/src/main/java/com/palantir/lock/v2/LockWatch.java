@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockWatch.class)
@@ -32,4 +33,16 @@ public interface LockWatch {
 
     @Value.Parameter
     boolean fromCommittedTransaction();
+
+    static LockWatch committed(long timestamp) {
+        return ImmutableLockWatch.of(timestamp, true);
+    }
+
+    static LockWatch uncommitted(long timestamp) {
+        return ImmutableLockWatch.of(timestamp, false);
+    }
+
+    static LockWatch latest(LockWatch first, LockWatch second) {
+        return first.timestamp() > second.timestamp() ? first : second;
+    }
 }

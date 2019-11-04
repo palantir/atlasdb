@@ -68,7 +68,7 @@ public class AsyncLockServiceEteTest {
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
                     Executors.newSingleThreadScheduledExecutor(),
-                    clock),
+                    clock, lockWatcher),
             HeldLocksCollection.create(clock),
             new AwaitedLocksCollection(),
             executor,

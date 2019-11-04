@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
@@ -47,7 +48,8 @@ public class HeldLocksCollectionTest {
     private AtomicLong atomicLong = new AtomicLong(1);
     private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, atomicLong::incrementAndGet);
     private LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> time.get());
-    private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(leaderClock);
+    private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(leaderClock,
+            mock(LockWatcher.class));
 
     @Test
     public void callsSupplierForNewRequest() {

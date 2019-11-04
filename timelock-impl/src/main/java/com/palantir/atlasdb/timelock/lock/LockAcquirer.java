@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,23 +34,36 @@ public class LockAcquirer implements AutoCloseable {
     private final LockLog lockLog;
     private final ScheduledExecutorService timeoutExecutor;
     private final LeaderClock leaderClock;
+    private final LockWatcher lockWatcher;
 
     public LockAcquirer(LockLog lockLog,
             ScheduledExecutorService timeoutExecutor,
-            LeaderClock leaderClock) {
+            LeaderClock leaderClock,
+            LockWatcher lockWatcher) {
         this.lockLog = lockLog;
         this.timeoutExecutor = timeoutExecutor;
         this.leaderClock = leaderClock;
+        this.lockWatcher = lockWatcher;
     }
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
-        return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId)).execute()
-                .map(ignored -> new HeldLocks(lockLog, locks.get(), requestId, leaderClock));
+        return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId))
+                .execute()
+                .map(ignored -> {
+                    HeldLocks heldLocks = new HeldLocks(lockLog, locks.get(), requestId, leaderClock);
+                    registerLock(heldLocks);
+                    return heldLocks;
+                });
+    }
+
+    private void registerLock(HeldLocks heldLocks) {
+        lockWatcher.registerLock(
+                heldLocks.getLocks().stream().map(AsyncLock::getDescriptor).collect(Collectors.toSet()),
+                heldLocks.getToken());
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
-        return new Acquisition(requestId, locks, timeout, lock -> lock.waitUntilAvailable(requestId))
-                .execute();
+        return new Acquisition(requestId, locks, timeout, lock -> lock.waitUntilAvailable(requestId)).execute();
     }
 
     @Override
@@ -62,7 +76,6 @@ public class LockAcquirer implements AutoCloseable {
         private final OrderedLocks locks;
         private final TimeLimit timeout;
         private final Function<AsyncLock, AsyncResult<Void>> lockFunction;
-
         private AsyncResult<Void> result;
 
         Acquisition(
@@ -80,7 +93,6 @@ public class LockAcquirer implements AutoCloseable {
             acquireLocks();
             registerCompletionHandlers();
             scheduleTimeout();
-
             return result;
         }
 

@@ -32,6 +32,8 @@ import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lock.LockWatcher;
+import com.palantir.atlasdb.timelock.lock.LockWatcherImpl;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
@@ -95,8 +97,14 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .setNameFormat("async-lock-timeouts-" + client + "-%d")
                         .setDaemon(true)
                         .build()), metricsManager.getRegistry(), "async-lock-timeouts");
+        LockWatcher lockWatcher = new LockWatcherImpl(timestampServiceSupplier.get()::getFreshTimestamp);
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(lockLog, reaperExecutor, timeoutExecutor, rateLimitConfig(client)),
+                AsyncLockService.createDefault(
+                        lockLog,
+                        reaperExecutor,
+                        timeoutExecutor,
+                        rateLimitConfig(client),
+                        lockWatcher),
                 timestampServiceSupplier.get());
     }
 
