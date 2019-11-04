@@ -32,7 +32,7 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
-import com.palantir.atlasdb.config.RemotingClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory;
@@ -96,7 +96,7 @@ class PaxosLeadershipCreator {
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
-                () -> RemotingClientConfig.ALWAYS_USE_CONJURE,
+                () -> RemotingClientConfigs.ALWAYS_USE_CONJURE,
                 UserAgent.of(UserAgent.Agent.of("leader-election-service", UserAgent.Agent.DEFAULT_VERSION)),
                 leadershipObserver);
         leaderElectionService = localPaxosServices.leaderElectionService();

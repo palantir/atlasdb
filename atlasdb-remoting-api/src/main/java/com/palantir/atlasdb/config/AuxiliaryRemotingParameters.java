@@ -39,7 +39,7 @@ public interface AuxiliaryRemotingParameters {
 
     @Value.Default
     default Supplier<RemotingClientConfig> remotingClientConfig() {
-        return () -> RemotingClientConfig.ALWAYS_USE_LEGACY;
+        return () -> RemotingClientConfigs.ALWAYS_USE_LEGACY;
     }
 
     static ImmutableAuxiliaryRemotingParameters.Builder builder() {

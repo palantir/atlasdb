@@ -26,7 +26,7 @@ import org.immutables.value.Value;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.config.RemotingClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -105,7 +105,7 @@ public abstract class PaxosRemoteClients {
                                 .userAgent(UserAgents.tryParse(name))
                                 .shouldLimitPayload(false)
                                 .shouldRetry(shouldRetry)
-                                .remotingClientConfig(() -> RemotingClientConfig.ALWAYS_USE_CONJURE)
+                                .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
                                 .build()))
                 .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         metrics(),

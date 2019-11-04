@@ -43,6 +43,7 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.RemotingClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -111,7 +112,7 @@ public final class Leaders {
                 metricsManager,
                 config,
                 remotePaxosServerSpec,
-                () -> RemotingClientConfig.ALWAYS_USE_LEGACY, // TODO (jkong): Wire this up or change it to Conjure
+                () -> RemotingClientConfigs.ALWAYS_USE_LEGACY, // TODO (jkong): Wire this up or change it to Conjure
                 userAgent,
                 LeadershipObserver.NO_OP);
     }

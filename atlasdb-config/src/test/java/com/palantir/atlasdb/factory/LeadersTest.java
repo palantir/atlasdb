@@ -35,6 +35,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.RemotingClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.PaxosAcceptor;
@@ -44,7 +45,8 @@ import com.palantir.paxos.PaxosValue;
 public class LeadersTest {
 
     private static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("foo:1234", "bar:5678");
-    private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG = () -> RemotingClientConfig.ALWAYS_USE_LEGACY;
+    private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG
+            = () -> RemotingClientConfigs.ALWAYS_USE_CONJURE;
 
     @Test
     public void canCreateProxyAndLocalListOfPaxosLearners() {
