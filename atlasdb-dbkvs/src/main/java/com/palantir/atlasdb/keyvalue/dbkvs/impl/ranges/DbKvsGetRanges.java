@@ -35,6 +35,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -45,9 +46,12 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PrefixedTableNames;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableMetadataCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.collect.IterableView;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
@@ -336,6 +340,36 @@ public class DbKvsGetRanges {
 
     private String getPrefixedTableName(TableReference tableRef, ConnectionSupplier conns) {
         return prefixedTableNames.get(tableRef, conns);
+    }
+
+    public static int getMaxCellsPerPage(TableReference tableRef,
+            RangeRequest rangeRequest,
+            int maxRowsPerPage,
+            SqlConnectionSupplier connectionPool,
+            TableMetadataCache tableMetadataCache) {
+
+        int approxCellsPerRow;
+        if (!rangeRequest.getColumnNames().isEmpty()) {
+            approxCellsPerRow = rangeRequest.getColumnNames().size();
+        } else {
+            TableMetadata metadata = getTableMetadataUsingNewConnection(tableRef, connectionPool, tableMetadataCache);
+            if (metadata.getColumns().hasDynamicColumns()) {
+                approxCellsPerRow = 100;
+            } else {
+                approxCellsPerRow = Math.max(1, metadata.getColumns().getNamedColumns().size());
+            }
+        }
+
+        return Math.min(AtlasDbPerformanceConstants.MAX_BATCH_SIZE, maxRowsPerPage * approxCellsPerRow) + 1;
+    }
+
+    private static TableMetadata getTableMetadataUsingNewConnection(
+            TableReference tableRef,
+            SqlConnectionSupplier connectionPool,
+            TableMetadataCache tableMetadataCache) {
+        try (ConnectionSupplier conns = new ConnectionSupplier(connectionPool)) {
+            return tableMetadataCache.getTableMetadata(tableRef, conns);
+        }
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
