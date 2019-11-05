@@ -14,19 +14,32 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.transaction.api;
 
 import java.util.Map;
 import java.util.Set;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockWatch;
-import com.palantir.lock.v2.LockWatchId;
 
 public interface TransactionLockWatchingService {
     LockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames);
     void deregisterWatches(TableReference tableRef, Set<byte[]> rowNames);
     Map<LockDescriptor, LockWatch> getLockWatchState();
+
+    class AlwaysThrowingTransactionLockWatchingService implements TransactionLockWatchingService {
+        @Override
+        public LockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames) {
+            throw new UnsupportedOperationException("This LockWatchingService does not support this operation.");
+        }
+        @Override
+        public void deregisterWatches(TableReference tableRef, Set<byte[]> rowNames) {
+            throw new UnsupportedOperationException("This LockWatchingService does not support this operation.");
+        }
+        @Override
+        public Map<LockDescriptor, LockWatch> getLockWatchState() {
+            throw new UnsupportedOperationException("This LockWatchingService does not support this operation.");
+        }
+    }
 }

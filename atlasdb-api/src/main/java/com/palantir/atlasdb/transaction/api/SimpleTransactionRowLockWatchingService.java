@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.transaction.api;
 
 import java.util.Map;
 import java.util.Set;
@@ -26,10 +26,16 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockWatch;
+import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
 
 public class SimpleTransactionRowLockWatchingService implements TransactionLockWatchingService {
     private final UUID serviceId = UUID.randomUUID();
-    private final NamespacedLockWatchingRpcClient rpcClient = null;
+    private final NamespacedLockWatchingRpcClient rpcClient;
+
+    public SimpleTransactionRowLockWatchingService(NamespacedLockWatchingRpcClient rpcClient) {
+        this.rpcClient = rpcClient;
+    }
 
     @Override
     public LockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames) {

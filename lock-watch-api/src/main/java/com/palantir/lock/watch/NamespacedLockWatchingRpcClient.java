@@ -31,15 +31,15 @@ public class NamespacedLockWatchingRpcClient {
         this.lockWatchingRpcClient = lockWatchingRpcClient;
     }
 
-    void startWatching(LockWatchRequest lockWatchRequest) {
+    public void startWatching(LockWatchRequest lockWatchRequest) {
         lockWatchingRpcClient.startWatching(namespace, lockWatchRequest);
     }
 
-    void stopWatching(LockWatchRequest lockWatchRequest) {
+    public void stopWatching(LockWatchRequest lockWatchRequest) {
         lockWatchingRpcClient.stopWatching(namespace, lockWatchRequest);
     }
 
-    Map<LockDescriptor, LockWatch> getWatchState(UUID serviceId) {
+    public Map<LockDescriptor, LockWatch> getWatchState(UUID serviceId) {
         return lockWatchingRpcClient.getWatchState(namespace, serviceId);
     }
 }

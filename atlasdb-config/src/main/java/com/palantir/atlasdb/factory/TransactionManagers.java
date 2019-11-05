@@ -118,6 +118,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.SimpleTransactionRowLockWatchingService;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchingService;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -158,6 +160,8 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchingRpcClient;
+import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -445,6 +449,7 @@ public abstract class TransactionManagers {
                         callbacks,
                         validateLocksOnReads(),
                         transactionConfigSupplier,
+                        lockAndTimestampServices.lockWatcher(),
                         lockWatchingCache()),
                 closeables);
 
@@ -959,16 +964,24 @@ public abstract class TransactionManagers {
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
+
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
                 = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 creator.createService(TimestampManagementRpcClient.class), timelockNamespace);
+
+        LockWatchingRpcClient lockWatchingClient = creator.createService(LockWatchingRpcClient.class);
+        NamespacedLockWatchingRpcClient namespacedLockWatchingClient = new NamespacedLockWatchingRpcClient(
+                timelockNamespace, lockWatchingClient);
+        TransactionLockWatchingService lockWatchingService = new SimpleTransactionRowLockWatchingService(
+                namespacedLockWatchingClient);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
                 .timelock(remoteTimelockServiceAdapter)
+                .lockWatcher(lockWatchingService)
                 .close(remoteTimelockServiceAdapter::close)
                 .build();
     }
@@ -1151,6 +1164,11 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagement();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
+
+        @Value.Default
+        default TransactionLockWatchingService lockWatcher() {
+            return new TransactionLockWatchingService.AlwaysThrowingTransactionLockWatchingService();
+        }
 
         @Value.Derived
         default ManagedTimestampService managedTimestampService() {

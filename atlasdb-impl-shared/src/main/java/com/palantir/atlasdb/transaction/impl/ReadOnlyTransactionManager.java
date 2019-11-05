@@ -30,6 +30,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchingService;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -169,6 +170,11 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     @Override
     public TimelockService getTimelockService() {
         return null;
+    }
+
+    @Override
+    public TransactionLockWatchingService getLockWatchingService() {
+        throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 
     @Override

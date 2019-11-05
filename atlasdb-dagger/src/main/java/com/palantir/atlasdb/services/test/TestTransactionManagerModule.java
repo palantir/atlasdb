@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchingService;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -118,6 +119,7 @@ public class TestTransactionManagerModule {
                 PTExecutors.newSingleThreadExecutor(true),
                 true,
                 () -> config.atlasDbRuntimeConfig().transaction(),
+                new TransactionLockWatchingService.AlwaysThrowingTransactionLockWatchingService(),
                 NoOpLockWatchingCache.INSTANCE);
     }
 

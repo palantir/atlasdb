@@ -35,6 +35,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchingService;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -219,6 +220,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
+            TransactionLockWatchingService lockWatchingService,
             LockWatchingCache lockWatchingCache) {
 
         return create(metricsManager,
@@ -244,6 +246,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 true,
+                lockWatchingService,
                 lockWatchingCache);
     }
 
@@ -268,6 +271,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
+            TransactionLockWatchingService lockWatchingService,
             LockWatchingCache lockWatchingCache) {
 
         return create(metricsManager,
@@ -292,6 +296,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
                 transactionConfig,
+                lockWatchingService,
                 lockWatchingCache);
     }
 
@@ -317,6 +322,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
+            TransactionLockWatchingService lockWatchingService,
             LockWatchingCache lockWatchingCache) {
         return create(
                 metricsManager,
@@ -341,6 +347,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 false,
+                lockWatchingService,
                 lockWatchingCache);
     }
 
@@ -367,6 +374,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             boolean shouldInstrument,
+            TransactionLockWatchingService lockWatchingService,
             LockWatchingCache lockWatchingCache) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
@@ -387,6 +395,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
                 transactionConfig,
+                lockWatchingService,
                 lockWatchingCache);
 
         if (shouldInstrument) {
@@ -419,6 +428,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
+            TransactionLockWatchingService lockWatchingService,
             LockWatchingCache lockWatchingCache) {
         return new SerializableTransactionManager(
                 metricsManager,
@@ -439,6 +449,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
+                lockWatchingService,
                 lockWatchingCache);
     }
 
@@ -460,6 +471,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
+            TransactionLockWatchingService lockWatchingService,
             LockWatchingCache lockWatchingCache) {
         super(
                 metricsManager,
@@ -480,6 +492,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
+                lockWatchingService,
                 lockWatchingCache);
     }
 

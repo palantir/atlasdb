@@ -315,6 +315,8 @@ public interface TransactionManager extends AutoCloseable {
      */
     TimelockService getTimelockService();
 
+    TransactionLockWatchingService getLockWatchingService();
+
     /**
      * Returns the timestamp service used by this transaction manager.
      *

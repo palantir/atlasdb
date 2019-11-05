@@ -46,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchingService;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -285,6 +286,7 @@ public class SerializableTransactionManagerTest {
                 executor,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
+                new TransactionLockWatchingService.AlwaysThrowingTransactionLockWatchingService(),
                 NoOpLockWatchingCache.INSTANCE);
     }
 

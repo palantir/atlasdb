@@ -47,6 +47,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchingService;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -83,6 +84,7 @@ import com.palantir.timestamp.TimestampService;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
     final Supplier<TransactionConfig> transactionConfig;
+    final TransactionLockWatchingService lockWatchingService;
     final LockWatchingCache lockWatchingCache;
 
     final List<Runnable> closingCallbacks;
@@ -107,6 +109,7 @@ import com.palantir.timestamp.TimestampService;
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
+            TransactionLockWatchingService lockWatchingService,
             LockWatchingCache lockWatchingCache) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
@@ -129,6 +132,7 @@ import com.palantir.timestamp.TimestampService;
         this.deleteExecutor = deleteExecutor;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.lockWatchingService = lockWatchingService;
         this.lockWatchingCache = lockWatchingCache;
     }
 
@@ -381,6 +385,11 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TimelockService getTimelockService() {
         return timelockService;
+    }
+
+    @Override
+    public TransactionLockWatchingService getLockWatchingService() {
+        return lockWatchingService;
     }
 
     /**

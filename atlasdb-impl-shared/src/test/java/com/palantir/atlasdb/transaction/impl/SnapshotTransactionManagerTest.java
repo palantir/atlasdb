@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchingService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -87,6 +88,7 @@ public class SnapshotTransactionManagerTest {
             executorService,
             true,
             () -> ImmutableTransactionConfig.builder().build(),
+            new TransactionLockWatchingService.AlwaysThrowingTransactionLockWatchingService(),
             NoOpLockWatchingCache.INSTANCE);
 
     @Test
@@ -135,6 +137,7 @@ public class SnapshotTransactionManagerTest {
                 executorService,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
+                new TransactionLockWatchingService.AlwaysThrowingTransactionLockWatchingService(),
                 NoOpLockWatchingCache.INSTANCE);
         newTransactionManager.close(); // should not throw
     }
@@ -228,6 +231,7 @@ public class SnapshotTransactionManagerTest {
                 () -> ImmutableTransactionConfig.builder()
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
                         .build(),
+                new TransactionLockWatchingService.AlwaysThrowingTransactionLockWatchingService(),
                 NoOpLockWatchingCache.INSTANCE);
     }
 }

@@ -33,6 +33,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchingService;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -78,6 +79,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 deleteExecutor,
                 true,
                 () -> TRANSACTION_CONFIG,
+                new TransactionLockWatchingService.AlwaysThrowingTransactionLockWatchingService(),
                 NoOpLockWatchingCache.INSTANCE);
     }
 
@@ -108,6 +110,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 MoreExecutors.newDirectExecutorService(),
                 true,
                 () -> TRANSACTION_CONFIG,
+                new TransactionLockWatchingService.AlwaysThrowingTransactionLockWatchingService(),
                 NoOpLockWatchingCache.INSTANCE);
     }
 

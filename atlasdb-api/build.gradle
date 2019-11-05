@@ -4,6 +4,7 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   compile project(":atlasdb-commons")
   compile project(":lock-api")
+  compile project(":lock-watch-api")
   compile project(":timestamp-api")
   compile group: 'org.apache.commons', name: 'commons-lang3'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
@@ -23,6 +24,8 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
+
+  compile group: 'com.palantir.common', name: 'streams'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.assertj', name: 'assertj-core'

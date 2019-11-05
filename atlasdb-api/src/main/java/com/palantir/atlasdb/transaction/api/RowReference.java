@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.transaction.api;
 
 import org.immutables.value.Value;
 
