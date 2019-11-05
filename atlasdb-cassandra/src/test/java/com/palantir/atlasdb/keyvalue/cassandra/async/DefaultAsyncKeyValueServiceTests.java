@@ -46,7 +46,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryPa
 import com.palantir.common.random.RandomBytes;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AsyncCellLoaderTests {
+public class DefaultAsyncKeyValueServiceTests {
     private static final String KEYSPACE = "test";
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "foo");
     // tests are imagined as if the visible data has a timestamp lower than 20 and non visible data has timestamp higher
@@ -59,18 +59,21 @@ public class AsyncCellLoaderTests {
             .tableReference(TABLE)
             .build();
 
-    private AsyncCellLoader asyncCellLoader;
+    private DefaultAsyncKeyValueService asyncKeyValueService;
     @Mock
     private CqlClient cqlClient;
 
     @Before
     public void setUp() {
-        asyncCellLoader = AsyncCellLoader.create(KEYSPACE, cqlClient, MoreExecutors.newDirectExecutorService());
+        asyncKeyValueService = DefaultAsyncKeyValueService.create(
+                KEYSPACE,
+                cqlClient,
+                MoreExecutors.newDirectExecutorService());
     }
 
     @After
     public void tearDown() {
-        asyncCellLoader.close();
+        asyncKeyValueService.close();
     }
 
     @Test
@@ -78,7 +81,7 @@ public class AsyncCellLoaderTests {
         setUpNonVisibleCells(NON_VISIBLE_CELL);
 
         Map<Cell, Long> request = ImmutableMap.of(NON_VISIBLE_CELL, TIMESTAMP);
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
+        Map<Cell, Value> result = asyncKeyValueService.getAsync(TABLE, request).get();
 
         assertThat(result).isEmpty();
     }
@@ -91,7 +94,7 @@ public class AsyncCellLoaderTests {
         Map<Cell, Long> request = ImmutableMap.of(
                 NON_VISIBLE_CELL, TIMESTAMP,
                 VISIBLE_CELL_1, TIMESTAMP);
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
+        Map<Cell, Value> result = asyncKeyValueService.getAsync(TABLE, request).get();
 
         assertThat(result).containsOnlyKeys(VISIBLE_CELL_1);
     }
@@ -103,7 +106,7 @@ public class AsyncCellLoaderTests {
         Map<Cell, Long> request = ImmutableMap.of(
                 VISIBLE_CELL_1, TIMESTAMP,
                 VISIBLE_CELL_2, TIMESTAMP);
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
+        Map<Cell, Value> result = asyncKeyValueService.getAsync(TABLE, request).get();
 
         assertThat(result).containsOnlyKeys(VISIBLE_CELL_1, VISIBLE_CELL_2);
     }

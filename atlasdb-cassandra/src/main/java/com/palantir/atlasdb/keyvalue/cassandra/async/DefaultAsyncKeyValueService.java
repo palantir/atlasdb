@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -37,24 +38,25 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 
-public final class AsyncCellLoader implements AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(AsyncCellLoader.class);
+public final class DefaultAsyncKeyValueService implements AsyncKeyValueService {
+    private static final Logger log = LoggerFactory.getLogger(DefaultAsyncKeyValueService.class);
 
     private final CqlClient cqlClient;
     private final ExecutorService executorService;
     private final String keyspace;
 
-    public static AsyncCellLoader create(String keyspace, CqlClient cqlClient, ExecutorService executorService) {
-        return new AsyncCellLoader(keyspace, cqlClient, executorService);
+    public static DefaultAsyncKeyValueService create(String keyspace, CqlClient cqlClient,
+            ExecutorService executorService) {
+        return new DefaultAsyncKeyValueService(keyspace, cqlClient, executorService);
     }
 
-    private AsyncCellLoader(String keyspace, CqlClient cqlClient, ExecutorService executorService) {
+    private DefaultAsyncKeyValueService(String keyspace, CqlClient cqlClient, ExecutorService executorService) {
         this.cqlClient = cqlClient;
         this.executorService = executorService;
         this.keyspace = keyspace;
     }
 
-    public ListenableFuture<Map<Cell, Value>> loadAllWithTimestamp(
+    public ListenableFuture<Map<Cell, Value>> getAsync(
             TableReference tableReference,
             Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
@@ -65,13 +67,13 @@ public final class AsyncCellLoader implements AutoCloseable {
         }
 
         Map<Cell, ListenableFuture<Optional<Value>>> cellListenableFutureMap = KeyedStream.stream(timestampByCell)
-                .map((cell, timestamp) -> loadCellWithTimestamp(tableReference, cell, timestamp))
+                .map((cell, timestamp) -> getCellAsync(tableReference, cell, timestamp))
                 .collectToMap();
 
         return AtlasFutures.allAsMap(cellListenableFutureMap, executorService);
     }
 
-    private ListenableFuture<Optional<Value>> loadCellWithTimestamp(
+    private ListenableFuture<Optional<Value>> getCellAsync(
             TableReference tableReference,
             Cell cell,
             long timestamp) {

@@ -76,6 +76,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -98,8 +99,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
-import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncCellLoader;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultAsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -218,7 +219,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
-    private final AsyncCellLoader asyncCellLoader;
+    private final AsyncKeyValueService asyncKeyValueService;
     private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
@@ -430,7 +431,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
-        this.asyncCellLoader = AsyncCellLoader.create(
+        this.asyncKeyValueService = DefaultAsyncKeyValueService.create(
                 config.getKeyspaceOrThrow(), cqlClient,
                 createInstrumentedDynamicThreadPool(
                         0,
@@ -1698,7 +1699,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
-        asyncCellLoader.close();
+        asyncKeyValueService.close();
         try {
             log.info("Trying to close a CQL client");
             cqlClient.close();
@@ -1978,7 +1979,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return Futures.immediateFuture(ImmutableMap.of());
         }
 
-        return asyncCellLoader.loadAllWithTimestamp(tableRef, timestampByCell);
+        return asyncKeyValueService.getAsync(tableRef, timestampByCell);
     }
 
     private static class TableCellAndValue {
