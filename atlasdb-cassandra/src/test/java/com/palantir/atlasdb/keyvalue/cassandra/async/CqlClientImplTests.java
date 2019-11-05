@@ -35,7 +35,7 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowStreamAccumulator;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowAccumulator;
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -53,7 +53,7 @@ public class CqlClientImplTests {
     @Mock
     AsyncResultSet asyncResultSet;
     @Mock
-    RowStreamAccumulator<Integer> accumulator;
+    RowAccumulator<Integer> accumulator;
 
     private CqlClientImpl cqlClient;
 
@@ -68,7 +68,7 @@ public class CqlClientImplTests {
         when(statement.setConsistencyLevel(any())).thenReturn(statement);
         when(statementPreparer.prepare(any())).thenReturn(preparedStatement);
         when(cqlSession.executeAsync(statement)).thenReturn(CompletableFuture.completedFuture(asyncResultSet));
-        when(cqlQuerySpec.rowStreamAccumulator()).thenReturn(accumulator);
+        when(cqlQuerySpec.rowAccumulator()).thenReturn(accumulator);
         when(asyncResultSet.currentPage()).thenReturn(null);
     }
 
