@@ -70,6 +70,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -94,8 +95,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
     private static final String ASYNC = "async";
     private static final String SYNC = "sync";
-    private static final String CASSANDRA_DEFAULT_TABLE_NAME = "ns__default_table";
-    private static final String ATLAS_DEFAULT_TABLE_NAME = "ns.default_table";
+    private static final TableReference ATLAS_DEFAULT_TABLE_REFERENCE =
+            TableReference.createFromFullyQualifiedName("ns.default_table");
+    private static final String CASSANDRA_DEFAULT_TABLE_NAME =
+            AbstractKeyValueService.internalTableName(ATLAS_DEFAULT_TABLE_REFERENCE);
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -151,8 +154,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         String keyspace = CASSANDRA.getConfig().getKeyspaceOrThrow();
         CfDef expectedCfDef = createDefaultCfDef(keyspace, CASSANDRA_DEFAULT_TABLE_NAME);
 
-        TableReference tableReference = TableReference.createFromFullyQualifiedName(ATLAS_DEFAULT_TABLE_NAME);
-        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(ATLAS_DEFAULT_TABLE_REFERENCE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         List<CfDef> cfDefs = ((CassandraKeyValueService) keyValueService).getClientPool()
                 .run(client -> client.describe_keyspace(keyspace).getCf_defs());
