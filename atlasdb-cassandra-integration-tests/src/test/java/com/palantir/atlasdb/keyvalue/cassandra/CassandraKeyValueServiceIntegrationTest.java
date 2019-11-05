@@ -89,6 +89,16 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
     private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
+    private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
+    private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
+    private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
+    private static final String ASYNC = "async";
+    private static final String SYNC = "sync";
+    private static final String CASSANDRA_DEFAULT_TABLE_NAME = "ns__default_table";
+    private static final String ATLAS_DEFAULT_TABLE_NAME = "ns.default_table";
+    private static final byte[] DEFAULT_TABLE_METADATA = {10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1,
+            48, 1, 24, 0, 18, 30, 18, 28, 10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1, 48, 1, 24, 0,
+            18, 6, 8, 4, 24, 1, 32, 3, 24, 2, 32, 64, 48, 0, 64, 0, 72, 1, 88, 0, 96, 0};
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -98,25 +108,12 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         };
         return Arrays.asList(data);
     }
-
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
             MetricsManagers.createForTests(),
             getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
             CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
             logger));
-
-    private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
-    private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
-    private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
-    private static final String ASYNC = "async";
-    private static final String SYNC = "sync";
-    private static final String CASSANDRA_DEFAULT_TABLE_NAME = "ns__default_table";
-    private static final String ATLAS_DEFAULT_TABLE_NAME = "ns.default_table";
-
-    private static final byte[] DEFAULT_TABLE_METADATA = {10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1,
-            48, 1, 24, 0, 18, 30, 18, 28, 10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1, 48, 1, 24, 0,
-            18, 6, 8, 4, 24, 1, 32, 3, 24, 2, 32, 64, 48, 0, 64, 0, 72, 1, 88, 0, 96, 0};
 
     private final String name;
 
