@@ -33,7 +33,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.LockWatch;
 
-public class LockWatcherImplTest {
+public class LockWatchingServiceImplTest {
     private static final long DEFAULT_TIMESTAMP = 1L;
     private static final UUID SERVICE = UUID.randomUUID();
     private static final UUID SERVICE_2 = UUID.randomUUID();
@@ -45,7 +45,7 @@ public class LockWatcherImplTest {
     private final AtomicLong timestamps = new AtomicLong();
     private final LongSupplier timestampSupplier = timestamps::getAndIncrement;
 
-    private final LockWatcher lockWatcher = new LockWatcherImpl(timestampSupplier);
+    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(timestampSupplier);
 
     @Before
     public void setup() {
@@ -55,7 +55,7 @@ public class LockWatcherImplTest {
     @Test
     public void canWatchLock() {
         startWatch(SERVICE, LOCK);
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactly(entry(LOCK, LockWatch.INVALID));
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactly(entry(LOCK, LockWatch.INVALID));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class LockWatcherImplTest {
         startWatch(SERVICE, LOCK, LOCK_2);
         startWatch(SERVICE, LOCK_2, LOCK_3);
 
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
                 LOCK, LockWatch.INVALID,
                 LOCK_2, LockWatch.INVALID,
                 LOCK_3, LockWatch.INVALID));
@@ -72,29 +72,29 @@ public class LockWatcherImplTest {
     @Test
     public void canRegisterLock() {
         startWatch(SERVICE, LOCK);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK), TOKEN);
 
-        assertThat(lockWatcher.getWatchState(SERVICE))
+        assertThat(lockWatchingService.getWatchState(SERVICE))
                 .containsExactly(entry(LOCK, LockWatch.uncommitted(DEFAULT_TIMESTAMP)));
     }
 
     @Test
     public void canRegisterUnlock() {
         startWatch(SERVICE, LOCK);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK), TOKEN);
 
         timestampSupplier.getAsLong();
-        lockWatcher.registerUnlock(TOKEN);
-        assertThat(lockWatcher.getWatchState(SERVICE))
+        lockWatchingService.registerUnlock(TOKEN);
+        assertThat(lockWatchingService.getWatchState(SERVICE))
                 .containsExactly(entry(LOCK, LockWatch.committed(DEFAULT_TIMESTAMP)));
     }
 
     @Test
     public void canOnlySeeRegisteredWatches() {
         startWatch(SERVICE, LOCK);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
 
-        assertThat(lockWatcher.getWatchState(SERVICE))
+        assertThat(lockWatchingService.getWatchState(SERVICE))
                 .containsExactly(entry(LOCK, LockWatch.uncommitted(DEFAULT_TIMESTAMP)));
     }
 
@@ -102,26 +102,26 @@ public class LockWatcherImplTest {
     public void multipleClientsHaveSeparateViews() {
         startWatch(SERVICE, LOCK);
         startWatch(SERVICE_2, LOCK_2);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
 
-        assertThat(lockWatcher.getWatchState(SERVICE))
+        assertThat(lockWatchingService.getWatchState(SERVICE))
                 .containsExactly(entry(LOCK, LockWatch.uncommitted(DEFAULT_TIMESTAMP)));
-        assertThat(lockWatcher.getWatchState(SERVICE_2))
+        assertThat(lockWatchingService.getWatchState(SERVICE_2))
                 .containsExactly(entry(LOCK_2, LockWatch.uncommitted(DEFAULT_TIMESTAMP)));
     }
 
     @Test
     public void lockUpdatesWithNewestLockWatch() {
         startWatch(SERVICE, LOCK, LOCK_2);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK), TOKEN);
 
         resetTimestampSupplierTo(100L);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK_2), LockToken.of(UUID.randomUUID()));
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK_2), LockToken.of(UUID.randomUUID()));
 
         resetTimestampSupplierTo(50L);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK, LOCK_2), LockToken.of(UUID.randomUUID()));
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK, LOCK_2), LockToken.of(UUID.randomUUID()));
 
-        assertThat(lockWatcher.getWatchState(SERVICE))
+        assertThat(lockWatchingService.getWatchState(SERVICE))
                 .containsExactlyEntriesOf(ImmutableMap.of(
                         LOCK, LockWatch.uncommitted(50L),
                         LOCK_2, LockWatch.uncommitted(100L)));
@@ -131,10 +131,10 @@ public class LockWatcherImplTest {
     @Test
     public void canStopWatching() {
         startWatch(SERVICE, LOCK, LOCK_2);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
 
-        lockWatcher.stopWatching(SERVICE, ImmutableSet.of(LOCK_2));
-        assertThat(lockWatcher.getWatchState(SERVICE))
+        lockWatchingService.stopWatching(SERVICE, ImmutableSet.of(LOCK_2));
+        assertThat(lockWatchingService.getWatchState(SERVICE))
                 .containsExactly(entry(LOCK, LockWatch.uncommitted(DEFAULT_TIMESTAMP)));
     }
 
@@ -143,9 +143,9 @@ public class LockWatcherImplTest {
         startWatch(SERVICE, LOCK, LOCK_2);
         startWatch(SERVICE, LOCK_2, LOCK_3);
 
-        lockWatcher.stopWatching(SERVICE, ImmutableSet.of(LOCK_2));
+        lockWatchingService.stopWatching(SERVICE, ImmutableSet.of(LOCK_2));
 
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
                 LOCK, LockWatch.INVALID,
                 LOCK_3, LockWatch.INVALID));
     }
@@ -153,12 +153,12 @@ public class LockWatcherImplTest {
     @Test
     public void canStartWatchingAfterUnwatchingButLosesPreviousState() {
         startWatch(SERVICE, LOCK, LOCK_2);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
 
-        lockWatcher.stopWatching(SERVICE, ImmutableSet.of(LOCK_2));
+        lockWatchingService.stopWatching(SERVICE, ImmutableSet.of(LOCK_2));
         startWatch(SERVICE, LOCK_2);
 
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
                 LOCK, LockWatch.uncommitted(DEFAULT_TIMESTAMP),
                 LOCK_2, LockWatch.INVALID));
     }
@@ -166,15 +166,15 @@ public class LockWatcherImplTest {
     @Test
     public void canStartWatchingAfterUnwatchingAndRegisterLocks() {
         startWatch(SERVICE, LOCK, LOCK_2);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
 
-        lockWatcher.stopWatching(SERVICE, ImmutableSet.of(LOCK_2));
+        lockWatchingService.stopWatching(SERVICE, ImmutableSet.of(LOCK_2));
         startWatch(SERVICE, LOCK_2);
 
-        lockWatcher.registerLock(ImmutableSet.of(LOCK_2), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK_2), TOKEN);
 
 
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
                 LOCK, LockWatch.uncommitted(DEFAULT_TIMESTAMP),
                 LOCK_2, LockWatch.uncommitted(DEFAULT_TIMESTAMP + 1)));
     }
@@ -183,29 +183,29 @@ public class LockWatcherImplTest {
     @Test
     public void unlockOnlyAffectsCurrentLocks() {
         startWatch(SERVICE, LOCK, LOCK_2, LOCK_3);
-        lockWatcher.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK, LOCK_2), TOKEN);
 
         LockToken secondToken = LockToken.of(UUID.randomUUID());
-        lockWatcher.registerLock(ImmutableSet.of(LOCK_2, LOCK_3), secondToken);
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK_2, LOCK_3), secondToken);
 
-        lockWatcher.registerLock(ImmutableSet.of(LOCK_3), LockToken.of(UUID.randomUUID()));
+        lockWatchingService.registerLock(ImmutableSet.of(LOCK_3), LockToken.of(UUID.randomUUID()));
 
 
-        lockWatcher.registerUnlock(TOKEN);
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
+        lockWatchingService.registerUnlock(TOKEN);
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
                 LOCK, LockWatch.committed(DEFAULT_TIMESTAMP),
                 LOCK_2, LockWatch.uncommitted(DEFAULT_TIMESTAMP + 1),
                 LOCK_3, LockWatch.uncommitted(DEFAULT_TIMESTAMP + 2)));
 
-        lockWatcher.registerUnlock(secondToken);
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
+        lockWatchingService.registerUnlock(secondToken);
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactlyEntriesOf(ImmutableMap.of(
                 LOCK, LockWatch.committed(DEFAULT_TIMESTAMP),
                 LOCK_2, LockWatch.committed(DEFAULT_TIMESTAMP + 1),
                 LOCK_3, LockWatch.uncommitted(DEFAULT_TIMESTAMP + 2)));
     }
 
     private void startWatch(UUID serviceId, LockDescriptor... locks) {
-        lockWatcher.startWatching(serviceId, ImmutableSet.copyOf(locks));
+        lockWatchingService.startWatching(serviceId, ImmutableSet.copyOf(locks));
     }
 
     private void resetTimestampSupplierTo(long timestamp) {

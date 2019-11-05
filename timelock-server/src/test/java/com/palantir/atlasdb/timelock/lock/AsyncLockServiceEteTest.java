@@ -42,6 +42,8 @@ import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 public class AsyncLockServiceEteTest {
 
@@ -61,6 +63,10 @@ public class AsyncLockServiceEteTest {
 
     private final LeaderClock clock = LeaderClock.create();
 
+    private final TimestampService timestampService = new InMemoryTimestampService();
+    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(
+            timestampService::getFreshTimestamp);
+
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(OrderedLocksDecorator.DO_NOTHING),
             mock(TargetedSweepLockDecorator.class),
@@ -68,8 +74,8 @@ public class AsyncLockServiceEteTest {
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
                     Executors.newSingleThreadScheduledExecutor(),
-                    clock, lockWatcher),
-            HeldLocksCollection.create(clock),
+                    clock, lockWatchingService),
+            HeldLocksCollection.create(clock, lockWatchingService),
             new AwaitedLocksCollection(),
             executor,
             clock);

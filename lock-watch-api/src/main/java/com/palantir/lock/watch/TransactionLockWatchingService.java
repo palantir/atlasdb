@@ -16,13 +16,17 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Map;
+import java.util.Set;
+
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockWatch;
 import com.palantir.lock.v2.LockWatchId;
 
-public interface LockWatchingService {
-    LockWatchId registerCellWatch(TableReference tableRef, Cell cell);
-    LockWatchId registerRowWatch(TableReference tableRef, byte[] rowName);
-
-    void deregisterWatch(LockWatchId id);
+public interface TransactionLockWatchingService {
+    LockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames);
+    void deregisterWatches(TableReference tableRef, Set<byte[]> rowNames);
+    Map<LockDescriptor, LockWatch> getLockWatchState();
 }

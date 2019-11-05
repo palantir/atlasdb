@@ -56,7 +56,8 @@ public class AsyncLockServiceTest {
     private final LeaderClock leaderClock = LeaderClock.create();
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
-    private final HeldLocksCollection heldLocks = spy(HeldLocksCollection.create(leaderClock));
+    private final HeldLocksCollection heldLocks = spy(HeldLocksCollection
+            .create(leaderClock, mock(LockWatchingService.class)));
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();

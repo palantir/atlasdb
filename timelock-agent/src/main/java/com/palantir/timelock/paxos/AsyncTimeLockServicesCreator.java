@@ -32,8 +32,9 @@ import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
-import com.palantir.atlasdb.timelock.lock.LockWatcher;
-import com.palantir.atlasdb.timelock.lock.LockWatcherImpl;
+import com.palantir.atlasdb.timelock.lock.LockWatchingResource;
+import com.palantir.atlasdb.timelock.lock.LockWatchingService;
+import com.palantir.atlasdb.timelock.lock.LockWatchingServiceImpl;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
@@ -66,11 +67,19 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
+
+        LockWatchingService lockWatchingService = leadershipCreator.wrapInLeadershipProxy(
+                () -> new LockWatchingServiceImpl(rawTimestampServiceSupplier.get()::getFreshTimestamp),
+                LockWatchingService.class,
+                client);
+        LockWatchingResource lockWatchingResource = new LockWatchingResource(lockWatchingService);
+
         AsyncTimelockService asyncTimelockService = leadershipCreator.wrapInLeadershipProxy(
-                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
+                () -> createRawAsyncTimelockService(client, lockWatchingService, rawTimestampServiceSupplier),
                 AsyncTimelockService.class,
                 client);
         AsyncTimelockResource asyncTimelockResource = new AsyncTimelockResource(lockLog, asyncTimelockService);
+
 
         LockService lockService = leadershipCreator.wrapInLeadershipProxy(
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
@@ -81,11 +90,13 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 asyncTimelockService,
                 lockService,
                 asyncTimelockResource,
+                lockWatchingResource,
                 asyncTimelockService);
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
             String client,
+            LockWatchingService lockWatchingService,
             Supplier<ManagedTimestampService> timestampServiceSupplier) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
@@ -97,14 +108,13 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .setNameFormat("async-lock-timeouts-" + client + "-%d")
                         .setDaemon(true)
                         .build()), metricsManager.getRegistry(), "async-lock-timeouts");
-        LockWatcher lockWatcher = new LockWatcherImpl(timestampServiceSupplier.get()::getFreshTimestamp);
         return new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(
                         lockLog,
                         reaperExecutor,
                         timeoutExecutor,
                         rateLimitConfig(client),
-                        lockWatcher),
+                        lockWatchingService),
                 timestampServiceSupplier.get());
     }
 

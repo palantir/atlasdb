@@ -34,14 +34,14 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.LockWatch;
 
-public class LockWatcherImpl implements LockWatcher {
+public class LockWatchingServiceImpl implements LockWatchingService {
     private final LongSupplier timestampSupplier;
     private final ConcurrentMap<UUID, Set<LockDescriptor>> serviceToLocks = new ConcurrentHashMap<>();
     private final ConcurrentMap<LockDescriptor, LockWatch> lockWatches = new ConcurrentHashMap<>();
     private final ConcurrentMap<LockDescriptor, Integer> referenceCounter = new ConcurrentHashMap<>();
     private final Map<LockToken, TimestampedLockDescriptors> lockTokenInfo = Maps.newHashMap();
 
-    public LockWatcherImpl(LongSupplier timestampSupplier) {
+    public LockWatchingServiceImpl(LongSupplier timestampSupplier) {
         this.timestampSupplier = timestampSupplier;
     }
 
@@ -49,14 +49,15 @@ public class LockWatcherImpl implements LockWatcher {
     public synchronized void startWatching(UUID serviceId, Set<LockDescriptor> locksToWatch) {
         locksToWatch.forEach(lockDescriptor -> {
             boolean newWatch = updateWatchesForService(serviceId, lockDescriptor);
-            maybeIncreaseReferenceCount(serviceId, lockDescriptor, newWatch);
+            maybeIncreaseReferenceCount(lockDescriptor, newWatch);
             lockWatches.putIfAbsent(lockDescriptor, LockWatch.INVALID);
         });
     }
 
-    private void maybeIncreaseReferenceCount(UUID serviceId, LockDescriptor lockDescriptor, boolean newWatch) {
-        int increment = newWatch ? 1 : 0;
-        referenceCounter.compute(lockDescriptor, (ignore, count) -> Optional.ofNullable(count).orElse(0) + increment);
+    private void maybeIncreaseReferenceCount(LockDescriptor lockDescriptor, boolean newWatch) {
+        if (newWatch) {
+            referenceCounter.compute(lockDescriptor, (ignore, count) -> Optional.ofNullable(count).orElse(0) + 1);
+        }
     }
 
     private boolean updateWatchesForService(UUID serviceId, LockDescriptor lockDescriptor) {

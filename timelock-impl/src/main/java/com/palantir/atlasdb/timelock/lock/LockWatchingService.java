@@ -14,24 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.timelock.lock;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-import org.immutables.value.Value;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.LockWatch;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+public interface LockWatchingService {
+    void startWatching(UUID serviceId, Set<LockDescriptor> locksToWatch);
+    void stopWatching(UUID serviceId, Set<LockDescriptor> locksToUnwatch);
+    Map<LockDescriptor, LockWatch> getWatchState(UUID serviceId);
 
-@Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchId.class)
-@JsonDeserialize(as = ImmutableLockWatchId.class)
-public interface LockWatchId {
-    @Value.Parameter
-    UUID watchId();
-
-    static LockWatchId create() {
-        return ImmutableLockWatchId.of(UUID.randomUUID());
-    }
+    void registerLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken);
+    void registerUnlock(LockToken lockToken);
 }

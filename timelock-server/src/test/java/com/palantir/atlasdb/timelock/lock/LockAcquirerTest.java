@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -60,7 +61,7 @@ public class LockAcquirerTest {
     private final LockAcquirer lockAcquirer = new LockAcquirer(
             new LockLog(new MetricRegistry(), () -> 2L),
             executor,
-            leaderClock, lockWatcher);
+            leaderClock, mock(LockWatchingService.class));
 
     @Test
     public void acquiresLocksInOrder() {

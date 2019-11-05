@@ -14,24 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
-
-import java.util.UUID;
+package com.palantir.lock.watch;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchId.class)
-@JsonDeserialize(as = ImmutableLockWatchId.class)
-public interface LockWatchId {
-    @Value.Parameter
-    UUID watchId();
+public interface RowReference {
+    TableReference tableRef();
+    byte[] rowName();
 
-    static LockWatchId create() {
-        return ImmutableLockWatchId.of(UUID.randomUUID());
+    static RowReference of(TableReference tableRef, byte[] rowName) {
+        return ImmutableRowReference.builder().tableRef(tableRef).rowName(rowName).build();
     }
 }

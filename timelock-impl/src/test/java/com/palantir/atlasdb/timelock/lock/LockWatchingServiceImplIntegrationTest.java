@@ -36,7 +36,7 @@ import com.palantir.lock.v2.LockWatch;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 
-public class LockWatcherImplIntegrationTest {
+public class LockWatchingServiceImplIntegrationTest {
     private static final UUID SERVICE = UUID.randomUUID();
     private static final LockDescriptor LOCK = StringLockDescriptor.of("lock");
     private static final LockDescriptor LOCK_2 = StringLockDescriptor.of("lock2");
@@ -44,13 +44,13 @@ public class LockWatcherImplIntegrationTest {
 
     private ManagedTimestampService timestampService = new InMemoryTimestampService();
 
-    private LockWatcher lockWatcher = new LockWatcherImpl(timestampService::getFreshTimestamp);
+    private LockWatchingService lockWatchingService = new LockWatchingServiceImpl(timestampService::getFreshTimestamp);
     private AsyncLockService lockService = AsyncLockService.createDefault(
             new LockLog(MetricsManagers.createForTests().getRegistry(), timestampService::getFreshTimestamp),
             PTExecutors.newSingleThreadScheduledExecutor(),
             PTExecutors.newSingleThreadScheduledExecutor(),
             () -> ImmutableRateLimitConfig.builder().build(),
-            lockWatcher);
+            lockWatchingService);
 
     @After
     public void cleanup() {
@@ -59,17 +59,17 @@ public class LockWatcherImplIntegrationTest {
 
     @Test
     public void watchedLocksGetUpdated() {
-        lockWatcher.startWatching(SERVICE, ImmutableSet.of(LOCK, LOCK_2));
+        lockWatchingService.startWatching(SERVICE, ImmutableSet.of(LOCK, LOCK_2));
         lockService.lock(UUID.randomUUID(), ImmutableSet.of(LOCK, LOCK_3), TimeLimit.of(1000L));
 
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                 LOCK, LockWatch.uncommitted(1L),
                 LOCK_2, LockWatch.INVALID));
     }
 
     @Test
     public void unlockedLocksGetUpdated() {
-        lockWatcher.startWatching(SERVICE, ImmutableSet.of(LOCK, LOCK_2, LOCK_3));
+        lockWatchingService.startWatching(SERVICE, ImmutableSet.of(LOCK, LOCK_2, LOCK_3));
         lockService.lock(UUID.randomUUID(), ImmutableSet.of(LOCK_2), TimeLimit.of(1000L));
 
         AsyncResult<Leased<LockToken>> result = lockService.lock(UUID.randomUUID(), ImmutableSet.of(LOCK, LOCK_3),
@@ -77,7 +77,7 @@ public class LockWatcherImplIntegrationTest {
         LockToken token = result.get().value();
         lockService.unlock(token);
 
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                 LOCK, LockWatch.committed(2L),
                 LOCK_2, LockWatch.uncommitted(1L),
                 LOCK_3, LockWatch.committed(2L)));
@@ -85,9 +85,9 @@ public class LockWatcherImplIntegrationTest {
 
     @Test
     public void waitForLocksDoesNotUpdateLockWatches() {
-        lockWatcher.startWatching(SERVICE, ImmutableSet.of(LOCK));
+        lockWatchingService.startWatching(SERVICE, ImmutableSet.of(LOCK));
         lockService.waitForLocks(UUID.randomUUID(), ImmutableSet.of(LOCK), TimeLimit.of(1000L));
 
-        assertThat(lockWatcher.getWatchState(SERVICE)).containsExactly(entry(LOCK, LockWatch.INVALID));
+        assertThat(lockWatchingService.getWatchState(SERVICE)).containsExactly(entry(LOCK, LockWatch.INVALID));
     }
 }

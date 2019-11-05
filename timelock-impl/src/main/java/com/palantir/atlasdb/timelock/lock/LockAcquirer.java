@@ -34,16 +34,16 @@ public class LockAcquirer implements AutoCloseable {
     private final LockLog lockLog;
     private final ScheduledExecutorService timeoutExecutor;
     private final LeaderClock leaderClock;
-    private final LockWatcher lockWatcher;
+    private final LockWatchingService lockWatchingService;
 
     public LockAcquirer(LockLog lockLog,
             ScheduledExecutorService timeoutExecutor,
             LeaderClock leaderClock,
-            LockWatcher lockWatcher) {
+            LockWatchingService lockWatchingService) {
         this.lockLog = lockLog;
         this.timeoutExecutor = timeoutExecutor;
         this.leaderClock = leaderClock;
-        this.lockWatcher = lockWatcher;
+        this.lockWatchingService = lockWatchingService;
     }
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
@@ -57,7 +57,7 @@ public class LockAcquirer implements AutoCloseable {
     }
 
     private void registerLock(HeldLocks heldLocks) {
-        lockWatcher.registerLock(
+        lockWatchingService.registerLock(
                 heldLocks.getLocks().stream().map(AsyncLock::getDescriptor).collect(Collectors.toSet()),
                 heldLocks.getToken());
     }

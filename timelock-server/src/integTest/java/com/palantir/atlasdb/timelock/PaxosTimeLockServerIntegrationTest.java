@@ -454,6 +454,8 @@ public class PaxosTimeLockServerIntegrationTest {
         return getProxyForService(client, TimestampService.class);
     }
 
+//    private static
+
     private static TimestampManagementService getTimestampManagementService(String client) {
         return new RemoteTimestampManagementAdapter(
                 getProxyForRootService(client, TimestampManagementRpcClient.class),

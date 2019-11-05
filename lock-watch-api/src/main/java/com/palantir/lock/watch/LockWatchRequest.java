@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.lock.watch;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchId.class)
-@JsonDeserialize(as = ImmutableLockWatchId.class)
-public interface LockWatchId {
-    @Value.Parameter
-    UUID watchId();
+@JsonSerialize(as = ImmutableLockWatchRequest.class)
+@JsonDeserialize(as = ImmutableLockWatchRequest.class)
+public interface LockWatchRequest {
+    UUID serviceId();
+    Set<LockDescriptor> lockDescriptors();
 
-    static LockWatchId create() {
-        return ImmutableLockWatchId.of(UUID.randomUUID());
+    static LockWatchRequest of(UUID serviceId, Set<LockDescriptor> lockDescriptors) {
+        return ImmutableLockWatchRequest.builder().serviceId(serviceId).lockDescriptors(lockDescriptors).build();
     }
 }

@@ -42,7 +42,7 @@ public class AsyncLockServiceTest {
                 reaperExecutor,
                 timeoutExecutor,
                 RATE_LIMIT_CONFIG_SUPPLIER,
-                new LockWatcherImpl(() -> 1L));
+                new LockWatchingServiceImpl(() -> 1L));
 
         asyncLockService.close();
         assertThat(reaperExecutor.isShutdown()).isTrue();

@@ -63,7 +63,7 @@ public class AsyncLockService implements Closeable {
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor,
             Supplier<RateLimitConfig> targetedSweepRateLimitConfig,
-            LockWatcher lockWatcher) {
+            LockWatchingService lockWatchingService) {
 
         LeaderClock clock = LeaderClock.create();
         TargetedSweepLockDecorator targetedSweepLockDecorator =
@@ -72,8 +72,8 @@ public class AsyncLockService implements Closeable {
                 new LockCollection(targetedSweepLockDecorator),
                 targetedSweepLockDecorator,
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatcher),
-                HeldLocksCollection.create(clock, lockWatcher),
+                new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService),
+                HeldLocksCollection.create(clock, lockWatchingService),
                 new AwaitedLocksCollection(),
                 reaperExecutor,
                 clock);

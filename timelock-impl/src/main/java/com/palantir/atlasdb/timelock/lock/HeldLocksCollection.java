@@ -37,16 +37,16 @@ public class HeldLocksCollection {
     final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
 
     private final LeaderClock leaderClock;
-    private final LockWatcher lockWatcher;
+    private final LockWatchingService lockWatchingService;
 
     @VisibleForTesting
-    HeldLocksCollection(LeaderClock leaderClock, LockWatcher lockWatcher) {
+    HeldLocksCollection(LeaderClock leaderClock, LockWatchingService lockWatchingService) {
         this.leaderClock = leaderClock;
-        this.lockWatcher = lockWatcher;
+        this.lockWatchingService = lockWatchingService;
     }
 
-    public static HeldLocksCollection create(LeaderClock leaderClock, LockWatcher lockWatcher) {
-        return new HeldLocksCollection(leaderClock, lockWatcher);
+    public static HeldLocksCollection create(LeaderClock leaderClock, LockWatchingService lockWatchingService) {
+        return new HeldLocksCollection(leaderClock, lockWatchingService);
     }
 
     public AsyncResult<Leased<LockToken>> getExistingOrAcquire(
@@ -61,7 +61,7 @@ public class HeldLocksCollection {
         Set<LockToken> unlocked = filter(tokens, HeldLocks::unlock);
         for (LockToken token : unlocked) {
             heldLocksById.remove(token.getRequestId());
-            lockWatcher.registerUnlock(token);
+            lockWatchingService.registerUnlock(token);
         }
         return unlocked;
     }
