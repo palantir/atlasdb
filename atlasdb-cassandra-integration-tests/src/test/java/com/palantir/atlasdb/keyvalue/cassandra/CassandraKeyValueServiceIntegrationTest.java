@@ -197,8 +197,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
 
-        assertThat(clusterSideCf.gc_grace_seconds)
-                .isEqualTo(gcGraceSeconds);
+        assertThat(clusterSideCf.gc_grace_seconds).isEqualTo(gcGraceSeconds);
     }
 
     @Test
@@ -208,7 +207,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             kvs = getUnderlyingKvs(keyValueService);
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(NEVER_SEEN);
-            assertThat(delegate).as("The nesting of Key Value Services has apparently changed")
+            assertThat(delegate)
+                    .as("The nesting of Key Value Services has apparently changed")
                     .isInstanceOf(CassandraKeyValueService.class);
 
             kvs = (CassandraKeyValueServiceImpl) delegate;
@@ -259,8 +259,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         int garbageAfterTest = getAmountOfGarbageInMetadataTable(keyValueService, NEVER_SEEN);
 
-        assertThat(garbageAfterTest)
-                .isLessThanOrEqualTo(preExistingGarbageBeforeTest);
+        assertThat(garbageAfterTest).isLessThanOrEqualTo(preExistingGarbageBeforeTest);
     }
 
     @Test
@@ -280,8 +279,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 1L));
         byte[] contents = results.get(CELL).getContents();
 
-        assertThat(contents)
-                .isEqualTo(PtBytes.EMPTY_BYTE_ARRAY);
+        assertThat(contents).isEqualTo(PtBytes.EMPTY_BYTE_ARRAY);
     }
 
     @Test
@@ -299,8 +297,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         putDummyValueAtCellAndTimestamp(tableReference, CELL, 8L, STARTING_ATLAS_TIMESTAMP - 1);
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
 
-        assertThat(results)
-                .doesNotContainKey(CELL);
+        assertThat(results).doesNotContainKey(CELL);
     }
 
     @Test
@@ -321,8 +318,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Map<Cell, Value> resultExpectedCoveredByRangeTombstone =
                 keyValueService.get(tableReference, ImmutableMap.of(CELL, 1337L + 1));
 
-        assertThat(resultExpectedCoveredByRangeTombstone)
-                .doesNotContainKey(CELL);
+        assertThat(resultExpectedCoveredByRangeTombstone).doesNotContainKey(CELL);
     }
 
     @Test
@@ -346,8 +342,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Map<Cell, Value> resultsOutsideRangeTombstone =
                 keyValueService.get(tableReference, ImmutableMap.of(CELL, Long.MAX_VALUE));
 
-        assertThat(resultsOutsideRangeTombstone)
-                .containsKey(CELL);
+        assertThat(resultsOutsideRangeTombstone).containsKey(CELL);
     }
 
     @Test
@@ -357,8 +352,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         clearOutMetadataTable(keyValueService);
         insertGenericMetadataIntoLegacyCell(keyValueService, userTable, ORIGINAL_METADATA);
 
-        assertThat(keyValueService.getMetadataForTable(userTable))
-                .isEqualTo(ORIGINAL_METADATA);
+        assertThat(keyValueService.getMetadataForTable(userTable)).isEqualTo(ORIGINAL_METADATA);
     }
 
     @Test
@@ -367,8 +361,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.createTable(userTable, ORIGINAL_METADATA);
 
-        assertThat(keyValueService.getMetadataForTables().keySet())
-                .contains(userTable);
+        assertThat(keyValueService.getMetadataForTables().keySet()).contains(userTable);
     }
 
     @Test
@@ -389,8 +382,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.createTable(userTable, tableMetadataUpdate);
 
-        assertThat(keyValueService.getMetadataForTable(userTable))
-                .isEqualTo(tableMetadataUpdate);
+        assertThat(keyValueService.getMetadataForTable(userTable)).isEqualTo(tableMetadataUpdate);
     }
 
     @Test
@@ -515,7 +507,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                         + "(org.apache.cassandra.db.marshal.BytesType,org.apache.cassandra.db.marshal.LongType)")
                 .setCompaction_strategy_options(new HashMap<>())
                 .setRead_repair_chance(0.0)
-                .setGc_grace_seconds(345600)
+                .setGc_grace_seconds(FOUR_DAYS_IN_SECONDS)
                 .setDefault_validation_class("org.apache.cassandra.db.marshal.BytesType")
                 .setMin_compaction_threshold(4)
                 .setMax_compaction_threshold(32)
