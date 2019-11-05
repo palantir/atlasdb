@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.ete;
 
-import java.util.Map;
+import org.junit.Test;
 
-import org.immutables.value.Value;
+import com.palantir.atlasdb.lock.LockWatchingResource;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
+public class LockWatchingEteTest {
+    private final LockWatchingResource lockWatcher = EteSetup.createClientToSingleNode(LockWatchingResource.class);
 
-
-@JsonSerialize(as = ImmutableLockWatchState.class)
-@JsonDeserialize(as = ImmutableLockWatchState.class)
-@Value.Immutable
-public interface LockWatchState {
-    @Value.Parameter
-    Map<LockDescriptor, LockWatch> mapping();
+    @Test
+    public void test() {
+        lockWatcher.register("test");
+        System.out.println(lockWatcher.getWatches());
+    }
 }

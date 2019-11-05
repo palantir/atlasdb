@@ -16,7 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -25,9 +24,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockWatch;
 
 @Path("/{namespace}/lock-watch")
 @Produces(MediaType.APPLICATION_JSON)
@@ -43,5 +39,5 @@ public interface LockWatchingRpcClient {
 
     @POST
     @Path("get-watch-state")
-    Map<LockDescriptor, LockWatch> getWatchState(@PathParam("namespace") String namespace, UUID serviceId);
+    LockWatchState getWatchState(@PathParam("namespace") String namespace, UUID serviceId);
 }

@@ -41,19 +41,19 @@ public class LockWatchingResource {
 
     @POST
     @Path("start-watching")
-    void startWatching(LockWatchRequest lockWatchRequest) {
+    public void startWatching(LockWatchRequest lockWatchRequest) {
         lockWatchingService.startWatching(lockWatchRequest.serviceId(), lockWatchRequest.lockDescriptors());
     }
 
     @POST
     @Path("stop-watching")
-    void stopWatching(LockWatchRequest lockWatchRequest) {
+    public void stopWatching(LockWatchRequest lockWatchRequest) {
         lockWatchingService.stopWatching(lockWatchRequest.serviceId(), lockWatchRequest.lockDescriptors());
     }
 
     @POST
     @Path("get-watch-state")
-    Map<LockDescriptor, LockWatch> getWatchState(UUID serviceId) {
+    public Map<LockDescriptor, LockWatch> getWatchState(UUID serviceId) {
         return lockWatchingService.getWatchState(serviceId);
     }
 }

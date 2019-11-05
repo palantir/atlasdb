@@ -27,6 +27,7 @@ import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockWatch;
 import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.LockWatchState;
 import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
 
 public class SimpleTransactionRowLockWatchingService implements TransactionLockWatchingService {
@@ -56,7 +57,7 @@ public class SimpleTransactionRowLockWatchingService implements TransactionLockW
     }
 
     @Override
-    public Map<LockDescriptor, LockWatch> getLockWatchState() {
+    public LockWatchState getLockWatchState() {
         return rpcClient.getWatchState(serviceId);
     }
 

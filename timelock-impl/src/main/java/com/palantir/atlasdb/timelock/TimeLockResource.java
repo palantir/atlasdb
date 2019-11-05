@@ -81,7 +81,7 @@ public class TimeLockResource {
         return getOrCreateServices(namespace).getTimelockService();
     }
 
-    @Path("/watch")
+    @Path("/lock-watch")
     public LockWatchingResource getLockWatchingResource(@Safe @PathParam("namespace") String namespace) {
         return getOrCreateServices(namespace).getLockWatchingResource();
     }

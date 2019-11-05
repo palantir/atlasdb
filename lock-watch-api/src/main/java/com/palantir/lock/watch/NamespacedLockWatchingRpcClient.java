@@ -39,7 +39,7 @@ public class NamespacedLockWatchingRpcClient {
         lockWatchingRpcClient.stopWatching(namespace, lockWatchRequest);
     }
 
-    public Map<LockDescriptor, LockWatch> getWatchState(UUID serviceId) {
+    public LockWatchState getWatchState(UUID serviceId) {
         return lockWatchingRpcClient.getWatchState(namespace, serviceId);
     }
 }

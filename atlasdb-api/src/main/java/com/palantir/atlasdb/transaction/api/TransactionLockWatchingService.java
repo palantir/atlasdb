@@ -22,11 +22,12 @@ import java.util.Set;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockWatch;
+import com.palantir.lock.watch.LockWatchState;
 
 public interface TransactionLockWatchingService {
     LockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames);
     void deregisterWatches(TableReference tableRef, Set<byte[]> rowNames);
-    Map<LockDescriptor, LockWatch> getLockWatchState();
+    LockWatchState getLockWatchState();
 
     class AlwaysThrowingTransactionLockWatchingService implements TransactionLockWatchingService {
         @Override
@@ -38,7 +39,7 @@ public interface TransactionLockWatchingService {
             throw new UnsupportedOperationException("This LockWatchingService does not support this operation.");
         }
         @Override
-        public Map<LockDescriptor, LockWatch> getLockWatchState() {
+        public LockWatchState getLockWatchState() {
             throw new UnsupportedOperationException("This LockWatchingService does not support this operation.");
         }
     }
