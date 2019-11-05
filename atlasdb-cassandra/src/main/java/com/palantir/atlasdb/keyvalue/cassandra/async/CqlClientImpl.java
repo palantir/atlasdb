@@ -97,7 +97,7 @@ public final class CqlClientImpl implements CqlClient {
                 tuningConfig.preparedStatementCacheSize());
     }
 
-    private static CqlClient create(
+    static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
             Supplier<CqlSession> cqlSessionSupplier,
             int preparedStatementCacheSize) {
@@ -110,7 +110,7 @@ public final class CqlClientImpl implements CqlClient {
         return new CqlClientImpl(cqlSession, cachingStatementPreparer);
     }
 
-    private CqlClientImpl(CqlSession session, CachingStatementPreparer statementPreparer) {
+    CqlClientImpl(CqlSession session, StatementPreparer statementPreparer) {
         this.session = session;
         this.statementPreparer = statementPreparer;
     }
