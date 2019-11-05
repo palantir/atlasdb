@@ -16,66 +16,14 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.base.Preconditions;
-
 interface PathTypeTracker extends AutoCloseable {
-    PathTypeTracker NO_OP = new PathTypeTracker() {
-        @Override
-        public PathTypeTracker enterAsyncPath() {
-            return this;
-        }
-
-        @Override
-        public PathTypeTracker exitAsyncPath() {
-            return this;
-        }
-
-        @Override
-        public void checkInAsync() {
-
-        }
-
-        @Override
-        public void checkInSync() {
-
-        }
-    };
-
-    static PathTypeTracker constructSynchronousTracker() {
-        return new PathTypeTracker() {
-            volatile boolean inAsyncBoolean;
-
-            @Override
-            public PathTypeTracker enterAsyncPath() {
-                inAsyncBoolean = true;
-                return this;
-            }
-
-            @Override
-            public PathTypeTracker exitAsyncPath() {
-                inAsyncBoolean = false;
-                return this;
-            }
-
-            @Override
-            public void checkInAsync() {
-                Preconditions.checkState(inAsyncBoolean, "Not expected to be in sync path");
-            }
-
-            @Override
-            public void checkInSync() {
-                Preconditions.checkState(!inAsyncBoolean, "Not expected to be in async path");
-            }
-        };
-    }
-
     PathTypeTracker enterAsyncPath();
 
     PathTypeTracker exitAsyncPath();
 
-    void checkInAsync();
+    void expectedToBeInAsync();
 
-    void checkInSync();
+    void checkNotInAsync();
 
     @Override
     default void close() {

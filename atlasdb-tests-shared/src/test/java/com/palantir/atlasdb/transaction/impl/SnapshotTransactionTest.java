@@ -384,7 +384,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
         }});
 
-        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
@@ -454,7 +454,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             inSequence(seq);
         }});
 
-        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
@@ -496,7 +496,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Random random = new Random(1);
 
         final UnstableKeyValueService unstableKvs = new UnstableKeyValueService(keyValueService, random);
-        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         final TestTransactionManager unstableTransactionManager = new TestTransactionManagerImpl(
                 metricsManager,
                 unstableKvs,
@@ -1390,7 +1390,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
             PreCommitCondition preCommitCondition,
             boolean validateLocksOnReads) {
-        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         return transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
@@ -1509,13 +1509,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         @Override
         public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-            pathTypeTracker.checkInSync();
+            pathTypeTracker.checkNotInAsync();
             return AtlasFutures.getUnchecked(delegate.getAsync(tableRef, timestampByCell));
         }
 
         @Override
         public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-            pathTypeTracker.checkInAsync();
+            pathTypeTracker.expectedToBeInAsync();
             return delegate.getAsync(tableRef, timestampByCell);
         }
     }

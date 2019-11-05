@@ -169,7 +169,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @Override
     public Transaction createNewTransaction() {
         long startTimestamp = timelockService.getFreshTimestamp();
-        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         return transactionWrapper.apply(
                 new SnapshotTransaction(metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
@@ -202,7 +202,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
-        PathTypeTracker pathTypeTracker = PathTypeTracker.constructSynchronousTracker();
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,

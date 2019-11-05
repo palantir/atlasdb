@@ -25,13 +25,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class GetAsyncDelegate extends ForwardingTransaction {
-
     private final Transaction delegate;
     private final PathTypeTracker tracker;
 
     public GetAsyncDelegate(Transaction transaction) {
         this.delegate = transaction;
-        this.tracker = PathTypeTracker.NO_OP;
+        this.tracker = PathTypeTrackers.NO_OP;
     }
 
     public GetAsyncDelegate(Transaction transaction, PathTypeTracker tracker) {
