@@ -18,15 +18,16 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.async.futures.CqlFuturesCombiner;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
@@ -36,20 +37,20 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 
-public final class AsyncCellLoader {
+public final class AsyncCellLoader implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncCellLoader.class);
 
     private final CqlClient cqlClient;
-    private final CqlFuturesCombiner cqlFuturesCombiner;
+    private final ExecutorService executorService;
     private final String keyspace;
 
-    public static AsyncCellLoader create(CqlClient cqlClient, CqlFuturesCombiner cqlFuturesCombiner, String keyspace) {
-        return new AsyncCellLoader(cqlClient, cqlFuturesCombiner, keyspace);
+    public static AsyncCellLoader create(String keyspace, CqlClient cqlClient, ExecutorService executorService) {
+        return new AsyncCellLoader(keyspace, cqlClient, executorService);
     }
 
-    private AsyncCellLoader(CqlClient cqlClient, CqlFuturesCombiner cqlFuturesCombiner, String keyspace) {
+    private AsyncCellLoader(String keyspace, CqlClient cqlClient, ExecutorService executorService) {
         this.cqlClient = cqlClient;
-        this.cqlFuturesCombiner = cqlFuturesCombiner;
+        this.executorService = executorService;
         this.keyspace = keyspace;
     }
 
@@ -67,7 +68,7 @@ public final class AsyncCellLoader {
                 .map((cell, timestamp) -> loadCellWithTimestamp(tableReference, cell, timestamp))
                 .collectToMap();
 
-        return cqlFuturesCombiner.allAsMap(cellListenableFutureMap);
+        return AtlasFutures.allAsMap(cellListenableFutureMap, executorService);
     }
 
     private ListenableFuture<Optional<Value>> loadCellWithTimestamp(
@@ -84,5 +85,10 @@ public final class AsyncCellLoader {
                 .build();
 
         return cqlClient.executeQuery(new GetQuerySpec(queryContext, getQueryParameters));
+    }
+
+    @Override
+    public void close() {
+        executorService.shutdown();
     }
 }

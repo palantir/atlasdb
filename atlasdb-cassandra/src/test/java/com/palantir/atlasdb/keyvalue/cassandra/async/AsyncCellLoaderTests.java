@@ -38,8 +38,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.async.futures.CqlFuturesCombiner;
-import com.palantir.atlasdb.keyvalue.cassandra.async.futures.DefaultCqlFuturesCombiner;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
@@ -62,19 +60,17 @@ public class AsyncCellLoaderTests {
             .build();
 
     private AsyncCellLoader asyncCellLoader;
-    private CqlFuturesCombiner cqlFuturesCombiner;
     @Mock
     private CqlClient cqlClient;
 
     @Before
     public void setUp() {
-        cqlFuturesCombiner = new DefaultCqlFuturesCombiner(MoreExecutors.newDirectExecutorService());
-        asyncCellLoader = AsyncCellLoader.create(cqlClient, cqlFuturesCombiner, KEYSPACE);
+        asyncCellLoader = AsyncCellLoader.create(KEYSPACE, cqlClient, MoreExecutors.newDirectExecutorService());
     }
 
     @After
     public void tearDown() {
-        cqlFuturesCombiner.close();
+        asyncCellLoader.close();
     }
 
     @Test
@@ -82,7 +78,6 @@ public class AsyncCellLoaderTests {
         setUpNonVisibleCells(NON_VISIBLE_CELL);
 
         Map<Cell, Long> request = ImmutableMap.of(NON_VISIBLE_CELL, TIMESTAMP);
-
         Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
 
         assertThat(result).isEmpty();
@@ -96,11 +91,9 @@ public class AsyncCellLoaderTests {
         Map<Cell, Long> request = ImmutableMap.of(
                 NON_VISIBLE_CELL, TIMESTAMP,
                 VISIBLE_CELL_1, TIMESTAMP);
-
         Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
 
-        assertThat(result)
-                .containsOnlyKeys(VISIBLE_CELL_1);
+        assertThat(result).containsOnlyKeys(VISIBLE_CELL_1);
     }
 
     @Test
@@ -110,11 +103,9 @@ public class AsyncCellLoaderTests {
         Map<Cell, Long> request = ImmutableMap.of(
                 VISIBLE_CELL_1, TIMESTAMP,
                 VISIBLE_CELL_2, TIMESTAMP);
-
         Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
 
-        assertThat(result)
-                .containsOnlyKeys(VISIBLE_CELL_1, VISIBLE_CELL_2);
+        assertThat(result).containsOnlyKeys(VISIBLE_CELL_1, VISIBLE_CELL_2);
     }
 
     private void setUpVisibleCells(Cell... cells) {

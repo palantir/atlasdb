@@ -16,19 +16,43 @@
 
 package com.palantir.atlasdb.futures;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.streams.KeyedStream;
 
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
 public final class AtlasFutures {
     private AtlasFutures() {
 
+    }
+
+    public static <T, R> ListenableFuture<Map<T, R>> allAsMap(
+            Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap,
+            ExecutorService executorService) {
+        return Futures.whenAllSucceed(inputToListenableFutureMap.values())
+                .call(() -> KeyedStream.stream(inputToListenableFutureMap)
+                                .map(AtlasFutures::getDone)
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .collectToMap(),
+                        executorService);
+    }
+
+    public static <R> R getDone(ListenableFuture<R> resultFuture) {
+        try {
+            return Futures.getDone(resultFuture);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
     }
 
     public static <R> R getUnchecked(ListenableFuture<R> listenableFuture) {
@@ -38,14 +62,6 @@ public final class AtlasFutures {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
-
-    public static <R> R getDone(ListenableFuture<R> resultFuture) {
-        try {
-            return Futures.getDone(resultFuture);
-        } catch (ExecutionException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
 

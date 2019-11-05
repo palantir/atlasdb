@@ -100,8 +100,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncCellLoader;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
-import com.palantir.atlasdb.keyvalue.cassandra.async.futures.CqlFuturesCombiner;
-import com.palantir.atlasdb.keyvalue.cassandra.async.futures.DefaultCqlFuturesCombiner;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -223,7 +221,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final AsyncCellLoader asyncCellLoader;
     private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
-    private final CqlFuturesCombiner cqlFuturesCombiner;
     private final CellValuePutter cellValuePutter;
     private final CassandraTableMetadata tableMetadata;
     private final CassandraTableCreator cassandraTableCreator;
@@ -432,14 +429,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
-        this.cqlFuturesCombiner = new DefaultCqlFuturesCombiner(createInstrumentedDynamicThreadPool(
-                0,
-                config.poolSize() * config.servers().numberOfThriftHosts(),
-                metricsManager.getRegistry(),
-                "Atlas Cassandra KVS async",
-                "asyncExecutorService"));
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
-        this.asyncCellLoader = AsyncCellLoader.create(cqlClient, cqlFuturesCombiner, config.getKeyspaceOrThrow());
+        this.asyncCellLoader = AsyncCellLoader.create(
+                config.getKeyspaceOrThrow(), cqlClient,
+                createInstrumentedDynamicThreadPool(
+                        0,
+                        config.poolSize() * config.servers().numberOfThriftHosts(),
+                        metricsManager.getRegistry(),
+                        "Atlas Cassandra KVS async",
+                        "asyncExecutorService")
+        );
         this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
         this.cellValuePutter = new CellValuePutter(
                 config,
@@ -1699,7 +1698,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
-        cqlFuturesCombiner.close();
+        asyncCellLoader.close();
         try {
             log.info("Trying to close a CQL client");
             cqlClient.close();
