@@ -96,9 +96,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final String SYNC = "sync";
     private static final String CASSANDRA_DEFAULT_TABLE_NAME = "ns__default_table";
     private static final String ATLAS_DEFAULT_TABLE_NAME = "ns.default_table";
-    private static final byte[] DEFAULT_TABLE_METADATA = {10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1,
-            48, 1, 24, 0, 18, 30, 18, 28, 10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1, 48, 1, 24, 0,
-            18, 6, 8, 4, 24, 1, 32, 3, 24, 2, 32, 64, 48, 0, 64, 0, 72, 1, 88, 0, 96, 0};
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -147,17 +144,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Preconditions.checkArgument(allTables.contains(table1));
         Preconditions.checkArgument(!allTables.contains(table2));
         Preconditions.checkArgument(!allTables.contains(table3));
-    }
-
-    @Test
-    public void testCreateTableDefaultAtlasDbMetadata() {
-        TableReference tableReference = TableReference.createFromFullyQualifiedName(ATLAS_DEFAULT_TABLE_NAME);
-        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(
-                keyValueService.getMetadataForTable(tableReference));
-
-        assertThat(tableMetadata)
-                .isEqualTo(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(DEFAULT_TABLE_METADATA));
     }
 
     @Test
