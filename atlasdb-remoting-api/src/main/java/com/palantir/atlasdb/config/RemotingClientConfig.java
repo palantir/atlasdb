@@ -27,8 +27,6 @@ import com.palantir.logsafe.SafeArg;
 @JsonDeserialize(as = ImmutableRemotingClientConfig.class)
 @Value.Immutable
 public interface RemotingClientConfig {
-    RemotingClientConfig DEFAULT = ImmutableRemotingClientConfig.builder().build();
-
     @Value.Default
     default double maximumConjureRemotingProbability() {
         return 0.0;

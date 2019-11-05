@@ -42,6 +42,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
+import com.palantir.atlasdb.config.RemotingClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -85,7 +87,7 @@ public final class Leaders {
             Supplier<LeaderRuntimeConfig> runtime,
             UserAgent userAgent) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(
-                metricsManager, config, runtime, userAgent);
+                metricsManager, config, userAgent);
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
@@ -97,7 +99,6 @@ public final class Leaders {
     public static LocalPaxosServices createInstrumentedLocalServices(
             MetricsManager metricsManager,
             LeaderConfig config,
-            Supplier<LeaderRuntimeConfig> runtime,
             UserAgent userAgent) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
@@ -110,8 +111,8 @@ public final class Leaders {
         return createInstrumentedLocalServices(
                 metricsManager,
                 config,
-                runtime,
                 remotePaxosServerSpec,
+                () -> RemotingClientConfigs.ALWAYS_USE_LEGACY, // TODO (jkong): Wire this up or change it to Conjure
                 userAgent,
                 LeadershipObserver.NO_OP);
     }
@@ -119,8 +120,8 @@ public final class Leaders {
     public static LocalPaxosServices createInstrumentedLocalServices(
             MetricsManager metricsManager,
             LeaderConfig config,
-            Supplier<LeaderRuntimeConfig> runtime,
             RemotePaxosServerSpec remotePaxosServerSpec,
+            Supplier<RemotingClientConfig> remotingClientConfig,
             UserAgent userAgent,
             LeadershipObserver leadershipObserver) {
         UUID leaderUuid = UUID.randomUUID();
@@ -145,6 +146,7 @@ public final class Leaders {
                 metricsManager,
                 ourLearner,
                 remotePaxosServerSpec.remoteLearnerUris(),
+                remotingClientConfig,
                 trustContext,
                 PaxosLearner.class,
                 userAgent);
@@ -161,6 +163,7 @@ public final class Leaders {
                 metricsManager,
                 ourAcceptor,
                 remotePaxosServerSpec.remoteAcceptorUris(),
+                remotingClientConfig,
                 trustContext,
                 PaxosAcceptor.class,
                 userAgent);
@@ -170,7 +173,11 @@ public final class Leaders {
                 createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"));
 
         List<PingableLeader> otherLeaders = generatePingables(
-                metricsManager, remotePaxosServerSpec.remoteLeaderUris(), trustContext, userAgent);
+                metricsManager,
+                remotePaxosServerSpec.remoteLeaderUris(),
+                remotingClientConfig,
+                trustContext,
+                userAgent);
 
         LeaderPinger leaderPinger = new SingleLeaderPinger(
                 createExecutorsForService(metricsManager, otherLeaders, "leader-ping"),
@@ -245,6 +252,7 @@ public final class Leaders {
             MetricsManager metricsManager,
             T localObject,
             Set<String> remoteUris,
+            Supplier<RemotingClientConfig> remotingClientConfig,
             Optional<TrustContext> trustContext,
             Class<T> clazz,
             UserAgent userAgent) {
@@ -260,6 +268,7 @@ public final class Leaders {
                                 .userAgent(userAgent)
                                 .shouldLimitPayload(false)
                                 .shouldRetry(true)
+                                .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .collect(Collectors.toList());
 
@@ -271,6 +280,7 @@ public final class Leaders {
     public static List<PingableLeader> generatePingables(
             MetricsManager metricsManager,
             Collection<String> remoteEndpoints,
+            Supplier<RemotingClientConfig> remotingClientConfig,
             Optional<TrustContext> trustContext,
             UserAgent userAgent) {
         return remoteEndpoints.stream()
@@ -284,6 +294,7 @@ public final class Leaders {
                                 .userAgent(userAgent)
                                 .shouldRetry(false)
                                 .shouldLimitPayload(true)
+                                .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .collect(Collectors.toList());
     }

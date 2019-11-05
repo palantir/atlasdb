@@ -63,6 +63,7 @@ import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.RemotingClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.ShouldRunBackgroundSweepSupplier;
@@ -1008,7 +1009,7 @@ public abstract class TransactionManagers {
                 .sslConfiguration(leaderConfig.sslConfiguration())
                 .build();
         ServiceCreator creator = ServiceCreator.noPayloadLimiter(
-                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfig.DEFAULT);
+                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfigs.ALWAYS_USE_LEGACY);
         LockService remoteLock = creator.createService(LockService.class);
         TimestampService remoteTime = creator.createService(TimestampService.class);
         TimestampManagementService remoteManagement = creator.createService(TimestampManagementService.class);

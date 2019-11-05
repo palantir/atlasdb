@@ -17,15 +17,12 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -38,18 +35,15 @@ import org.junit.runners.Parameterized;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.suite.PaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
@@ -88,49 +82,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Before
     public void bringAllNodesOnline() {
         cluster.waitUntilAllServersOnlineAndReadyToServeClients(ADDITIONAL_CLIENTS);
-    }
-
-    @Test
-    public void blockedLockRequestThrows503OnLeaderElectionForRemoteLock() throws InterruptedException {
-        LockRefreshToken lock = cluster.remoteLock(BLOCKING_LOCK_REQUEST);
-        assertThat(lock).isNotNull();
-
-        TestableTimelockServer leader = cluster.currentLeader();
-
-        CompletableFuture<LockRefreshToken> lockRefreshTokenCompletableFuture = CompletableFuture.supplyAsync(() -> {
-            try {
-                return leader.remoteLock(CLIENT_2, BLOCKING_LOCK_REQUEST);
-            } catch (InterruptedException e) {
-                return null;
-            }
-        });
-        Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-        cluster.nonLeaders().forEach(TestableTimelockServer::kill);
-        // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
-        assertThatThrownBy(() -> leader.remoteLock(CLIENT_3, BLOCKING_LOCK_REQUEST))
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-
-        assertThat(catchThrowable(lockRefreshTokenCompletableFuture::get).getCause())
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-    }
-
-    @Test
-    public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() {
-        cluster.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
-
-        TestableTimelockServer leader = cluster.currentLeader();
-
-        CompletableFuture<LockResponse> token2 = CompletableFuture.supplyAsync(
-                () -> leader.lock(LockRequest.of(LOCKS, 60_000)));
-
-        Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-        cluster.nonLeaders().forEach(TestableTimelockServer::kill);
-        // Lock on leader so that AwaitingLeadershipProxy notices leadership loss.
-        assertThatThrownBy(() -> leader.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-
-        assertThat(catchThrowable(token2::get).getCause())
-                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
