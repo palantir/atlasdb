@@ -9,9 +9,7 @@ configurations {
 }
 
 dependencies {
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-  compile group: 'com.datastax.oss', name: 'native-protocol'
-  compile group: 'com.datastax.oss', name: 'java-driver-shaded-guava'
+  explicitShadow group: 'com.palantir.safe-logging', name: 'safe-logging'
 
   explicitShadow (group: 'de.jflex', name: 'jflex', version: '1.6.0') {
     exclude(group: 'org.apache.ant', module: 'ant')
@@ -36,10 +34,11 @@ dependencies {
   explicitShadow ('com.datastax.oss:java-driver-core:' + libVersions.cassandra_driver_core) {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
-
   explicitShadow ('com.datastax.oss:java-driver-query-builder:' + libVersions.cassandra_driver_core) {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
+  explicitShadow group: 'com.datastax.oss', name: 'native-protocol'
+  explicitShadow group: 'com.datastax.oss', name: 'java-driver-shaded-guava'
 
   explicitShadow group: 'io.netty', name: 'netty-handler-proxy'
   explicitShadow group: 'com.google.guava', name: 'guava'
