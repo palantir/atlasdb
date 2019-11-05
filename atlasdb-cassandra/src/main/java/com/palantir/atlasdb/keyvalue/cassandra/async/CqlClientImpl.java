@@ -30,7 +30,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowStreamAccumulator;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowAccumulator;
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.CachingStatementPreparer;
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -126,22 +126,22 @@ public final class CqlClientImpl implements CqlClient {
         Statement executableStatement = querySpec.makeExecutableStatement(statement)
                 .setConsistencyLevel(querySpec.queryConsistency());
 
-        return execute(executableStatement, querySpec.rowStreamAccumulator());
+        return execute(executableStatement, querySpec.rowAccumulator());
     }
 
-    private <V> ListenableFuture<V> execute(Statement statement, RowStreamAccumulator<V> rowStreamAccumulator) {
+    private <V> ListenableFuture<V> execute(Statement statement, RowAccumulator<V> rowAccumulator) {
         CompletionStage<AsyncResultSet> futureRs = session.executeAsync(statement);
-        return AtlasFutures.toListenableFuture(futureRs.thenCompose(processRows(rowStreamAccumulator)));
+        return AtlasFutures.toListenableFuture(futureRs.thenCompose(processRows(rowAccumulator)));
     }
 
-    private <V> Function<AsyncResultSet, CompletionStage<V>> processRows(RowStreamAccumulator<V> rowStreamAccumulator) {
+    private <V> Function<AsyncResultSet, CompletionStage<V>> processRows(RowAccumulator<V> rowAccumulator) {
         return asyncResultSet -> {
-            rowStreamAccumulator.accumulateRows(asyncResultSet.currentPage());
+            rowAccumulator.accumulateRows(asyncResultSet.currentPage());
 
             if (!asyncResultSet.hasMorePages()) {
-                return CompletableFuture.completedFuture(rowStreamAccumulator.result());
+                return CompletableFuture.completedFuture(rowAccumulator.result());
             }
-            return asyncResultSet.fetchNextPage().thenCompose(processRows(rowStreamAccumulator));
+            return asyncResultSet.fetchNextPage().thenCompose(processRows(rowAccumulator));
         };
     }
 }

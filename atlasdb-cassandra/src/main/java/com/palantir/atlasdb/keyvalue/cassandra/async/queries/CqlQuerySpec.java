@@ -32,5 +32,5 @@ public interface CqlQuerySpec<R> {
 
     ConsistencyLevel queryConsistency();
 
-    RowStreamAccumulator<R> rowStreamAccumulator();
+    RowAccumulator<R> rowAccumulator();
 }
