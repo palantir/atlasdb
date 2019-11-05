@@ -84,7 +84,7 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     }
 
     @Override
-    public RowStreamAccumulator<Optional<Value>> rowStreamAccumulator() {
+    public RowAccumulator<Optional<Value>> rowAccumulator() {
         return getQueryAccumulator;
     }
 
@@ -121,7 +121,7 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
         return ByteBuffer.wrap(bytes).asReadOnlyBuffer();
     }
 
-    private static class GetQueryAccumulator implements RowStreamAccumulator<Optional<Value>> {
+    private static class GetQueryAccumulator implements RowAccumulator<Optional<Value>> {
         private volatile Value resultValue = null;
         private volatile boolean assigned = false;
 
