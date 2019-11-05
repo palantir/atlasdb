@@ -50,7 +50,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                TESTING_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters).instance(),
+                LEGACY_FEIGN_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters).instance(),
                 MetricRegistry.name(type));
     }
 
