@@ -56,7 +56,7 @@ public class HeldLocksTest {
 
     @Test
     public void unlocksHeldLocks() {
-        heldLocks.unlock();
+        heldLocks.unlockExplicitly();
 
         verify(lockA).unlock(REQUEST_ID);
         verify(lockB).unlock(REQUEST_ID);
@@ -69,15 +69,15 @@ public class HeldLocksTest {
 
     @Test
     public void cannotRefreshAfterUnlocking() {
-        heldLocks.unlock();
+        heldLocks.unlockExplicitly();
 
         assertFalse(heldLocks.refresh());
     }
 
     @Test
     public void canOnlyUnlockOnce() {
-        assertTrue(heldLocks.unlock());
-        assertFalse(heldLocks.unlock());
+        assertTrue(heldLocks.unlockExplicitly());
+        assertFalse(heldLocks.unlockExplicitly());
     }
 
     @Test

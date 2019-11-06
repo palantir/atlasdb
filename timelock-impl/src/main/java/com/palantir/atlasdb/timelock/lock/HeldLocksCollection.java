@@ -56,7 +56,7 @@ public class HeldLocksCollection {
     }
 
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        Set<LockToken> unlocked = filter(tokens, HeldLocks::unlock);
+        Set<LockToken> unlocked = filter(tokens, HeldLocks::unlockExplicitly);
         for (LockToken token : unlocked) {
             heldLocksById.remove(token.getRequestId());
         }

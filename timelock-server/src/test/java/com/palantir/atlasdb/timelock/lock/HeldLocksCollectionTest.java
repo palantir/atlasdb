@@ -267,7 +267,7 @@ public class HeldLocksCollectionTest {
     private LockToken mockRefreshableRequest() {
         return mockHeldLocksForNewRequest(
                 heldLocks -> {
-                    when(heldLocks.unlock()).thenReturn(true);
+                    when(heldLocks.unlockExplicitly()).thenReturn(true);
                     when(heldLocks.refresh()).thenReturn(true);
                 });
     }
@@ -275,7 +275,7 @@ public class HeldLocksCollectionTest {
     private LockToken mockNonRefreshableRequest() {
         return mockHeldLocksForNewRequest(
                 heldLocks -> {
-                    when(heldLocks.unlock()).thenReturn(false);
+                    when(heldLocks.unlockExplicitly()).thenReturn(false);
                     when(heldLocks.refresh()).thenReturn(false);
                 });
     }

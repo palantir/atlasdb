@@ -16,23 +16,52 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Collection;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.debug.LockDiagnosticConfig;
+import com.palantir.atlasdb.debug.LockDiagnosticInfo;
 import com.palantir.atlasdb.timelock.lock.LockEvents.RequestInfo;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.logsafe.Preconditions;
 
 public final class LockLog {
 
     private final LockEvents events;
-    private final Supplier<Long> thresholdMillis;
+    private final Optional<LockDiagnosticCollector> lockDiagnosticInfoCollector;
 
     public LockLog(MetricRegistry metricRegistry, Supplier<Long> thresholdMillis) {
-        events = new LockEvents(metricRegistry);
-        this.thresholdMillis = thresholdMillis;
+        this(new LoggingLockEvents(metricRegistry, thresholdMillis));
+    }
+
+    private LockLog(LockEvents events) {
+        this.events = events;
+        this.lockDiagnosticInfoCollector = Optional.empty();
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     */
+    @Deprecated
+    private LockLog(LockEvents loggingLockEvents, LockDiagnosticCollector lockDiagnosticInfoCollector) {
+        this.events = new CombinedLockEvents(ImmutableList.of(loggingLockEvents, lockDiagnosticInfoCollector));
+        this.lockDiagnosticInfoCollector = Optional.of(lockDiagnosticInfoCollector);
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     */
+    @Deprecated
+    public LockLog withLockRequestDiagnosticCollection(LockDiagnosticConfig lockDiagnosticConfig) {
+        Preconditions.checkState(!lockDiagnosticInfoCollector.isPresent(), "diagnostics are already being collected");
+        return new LockLog(events, new LockDiagnosticCollector(lockDiagnosticConfig));
     }
 
     public void registerRequest(IdentifiedLockRequest request, AsyncResult<?> result) {
@@ -43,7 +72,16 @@ public final class LockLog {
         registerRequest(RequestInfo.of(request), result);
     }
 
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     */
+    @Deprecated
+    public void registerLockImmutableTimestampRequest(UUID requestId, long timestamp, AsyncResult<?> result) {
+        registerRequest(ImmutableRequestInfo.of(requestId, Long.toString(timestamp), ImmutableSet.of()), result);
+    }
+
     private void registerRequest(RequestInfo requestInfo, AsyncResult<?> result) {
+        events.registerRequest(requestInfo);
         if (result.isComplete()) {
             requestComplete(requestInfo, result, 0L);
             return;
@@ -56,25 +94,37 @@ public final class LockLog {
         });
     }
 
-    private void requestComplete(
-            RequestInfo requestInfo,
-            AsyncResult<?> result,
-            long blockingTimeMillis) {
-        events.requestComplete(blockingTimeMillis);
-
-        if (blockingTimeMillis == 0 || blockingTimeMillis < thresholdMillis.get()) {
-            return;
-        }
-
+    private void requestComplete(RequestInfo requestInfo, AsyncResult<?> result, long blockingTimeMillis) {
         if (result.isCompletedSuccessfully()) {
-            events.successfulSlowAcquisition(requestInfo, blockingTimeMillis);
+            events.successfulAcquisition(requestInfo, blockingTimeMillis);
         } else if (result.isTimedOut()) {
-            events.timedOutSlowAcquisition(requestInfo, blockingTimeMillis);
+            events.timedOut(requestInfo, blockingTimeMillis);
         }
     }
 
-    public void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
+    void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
         events.lockExpired(requestId, lockDescriptors);
+    }
+
+    void lockUnlocked(UUID requestId) {
+        events.explicitlyUnlocked(requestId);
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     */
+    @Deprecated
+    public Optional<LockDiagnosticInfo> getAndLogLockDiagnosticInfo(Set<UUID> startTimestamps) {
+        return lockDiagnosticInfoCollector.map(
+                lockDiagnosticCollector -> lockDiagnosticCollector.getAndLogCurrentState(startTimestamps));
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     */
+    @Deprecated
+    void logLockDiagnosticInfo() {
+        lockDiagnosticInfoCollector.ifPresent(LockDiagnosticCollector::logCurrentState);
     }
 
 }
