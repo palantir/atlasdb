@@ -1,5 +1,6 @@
 versionOverrides:
   com.palantir.atlasdb:atlasdb-config:0.171.3: "0.171.2"
+  com.palantir.atlasdb:atlasdb-config:0.171.4: "0.171.2"
 acceptedBreaks:
   0.162.2:
     com.palantir.atlasdb:atlasdb-config:
