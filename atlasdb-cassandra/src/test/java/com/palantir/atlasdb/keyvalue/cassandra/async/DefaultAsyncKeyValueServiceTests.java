@@ -59,13 +59,13 @@ public class DefaultAsyncKeyValueServiceTests {
             .tableReference(TABLE)
             .build();
 
-    private DefaultAsyncKeyValueService asyncKeyValueService;
+    private DefaultCassandraAsyncKeyValueServiceFactory.DefaultAsyncKeyValueService asyncKeyValueService;
     @Mock
     private CqlClient cqlClient;
 
     @Before
     public void setUp() {
-        asyncKeyValueService = DefaultAsyncKeyValueService.create(
+        asyncKeyValueService = DefaultCassandraAsyncKeyValueServiceFactory.DefaultAsyncKeyValueService.create(
                 KEYSPACE,
                 cqlClient,
                 MoreExecutors.newDirectExecutorService());
