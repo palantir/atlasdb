@@ -31,7 +31,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tracing.Tracers;
 
-public class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsyncKeyValueServiceFactory {
+public final class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsyncKeyValueServiceFactory {
     public static final CassandraAsyncKeyValueServiceFactory DEFAULT =
             new DefaultCassandraAsyncKeyValueServiceFactory(DefaultCqlClientFactory.DEFAULT);
 
