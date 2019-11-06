@@ -23,7 +23,7 @@ buildscript {
         classpath 'com.netflix.nebula:nebula-publishing-plugin:14.0.0'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.15.0'
         classpath 'gradle.plugin.org.inferred:gradle-processors:3.1.0'
-        classpath 'com.palantir.gradle.revapi:gradle-revapi:1.0.3'
+        classpath 'com.palantir.gradle.revapi:gradle-revapi:1.0.8'
     }
 }
 
