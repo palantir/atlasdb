@@ -171,12 +171,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
 
-/*
- * This is commented out because we need to support two methods for the user agent parameter. It will revert to being
- * generated again once we've switched people over. If you edit any of the methods that affects generation, you need to
- * apply the change for user agents again until we've switched people over to use the new thing.
- */
-//@Value.Immutable
+@Value.Immutable
 @Value.Style(stagedBuilder = true)
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
