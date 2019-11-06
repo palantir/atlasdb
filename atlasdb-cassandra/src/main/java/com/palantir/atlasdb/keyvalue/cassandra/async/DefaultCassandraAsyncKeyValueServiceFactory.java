@@ -26,19 +26,15 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactoryImpl;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tracing.Tracers;
 
 public class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsyncKeyValueServiceFactory {
-    public static final CassandraAsyncKeyValueServiceFactory DEFAULT =
-            new DefaultCassandraAsyncKeyValueServiceFactory(CqlClientFactoryImpl.DEFAULT);
-
     private final CqlClientFactory cqlClientFactory;
 
-    private DefaultCassandraAsyncKeyValueServiceFactory(CqlClientFactory cqlClientFactory) {
+    public DefaultCassandraAsyncKeyValueServiceFactory(CqlClientFactory cqlClientFactory) {
         this.cqlClientFactory = cqlClientFactory;
     }
 

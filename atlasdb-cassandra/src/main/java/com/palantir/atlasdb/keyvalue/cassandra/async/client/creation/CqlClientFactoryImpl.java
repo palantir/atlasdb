@@ -17,12 +17,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.security.NoSuchAlgorithmException;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
 
 import org.slf4j.Logger;
@@ -32,10 +30,6 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
-import com.datastax.oss.driver.api.core.context.DriverContext;
-import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
-import com.datastax.oss.driver.internal.core.context.DefaultDriverContext;
-import com.datastax.oss.driver.internal.core.context.NettyOptions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
@@ -45,18 +39,17 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.ThrowingCqlClientImpl;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-import io.netty.channel.Channel;
-import io.netty.handler.proxy.Socks5ProxyHandler;
-
-public final class CqlClientFactoryImpl implements CqlClientFactory {
-
-    public static final CqlClientFactory INSTANCE = new CqlClientFactoryImpl();
+/**
+ * This is the default implementation which should be sufficient for most cases. It is however designed to be extended
+ * if there are some non standard options to be set, for example.
+ * {@link com.datastax.oss.driver.internal.core.context.NettyOptions}.
+ */
+public class CqlClientFactoryImpl implements CqlClientFactory {
     private static final Logger log = LoggerFactory.getLogger(CqlClientFactoryImpl.class);
     private static final String LOAD_BALANCING_POLICY = "DcInferringLoadBalancingPolicy";
     private static final String COMPRESSION_PROTOCOL = "lz4";
 
-    private CqlClientFactoryImpl() {
-        // Use INSTANCE
+    public CqlClientFactoryImpl() {
     }
 
     @Override
@@ -89,7 +82,7 @@ public final class CqlClientFactoryImpl implements CqlClientFactory {
                                 .build();
 
                 Supplier<CqlSession> cqlSessionSupplier = () -> {
-                    CqlSessionBuilder cqlSessionBuilder = withSocksProxy(cqlCapableConfig);
+                    CqlSessionBuilder cqlSessionBuilder = getCqlSessionBuilder();
                     cqlSessionBuilder.addContactPoints(servers)
                             .withAuthCredentials(config.credentials().username(), config.credentials().password())
                             .withConfigLoader(loader);
@@ -105,8 +98,15 @@ public final class CqlClientFactoryImpl implements CqlClientFactory {
         });
     }
 
-    private static CqlSessionBuilder withSocksProxy(CqlCapableConfig cqlCapableConfig) {
-        return cqlCapableConfig.socksProxy().map(CustomCqlSessionBuilder::create).orElseGet(CqlSession::builder);
+    /**
+     * Method is designed to be overriden in subclasses if a non standard approach to CqlSession building is needed.
+     * One example is setting the proxy through {@link com.datastax.oss.driver.internal.core.context.NettyOptions} for
+     * tests.
+     *
+     * @return {@link CqlSessionBuilder} with non standard options
+     */
+    protected CqlSessionBuilder getCqlSessionBuilder() {
+        return CqlSession.builder();
     }
 
     private static CqlSessionBuilder withSslOptions(CqlSessionBuilder builder, CassandraKeyValueServiceConfig config) {
@@ -120,64 +120,6 @@ public final class CqlClientFactoryImpl implements CqlClientFactory {
             return builder.withSslContext(SSLContext.getDefault());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e.getCause());
-        }
-    }
-
-    private static final class CustomCqlSessionBuilder extends CqlSessionBuilder {
-        private final SocketAddress proxyAddress;
-
-        static CqlSessionBuilder create(SocketAddress proxyAddress) {
-            return new CustomCqlSessionBuilder(proxyAddress);
-        }
-
-        CustomCqlSessionBuilder(SocketAddress proxyAddress) {
-            this.proxyAddress = proxyAddress;
-        }
-
-        @Override
-        protected DriverContext buildContext(
-                DriverConfigLoader configLoader,
-                ProgrammaticArguments programmaticArguments) {
-            return new WrappingDriverContext(configLoader, programmaticArguments, proxyAddress);
-        }
-    }
-
-    private static final class SocksProxyNettyOptions implements DelegatingNettyOptions {
-        private final SocketAddress proxyAddress;
-        private final NettyOptions delegate;
-
-        SocksProxyNettyOptions(NettyOptions nettyOptions, SocketAddress proxyAddress) {
-            this.delegate = nettyOptions;
-            this.proxyAddress = proxyAddress;
-        }
-
-        @Override
-        public NettyOptions delegate() {
-            return delegate;
-        }
-
-        @Override
-        public void afterChannelInitialized(Channel channel) {
-            delegate.afterChannelInitialized(channel);
-            channel.pipeline().addFirst(new Socks5ProxyHandler(proxyAddress));
-        }
-    }
-
-    private static final class WrappingDriverContext extends DefaultDriverContext {
-        private final SocksProxyNettyOptions nettyOptions;
-
-        WrappingDriverContext(
-                DriverConfigLoader configLoader,
-                ProgrammaticArguments programmaticArguments,
-                SocketAddress proxyAddress) {
-            super(configLoader, programmaticArguments);
-            this.nettyOptions = new SocksProxyNettyOptions(super.getNettyOptions(), proxyAddress);
-        }
-
-        @Nonnull
-        @Override
-        public NettyOptions getNettyOptions() {
-            return nettyOptions;
         }
     }
 }

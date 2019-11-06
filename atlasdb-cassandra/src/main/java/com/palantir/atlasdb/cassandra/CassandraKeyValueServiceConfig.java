@@ -33,7 +33,6 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtract
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactoryImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -188,7 +187,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
-        return DefaultCassandraAsyncKeyValueServiceFactory.DEFAULT;
+        return new DefaultCassandraAsyncKeyValueServiceFactory(new CqlClientFactoryImpl());
     }
 
     int replicationFactor();

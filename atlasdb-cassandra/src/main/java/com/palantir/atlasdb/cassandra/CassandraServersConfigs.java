@@ -18,8 +18,6 @@ package com.palantir.atlasdb.cassandra;
 
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -122,8 +120,6 @@ public final class CassandraServersConfigs {
         public abstract Set<InetSocketAddress> thriftHosts();
 
         public abstract Set<InetSocketAddress> cqlHosts();
-
-        public abstract Optional<SocketAddress> socksProxy();
 
         @Value.Default
         public CqlCapableConfigTuning tuning() {

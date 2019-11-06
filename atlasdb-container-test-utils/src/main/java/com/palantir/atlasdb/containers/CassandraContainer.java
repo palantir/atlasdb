@@ -31,6 +31,7 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.Preconditions;
@@ -128,8 +129,9 @@ public class CassandraContainer extends Container {
                 .from(config)
                 .servers(ImmutableCqlCapableConfig.builder()
                         .from(cqlCapableConfig)
-                        .socksProxy(proxyAddress)
                         .build())
+                .asyncKeyValueServiceFactory(
+                        new DefaultCassandraAsyncKeyValueServiceFactory(new ProxyCqlClientFactory(proxyAddress)))
                 .build();
     }
 
