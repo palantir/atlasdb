@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -48,6 +49,16 @@ public abstract class TransactionConfig {
      */
     @Value.Default
     public boolean lockImmutableTsOnReadOnlyTransactions() {
+        return false;
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     */
+    @Deprecated
+    @JsonProperty("do-not-use-attach-start-timestamp-to--locks-request")
+    @Value.Default
+    public boolean attachStartTimestampToLockRequestDescriptions() {
         return false;
     }
 }

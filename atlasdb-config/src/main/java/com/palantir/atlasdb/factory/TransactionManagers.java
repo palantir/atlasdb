@@ -70,6 +70,8 @@ import com.palantir.atlasdb.config.ShouldRunBackgroundSweepSupplier;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
+import com.palantir.atlasdb.debug.LockDiagnosticTimelockRpcClient;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -241,6 +243,9 @@ public abstract class TransactionManagers {
         return Callback.noOp();
     }
 
+    // TODO(fdesouza): Remove this once PDS-95791 is resolved
+    abstract Optional<ClientLockDiagnosticCollector> lockDiagnosticInfoCollector();
+
     @Value.Default
     LockWatchingCache lockWatchingCache() {
         return NoOpLockWatchingCache.INSTANCE;
@@ -338,7 +343,8 @@ public abstract class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions()),
                 managedTimestampSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
-                userAgent());
+                userAgent(),
+                lockDiagnosticInfoCollector());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -784,7 +790,8 @@ public abstract class TransactionManagers {
                         lock,
                         time,
                         invalidator,
-                        UserAgents.tryParse(userAgent));
+                        UserAgents.tryParse(userAgent),
+                        Optional.empty());
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -803,7 +810,8 @@ public abstract class TransactionManagers {
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -812,7 +820,8 @@ public abstract class TransactionManagers {
                 lock,
                 time,
                 invalidator,
-                userAgent);
+                userAgent,
+                lockDiagnosticCollector);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
                         withRefreshingLockService(lockAndTimestampServices)));
@@ -871,7 +880,8 @@ public abstract class TransactionManagers {
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
@@ -879,7 +889,8 @@ public abstract class TransactionManagers {
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, runtimeConfigSupplier, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
-            return createRawServicesFromTimeLock(metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
+            return createRawServicesFromTimeLock(
+                    metricsManager, config, runtimeConfigSupplier, invalidator, userAgent, lockDiagnosticCollector);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
         }
@@ -907,7 +918,8 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TimestampStoreInvalidator invalidator,
-            UserAgent userAgent) {
+            UserAgent userAgent,
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
@@ -919,7 +931,8 @@ public abstract class TransactionManagers {
                         serverListConfigSupplier,
                         () -> runtimeConfigSupplier.get().remotingClient(),
                         userAgent,
-                        timelockNamespace);
+                        timelockNamespace,
+                        lockDiagnosticCollector);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.managedTimestampService(),
@@ -948,15 +961,23 @@ public abstract class TransactionManagers {
             Supplier<ServerListConfig> timelockServerListConfig,
             Supplier<RemotingClientConfig> remotingConfigSupplier,
             UserAgent userAgent,
-            String timelockNamespace) {
+            String timelockNamespace,
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
         LockService lockService = RemoteLockServiceAdapter.create(
                 creator.createService(LockRpcClient.class), timelockNamespace);
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
+
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved
+        TimelockRpcClient withDiagnosticsTimelockClient = lockDiagnosticCollector
+                .<TimelockRpcClient>map(collector -> new LockDiagnosticTimelockRpcClient(timelockClient, collector))
+                .orElse(timelockClient);
+
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
-                = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
+                = new NamespacedTimelockRpcClient(withDiagnosticsTimelockClient, timelockNamespace);
+
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
                 = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(

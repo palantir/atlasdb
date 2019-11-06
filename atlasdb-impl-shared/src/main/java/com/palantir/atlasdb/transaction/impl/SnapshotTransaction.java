@@ -139,6 +139,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
@@ -1970,13 +1971,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected TimestampedLockResponse acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
+        TransactionConfig transactionConfig = this.transactionConfig.get();
 
-        LockRequest request = LockRequest.of(lockDescriptors, transactionConfig.get().getLockAcquireTimeoutMillis());
+        // TODO(fdesouza): Revert this once PDS-95791 is resolved
+        long lockAcquireTimeoutMillis = transactionConfig.getLockAcquireTimeoutMillis();
+        LockRequest request = ImmutableLockRequest.of(
+                lockDescriptors,
+                lockAcquireTimeoutMillis,
+                getStartTimestampAsClientDescription(transactionConfig));
         TimestampedLockResponse lockResponse = timelockService.acquireLocksForWrites(request);
         if (!lockResponse.wasSuccessful()) {
             log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
                             + "First ten required locks were {}.",
-                    SafeArg.of("acquireTimeoutMs", transactionConfig.get().getLockAcquireTimeoutMillis()),
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
@@ -2041,16 +2048,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void waitFor(Set<LockDescriptor> lockDescriptors) {
-        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors,
-                transactionConfig.get().getLockAcquireTimeoutMillis());
+        TransactionConfig transactionConfig = this.transactionConfig.get();
+        Optional<String> startTimestampAsDescription = getStartTimestampAsClientDescription(transactionConfig);
+
+        // TODO(fdesouza): Revert this once PDS-95791 is resolved
+        long lockAcquireTimeoutMillis = transactionConfig.getLockAcquireTimeoutMillis();
+        WaitForLocksRequest request = WaitForLocksRequest.of(
+                lockDescriptors,
+                lockAcquireTimeoutMillis,
+                startTimestampAsDescription);
         WaitForLocksResponse response = timelockService.waitForLocks(request);
         if (!response.wasSuccessful()) {
             log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
                     SafeArg.of("requestId", request.getRequestId()),
-                    SafeArg.of("acquireTimeoutMs", transactionConfig.get().getLockAcquireTimeoutMillis()),
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
         }
+    }
+
+
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     */
+    @Deprecated
+    private Optional<String> getStartTimestampAsClientDescription(TransactionConfig transactionConfig) {
+        return transactionConfig.attachStartTimestampToLockRequestDescriptions()
+                ? Optional.of(Long.toString(getStartTimestamp()))
+                : Optional.empty();
     }
 
     ///////////////////////////////////////////////////////////////////////////

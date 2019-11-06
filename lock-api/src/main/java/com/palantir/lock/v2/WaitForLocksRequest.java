@@ -52,4 +52,15 @@ public interface WaitForLocksRequest {
                 Optional.of(clientDescription));
     }
 
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     */
+    @Deprecated
+    static WaitForLocksRequest of(
+            Set<LockDescriptor> lockDescriptors,
+            long acquireTimeoutMs,
+            Optional<String> clientDescription) {
+        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, clientDescription);
+    }
+
 }

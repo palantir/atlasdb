@@ -764,7 +764,8 @@ public class TransactionManagersTest {
                 LockServiceImpl::create,
                 () -> ts,
                 invalidator,
-                USER_AGENT);
+                USER_AGENT,
+                Optional.empty());
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -791,7 +792,8 @@ public class TransactionManagersTest {
                         LockServiceImpl::create,
                         () -> ts,
                         invalidator,
-                        USER_AGENT);
+                        USER_AGENT,
+                        Optional.empty());
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
