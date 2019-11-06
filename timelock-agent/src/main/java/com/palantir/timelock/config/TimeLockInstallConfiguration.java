@@ -40,7 +40,8 @@ public interface TimeLockInstallConfiguration {
     ClusterConfiguration cluster();
 
     /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
     @JsonProperty("lock-diagnostic-config")

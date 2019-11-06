@@ -17,7 +17,8 @@
 package com.palantir.atlasdb.debug;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved
+ * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 public enum LockState {

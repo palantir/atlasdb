@@ -30,7 +30,8 @@ import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagno
 import com.palantir.lock.LockDescriptor;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved
+ * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 @Value.Immutable

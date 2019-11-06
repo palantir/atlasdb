@@ -28,7 +28,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved
+ * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 @Path("/{namespace}/timelock")

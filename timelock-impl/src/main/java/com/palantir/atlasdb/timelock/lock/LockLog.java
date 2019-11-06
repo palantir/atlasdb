@@ -47,7 +47,8 @@ public final class LockLog {
     }
 
     /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
     private LockLog(LockEvents loggingLockEvents, LockDiagnosticCollector lockDiagnosticInfoCollector) {
@@ -56,7 +57,8 @@ public final class LockLog {
     }
 
     /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
     public LockLog withLockRequestDiagnosticCollection(LockDiagnosticConfig lockDiagnosticConfig) {
@@ -73,7 +75,8 @@ public final class LockLog {
     }
 
     /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
     public void registerLockImmutableTimestampRequest(UUID requestId, long timestamp, AsyncResult<?> result) {
@@ -111,7 +114,8 @@ public final class LockLog {
     }
 
     /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
     public Optional<LockDiagnosticInfo> getAndLogLockDiagnosticInfo(Set<UUID> startTimestamps) {
@@ -120,7 +124,8 @@ public final class LockLog {
     }
 
     /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
     void logLockDiagnosticInfo() {

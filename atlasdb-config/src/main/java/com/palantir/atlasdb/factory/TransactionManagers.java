@@ -243,7 +243,7 @@ public abstract class TransactionManagers {
         return Callback.noOp();
     }
 
-    // TODO(fdesouza): Remove this once PDS-95791 is resolved
+    // TODO(fdesouza): Remove this once PDS-95791 is resolved.
     abstract Optional<ClientLockDiagnosticCollector> lockDiagnosticInfoCollector();
 
     @Value.Default
@@ -970,7 +970,7 @@ public abstract class TransactionManagers {
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 
-        // TODO(fdesouza): Remove this once PDS-95791 is resolved
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         TimelockRpcClient withDiagnosticsTimelockClient = lockDiagnosticCollector
                 .<TimelockRpcClient>map(collector -> new LockDiagnosticTimelockRpcClient(timelockClient, collector))
                 .orElse(timelockClient);

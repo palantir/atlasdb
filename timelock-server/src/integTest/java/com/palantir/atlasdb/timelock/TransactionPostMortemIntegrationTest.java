@@ -45,7 +45,8 @@ import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStrea
 import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfileRow;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved
+ * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {

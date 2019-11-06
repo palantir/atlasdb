@@ -28,7 +28,8 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved
+ * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 public class LockDiagnosticTimelockRpcClient implements AutoDelegate_TimelockRpcClient {

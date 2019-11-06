@@ -1,5 +1,5 @@
 install:
-  # TODO(fdesouza): Remove this once PDS-95791 is resolved
+  # TODO(fdesouza): Remove this once PDS-95791 is resolved.
   lock-diagnostic-config:
     client-with-lock-diagnostics:
       ttl: PT5M

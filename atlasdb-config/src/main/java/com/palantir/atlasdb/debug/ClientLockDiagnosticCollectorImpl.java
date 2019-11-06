@@ -30,7 +30,8 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.lock.LockDescriptor;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved
+ * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 public class ClientLockDiagnosticCollectorImpl implements ClientLockDiagnosticCollector {
@@ -55,7 +56,7 @@ public class ClientLockDiagnosticCollectorImpl implements ClientLockDiagnosticCo
     public void collect(long startTimestamp, UUID requestId, Set<LockDescriptor> lockDescriptors) {
         cache.asMap().compute(
                 startTimestamp,
-                (_unused, digest) -> getUsableDigest(digest).withLocks(requestId, lockDescriptors));
+                (unusedStartTimestamp, digest) -> getUsableDigest(digest).withLocks(requestId, lockDescriptors));
     }
 
     private static ClientLockDiagnosticDigest getUsableDigest(@Nullable ClientLockDiagnosticDigest maybeDigest) {

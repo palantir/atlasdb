@@ -56,7 +56,8 @@ public final class TimeLockTestUtils {
     }
 
     /**
-     * TODO(fdesouza): Revert this once PDS-95791 is resolved
+     * TODO(fdesouza): Revert this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
     static TransactionManagerContext createTransactionManager(

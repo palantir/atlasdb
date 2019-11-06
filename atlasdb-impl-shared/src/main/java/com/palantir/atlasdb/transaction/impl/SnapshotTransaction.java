@@ -1971,14 +1971,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected TimestampedLockResponse acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
-        TransactionConfig transactionConfig = this.transactionConfig.get();
+        TransactionConfig currentTransactionConfig = transactionConfig.get();
 
-        // TODO(fdesouza): Revert this once PDS-95791 is resolved
-        long lockAcquireTimeoutMillis = transactionConfig.getLockAcquireTimeoutMillis();
+        // TODO(fdesouza): Revert this once PDS-95791 is resolved.
+        long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
         LockRequest request = ImmutableLockRequest.of(
                 lockDescriptors,
                 lockAcquireTimeoutMillis,
-                getStartTimestampAsClientDescription(transactionConfig));
+                getStartTimestampAsClientDescription(currentTransactionConfig));
         TimestampedLockResponse lockResponse = timelockService.acquireLocksForWrites(request);
         if (!lockResponse.wasSuccessful()) {
             log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
@@ -2048,11 +2048,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void waitFor(Set<LockDescriptor> lockDescriptors) {
-        TransactionConfig transactionConfig = this.transactionConfig.get();
-        Optional<String> startTimestampAsDescription = getStartTimestampAsClientDescription(transactionConfig);
+        TransactionConfig currentTransactionConfig = transactionConfig.get();
+        Optional<String> startTimestampAsDescription = getStartTimestampAsClientDescription(currentTransactionConfig);
 
-        // TODO(fdesouza): Revert this once PDS-95791 is resolved
-        long lockAcquireTimeoutMillis = transactionConfig.getLockAcquireTimeoutMillis();
+        // TODO(fdesouza): Revert this once PDS-95791 is resolved.
+        long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
         WaitForLocksRequest request = WaitForLocksRequest.of(
                 lockDescriptors,
                 lockAcquireTimeoutMillis,
@@ -2070,11 +2070,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
 
     /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
-    private Optional<String> getStartTimestampAsClientDescription(TransactionConfig transactionConfig) {
-        return transactionConfig.attachStartTimestampToLockRequestDescriptions()
+    private Optional<String> getStartTimestampAsClientDescription(TransactionConfig currentTransactionConfig) {
+        return currentTransactionConfig.attachStartTimestampToLockRequestDescriptions()
                 ? Optional.of(Long.toString(getStartTimestamp()))
                 : Optional.empty();
     }

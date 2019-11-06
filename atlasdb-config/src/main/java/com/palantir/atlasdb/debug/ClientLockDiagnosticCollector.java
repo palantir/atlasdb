@@ -29,7 +29,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved
+ * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 public interface ClientLockDiagnosticCollector {
@@ -41,30 +42,30 @@ public interface ClientLockDiagnosticCollector {
     @JsonDeserialize(as = ImmutableClientLockDiagnosticDigest.class)
     @JsonSerialize(as = ImmutableClientLockDiagnosticDigest.class)
     interface ClientLockDiagnosticDigest {
-         long immutableTimestamp();
-         UUID immutableTimestampRequestId();
-         Map<UUID, Set<LockDescriptor>> lockRequests();
+        long immutableTimestamp();
+        UUID immutableTimestampRequestId();
+        Map<UUID, Set<LockDescriptor>> lockRequests();
 
-         static ClientLockDiagnosticDigest newTransaction(long immutableTimestamp, UUID immutableTimestampRequestId) {
-             return ImmutableClientLockDiagnosticDigest.builder()
-                     .immutableTimestamp(immutableTimestamp)
-                     .immutableTimestampRequestId(immutableTimestampRequestId)
-                     .build();
-         }
+        static ClientLockDiagnosticDigest newTransaction(long immutableTimestamp, UUID immutableTimestampRequestId) {
+            return ImmutableClientLockDiagnosticDigest.builder()
+                    .immutableTimestamp(immutableTimestamp)
+                    .immutableTimestampRequestId(immutableTimestampRequestId)
+                    .build();
+        }
 
-         static ClientLockDiagnosticDigest newFragment() {
-             return newTransaction(-2, UUID.nameUUIDFromBytes("fragment".getBytes(StandardCharsets.UTF_8)));
-         }
+        static ClientLockDiagnosticDigest newFragment() {
+            return newTransaction(-2, UUID.nameUUIDFromBytes("fragment".getBytes(StandardCharsets.UTF_8)));
+        }
 
         static ClientLockDiagnosticDigest missingEntry() {
             return newTransaction(-3, UUID.nameUUIDFromBytes("missingEntry".getBytes(StandardCharsets.UTF_8)));
         }
 
-         default ClientLockDiagnosticDigest withLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
-             return ImmutableClientLockDiagnosticDigest.builder()
-                     .from(this)
-                     .putLockRequests(requestId, lockDescriptors)
-                     .build();
-         }
+        default ClientLockDiagnosticDigest withLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
+            return ImmutableClientLockDiagnosticDigest.builder()
+                    .from(this)
+                    .putLockRequests(requestId, lockDescriptors)
+                    .build();
+        }
     }
 }

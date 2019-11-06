@@ -51,7 +51,8 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved
+ * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 public class TransactionPostMortemRunner {
@@ -84,7 +85,7 @@ public class TransactionPostMortemRunner {
 
         Set<UUID> lockRequestIdsEvictedMidLockRequest = lockDiagnosticInfo
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
-                .orElse(ImmutableSet.of());
+                .orElseGet(ImmutableSet::of);
 
         Set<TransactionDigest<T>> transactionDigests = digest.completedOrAbortedTransactions().keySet().stream()
                 .map(startTimestamp -> transactionDigest(
@@ -148,7 +149,7 @@ public class TransactionPostMortemRunner {
             Set<LockDescriptor> lockDescriptors,
             Optional<Map<LockState, Instant>> maybeLockStates) {
         Map<LockState, Instant> lockStates = maybeLockStates
-                .orElse(ImmutableMap.of(LockState.NOT_PRESENT_ON_TIMELOCK, Instant.EPOCH));
+                .orElseGet(() -> ImmutableMap.of(LockState.NOT_PRESENT_ON_TIMELOCK, Instant.EPOCH));
         return ImmutableLockDigest.builder()
                 .addAllLockDescriptors(lockDescriptors)
                 .putAllLockStates(lockStates)

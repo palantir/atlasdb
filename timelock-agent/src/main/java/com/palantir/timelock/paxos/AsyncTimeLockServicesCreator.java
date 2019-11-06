@@ -56,7 +56,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             MetricsManager metricsManager,
             LockLog lockLog,
             PaxosLeadershipCreator leadershipCreator,
-            // TODO(fdesouza): Remove this once PDS-95791 is resolved
+            // TODO(fdesouza): Remove this once PDS-95791 is resolved.
             Map<Client, LockDiagnosticConfig> lockDiagnosticConfig,
             Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier) {
         this.metricsManager = metricsManager;
@@ -117,7 +117,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
     private LockLog maybeEnhancedLockLog(String client) {

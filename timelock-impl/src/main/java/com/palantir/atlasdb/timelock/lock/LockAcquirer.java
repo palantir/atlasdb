@@ -55,7 +55,7 @@ public class LockAcquirer implements AutoCloseable {
     @Override
     public void close() {
         log.info("Shutting down, logging lock diagnostic info");
-        // TODO(fdesouza): Remove this once PDS-95791 is resolved
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         lockLog.logLockDiagnosticInfo();
         timeoutExecutor.shutdown();
     }

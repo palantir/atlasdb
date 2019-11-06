@@ -90,7 +90,7 @@ public class AsyncLockService implements Closeable {
             AwaitedLocksCollection awaitedLocks,
             ScheduledExecutorService reaperExecutor,
             LeaderClock leaderClock,
-            // TODO(fdesouza): Remove this once PDS-95791 is resolved
+            // TODO(fdesouza): Remove this once PDS-95791 is resolved.
             LockLog lockLog) {
         this.locks = locks;
         this.decorator = decorator;
@@ -125,7 +125,7 @@ public class AsyncLockService implements Closeable {
         AsyncResult<Leased<LockToken>> immutableTimestampLockResult = heldLocks.getExistingOrAcquire(
                 requestId,
                 () -> acquireImmutableTimestampLock(requestId, timestamp));
-        // TODO(fdesouza): Remove this once PDS-95791 is resolved
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         lockLog.registerLockImmutableTimestampRequest(requestId, timestamp, immutableTimestampLockResult);
         return immutableTimestampLockResult;
     }
