@@ -16,29 +16,20 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ListenableFuture;
+import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.tracing.Tracers;
 
 public class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsyncKeyValueServiceFactory {
     private final CqlClientFactory cqlClientFactory;
@@ -49,70 +40,31 @@ public class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsy
 
     @Override
     public AsyncKeyValueService constructAsyncKeyValueService(
-            TaggedMetricRegistry taggedMetricRegistry,
+            MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             boolean initializeAsync) {
-        CqlClient cqlClient = cqlClientFactory.constructClient(taggedMetricRegistry, config, initializeAsync);
+        CqlClient cqlClient = cqlClientFactory.constructClient(
+                metricsManager.getTaggedRegistry(),
+                config,
+                initializeAsync);
 
-        return null;
+        return DefaultCassandraAsyncKeyValueService.create(config.getKeyspaceOrThrow(), cqlClient, Tracers.wrap(
+                new InstrumentedExecutorService(
+                        createThreadPool(
+                                config.servers().numberOfThriftHosts() * config.poolSize()),
+                        metricsManager.getRegistry(),
+                        MetricRegistry.name(CassandraKeyValueService.class, "executorService"))));
     }
 
-    private static final class DefaultAsyncKeyValueService implements AsyncKeyValueService {
-        private static final Logger log = LoggerFactory.getLogger(DefaultAsyncKeyValueService.class);
-
-        private final CqlClient cqlClient;
-        private final ExecutorService executorService;
-        private final String keyspace;
-
-        public static DefaultAsyncKeyValueService create(
-                String keyspace,
-                CqlClient cqlClient,
-                ExecutorService executorService) {
-            return new DefaultAsyncKeyValueService(keyspace, cqlClient, executorService);
-        }
-
-        private DefaultAsyncKeyValueService(String keyspace, CqlClient cqlClient, ExecutorService executorService) {
-            this.keyspace = keyspace;
-            this.cqlClient = cqlClient;
-            this.executorService = executorService;
-        }
-
-        public ListenableFuture<Map<Cell, Value>> getAsync(
-                TableReference tableReference,
-                Map<Cell, Long> timestampByCell) {
-            if (log.isTraceEnabled()) {
-                log.trace(
-                        "Loading cells using CQL.",
-                        SafeArg.of("cells", timestampByCell.size()),
-                        LoggingArgs.tableRef(tableReference));
-            }
-
-            Map<Cell, ListenableFuture<Optional<Value>>> cellListenableFutureMap = KeyedStream.stream(timestampByCell)
-                    .map((cell, timestamp) -> getCellAsync(tableReference, cell, timestamp))
-                    .collectToMap();
-
-            return AtlasFutures.allAsMap(cellListenableFutureMap, executorService);
-        }
-
-        private ListenableFuture<Optional<Value>> getCellAsync(
-                TableReference tableReference,
-                Cell cell,
-                long timestamp) {
-            CqlQueryContext queryContext = ImmutableCqlQueryContext.builder()
-                    .tableReference(tableReference)
-                    .keyspace(keyspace)
-                    .build();
-            GetQuerySpec.GetQueryParameters getQueryParameters = ImmutableGetQueryParameters.builder()
-                    .cell(cell)
-                    .humanReadableTimestamp(timestamp)
-                    .build();
-
-            return cqlClient.executeQuery(new GetQuerySpec(queryContext, getQueryParameters));
-        }
-
-        @Override
-        public void close() {
-            executorService.shutdown();
-        }
+    /**
+     * Creates a thread pool with number of threads between 0 and {@code maxPoolSize}.
+     *
+     * @param maxPoolSize      maximum size of the pool
+     * @return a new fixed size thread pool with a keep alive time of 1 minute
+     */
+    private static ExecutorService createThreadPool(int maxPoolSize) {
+        return PTExecutors.newThreadPoolExecutor(0, maxPoolSize,
+                1, TimeUnit.MINUTES,
+                new LinkedBlockingQueue<>(), new NamedThreadFactory("Atlas Cassandra Async KVS", false));
     }
 }

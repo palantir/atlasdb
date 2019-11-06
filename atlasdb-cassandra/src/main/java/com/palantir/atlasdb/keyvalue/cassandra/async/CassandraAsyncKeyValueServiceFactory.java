@@ -17,11 +17,12 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
+import com.palantir.atlasdb.util.MetricsManager;
 
 public interface CassandraAsyncKeyValueServiceFactory {
     AsyncKeyValueService constructAsyncKeyValueService(
-            TaggedMetricRegistry taggedMetricRegistry,
+            MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             boolean initializeAsync);
 }

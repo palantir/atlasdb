@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -46,7 +47,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryPa
 import com.palantir.common.random.RandomBytes;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultAsyncKeyValueServiceTests {
+public class DefaultCassandraAsyncKeyValueServiceTests {
     private static final String KEYSPACE = "test";
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "foo");
     // tests are imagined as if the visible data has a timestamp lower than 20 and non visible data has timestamp higher
@@ -59,13 +60,13 @@ public class DefaultAsyncKeyValueServiceTests {
             .tableReference(TABLE)
             .build();
 
-    private DefaultCassandraAsyncKeyValueServiceFactory.DefaultAsyncKeyValueService asyncKeyValueService;
+    private AsyncKeyValueService asyncKeyValueService;
     @Mock
     private CqlClient cqlClient;
 
     @Before
     public void setUp() {
-        asyncKeyValueService = DefaultCassandraAsyncKeyValueServiceFactory.DefaultAsyncKeyValueService.create(
+        asyncKeyValueService = DefaultCassandraAsyncKeyValueService.create(
                 KEYSPACE,
                 cqlClient,
                 MoreExecutors.newDirectExecutorService());
