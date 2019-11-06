@@ -31,6 +31,8 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactoryImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
@@ -181,12 +183,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     Optional<SslConfiguration> sslConfiguration();
 
     /**
-     * An object which implements the logic behind CQL client resource management. Default implementation creates a new
-     * one per CKVS.
+     * An object which implements the logic behind async resource management. Default implementation creates a new
+     * client with new session and thread pool. For sharing this implementation
      */
     @Value.Default
-    default CqlClientFactory cqlClientFactory() {
-        return CqlClientFactoryImpl.INSTANCE;
+    default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
+        return DefaultCassandraAsyncKeyValueServiceFactory.DEFAULT;
     }
 
     int replicationFactor();

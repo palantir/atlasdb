@@ -366,9 +366,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            AsyncKeyValueService asyncKeyValueService =
-                    new DefaultCassandraAsyncKeyValueServiceFactory(CqlClientFactoryImpl.DEFAULT)
-                            .constructAsyncKeyValueService(metricsManager, config, initializeAsync);
+            AsyncKeyValueService asyncKeyValueService = config.asyncKeyValueServiceFactory()
+                    .constructAsyncKeyValueService(metricsManager, config, initializeAsync);
 
             return createAndInitialize(
                     metricsManager,
@@ -380,7 +379,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     log,
                     initializeAsync);
         } catch (Exception e) {
-            log.warn("CqlClient creation exception", e);
+            log.warn("Exception during async KVS creation.", e);
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
