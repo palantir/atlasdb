@@ -51,7 +51,7 @@ public class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsy
         return DefaultCassandraAsyncKeyValueService.create(config.getKeyspaceOrThrow(), cqlClient, Tracers.wrap(
                 new InstrumentedExecutorService(
                         createThreadPool(
-                                config.servers().numberOfThriftHosts() * config.poolSize()),
+                                config.servers().numberOfHosts() * config.poolSize()),
                         metricsManager.getRegistry(),
                         MetricRegistry.name(CassandraKeyValueService.class, "executorService"))));
     }

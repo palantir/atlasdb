@@ -81,7 +81,7 @@ public final class CassandraServersConfigs {
 
         <T> T accept(Visitor<T> visitor);
 
-        int numberOfThriftHosts();
+        int numberOfHosts();
     }
 
     @Value.Immutable
@@ -95,7 +95,7 @@ public final class CassandraServersConfigs {
         public abstract Set<InetSocketAddress> thriftHosts();
 
         @Override
-        public int numberOfThriftHosts() {
+        public int numberOfHosts() {
             return thriftHosts().size();
         }
 
@@ -127,14 +127,14 @@ public final class CassandraServersConfigs {
         }
 
         @Override
-        public final int numberOfThriftHosts() {
+        public final int numberOfHosts() {
+            Preconditions.checkState(thriftHosts().size() == cqlHosts().size());
             return thriftHosts().size();
         }
 
         @Value.Check
         final void check() {
             checkPortNumbers(thriftHosts(), "'thriftPort'");
-
             checkPortNumbers(cqlHosts(), "'cqlPort'");
         }
 

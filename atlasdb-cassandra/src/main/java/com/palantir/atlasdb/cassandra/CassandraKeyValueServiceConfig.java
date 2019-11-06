@@ -33,7 +33,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtract
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactoryImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -187,7 +187,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
-        return new DefaultCassandraAsyncKeyValueServiceFactory(new CqlClientFactoryImpl());
+        return new DefaultCassandraAsyncKeyValueServiceFactory(DefaultCqlClientFactory.DEFAULT);
     }
 
     int replicationFactor();
@@ -323,7 +323,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Override
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().numberOfThriftHosts();
+        return poolSize() * servers().numberOfHosts();
     }
 
     @JsonIgnore

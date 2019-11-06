@@ -39,17 +39,21 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.ThrowingCqlClientImpl;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-/**
- * This is the default implementation which should be sufficient for most cases. It is however designed to be extended
- * if there are some non standard options to be set, for example.
- * {@link com.datastax.oss.driver.internal.core.context.NettyOptions}.
- */
-public class CqlClientFactoryImpl implements CqlClientFactory {
-    private static final Logger log = LoggerFactory.getLogger(CqlClientFactoryImpl.class);
+public final class DefaultCqlClientFactory implements CqlClientFactory {
+    public static final CqlClientFactory DEFAULT = new DefaultCqlClientFactory();
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultCqlClientFactory.class);
     private static final String LOAD_BALANCING_POLICY = "DcInferringLoadBalancingPolicy";
     private static final String COMPRESSION_PROTOCOL = "lz4";
 
-    public CqlClientFactoryImpl() {
+    private final Supplier<CqlSessionBuilder> cqlSessionBuilderFactory;
+
+    public DefaultCqlClientFactory(Supplier<CqlSessionBuilder> cqlSessionBuilderFactory) {
+        this.cqlSessionBuilderFactory = cqlSessionBuilderFactory;
+    }
+
+    private DefaultCqlClientFactory() {
+        this.cqlSessionBuilderFactory = CqlSessionBuilder::new;
     }
 
     @Override
@@ -70,24 +74,11 @@ public class CqlClientFactoryImpl implements CqlClientFactory {
                             + "async API will result in an exception.");
                     return ThrowingCqlClientImpl.INSTANCE;
                 }
+
                 Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
-
-                DriverConfigLoader loader =
-                        DriverConfigLoader.programmaticBuilder()
-                                .withString(DefaultDriverOption.LOAD_BALANCING_POLICY_CLASS, LOAD_BALANCING_POLICY)
-                                .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, COMPRESSION_PROTOCOL)
-                                .withInt(DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, config.poolSize())
-                                .withInt(DefaultDriverOption.CONNECTION_POOL_REMOTE_SIZE, config.poolSize())
-                                .withInt(DefaultDriverOption.REQUEST_PAGE_SIZE, config.fetchBatchCount())
-                                .build();
-
-                Supplier<CqlSession> cqlSessionSupplier = () -> {
-                    CqlSessionBuilder cqlSessionBuilder = getCqlSessionBuilder();
-                    cqlSessionBuilder.addContactPoints(servers)
-                            .withAuthCredentials(config.credentials().username(), config.credentials().password())
-                            .withConfigLoader(loader);
-                    return withSslOptions(cqlSessionBuilder, config).build();
-                };
+                DriverConfigLoader driverConfigLoader = buildDriverConfigLoader(config);
+                Supplier<CqlSession> cqlSessionSupplier =
+                        constructCqlSessionFactory(servers, driverConfigLoader, config);
 
                 return CqlClientImpl.create(
                         taggedMetricRegistry,
@@ -98,15 +89,27 @@ public class CqlClientFactoryImpl implements CqlClientFactory {
         });
     }
 
-    /**
-     * Method is designed to be overriden in subclasses if a non standard approach to CqlSession building is needed.
-     * One example is setting the proxy through {@link com.datastax.oss.driver.internal.core.context.NettyOptions} for
-     * tests.
-     *
-     * @return {@link CqlSessionBuilder} with non standard options
-     */
-    protected CqlSessionBuilder getCqlSessionBuilder() {
-        return CqlSession.builder();
+    private DriverConfigLoader buildDriverConfigLoader(CassandraKeyValueServiceConfig config) {
+        return DriverConfigLoader.programmaticBuilder()
+                .withString(DefaultDriverOption.LOAD_BALANCING_POLICY_CLASS, LOAD_BALANCING_POLICY)
+                .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, COMPRESSION_PROTOCOL)
+                .withInt(DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, config.poolSize())
+                .withInt(DefaultDriverOption.CONNECTION_POOL_REMOTE_SIZE, config.poolSize())
+                .withInt(DefaultDriverOption.REQUEST_PAGE_SIZE, config.fetchBatchCount())
+                .build();
+    }
+
+    private Supplier<CqlSession> constructCqlSessionFactory(
+            Set<InetSocketAddress> contactPoints,
+            DriverConfigLoader driverConfigLoader,
+            CassandraKeyValueServiceConfig config) {
+        return () -> {
+            CqlSessionBuilder cqlSessionBuilder = cqlSessionBuilderFactory.get();
+            cqlSessionBuilder.addContactPoints(contactPoints)
+                    .withAuthCredentials(config.credentials().username(), config.credentials().password())
+                    .withConfigLoader(driverConfigLoader);
+            return withSslOptions(cqlSessionBuilder, config).build();
+        };
     }
 
     private static CqlSessionBuilder withSslOptions(CqlSessionBuilder builder, CassandraKeyValueServiceConfig config) {

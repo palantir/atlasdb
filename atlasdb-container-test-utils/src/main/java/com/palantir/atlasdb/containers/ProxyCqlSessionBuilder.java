@@ -26,7 +26,6 @@ import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
 import com.datastax.oss.driver.internal.core.context.DefaultDriverContext;
 import com.datastax.oss.driver.internal.core.context.NettyOptions;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactoryImpl;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBufAllocator;
@@ -37,35 +36,20 @@ import io.netty.util.Timer;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
 
-final class ProxyCqlClientFactory extends CqlClientFactoryImpl {
-    private SocketAddress proxyAddress;
+public class ProxyCqlSessionBuilder extends CqlSessionBuilder {
+    private final SocketAddress proxyAddress;
 
-    ProxyCqlClientFactory(SocketAddress proxyAddress) {
+    ProxyCqlSessionBuilder(SocketAddress proxyAddress) {
         this.proxyAddress = proxyAddress;
     }
 
-    protected CqlSessionBuilder getCqlSessionBuilder() {
-        return CustomCqlSessionBuilder.create(proxyAddress);
+    @Override
+    protected DriverContext buildContext(
+            DriverConfigLoader configLoader,
+            ProgrammaticArguments programmaticArguments) {
+        return new WrappingDriverContext(configLoader, programmaticArguments, proxyAddress);
     }
 
-    private static final class CustomCqlSessionBuilder extends CqlSessionBuilder {
-        private final SocketAddress proxyAddress;
-
-        static CqlSessionBuilder create(SocketAddress proxyAddress) {
-            return new CustomCqlSessionBuilder(proxyAddress);
-        }
-
-        CustomCqlSessionBuilder(SocketAddress proxyAddress) {
-            this.proxyAddress = proxyAddress;
-        }
-
-        @Override
-        protected DriverContext buildContext(
-                DriverConfigLoader configLoader,
-                ProgrammaticArguments programmaticArguments) {
-            return new WrappingDriverContext(configLoader, programmaticArguments, proxyAddress);
-        }
-    }
 
     private static class SocksProxyNettyOptions implements NettyOptions {
         private final SocketAddress proxyAddress;
