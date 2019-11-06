@@ -36,6 +36,7 @@ import org.junit.rules.TestRule;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;

@@ -33,6 +33,7 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeadershipId;

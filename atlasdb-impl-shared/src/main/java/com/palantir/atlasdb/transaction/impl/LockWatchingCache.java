@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.GuardedValue;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.v2.LockWatch;
+import com.palantir.lock.watch.LockWatch;
 import com.palantir.lock.v2.LockWatchId;
 
 public interface LockWatchingCache {

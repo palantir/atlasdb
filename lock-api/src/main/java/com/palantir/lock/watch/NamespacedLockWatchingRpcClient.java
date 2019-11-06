@@ -16,11 +16,7 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Map;
 import java.util.UUID;
-
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockWatch;
 
 public class NamespacedLockWatchingRpcClient {
     private final String namespace;

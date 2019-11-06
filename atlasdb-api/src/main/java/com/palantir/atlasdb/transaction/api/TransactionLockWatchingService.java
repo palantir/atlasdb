@@ -16,12 +16,9 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Map;
 import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockWatch;
 import com.palantir.lock.watch.LockWatchState;
 
 public interface TransactionLockWatchingService {

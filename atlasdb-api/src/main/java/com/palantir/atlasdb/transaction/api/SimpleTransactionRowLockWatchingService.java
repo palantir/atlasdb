@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.lockwatch.LockWatchRequest;
+import com.palantir.atlasdb.lockwatch.LockWatchState;
+import com.palantir.atlasdb.lockwatch.NamespacedLockWatchingRpcClient;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockWatch;
-import com.palantir.lock.watch.LockWatchRequest;
-import com.palantir.lock.watch.LockWatchState;
-import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
 
 public class SimpleTransactionRowLockWatchingService implements TransactionLockWatchingService {
     private final UUID serviceId = UUID.randomUUID();

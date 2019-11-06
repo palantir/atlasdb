@@ -16,20 +16,33 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Map;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockWatch;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchState.class)
-@JsonDeserialize(as = ImmutableLockWatchState.class)
-public interface LockWatchState {
+@JsonSerialize(as = ImmutableLockWatch.class)
+@JsonDeserialize(as = ImmutableLockWatch.class)
+public interface LockWatch {
+    LockWatch INVALID = ImmutableLockWatch.of(0L, false);
+
     @Value.Parameter
-    Map<LockDescriptor, LockWatch> state();
+    long timestamp();
+
+    @Value.Parameter
+    boolean fromCommittedTransaction();
+
+    static LockWatch committed(long timestamp) {
+        return ImmutableLockWatch.of(timestamp, true);
+    }
+
+    static LockWatch uncommitted(long timestamp) {
+        return ImmutableLockWatch.of(timestamp, false);
+    }
+
+    static LockWatch latest(LockWatch first, LockWatch second) {
+        return first.timestamp() > second.timestamp() ? first : second;
+    }
 }

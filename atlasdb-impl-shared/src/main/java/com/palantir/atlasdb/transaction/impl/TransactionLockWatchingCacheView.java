@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.GuardedValue;
 import com.palantir.atlasdb.keyvalue.api.ImmutableGuardedValue;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.v2.LockWatch;
+import com.palantir.lock.watch.LockWatch;
 
 public class TransactionLockWatchingCacheView {
     public static final TransactionLockWatchingCacheView EMPTY = NoOpLockWatchingCache.INSTANCE

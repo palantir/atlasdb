@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.LeaderTime;

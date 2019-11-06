@@ -39,15 +39,20 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.lockwatch.LockWatchState;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LockToken;
 
 public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -68,6 +73,23 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
 
         txnManager = TimeLockTestUtils.createTransactionManager(cluster, AGENT);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
+
+    @Test
+    public void test() {
+        txnManager.getLockWatchingService().registerRowWatches(TABLE, ImmutableSet.of(PtBytes.toBytes("row")));
+        LockDescriptor lockDescriptor = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("row"));
+        LockWatchState result = txnManager.getLockWatchingService().getLockWatchState();
+        LockDescriptor lockDescriptor2 = result.state().get(0).descriptor();
+        assertThat(lockDescriptor).isEqualTo(lockDescriptor2);
+    }
+
+    @Test
+    public void twst2() {
+        txnManager.getLockWatchingService().registerRowWatches(TABLE, ImmutableSet.of(PtBytes.toBytes("row")));
+        LockToken token = txnManager.getTimelockService().lock(com.palantir.lock.v2.LockRequest.of(ImmutableSet.of(AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("row"))), 100)).getToken();
+        txnManager.getTimelockService().unlock(ImmutableSet.of(token));
+        System.out.println(txnManager.getLockWatchingService().getLockWatchState());
     }
 
     @Test

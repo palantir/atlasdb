@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.timelock.lock.LockWatchingResource;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;

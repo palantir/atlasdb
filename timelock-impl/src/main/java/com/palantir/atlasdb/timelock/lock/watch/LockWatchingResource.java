@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.lock;
+package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -25,9 +24,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockWatch;
-import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.atlasdb.lockwatch.LockWatchRequest;
+import com.palantir.atlasdb.lockwatch.LockWatchState;
 
 @Path("/lock-watch")
 @Produces(MediaType.APPLICATION_JSON)
@@ -53,7 +51,7 @@ public class LockWatchingResource {
 
     @POST
     @Path("get-watch-state")
-    public Map<LockDescriptor, LockWatch> getWatchState(UUID serviceId) {
+    public LockWatchState getWatchState(UUID serviceId) {
         return lockWatchingService.getWatchState(serviceId);
     }
 }

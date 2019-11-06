@@ -25,16 +25,21 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.LongSupplier;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.lockwatch.LockWatchState;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.LockWatch;
+import com.palantir.lock.watch.LockWatch;
 
 public class LockWatchingServiceImpl implements LockWatchingService {
+    private static final Logger log = LoggerFactory.getLogger(LockWatchingServiceImpl.class);
     private final LongSupplier timestampSupplier;
     private final ConcurrentMap<UUID, Set<LockDescriptor>> serviceToLocks = new ConcurrentHashMap<>();
     private final ConcurrentMap<LockDescriptor, LockWatch> lockWatches = new ConcurrentHashMap<>();
@@ -47,6 +52,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public synchronized void startWatching(UUID serviceId, Set<LockDescriptor> locksToWatch) {
+        log.error("Starting watch for LD {}", locksToWatch);
         locksToWatch.forEach(lockDescriptor -> {
             boolean newWatch = updateWatchesForService(serviceId, lockDescriptor);
             maybeIncreaseReferenceCount(lockDescriptor, newWatch);
@@ -117,10 +123,11 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public Map<LockDescriptor, LockWatch> getWatchState(UUID serviceId) {
-        return KeyedStream.of(serviceToLocks.get(serviceId).stream())
+    public LockWatchState getWatchState(UUID serviceId) {
+        log.error("LWS {}", serviceToLocks.get(serviceId));
+        return LockWatchState.of(KeyedStream.of(serviceToLocks.get(serviceId).stream())
                 .map(lockDescriptor -> lockWatches.getOrDefault(lockDescriptor, LockWatch.INVALID))
-                .collectToMap();
+                .collectToMap());
     }
 
     @Value.Immutable

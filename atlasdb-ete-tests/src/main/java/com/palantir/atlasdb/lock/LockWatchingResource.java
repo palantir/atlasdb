@@ -16,54 +16,42 @@
 
 package com.palantir.atlasdb.lock;
 
-import java.util.Map;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.lock.LockDescriptor;
+import com.palantir.atlasdb.lockwatch.LockWatchState;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.LockWatch;
-import com.palantir.lock.watch.LockWatchState;
 
 @Path("lock-watch")
 public interface LockWatchingResource {
     @POST
+    @Path("register-watch")
+    void register(@QueryParam("rowName") String rowName);
+
+    @POST
+    @Path("deregister-watch")
+    void deregister(@QueryParam("rowName") String rowName);
+
+    @POST
     @Path("timelock-lock")
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    LockToken lock(String rowName);
+    LockToken lock(@QueryParam("rowName") String rowName);
 
     @POST
     @Path("timelock-unlock")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     void unlock(LockToken token);
 
     @POST
     @Path("transaction")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    void transaction(String rowName);
-
-    @POST
-    @Path("register-watch")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    void register(String rowName);
-
-    @POST
-    @Path("deregister-watch")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    void deregister(String rowName);
+    void transaction(@QueryParam("rowName") String rowName);
 
     @POST
     @Path("get-watches")
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     LockWatchState getWatches();
 }

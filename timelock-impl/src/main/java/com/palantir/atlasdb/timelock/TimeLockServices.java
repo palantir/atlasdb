@@ -17,7 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.timelock.lock.LockWatchingResource;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;

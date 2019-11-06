@@ -16,20 +16,17 @@
 
 package com.palantir.atlasdb.lock;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.lockwatch.LockWatchState;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.LockWatch;
-import com.palantir.lock.watch.LockWatchState;
 
 public class SimpleLockWatchingResource implements LockWatchingResource {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
@@ -76,8 +73,11 @@ public class SimpleLockWatchingResource implements LockWatchingResource {
         return transactionManager.getLockWatchingService().getLockWatchState();
     }
 
+    public LockDescriptor getLockDescriptor(String row) {
+        return AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes(row));
+    }
+
     private LockRequest lockRequestForRow(String row) {
-        LockDescriptor descriptor = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes(row));
-        return LockRequest.of(ImmutableSet.of(descriptor), 1000L);
+        return LockRequest.of(ImmutableSet.of(getLockDescriptor(row)), 1000L);
     }
 }

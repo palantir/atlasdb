@@ -44,7 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableGuardedValue;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.v2.ImmutableLockWatch;
-import com.palantir.lock.v2.LockWatch;
+import com.palantir.lock.watch.LockWatch;
 
 public class TransactionLockWatchingCacheViewTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
