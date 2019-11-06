@@ -95,6 +95,7 @@ final class DefaultCassandraAsyncKeyValueService implements AsyncKeyValueService
 
     @Override
     public void close() {
+        cqlClient.close();
         executorService.shutdown();
     }
 }

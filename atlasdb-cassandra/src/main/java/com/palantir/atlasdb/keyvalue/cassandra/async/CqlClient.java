@@ -24,4 +24,7 @@ import com.palantir.processors.AutoDelegate;
 public interface CqlClient extends AutoCloseable {
 
     <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec);
+
+    @Override
+    void close();
 }
