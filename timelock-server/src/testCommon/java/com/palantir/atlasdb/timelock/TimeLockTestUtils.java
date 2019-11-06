@@ -19,7 +19,10 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import org.immutables.value.Value;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -28,9 +31,11 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -46,6 +51,20 @@ public final class TimeLockTestUtils {
     }
 
     static TransactionManager createTransactionManager(TestableTimelockCluster cluster, String agent) {
+        return createTransactionManager(cluster, agent, AtlasDbRuntimeConfig.defaultRuntimeConfig(), Optional.empty())
+                .transactionManager();
+    }
+
+    /**
+     * TODO(fdesouza): Revert this once PDS-95791 is resolved
+     */
+    @Deprecated
+    static TransactionManagerContext createTransactionManager(
+            TestableTimelockCluster cluster,
+            String agent,
+            AtlasDbRuntimeConfig runtimeConfigTemplate,
+            Optional<ClientLockDiagnosticCollector> diagnosticCollector,
+            Schema... schemas) {
         List<String> serverUris = cluster.servers().stream()
                 .map(server -> server.serverHolder().getTimelockUri())
                 .collect(Collectors.toList());
@@ -59,17 +78,38 @@ public final class TimeLockTestUtils {
                                 .build())
                         .build())
                 .build();
-        AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
-                .remotingClient(TestProxyUtils.REMOTING_CLIENT_CONFIG)
-                .build();
-        return TransactionManagers.builder()
+
+        AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig
+                .copyOf(runtimeConfigTemplate)
+                .withRemotingClient(TestProxyUtils.REMOTING_CLIENT_CONFIG);
+
+        TransactionManager transactionManager = TransactionManagers.builder()
                 .config(config)
                 .userAgent(UserAgent.of(UserAgent.Agent.of("u" + agent, "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .runtimeConfigSupplier(() -> Optional.of(runtimeConfig))
+                .lockDiagnosticInfoCollector(diagnosticCollector)
+                .addSchemas(schemas)
                 .build()
                 .serializable();
+
+        return ImmutableTransactionManagerContext.builder()
+                .transactionManager(transactionManager)
+                .install(config)
+                .runtime(runtimeConfig)
+                .build();
+    }
+
+    @Value.Immutable
+    interface TransactionManagerContext {
+        AtlasDbConfig install();
+        AtlasDbRuntimeConfig runtime();
+        TransactionManager transactionManager();
+
+        default Supplier<AtlasDbRuntimeConfig> runtimeSupplier() {
+            return this::runtime;
+        }
     }
 
 }
