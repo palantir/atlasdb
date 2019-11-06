@@ -133,7 +133,7 @@ public class CassandraContainer extends Container {
                         .build())
                 .asyncKeyValueServiceFactory(
                         new DefaultCassandraAsyncKeyValueServiceFactory(
-                                new DefaultCqlClientFactory(() -> new ProxyCqlSessionBuilder(proxyAddress))))
+                                new DefaultCqlClientFactory(() -> new DockerProxyCqlSessionBuilder(proxyAddress))))
                 .build();
     }
 

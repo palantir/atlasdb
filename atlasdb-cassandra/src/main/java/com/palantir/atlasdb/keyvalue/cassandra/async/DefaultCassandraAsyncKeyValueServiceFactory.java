@@ -24,7 +24,6 @@ import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -48,12 +47,15 @@ public class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsy
                 config,
                 initializeAsync);
 
-        return DefaultCassandraAsyncKeyValueService.create(config.getKeyspaceOrThrow(), cqlClient, Tracers.wrap(
-                new InstrumentedExecutorService(
-                        createThreadPool(
-                                config.servers().numberOfHosts() * config.poolSize()),
-                        metricsManager.getRegistry(),
-                        MetricRegistry.name(CassandraKeyValueService.class, "executorService"))));
+        ExecutorService executorService = tracingExecutorService(
+                instrumentExecutorService(
+                        createThreadPool(config.servers().numberOfHosts() * config.poolSize()),
+                        metricsManager));
+
+        return DefaultCassandraAsyncKeyValueService.create(
+                config.getKeyspaceOrThrow(),
+                cqlClient,
+                executorService);
     }
 
     /**
@@ -63,8 +65,20 @@ public class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsy
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
     private static ExecutorService createThreadPool(int maxPoolSize) {
-        return PTExecutors.newThreadPoolExecutor(0, maxPoolSize,
-                1, TimeUnit.MINUTES,
-                new LinkedBlockingQueue<>(), new NamedThreadFactory("Atlas Cassandra Async KVS", false));
+        LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
+        NamedThreadFactory threadFactory = new NamedThreadFactory("Atlas Cassandra Async KVS", false);
+
+        return PTExecutors.newThreadPoolExecutor(0, maxPoolSize, 1, TimeUnit.MINUTES, workQueue, threadFactory);
+    }
+
+    private ExecutorService tracingExecutorService(ExecutorService executorService) {
+        return Tracers.wrap(executorService);
+    }
+
+    private ExecutorService instrumentExecutorService(ExecutorService executorService, MetricsManager metricsManager) {
+        return new InstrumentedExecutorService(
+                executorService,
+                metricsManager.getRegistry(),
+                MetricRegistry.name(AsyncKeyValueService.class, "cassandra.executorService"));
     }
 }

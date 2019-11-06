@@ -21,9 +21,7 @@ import java.util.Map;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate
 public interface AsyncKeyValueService extends AutoCloseable {
     /**
      * Asynchronously gets values from the key-value store when the store allows it. In other cases it just wraps the

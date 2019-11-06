@@ -36,10 +36,10 @@ import io.netty.util.Timer;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
 
-public class ProxyCqlSessionBuilder extends CqlSessionBuilder {
+final class DockerProxyCqlSessionBuilder extends CqlSessionBuilder {
     private final SocketAddress proxyAddress;
 
-    ProxyCqlSessionBuilder(SocketAddress proxyAddress) {
+    DockerProxyCqlSessionBuilder(SocketAddress proxyAddress) {
         this.proxyAddress = proxyAddress;
     }
 
@@ -50,6 +50,26 @@ public class ProxyCqlSessionBuilder extends CqlSessionBuilder {
         return new WrappingDriverContext(configLoader, programmaticArguments, proxyAddress);
     }
 
+    /**
+     * This class follows the intended usage explained by {@link DefaultDriverContext}.
+     */
+    private static final class WrappingDriverContext extends DefaultDriverContext {
+        private final SocksProxyNettyOptions nettyOptions;
+
+        WrappingDriverContext(
+                DriverConfigLoader configLoader,
+                ProgrammaticArguments programmaticArguments,
+                SocketAddress proxyAddress) {
+            super(configLoader, programmaticArguments);
+            this.nettyOptions = new SocksProxyNettyOptions(super.getNettyOptions(), proxyAddress);
+        }
+
+        @Nonnull
+        @Override
+        public NettyOptions getNettyOptions() {
+            return nettyOptions;
+        }
+    }
 
     private static class SocksProxyNettyOptions implements NettyOptions {
         private final SocketAddress proxyAddress;
@@ -95,28 +115,9 @@ public class ProxyCqlSessionBuilder extends CqlSessionBuilder {
         public ByteBufAllocator allocator() {
             return delegate.allocator();
         }
-
         @Override
-        public void afterBootstrapInitialized(Bootstrap arg0) {
-            delegate.afterBootstrapInitialized(arg0);
-        }
-    }
-
-    private static final class WrappingDriverContext extends DefaultDriverContext {
-        private final SocksProxyNettyOptions nettyOptions;
-
-        WrappingDriverContext(
-                DriverConfigLoader configLoader,
-                ProgrammaticArguments programmaticArguments,
-                SocketAddress proxyAddress) {
-            super(configLoader, programmaticArguments);
-            this.nettyOptions = new SocksProxyNettyOptions(super.getNettyOptions(), proxyAddress);
-        }
-
-        @Nonnull
-        @Override
-        public NettyOptions getNettyOptions() {
-            return nettyOptions;
+        public void afterBootstrapInitialized(Bootstrap bootstrap) {
+            delegate.afterBootstrapInitialized(bootstrap);
         }
     }
 }

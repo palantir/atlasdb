@@ -442,28 +442,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 cassandraTableTruncator);
     }
 
-    private static ExecutorService createInstrumentedFixedThreadPool(
-            int corePoolSize,
-            MetricRegistry registry) {
-        return createInstrumentedDynamicThreadPool(
-                corePoolSize,
-                corePoolSize,
-                registry,
-                "Atlas Cassandra KVS",
-                "executorService");
-    }
-
-    private static ExecutorService createInstrumentedDynamicThreadPool(
-            int corePoolSize,
-            int maxPoolSize,
-            MetricRegistry registry,
-            String threadNamePrefix,
-            String executorServiceMetricsPrefix) {
+    private static ExecutorService createInstrumentedFixedThreadPool(int corePoolSize, MetricRegistry registry) {
         return Tracers.wrap(
                 new InstrumentedExecutorService(
-                        createThreadPool(threadNamePrefix, corePoolSize, maxPoolSize),
+                        createFixedThreadPool("Atlas Cassandra KVS", corePoolSize),
                         registry,
-                        MetricRegistry.name(CassandraKeyValueService.class, executorServiceMetricsPrefix)));
+                        MetricRegistry.name(CassandraKeyValueService.class, "executorService")));
     }
 
     @Override

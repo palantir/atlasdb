@@ -182,8 +182,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     Optional<SslConfiguration> sslConfiguration();
 
     /**
-     * An object which implements the logic behind async resource management. Default implementation creates a new
-     * client with new session and thread pool. For sharing this implementation
+     * An object which implements the logic behind CQL communication resource management. Default factory object creates
+     * a new {@link com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService} with new session and thread pool every time.
+     * For smarter resource management this option should be programmatically set for client specific resource
+     * management.
      */
     @Value.Default
     default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
