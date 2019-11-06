@@ -43,7 +43,6 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -51,7 +50,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Immutable implementation of {@link TransactionManagers}.
- * NOTE: Copied so we can add support for both types of user agents.
  * <p>
  * Use the builder to create immutable instances:
  * {@code ImmutableTransactionManagers.builder()}.
@@ -754,10 +752,6 @@ public final class ImmutableTransactionManagers extends TransactionManagers {
         this.asyncInitializationCallback);
   }
 
-  public final ImmutableTransactionManagers withUserAgent(String value) {
-    return withUserAgent(UserAgents.parse(value));
-  }
-
   /**
    * Copy the current immutable object by setting a value for the {@link TransactionManagers#globalMetricsRegistry() globalMetricsRegistry} attribute.
    * A shallow reference equality check is used to prevent copying of the same value by returning {@code this}.
@@ -1147,12 +1141,6 @@ public final class ImmutableTransactionManagers extends TransactionManagers {
       return this;
     }
 
-    @CanIgnoreReturnValue
-    @Override
-    public final Builder userAgent(String oldUserAgent) {
-      return userAgent(UserAgents.parse(oldUserAgent));
-    }
-
     /**
      * Initializes the value for the {@link TransactionManagers#globalMetricsRegistry() globalMetricsRegistry} attribute.
      * @param globalMetricsRegistry The value for globalMetricsRegistry
@@ -1289,8 +1277,6 @@ public final class ImmutableTransactionManagers extends TransactionManagers {
      * @return {@code this} builder for use in a chained invocation
      */
     GlobalMetricsRegistryBuildStage userAgent(UserAgent userAgent);
-
-    GlobalMetricsRegistryBuildStage userAgent(String oldUserAgent);
   }
 
   @Generated(from = "TransactionManagers", generator = "Immutables")
