@@ -25,6 +25,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
@@ -110,7 +111,8 @@ public final class CqlClientImpl implements CqlClient {
         return new CqlClientImpl(cqlSession, cachingStatementPreparer);
     }
 
-    private CqlClientImpl(CqlSession session, CachingStatementPreparer statementPreparer) {
+    @VisibleForTesting
+    CqlClientImpl(CqlSession session, StatementPreparer statementPreparer) {
         this.session = session;
         this.statementPreparer = statementPreparer;
     }
