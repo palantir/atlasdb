@@ -16,11 +16,15 @@
 
 package com.palantir.atlasdb.futures;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.base.Throwables;
+
+import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
 public final class AtlasFutures {
     private AtlasFutures() {
@@ -43,5 +47,13 @@ public final class AtlasFutures {
         } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
+    }
+
+    public static <R> ListenableFuture<R> toListenableFuture(CompletableFuture<R> completableFuture) {
+        return FutureConverter.toListenableFuture(completableFuture);
+    }
+
+    public static <V> ListenableFuture<V> toListenableFuture(CompletionStage<V> completionStage) {
+        return toListenableFuture(completionStage.toCompletableFuture());
     }
 }

@@ -25,7 +25,7 @@ dependencies {
 
   testCompile project(':flake-rule')
 
-  testCompile ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+  testCompile ('com.datastax.oss:java-driver-core:' + libVersions.cassandra_driver_core) {
       exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
 
