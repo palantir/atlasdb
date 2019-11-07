@@ -23,7 +23,7 @@ public final class ThrowingCqlClientImpl implements CqlClient {
     public static final ThrowingCqlClientImpl INSTANCE = new ThrowingCqlClientImpl();
 
     private ThrowingCqlClientImpl() {
-        // Use SINGLETON
+        // Use INSTANCE
     }
 
     @Override

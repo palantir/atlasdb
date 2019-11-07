@@ -50,13 +50,13 @@ import io.netty.handler.proxy.Socks5ProxyHandler;
 
 public final class CqlClientFactoryImpl implements CqlClientFactory {
 
-    public static final CqlClientFactory DEFAULT = new CqlClientFactoryImpl();
+    public static final CqlClientFactory INSTANCE = new CqlClientFactoryImpl();
     private static final Logger log = LoggerFactory.getLogger(CqlClientFactoryImpl.class);
     private static final String LOAD_BALANCING_POLICY = "DcInferringLoadBalancingPolicy";
     private static final String COMPRESSION_PROTOCOL = "lz4";
 
     private CqlClientFactoryImpl() {
-        // Use instance
+        // Use INSTANCE
     }
 
     @Override

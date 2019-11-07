@@ -186,7 +186,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     default CqlClientFactory cqlClientFactory() {
-        return CqlClientFactoryImpl.DEFAULT;
+        return CqlClientFactoryImpl.INSTANCE;
     }
 
     int replicationFactor();
