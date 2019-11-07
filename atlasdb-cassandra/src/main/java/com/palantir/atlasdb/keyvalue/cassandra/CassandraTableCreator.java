@@ -41,13 +41,13 @@ class CassandraTableCreator {
     private static final String TIMESTAMP = "column2";
     private static final String VALUE = "value";
     private static final String CACHING_OPTION = "caching";
-    private static final String CACHING_STRATEGY = "keys_only";
+    private static final String KEYS_ONLY = "keys_only";
     private static final String POPULATE_IO_CACHE_ON_FLUSH_OPTION = "populate_io_cache_on_flush";
     private static final String COMPRESSION_OPTION = "compression";
     private static final String SSTABLE_COMPRESSION = "sstable_compression";
-    private static final String SSTABLE_COMPRESSION_STRATEGY = "LZ4Compressor";
+    private static final String LZ_4_COMPRESSOR = "LZ4Compressor";
     private static final String COMPRESSION_CHUNK_LENGTH_OPTION = "chunk_length_kb";
-    private static final String SPECULATIVE_RETRY_STRATEGY = "NONE";
+    private static final String NEVER_RETRY = "NONE";
 
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
@@ -84,7 +84,7 @@ class CassandraTableCreator {
         String internalTableName = wrapInQuotes(CassandraKeyValueServiceImpl.internalTableName(tableRef));
 
         ImmutableMap<String, Object> compressionOptions = ImmutableMap.of(
-                SSTABLE_COMPRESSION, SSTABLE_COMPRESSION_STRATEGY,
+                SSTABLE_COMPRESSION, LZ_4_COMPRESSOR,
                 COMPRESSION_CHUNK_LENGTH_OPTION, getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()));
         boolean shouldPopulateIoCacheOnFlush = tableMetadata.getCachePriority() == CachePriority.HOTTEST;
 
@@ -95,7 +95,7 @@ class CassandraTableCreator {
                 .withClusteringColumn(TIMESTAMP, DataTypes.BIGINT)
                 .withColumn(VALUE, DataTypes.BLOB)
                 .withBloomFilterFpChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
-                .withOption(CACHING_OPTION, CACHING_STRATEGY)
+                .withOption(CACHING_OPTION, KEYS_ONLY)
                 .withOption(POPULATE_IO_CACHE_ON_FLUSH_OPTION, shouldPopulateIoCacheOnFlush)
                 .withCompaction(getCompaction(appendHeavyReadLight))
                 .withOption(COMPRESSION_OPTION, compressionOptions)
@@ -103,7 +103,7 @@ class CassandraTableCreator {
                 .withGcGraceSeconds(config.gcGraceSeconds())
                 .withMinIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
                 .withMaxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
-                .withSpeculativeRetry(SPECULATIVE_RETRY_STRATEGY)
+                .withSpeculativeRetry(NEVER_RETRY)
                 .withClusteringOrder(COLUMN, ClusteringOrder.ASC)
                 .withClusteringOrder(TIMESTAMP, ClusteringOrder.ASC)
                 .withCompactStorage()
