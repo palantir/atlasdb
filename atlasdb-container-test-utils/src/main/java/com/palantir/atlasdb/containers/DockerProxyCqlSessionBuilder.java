@@ -36,6 +36,11 @@ import io.netty.util.Timer;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
 
+/**
+ * Implementation of a {@link CqlSessionBuilder} used for testing. This builder sets up the
+ * {@link com.datastax.oss.driver.internal.core.context.InternalDriverContext} such that {@link NettyOptions} forward
+ * all communication to the specified proxy passed during builder creation.
+ */
 final class DockerProxyCqlSessionBuilder extends CqlSessionBuilder {
     private final SocketAddress proxyAddress;
 
@@ -71,6 +76,10 @@ final class DockerProxyCqlSessionBuilder extends CqlSessionBuilder {
         }
     }
 
+    /**
+     * Custom implementation of {@link NettyOptions}. This implementation sets a socks proxy to be used when
+     * communicating with Cassandra in a dockerized environment.
+     */
     private static class SocksProxyNettyOptions implements NettyOptions {
         private final SocketAddress proxyAddress;
         private final NettyOptions delegate;
@@ -80,6 +89,11 @@ final class DockerProxyCqlSessionBuilder extends CqlSessionBuilder {
             this.proxyAddress = proxyAddress;
         }
 
+        /**
+         * This method sets up the proxy on an initialized channel.
+         *
+         * @param channel which was initialized
+         */
         @Override
         public void afterChannelInitialized(Channel channel) {
             delegate.afterChannelInitialized(channel);
