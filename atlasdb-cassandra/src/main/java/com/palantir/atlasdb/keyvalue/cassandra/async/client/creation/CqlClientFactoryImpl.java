@@ -67,15 +67,15 @@ public final class CqlClientFactoryImpl implements CqlClientFactory {
         return config.servers().accept(new CassandraServersConfigs.Visitor<CqlClient>() {
             @Override
             public CqlClient visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
-                return ThrowingCqlClientImpl.SINGLETON;
+                return ThrowingCqlClientImpl.INSTANCE;
             }
 
             @Override
             public CqlClient visit(CqlCapableConfig cqlCapableConfig) {
-                if (!cqlCapableConfig.validateHosts()) {
+                if (!cqlCapableConfig.thriftAndCqlHostsMatch()) {
                     log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same, using "
                             + "async API will result in an exception.");
-                    return ThrowingCqlClientImpl.SINGLETON;
+                    return ThrowingCqlClientImpl.INSTANCE;
                 }
                 Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
 
