@@ -29,12 +29,12 @@ import com.palantir.logsafe.SafeArg;
 public interface RemotingClientConfig {
     @Value.Default
     default double maximumConjureRemotingProbability() {
-        return 0.0;
+        return 1.0;
     }
 
     @Value.Default
     default boolean enableLegacyClientFallback() {
-        return true;
+        return false;
     }
 
     @Value.Check
