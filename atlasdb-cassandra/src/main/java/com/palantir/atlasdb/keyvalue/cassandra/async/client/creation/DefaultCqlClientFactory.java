@@ -52,8 +52,8 @@ public final class DefaultCqlClientFactory implements CqlClientFactory {
         this.cqlSessionBuilderFactory = cqlSessionBuilderFactory;
     }
 
-    private DefaultCqlClientFactory() {
-        this.cqlSessionBuilderFactory = CqlSessionBuilder::new;
+    public DefaultCqlClientFactory() {
+        this(CqlSessionBuilder::new);
     }
 
     @Override
