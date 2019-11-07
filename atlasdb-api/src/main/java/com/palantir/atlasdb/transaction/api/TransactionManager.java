@@ -315,6 +315,11 @@ public interface TransactionManager extends AutoCloseable {
      */
     TimelockService getTimelockService();
 
+    // todo(gmaretic): implement
+    default KvsLockWatchingService getLockWatchingService() {
+        return null;
+    }
+
     /**
      * Returns the timestamp service used by this transaction manager.
      *
