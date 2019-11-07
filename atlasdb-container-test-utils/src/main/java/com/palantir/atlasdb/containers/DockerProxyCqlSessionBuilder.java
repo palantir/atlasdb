@@ -52,16 +52,16 @@ final class DockerProxyCqlSessionBuilder extends CqlSessionBuilder {
     protected DriverContext buildContext(
             DriverConfigLoader configLoader,
             ProgrammaticArguments programmaticArguments) {
-        return new WrappingDriverContext(configLoader, programmaticArguments, proxyAddress);
+        return new DockerProxyDriverContext(configLoader, programmaticArguments, proxyAddress);
     }
 
     /**
      * This class follows the intended usage explained by {@link DefaultDriverContext}.
      */
-    private static final class WrappingDriverContext extends DefaultDriverContext {
+    private static final class DockerProxyDriverContext extends DefaultDriverContext {
         private final SocksProxyNettyOptions nettyOptions;
 
-        WrappingDriverContext(
+        DockerProxyDriverContext(
                 DriverConfigLoader configLoader,
                 ProgrammaticArguments programmaticArguments,
                 SocketAddress proxyAddress) {
