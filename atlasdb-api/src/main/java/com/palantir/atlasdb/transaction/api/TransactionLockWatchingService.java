@@ -23,21 +23,6 @@ import com.palantir.lock.watch.LockWatchState;
 
 public interface TransactionLockWatchingService {
     LockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames);
-    void deregisterWatches(TableReference tableRef, Set<byte[]> rowNames);
+    void deregisterRowWatches(TableReference tableRef, Set<byte[]> rowNames);
     LockWatchState getLockWatchState();
-
-    class AlwaysThrowingTransactionLockWatchingService implements TransactionLockWatchingService {
-        @Override
-        public LockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames) {
-            throw new UnsupportedOperationException("This LockWatchingService does not support this operation.");
-        }
-        @Override
-        public void deregisterWatches(TableReference tableRef, Set<byte[]> rowNames) {
-            throw new UnsupportedOperationException("This LockWatchingService does not support this operation.");
-        }
-        @Override
-        public LockWatchState getLockWatchState() {
-            throw new UnsupportedOperationException("This LockWatchingService does not support this operation.");
-        }
-    }
 }
