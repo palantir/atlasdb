@@ -1,0 +1,6 @@
+type: break
+break:
+  description: 'The `TransactionManagers` builder no longer supports stringly typed
+    user agents. You must provide a `UserAgent` instead. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/4385

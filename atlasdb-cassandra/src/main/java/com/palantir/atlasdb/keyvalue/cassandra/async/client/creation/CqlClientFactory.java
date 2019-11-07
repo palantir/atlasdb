@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
+package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
-import com.datastax.oss.driver.api.core.ConsistencyLevel;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.Statement;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public interface CqlQuerySpec<R> {
-
-    QueryType queryType();
-
-    CqlQueryContext cqlQueryContext();
-
-    String formatQueryString();
-
-    Statement makeExecutableStatement(PreparedStatement preparedStatement);
-
-    ConsistencyLevel queryConsistency();
-
-    RowAccumulator<R> rowAccumulator();
+public interface CqlClientFactory {
+    CqlClient constructClient(
+            TaggedMetricRegistry taggedMetricRegistry,
+            CassandraKeyValueServiceConfig config,
+            boolean initializeAsync);
 }

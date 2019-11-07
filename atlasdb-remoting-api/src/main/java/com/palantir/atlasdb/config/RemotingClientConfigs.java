@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
+package com.palantir.atlasdb.config;
 
-import com.datastax.oss.driver.api.core.ConsistencyLevel;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.Statement;
+public final class RemotingClientConfigs {
+    private RemotingClientConfigs() {
+        // Constants
+    }
 
-public interface CqlQuerySpec<R> {
+    public static final RemotingClientConfig ALWAYS_USE_LEGACY = ImmutableRemotingClientConfig.builder()
+            .maximumConjureRemotingProbability(0.0)
+            .enableLegacyClientFallback(true)
+            .build();
 
-    QueryType queryType();
-
-    CqlQueryContext cqlQueryContext();
-
-    String formatQueryString();
-
-    Statement makeExecutableStatement(PreparedStatement preparedStatement);
-
-    ConsistencyLevel queryConsistency();
-
-    RowAccumulator<R> rowAccumulator();
+    public static final RemotingClientConfig ALWAYS_USE_CONJURE = ImmutableRemotingClientConfig.builder()
+            .maximumConjureRemotingProbability(1.0)
+            .enableLegacyClientFallback(false)
+            .build();
 }

@@ -23,10 +23,13 @@ import javax.ws.rs.Path;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
@@ -93,8 +96,8 @@ public abstract class PaxosRemoteClients {
 
     private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, String name, boolean shouldRetry) {
         return context().remoteUris().stream()
-                // TODO(fdesouza): wire up the configurable cutover to CJR
-                .map(uri -> AtlasDbHttpClients.LEGACY_FEIGN_TARGET_FACTORY.createProxy(
+                .map(uri -> AtlasDbHttpClients.createProxy(
+                        MetricsManagers.of(new MetricRegistry(), metrics()),
                         context().trustContext(),
                         uri,
                         clazz,
@@ -102,7 +105,8 @@ public abstract class PaxosRemoteClients {
                                 .userAgent(UserAgents.tryParse(name))
                                 .shouldLimitPayload(false)
                                 .shouldRetry(shouldRetry)
-                                .build()).instance())
+                                .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
+                                .build()))
                 .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         metrics(),
                         clazz,

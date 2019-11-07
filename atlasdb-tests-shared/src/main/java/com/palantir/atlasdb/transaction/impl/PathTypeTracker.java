@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
+package com.palantir.atlasdb.transaction.impl;
 
-import com.datastax.oss.driver.api.core.ConsistencyLevel;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.Statement;
+interface PathTypeTracker extends AutoCloseable {
+    PathTypeTracker enterAsyncPath();
 
-public interface CqlQuerySpec<R> {
+    PathTypeTracker exitAsyncPath();
 
-    QueryType queryType();
+    void expectedToBeInAsync();
 
-    CqlQueryContext cqlQueryContext();
+    void checkNotInAsync();
 
-    String formatQueryString();
-
-    Statement makeExecutableStatement(PreparedStatement preparedStatement);
-
-    ConsistencyLevel queryConsistency();
-
-    RowAccumulator<R> rowAccumulator();
+    @Override
+    default void close() {
+        exitAsyncPath();
+    }
 }

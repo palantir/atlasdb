@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: AtlasDB now uses Conjure Java Runtime for inter-node communications.
+    In particular, this affects TimeLock Servers using this version of AtlasDB.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4372
