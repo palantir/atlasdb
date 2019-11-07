@@ -57,13 +57,10 @@ public class WritesDigestEmitter {
         Collection<Long> allWrittenTimestamps = allWrittenCells.get(asCell);
 
         Map<Long, Long> transactionCommitStatuses = transactionService.get(allWrittenTimestamps);
-        Map<Long, Long> completedOrAbortedTransactions = KeyedStream.stream(transactionCommitStatuses)
-                .filter(Objects::nonNull)
-                .collectToMap();
 
         Set<Long> inProgressTransactions = Sets.difference(
-                transactionCommitStatuses.keySet(),
-                completedOrAbortedTransactions.keySet());
+                ImmutableSet.copyOf(allWrittenTimestamps),
+                transactionCommitStatuses.keySet());
 
         Set<Long> boundsForCell = allWrittenTimestamps.stream()
                 .map(existingTimestamp -> existingTimestamp + 1)
@@ -81,7 +78,7 @@ public class WritesDigestEmitter {
 
         return ImmutableWritesDigest.<T>builder()
                 .allWrittenTimestamps(allWrittenTimestamps)
-                .completedOrAbortedTransactions(completedOrAbortedTransactions)
+                .completedOrAbortedTransactions(transactionCommitStatuses)
                 .inProgressTransactions(inProgressTransactions)
                 .allWrittenValuesDeserialized(allSeenWrittenValues)
                 .build();
