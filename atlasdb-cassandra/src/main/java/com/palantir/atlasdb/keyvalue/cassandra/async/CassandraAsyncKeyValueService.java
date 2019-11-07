@@ -53,9 +53,7 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
         this.futuresCombiner = futuresCombiner;
     }
 
-    public ListenableFuture<Map<Cell, Value>> getAsync(
-            TableReference tableReference,
-            Map<Cell, Long> timestampByCell) {
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableReference, Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
             log.trace(
                     "Loading cells using CQL.",
@@ -70,10 +68,7 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
         return futuresCombiner.allAsMap(cellListenableFutureMap);
     }
 
-    private ListenableFuture<Optional<Value>> getCellAsync(
-            TableReference tableReference,
-            Cell cell,
-            long timestamp) {
+    private ListenableFuture<Optional<Value>> getCellAsync(TableReference tableReference, Cell cell, long timestamp) {
         CqlQueryContext queryContext = ImmutableCqlQueryContext.builder()
                 .tableReference(tableReference)
                 .keyspace(keyspace)

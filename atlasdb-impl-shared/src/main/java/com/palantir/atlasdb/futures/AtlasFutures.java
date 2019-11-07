@@ -38,6 +38,7 @@ public final class AtlasFutures {
     /**
      * Constructs a {@link FuturesCombiner} implementation which takes ownership of the {@code executorService} and
      * calls {@link ExecutorService#shutdown()} when close is called on it.
+     *
      * @param executorService to be used to combine the futures
      * @return implementation of {@link FuturesCombiner}
      */
