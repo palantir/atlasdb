@@ -16,13 +16,23 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Set;
+import java.util.Map;
+import java.util.Optional;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.watch.LockWatchState;
+import org.immutables.value.Value;
 
-public interface TransactionLockWatchingService {
-    LockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames);
-    void deregisterRowWatches(TableReference tableRef, Set<byte[]> rowNames);
-    LockWatchState getLockWatchState();
+import com.palantir.lock.LockDescriptor;
+
+@Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+public abstract class RowLockDescriptorMapping {
+    abstract Map<LockDescriptor, RowReference> mapping();
+
+    public Optional<RowReference> rowReferenceForDescriptor(LockDescriptor lockDescriptor) {
+        return Optional.ofNullable(mapping().get(lockDescriptor));
+    }
+
+    public static RowLockDescriptorMapping of(Map<LockDescriptor, RowReference> mapping) {
+        return ImmutableRowLockDescriptorMapping.builder().mapping(mapping).build();
+    }
 }

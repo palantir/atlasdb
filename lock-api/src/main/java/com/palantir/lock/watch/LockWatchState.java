@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
@@ -32,8 +31,17 @@ import com.palantir.lock.LockDescriptor;
 @JsonSerialize(as = ImmutableLockWatchState.class)
 @JsonDeserialize(as = ImmutableLockWatchState.class)
 public interface LockWatchState {
-    // The odd conversion to list is for json serialization
+    /**
+     * This is a json serializable form of the mapping. Use {@link #asMap()} for lookups.
+     * @return a list representing the mapping of {@link LockDescriptor}s to {@link LockWatch}es
+     */
     List<DescriptorAndWatch> watchesAsList();
+
+    @Value.Lazy
+    default Map<LockDescriptor, LockWatch> asMap() {
+        return watchesAsList().stream()
+                .collect(Collectors.toMap(DescriptorAndWatch::descriptor, DescriptorAndWatch::watch));
+    }
 
     static LockWatchState of(Map<LockDescriptor, LockWatch> state) {
         List<DescriptorAndWatch> entries = state.entrySet()
@@ -41,13 +49,6 @@ public interface LockWatchState {
                 .map(DescriptorAndWatch::fromEntry)
                 .collect(Collectors.toList());
         return ImmutableLockWatchState.builder().watchesAsList(entries).build();
-    }
-
-    @Value.Lazy
-    @JsonIgnore
-    default Map<LockDescriptor, LockWatch> asMap() {
-        return watchesAsList().stream()
-                .collect(Collectors.toMap(DescriptorAndWatch::descriptor, DescriptorAndWatch::watch));
     }
 
     @Value.Immutable
