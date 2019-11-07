@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
@@ -56,10 +57,10 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                         createThreadPool(config.servers().numberOfHosts() * config.poolSize()),
                         metricsManager));
 
-        return DefaultCassandraAsyncKeyValueService.create(
+        return CassandraAsyncKeyValueService.create(
                 config.getKeyspaceOrThrow(),
                 cqlClient,
-                executorService);
+                AtlasFutures.futuresCombiner(executorService));
     }
 
     /**

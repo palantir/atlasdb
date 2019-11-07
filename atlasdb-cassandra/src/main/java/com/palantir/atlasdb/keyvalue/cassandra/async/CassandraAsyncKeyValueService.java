@@ -18,13 +18,12 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.futures.FuturesCombiner;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -37,27 +36,21 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 
-final class DefaultCassandraAsyncKeyValueService implements AsyncKeyValueService {
-    private static final Logger log = LoggerFactory.getLogger(DefaultCassandraAsyncKeyValueService.class);
+public final class CassandraAsyncKeyValueService implements AsyncKeyValueService {
+    private static final Logger log = LoggerFactory.getLogger(CassandraAsyncKeyValueService.class);
 
-    private final CqlClient cqlClient;
-    private final ExecutorService executorService;
     private final String keyspace;
+    private final CqlClient cqlClient;
+    private final FuturesCombiner futuresCombiner;
 
-    static DefaultCassandraAsyncKeyValueService create(
-            String keyspace,
-            CqlClient cqlClient,
-            ExecutorService executorService) {
-        return new DefaultCassandraAsyncKeyValueService(keyspace, cqlClient, executorService);
+    public static AsyncKeyValueService create(String keyspace, CqlClient cqlClient, FuturesCombiner futuresCombiner) {
+        return new CassandraAsyncKeyValueService(keyspace, cqlClient, futuresCombiner);
     }
 
-    private DefaultCassandraAsyncKeyValueService(
-            String keyspace,
-            CqlClient cqlClient,
-            ExecutorService executorService) {
+    private CassandraAsyncKeyValueService(String keyspace, CqlClient cqlClient, FuturesCombiner futuresCombiner) {
         this.keyspace = keyspace;
         this.cqlClient = cqlClient;
-        this.executorService = executorService;
+        this.futuresCombiner = futuresCombiner;
     }
 
     public ListenableFuture<Map<Cell, Value>> getAsync(
@@ -74,7 +67,7 @@ final class DefaultCassandraAsyncKeyValueService implements AsyncKeyValueService
                 .map((cell, timestamp) -> getCellAsync(tableReference, cell, timestamp))
                 .collectToMap();
 
-        return AtlasFutures.allAsMap(cellListenableFutureMap, executorService);
+        return futuresCombiner.allAsMap(cellListenableFutureMap);
     }
 
     private ListenableFuture<Optional<Value>> getCellAsync(
@@ -96,6 +89,6 @@ final class DefaultCassandraAsyncKeyValueService implements AsyncKeyValueService
     @Override
     public void close() {
         cqlClient.close();
-        executorService.shutdown();
+        futuresCombiner.close();
     }
 }

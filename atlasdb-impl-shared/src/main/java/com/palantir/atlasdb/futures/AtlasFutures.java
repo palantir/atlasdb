@@ -35,6 +35,27 @@ public final class AtlasFutures {
 
     }
 
+    /**
+     * Constructs a {@link FuturesCombiner} implementation which takes ownership of the {@code executorService} and
+     * calls {@link ExecutorService#shutdown()} when close is called on it.
+     * @param executorService to be used to combine the futures
+     * @return implementation of {@link FuturesCombiner}
+     */
+    public static FuturesCombiner futuresCombiner(ExecutorService executorService) {
+        return new FuturesCombiner() {
+            @Override
+            public <T, R> ListenableFuture<Map<T, R>> allAsMap(
+                    Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap) {
+                return AtlasFutures.allAsMap(inputToListenableFutureMap, executorService);
+            }
+
+            @Override
+            public void close() {
+                executorService.shutdown();
+            }
+        };
+    }
+
     public static <T, R> ListenableFuture<Map<T, R>> allAsMap(
             Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap,
             ExecutorService executorService) {

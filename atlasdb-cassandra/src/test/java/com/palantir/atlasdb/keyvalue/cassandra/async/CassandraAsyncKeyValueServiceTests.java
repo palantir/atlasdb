@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -47,7 +48,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryPa
 import com.palantir.common.random.RandomBytes;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultCassandraAsyncKeyValueServiceTests {
+public class CassandraAsyncKeyValueServiceTests {
     private static final String KEYSPACE = "test";
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "foo");
     // tests are imagined as if the visible data has a timestamp lower than 20 and non visible data has timestamp higher
@@ -66,10 +67,10 @@ public class DefaultCassandraAsyncKeyValueServiceTests {
 
     @Before
     public void setUp() {
-        asyncKeyValueService = DefaultCassandraAsyncKeyValueService.create(
+        asyncKeyValueService = CassandraAsyncKeyValueService.create(
                 KEYSPACE,
                 cqlClient,
-                MoreExecutors.newDirectExecutorService());
+                AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
     }
 
     @After
