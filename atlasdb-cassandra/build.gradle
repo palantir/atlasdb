@@ -33,12 +33,20 @@ dependencies {
 
   explicitShadow ('com.datastax.oss:java-driver-core:' + libVersions.cassandra_driver_core) {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+    exclude(group: 'io.dropwizard.metrics', module: 'metrics-core')
   }
   explicitShadow ('com.datastax.oss:java-driver-query-builder:' + libVersions.cassandra_driver_core) {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+    exclude(group: 'io.dropwizard.metrics', module: 'metrics-core')
   }
-  explicitShadow group: 'com.datastax.oss', name: 'native-protocol'
-  explicitShadow group: 'com.datastax.oss', name: 'java-driver-shaded-guava'
+  explicitShadow ('com.datastax.oss:native-protocol') {
+    exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+    exclude(group: 'io.dropwizard.metrics', module: 'metrics-core')
+  }
+  explicitShadow ('com.datastax.oss:java-driver-shaded-guava') {
+    exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+    exclude(group: 'io.dropwizard.metrics', module: 'metrics-core')
+  }
 
   explicitShadow group: 'io.netty', name: 'netty-handler-proxy'
   explicitShadow group: 'com.google.guava', name: 'guava'
@@ -82,6 +90,7 @@ shadowJar {
   relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
   relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
   relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
+  relocate('io.dropwizard.metrics', atlasdb_shaded + 'dropwizard_metrics')
 
   dependencies {
       include(dependency { false })
