@@ -31,8 +31,8 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactoryImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactoryImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -186,7 +186,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     default CqlClientFactory cqlClientFactory() {
-        return CqlClientFactoryImpl.INSTANCE;
+        return CqlClientFactoryImpl.DEFAULT;
     }
 
     int replicationFactor();

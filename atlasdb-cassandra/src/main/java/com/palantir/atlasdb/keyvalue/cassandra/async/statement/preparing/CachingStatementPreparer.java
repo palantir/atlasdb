@@ -19,7 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing;
 import org.immutables.value.Value;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.driver.core.PreparedStatement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
