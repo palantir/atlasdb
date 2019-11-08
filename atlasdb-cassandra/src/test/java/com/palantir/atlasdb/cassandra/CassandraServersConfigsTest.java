@@ -76,13 +76,13 @@ public class CassandraServersConfigsTest {
     public void testHostAreSame() throws IOException {
         CqlCapableConfig cqlCapableConfig =
                 (CqlCapableConfig) deserializeClassFromFile("testServersConfigCqlCapableMulti.yml");
-        assertThat(cqlCapableConfig.validateHosts()).isTrue();
+        assertThat(cqlCapableConfig.thriftAndCqlHostsMatch()).isTrue();
     }
     @Test
     public void testHostNotTheSame() throws IOException {
         CqlCapableConfig cqlCapableConfig =
                 (CqlCapableConfig) deserializeClassFromFile("testServersConfigCqlCapableDifferent.yml");
-        assertThat(cqlCapableConfig.validateHosts()).isFalse();
+        assertThat(cqlCapableConfig.thriftAndCqlHostsMatch()).isFalse();
     }
 
     private static CassandraServersConfig deserializeClassFromFile(String configPath) throws IOException {

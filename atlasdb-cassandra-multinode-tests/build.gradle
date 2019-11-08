@@ -15,7 +15,7 @@ dependencies {
        exclude module: 'ant'
        compile 'org.apache.ant:ant:' + libVersions.ant
     }
-    testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+    testCompile 'com.datastax.oss:java-driver-core:' + libVersions.cassandra_driver_core
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'org.assertj', name: 'assertj-core'
