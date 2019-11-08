@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Revert the CQL driver from `4.3.0` to `3.7.2`; the latter was causing
+    issues with transitive dependencies for products depending on `com.datastax.oss:java-driver-core`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4395
