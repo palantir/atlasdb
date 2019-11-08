@@ -31,6 +31,7 @@ import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.NettyOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ProtocolOptions;
+import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.SSLOptions;
@@ -115,6 +116,7 @@ public final class CqlClientFactoryImpl implements CqlClientFactory {
                 .withQueryOptions(queryOptions)
                 .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
                 .withoutJMXReporting()
+                .withProtocolVersion(ProtocolVersion.V3)
                 .withThreadingOptions(new ThreadingOptions());
 
         nettyOptions.ifPresent(clusterBuilder::withNettyOptions);
