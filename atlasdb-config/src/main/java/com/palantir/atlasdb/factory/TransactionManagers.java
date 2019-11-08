@@ -380,7 +380,7 @@ public abstract class TransactionManagers {
 
         Cleaner cleaner = initializeCloseable(() ->
                         new DefaultCleanerBuilder(keyValueService, lockAndTimestampServices.timelock(),
-                                        ImmutableList.of(follower), transactionService)
+                                        ImmutableList.of(follower), transactionService, metricsManager)
                                 .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                                 .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
                                 .setBackgroundScrubFrequencyMillis(config().getBackgroundScrubFrequencyMillis())

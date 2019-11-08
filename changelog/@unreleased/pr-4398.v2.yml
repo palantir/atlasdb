@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: The scrubber has been instrumented with metrics.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4398

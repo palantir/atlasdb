@@ -36,6 +36,7 @@ import javax.annotation.concurrent.GuardedBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -52,6 +53,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -66,6 +68,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
@@ -102,6 +105,7 @@ public class Scrubber {
     private final Supplier<Long> unreadableTimestampSupplier;
     private final TransactionService transactionService;
     private final Collection<Follower> followers;
+    private final MetricsManager metricsManager;
     private final boolean aggressiveScrub;
     private final Supplier<Integer> batchSizeSupplier;
     private final int threadCount;
@@ -110,6 +114,11 @@ public class Scrubber {
     private final ExecutorService exec;
 
     private static final String SCRUBBER_THREAD_PREFIX = "AtlasScrubber";
+
+    Meter enqueuedCells;
+    Meter scrubbedCells;
+    Meter scrubRetries;
+    Meter deletedCells;
 
     // Keep track of threads spawned by scrub, so we don't starve when
     // running scrub for followers.
@@ -131,7 +140,8 @@ public class Scrubber {
                                   Supplier<Integer> batchSizeSupplier,
                                   int threadCount,
                                   int readThreadCount,
-                                  Collection<Follower> followers) {
+                                  Collection<Follower> followers,
+                                  MetricsManager metricsManager) {
         Scrubber scrubber = new Scrubber(
                 keyValueService,
                 scrubberStore,
@@ -144,7 +154,8 @@ public class Scrubber {
                 batchSizeSupplier,
                 threadCount,
                 readThreadCount,
-                followers);
+                followers,
+                metricsManager);
         return scrubber;
     }
 
@@ -159,7 +170,8 @@ public class Scrubber {
                      Supplier<Integer> batchSizeSupplier,
                      int threadCount,
                      int readThreadCount,
-                     Collection<Follower> followers) {
+                     Collection<Follower> followers,
+                     MetricsManager metricsManager) {
         this.keyValueService = keyValueService;
         this.scrubberStore = scrubberStore;
         this.backgroundScrubFrequencyMillisSupplier = backgroundScrubFrequencyMillisSupplier;
@@ -172,6 +184,13 @@ public class Scrubber {
         this.threadCount = threadCount;
         this.readThreadCount = readThreadCount;
         this.followers = followers;
+        this.metricsManager = metricsManager;
+
+        this.enqueuedCells = metricsManager.registerOrGetMeter(Scrubber.class, AtlasDbMetricNames.ENQUEUED_CELLS);
+        this.scrubbedCells = metricsManager.registerOrGetMeter(Scrubber.class, AtlasDbMetricNames.SCRUBBED_CELLS);
+        this.deletedCells = metricsManager.registerOrGetMeter(Scrubber.class, AtlasDbMetricNames.DELETED_CELLS);
+        this.scrubRetries = metricsManager.registerOrGetMeter(Scrubber.class, AtlasDbMetricNames.SCRUB_RETRIES);
+
         NamedThreadFactory threadFactory = new NamedThreadFactory(SCRUBBER_THREAD_PREFIX, true);
         this.readerExec = PTExecutors.newFixedThreadPool(readThreadCount, threadFactory);
         this.exec = PTExecutors.newFixedThreadPool(threadCount, threadFactory);
@@ -209,6 +228,7 @@ public class Scrubber {
                     log.error("Encountered the following error during background scrub task,"
                             + " but continuing anyway", t);
                     numberOfAttempts++;
+                    scrubRetries.mark();
                     try {
                         Thread.sleep(RETRY_SLEEP_INTERVAL_IN_MILLIS);
                     } catch (InterruptedException e) {
@@ -319,11 +339,9 @@ public class Scrubber {
 
             final Callable<Void> c = () -> {
                 log.debug("Scrubbing {} cells immediately.", batchMultimap.size());
-
                 // Here we don't need to check scrub timestamps because we guarantee that scrubImmediately is called
                 // AFTER the transaction commits
                 scrubCells(txManager, batchMultimap, scrubTimestamp, TransactionType.AGGRESSIVE_HARD_DELETE);
-
                 log.debug("Completed scrub immediately.");
                 return null;
             };
@@ -361,6 +379,7 @@ public class Scrubber {
             return;
         }
         scrubberStore.queueCellsForScrubbing(cellToTableRefs, scrubTimestamp, batchSizeSupplier.get());
+        enqueuedCells.mark(cellToTableRefs.size());
     }
 
     private long getCommitTimestampRollBackIfNecessary(long startTimestamp,
@@ -516,6 +535,7 @@ public class Scrubber {
             log.debug("Immediately scrubbed {} cells from table {}", entry.getValue().size(), tableRef);
         }
         scrubberStore.markCellsAsScrubbed(allCellsToMarkScrubbed, batchSizeSupplier.get());
+        scrubbedCells.mark(allCellsToMarkScrubbed.size());
     }
 
     private void deleteCellsAtTimestamps(TransactionManager txManager,
@@ -531,6 +551,7 @@ public class Scrubber {
                 Builder<Cell, Long> builder = ImmutableMultimap.builder();
                 batch.stream().forEach(e -> builder.put(e));
                 keyValueService.delete(tableRef, builder.build());
+                deletedCells.mark(batch.size());
             }
         }
     }
