@@ -21,18 +21,18 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.WatchId;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public abstract class RowLockDescriptorMapping {
-    abstract Map<LockDescriptor, RowReference> mapping();
+public abstract class WatchIdToRowReferenceMapping {
+    abstract Map<WatchId, RowReference> mapping();
 
-    public Optional<RowReference> rowReferenceForDescriptor(LockDescriptor lockDescriptor) {
-        return Optional.ofNullable(mapping().get(lockDescriptor));
+    public Optional<RowReference> rowReferenceForRowId(WatchId lockId) {
+        return Optional.ofNullable(mapping().get(lockId));
     }
 
-    public static RowLockDescriptorMapping of(Map<LockDescriptor, RowReference> mapping) {
-        return ImmutableRowLockDescriptorMapping.builder().mapping(mapping).build();
+    public static WatchIdToRowReferenceMapping of(Map<WatchId, RowReference> mapping) {
+        return ImmutableWatchIdToRowReferenceMapping.builder().mapping(mapping).build();
     }
 }

@@ -26,6 +26,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchState;
+import com.palantir.lock.watch.WatchIdToLockDesciptor;
 
 @Path("/lock-watch")
 @Produces(MediaType.APPLICATION_JSON)
@@ -39,8 +40,8 @@ public class LockWatchingResource {
 
     @POST
     @Path("start-watching")
-    public void startWatching(LockWatchRequest lockWatchRequest) {
-        lockWatchingService.startWatching(lockWatchRequest.serviceId(), lockWatchRequest.lockDescriptors());
+    public WatchIdToLockDesciptor startWatching(LockWatchRequest lockWatchRequest) {
+        return lockWatchingService.startWatching(lockWatchRequest.serviceId(), lockWatchRequest.lockDescriptors());
     }
 
     @POST
@@ -50,7 +51,7 @@ public class LockWatchingResource {
     }
 
     @POST
-    @Path("get-watch-state")
+    @Path("watch-state")
     public LockWatchState getWatchState(UUID serviceId) {
         return lockWatchingService.getWatchState(serviceId);
     }

@@ -20,32 +20,30 @@ import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchState;
+import com.palantir.lock.watch.WatchId;
 
 public interface KvsLockWatchingService {
     /**
      * Registers watches for a set of rows in a single table.
      * @param tableRef table to register watches for.
      * @param rowNames rows to register watches for.
-     * @return a mapping of {@link com.palantir.lock.LockDescriptor}s to their corresponding {@link RowReference} for
-     * which the watches have been registered.
+     * @return a mapping of {@link WatchId}s to the {@link RowReference} for which the watches have been registered
      */
     @Idempotent
-    RowLockDescriptorMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames);
+    WatchIdToRowReferenceMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames);
 
     /**
      * Deregisters watches for a set of rows in a single table, if they exist.
      * @param tableRef table to deregister watches for.
      * @param rowNames rows to deregister watches for.
-     * @return the set of  {@link com.palantir.lock.LockDescriptor}s corresponding to the removed watches
+     * @return the set of {@link WatchId}s corresponding to the removed watches
      */
-    Set<LockDescriptor> deregisterRowWatches(TableReference tableRef, Set<byte[]> rowNames);
+    Set<WatchId> deregisterRowWatches(TableReference tableRef, Set<byte[]> rowNames);
 
     /**
      * Returns the current state of all registered watches.
-     * @return a mapping of {@link com.palantir.lock.LockDescriptor}s to their corresponding
-     * {@link com.palantir.lock.watch.LockWatch}.
+     * @return a mapping of {@link WatchId}s to their corresponding {@link com.palantir.lock.watch.LockWatch}
      */
     LockWatchState getLockWatchState();
 }

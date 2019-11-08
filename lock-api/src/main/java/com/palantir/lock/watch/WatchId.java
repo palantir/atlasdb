@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Map;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -25,12 +23,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchState.class)
-@JsonDeserialize(as = ImmutableLockWatchState.class)
-public interface LockWatchState {
-    Map<WatchId, LockWatch> watches();
+@JsonSerialize(as = ImmutableWatchId.class)
+@JsonDeserialize(as = ImmutableWatchId.class)
+public interface WatchId {
+    long id();
 
-    static LockWatchState of(Map<WatchId, LockWatch> state) {
-        return ImmutableLockWatchState.builder().watches(state).build();
+    static WatchId of(long id) {
+        return ImmutableWatchId.builder().id(id).build();
     }
 }

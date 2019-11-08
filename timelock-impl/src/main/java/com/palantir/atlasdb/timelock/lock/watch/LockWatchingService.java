@@ -22,9 +22,10 @@ import java.util.UUID;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchState;
+import com.palantir.lock.watch.WatchIdToLockDesciptor;
 
 public interface LockWatchingService {
-    void startWatching(UUID serviceId, Set<LockDescriptor> locksToWatch);
+    WatchIdToLockDesciptor startWatching(UUID serviceId, Set<LockDescriptor> locksToWatch);
     void stopWatching(UUID serviceId, Set<LockDescriptor> locksToUnwatch);
     LockWatchState getWatchState(UUID serviceId);
 
