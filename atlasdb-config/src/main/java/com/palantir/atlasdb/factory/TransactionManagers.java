@@ -660,10 +660,13 @@ public abstract class TransactionManagers {
                 config.initializeAsync(),
                 sweepBatchConfigSource);
 
+        boolean sweepQueueWritesEnabled = config.targetedSweep().enableSweepQueueWrites();
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
                 metricsManager,
                 sweepBatchConfigSource,
-                new ShouldRunBackgroundSweepSupplier(config.targetedSweep(), runtimeConfigSupplier)::getAsBoolean,
+                new ShouldRunBackgroundSweepSupplier(
+                        () -> runtimeConfigSupplier.get().sweep(),
+                        sweepQueueWritesEnabled)::getAsBoolean,
                 () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
