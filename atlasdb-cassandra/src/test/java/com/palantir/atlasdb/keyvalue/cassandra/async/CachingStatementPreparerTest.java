@@ -23,7 +23,7 @@ import static org.mockito.Mockito.mock;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.driver.core.PreparedStatement;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;

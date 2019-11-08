@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
+package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public interface CqlClientFactory {

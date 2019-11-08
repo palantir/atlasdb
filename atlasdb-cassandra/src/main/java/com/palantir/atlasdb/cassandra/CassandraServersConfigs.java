@@ -142,7 +142,7 @@ public final class CassandraServersConfigs {
             checkPortNumbers(cqlHosts(), "'cqlPort'");
         }
 
-        public boolean thriftAndCqlHostsMatch() {
+        public boolean validateHosts() {
             return thriftHosts().stream()
                     .map(InetSocketAddress::getHostName)
                     .collect(Collectors.toSet())

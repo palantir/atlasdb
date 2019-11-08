@@ -16,32 +16,30 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
-import com.datastax.oss.driver.api.core.cql.Row;
+import java.util.stream.Stream;
+
+import com.datastax.driver.core.Row;
 
 /**
- * {@link RowAccumulator} defines an interface which should be implemented to process {@code Row}s retrieved from
- * Cassandra.
- *
+ * {@code RowStreamAccumulator} defines an interface which should be implemented to process {@code Stream} of
+ * {@code Row}s retrieved from Cassandra.
  * @param <R> type of the result of accumulating all rows
  */
-public interface RowAccumulator<R> {
+public interface RowStreamAccumulator<R> {
 
     /**
      * Processes each row and updates the internal state of the instance. After each invocation of this method calling
      * {@code result} should return the accumulated result of rows processed up to that moment. Implementations should
-     * not block during processing of the passed rows as that would prevent the thread from doing other work.
-     * If invoked concurrently with either {@code accumulateRows} or {@link RowAccumulator#result} the behaviour is not
-     * defined.
-     *
-     * @param rows to process
+     * not block during processing of the passed stream as that would prevent the thread from doing other work.
+     * If invoked concurrently with either {@code accumulateRowStream} or {@code result} the behaviour is not defined.
+     * @param rowStream of available rows without blocking
      */
-    void accumulateRows(Iterable<Row> rows);
+    void accumulateRowStream(Stream<Row> rowStream);
 
     /**
-     * Should be called after all intended iterables are processed. Will return the current state of the accumulator
-     * without knowing if it is the end result. If invoked concurrently with either
-     * {@link RowAccumulator#accumulateRows(Iterable)} or {@code result} the behaviour is not defined.
-     *
+     * Should be called after all intended streams are processed. Will return the current state of the accumulator
+     * without knowing if it is the end result. If invoked concurrently with either{@code accumulateRowStream}
+     * or {@code result} the behaviour is not defined.
      * @return accumulated result
      */
     R result();

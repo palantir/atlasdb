@@ -20,10 +20,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 
 public final class ThrowingCqlClientImpl implements CqlClient {
-    public static final ThrowingCqlClientImpl INSTANCE = new ThrowingCqlClientImpl();
+    static final ThrowingCqlClientImpl SINGLETON = new ThrowingCqlClientImpl();
 
     private ThrowingCqlClientImpl() {
-        // Use INSTANCE
+        // Use SINGLETON
     }
 
     @Override
