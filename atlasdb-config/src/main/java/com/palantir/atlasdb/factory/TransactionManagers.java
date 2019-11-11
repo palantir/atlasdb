@@ -119,6 +119,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.LockWatchingCache;
+import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -237,6 +239,11 @@ public abstract class TransactionManagers {
     @Value.Default
     Callback<TransactionManager> asyncInitializationCallback() {
         return Callback.noOp();
+    }
+
+    @Value.Default
+    LockWatchingCache lockWatchingCache() {
+        return NoOpLockWatchingCache.INSTANCE;
     }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
