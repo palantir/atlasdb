@@ -81,7 +81,7 @@ class CassandraTableCreator {
                 .addColumn(VALUE, DataType.blob())
                 .withOptions()
                 .bloomFilterFPChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
-                .caching(SchemaBuilder.Caching.KEYS_ONLY)
+                .caching(SchemaBuilder.KeyCaching.ALL, SchemaBuilder.noRows())
                 .compactionOptions(getCompaction(appendHeavyReadLight))
                 .compactStorage()
                 .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
