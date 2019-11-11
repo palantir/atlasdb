@@ -43,7 +43,7 @@ public interface FullDiagnosticDigest<T> {
 
     Set<Long> inProgressTransactions();
     Set<UUID> lockRequestIdsEvictedMidLockRequest();
-    List<TransactionDigest<T>> transactionDigests();
+    List<CompletedTransactionDigest<T>> completedTransactionDigests();
     RawData<T> rawData();
 
     @Value.Immutable
@@ -60,10 +60,10 @@ public interface FullDiagnosticDigest<T> {
         Map<Long, ClientLockDiagnosticDigest> clientSideDiagnosticInfo();
     }
 
-    @JsonDeserialize(as = ImmutableTransactionDigest.class)
-    @JsonSerialize(as = ImmutableTransactionDigest.class)
+    @JsonDeserialize(as = ImmutableCompletedTransactionDigest.class)
+    @JsonSerialize(as = ImmutableCompletedTransactionDigest.class)
     @org.immutables.value.Value.Immutable
-    interface TransactionDigest<T> {
+    interface CompletedTransactionDigest<T> {
         long startTimestamp();
         long commitTimestamp();
         long immutableTimestamp();

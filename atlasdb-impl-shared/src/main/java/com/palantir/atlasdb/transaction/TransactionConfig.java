@@ -57,7 +57,7 @@ public abstract class TransactionConfig {
      * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
-    @JsonProperty("do-not-use-attach-start-timestamp-to--locks-request")
+    @JsonProperty("do-not-use-attach-start-timestamp-to-locks-request")
     @Value.Default
     public boolean attachStartTimestampToLockRequestDescriptions() {
         return false;

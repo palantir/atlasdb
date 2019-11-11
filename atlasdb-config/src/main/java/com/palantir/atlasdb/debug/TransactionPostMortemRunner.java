@@ -37,7 +37,6 @@ import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagnosticDigest;
 import com.palantir.atlasdb.debug.FullDiagnosticDigest.LockDigest;
-import com.palantir.atlasdb.debug.FullDiagnosticDigest.TransactionDigest;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -87,7 +86,7 @@ public class TransactionPostMortemRunner {
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
                 .orElseGet(ImmutableSet::of);
 
-        Set<TransactionDigest<T>> transactionDigests = digest.completedOrAbortedTransactions().keySet().stream()
+        Set<FullDiagnosticDigest.CompletedTransactionDigest<T>> transactionDigests = digest.completedOrAbortedTransactions().keySet().stream()
                 .map(startTimestamp -> transactionDigest(
                         startTimestamp,
                         digest,
@@ -99,7 +98,7 @@ public class TransactionPostMortemRunner {
                 .rawData(ImmutableRawData.of(digest, lockDiagnosticInfo, snapshot))
                 .addAllInProgressTransactions(digest.inProgressTransactions())
                 .lockRequestIdsEvictedMidLockRequest(lockRequestIdsEvictedMidLockRequest)
-                .transactionDigests(transactionDigests)
+                .completedTransactionDigests(transactionDigests)
                 .build();
     }
 
@@ -117,7 +116,7 @@ public class TransactionPostMortemRunner {
                 .build();
     }
 
-    private static <T> TransactionDigest<T> transactionDigest(
+    private static <T> FullDiagnosticDigest.CompletedTransactionDigest<T> transactionDigest(
             long startTimestamp,
             WritesDigest<T> writesDigest,
             Optional<LockDiagnosticInfo> timelockLockInfo,
@@ -131,7 +130,7 @@ public class TransactionPostMortemRunner {
                         lockDigest(descriptors, timelockLockInfo.map(info -> lockState(requestId, info))))
                 .collectToMap();
 
-        return ImmutableTransactionDigest.<T>builder()
+        return ImmutableCompletedTransactionDigest.<T>builder()
                 .startTimestamp(startTimestamp)
                 .commitTimestamp(writesDigest.completedOrAbortedTransactions().get(startTimestamp))
                 .value(writesDigest.allWrittenValuesDeserialized().get(startTimestamp))

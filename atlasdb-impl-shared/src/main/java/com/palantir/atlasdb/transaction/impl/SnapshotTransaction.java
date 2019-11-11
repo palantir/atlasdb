@@ -1986,7 +1986,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         LockRequest request = ImmutableLockRequest.of(
                 lockDescriptors,
                 lockAcquireTimeoutMillis,
-                getStartTimestampAsClientDescription(currentTransactionConfig));
+                Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
         TimestampedLockResponse lockResponse = timelockService.acquireLocksForWrites(request);
         if (!lockResponse.wasSuccessful()) {
             log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
@@ -2057,7 +2057,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void waitFor(Set<LockDescriptor> lockDescriptors) {
         TransactionConfig currentTransactionConfig = transactionConfig.get();
-        Optional<String> startTimestampAsDescription = getStartTimestampAsClientDescription(currentTransactionConfig);
+        String startTimestampAsDescription = getStartTimestampAsClientDescription(currentTransactionConfig);
 
         // TODO(fdesouza): Revert this once PDS-95791 is resolved.
         long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
@@ -2075,17 +2075,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-
-
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
      * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
-    private Optional<String> getStartTimestampAsClientDescription(TransactionConfig currentTransactionConfig) {
+    @Nullable
+    private String getStartTimestampAsClientDescription(TransactionConfig currentTransactionConfig) {
         return currentTransactionConfig.attachStartTimestampToLockRequestDescriptions()
-                ? Optional.of(Long.toString(getStartTimestamp()))
-                : Optional.empty();
+                ? Long.toString(getStartTimestamp())
+                : null;
     }
 
     ///////////////////////////////////////////////////////////////////////////

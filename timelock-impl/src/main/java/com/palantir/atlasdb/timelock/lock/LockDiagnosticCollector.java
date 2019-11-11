@@ -44,6 +44,7 @@ import com.palantir.logsafe.UnsafeArg;
 
 /**
  * This should be removed once PDS-95791 is complete.
+ * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
 public class LockDiagnosticCollector implements LockEvents {

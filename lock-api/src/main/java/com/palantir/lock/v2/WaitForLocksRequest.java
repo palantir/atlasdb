@@ -19,6 +19,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -47,21 +49,9 @@ public interface WaitForLocksRequest {
     }
 
     static WaitForLocksRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs,
-            String clientDescription) {
+            @Nullable String clientDescription) {
         return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs,
-                Optional.of(clientDescription));
-    }
-
-    /**
-     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
-     * @deprecated Remove this once PDS-95791 is resolved.
-     */
-    @Deprecated
-    static WaitForLocksRequest of(
-            Set<LockDescriptor> lockDescriptors,
-            long acquireTimeoutMs,
-            Optional<String> clientDescription) {
-        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, clientDescription);
+                Optional.ofNullable(clientDescription));
     }
 
 }
