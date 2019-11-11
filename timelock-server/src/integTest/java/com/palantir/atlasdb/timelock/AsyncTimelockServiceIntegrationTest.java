@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.After;
 import org.junit.Test;
@@ -35,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -51,7 +54,10 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
@@ -66,6 +72,11 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     private static final LockClient TEST_CLIENT = LockClient.of("test");
     private static final LockClient TEST_CLIENT_2 = LockClient.of("test2");
     private static final LockClient TEST_CLIENT_3 = LockClient.of("test3");
+
+    @After
+    public void after() {
+        assertThat(cluster.lockService().getTokens(TEST_CLIENT)).isEmpty();
+    }
 
     @Test
     public void canLockRefreshAndUnlock() {
@@ -345,7 +356,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         cluster.namespacedClient().unlock(ImmutableSet.of(getToken(response)));
     }
 
-    private LockToken getToken(LockResponseV2 responseV2) {
+    private static LockToken getToken(LockResponseV2 responseV2) {
         return responseV2.accept(LockResponseV2.Visitor.of(
                 LockResponseV2.Successful::getToken,
                 unsuccessful -> {
@@ -379,6 +390,106 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(response.join()).isEqualTo(duplicateResponse.join());
     }
 
+    @Test
+    public void startIdentifiedAtlasDbTransactionGivesUsTimestampsInSequence() {
+        UUID requestorUuid = UUID.randomUUID();
+        StartIdentifiedAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+        StartIdentifiedAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+
+        // Note that we technically cannot guarantee an ordering between the fresh timestamp on response 1 and the
+        // immutable timestamp on response 2. Most of the time, we will have IT on response 2 = IT on response 1
+        // < FT on response 1, as the lock token on response 1 has not expired yet. However, if we sleep for long
+        // enough between the first and second call that the immutable timestamp lock expires, then
+        // IT on response 2 > FT on response 1.
+        assertThat(ImmutableList.of(
+                firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                firstResponse.startTimestampAndPartition().timestamp(),
+                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+        assertThat(ImmutableList.of(
+                firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                secondResponse.immutableTimestamp().getImmutableTimestamp(),
+                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+    }
+
+    @Test
+    public void startIdentifiedAtlasDbTransactionGivesUsStartTimestampsInTheSamePartition() {
+        UUID requestorUuid = UUID.randomUUID();
+        StartIdentifiedAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+        StartIdentifiedAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+
+        assertThat(firstResponse.startTimestampAndPartition().partition())
+                .isEqualTo(secondResponse.startTimestampAndPartition().partition());
+    }
+
+    @Test
+    public void temporalOrderingIsPreservedWhenMixingStandardTimestampAndIdentifiedTimestampRequests() {
+        UUID requestorUuid = UUID.randomUUID();
+        List<Long> temporalSequence = ImmutableList.of(
+                cluster.getFreshTimestamp(),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid),
+                cluster.getFreshTimestamp(),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid),
+                cluster.getFreshTimestamp());
+
+        assertThat(temporalSequence).isSorted();
+    }
+
+    @Test
+    public void distinctClientsStillShareTheSameSequenceOfTimestamps() {
+        UUID requestor1 = UUID.randomUUID();
+        UUID requestor2 = UUID.randomUUID();
+
+        List<Long> temporalSequence = ImmutableList.of(
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1));
+
+        assertThat(temporalSequence).isSorted();
+    }
+
+    @Test
+    public void temporalOrderingIsPreservedForBatchedStartTransactionRequests() {
+        UUID requestor = UUID.randomUUID();
+        List<Long> allTimestamps = new ArrayList<>();
+
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 1));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 4));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 20));
+
+        assertThat(allTimestamps).isSorted();
+    }
+
+    @Test
+    public void temporalOrderingIsPreservedBetweenDifferentRequestorsForBatchedStartTransactionRequests() {
+        UUID requestor = UUID.randomUUID();
+        UUID requestor2 = UUID.randomUUID();
+        List<Long> allTimestamps = new ArrayList<>();
+
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 1));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor2, 4));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 20));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor2, 15));
+
+        assertThat(allTimestamps).isSorted();
+    }
+
+    @Test
+    public void batchedTimestampsShouldBeSeparatedByModulus() {
+        UUID requestor = UUID.randomUUID();
+
+        List<Long> sortedTimestamps = getSortedBatchedStartTimestamps(requestor, 10);
+
+        Set<Long> differences = IntStream.range(0, sortedTimestamps.size() - 1)
+                .mapToObj(i -> sortedTimestamps.get(i + 1) - sortedTimestamps.get(i))
+                .collect(Collectors.toSet());
+
+        assertThat(differences).containsOnly((long) TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
+    }
+
     private HeldLocksToken lockWithFullResponse(com.palantir.lock.LockRequest request,
             LockClient client) throws InterruptedException {
         return cluster.lockService()
@@ -386,42 +497,42 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .getToken();
     }
 
-    private com.palantir.lock.LockRequest requestForReadLock(LockDescriptor lock) {
+    private static com.palantir.lock.LockRequest requestForReadLock(LockDescriptor lock) {
         return com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ))
                 .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
                 .build();
     }
 
-    private com.palantir.lock.LockRequest requestForReadLock(LockDescriptor lockA, long versionId) {
+    private static com.palantir.lock.LockRequest requestForReadLock(LockDescriptor lockA, long versionId) {
         return com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(lockA, LockMode.READ))
                 .withLockedInVersionId(versionId)
                 .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
                 .build();
     }
 
-    private com.palantir.lock.LockRequest requestForWriteLock(LockDescriptor lock) {
+    private static com.palantir.lock.LockRequest requestForWriteLock(LockDescriptor lock) {
         return com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE))
                 .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
                 .build();
     }
 
-    private LockRequest requestFor(LockDescriptor... locks) {
+    private static LockRequest requestFor(LockDescriptor... locks) {
         return LockRequest.of(ImmutableSet.copyOf(locks), TIMEOUT);
     }
 
-    private LockRequest requestFor(long timeoutMs, LockDescriptor... locks) {
+    private static LockRequest requestFor(long timeoutMs, LockDescriptor... locks) {
         return LockRequest.of(ImmutableSet.copyOf(locks), timeoutMs);
     }
 
-    private WaitForLocksRequest waitRequestFor(LockDescriptor... locks) {
+    private static WaitForLocksRequest waitRequestFor(LockDescriptor... locks) {
         return WaitForLocksRequest.of(ImmutableSet.copyOf(locks), TIMEOUT);
     }
 
-    private WaitForLocksRequest waitRequestFor(long timeoutMs, LockDescriptor... locks) {
+    private static WaitForLocksRequest waitRequestFor(long timeoutMs, LockDescriptor... locks) {
         return WaitForLocksRequest.of(ImmutableSet.copyOf(locks), timeoutMs);
     }
 
-    private void assertNotYetLocked(Future<LockToken> futureToken) {
+    private static void assertNotYetLocked(Future<LockToken> futureToken) {
         assertNotDone(futureToken);
     }
 
@@ -429,16 +540,16 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         cluster.unlock(assertLocked(futureToken));
     }
 
-    private LockToken assertLocked(Future<LockToken> futureToken) {
+    private static LockToken assertLocked(Future<LockToken> futureToken) {
         return assertDone(futureToken);
     }
 
-    private void assertNotDone(Future<?> future) {
+    private static void assertNotDone(Future<?> future) {
         assertThatThrownBy(() -> future.get(1, TimeUnit.SECONDS))
                 .isInstanceOf(TimeoutException.class);
     }
 
-    private <T> T assertDone(Future<T> future) {
+    private static <T> T assertDone(Future<T> future) {
         try {
             return future.get(1, TimeUnit.SECONDS);
         } catch (Throwable t) {
@@ -452,8 +563,22 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         }
     }
 
-    @After
-    public void after() {
-        assertThat(cluster.lockService().getTokens(TEST_CLIENT)).isEmpty();
+    private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
+        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
+                requestorUuid,
+                numRequestedTimestamps);
+        StartTransactionResponseV4 response = cluster.namespacedClient().startTransactions(request);
+        return response.timestamps().stream()
+                .boxed()
+                .collect(Collectors.toList());
+    }
+
+    private StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+        return cluster.startIdentifiedAtlasDbTransaction(
+                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(requestorUuid));
+    }
+
+    private long getStartTimestampFromIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+        return startIdentifiedAtlasDbTransaction(requestorUuid).startTimestampAndPartition().timestamp();
     }
 }
