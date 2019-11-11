@@ -81,6 +81,7 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
@@ -197,6 +198,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
     protected final MetricsManager metricsManager;
+    protected final ConflictTracer conflictTracer;
 
     private final MultiTableSweepQueueWriter sweepQueue;
 
@@ -260,8 +262,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer) {
         this.metricsManager = metricsManager;
+        this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
@@ -1841,6 +1845,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                   TransactionService transactionService) {
         Map<Cell, Long> rawResults = keyValueService.getLatestTimestamps(tableRef, keysToLoad);
         Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, rawResults.values(), false);
+
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+        conflictTracer.collect(getStartTimestamp(), keysToLoad, rawResults, commitTimestamps);
+
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
 
         for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {

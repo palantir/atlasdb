@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.debug;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -26,6 +27,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.lock.LockDescriptor;
 
 /**
@@ -33,11 +35,16 @@ import com.palantir.lock.LockDescriptor;
  * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
-public interface ClientLockDiagnosticCollector {
+public interface ClientLockDiagnosticCollector extends ConflictTracer {
     void collect(LongStream startTimestamps, long immutableTimestamp, UUID requestId);
     void collect(long startTimestamp, UUID requestId, Set<LockDescriptor> lockDescriptors);
     Map<Long, ClientLockDiagnosticDigest> getSnapshot();
 
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
+     */
+    @Deprecated
     @Value.Immutable
     @JsonDeserialize(as = ImmutableClientLockDiagnosticDigest.class)
     @JsonSerialize(as = ImmutableClientLockDiagnosticDigest.class)
@@ -45,6 +52,7 @@ public interface ClientLockDiagnosticCollector {
         long immutableTimestamp();
         UUID immutableTimestampRequestId();
         Map<UUID, Set<LockDescriptor>> lockRequests();
+        List<ConflictTrace> writeWriteConflictTrace();
 
         static ClientLockDiagnosticDigest newTransaction(long immutableTimestamp, UUID immutableTimestampRequestId) {
             return ImmutableClientLockDiagnosticDigest.builder()
@@ -67,5 +75,31 @@ public interface ClientLockDiagnosticCollector {
                     .putLockRequests(requestId, lockDescriptors)
                     .build();
         }
+
+        default ClientLockDiagnosticDigest withNewConflictDigest(ConflictTrace conflictTrace) {
+            return ImmutableClientLockDiagnosticDigest.builder()
+                    .from(this)
+                    .addWriteWriteConflictTrace(conflictTrace)
+                    .build();
+        }
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
+     */
+    @Deprecated
+    @Value.Immutable
+    @JsonDeserialize(as = ImmutableConflictTrace.class)
+    @JsonSerialize(as = ImmutableConflictTrace.class)
+    interface ConflictTrace {
+        @Value.Parameter
+        Map<Cell, Long> keysToLoad();
+
+        @Value.Parameter
+        Map<Cell, Long> latestTimestamps();
+
+        @Value.Parameter
+        Map<Long, Long> commitTimestamps();
     }
 }

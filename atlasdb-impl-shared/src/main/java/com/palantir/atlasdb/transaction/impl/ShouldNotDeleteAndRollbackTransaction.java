@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -100,7 +101,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 MultiTableSweepQueueWriter.NO_OP,
                 IGNORING_EXECUTOR,
                 true,
-                transactionConfig);
+                transactionConfig,
+                ConflictTracer.NO_OP);
     }
 
     @Override

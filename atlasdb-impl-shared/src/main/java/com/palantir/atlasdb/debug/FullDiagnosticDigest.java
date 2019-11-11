@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.debug;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -27,6 +28,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagnosticDigest;
+import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ConflictTrace;
 import com.palantir.lock.LockDescriptor;
 
 /**
@@ -41,7 +43,7 @@ public interface FullDiagnosticDigest<T> {
 
     Set<Long> inProgressTransactions();
     Set<UUID> lockRequestIdsEvictedMidLockRequest();
-    Set<TransactionDigest<T>> transactionDigests();
+    List<TransactionDigest<T>> transactionDigests();
     RawData<T> rawData();
 
     @Value.Immutable
@@ -68,6 +70,7 @@ public interface FullDiagnosticDigest<T> {
         UUID immutableTimestampLockRequestId();
         T value();
         Map<UUID, LockDigest> locks();
+        List<ConflictTrace> conflictTrace();
     }
 
     @JsonDeserialize(as = ImmutableLockDigest.class)

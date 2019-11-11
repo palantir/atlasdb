@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -71,6 +72,7 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.debug.LockDiagnosticTimelockRpcClient;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
@@ -423,6 +425,10 @@ public abstract class TransactionManagers {
                 .orElseGet(() -> new DefaultTimestampCache(
                         metricsManager.getRegistry(), () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
 
+        ConflictTracer conflictTracer = lockDiagnosticInfoCollector()
+                .<ConflictTracer>map(Function.identity())
+                .orElse(ConflictTracer.NO_OP);
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
@@ -446,7 +452,8 @@ public abstract class TransactionManagers {
                         targetedSweep,
                         callbacks,
                         validateLocksOnReads(),
-                        transactionConfigSupplier),
+                        transactionConfigSupplier,
+                        conflictTracer),
                 closeables);
 
         transactionManager.registerClosingCallback(lockAndTimestampServices.close());

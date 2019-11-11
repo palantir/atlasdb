@@ -138,6 +138,7 @@ public class TransactionPostMortemRunner {
                 .immutableTimestamp(clientLockDigest.immutableTimestamp())
                 .immutableTimestampLockRequestId(clientLockDigest.immutableTimestampRequestId())
                 .locks(lockDigests)
+                .addAllConflictTrace(clientLockDigest.writeWriteConflictTrace())
                 .build();
     }
 

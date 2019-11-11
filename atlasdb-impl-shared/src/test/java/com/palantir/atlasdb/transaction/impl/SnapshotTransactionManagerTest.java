@@ -38,6 +38,7 @@ import org.mockito.InOrder;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -86,7 +87,8 @@ public class SnapshotTransactionManagerTest {
             MultiTableSweepQueueWriter.NO_OP,
             executorService,
             true,
-            () -> ImmutableTransactionConfig.builder().build());
+            () -> ImmutableTransactionConfig.builder().build(),
+            ConflictTracer.NO_OP);
 
     @Test
     public void isAlwaysInitialized() {
@@ -133,7 +135,8 @@ public class SnapshotTransactionManagerTest {
                 MultiTableSweepQueueWriter.NO_OP,
                 executorService,
                 true,
-                () -> ImmutableTransactionConfig.builder().build());
+                () -> ImmutableTransactionConfig.builder().build(),
+                ConflictTracer.NO_OP);
         newTransactionManager.close(); // should not throw
     }
 
@@ -225,6 +228,7 @@ public class SnapshotTransactionManagerTest {
                 true,
                 () -> ImmutableTransactionConfig.builder()
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
-                        .build());
+                        .build(),
+                ConflictTracer.NO_OP);
     }
 }

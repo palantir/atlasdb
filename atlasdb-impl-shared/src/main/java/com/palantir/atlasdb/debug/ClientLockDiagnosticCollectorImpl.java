@@ -19,6 +19,8 @@ package com.palantir.atlasdb.debug;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.LongStream;
 
 import javax.annotation.Nullable;
@@ -27,6 +29,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.lock.LockDescriptor;
 
 /**
@@ -54,17 +57,30 @@ public class ClientLockDiagnosticCollectorImpl implements ClientLockDiagnosticCo
 
     @Override
     public void collect(long startTimestamp, UUID requestId, Set<LockDescriptor> lockDescriptors) {
-        cache.asMap().compute(
-                startTimestamp,
-                (unusedStartTimestamp, digest) -> getUsableDigest(digest).withLocks(requestId, lockDescriptors));
+        cache.asMap().compute(startTimestamp, mutateDigest(digest -> digest.withLocks(requestId, lockDescriptors)));
     }
 
-    private static ClientLockDiagnosticDigest getUsableDigest(@Nullable ClientLockDiagnosticDigest maybeDigest) {
-        return MoreObjects.firstNonNull(maybeDigest, ClientLockDiagnosticDigest.newFragment());
+    @Override
+    public void collect(
+            long startTimestamp,
+            Map<Cell, Long> keysToLoad,
+            Map<Cell, Long> latestTimestamps,
+            Map<Long, Long> commitTimestamps) {
+        ConflictTrace conflictTrace = ImmutableConflictTrace.of(keysToLoad, latestTimestamps, commitTimestamps);
+        cache.asMap().compute(startTimestamp, mutateDigest(digest -> digest.withNewConflictDigest(conflictTrace)));
     }
 
     @Override
     public Map<Long, ClientLockDiagnosticDigest> getSnapshot() {
         return ImmutableMap.copyOf(cache.asMap());
+    }
+
+    private static BiFunction<Long, ClientLockDiagnosticDigest, ClientLockDiagnosticDigest> mutateDigest(
+            UnaryOperator<ClientLockDiagnosticDigest> operator) {
+        return (unusedStartTimestamp, digest) -> operator.apply(getUsableDigest(digest));
+    }
+
+    private static ClientLockDiagnosticDigest getUsableDigest(@Nullable ClientLockDiagnosticDigest maybeDigest) {
+        return MoreObjects.firstNonNull(maybeDigest, ClientLockDiagnosticDigest.newFragment());
     }
 }
