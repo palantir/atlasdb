@@ -66,13 +66,17 @@ public class AsyncPuncherTest {
     public void delegatesInitializationCheck() {
         Puncher delegate = mock(Puncher.class);
         Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL, THROWING_BACKUP_TIMESTAMP_SUPPLIER);
+        try {
 
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+            when(delegate.isInitialized())
+                    .thenReturn(false)
+                    .thenReturn(true);
 
-        assertThat(puncher.isInitialized()).isFalse();
-        assertThat(puncher.isInitialized()).isTrue();
+            assertThat(puncher.isInitialized()).isFalse();
+            assertThat(puncher.isInitialized()).isTrue();
+        } finally {
+            puncher.shutdown();
+        }
     }
 
     @Test
