@@ -86,7 +86,8 @@ public class TransactionPostMortemRunner {
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
                 .orElseGet(ImmutableSet::of);
 
-        Set<FullDiagnosticDigest.CompletedTransactionDigest<T>> transactionDigests = digest.completedOrAbortedTransactions().keySet().stream()
+        Set<FullDiagnosticDigest.CompletedTransactionDigest<T>> transactionDigests = digest
+                .completedOrAbortedTransactions().keySet().stream()
                 .map(startTimestamp -> transactionDigest(
                         startTimestamp,
                         digest,
