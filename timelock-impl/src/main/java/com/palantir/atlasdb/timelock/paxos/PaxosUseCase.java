@@ -45,7 +45,7 @@ public enum PaxosUseCase {
         }
     },
 
-    // <data-directory>
+    // <data-directory>/<client>/{acceptor/learner}
     TIMESTAMP(CLIENT_PAXOS_NAMESPACE, Paths.get("")) {
         @Override
         public Client resolveClient(Client client) {

@@ -65,45 +65,61 @@ public final class PaxosResourcesFactory {
         if (install.useLeaderForEachClient()) {
             throw new UnsupportedOperationException("not implemented yet");
         } else {
-            TimelockPaxosMetrics timelockMetrics =
-                    TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics.getTaggedRegistry());
-
-            Factories.LeaderPingerFactory leaderPingerFactory = dependencies -> new SingleLeaderPinger(
-                    Maps.toMap(
-                            dependencies.remoteClients().nonBatchPingableLeaders(),
-                            _pingableLeader -> dependencies.sharedExecutor()),
-                    dependencies.leaderPingResponseWait(),
-                    dependencies.leaderUuid());
-
-            Factories.LeaderPingHealthCheckFactory healthCheckFactory = dependencies -> {
-                Set<PingableLeader> allPingableLeaders = ImmutableSet.<PingableLeader>builder()
-                        .add(dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
-                        .addAll(dependencies.remoteClients().nonBatchPingableLeaders())
-                        .build();
-                return new LeaderPingHealthCheck(allPingableLeaders);
-            };
-
-            LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
-                    .install(install)
-                    .sharedExecutor(sharedExecutor)
-                    .remoteClients(remoteClients)
-                    .runtime(paxosRuntime)
-                    .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
-                    .metrics(timelockMetrics)
-                    .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
-                    .leaderPingerFactory(leaderPingerFactory)
-                    .leaderPingHealthCheckFactory(healthCheckFactory)
-                    .build();
-
-            resourcesBuilder.leadershipContextFactory(factory);
-            resourcesBuilder.addAdhocResources(
-                    new LeadershipResource(
-                            factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
-                            factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
-                    factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
+            configureLeaderForAllClients(
+                    resourcesBuilder, install,
+                    metrics,
+                    paxosRuntime,
+                    sharedExecutor,
+                    remoteClients
+            );
         }
 
         return resourcesBuilder.build();
+    }
+
+    private static void configureLeaderForAllClients(
+            ImmutablePaxosResources.Builder resourcesBuilder,
+            TimelockPaxosInstallationContext install,
+            MetricsManager metrics,
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
+            ExecutorService sharedExecutor,
+            PaxosRemoteClients remoteClients) {
+        TimelockPaxosMetrics timelockMetrics =
+                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics.getTaggedRegistry());
+
+        Factories.LeaderPingerFactory leaderPingerFactory = dependencies -> new SingleLeaderPinger(
+                Maps.toMap(
+                        dependencies.remoteClients().nonBatchPingableLeaders(),
+                        _pingableLeader -> dependencies.sharedExecutor()),
+                dependencies.leaderPingResponseWait(),
+                dependencies.leaderUuid());
+
+        Factories.LeaderPingHealthCheckFactory healthCheckFactory = dependencies -> {
+            Set<PingableLeader> allPingableLeaders = ImmutableSet.<PingableLeader>builder()
+                    .add(dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
+                    .addAll(dependencies.remoteClients().nonBatchPingableLeaders())
+                    .build();
+            return new LeaderPingHealthCheck(allPingableLeaders);
+        };
+
+        LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
+                .install(install)
+                .sharedExecutor(sharedExecutor)
+                .remoteClients(remoteClients)
+                .runtime(paxosRuntime)
+                .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
+                .metrics(timelockMetrics)
+                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
+                .leaderPingerFactory(leaderPingerFactory)
+                .leaderPingHealthCheckFactory(healthCheckFactory)
+                .build();
+
+        resourcesBuilder.leadershipContextFactory(factory);
+        resourcesBuilder.addAdhocResources(
+                new LeadershipResource(
+                        factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
+                        factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+                factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
     }
 
     private static PaxosUseCaseContext timestampContext(
