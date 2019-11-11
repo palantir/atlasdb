@@ -15,7 +15,9 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -27,6 +29,7 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.atlasdb.debug.LockDiagnosticInfo;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
@@ -111,7 +114,7 @@ public class AsyncTimelockResource {
     public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
         return timelock.startTransactions(request);
     }
-    
+
     @POST
     @Path("immutable-timestamp")
     public long getImmutableTimestamp() {
@@ -133,7 +136,7 @@ public class AsyncTimelockResource {
             }
         });
     }
-    
+
     @POST
     @Path("lock-v2")
     public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
@@ -194,5 +197,16 @@ public class AsyncTimelockResource {
     @Path("current-time-millis")
     public long currentTimeMillis() {
         return timelock.currentTimeMillis();
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
+     */
+    @Deprecated
+    @POST
+    @Path("do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
+    public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(Set<UUID> requestIds) {
+        return lockLog.getAndLogLockDiagnosticInfo(requestIds);
     }
 }

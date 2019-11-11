@@ -55,7 +55,7 @@ public class HeldLocks {
      */
     public synchronized boolean unlockIfExpired() {
         if (expirationTimer.isExpired()) {
-            if (unlock()) {
+            if (unlockInternal()) {
                 lockLog.lockExpired(token.getRequestId(), getLockDescriptors());
             }
         }
@@ -71,7 +71,15 @@ public class HeldLocks {
         return true;
     }
 
-    public synchronized boolean unlock() {
+    public synchronized boolean unlockExplicitly() {
+        boolean successfullyUnlocked = unlockInternal();
+        if (successfullyUnlocked) {
+            lockLog.lockUnlocked(token.getRequestId());
+        }
+        return successfullyUnlocked;
+    }
+
+    private synchronized boolean unlockInternal() {
         if (isUnlocked) {
             return false;
         }

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,80 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
-
-public class LockEvents {
-
-    private static final Logger log = LoggerFactory.getLogger("async-lock");
-
-    private final Timer requestTimer;
-    private final Meter successfulSlowAcquisitionMeter;
-    private final Meter timedOutSlowAcquisitionMeter;
-    private final Meter lockExpiredMeter;
-
-    public LockEvents(MetricRegistry metrics) {
-        requestTimer = metrics.timer("lock.blocking-time");
-        successfulSlowAcquisitionMeter = metrics.meter("lock.successful-slow-acquisition");
-        timedOutSlowAcquisitionMeter = metrics.meter("lock.timeout-slow-acquisition");
-        lockExpiredMeter = metrics.meter("lock.expired");
-    }
-
-    public void requestComplete(long blockingTimeMillis) {
-        requestTimer.update(blockingTimeMillis, TimeUnit.MILLISECONDS);
-    }
-
-    public void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
-        log.warn("Lock expired",
-                SafeArg.of("requestId", requestId),
-                UnsafeArg.of("firstTenLockDescriptors", firstTen(lockDescriptors)));
-        lockExpiredMeter.mark();
-    }
-
-    public void successfulSlowAcquisition(RequestInfo request, long acquisitionTimeMillis) {
-        log.warn("Locks took a long time to acquire",
-                SafeArg.of("requestId", request.id()),
-                SafeArg.of("acquisitionTimeMillis", acquisitionTimeMillis),
-                UnsafeArg.of("firstTenLockDescriptors", firstTen(request.lockDescriptors())),
-                UnsafeArg.of("clientDescription", request.clientDescription()));
-        successfulSlowAcquisitionMeter.mark();
-    }
-
-    public void timedOutSlowAcquisition(RequestInfo request, long acquisitionTimeMillis) {
-        log.warn("Request timed out before obtaining locks",
-                SafeArg.of("requestId", request.id()),
-                SafeArg.of("acquisitionTimeMillis", acquisitionTimeMillis),
-                UnsafeArg.of("firstTenLockDescriptors", firstTen(request.lockDescriptors())),
-                UnsafeArg.of("clientDescription", request.clientDescription()));
-        timedOutSlowAcquisitionMeter.mark();
-    }
-
-    private Iterable<LockDescriptor> firstTen(Collection<LockDescriptor> lockDescriptors) {
-        return Iterables.limit(lockDescriptors, 10);
-    }
-
+public interface LockEvents {
+    void registerRequest(RequestInfo request);
+    void timedOut(RequestInfo request, long acquisitionTimeMillis);
+    void successfulAcquisition(RequestInfo request, long acquisitionTimeMillis);
+    void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors);
+    void explicitlyUnlocked(UUID requestId);
 
     @Value.Immutable
-    public interface RequestInfo {
+    interface RequestInfo {
 
         String EMPTY_DESCRIPTION = "<no description provided>";
 
@@ -113,5 +61,4 @@ public class LockEvents {
                     request.getLockDescriptors());
         }
     }
-
 }

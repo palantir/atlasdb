@@ -92,6 +92,7 @@ import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
@@ -323,7 +324,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepStrategyManager,
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
-                transactionWrapper, 
+                transactionWrapper,
                 keyValueServiceWrapper);
     }
 
@@ -408,7 +409,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MultiTableSweepQueueWriter.NO_OP,
                         MoreExecutors.newDirectExecutorService(),
                         true,
-                        () -> transactionConfig),
+                        () -> transactionConfig,
+                        ConflictTracer.NO_OP),
                 pathTypeTracker);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
@@ -478,7 +480,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MultiTableSweepQueueWriter.NO_OP,
                         MoreExecutors.newDirectExecutorService(),
                         true,
-                        () -> transactionConfig),
+                        () -> transactionConfig,
+                        ConflictTracer.NO_OP),
                 pathTypeTracker);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
@@ -1415,7 +1418,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MultiTableSweepQueueWriter.NO_OP,
                         MoreExecutors.newDirectExecutorService(),
                         validateLocksOnReads,
-                        () -> transactionConfig),
+                        () -> transactionConfig,
+                        ConflictTracer.NO_OP),
                 pathTypeTracker);
     }
 

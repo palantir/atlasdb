@@ -58,6 +58,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -139,7 +140,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                ConflictTracer.NO_OP);
     }
 
     @Test

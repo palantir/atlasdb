@@ -63,6 +63,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -141,7 +142,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    MultiTableSweepQueueWriter sweepQueue,
                                    ExecutorService deleteExecutor,
                                    boolean validateLocksOnReads,
-                                   Supplier<TransactionConfig> transactionConfig) {
+                                   Supplier<TransactionConfig> transactionConfig,
+                                   ConflictTracer conflictTracer) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -163,7 +165,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               sweepQueue,
               deleteExecutor,
               validateLocksOnReads,
-              transactionConfig);
+              transactionConfig,
+              conflictTracer);
     }
 
     @Override
@@ -558,7 +561,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private boolean areMapsEqual(Map<Cell, byte[]> map1, Map<Cell, byte[]> map2) {
+    private static boolean areMapsEqual(Map<Cell, byte[]> map1, Map<Cell, byte[]> map2) {
         if (map1.size() != map2.size()) {
             return false;
         }
@@ -726,7 +729,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         return cellsWithoutWrites;
     }
 
-    private List<Entry<Cell, ByteBuffer>> filterWritesFromRows(
+    private static List<Entry<Cell, ByteBuffer>> filterWritesFromRows(
             Iterable<RowResult<byte[]>> rows,
             @Nullable Map<Cell, byte[]> writes) {
         List<Entry<Cell, ByteBuffer>> rowsWithoutWrites = Lists.newArrayList();
@@ -781,7 +784,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig) {
+                transactionConfig,
+                conflictTracer) {
             @Override
             protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
                     TableReference tableRef,

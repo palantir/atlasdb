@@ -35,6 +35,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
@@ -84,9 +85,9 @@ import com.palantir.timestamp.TimestampService;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
     final Supplier<TransactionConfig> transactionConfig;
-
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
+    private final ConflictTracer conflictTracer;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -106,7 +107,8 @@ import com.palantir.timestamp.TimestampService;
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -128,6 +130,7 @@ import com.palantir.timestamp.TimestampService;
         this.deleteExecutor = deleteExecutor;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.conflictTracer = conflictTracer;
     }
 
     @Override
@@ -247,7 +250,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                conflictTracer);
     }
 
     @Override
@@ -286,7 +290,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                conflictTracer);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
@@ -335,7 +340,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private void shutdownExecutor(ExecutorService executor) {
+    private static void shutdownExecutor(ExecutorService executor) {
         executor.shutdown();
         try {
             executor.awaitTermination(10, TimeUnit.SECONDS);
@@ -449,7 +454,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private Optional<Throwable> runShutdownCallbackSafely(Runnable callback) {
+    private static Optional<Throwable> runShutdownCallbackSafely(Runnable callback) {
         try {
             callback.run();
             return Optional.empty();

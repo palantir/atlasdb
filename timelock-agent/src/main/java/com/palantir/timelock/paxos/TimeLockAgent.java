@@ -115,7 +115,11 @@ public class TimeLockAgent {
         Supplier<TargetedSweepLockControlConfig> targetedSweepLockControlConfig = Suppliers.compose(
                 TimeLockRuntimeConfiguration::targetedSweepLockControlConfig, runtime::get);
         this.timelockCreator = new AsyncTimeLockServicesCreator(
-                metricsManager, lockLog, leadershipCreator, targetedSweepLockControlConfig);
+                metricsManager,
+                lockLog,
+                leadershipCreator,
+                install.lockDiagnosticConfig(),
+                targetedSweepLockControlConfig);
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {

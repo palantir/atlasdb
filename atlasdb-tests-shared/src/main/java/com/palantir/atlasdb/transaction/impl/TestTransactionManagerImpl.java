@@ -25,6 +25,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
@@ -108,7 +109,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                ConflictTracer.NO_OP);
         this.transactionWrapper =  WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
     }
@@ -146,7 +148,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                ConflictTracer.NO_OP);
         this.transactionWrapper = transactionWrapper;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
@@ -192,7 +195,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         sweepQueueWriter,
                         deleteExecutor,
                         validateLocksOnReads,
-                        () -> TRANSACTION_CONFIG),
+                        () -> TRANSACTION_CONFIG,
+                        ConflictTracer.NO_OP),
                 pathTypeTracker);
     }
 
@@ -226,7 +230,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         sweepQueueWriter,
                         deleteExecutor,
                         validateLocksOnReads,
-                        transactionConfig),
+                        transactionConfig,
+                        ConflictTracer.NO_OP),
                 pathTypeTracker);
     }
 

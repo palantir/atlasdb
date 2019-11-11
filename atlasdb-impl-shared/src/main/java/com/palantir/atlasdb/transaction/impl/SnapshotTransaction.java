@@ -81,6 +81,7 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
@@ -139,6 +140,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
@@ -196,6 +198,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
     protected final MetricsManager metricsManager;
+    protected final ConflictTracer conflictTracer;
 
     private final MultiTableSweepQueueWriter sweepQueue;
 
@@ -259,8 +262,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer) {
         this.metricsManager = metricsManager;
+        this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
@@ -1840,6 +1845,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                   TransactionService transactionService) {
         Map<Cell, Long> rawResults = keyValueService.getLatestTimestamps(tableRef, keysToLoad);
         Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, rawResults.values(), false);
+
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+        conflictTracer.collect(getStartTimestamp(), keysToLoad, rawResults, commitTimestamps);
+
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
 
         for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
@@ -1970,13 +1979,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected TimestampedLockResponse acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
+        TransactionConfig currentTransactionConfig = transactionConfig.get();
 
-        LockRequest request = LockRequest.of(lockDescriptors, transactionConfig.get().getLockAcquireTimeoutMillis());
+        // TODO(fdesouza): Revert this once PDS-95791 is resolved.
+        long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
+        LockRequest request = ImmutableLockRequest.of(
+                lockDescriptors,
+                lockAcquireTimeoutMillis,
+                Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
         TimestampedLockResponse lockResponse = timelockService.acquireLocksForWrites(request);
         if (!lockResponse.wasSuccessful()) {
             log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
                             + "First ten required locks were {}.",
-                    SafeArg.of("acquireTimeoutMs", transactionConfig.get().getLockAcquireTimeoutMillis()),
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
@@ -2041,16 +2056,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void waitFor(Set<LockDescriptor> lockDescriptors) {
-        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors,
-                transactionConfig.get().getLockAcquireTimeoutMillis());
+        TransactionConfig currentTransactionConfig = transactionConfig.get();
+        String startTimestampAsDescription = getStartTimestampAsClientDescription(currentTransactionConfig);
+
+        // TODO(fdesouza): Revert this once PDS-95791 is resolved.
+        long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
+        WaitForLocksRequest request = WaitForLocksRequest.of(
+                lockDescriptors,
+                lockAcquireTimeoutMillis,
+                startTimestampAsDescription);
         WaitForLocksResponse response = timelockService.waitForLocks(request);
         if (!response.wasSuccessful()) {
             log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
                     SafeArg.of("requestId", request.getRequestId()),
-                    SafeArg.of("acquireTimeoutMs", transactionConfig.get().getLockAcquireTimeoutMillis()),
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
         }
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
+     */
+    @Deprecated
+    @Nullable
+    private String getStartTimestampAsClientDescription(TransactionConfig currentTransactionConfig) {
+        return currentTransactionConfig.attachStartTimestampToLockRequestDescriptions()
+                ? Long.toString(getStartTimestamp())
+                : null;
     }
 
     ///////////////////////////////////////////////////////////////////////////

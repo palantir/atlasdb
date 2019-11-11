@@ -15,11 +15,16 @@
  */
 package com.palantir.timelock.config;
 
+import java.util.Map;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.debug.LockDiagnosticConfig;
+import com.palantir.atlasdb.timelock.paxos.Client;
 
 /**
  * Static (not live-reloaded) portions of TimeLock's configuration.
@@ -33,6 +38,14 @@ public interface TimeLockInstallConfiguration {
     PaxosInstallConfiguration paxos();
 
     ClusterConfiguration cluster();
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
+     */
+    @Deprecated
+    @JsonProperty("lock-diagnostic-config")
+    Map<Client, LockDiagnosticConfig> lockDiagnosticConfig();
 
     @Value.Default
     default TsBoundPersisterConfiguration timestampBoundPersistence() {

@@ -82,4 +82,7 @@ dependencies {
 
     testCommonApi group: 'io.dropwizard', name: 'dropwizard-testing'
     testCommonApi group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
+
+    // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+    integTestImplementation project(":examples:profile-client")
 }

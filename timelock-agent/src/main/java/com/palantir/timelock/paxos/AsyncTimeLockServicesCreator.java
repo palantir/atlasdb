@@ -15,6 +15,8 @@
  */
 package com.palantir.timelock.paxos;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 
@@ -24,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
@@ -33,6 +36,7 @@ import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateL
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
@@ -45,16 +49,20 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final MetricsManager metricsManager;
     private final LockLog lockLog;
     private final PaxosLeadershipCreator leadershipCreator;
+    private final Map<Client, LockDiagnosticConfig> lockDiagnosticConfig;
     private final Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier;
 
     public AsyncTimeLockServicesCreator(
             MetricsManager metricsManager,
             LockLog lockLog,
             PaxosLeadershipCreator leadershipCreator,
+            // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+            Map<Client, LockDiagnosticConfig> lockDiagnosticConfig,
             Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier) {
         this.metricsManager = metricsManager;
         this.lockLog = lockLog;
         this.leadershipCreator = leadershipCreator;
+        this.lockDiagnosticConfig = lockDiagnosticConfig;
         this.lockControlConfigSupplier = lockControlConfigSupplier;
     }
 
@@ -64,11 +72,14 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
+
+        LockLog maybeEnhancedLockLog = maybeEnhancedLockLog(client);
         AsyncTimelockService asyncTimelockService = leadershipCreator.wrapInLeadershipProxy(
-                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
+                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog),
                 AsyncTimelockService.class,
                 client);
-        AsyncTimelockResource asyncTimelockResource = new AsyncTimelockResource(lockLog, asyncTimelockService);
+        AsyncTimelockResource asyncTimelockResource =
+                new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
 
         LockService lockService = leadershipCreator.wrapInLeadershipProxy(
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
@@ -84,7 +95,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
     private AsyncTimelockService createRawAsyncTimelockService(
             String client,
-            Supplier<ManagedTimestampService> timestampServiceSupplier) {
+            Supplier<ManagedTimestampService> timestampServiceSupplier,
+            LockLog maybeEnhancedLockLog) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-reaper-" + client + "-%d")
@@ -96,8 +108,23 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .setDaemon(true)
                         .build()), metricsManager.getRegistry(), "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(lockLog, reaperExecutor, timeoutExecutor, rateLimitConfig(client)),
+                AsyncLockService.createDefault(
+                        maybeEnhancedLockLog,
+                        reaperExecutor,
+                        timeoutExecutor,
+                        rateLimitConfig(client)),
                 timestampServiceSupplier.get());
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
+     */
+    @Deprecated
+    private LockLog maybeEnhancedLockLog(String client) {
+        return Optional.ofNullable(lockDiagnosticConfig.get(Client.of(client)))
+                .map(lockLog::withLockRequestDiagnosticCollection)
+                .orElse(lockLog);
     }
 
     private Supplier<RateLimitConfig> rateLimitConfig(String client) {

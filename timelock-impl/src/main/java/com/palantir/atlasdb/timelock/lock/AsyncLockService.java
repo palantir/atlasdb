@@ -46,6 +46,7 @@ public class AsyncLockService implements Closeable {
     private final TargetedSweepLockDecorator decorator;
     private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
+    private final LockLog lockLog;
 
     /**
      * Creates a new asynchronous lock service, using a standard {@link LeaderClock}.
@@ -75,7 +76,8 @@ public class AsyncLockService implements Closeable {
                 HeldLocksCollection.create(clock),
                 new AwaitedLocksCollection(),
                 reaperExecutor,
-                clock);
+                clock,
+                lockLog);
     }
 
     @VisibleForTesting
@@ -87,7 +89,9 @@ public class AsyncLockService implements Closeable {
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
             ScheduledExecutorService reaperExecutor,
-            LeaderClock leaderClock) {
+            LeaderClock leaderClock,
+            // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+            LockLog lockLog) {
         this.locks = locks;
         this.decorator = decorator;
         this.immutableTsTracker = immutableTimestampTracker;
@@ -96,6 +100,7 @@ public class AsyncLockService implements Closeable {
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
         this.leaderClock = leaderClock;
+        this.lockLog = lockLog;
 
         scheduleExpiredLockReaper();
     }
@@ -117,9 +122,12 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Leased<LockToken>> lockImmutableTimestamp(UUID requestId, long timestamp) {
-        return heldLocks.getExistingOrAcquire(
+        AsyncResult<Leased<LockToken>> immutableTimestampLockResult = heldLocks.getExistingOrAcquire(
                 requestId,
                 () -> acquireImmutableTimestampLock(requestId, timestamp));
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+        lockLog.registerLockImmutableTimestampRequest(requestId, timestamp, immutableTimestampLockResult);
+        return immutableTimestampLockResult;
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {

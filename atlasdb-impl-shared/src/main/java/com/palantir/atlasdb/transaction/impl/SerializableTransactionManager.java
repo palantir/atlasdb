@@ -28,6 +28,7 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -54,6 +55,8 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
+
+    private final ConflictTracer conflictTracer;
 
     public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {
         private final TransactionManager txManager;
@@ -219,7 +222,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer) {
 
         return create(metricsManager,
                 keyValueService,
@@ -243,7 +247,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
                 transactionConfig,
-                true);
+                true,
+                conflictTracer);
     }
 
     public static TransactionManager create(
@@ -266,7 +271,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer) {
 
         return create(metricsManager,
                 keyValueService,
@@ -289,7 +295,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                conflictTracer);
     }
 
     public static TransactionManager create(
@@ -313,7 +320,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer) {
         return create(
                 metricsManager,
                 keyValueService,
@@ -336,7 +344,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 initializer,
                 validateLocksOnReads,
                 transactionConfig,
-                false);
+                false,
+                conflictTracer);
     }
 
     private static TransactionManager create(
@@ -361,7 +370,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            boolean shouldInstrument) {
+            boolean shouldInstrument,
+            ConflictTracer conflictTracer) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -380,7 +390,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                conflictTracer);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -430,7 +441,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueue,
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 true,
-                () -> ImmutableTransactionConfig.builder().build());
+                () -> ImmutableTransactionConfig.builder().build(),
+                ConflictTracer.NO_OP);
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -450,7 +462,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer) {
         super(
                 metricsManager,
                 keyValueService,
@@ -469,8 +482,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig
+                transactionConfig,
+                conflictTracer
         );
+        this.conflictTracer = conflictTracer;
     }
 
     @Override
@@ -500,7 +515,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                conflictTracer);
     }
 
     @VisibleForTesting

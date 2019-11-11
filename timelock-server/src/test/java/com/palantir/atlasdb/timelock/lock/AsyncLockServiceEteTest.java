@@ -61,18 +61,17 @@ public class AsyncLockServiceEteTest {
 
     private final LeaderClock clock = LeaderClock.create();
 
+    private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 2L);
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(OrderedLocksDecorator.DO_NOTHING),
             mock(TargetedSweepLockDecorator.class),
             new ImmutableTimestampTracker(),
-            new LockAcquirer(
-                    new LockLog(new MetricRegistry(), () -> 2L),
-                    Executors.newSingleThreadScheduledExecutor(),
-                    clock),
+            new LockAcquirer(lockLog, Executors.newSingleThreadScheduledExecutor(), clock),
             HeldLocksCollection.create(clock),
             new AwaitedLocksCollection(),
             executor,
-            clock);
+            clock,
+            lockLog);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
