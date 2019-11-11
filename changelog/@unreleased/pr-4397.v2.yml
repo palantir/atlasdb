@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Force native protocol v3 for CqlClient
+  links:
+  - https://github.com/palantir/atlasdb/pull/4397
