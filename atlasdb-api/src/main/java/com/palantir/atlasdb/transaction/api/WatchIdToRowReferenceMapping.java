@@ -14,23 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.transaction.api;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.lock.watch.WatchId;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchState.class)
-@JsonDeserialize(as = ImmutableLockWatchState.class)
-public interface LockWatchState {
-    Map<WatchId, LockWatch> watches();
+public abstract class WatchIdToRowReferenceMapping {
+    abstract Map<WatchId, RowReference> mapping();
 
-    static LockWatchState of(Map<WatchId, LockWatch> state) {
-        return ImmutableLockWatchState.builder().watches(state).build();
+    public Optional<RowReference> rowReferenceForRowId(WatchId lockId) {
+        return Optional.ofNullable(mapping().get(lockId));
+    }
+
+    public static WatchIdToRowReferenceMapping of(Map<WatchId, RowReference> mapping) {
+        return ImmutableWatchIdToRowReferenceMapping.builder().mapping(mapping).build();
     }
 }

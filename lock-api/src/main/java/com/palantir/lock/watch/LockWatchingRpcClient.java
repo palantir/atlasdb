@@ -31,13 +31,14 @@ import javax.ws.rs.core.MediaType;
 public interface LockWatchingRpcClient {
     @POST
     @Path("start-watching")
-    void startWatching(@PathParam("namespace") String namespace, LockWatchRequest lockWatchRequest);
+    WatchIdToLockDesciptor startWatching(@PathParam("namespace") String namespace, LockWatchRequest lockWatchRequest);
 
     @POST
     @Path("stop-watching")
     void stopWatching(@PathParam("namespace") String namespace, LockWatchRequest lockWatchRequest);
 
+    // as usual, GET is allowed to be cached, and we are not allowed to use a stale result
     @POST
-    @Path("get-watch-state")
+    @Path("watch-state")
     LockWatchState getWatchState(@PathParam("namespace") String namespace, UUID serviceId);
 }

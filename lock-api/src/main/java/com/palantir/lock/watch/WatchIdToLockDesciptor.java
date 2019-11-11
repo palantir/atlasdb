@@ -22,15 +22,16 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchState.class)
-@JsonDeserialize(as = ImmutableLockWatchState.class)
-public interface LockWatchState {
-    Map<WatchId, LockWatch> watches();
+@JsonSerialize(as = ImmutableWatchIdToLockDesciptor.class)
+@JsonDeserialize(as = ImmutableWatchIdToLockDesciptor.class)
+public interface WatchIdToLockDesciptor {
+    Map<WatchId, LockDescriptor> mapping();
 
-    static LockWatchState of(Map<WatchId, LockWatch> state) {
-        return ImmutableLockWatchState.builder().watches(state).build();
+    static WatchIdToLockDesciptor of(Map<WatchId, LockDescriptor> mapping) {
+        return ImmutableWatchIdToLockDesciptor.builder().mapping(mapping).build();
     }
 }

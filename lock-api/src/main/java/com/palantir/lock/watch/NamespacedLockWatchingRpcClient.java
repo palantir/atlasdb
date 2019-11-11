@@ -27,8 +27,8 @@ public class NamespacedLockWatchingRpcClient {
         this.lockWatchingRpcClient = lockWatchingRpcClient;
     }
 
-    public void startWatching(LockWatchRequest lockWatchRequest) {
-        lockWatchingRpcClient.startWatching(namespace, lockWatchRequest);
+    public WatchIdToLockDesciptor startWatching(LockWatchRequest lockWatchRequest) {
+        return lockWatchingRpcClient.startWatching(namespace, lockWatchRequest);
     }
 
     public void stopWatching(LockWatchRequest lockWatchRequest) {
