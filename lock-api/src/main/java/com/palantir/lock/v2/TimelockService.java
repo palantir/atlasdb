@@ -24,6 +24,7 @@ import com.palantir.lock.watch.LockWatchState;
 import com.palantir.lock.watch.TimestampedLockResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 @AutoDelegate
@@ -82,12 +83,14 @@ public interface TimelockService {
     long currentTimeMillis();
 
     // todo(gmaretic): implement
+    @DoNotDelegate
     default StartTransactionWithWatchesResponse startTransactionWithWatches() {
         return StartTransactionWithWatchesResponse.of(
                 startIdentifiedAtlasDbTransaction(), LockWatchState.of(ImmutableMap.of()));
     }
 
     // todo(gmaretic): implement
+    @DoNotDelegate
     default TimestampedLockResponse acquireLocksForWrites(LockRequest lockRequest) {
         return TimestampedLockResponse.of(null, lock(lockRequest));
     }

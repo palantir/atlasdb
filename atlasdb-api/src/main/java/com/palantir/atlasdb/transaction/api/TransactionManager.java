@@ -316,6 +316,7 @@ public interface TransactionManager extends AutoCloseable {
     TimelockService getTimelockService();
 
     // todo(gmaretic): implement
+    @DoNotDelegate
     default KvsLockWatchingService getLockWatchingService() {
         return NoOpKvsLockWatchingService.INSTANCE;
     }
