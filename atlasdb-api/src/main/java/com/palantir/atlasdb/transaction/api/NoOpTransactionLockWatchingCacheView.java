@@ -22,12 +22,13 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.watch.LockWatchState;
 
 public final class NoOpTransactionLockWatchingCacheView implements TransactionLockWatchingCacheView {
     public static final NoOpTransactionLockWatchingCacheView INSTANCE = new NoOpTransactionLockWatchingCacheView();
 
     private NoOpTransactionLockWatchingCacheView() {
-        // use reflection
+        // use reflection (please don't)
     }
 
     @Override
@@ -36,12 +37,12 @@ public final class NoOpTransactionLockWatchingCacheView implements TransactionLo
     }
 
     @Override
-    public void tryCacheNewValuesRead(TableReference tableRef, Map<Cell, GuardedValue> writes) {
+    public void tryCacheNewValuesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchState lwState) {
         // noop
     }
 
     @Override
-    public void tryCacheWrittenValues(TableReference tableRef, Map<Cell, byte[]> writes, long lockTimestamp) {
+    public void tryCacheWrittenValues(TableReference tableRef, Map<Cell, byte[]> writes, long lockTs) {
         // noop
     }
 }

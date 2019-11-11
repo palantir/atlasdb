@@ -89,6 +89,6 @@ public interface TimelockService {
 
     // todo(gmaretic): implement
     default TimestampedLockResponse acquireLocksForWrites(LockRequest lockRequest) {
-        return TimestampedLockResponse.of(getFreshTimestamp(), lock(lockRequest));
+        return TimestampedLockResponse.of(null, lock(lockRequest));
     }
 }

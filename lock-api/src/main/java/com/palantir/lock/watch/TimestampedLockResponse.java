@@ -16,6 +16,8 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -28,7 +30,7 @@ import com.palantir.lock.v2.LockResponse;
 @JsonDeserialize(as = ImmutableTimestampedLockResponse.class)
 public interface TimestampedLockResponse {
     @Value.Parameter
-    long timestamp();
+    Optional<Long> timestamp();
 
     @Value.Parameter
     LockResponse lockResponse();
@@ -37,7 +39,7 @@ public interface TimestampedLockResponse {
         return lockResponse().wasSuccessful();
     }
 
-    static TimestampedLockResponse of(long timestamp, LockResponse lockResponse) {
-        return ImmutableTimestampedLockResponse.of(timestamp, lockResponse);
+    static TimestampedLockResponse of(Long timestamp, LockResponse lockResponse) {
+        return ImmutableTimestampedLockResponse.of(Optional.ofNullable(timestamp), lockResponse);
     }
 }

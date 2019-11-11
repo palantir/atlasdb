@@ -42,7 +42,7 @@ public final class NoOpLockWatchingCache implements LockWatchingCache {
     }
 
     @Override
-    public void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, GuardedValue> writes) {
+    public void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchState lwState) {
         // noop
     }
 

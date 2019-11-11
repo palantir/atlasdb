@@ -31,6 +31,7 @@ public interface LockWatchingCache {
      * @param tableRef table to read from
      * @param reads set of cells to read
      * @return Cached values that are guaranteed to be the latest visible entries to the transaction making the request
+     * if the {@link GuardedValue}'s timestamp matches the transaction's lock watch state
      */
     Map<Cell, GuardedValue> getCached(TableReference tableRef, Set<Cell> reads);
 
@@ -45,15 +46,18 @@ public interface LockWatchingCache {
     void maybeCacheCommittedWrites(TableReference tableRef, Map<Cell, byte[]> writes, long lockTimestamp);
 
     /**
-     * Only makes sense to actually call with GuardedValues that were committed.
+     * A transaction can attempt to cache entries read during the transaction using this method. The implementation of
+     * the {@link LockWatchState} must correctly arbitrate which of the passed entries are safe to cache.
      *
-     * @param tableRef table to cache entres for
-     * @param writes map detailing values to be cached
+     * @param tableRef table to cache entries for
+     * @param writes entries read by the transaction
+     * @param lockWatchState lock watch state at the start of the transaction that read the entries
      */
-    void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, GuardedValue> writes);
+    void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchState lockWatchState);
 
     /**
      * Creates a view of the cache for a transaction, based on the start timestamp and the lock watch state.
+     *
      * @param startTimestamp of the transaction
      * @param lockWatchState returned from the {@link com.palantir.lock.v2.StartTransactionWithWatchesResponse}
      * @return view of the cache

@@ -20,6 +20,13 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+/**
+ * A GuardedValue represents a value with a limited validity window.
+ *
+ * In the context of the AtlasDB transaction protocol, a value with {@link #guardTimestamp()} ts is guaranteed to be
+ * fresh, i.e., equal to the corresponding entry in the KVS, for any transaction with a start timestamp greater than ts
+ * if there were no write locks taken out between ts and start timestamp that could have modified the stored value.
+ */
 public interface GuardedValue {
     @Value.Parameter
     byte[] value();
