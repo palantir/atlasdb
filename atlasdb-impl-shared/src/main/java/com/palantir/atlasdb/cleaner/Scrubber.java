@@ -36,7 +36,6 @@ import javax.annotation.concurrent.GuardedBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -115,11 +114,6 @@ public class Scrubber {
 
     private static final String SCRUBBER_THREAD_PREFIX = "AtlasScrubber";
 
-    Meter enqueuedCells;
-    Meter scrubbedCells;
-    Meter scrubRetries;
-    Meter deletedCells;
-
     // Keep track of threads spawned by scrub, so we don't starve when
     // running scrub for followers.
     private ExecutorInheritableThreadLocal<Boolean> inScrubThread = new ExecutorInheritableThreadLocal<Boolean>() {
@@ -186,11 +180,6 @@ public class Scrubber {
         this.followers = followers;
         this.metricsManager = metricsManager;
 
-        this.enqueuedCells = metricsManager.registerOrGetMeter(Scrubber.class, AtlasDbMetricNames.ENQUEUED_CELLS);
-        this.scrubbedCells = metricsManager.registerOrGetMeter(Scrubber.class, AtlasDbMetricNames.SCRUBBED_CELLS);
-        this.deletedCells = metricsManager.registerOrGetMeter(Scrubber.class, AtlasDbMetricNames.DELETED_CELLS);
-        this.scrubRetries = metricsManager.registerOrGetMeter(Scrubber.class, AtlasDbMetricNames.SCRUB_RETRIES);
-
         NamedThreadFactory threadFactory = new NamedThreadFactory(SCRUBBER_THREAD_PREFIX, true);
         this.readerExec = PTExecutors.newFixedThreadPool(readThreadCount, threadFactory);
         this.exec = PTExecutors.newFixedThreadPool(threadCount, threadFactory);
@@ -228,7 +217,7 @@ public class Scrubber {
                     log.error("Encountered the following error during background scrub task,"
                             + " but continuing anyway", t);
                     numberOfAttempts++;
-                    scrubRetries.mark();
+                    lazyWriteMetric(AtlasDbMetricNames.SCRUB_RETRIES, 1);
                     try {
                         Thread.sleep(RETRY_SLEEP_INTERVAL_IN_MILLIS);
                     } catch (InterruptedException e) {
@@ -379,7 +368,7 @@ public class Scrubber {
             return;
         }
         scrubberStore.queueCellsForScrubbing(cellToTableRefs, scrubTimestamp, batchSizeSupplier.get());
-        enqueuedCells.mark(cellToTableRefs.size());
+        lazyWriteMetric(AtlasDbMetricNames.ENQUEUED_CELLS, cellToTableRefs.size());
     }
 
     private long getCommitTimestampRollBackIfNecessary(long startTimestamp,
@@ -535,7 +524,7 @@ public class Scrubber {
             log.debug("Immediately scrubbed {} cells from table {}", entry.getValue().size(), tableRef);
         }
         scrubberStore.markCellsAsScrubbed(allCellsToMarkScrubbed, batchSizeSupplier.get());
-        scrubbedCells.mark(allCellsToMarkScrubbed.size());
+        lazyWriteMetric(AtlasDbMetricNames.SCRUBBED_CELLS, allCellsToMarkScrubbed.size());
     }
 
     private void deleteCellsAtTimestamps(TransactionManager txManager,
@@ -551,9 +540,13 @@ public class Scrubber {
                 Builder<Cell, Long> builder = ImmutableMultimap.builder();
                 batch.stream().forEach(e -> builder.put(e));
                 keyValueService.delete(tableRef, builder.build());
-                deletedCells.mark(batch.size());
+                lazyWriteMetric(AtlasDbMetricNames.DELETED_CELLS, batch.size());
             }
         }
+    }
+
+    private void lazyWriteMetric(String name, long value) {
+        metricsManager.registerOrGetMeter(Scrubber.class, name).mark(value);
     }
 
     public long getUnreadableTimestamp() {
