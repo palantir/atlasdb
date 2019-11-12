@@ -138,7 +138,6 @@ public class TransactionManagersTest {
             MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
-    private static final Map<String, String> LEGACY_CLIENT_TAGS = ImmutableMap.of("clientVersion", "AtlasDB-Feign");
     private static final Map<String, String> CLIENT_TAGS = ImmutableMap.of("clientVersion", "Conjure-Java-Runtime");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
@@ -472,7 +471,7 @@ public class TransactionManagersTest {
         assertThatTimeAndLockMetricsWithTagsAreRecorded(
                 TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC,
-                LEGACY_CLIENT_TAGS);
+                CLIENT_TAGS);
     }
 
     @Test

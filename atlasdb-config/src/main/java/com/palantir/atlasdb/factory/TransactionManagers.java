@@ -1042,7 +1042,7 @@ public abstract class TransactionManagers {
                 .sslConfiguration(leaderConfig.sslConfiguration())
                 .build();
         ServiceCreator creator = ServiceCreator.noPayloadLimiter(
-                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfigs.ALWAYS_USE_LEGACY);
+                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfigs.ALWAYS_USE_CONJURE);
         LockService remoteLock = creator.createService(LockService.class);
         TimestampService remoteTime = creator.createService(TimestampService.class);
         TimestampManagementService remoteManagement = creator.createService(TimestampManagementService.class);
