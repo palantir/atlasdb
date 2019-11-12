@@ -31,12 +31,10 @@ import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.timelock.suite.PaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
@@ -51,7 +49,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> PaxosSuite.BATCHED_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> PaxosSuite.BATCHED_TIMESTAMP_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -64,11 +62,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final LockDescriptor LOCK = StringLockDescriptor.of("foo");
     private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
 
-    private static final com.palantir.lock.LockRequest BLOCKING_LOCK_REQUEST = com.palantir.lock.LockRequest.builder(
-            ImmutableSortedMap.of(
-                    StringLockDescriptor.of("foo"),
-                    LockMode.WRITE))
-            .build();
     private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
 
     @Before
@@ -180,44 +173,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             LockToken token = timelock.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
             cluster.unlock(token);
         }
-    }
-
-    @Test
-    public void clientsCreatedDynamicallyOnNonLeadersAreFunctionalAfterFailover() {
-        String client = UUID.randomUUID().toString();
-        cluster.nonLeaders().forEach(server -> {
-            assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-        });
-
-        cluster.failoverToNewLeader();
-
-        cluster.getFreshTimestamp();
-    }
-
-    @Test
-    public void clientsCreatedDynamicallyOnLeaderAreFunctionalImmediately() {
-        String client = UUID.randomUUID().toString();
-
-        cluster.currentLeader()
-                .timelockServiceForClient(client)
-                .getFreshTimestamp();
-    }
-
-    @Test
-    public void noConflictIfLeaderAndNonLeadersSeparatelyInitializeClient() {
-        String client = UUID.randomUUID().toString();
-        cluster.nonLeaders().forEach(server -> {
-            assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-        });
-
-        long ts1 = cluster.timelockServiceForClient(client).getFreshTimestamp();
-
-        cluster.failoverToNewLeader();
-
-        long ts2 = cluster.getFreshTimestamp();
-        assertThat(ts1).isLessThan(ts2);
     }
 
 }
