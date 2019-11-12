@@ -1,0 +1,60 @@
+/**
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    testCompile (project(":atlasdb-cassandra")) {
+        exclude module: 'cassandra-thrift'
+    }
+    testCompile project(":atlasdb-tests-shared")
+    testCompile (project(":atlasdb-container-test-utils")) {
+        exclude module: 'cassandra-thrift'
+    }
+    testCompile project(":atlasdb-ete-test-utils")
+    testCompile project(":flake-rule")
+
+    testCompile ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra3_thrift) {
+       exclude module: 'junit'
+
+       // override ant to a newer one that is shared with the version in jmock-->cglib
+       exclude module: 'ant'
+       compile 'org.apache.ant:ant:' + libVersions.ant
+    }
+    testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testCompile group: 'org.assertj', name: 'assertj-core'
+
+    test {
+        include '**/CassandraSchemaLockTest.class'
+        include '**/OneNodeDownTestSuite.class'
+    }
+}
+
+def copiedSrcDir = "${project.projectDir}/src/test/java"
+
+task copySourceFiles(type: Copy) {
+    doFirst {
+        delete copiedSrcDir
+    }
+    from("${project.rootDir}/atlasdb-cassandra-multinode-tests/src/test/java") {
+        include '**/*.java'
+    }
+    into copiedSrcDir
+    includeEmptyDirs false
+}
+
+tasks.withType(JavaCompile).all { dependsOn copySourceFiles }

@@ -1,0 +1,84 @@
+/**
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  testCompile (project(":atlasdb-cassandra")) {
+      exclude module: 'cassandra-thrift'
+  }
+  testCompile (project(":atlasdb-cli")) {
+        exclude module: 'cassandra-thrift'
+    }
+  testCompile project(":atlasdb-tests-shared")
+  testCompile (project(":atlasdb-container-test-utils")) {
+      exclude module: 'cassandra-thrift'
+  }
+  testCompile project(":atlasdb-ete-test-utils")
+
+  testCompile ('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra3_thrift) {
+      exclude module: 'junit'
+
+      // override ant to a newer one that is shared with the version in jmock-->cglib
+      exclude module: 'ant'
+      compile 'org.apache.ant:ant:' + libVersions.ant
+  }
+  testCompile ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra3_thrift) {
+    exclude module: 'junit'
+
+    // override ant to a newer one that is shared with the version in jmock-->cglib
+    exclude module: 'ant'
+    compile 'org.apache.ant:ant:' + libVersions.ant
+  }
+
+  testCompile project(':flake-rule')
+
+  testCompile ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+      exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+  }
+
+  testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+}
+
+task longTest(type: Test) {
+    include '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+}
+
+task memorySensitiveTest(type: Test) {
+    include '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
+}
+
+test {
+    dependsOn longTest
+    exclude '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+    exclude '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
+}
+
+def copiedSrcDir = "${project.projectDir}/src/test"
+
+task copySourceFiles(type: Copy) {
+    doFirst {
+        delete copiedSrcDir
+    }
+    from("${project.rootDir}/atlasdb-cassandra-integration-tests/src/test") {
+        include '**/*.java'
+        include '**/*.xml'
+    }
+    into copiedSrcDir
+    includeEmptyDirs false
+}
+
+tasks.withType(JavaCompile).all { dependsOn copySourceFiles }
