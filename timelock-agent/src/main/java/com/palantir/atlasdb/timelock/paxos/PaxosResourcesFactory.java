@@ -66,12 +66,12 @@ public final class PaxosResourcesFactory {
             throw new UnsupportedOperationException("not implemented yet");
         } else {
             configureLeaderForAllClients(
-                    resourcesBuilder, install,
+                    resourcesBuilder,
+                    install,
                     metrics,
                     paxosRuntime,
                     sharedExecutor,
-                    remoteClients
-            );
+                    remoteClients);
         }
 
         return resourcesBuilder.build();
