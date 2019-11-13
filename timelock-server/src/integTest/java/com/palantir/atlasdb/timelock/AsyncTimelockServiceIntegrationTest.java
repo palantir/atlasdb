@@ -50,6 +50,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -312,8 +313,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(refreshedLockGrant2).isEqualTo(heldLocksGrant);
 
         namespace.legacyLockService().useGrant(TEST_CLIENT_2, heldLocksGrant);
-        assertThat(Iterables.getOnlyElement(namespace.legacyLockService().getTokens(TEST_CLIENT_2)).getLockDescriptors())
-                .contains(LOCK_A);
+
+        SortedLockCollection<LockDescriptor> lockDescriptors =
+                Iterables.getOnlyElement(namespace.legacyLockService().getTokens(TEST_CLIENT_2)).getLockDescriptors();
+        assertThat(lockDescriptors).contains(LOCK_A);
 
         // Catching any exception since this currently is an error deserialization exception
         // until we stop requiring http-remoting2 errors
@@ -448,9 +451,11 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void temporalOrderingIsPreservedWhenMixingStandardTimestampAndIdentifiedTimestampRequests() {
         List<Long> temporalSequence = ImmutableList.of(
                 namespace.getFreshTimestamp(),
-                namespace.timelockService().startIdentifiedAtlasDbTransaction().startTimestampAndPartition().timestamp(),
+                namespace.timelockService().startIdentifiedAtlasDbTransaction().startTimestampAndPartition()
+                        .timestamp(),
                 namespace.getFreshTimestamp(),
-                namespace.timelockService().startIdentifiedAtlasDbTransaction().startTimestampAndPartition().timestamp(),
+                namespace.timelockService().startIdentifiedAtlasDbTransaction().startTimestampAndPartition()
+                        .timestamp(),
                 namespace.getFreshTimestamp());
 
         assertThat(temporalSequence).isSorted();
