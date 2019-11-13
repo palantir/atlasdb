@@ -18,7 +18,11 @@ dependencies {
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     runtime project(':atlasdb-dbkvs')
-    runtime project(':atlasdb-cassandra')
+    compile (project(':atlasdb-cassandra')) {
+        exclude module: 'cassandra-thrift'
+    }
+    compile ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra3_thrift)
+
 
     compile group: 'org.apache.thrift', name: 'libthrift'
 
