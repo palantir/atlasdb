@@ -31,7 +31,9 @@ dependencies {
     annotationProcessor project(':atlasdb-processors')
     compileOnly project(':atlasdb-processors')
 
-    testCompile project(':atlasdb-container-test-utils')
+    testCompile (project(':atlasdb-container-test-utils')) {
+        exclude module: 'cassandra-thrift'
+    }
     testCompile project(':atlasdb-ete-test-utils')
     testCompile project(':flake-rule')
 
