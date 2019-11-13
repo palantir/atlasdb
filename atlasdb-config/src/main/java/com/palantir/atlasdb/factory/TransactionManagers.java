@@ -973,8 +973,13 @@ public abstract class TransactionManagers {
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
-        LockService lockService = RemoteLockServiceAdapter.create(
-                creator.createService(LockRpcClient.class), timelockNamespace);
+
+        // I'd use instrumentTimed(), but the timed annotations are not visible in LockService. Also, most practical
+        // uses of this code path are in environments where the cost of metrics is not critical.
+        LockService lockService = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                LockService.class,
+                RemoteLockServiceAdapter.create(creator.createService(LockRpcClient.class), timelockNamespace));
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 
