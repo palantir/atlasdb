@@ -17,6 +17,8 @@ package com.palantir.paxos;
 
 import javax.annotation.Nullable;
 
+import com.palantir.atlasdb.metrics.Timed;
+
 public interface PaxosProposer {
 
     /**
@@ -34,6 +36,7 @@ public interface PaxosProposer {
      *         equipped to handle this case. PaxosProposerImpl will not throw in this case,
      *         but requires it be enforced on a higher level.
      */
+    @Timed
     byte[] propose(long seq, @Nullable byte[] proposalValue)
             throws PaxosRoundFailureException;
 
@@ -42,10 +45,12 @@ public interface PaxosProposer {
      * {@link PaxosProposer#propose(long, byte[])}. However, this value is proposed anonymously, with a fresh
      * proposer ID. This may be useful for relinquishing leadership in algorithms for that based on Paxos.
      */
+    @Timed
     byte[] proposeAnonymously(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException;
 
     /**
      * Returns a unique string identifier for the proposer.
      */
+    @Timed
     String getUuid();
 }

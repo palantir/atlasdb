@@ -18,6 +18,8 @@ package com.palantir.leader;
 import java.io.Serializable;
 import java.util.Optional;
 
+import com.palantir.atlasdb.metrics.Timed;
+
 public interface LeaderElectionService {
     interface LeadershipToken extends Serializable {
         boolean sameAs(LeadershipToken token);
@@ -51,6 +53,7 @@ public interface LeaderElectionService {
      *
      * @return a leadership token to be used with {@link #isStillLeading}
      */
+    @Timed
     LeadershipToken blockOnBecomingLeader() throws InterruptedException;
 
     /**
@@ -58,6 +61,7 @@ public interface LeaderElectionService {
      * calls to ensure that the token is valid at the time of invocation, but will return immediately if
      * this node is not the last known leader.
      */
+    @Timed
     Optional<LeadershipToken> getCurrentTokenIfLeading();
 
     /**
@@ -68,6 +72,7 @@ public interface LeaderElectionService {
      * @param token leadership token
      * @return LEADING if the token is still the leader
      */
+    @Timed
     StillLeadingStatus isStillLeading(LeadershipToken token);
 
     /**
