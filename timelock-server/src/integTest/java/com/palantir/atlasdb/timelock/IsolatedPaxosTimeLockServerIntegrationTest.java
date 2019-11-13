@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
@@ -51,25 +52,26 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     @Test
     public void cannotIssueTimestampsWithoutQuorum() {
-        assertThatThrownBy(() -> SERVER.getFreshTimestamp())
+        assertThatThrownBy(() -> CLUSTER.client(CLIENT).getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotIssueLocksWithoutQuorum() {
-        assertThatThrownBy(() -> SERVER.lockService().currentTimeMillis())
+        assertThatThrownBy(() -> CLUSTER.client(CLIENT).timelockService().currentTimeMillis())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotPerformTimestampManagementWithoutQuorum() {
-        assertThatThrownBy(() -> SERVER.timestampManagementService().fastForwardTimestamp(1000L))
+        assertThatThrownBy(() -> CLUSTER.client(CLIENT).timestampManagementService().fastForwardTimestamp(1000L))
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void canPingWithoutQuorum() {
-        SERVER.leaderPing(); // should succeed
+        assertThatCode(SERVER.pingableLeader()::ping)
+                .doesNotThrowAnyException();
     }
 
     @Test

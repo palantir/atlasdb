@@ -48,38 +48,34 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
     @Test
     public void clientsCreatedDynamicallyOnNonLeadersAreFunctionalAfterFailover() {
         String client = UUID.randomUUID().toString();
-        cluster.nonLeaders().forEach(server -> {
-            assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-        });
+        cluster.nonLeaders().forEach(server ->
+                assertThatThrownBy(() -> server.client(client).getFreshTimestamp())
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound));
 
         cluster.failoverToNewLeader();
 
-        cluster.getFreshTimestamp();
+        cluster.client(client).getFreshTimestamp();
     }
 
     @Test
     public void clientsCreatedDynamicallyOnLeaderAreFunctionalImmediately() {
         String client = UUID.randomUUID().toString();
 
-        cluster.currentLeader()
-                .timelockServiceForClient(client)
-                .getFreshTimestamp();
+        cluster.currentLeader().client(client).getFreshTimestamp();
     }
 
     @Test
     public void noConflictIfLeaderAndNonLeadersSeparatelyInitializeClient() {
         String client = UUID.randomUUID().toString();
-        cluster.nonLeaders().forEach(server -> {
-            assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
-                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-        });
+        cluster.nonLeaders().forEach(server ->
+                assertThatThrownBy(() -> server.client(client).getFreshTimestamp())
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound));
 
-        long ts1 = cluster.timelockServiceForClient(client).getFreshTimestamp();
+        long ts1 = cluster.client(client).getFreshTimestamp();
 
         cluster.failoverToNewLeader();
 
-        long ts2 = cluster.getFreshTimestamp();
+        long ts2 = cluster.client(client).getFreshTimestamp();
         assertThat(ts1).isLessThan(ts2);
     }
 }

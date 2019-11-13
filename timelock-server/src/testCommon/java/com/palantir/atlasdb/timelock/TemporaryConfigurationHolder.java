@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.rules.ExternalResource;
@@ -35,7 +36,7 @@ public class TemporaryConfigurationHolder extends ExternalResource {
     private File temporaryConfigFile;
     private File temporaryLogDirectory;
 
-    public TemporaryConfigurationHolder(TemporaryFolder temporaryFolder, File configTemplate) {
+    TemporaryConfigurationHolder(TemporaryFolder temporaryFolder, File configTemplate) {
         this.temporaryFolder = temporaryFolder;
         this.configTemplate = configTemplate;
     }
@@ -57,9 +58,9 @@ public class TemporaryConfigurationHolder extends ExternalResource {
         Preconditions.checkArgument(!sourceFile.getCanonicalFile().equals(destinationFile.getCanonicalFile()),
                 "The source and destination files both point to '%s'.", sourceFile.getCanonicalPath());
 
-        String oldConfig = FileUtils.readFileToString(sourceFile);
+        String oldConfig = FileUtils.readFileToString(sourceFile, StandardCharsets.UTF_8);
         String newConfig = replaceTempDataDirPlaceholder(oldConfig, substitution);
-        FileUtils.writeStringToFile(destinationFile, newConfig);
+        FileUtils.writeStringToFile(destinationFile, newConfig, StandardCharsets.UTF_8);
     }
 
     @VisibleForTesting
@@ -67,7 +68,7 @@ public class TemporaryConfigurationHolder extends ExternalResource {
         return config.replace(TEMP_DATA_DIR, substitution);
     }
 
-    public String getTemporaryConfigFileLocation() {
+    String getTemporaryConfigFileLocation() {
         return temporaryConfigFile.getPath();
     }
 }
