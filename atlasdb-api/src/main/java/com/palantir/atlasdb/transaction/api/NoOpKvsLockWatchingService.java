@@ -16,13 +16,14 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.watch.LockWatchState;
-import com.palantir.lock.watch.WatchId;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.LockWatchInfo;
+import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public final class NoOpKvsLockWatchingService implements KvsLockWatchingService {
     public static final KvsLockWatchingService INSTANCE = new NoOpKvsLockWatchingService();
@@ -32,17 +33,17 @@ public final class NoOpKvsLockWatchingService implements KvsLockWatchingService 
     }
 
     @Override
-    public WatchIdToRowReferenceMapping registerRowWatches(TableReference tableRef, Set<byte[]> rowNames) {
-        return WatchIdToRowReferenceMapping.of(ImmutableMap.of());
+    public void registerWatches(LockWatchRequest lockWatchEntries) {
+        // noop
     }
 
     @Override
-    public Set<WatchId> deregisterRowWatches(TableReference tableRef, Set<byte[]> rowNames) {
+    public Set<LockDescriptor> deregisterWatches(LockWatchRequest lockWatchEntries) {
         return ImmutableSet.of();
     }
 
     @Override
-    public LockWatchState getLockWatchState() {
-        return LockWatchState.of(ImmutableMap.of());
+    public LockWatchState getLockWatchState(Optional<Long> lastKnownState) {
+        return x -> LockWatchInfo.INVALID;
     }
 }

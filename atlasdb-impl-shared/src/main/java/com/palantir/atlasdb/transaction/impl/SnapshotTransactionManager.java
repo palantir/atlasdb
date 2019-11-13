@@ -155,7 +155,8 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        StartTransactionWithWatchesResponse responseWithWatches = timelockService.startTransactionWithWatches();
+        StartTransactionWithWatchesResponse responseWithWatches = timelockService
+                .startTransactionWithWatches(Optional.empty());
         StartIdentifiedAtlasDbTransactionResponse transactionResponse = responseWithWatches.response();
 
         try {

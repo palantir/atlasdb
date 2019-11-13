@@ -22,7 +22,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.watch.LockWatchState;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public final class NoOpLockWatchingCache implements LockWatchingCache {
     public static final NoOpLockWatchingCache INSTANCE = new NoOpLockWatchingCache();
@@ -42,12 +42,12 @@ public final class NoOpLockWatchingCache implements LockWatchingCache {
     }
 
     @Override
-    public void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchState lwState) {
+    public void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchStateUpdate lwState) {
         // noop
     }
 
     @Override
-    public TransactionLockWatchingCacheView getView(long startTimestamp, LockWatchState lockWatchState) {
+    public TransactionLockWatchingCacheView getView(long startTimestamp, LockWatchStateUpdate lockWatchState) {
         return NoOpTransactionLockWatchingCacheView.INSTANCE;
     }
 }

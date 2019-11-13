@@ -15,12 +15,12 @@
  */
 package com.palantir.lock.v2;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.ws.rs.QueryParam;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.lock.watch.LockWatchState;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TimestampedLockResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
@@ -84,9 +84,8 @@ public interface TimelockService {
 
     // todo(gmaretic): implement
     @DoNotDelegate
-    default StartTransactionWithWatchesResponse startTransactionWithWatches() {
-        return StartTransactionWithWatchesResponse.of(
-                startIdentifiedAtlasDbTransaction(), LockWatchState.of(ImmutableMap.of()));
+    default StartTransactionWithWatchesResponse startTransactionWithWatches(Optional<Long> lastKnownState) {
+        return StartTransactionWithWatchesResponse.of(startIdentifiedAtlasDbTransaction(), LockWatchStateUpdate.EMPTY);
     }
 
     // todo(gmaretic): implement

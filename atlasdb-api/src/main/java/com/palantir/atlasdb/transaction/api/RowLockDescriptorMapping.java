@@ -26,13 +26,13 @@ import com.palantir.lock.LockDescriptor;
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 public abstract class RowLockDescriptorMapping {
-    abstract Map<LockDescriptor, RowReference> mapping();
+    abstract Map<LockDescriptor, RowOrCellReference> mapping();
 
-    public Optional<RowReference> rowReferenceForDescriptor(LockDescriptor lockDescriptor) {
+    public Optional<RowOrCellReference> rowReferenceForDescriptor(LockDescriptor lockDescriptor) {
         return Optional.ofNullable(mapping().get(lockDescriptor));
     }
 
-    public static RowLockDescriptorMapping of(Map<LockDescriptor, RowReference> mapping) {
+    public static RowLockDescriptorMapping of(Map<LockDescriptor, RowOrCellReference> mapping) {
         return ImmutableRowLockDescriptorMapping.builder().mapping(mapping).build();
     }
 }

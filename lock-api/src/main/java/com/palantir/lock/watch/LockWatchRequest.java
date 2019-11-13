@@ -17,7 +17,6 @@
 package com.palantir.lock.watch;
 
 import java.util.Set;
-import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -30,10 +29,13 @@ import com.palantir.lock.LockDescriptor;
 @JsonSerialize(as = ImmutableLockWatchRequest.class)
 @JsonDeserialize(as = ImmutableLockWatchRequest.class)
 public interface LockWatchRequest {
-    UUID serviceId();
-    Set<LockDescriptor> lockDescriptors();
+    Set<LockDescriptor> exactWatches();
+    Set<LockDescriptorPrefix> prefixWatches();
 
-    static LockWatchRequest of(UUID serviceId, Set<LockDescriptor> lockDescriptors) {
-        return ImmutableLockWatchRequest.builder().serviceId(serviceId).lockDescriptors(lockDescriptors).build();
+    static LockWatchRequest of(Set<LockDescriptor> exactWatches, Set<LockDescriptorPrefix> prefixWatches) {
+        return ImmutableLockWatchRequest.builder()
+                .exactWatches(exactWatches)
+                .prefixWatches(prefixWatches)
+                .build();
     }
 }

@@ -25,8 +25,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @JsonSerialize(as = ImmutableLockWatch.class)
 @JsonDeserialize(as = ImmutableLockWatch.class)
-public interface LockWatch {
-    LockWatch INVALID = ImmutableLockWatch.of(-1L, false);
+public interface LockWatchInfo {
+    LockWatchInfo INVALID = uncommitted(-1L);
 
     @Value.Parameter
     long timestamp();
@@ -34,15 +34,15 @@ public interface LockWatch {
     @Value.Parameter
     boolean fromCommittedTransaction();
 
-    static LockWatch committed(long timestamp) {
-        return ImmutableLockWatch.of(timestamp, true);
+    static LockWatchInfo committed(long timestamp) {
+        return ImmutableLockWatchInfo.of(timestamp, true);
     }
 
-    static LockWatch uncommitted(long timestamp) {
-        return ImmutableLockWatch.of(timestamp, false);
+    static LockWatchInfo uncommitted(long timestamp) {
+        return ImmutableLockWatchInfo.of(timestamp, false);
     }
 
-    static LockWatch latest(LockWatch first, LockWatch second) {
+    static LockWatchInfo latest(LockWatchInfo first, LockWatchInfo second) {
         return first.timestamp() > second.timestamp() ? first : second;
     }
 }

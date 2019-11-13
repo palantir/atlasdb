@@ -14,26 +14,31 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.transaction.api;
+
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-@JsonDeserialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-public interface StartTransactionWithWatchesResponse {
-    @Value.Parameter
-    StartIdentifiedAtlasDbTransactionResponse response();
+public interface RowOrCellReference {
+    TableReference tableRef();
+    byte[] rowName();
+    Optional<byte[]> colName();
 
-    @Value.Parameter
-    LockWatchStateUpdate watchState();
+    static RowOrCellReference row(TableReference tableRef, byte[] rowName) {
+        return ImmutableRowOrCellReference.builder().tableRef(tableRef).rowName(rowName).build();
+    }
 
-    static StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res, LockWatchStateUpdate state) {
-        return ImmutableStartTransactionWithWatchesResponse.of(res, state);
+    static RowOrCellReference cell(TableReference tableRef, Cell cell) {
+        return ImmutableRowOrCellReference.builder()
+                .tableRef(tableRef)
+                .rowName(cell.getRowName())
+                .colName(cell.getColumnName())
+                .build();
     }
 }

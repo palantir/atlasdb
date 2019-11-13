@@ -16,23 +16,9 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Map;
-import java.util.Optional;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.LockWatchInfo;
 
-import org.immutables.value.Value;
-
-import com.palantir.lock.watch.WatchId;
-
-@Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public abstract class WatchIdToRowReferenceMapping {
-    abstract Map<WatchId, RowReference> mapping();
-
-    public Optional<RowReference> rowReferenceForRowId(WatchId lockId) {
-        return Optional.ofNullable(mapping().get(lockId));
-    }
-
-    public static WatchIdToRowReferenceMapping of(Map<WatchId, RowReference> mapping) {
-        return ImmutableWatchIdToRowReferenceMapping.builder().mapping(mapping).build();
-    }
+public interface LockWatchState {
+    LockWatchInfo getWatchInfo(LockDescriptor lockDescriptor);
 }

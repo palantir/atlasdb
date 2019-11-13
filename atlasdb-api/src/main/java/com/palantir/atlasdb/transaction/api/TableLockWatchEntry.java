@@ -14,26 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.transaction.api;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-@JsonDeserialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-public interface StartTransactionWithWatchesResponse {
-    @Value.Parameter
-    StartIdentifiedAtlasDbTransactionResponse response();
-
-    @Value.Parameter
-    LockWatchStateUpdate watchState();
-
-    static StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res, LockWatchStateUpdate state) {
-        return ImmutableStartTransactionWithWatchesResponse.of(res, state);
-    }
+public interface TableLockWatchEntry {
+    TableReference tableRef();
+    byte[] rowNames();
+    byte[] rowPrefixes();
 }

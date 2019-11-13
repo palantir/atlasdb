@@ -17,21 +17,34 @@
 package com.palantir.lock.watch;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableWatchIdToLockDesciptor.class)
-@JsonDeserialize(as = ImmutableWatchIdToLockDesciptor.class)
-public interface WatchIdToLockDesciptor {
-    Map<WatchId, LockDescriptor> mapping();
+@JsonSerialize(as = ImmutableLockWatchState.class)
+@JsonDeserialize(as = ImmutableLockWatchState.class)
+public interface LockWatchStateUpdate {
+    LockWatchStateUpdate EMPTY = LockWatchStateUpdate.of(0L, UUID.randomUUID(), true, ImmutableMap.of());
 
-    static WatchIdToLockDesciptor of(Map<WatchId, LockDescriptor> mapping) {
-        return ImmutableWatchIdToLockDesciptor.builder().mapping(mapping).build();
+    UUID leaderId();
+    long version();
+    boolean invalidateOldWatches();
+    Map<LockDescriptor, LockWatchInfo> watchesUpdate();
+
+    static LockWatchStateUpdate of(long version, UUID leaderId, boolean invalidateOldWatches,
+            Map<LockDescriptor, LockWatchInfo> watchesUpdate) {
+        return ImmutableLockWatchStateUpdate.builder()
+                .version(version)
+                .leaderId(leaderId)
+                .invalidateOldWatches(invalidateOldWatches)
+                .watchesUpdate(watchesUpdate)
+                .build();
     }
 }

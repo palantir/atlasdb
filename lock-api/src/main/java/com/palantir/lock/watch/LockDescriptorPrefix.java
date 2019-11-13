@@ -16,21 +16,8 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Map;
+import com.palantir.lock.LockDescriptor;
 
-import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
-@Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchState.class)
-@JsonDeserialize(as = ImmutableLockWatchState.class)
-public interface LockWatchState {
-    Map<WatchId, LockWatch> watches();
-
-    static LockWatchState of(Map<WatchId, LockWatch> state) {
-        return ImmutableLockWatchState.builder().watches(state).build();
-    }
+public interface LockDescriptorPrefix {
+    boolean contains(LockDescriptor lockDescriptor);
 }

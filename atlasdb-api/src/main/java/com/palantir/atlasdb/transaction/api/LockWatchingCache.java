@@ -21,7 +21,7 @@ import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.watch.LockWatchState;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public interface LockWatchingCache {
     /**
@@ -47,13 +47,13 @@ public interface LockWatchingCache {
 
     /**
      * A transaction can attempt to cache entries read during the transaction using this method. The implementation of
-     * the {@link LockWatchState} must correctly arbitrate which of the passed entries are safe to cache.
+     * the {@link LockWatchStateUpdate} must correctly arbitrate which of the passed entries are safe to cache.
      *
      * @param tableRef table to cache entries for
      * @param writes entries read by the transaction
      * @param lockWatchState lock watch state at the start of the transaction that read the entries
      */
-    void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchState lockWatchState);
+    void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchStateUpdate lockWatchState);
 
     /**
      * Creates a view of the cache for a transaction, based on the start timestamp and the lock watch state.
@@ -62,5 +62,5 @@ public interface LockWatchingCache {
      * @param lockWatchState returned from the {@link com.palantir.lock.v2.StartTransactionWithWatchesResponse}
      * @return view of the cache
      */
-    TransactionLockWatchingCacheView getView(long startTimestamp, LockWatchState lockWatchState);
+    TransactionLockWatchingCacheView getView(long startTimestamp, LockWatchStateUpdate lockWatchState);
 }
