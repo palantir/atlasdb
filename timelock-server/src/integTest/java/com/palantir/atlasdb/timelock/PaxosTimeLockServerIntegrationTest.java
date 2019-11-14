@@ -73,12 +73,10 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
     private static final TestableTimelockServer TIMELOCK =
-            new TestableTimelockServer("https://localhost:", TIMELOCK_SERVER_HOLDER);
+            new TestableTimelockServer("https://localhost", TIMELOCK_SERVER_HOLDER);
 
-    private static final NamespacedClients NAMESPACE_2 = TIMELOCK.client(CLIENT_2);
-    private static final NamespacedClients NAMESPACE_1 = TIMELOCK.client(CLIENT_1);
-
-    private final TimestampManagementService timestampManagementService = NAMESPACE_1.timestampManagementService();
+    private static NamespacedClients NAMESPACE_1;
+    private static NamespacedClients NAMESPACE_2;
 
     @ClassRule
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
@@ -87,6 +85,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
+        NAMESPACE_1 = TIMELOCK.client(CLIENT_1);
+        NAMESPACE_2 = TIMELOCK.client(CLIENT_2);
         PingableLeader leader = TIMELOCK.pingableLeader();
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
@@ -205,7 +205,7 @@ public class PaxosTimeLockServerIntegrationTest {
     @Test
     public void timestampServiceRespectsTimestampManagementService() {
         long currentTimestampIncrementedByOneMillion = NAMESPACE_1.getFreshTimestamp() + ONE_MILLION;
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        NAMESPACE_1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
         assertThat(NAMESPACE_1.getFreshTimestamp())
                 .isGreaterThan(currentTimestampIncrementedByOneMillion);
     }
@@ -213,9 +213,9 @@ public class PaxosTimeLockServerIntegrationTest {
     @Test
     public void timestampManagementServiceRespectsTimestampService() {
         long currentTimestampIncrementedByOneMillion = NAMESPACE_1.getFreshTimestamp() + ONE_MILLION;
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        NAMESPACE_1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
         getFortyTwoFreshTimestamps(NAMESPACE_1.timelockService());
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion + 1);
+        NAMESPACE_1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion + 1);
         assertThat(NAMESPACE_1.getFreshTimestamp())
                 .isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
     }
@@ -252,8 +252,8 @@ public class PaxosTimeLockServerIntegrationTest {
         long currentTimestampIncrementedByOneMillion = currentTimestamp + ONE_MILLION;
         long currentTimestampIncrementedByTwoMillion = currentTimestamp + TWO_MILLION;
 
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByTwoMillion);
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        NAMESPACE_1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByTwoMillion);
+        NAMESPACE_1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
         assertThat(NAMESPACE_1.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByTwoMillion);
     }
 
