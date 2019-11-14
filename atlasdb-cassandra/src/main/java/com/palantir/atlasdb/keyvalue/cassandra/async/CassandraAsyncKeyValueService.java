@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -73,7 +74,7 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
                 .tableReference(tableReference)
                 .keyspace(keyspace)
                 .build();
-        GetQuerySpec.GetQueryParameters getQueryParameters = ImmutableGetQueryParameters.builder()
+        GetQueryParameters getQueryParameters = ImmutableGetQueryParameters.builder()
                 .cell(cell)
                 .humanReadableTimestamp(timestamp)
                 .build();
