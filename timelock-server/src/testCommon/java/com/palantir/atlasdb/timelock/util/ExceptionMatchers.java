@@ -27,8 +27,7 @@ public final class ExceptionMatchers {
 
     public static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
         assertThat(throwable)
-                .hasMessageContaining("receiving QosException.RetryOther")
-                .isInstanceOf(RetryableException.class)
-                .hasRootCauseInstanceOf(QosException.RetryOther.class);
+                .hasRootCauseInstanceOf(QosException.RetryOther.class)
+                .isInstanceOf(RetryableException.class);
     }
 }
