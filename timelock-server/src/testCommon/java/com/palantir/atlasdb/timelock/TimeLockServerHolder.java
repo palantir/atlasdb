@@ -37,6 +37,7 @@ public class TimeLockServerHolder extends ExternalResource {
     private Supplier<String> configFilePathSupplier;
     private DropwizardTestSupport<CombinedTimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
+    private boolean portInitialised = false;
     private int timelockPort;
 
     TimeLockServerHolder(Supplier<String> configFilePathSupplier) {
@@ -54,6 +55,7 @@ public class TimeLockServerHolder extends ExternalResource {
         timelockServer = new DropwizardTestSupport<>(TimeLockServerLauncher.class, configFilePathSupplier.get());
         timelockServer.before();
         isRunning = true;
+        portInitialised = true;
     }
 
     @Override
@@ -65,18 +67,18 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     public int getTimelockPort() {
-        checkTimelockHasStarted();
+        checkTimelockPortInitialised();
         return timelockPort;
     }
 
     public String getTimelockUri() {
-        checkTimelockHasStarted();
+        checkTimelockPortInitialised();
         // TODO(nziebart): hack
         return "https://localhost:" + timelockPort;
     }
 
-    private void checkTimelockHasStarted() {
-        Preconditions.checkState(isRunning, "timelock server isn't running yet, bad initialisation?");
+    private void checkTimelockPortInitialised() {
+        Preconditions.checkState(portInitialised, "timelock server isn't running yet, bad initialisation?");
     }
 
     public synchronized void kill() {
