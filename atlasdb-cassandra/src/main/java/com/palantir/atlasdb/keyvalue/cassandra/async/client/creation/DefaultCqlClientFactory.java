@@ -46,15 +46,15 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class DefaultCqlClientFactory implements CqlClientFactory{
+public class DefaultCqlClientFactory implements CqlClientFactory {
     public static final CqlClientFactory DEFAULT = new DefaultCqlClientFactory();
 
     private static final Logger log = LoggerFactory.getLogger(DefaultCqlClientFactory.class);
 
-    private final Supplier<Cluster.Builder> cqlSessionBuilderFactory;
+    private final Supplier<Cluster.Builder> cqlClusterBuilderFactory;
 
-    public DefaultCqlClientFactory(Supplier<Cluster.Builder> cqlSessionBuilderFactory) {
-        this.cqlSessionBuilderFactory = cqlSessionBuilderFactory;
+    public DefaultCqlClientFactory(Supplier<Cluster.Builder> cqlClusterBuilderFactory) {
+        this.cqlClusterBuilderFactory = cqlClusterBuilderFactory;
     }
 
     public DefaultCqlClientFactory() {
@@ -79,23 +79,26 @@ public class DefaultCqlClientFactory implements CqlClientFactory{
                     return ThrowingCqlClientImpl.SINGLETON;
                 }
 
-                log.info("Constructing a full CQL client");
-
                 Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
 
-                Cluster.Builder clusterBuilder = cqlSessionBuilderFactory.get()
+                Cluster.Builder clusterBuilder = cqlClusterBuilderFactory.get()
                         .addContactPointsWithPorts(servers)
                         .withCredentials(config.credentials().username(), config.credentials().password())
                         .withCompression(ProtocolOptions.Compression.LZ4)
-                        .withLoadBalancingPolicy(loadBalancingPolicy(config, servers))
-                        .withPoolingOptions(poolingOptions(config))
-                        .withQueryOptions(queryOptions(config))
                         .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
                         .withoutJMXReporting()
                         .withProtocolVersion(ProtocolVersion.V3)
                         .withThreadingOptions(new ThreadingOptions());
 
-                Cluster cluster = withSslOptions(clusterBuilder, config).build();
+                Cluster cluster =
+                        withLoadBalancingPolicy(
+                                withQueryOptions(
+                                        withPoolingOptions(
+                                                withSslOptions(clusterBuilder, config),
+                                                config),
+                                        config),
+                                config,
+                                servers).build();
 
                 return CqlClientImpl.create(
                         taggedMetricRegistry,
@@ -119,18 +122,21 @@ public class DefaultCqlClientFactory implements CqlClientFactory{
         return builder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder().build());
     }
 
-    private static PoolingOptions poolingOptions(CassandraKeyValueServiceConfig config) {
-        return new PoolingOptions()
-                .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
-                .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
-                .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
+    private static Cluster.Builder withPoolingOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
+        return builder.withPoolingOptions(
+                new PoolingOptions()
+                        .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
+                        .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
+                        .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis()));
     }
 
-    private static QueryOptions queryOptions(CassandraKeyValueServiceConfig config) {
-        return new QueryOptions().setFetchSize(config.fetchBatchCount());
+    private static Cluster.Builder withQueryOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
+        return builder.withQueryOptions(new QueryOptions().setFetchSize(config.fetchBatchCount()));
     }
 
-    private static LoadBalancingPolicy loadBalancingPolicy(CassandraKeyValueServiceConfig config,
+    private static Cluster.Builder withLoadBalancingPolicy(
+            Cluster.Builder builder,
+            CassandraKeyValueServiceConfig config,
             Set<InetSocketAddress> servers) {
         // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
         // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
@@ -148,6 +154,6 @@ public class DefaultCqlClientFactory implements CqlClientFactory{
         // also try and select coordinators who own the data we're talking about to avoid an extra hop,
         // but also shuffle which replica we talk to for a load balancing that comes at the expense
         // of less effective caching, default to TokenAwarePolicy.ReplicaOrdering.RANDOM childPolicy
-        return new TokenAwarePolicy(policy);
+        return builder.withLoadBalancingPolicy(new TokenAwarePolicy(policy));
     }
 }
