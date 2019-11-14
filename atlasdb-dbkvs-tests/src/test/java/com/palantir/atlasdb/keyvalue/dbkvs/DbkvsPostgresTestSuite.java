@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbKvsPostgresGetCandidateCellsForSweepingTest;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
@@ -85,6 +86,7 @@ public final class DbkvsPostgresTestSuite {
                 .dbPassword(ImmutableMaskedValue.of("palantir"))
                 .host(postgresAddress.getHostName())
                 .port(postgresAddress.getPort())
+                .connectionParameters(ImmutableMap.of("ssl", "true"))
                 .build();
 
         return ImmutableDbKeyValueServiceConfig.builder()
