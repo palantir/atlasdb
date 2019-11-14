@@ -24,6 +24,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.awaitility.Awaitility;
 import org.immutables.value.Value;
 import org.junit.rules.RuleChain;
@@ -49,6 +51,9 @@ public class TestableTimelockCluster implements TestRule {
     private final FailoverProxyFactory proxyFactory;
 
     private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
+
+    @Nullable
+    private TestableTimelockServer lastLeader;
 
     public TestableTimelockCluster(String baseUri, String... configFileTemplates) {
         this(ClusterName.random(), baseUri, configFileTemplates);
@@ -109,9 +114,14 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     TestableTimelockServer currentLeader() {
+        if (lastLeader != null && lastLeader.pingableLeader().ping()) {
+            return lastLeader;
+        }
+
         for (TestableTimelockServer server : servers) {
             try {
                 if (server.pingableLeader().ping()) {
+                    lastLeader = server;
                     return server;
                 }
             } catch (Throwable t) {
