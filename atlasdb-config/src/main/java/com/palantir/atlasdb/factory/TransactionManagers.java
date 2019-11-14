@@ -57,6 +57,7 @@ import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -79,8 +80,8 @@ import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
-import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -1061,11 +1062,15 @@ public abstract class TransactionManagers {
 
             PingableLeader localPingableLeader = localPaxosServices.localPingableLeader();
             String localServerId = localPingableLeader.getUUID();
-            PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
+            PingableLeader remotePingableLeader = ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(
                     ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
-                    userAgent);
+                    AuxiliaryRemotingParameters.builder()
+                            .userAgent(userAgent)
+                            .shouldLimitPayload(false)
+                            .shouldRetry(true)
+                            .build()).instance();
 
             // Determine asynchronously whether the remote services are talking to our local services.
             CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
