@@ -18,29 +18,37 @@ package com.palantir.atlasdb.http;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class RedirectRetryTargeter {
-    private final URL nextServerBaseUrl;
+    private final List<URL> otherServers;
 
-    private RedirectRetryTargeter(URL nextServerBaseUrl) {
-        this.nextServerBaseUrl = nextServerBaseUrl;
+    private RedirectRetryTargeter(List<URL> otherServers) {
+        this.otherServers = otherServers;
     }
 
     public static RedirectRetryTargeter create(URL localServer, List<URL> clusterUrls) {
-        int localServerIndex = clusterUrls.indexOf(localServer);
-        Preconditions.checkArgument(localServerIndex != -1,
+        Preconditions.checkArgument(clusterUrls.contains(localServer),
                 "Local server not found in the list of cluster URLs.",
                 SafeArg.of("localServer", localServer),
                 SafeArg.of("clusterUrls", clusterUrls));
 
-        int nextServerIndex = (localServerIndex + 1) % clusterUrls.size();
-        return new RedirectRetryTargeter(clusterUrls.get(nextServerIndex));
+        if (clusterUrls.size() == 1) {
+            return new RedirectRetryTargeter(clusterUrls);
+        }
+        List<URL> otherServers = clusterUrls.stream()
+                .filter(url -> !Objects.equals(localServer, url))
+                .collect(Collectors.toList());
+
+        return new RedirectRetryTargeter(otherServers);
     }
 
     URL redirectRequest() {
-        return nextServerBaseUrl;
+        return otherServers.get(ThreadLocalRandom.current().nextInt(otherServers.size()));
     }
 }

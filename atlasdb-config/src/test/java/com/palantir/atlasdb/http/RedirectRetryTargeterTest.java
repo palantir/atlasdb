@@ -38,15 +38,10 @@ public class RedirectRetryTargeterTest {
     }
 
     @Test
-    public void redirectsToNextNode() {
+    public void redirectsToRandomNode() {
         RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_2, ImmutableList.of(URL_1, URL_2, URL_3));
-        assertThat(targeter.redirectRequest()).isEqualTo(URL_3);
-    }
-
-    @Test
-    public void redirectsAroundLastElement() {
-        RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_3, ImmutableList.of(URL_1, URL_2, URL_3));
-        assertThat(targeter.redirectRequest()).isEqualTo(URL_1);
+        assertThat(targeter.redirectRequest())
+                .isIn(URL_1, URL_3);
     }
 
     @Test
