@@ -31,9 +31,9 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -82,7 +82,7 @@ public final class TimeLockTestUtils {
 
         AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig
                 .copyOf(runtimeConfigTemplate)
-                .withRemotingClient(TestProxyUtils.REMOTING_CLIENT_CONFIG);
+                .withRemotingClient(RemotingClientConfigs.ALWAYS_USE_CONJURE);
 
         TransactionManager transactionManager = TransactionManagers.builder()
                 .config(config)
