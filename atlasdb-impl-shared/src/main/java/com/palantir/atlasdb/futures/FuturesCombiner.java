@@ -21,9 +21,12 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate
+/**
+ * Interface which provides a wrapping over static methods in {@link AtlasFutures} which need an
+ * {@link ExecutorService}. This interface is useful when considering how to easily have a custom resource management
+ * with minimal changes to the existing code.
+ */
 public interface FuturesCombiner extends AutoCloseable {
 
     /**

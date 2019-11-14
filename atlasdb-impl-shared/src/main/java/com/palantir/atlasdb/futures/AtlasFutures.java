@@ -57,6 +57,16 @@ public final class AtlasFutures {
         };
     }
 
+    /**
+     * Creates a new {@code ListenableFuture} whose value is a map containing the values of all its
+     * input futures, if all succeed. Input key-value pairs for which the input futures resolve to
+     * {@link Optional#empty()} are filtered out.
+     *
+     * @param inputToListenableFutureMap query input to {@link ListenableFuture} of the query result
+     * @param <T> type of query input
+     * @param <R> type of query result
+     * @return {@link ListenableFuture} of the combined map
+     */
     public static <T, R> ListenableFuture<Map<T, R>> allAsMap(
             Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap,
             ExecutorService executorService) {

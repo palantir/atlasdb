@@ -67,7 +67,7 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
      * Creates a thread pool with number of threads between 0 and {@code maxPoolSize}.
      *
      * @param maxPoolSize      maximum size of the pool
-     * @return a new fixed size thread pool with a keep alive time of 1 minute
+     * @return a new dynamic thread pool with a thread keep alive time of 1 minute
      */
     private static ExecutorService createThreadPool(int maxPoolSize) {
         LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();

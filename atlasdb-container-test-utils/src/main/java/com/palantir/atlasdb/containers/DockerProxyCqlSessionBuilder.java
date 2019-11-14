@@ -56,7 +56,7 @@ final class DockerProxyCqlSessionBuilder extends CqlSessionBuilder {
     }
 
     /**
-     * This class follows the intended usage explained by {@link DefaultDriverContext}.
+     * This class follows the intended usage explained explained in the docs of {@link DefaultDriverContext}.
      */
     private static final class DockerProxyDriverContext extends DefaultDriverContext {
         private final SocksProxyNettyOptions nettyOptions;

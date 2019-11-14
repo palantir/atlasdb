@@ -187,6 +187,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * management.
      */
     @Value.Default
+    @JsonIgnore
     default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
         return DefaultCassandraAsyncKeyValueServiceFactory.DEFAULT;
     }
