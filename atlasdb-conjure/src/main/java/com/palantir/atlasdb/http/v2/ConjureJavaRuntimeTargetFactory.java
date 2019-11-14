@@ -71,13 +71,8 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        ClientConfiguration clientConfiguration = ClientOptions.DEFAULT_RETRYING.serverListToClient(serverListConfig);
-
-        return wrapWithVersion(JaxRsClient.create(
-                type,
-                addAtlasDbRemotingAgent(parameters.userAgent()),
-                HOST_METRICS_REGISTRY,
-                clientConfiguration));
+        // It doesn't make sense to create a proxy with the capacity to failover that doesn't retry.
+        return createFailoverProxy(serverListConfig, type, parameters, ClientOptions.DEFAULT_RETRYING);
     }
 
     @Override
@@ -99,6 +94,28 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 refreshableConfig);
         client = FastFailoverProxy.newProxyInstance(type, client);
         return wrapWithVersion(client);
+    }
+
+    @Override
+    public <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
+            ServerListConfig serverListConfig,
+            Class<T> type,
+            AuxiliaryRemotingParameters parameters) {
+        return createFailoverProxy(serverListConfig, type, parameters, ClientOptions.FAST_RETRYING_FOR_TEST);
+    }
+
+    private <T> InstanceAndVersion<T> createFailoverProxy(
+            ServerListConfig serverListConfig,
+            Class<T> type,
+            AuxiliaryRemotingParameters parameters,
+            ClientOptions clientOptions) {
+        ClientConfiguration clientConfiguration = clientOptions.serverListToClient(serverListConfig);
+
+        return wrapWithVersion(JaxRsClient.create(
+                type,
+                addAtlasDbRemotingAgent(parameters.userAgent()),
+                HOST_METRICS_REGISTRY,
+                clientConfiguration));
     }
 
     private static UserAgent addAtlasDbRemotingAgent(UserAgent agent) {
