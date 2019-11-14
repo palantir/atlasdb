@@ -152,6 +152,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
+import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.ProfilingTimelockService;
@@ -972,8 +973,11 @@ public abstract class TransactionManagers {
             Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
-        LockService lockService = RemoteLockServiceAdapter.create(
-                creator.createService(LockRpcClient.class), timelockNamespace);
+
+        LockService lockService = AtlasDbMetrics.instrumentTimed(
+                metricsManager.getRegistry(),
+                LockService.class,
+                RemoteLockServiceAdapter.create(creator.createService(LockRpcClient.class), timelockNamespace));
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 
@@ -1042,8 +1046,9 @@ public abstract class TransactionManagers {
                 .sslConfiguration(leaderConfig.sslConfiguration())
                 .build();
         ServiceCreator creator = ServiceCreator.noPayloadLimiter(
-                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfigs.ALWAYS_USE_LEGACY);
-        LockService remoteLock = creator.createService(LockService.class);
+                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfigs.ALWAYS_USE_CONJURE);
+        LockService remoteLock = new RemoteLockServiceAdapter(
+                creator.createService(NamespaceAgnosticLockRpcClient.class));
         TimestampService remoteTime = creator.createService(TimestampService.class);
         TimestampManagementService remoteManagement = creator.createService(TimestampManagementService.class);
 
@@ -1119,7 +1124,8 @@ public abstract class TransactionManagers {
                 () -> config.lock().get(),
                 userAgent,
                 () -> runtimeConfigSupplier.get().remotingClient());
-        LockService lockService = creator.createService(LockService.class);
+        LockService lockService = new RemoteLockServiceAdapter(
+                creator.createService(NamespaceAgnosticLockRpcClient.class));
         TimestampService timeService = creator.createService(TimestampService.class);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
