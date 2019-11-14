@@ -1,5 +1,7 @@
 type: improvement
 improvement:
-  description: conjure-java-runtime has been upgraded from 4.38.1 to 4.42.0
+  description: Conjure-Java-Runtime has been upgraded from 4.38.1 to 4.42.0. Previously,
+    response bodies of requests were sometimes leaked when said requests were cancelled.
+    This does manifest in Paxos quorum checks. These leaks have been fixed.
   links:
   - https://github.com/palantir/atlasdb/pull/4408
