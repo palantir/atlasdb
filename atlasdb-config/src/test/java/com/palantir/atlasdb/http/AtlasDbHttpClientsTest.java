@@ -45,7 +45,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.codahale.metrics.MetricRegistry;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -186,7 +185,7 @@ public class AtlasDbHttpClientsTest {
         unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
 
         TestResource client = AtlasDbHttpClients.createProxyWithFailover(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder().addAllServers(bothUris).build(),
                 TestResource.class,
                 AUXILIARY_REMOTING_PARAMETERS_NO_PAYLOAD_LIMIT);
@@ -213,7 +212,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void directProxyIsConfigurableOnClientRequests() {
         TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder()
                         .addServers(getUriForPort(availablePort1))
                         .proxyConfiguration(ProxyConfiguration.DIRECT)
@@ -229,7 +228,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void httpProxyIsConfigurableOnClientRequests() {
         TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder()
                         .addServers(getUriForPort(availablePort1))
                         .proxyConfiguration(ProxyConfiguration.of(getHostAndPort(proxyPort)))
