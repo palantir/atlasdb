@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,8 +97,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         boolean wasRefreshed = namespace.refreshLockLease(token);
         boolean wasUnlocked = namespace.unlock(token);
 
-        assertTrue(wasRefreshed);
-        assertTrue(wasUnlocked);
+        assertThat(wasRefreshed).isTrue();
+        assertThat(wasUnlocked).isTrue();
     }
 
     @Test
@@ -156,20 +155,24 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         long immutableTs = namespace.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
 
-        namespace.unlock(response1.getLock());
+        namespace.namespacedTimelockRpcClient().unlock(ImmutableSet.of(response1.getLock()));
 
         assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
 
-        namespace.unlock(response2.getLock());
-
+        namespace.namespacedTimelockRpcClient().unlock(ImmutableSet.of(response2.getLock()));
     }
 
     @Test
     public void immutableTimestampIsGreaterThanFreshTimestampWhenNotLocked() {
-        long freshTs = namespace.getFreshTimestamp();
-        long immutableTs = namespace.timelockService().getImmutableTimestamp();
+        String randomNamespace = randomNamespace();
+        long freshTs = cluster.client(randomNamespace).getFreshTimestamp();
+        long immutableTs = cluster.client(randomNamespace).timelockService().getImmutableTimestamp();
 
         assertThat(immutableTs).isGreaterThan(freshTs);
+    }
+
+    private static String randomNamespace() {
+        return UUID.randomUUID().toString();
     }
 
     @Test
@@ -373,7 +376,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         LockResponseV2 duplicateResponse = duplicateResponseFuture.join();
         assertThat(response).isEqualTo(duplicateResponse);
 
-        namespace.unlock(getToken(response));
+        namespace.namespacedTimelockRpcClient().unlock(ImmutableSet.of(getToken(response)));
     }
 
     private CompletableFuture<LockResponseV2> lockWithRpcClientAsync(IdentifiedLockRequest lockRequest) {
