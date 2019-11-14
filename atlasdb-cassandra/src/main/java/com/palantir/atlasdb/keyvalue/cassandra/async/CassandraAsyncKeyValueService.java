@@ -56,7 +56,7 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableReference, Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
             log.trace(
-                    "Loading cells using CQL.",
+                    "Getting cells using CQL.",
                     SafeArg.of("cells", timestampByCell.size()),
                     LoggingArgs.tableRef(tableReference));
         }
