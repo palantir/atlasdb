@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
-import com.palantir.processors.AutoDelegate;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-@AutoDelegate
-public interface CqlClient extends AutoCloseable {
-
-    <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec);
-
-    @Override
-    void close();
+public interface CqlClientFactory {
+    CqlClient constructClient(
+            TaggedMetricRegistry taggedMetricRegistry,
+            CassandraKeyValueServiceConfig config,
+            boolean initializeAsync);
 }

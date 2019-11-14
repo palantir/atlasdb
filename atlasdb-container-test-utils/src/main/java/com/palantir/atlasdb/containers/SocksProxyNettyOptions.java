@@ -14,14 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.containers;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.net.SocketAddress;
 
-public interface CqlClientFactory {
-    CqlClient constructClient(
-            TaggedMetricRegistry taggedMetricRegistry,
-            CassandraKeyValueServiceConfig config,
-            boolean initializeAsync);
+import com.datastax.driver.core.NettyOptions;
+
+import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.proxy.Socks5ProxyHandler;
+
+final class SocksProxyNettyOptions extends NettyOptions {
+    private final SocketAddress proxyAddress;
+
+    SocksProxyNettyOptions(SocketAddress proxyAddress) {
+        this.proxyAddress = proxyAddress;
+    }
+
+    @Override
+    public void afterChannelInitialized(SocketChannel channel) {
+        channel.pipeline().addFirst(new Socks5ProxyHandler(proxyAddress));
+    }
 }

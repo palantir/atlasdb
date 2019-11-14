@@ -73,10 +73,8 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     @Override
     public Statement makeExecutableStatement(PreparedStatement preparedStatement) {
         return preparedStatement.bind()
-                .setBytes("row",
-                        toReadOnlyByteBuffer(getQueryParameters.cell().getRowName()))
-                .setBytes("column",
-                        toReadOnlyByteBuffer(getQueryParameters.cell().getColumnName()))
+                .setBytes("row", toReadOnlyByteBuffer(getQueryParameters.cell().getRowName()))
+                .setBytes("column", toReadOnlyByteBuffer(getQueryParameters.cell().getColumnName()))
                 .setLong("timestamp", getQueryParameters.queryTimestamp());
     }
 

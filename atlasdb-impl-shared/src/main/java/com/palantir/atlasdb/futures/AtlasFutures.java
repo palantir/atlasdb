@@ -16,15 +16,71 @@
 
 package com.palantir.atlasdb.futures;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.streams.KeyedStream;
 
 public final class AtlasFutures {
     private AtlasFutures() {
 
+    }
+
+    /**
+     * Constructs a {@link FuturesCombiner} implementation which takes ownership of the {@code executorService} and
+     * calls {@link ExecutorService#shutdown()} when close is called on it.
+     *
+     * @param executorService to be used to combine the futures
+     * @return implementation of {@link FuturesCombiner}
+     */
+    public static FuturesCombiner futuresCombiner(ExecutorService executorService) {
+        return new FuturesCombiner() {
+            @Override
+            public <T, R> ListenableFuture<Map<T, R>> allAsMap(
+                    Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap) {
+                return AtlasFutures.allAsMap(inputToListenableFutureMap, executorService);
+            }
+
+            @Override
+            public void close() {
+                executorService.shutdown();
+            }
+        };
+    }
+
+    /**
+     * Creates a new {@code ListenableFuture} whose value is a map containing the values of all its
+     * input futures, if all succeed. Input key-value pairs for which the input futures resolve to
+     * {@link Optional#empty()} are filtered out.
+     *
+     * @param inputToListenableFutureMap query input to {@link ListenableFuture} of the query result
+     * @param <T> type of query input
+     * @param <R> type of query result
+     * @return {@link ListenableFuture} of the combined map
+     */
+    public static <T, R> ListenableFuture<Map<T, R>> allAsMap(
+            Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap,
+            ExecutorService executorService) {
+        return Futures.whenAllSucceed(inputToListenableFutureMap.values())
+                .call(() -> KeyedStream.stream(inputToListenableFutureMap)
+                                .map(AtlasFutures::getDone)
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .collectToMap(),
+                        executorService);
+    }
+
+    public static <R> R getDone(ListenableFuture<R> resultFuture) {
+        try {
+            return Futures.getDone(resultFuture);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
     }
 
     public static <R> R getUnchecked(ListenableFuture<R> listenableFuture) {
@@ -34,14 +90,6 @@ public final class AtlasFutures {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
-
-    public static <R> R getDone(ListenableFuture<R> resultFuture) {
-        try {
-            return Futures.getDone(resultFuture);
-        } catch (ExecutionException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
 }

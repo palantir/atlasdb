@@ -145,7 +145,7 @@ public final class CassandraKeyValueServices {
             return false;
         }
 
-        int numberOfServers = config.servers().numberOfThriftHosts();
+        int numberOfServers = config.servers().numberOfHosts();
         int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
 
         return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
