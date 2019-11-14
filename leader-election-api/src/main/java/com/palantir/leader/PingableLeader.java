@@ -20,6 +20,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.atlasdb.metrics.Timed;
+
 @Path("/leader")
 public interface PingableLeader {
 
@@ -31,6 +33,7 @@ public interface PingableLeader {
     @GET
     @Path("ping")
     @Produces(MediaType.APPLICATION_JSON)
+    @Timed
     boolean ping();
 
     /**
@@ -40,5 +43,6 @@ public interface PingableLeader {
     @Path("uuid")
     @Produces(MediaType.TEXT_PLAIN)
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
+    @Timed
     String getUUID();
 }

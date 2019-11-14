@@ -44,6 +44,10 @@ public final class AtlasDbMetrics {
         return instrument(metricRegistry, serviceInterface, service, serviceInterface.getName(), instrumentTimedOnly());
     }
 
+    /**
+     * Instruments an instance of the provided service interface, registering timers for only the methods annotated
+     * with {@link com.palantir.atlasdb.metrics.Timed}.
+     */
     public static <T, U extends T> T instrumentTimed(
             MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
         return instrument(metricRegistry, serviceInterface, service, name, instrumentTimedOnly());

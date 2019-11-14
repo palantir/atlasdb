@@ -22,6 +22,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.atlasdb.metrics.Timed;
+
 @Path("/acceptor")
 public interface PaxosAcceptor {
     long NO_LOG_ENTRY = -1L;
@@ -38,6 +40,7 @@ public interface PaxosAcceptor {
     @Path("prepare/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Timed
     PaxosPromise prepare(@PathParam("seq") long seq, PaxosProposalId pid);
 
     /**
@@ -51,6 +54,7 @@ public interface PaxosAcceptor {
     @Path("accept/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Timed
     BooleanPaxosResponse accept(@PathParam("seq") long seq, PaxosProposal proposal);
 
     /**
@@ -62,5 +66,6 @@ public interface PaxosAcceptor {
     @POST // This is marked as a POST because we cannot accept stale or cached results for this method.
     @Path("latest-sequence-prepared-or-accepted")
     @Produces(MediaType.APPLICATION_JSON)
+    @Timed
     long getLatestSequencePreparedOrAccepted();
 }
