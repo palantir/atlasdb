@@ -47,8 +47,8 @@ public interface TargetFactory {
     /**
      * Creates a live reloading proxy that performs failover.
      *
-     * Proxies created by this method are able to detect changes to the serverListConfigSupplier at runtime. However,
-     * there are no guarantees beyond eventual consistency here.
+     * Proxies created by this method are able to detect changes to the {@code serverListConfigSupplier} at runtime.
+     * However, there are no guarantees beyond eventual consistency here.
      *
      * This method should not be used if the {@link ServerListConfig} is not expected to change, as it may incur
      * unnecessary resource load from attempting to establish consistency. Please use
@@ -56,11 +56,6 @@ public interface TargetFactory {
      */
     <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters);
-
-    <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
-            ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
 

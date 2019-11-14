@@ -96,7 +96,6 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
         return wrapWithVersion(client);
     }
 
-    @Override
     public <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
             ServerListConfig serverListConfig,
             Class<T> type,
