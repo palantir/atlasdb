@@ -169,7 +169,10 @@ public class AtlasDbHttpClientsTest {
 
         TestResource client = AtlasDbHttpClients.createProxyWithFailover(
                 MetricsManagers.createForTests(),
-                ImmutableServerListConfig.builder().addAllServers(bothUris).build(),
+                ImmutableServerListConfig.builder()
+                        .addAllServers(bothUris)
+                        .sslConfiguration(SSL_CONFIG)
+                        .build(),
                 TestResource.class,
                 AUXILIARY_REMOTING_PARAMETERS);
         int response = client.getTestNumber();
