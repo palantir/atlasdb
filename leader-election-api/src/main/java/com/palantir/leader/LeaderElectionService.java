@@ -53,7 +53,6 @@ public interface LeaderElectionService {
      *
      * @return a leadership token to be used with {@link #isStillLeading}
      */
-    @Timed
     LeadershipToken blockOnBecomingLeader() throws InterruptedException;
 
     /**
