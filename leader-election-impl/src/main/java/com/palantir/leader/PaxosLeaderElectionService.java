@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
@@ -66,6 +67,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
     private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
+    private final RateLimiter leaderEligibilityLoggingRateLimiter = RateLimiter.create(1);
 
     PaxosLeaderElectionService(
             PaxosProposer proposer,
@@ -87,6 +89,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
                 new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
     }
 
+    @Override
     public void markNotEligibleForLeadership() {
         boolean previousLeaderEligible = leaderEligible.getAndSet(false);
         if (previousLeaderEligible) {
@@ -115,8 +118,14 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         }
     }
 
-    private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState)
-            throws InterruptedException {
+    private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState) throws InterruptedException {
+        if (!leaderEligible.get()) {
+            if (leaderEligibilityLoggingRateLimiter.tryAcquire()) {
+                log.debug("Not eligible for leadership");
+            }
+            return;
+        }
+
         if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {
             Thread.sleep(updatePollingRateInMs);
             return;
@@ -131,11 +140,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         log.debug("Waiting for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
         Thread.sleep(backoffTime);
 
-        if (leaderEligible.get()) {
-            proposeLeadershipAfter(currentState.greatestLearnedValue());
-        } else {
-            log.debug("Not eligible for leadership");
-        }
+        proposeLeadershipAfter(currentState.greatestLearnedValue());
     }
 
     @Override

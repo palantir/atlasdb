@@ -26,6 +26,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.common.annotation.Inclusive;
 
 @Path("/learner")
@@ -40,6 +41,7 @@ public interface PaxosLearner {
     @POST
     @Path("learn/{seq:.+}")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Timed
     void learn(@PathParam("seq") long seq, PaxosValue val);
 
     /**
@@ -49,6 +51,7 @@ public interface PaxosLearner {
     @GET
     @Path("learned-value/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
+    @Timed
     Optional<PaxosValue> getLearnedValue(@PathParam("seq") long seq);
 
     /**
@@ -57,6 +60,7 @@ public interface PaxosLearner {
     @GET
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
+    @Timed
     Optional<PaxosValue> getGreatestLearnedValue();
 
     /**
@@ -68,6 +72,7 @@ public interface PaxosLearner {
     @GET
     @Path("learned-values-since/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
+    @Timed
     Collection<PaxosValue> getLearnedValuesSince(@PathParam("seq") @Inclusive long seq);
 
 }

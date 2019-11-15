@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: Under certain circumstances, clients will fail to recognise a new timelock
+    leader until the old leader has rebooted/is available. This would lead to unavailability
+    for the duration of the reboot, or an outage if the old leader stays unreachable.
+    We now randomise the next timelock host for a client to try instead of a fixed
+    host.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4407

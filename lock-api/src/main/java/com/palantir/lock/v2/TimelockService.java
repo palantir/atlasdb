@@ -36,6 +36,7 @@ public interface TimelockService {
      *
      * @return true iff the TimelockService has been fully initialized and is ready to use
      */
+    @DoNotDelegate
     default boolean isInitialized() {
         return true;
     }
@@ -76,6 +77,7 @@ public interface TimelockService {
      *
      * @param tokens Tokens for which associated locks should be unlocked.
      */
+    @DoNotDelegate
     default void tryUnlock(Set<LockToken> tokens) {
         unlock(tokens);
     }

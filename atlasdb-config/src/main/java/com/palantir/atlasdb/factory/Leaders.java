@@ -112,7 +112,7 @@ public final class Leaders {
                 metricsManager,
                 config,
                 remotePaxosServerSpec,
-                () -> RemotingClientConfigs.ALWAYS_USE_LEGACY, // TODO (jkong): Wire this up or change it to Conjure
+                () -> RemotingClientConfigs.ALWAYS_USE_CONJURE,
                 userAgent,
                 LeadershipObserver.NO_OP);
     }
@@ -132,10 +132,10 @@ public final class Leaders {
                 leadershipObserver,
                 ImmutableList.of());
 
-        PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
+        PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
                 PaxosAcceptor.class,
                 PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath()));
-        PaxosLearner ourLearner = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
+        PaxosLearner ourLearner = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
                 PaxosLearner.class,
                 PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath(), leadershipEventRecorder));
 
@@ -194,14 +194,14 @@ public final class Leaders {
                 .acceptorClient(acceptorNetworkClient)
                 .learnerClient(learnerNetworkClient)
                 .decorateProposer(proposer ->
-                        AtlasDbMetrics.instrument(metricsManager.getRegistry(), PaxosProposer.class, proposer))
+                        AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(), PaxosProposer.class, proposer))
                 .build();
 
-        LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(
+        LeaderElectionService leaderElectionService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
                 LeaderElectionService.class,
                 uninstrumentedLeaderElectionService);
-        PingableLeader pingableLeader = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
+        PingableLeader pingableLeader = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
                 PingableLeader.class,
                 new LocalPingableLeader(ourLearner, leaderUuid));
 

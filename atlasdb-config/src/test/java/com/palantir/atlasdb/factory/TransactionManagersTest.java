@@ -107,6 +107,7 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
@@ -132,13 +133,15 @@ public class TransactionManagersTest {
 
     private static final String TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimelockRpcClient.class, "getFreshTimestamp");
+    private static final String CURRENT_TIME_MILLIS = "currentTimeMillis";
     private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(TimelockRpcClient.class, "currentTimeMillis");
+            MetricRegistry.name(TimelockRpcClient.class, CURRENT_TIME_MILLIS);
     private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(LockService.class, "currentTimeMillis");
+            MetricRegistry.name(LockService.class, CURRENT_TIME_MILLIS);
+    private static final String NAMESPACE_AGNOSTIC_LOCK_RPC_CLIENT_CURRENT_TIME_METRIC =
+            MetricRegistry.name(NamespaceAgnosticLockRpcClient.class, CURRENT_TIME_MILLIS);
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
-    private static final Map<String, String> LEGACY_CLIENT_TAGS = ImmutableMap.of("clientVersion", "AtlasDB-Feign");
     private static final Map<String, String> CLIENT_TAGS = ImmutableMap.of("clientVersion", "Conjure-Java-Runtime");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
@@ -471,8 +474,8 @@ public class TransactionManagersTest {
 
         assertThatTimeAndLockMetricsWithTagsAreRecorded(
                 TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                LOCK_SERVICE_CURRENT_TIME_METRIC,
-                LEGACY_CLIENT_TAGS);
+                NAMESPACE_AGNOSTIC_LOCK_RPC_CLIENT_CURRENT_TIME_METRIC,
+                CLIENT_TAGS);
     }
 
     @Test
