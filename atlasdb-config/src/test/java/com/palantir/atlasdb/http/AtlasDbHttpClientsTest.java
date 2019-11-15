@@ -28,10 +28,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.nio.file.Paths;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.ws.rs.Consumes;
@@ -46,10 +48,15 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
+import com.github.tomakehurst.wiremock.http.Request;
+import com.github.tomakehurst.wiremock.http.ResponseDefinition;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.common.collect.ImmutableSet;
+import com.github.tomakehurst.wiremock.matching.RequestPattern;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -64,6 +71,7 @@ import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public class AtlasDbHttpClientsTest {
+
     private static final String LOCALHOST = "localhost";
     private static final String GET_ENDPOINT = "/number";
     private static final String POST_ENDPOINT = "/post";
@@ -92,18 +100,20 @@ public class AtlasDbHttpClientsTest {
             "keystore");
     private static final Optional<TrustContext> TRUST_CONTEXT
             = Optional.of(SslSocketFactories.createTrustContext(SSL_CONFIG));
+    private static final RetryOtherFirstResponseTransformer RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER
+            = new RetryOtherFirstResponseTransformer();
     private static final WireMockConfiguration WIRE_MOCK_CONFIGURATION = WireMockConfiguration.wireMockConfig()
             .dynamicPort()
             .dynamicHttpsPort()
             .keystorePath("var/security/keyStore.jks")
             .keystorePassword("keystore")
             .trustStorePath("var/security/keyStore.jks")
+            .extensions(RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER)
             .trustStorePassword("keystore");
 
     private int availablePort1;
     private int availablePort2;
     private int unavailablePort;
-    private Set<String> bothUris;
 
     @Rule
     public WireMockRule availableServer1 = new WireMockRule(WIRE_MOCK_CONFIGURATION);
@@ -138,47 +148,40 @@ public class AtlasDbHttpClientsTest {
         availablePort1 = availableServer1.httpsPort();
         availablePort2 = availableServer2.httpsPort();
         unavailablePort = unavailableServer.httpsPort();
-
-        bothUris = ImmutableSet.of(
-                getUriForPort(unavailablePort),
-                getUriForPort(availablePort1));
     }
 
-    private void setupAvailableServer(String testNumberAsString, WireMockRule availableServer) {
+    private static void setupAvailableServer(String testNumberAsString, WireMockRule availableServer) {
         availableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
         availableServer.stubFor(POST_MAPPING.willReturn(aResponse().withStatus(200).withBody(Boolean.toString(true))));
     }
 
     @Test
-    public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
-        TestResource client
-                = AtlasDbHttpClients.createProxy(
-                MetricsManagers.createForTests(),
-                TRUST_CONTEXT,
-                getUriForPort(availablePort1),
-                TestResource.class,
-                AUXILIARY_REMOTING_PARAMETERS);
-        assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE]))
-                .as("Request with payload size exceeding limit succeeds when not limiting payload size")
-                .isTrue();
-    }
-
-    @Test
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
-        unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
+        RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER.registerUrl(getUriForPort(availablePort1));
+        RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER.registerUrl(getUriForPort(availablePort2));
 
         TestResource client = AtlasDbHttpClients.createProxyWithFailover(
                 MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder()
-                        .addAllServers(bothUris)
+                        .addServers(getUriForPort(availablePort1))
+                        .addServers(getUriForPort(availablePort2))
                         .sslConfiguration(SSL_CONFIG)
                         .build(),
                 TestResource.class,
                 AUXILIARY_REMOTING_PARAMETERS);
         int response = client.getTestNumber();
 
-        assertThat(response, equalTo(TEST_NUMBER_1));
-        unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
+        RequestPattern request = getRequestedFor(urlMatching(GET_ENDPOINT)).build();
+        assertThat(availableServer1.findRequestsMatching(request).getRequests())
+                .hasSizeGreaterThanOrEqualTo(1);
+
+        assertThat(availableServer2.findRequestsMatching(request).getRequests())
+                .hasSizeGreaterThanOrEqualTo(1);
+
+        assertThat(response)
+                .isIn(TEST_NUMBER_1, TEST_NUMBER_2);
+
+        RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER.reset();
     }
 
     @Test
@@ -269,8 +272,48 @@ public class AtlasDbHttpClientsTest {
         return String.format("https://%s:%s", LOCALHOST, port);
     }
 
-    private static String getHostAndPort(int port) {
-        return String.format("%s:%s", LOCALHOST, port);
+    private static class RetryOtherFirstResponseTransformer extends ResponseTransformer {
+
+        private final List<String> urls = new LinkedList<>();
+
+        private final AtomicBoolean firstRequestDone = new AtomicBoolean(false);
+
+        @Override
+        public ResponseDefinition transform(Request request, ResponseDefinition responseDefinition, FileSource files) {
+            if (urls.isEmpty()) {
+                return responseDefinition;
+            }
+
+            if (firstRequestDone.get()) {
+                return responseDefinition;
+            }
+
+            String urlToRedirectTo = urls.stream()
+                    .filter(url -> !request.getAbsoluteUrl().startsWith(url))
+                    .skip(ThreadLocalRandom.current().nextInt(urls.size() - 1))
+                    .findFirst()
+                    .get();
+
+            firstRequestDone.set(true);
+
+            return new ResponseDefinitionBuilder()
+                    .withHeader("Location", urlToRedirectTo)
+                    .withStatus(308)
+                    .build();
+        }
+
+        @Override
+        public String name() {
+            return "retry-other-first-response-transformer";
+        }
+
+        void registerUrl(String url) {
+            this.urls.add(url);
+        }
+
+        void reset() {
+            urls.clear();
+        }
     }
 
 }
