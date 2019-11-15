@@ -21,6 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.Test;
 
@@ -34,14 +39,17 @@ public class RedirectRetryTargeterTest {
     @Test
     public void redirectsToSelfIfOnlyOneNode() {
         RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_1, ImmutableList.of(URL_1));
-        assertThat(targeter.redirectRequest()).isEqualTo(URL_1);
+        assertThat(targeter.redirectRequest()).isEmpty();
     }
 
     @Test
-    public void redirectsToRandomNode() {
+    public void redirectsToOtherNodes() {
         RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_2, ImmutableList.of(URL_1, URL_2, URL_3));
-        assertThat(targeter.redirectRequest())
-                .isIn(URL_1, URL_3);
+        Map<URL, List<URL>> results = IntStream.range(0, 10000)
+                .boxed()
+                .map($ -> targeter.redirectRequest().get())
+                .collect(Collectors.groupingBy(Function.identity()));
+        assertThat(results.keySet()).containsExactlyInAnyOrder(URL_1, URL_3);
     }
 
     @Test
