@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Optional;
 
-import com.palantir.lock.watch.LockWatchInfo;
+import com.palantir.atlasdb.transaction.api.KvsLockWatchingService;
 import com.palantir.lock.watch.LockWatchRequest;
 
-public final class NoOpKvsLockWatchingService implements KvsLockWatchingService {
-    public static final KvsLockWatchingService INSTANCE = new NoOpKvsLockWatchingService();
+public class TableWatchingServiceAdapter implements TableWatchingService {
+    private final KvsLockWatchingService kvsLockWatchingService;
 
-    private NoOpKvsLockWatchingService() {
-        // nope
+    public TableWatchingServiceAdapter(KvsLockWatchingService kvsLockWatchingService) {
+        this.kvsLockWatchingService = kvsLockWatchingService;
     }
 
     @Override
-    public void registerWatches(LockWatchRequest lockWatchEntries) {
-        // noop
+    public void registerWatches(TableElements lockWatchEntries) {
+        kvsLockWatchingService.registerWatches(LockWatchRequest.of());
     }
 
     @Override
-    public void deregisterWatches(LockWatchRequest lockWatchEntries) {
-        // noop
+    public void deregisterWatches(TableElements lockWatchEntries) {
+
     }
 
     @Override
-    public LockWatchState getLockWatchState(Optional<Long> lastKnownState) {
-        return x -> LockWatchInfo.INVALID;
+    public TableWatchState getLockWatchState(Optional<Long> lastKnownState) {
+        return null;
     }
 }

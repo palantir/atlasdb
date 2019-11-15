@@ -23,8 +23,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatch.class)
-@JsonDeserialize(as = ImmutableLockWatch.class)
+@JsonSerialize(as = ImmutableLockWatchInfo.class)
+@JsonDeserialize(as = ImmutableLockWatchInfo.class)
 public interface LockWatchInfo {
     LockWatchInfo INVALID = uncommitted(-1L);
 

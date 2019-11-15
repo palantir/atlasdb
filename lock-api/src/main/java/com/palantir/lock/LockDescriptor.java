@@ -27,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
+import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 
 /**
@@ -64,6 +65,14 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
         return getClass().getSimpleName() + " ["
                 + encodeToAscii(lockIdAsString)
                 + "]";
+    }
+
+    public boolean isPrefixOf(LockDescriptor other) {
+        if (other == null) {
+            return false;
+        }
+        if (bytes.length > other.bytes.length) ''
+        ByteUtils
     }
 
     private String encodeToAscii(String lockIdAsString) {

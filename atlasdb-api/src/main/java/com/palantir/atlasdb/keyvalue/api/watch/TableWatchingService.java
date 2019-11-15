@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Optional;
 
@@ -24,21 +24,15 @@ import com.palantir.lock.watch.WatchId;
 
 public interface TableWatchingService {
     /**
-     * Registers watches for a set of rows in a single table.
-     * @param tableRef table to register watches for.
-     * @param rowNames rows to register watches for.
-     * @return a mapping of {@link WatchId}s to the {@link RowOrCellReference} for which the watches have been registered
+     * Registers watches
      */
     @Idempotent
-    void registerWatches(TableLockWatchEntry lockWatchEntries);
+    void registerWatches(TableElements lockWatchEntries);
 
     /**
-     * Deregisters watches for a set of rows in a single table, if they exist.
-     * @param tableRef table to deregister watches for.
-     * @param rowNames rows to deregister watches for.
-     * @return the set of {@link WatchId}s corresponding to the removed watches
+     * Deregisters watches
      */
-    void deregisterWatches(TableLockWatchEntry lockWatchEntries);
+    void deregisterWatches(TableElements lockWatchEntries);
 
     /**
      * Returns the current state of all registered watches.

@@ -28,8 +28,8 @@ import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchState.class)
-@JsonDeserialize(as = ImmutableLockWatchState.class)
+@JsonSerialize(as = ImmutableLockWatchStateUpdate.class)
+@JsonDeserialize(as = ImmutableLockWatchStateUpdate.class)
 public interface LockWatchStateUpdate {
     LockWatchStateUpdate EMPTY = LockWatchStateUpdate.of(0L, UUID.randomUUID(), true, ImmutableMap.of());
 

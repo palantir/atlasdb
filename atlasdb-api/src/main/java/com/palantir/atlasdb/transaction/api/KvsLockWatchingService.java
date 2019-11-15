@@ -19,30 +19,24 @@ package com.palantir.atlasdb.transaction.api;
 import java.util.Optional;
 import java.util.Set;
 
+import com.palantir.atlasdb.keyvalue.api.watch.RowOrCellReference;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchInfo;
 import com.palantir.lock.watch.LockWatchRequest;
-import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.WatchId;
 
 public interface KvsLockWatchingService {
     /**
-     * Registers watches for a set of rows in a single table.
-     * @param tableRef table to register watches for.
-     * @param rowNames rows to register watches for.
-     * @return a mapping of {@link WatchId}s to the {@link RowOrCellReference} for which the watches have been registered
+     * Registers watches
      */
     @Idempotent
     void registerWatches(LockWatchRequest lockWatchEntries);
 
     /**
-     * Deregisters watches for a set of rows in a single table, if they exist.
-     * @param tableRef table to deregister watches for.
-     * @param rowNames rows to deregister watches for.
-     * @return the set of {@link WatchId}s corresponding to the removed watches
+     * Deregisters watches
      */
-    Set<LockDescriptor> deregisterWatches(LockWatchRequest lockWatchEntries);
+    void deregisterWatches(LockWatchRequest lockWatchEntries);
 
     /**
      * Returns the current state of all registered watches.

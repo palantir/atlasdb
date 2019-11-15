@@ -26,7 +26,6 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.WatchIdToLockDescriptor;
 
 @Path("/lock-watch")
 @Produces(MediaType.APPLICATION_JSON)

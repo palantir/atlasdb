@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.palantir.lock.watch.LockWatchInfo;
 

@@ -14,16 +14,31 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
+
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public interface TableLockWatchEntry {
+public interface RowOrCellReference {
     TableReference tableRef();
-    byte[] rowNames();
-    byte[] rowPrefixes();
+    byte[] rowName();
+    Optional<byte[]> colName();
+
+    static RowOrCellReference row(TableReference tableRef, byte[] rowName) {
+        return ImmutableRowOrCellReference.builder().tableRef(tableRef).rowName(rowName).build();
+    }
+
+    static RowOrCellReference cell(TableReference tableRef, Cell cell) {
+        return ImmutableRowOrCellReference.builder()
+                .tableRef(tableRef)
+                .rowName(cell.getRowName())
+                .colName(cell.getColumnName())
+                .build();
+    }
 }

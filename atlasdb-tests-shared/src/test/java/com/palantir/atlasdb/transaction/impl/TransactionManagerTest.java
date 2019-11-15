@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.ClassRule;
@@ -202,7 +203,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())),
                         TimestampAndPartition.of(1L, 1)
                 ));
-        when(timelock.startTransactionWithWatches()).thenCallRealMethod();
+        when(timelock.startTransactionWithWatches(Optional.empty())).thenCallRealMethod();
         when(timelock.acquireLocksForWrites(any(LockRequest.class))).thenCallRealMethod();
         TRM.registerTransactionManager(txnManagerWithMocks);
         return txnManagerWithMocks;

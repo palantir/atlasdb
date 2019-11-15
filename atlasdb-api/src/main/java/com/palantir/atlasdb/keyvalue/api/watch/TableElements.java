@@ -14,25 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
 import org.immutables.value.Value;
 
-import com.palantir.lock.LockDescriptor;
-
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public abstract class RowLockDescriptorMapping {
-    abstract Map<LockDescriptor, RowOrCellReference> mapping();
-
-    public Optional<RowOrCellReference> rowReferenceForDescriptor(LockDescriptor lockDescriptor) {
-        return Optional.ofNullable(mapping().get(lockDescriptor));
-    }
-
-    public static RowLockDescriptorMapping of(Map<LockDescriptor, RowOrCellReference> mapping) {
-        return ImmutableRowLockDescriptorMapping.builder().mapping(mapping).build();
-    }
+public interface TableElements {
+    Set<RowOrCellReference> exactRowsAndCells();
+    Set<RowPrefixReference> rowPrefixes();
 }

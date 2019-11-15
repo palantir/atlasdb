@@ -14,31 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
-
-import java.util.Optional;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public interface RowOrCellReference {
+public interface RowPrefixReference {
     TableReference tableRef();
-    byte[] rowName();
-    Optional<byte[]> colName();
+    byte[] rowPrefix();
 
-    static RowOrCellReference row(TableReference tableRef, byte[] rowName) {
-        return ImmutableRowOrCellReference.builder().tableRef(tableRef).rowName(rowName).build();
-    }
-
-    static RowOrCellReference cell(TableReference tableRef, Cell cell) {
-        return ImmutableRowOrCellReference.builder()
-                .tableRef(tableRef)
-                .rowName(cell.getRowName())
-                .colName(cell.getColumnName())
-                .build();
+    static RowPrefixReference of(TableReference tableRef, byte[] rowPrefix) {
+        return ImmutableRowPrefixReference.builder().tableRef(tableRef).rowPrefix(rowPrefix).build();
     }
 }
