@@ -188,7 +188,7 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     long getFreshTimestamp() {
-        return timestampService().getFreshTimestamp();
+        return timelockService().getFreshTimestamp();
     }
 
     TimestampRange getFreshTimestamps(int number) {

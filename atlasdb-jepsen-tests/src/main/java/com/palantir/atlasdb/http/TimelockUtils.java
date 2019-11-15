@@ -17,10 +17,10 @@ package com.palantir.atlasdb.http;
 
 import java.util.List;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 
 public final class TimelockUtils {
@@ -30,18 +30,18 @@ public final class TimelockUtils {
     private TimelockUtils() {
     }
 
-    public static <T> T createClient(MetricRegistry metricRegistry, List<String> hosts, Class<T> type) {
+    public static <T> T createClient(MetricsManager metricsManager, List<String> hosts, Class<T> type) {
         List<String> endpointUris = hostnamesToEndpointUris(hosts);
-        return createFromUris(metricRegistry, endpointUris, type);
+        return createFromUris(metricsManager, endpointUris, type);
     }
 
     private static List<String> hostnamesToEndpointUris(List<String> hosts) {
         return Lists.transform(hosts, host -> String.format("http://%s:%d/%s", host, PORT, NAMESPACE));
     }
 
-    private static <T> T createFromUris(MetricRegistry metricRegistry, List<String> endpointUris, Class<T> type) {
+    private static <T> T createFromUris(MetricsManager metricsManager, List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
-                metricRegistry,
+                metricsManager,
                 ImmutableServerListConfig.builder().addAllServers(endpointUris).build(),
                 type,
                 AuxiliaryRemotingParameters.builder()

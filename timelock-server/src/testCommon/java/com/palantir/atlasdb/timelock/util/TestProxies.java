@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -76,7 +75,7 @@ public class TestProxies {
     public <T> T failover(Class<T> serviceInterface, List<String> uris) {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder().addAllServers(uris).sslConfiguration(SSL_CONFIGURATION).build(),
                 serviceInterface,
                 TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING));

@@ -29,7 +29,6 @@ import org.awaitility.Duration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -192,7 +191,7 @@ public abstract class EteSetup {
                 .collect(Collectors.toList());
 
         return AtlasDbHttpClients.createProxyWithFailover(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder()
                         .addAllServers(uris)
                         .sslConfiguration(SSL_CONFIGURATION)
