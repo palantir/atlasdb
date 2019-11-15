@@ -19,9 +19,11 @@ package com.palantir.atlasdb.http;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
@@ -39,7 +41,7 @@ public final class RedirectRetryTargeter {
                 SafeArg.of("clusterUrls", clusterUrls));
 
         if (clusterUrls.size() == 1) {
-            return new RedirectRetryTargeter(clusterUrls);
+            return new RedirectRetryTargeter(ImmutableList.of());
         }
         List<URL> otherServers = clusterUrls.stream()
                 .filter(url -> !Objects.equals(localServer, url))
@@ -48,7 +50,10 @@ public final class RedirectRetryTargeter {
         return new RedirectRetryTargeter(otherServers);
     }
 
-    URL redirectRequest() {
-        return otherServers.get(ThreadLocalRandom.current().nextInt(otherServers.size()));
+    Optional<URL> redirectRequest() {
+        if (otherServers.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(otherServers.get(ThreadLocalRandom.current().nextInt(otherServers.size())));
     }
 }

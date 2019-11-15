@@ -244,8 +244,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void unlockAndFreezeDoesNotAllowRefreshes() throws InterruptedException {
         HeldLocksToken token = lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
         cluster.lockService().unlockAndFreeze(token);
-        Set<LockRefreshToken> lockRefreshTokens = cluster.lockService().refreshLockRefreshTokens(
-                ImmutableList.of(token.getLockRefreshToken()));
+        Set<LockRefreshToken> lockRefreshTokens = cluster.lockService()
+                .refreshLockRefreshTokens(ImmutableList.of(token.getLockRefreshToken()));
         assertThat(lockRefreshTokens).isEmpty();
     }
 
