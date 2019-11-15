@@ -14,26 +14,23 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async.futures;
+package com.palantir.atlasdb.futures;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
- * Declares an interface for combining futures which represent results of queries.
+ * Interface which provides a wrapping over static methods in {@link AtlasFutures} which need an
+ * {@link ExecutorService}. This interface is useful when considering how to easily have a custom resource management
+ * with minimal changes to the existing code.
  */
-public interface CqlFuturesCombiner extends AutoCloseable {
+public interface FuturesCombiner extends AutoCloseable {
+
     /**
-     * Creates a new {@code ListenableFuture} whose value is a map containing the values of all its
-     * input futures, if all succeed. Input key-value pairs for which the input futures resolve to
-     * {@link Optional#empty()} are filtered out.
-     *
-     * @param inputToListenableFutureMap query input to {@link ListenableFuture} of the query result
-     * @param <T> type of query input
-     * @param <R> type of query result
-     * @return {@link ListenableFuture} of the combined map
+     * Wraps the {@link AtlasFutures#allAsMap(Map, ExecutorService)}.
      */
     <T, R> ListenableFuture<Map<T, R>> allAsMap(Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap);
 

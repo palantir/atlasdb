@@ -14,17 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.containers;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
-import com.palantir.processors.AutoDelegate;
+import java.net.SocketAddress;
 
-@AutoDelegate
-public interface CqlClient extends AutoCloseable {
+import com.datastax.driver.core.NettyOptions;
 
-    <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec);
+import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.proxy.Socks5ProxyHandler;
+
+final class SocksProxyNettyOptions extends NettyOptions {
+    private final SocketAddress proxyAddress;
+
+    SocksProxyNettyOptions(SocketAddress proxyAddress) {
+        this.proxyAddress = proxyAddress;
+    }
 
     @Override
-    void close();
+    public void afterChannelInitialized(SocketChannel channel) {
+        channel.pipeline().addFirst(new Socks5ProxyHandler(proxyAddress));
+    }
 }

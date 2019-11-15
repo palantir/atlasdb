@@ -23,10 +23,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.futures.FuturesCombiner;
+import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.async.futures.CqlFuturesCombiner;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
@@ -36,44 +37,39 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 
-public final class AsyncCellLoader {
-    private static final Logger log = LoggerFactory.getLogger(AsyncCellLoader.class);
+public final class CassandraAsyncKeyValueService implements AsyncKeyValueService {
+    private static final Logger log = LoggerFactory.getLogger(CassandraAsyncKeyValueService.class);
 
-    private final CqlClient cqlClient;
-    private final CqlFuturesCombiner cqlFuturesCombiner;
     private final String keyspace;
+    private final CqlClient cqlClient;
+    private final FuturesCombiner futuresCombiner;
 
-    public static AsyncCellLoader create(CqlClient cqlClient, CqlFuturesCombiner cqlFuturesCombiner, String keyspace) {
-        return new AsyncCellLoader(cqlClient, cqlFuturesCombiner, keyspace);
+    public static AsyncKeyValueService create(String keyspace, CqlClient cqlClient, FuturesCombiner futuresCombiner) {
+        return new CassandraAsyncKeyValueService(keyspace, cqlClient, futuresCombiner);
     }
 
-    private AsyncCellLoader(CqlClient cqlClient, CqlFuturesCombiner cqlFuturesCombiner, String keyspace) {
-        this.cqlClient = cqlClient;
-        this.cqlFuturesCombiner = cqlFuturesCombiner;
+    private CassandraAsyncKeyValueService(String keyspace, CqlClient cqlClient, FuturesCombiner futuresCombiner) {
         this.keyspace = keyspace;
+        this.cqlClient = cqlClient;
+        this.futuresCombiner = futuresCombiner;
     }
 
-    public ListenableFuture<Map<Cell, Value>> loadAllWithTimestamp(
-            TableReference tableReference,
-            Map<Cell, Long> timestampByCell) {
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableReference, Map<Cell, Long> timestampByCell) {
         if (log.isTraceEnabled()) {
             log.trace(
-                    "Loading cells using CQL.",
+                    "Getting cells using CQL.",
                     SafeArg.of("cells", timestampByCell.size()),
                     LoggingArgs.tableRef(tableReference));
         }
 
         Map<Cell, ListenableFuture<Optional<Value>>> cellListenableFutureMap = KeyedStream.stream(timestampByCell)
-                .map((cell, timestamp) -> loadCellWithTimestamp(tableReference, cell, timestamp))
+                .map((cell, timestamp) -> getCellAsync(tableReference, cell, timestamp))
                 .collectToMap();
 
-        return cqlFuturesCombiner.allAsMap(cellListenableFutureMap);
+        return futuresCombiner.allAsMap(cellListenableFutureMap);
     }
 
-    private ListenableFuture<Optional<Value>> loadCellWithTimestamp(
-            TableReference tableReference,
-            Cell cell,
-            long timestamp) {
+    private ListenableFuture<Optional<Value>> getCellAsync(TableReference tableReference, Cell cell, long timestamp) {
         CqlQueryContext queryContext = ImmutableCqlQueryContext.builder()
                 .tableReference(tableReference)
                 .keyspace(keyspace)
@@ -84,5 +80,11 @@ public final class AsyncCellLoader {
                 .build();
 
         return cqlClient.executeQuery(new GetQuerySpec(queryContext, getQueryParameters));
+    }
+
+    @Override
+    public void close() {
+        cqlClient.close();
+        futuresCombiner.close();
     }
 }

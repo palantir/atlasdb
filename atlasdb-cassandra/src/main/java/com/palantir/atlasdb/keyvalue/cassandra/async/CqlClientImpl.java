@@ -70,7 +70,7 @@ public final class CqlClientImpl implements CqlClient {
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() {
             if (internalImpl != null) {
                 internalImpl.close();
             }
