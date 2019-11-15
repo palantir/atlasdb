@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: |-
+    Fun with AutoDelegates <3
+
+    **Goals (and why)**:
+    `AutoDelegate` implementations of `TimelockService` now delegate `isInitialized` and `tryUnlock` correctly. Previously, they would call the default methods - this manifested as AtlasDB clients making synchronous calls to TimeLock when unlocking things at the end of a transaction, as opposed to using an autobatcher to asynchronously do these.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4410
