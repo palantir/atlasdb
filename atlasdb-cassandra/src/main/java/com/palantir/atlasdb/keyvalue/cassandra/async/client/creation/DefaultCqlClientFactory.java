@@ -90,19 +90,14 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
                         .withProtocolVersion(ProtocolVersion.V3)
                         .withThreadingOptions(new ThreadingOptions());
 
-                Cluster cluster =
-                        withLoadBalancingPolicy(
-                                withQueryOptions(
-                                        withPoolingOptions(
-                                                withSslOptions(clusterBuilder, config),
-                                                config),
-                                        config),
-                                config,
-                                servers).build();
+                clusterBuilder = withSslOptions(clusterBuilder, config);
+                clusterBuilder = withPoolingOptions(clusterBuilder, config);
+                clusterBuilder = withQueryOptions(clusterBuilder, config);
+                clusterBuilder = withLoadBalancingPolicy(clusterBuilder, config, servers);
 
                 return CqlClientImpl.create(
                         taggedMetricRegistry,
-                        cluster,
+                        clusterBuilder.build(),
                         cqlCapableConfig.tuning(),
                         initializeAsync);
             }

@@ -37,4 +37,3 @@ public interface FuturesCombiner extends AutoCloseable {
     @Override
     void close();
 }
-

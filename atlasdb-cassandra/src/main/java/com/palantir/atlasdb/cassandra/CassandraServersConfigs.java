@@ -95,6 +95,7 @@ public final class CassandraServersConfigs {
         public abstract Set<InetSocketAddress> thriftHosts();
 
         @Override
+        @Value.Derived
         public int numberOfHosts() {
             return thriftHosts().size();
         }
@@ -127,9 +128,9 @@ public final class CassandraServersConfigs {
         }
 
         @Override
-        public final int numberOfHosts() {
-            Preconditions.checkState(thriftHosts().size() == cqlHosts().size());
-            return thriftHosts().size();
+        @Value.Derived
+        public int numberOfHosts() {
+            return Math.max(thriftHosts().size(), cqlHosts().size());
         }
 
         @Value.Check
