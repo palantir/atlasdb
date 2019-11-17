@@ -36,8 +36,8 @@ public abstract class ClientOptions {
     // TODO (jkong): Re-enable client QoS after response body leaks are handled correctly.
     // Throws after expected outages of 1/2 * 0.01 * (2^11 - 1) = 10.24 s
     public static final ClientOptions DEFAULT_RETRYING = ImmutableClientOptions.builder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .readTimeout(Duration.ofSeconds(65))
+            .connectTimeout(Duration.ofSeconds(1))
+            .readTimeout(Duration.ofSeconds(10))
             .backoffSlotSize(Duration.ofMillis(10))
             .failedUrlCooldown(Duration.ofMillis(100))
             .maxNumRetries(11)
