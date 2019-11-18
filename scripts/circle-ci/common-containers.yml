@@ -1,8 +1,8 @@
 #cassandra2:
-#  image: palantirtechnologies/docker-cassandra-atlasdb:2.2.9
+#  image: palantirtechnologies/cassandra:2.2.9
 
-cassandra3: # Uncomment when Cassandra 3.7 testing is enabled.
-  image: palantirtechnologies/docker-cassandra-atlasdb:3.7
+cassandra3: # Uncomment when Cassandra 3.11 testing is enabled.
+  image: palantirtechnologies/cassandra:3.11.4-pt-2.0.0-rc8
 
 postgres:
   image: postgres:9.6-alpine
