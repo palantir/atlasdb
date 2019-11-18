@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -114,8 +115,9 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     TestableTimelockServer currentLeader() {
-        if (lastLeader != null && lastLeader.pingableLeader().ping()) {
-            return lastLeader;
+        Optional<TestableTimelockServer> maybeCurrentLeader = tryToPingCurrentLeader();
+        if (maybeCurrentLeader.isPresent()) {
+            return maybeCurrentLeader.get();
         }
 
         for (TestableTimelockServer server : servers) {
@@ -129,6 +131,17 @@ public class TestableTimelockCluster implements TestRule {
             }
         }
         throw new IllegalStateException("no nodes are currently the leader");
+    }
+
+    private Optional<TestableTimelockServer> tryToPingCurrentLeader() {
+        try {
+            if (lastLeader != null && lastLeader.pingableLeader().ping()) {
+                return Optional.of(lastLeader);
+            }
+            return Optional.empty();
+        } catch (Throwable t) {
+            return Optional.empty();
+        }
     }
 
     List<TestableTimelockServer> nonLeaders() {
