@@ -137,7 +137,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     default double localHostWeighting() {
-        return 0.5;
+        return 1.0;
     }
 
     /**
