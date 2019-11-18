@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -87,7 +86,6 @@ public class PaxosTimeLockServerIntegrationTest {
     public static void waitForClusterToStabilize() {
         namespace1 = TIMELOCK.client(CLIENT_1);
         namespace2 = TIMELOCK.client(CLIENT_2);
-        PingableLeader leader = TIMELOCK.pingableLeader();
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
@@ -97,7 +95,7 @@ public class PaxosTimeLockServerIntegrationTest {
                         NAMESPACES.forEach(client -> TIMELOCK.client(client).getFreshTimestamp());
                         NAMESPACES.forEach(client -> TIMELOCK.client(client).timelockService().currentTimeMillis());
                         NAMESPACES.forEach(client -> TIMELOCK.client(client).legacyLockService().currentTimeMillis());
-                        return leader.ping();
+                        return TIMELOCK.pinger().ping(NAMESPACES).containsAll(NAMESPACES);
                     } catch (Throwable t) {
                         LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class).error("erreur!", t);
                         return false;

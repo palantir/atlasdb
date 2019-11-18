@@ -69,18 +69,19 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void nonLeadersReturn503() {
-        cluster.nonLeaders().forEach(server -> {
-            assertThatThrownBy(() -> server.client(namespace.namespace()).getFreshTimestamp())
+        cluster.nonLeaders(namespace.namespace()).forEach((namespace, server) -> {
+            assertThatThrownBy(() -> server.client(namespace).getFreshTimestamp())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
             assertThatThrownBy(() ->
-                    server.client(namespace.namespace()).lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
+                    server.client(namespace).lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
     }
 
     @Test
     public void leaderRespondsToRequests() {
-        NamespacedClients currentLeader = cluster.currentLeader().client(namespace.namespace());
+        NamespacedClients currentLeader = cluster.currentLeaderFor(namespace.namespace())
+                .client(namespace.namespace());
         currentLeader.getFreshTimestamp();
 
         LockToken token = currentLeader.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
@@ -89,7 +90,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void newLeaderTakesOverIfCurrentLeaderDies() {
-        cluster.currentLeader().kill();
+        cluster.currentLeaderFor(namespace.namespace()).kill();
 
         assertThatCode(namespace::getFreshTimestamp)
                 .doesNotThrowAnyException();
@@ -97,8 +98,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void leaderLosesLeadershipIfQuorumIsNotAlive() {
-        NamespacedClients leader = cluster.currentLeader().client(namespace.namespace());
-        cluster.nonLeaders().forEach(TestableTimelockServer::kill);
+        NamespacedClients leader = cluster.currentLeaderFor(namespace.namespace())
+                .client(namespace.namespace());
+        cluster.nonLeaders(namespace.namespace()).forEach((unused, server) -> server.kill());
 
         assertThatThrownBy(leader::getFreshTimestamp)
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
@@ -106,8 +108,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void someoneBecomesLeaderAgainAfterQuorumIsRestored() {
-        cluster.nonLeaders().forEach(TestableTimelockServer::kill);
-        cluster.nonLeaders().forEach(TestableTimelockServer::start);
+        cluster.nonLeaders(namespace.namespace()).forEach((unused, server) -> server.kill());
+        cluster.nonLeaders(namespace.namespace()).forEach((unused, server) -> server.start());
 
         namespace.getFreshTimestamp();
     }
@@ -128,7 +130,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         long lastTimestamp = namespace.getFreshTimestamp();
 
         for (int i = 0; i < 3; i++) {
-            cluster.failoverToNewLeader();
+            cluster.failoverToNewLeader(namespace.namespace());
 
             long timestamp = namespace.getFreshTimestamp();
             assertThat(timestamp).isGreaterThan(lastTimestamp);
@@ -142,7 +144,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         leaderTimes.add(namespace.namespacedTimelockRpcClient().getLeaderTime());
 
         for (int i = 0; i < 3; i++) {
-            cluster.failoverToNewLeader();
+            cluster.failoverToNewLeader(namespace.namespace());
 
             LeaderTime leaderTime = namespace.namespacedTimelockRpcClient().getLeaderTime();
 
@@ -157,7 +159,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         LockToken token = namespace.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         for (int i = 0; i < 3; i++) {
-            cluster.failoverToNewLeader();
+            cluster.failoverToNewLeader(namespace.namespace());
 
             assertThat(namespace.unlock(token)).isFalse();
             token = namespace.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();

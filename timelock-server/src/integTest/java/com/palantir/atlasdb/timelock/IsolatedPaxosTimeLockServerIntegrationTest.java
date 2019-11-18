@@ -25,6 +25,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
@@ -45,7 +46,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
             "https://localhost",
             "paxosThreeServers.yml");
 
-    private static final TestableTimelockServer SERVER = CLUSTER.servers().get(0);
+    private static final TestableTimelockServer SERVER = Iterables.getOnlyElement(CLUSTER.servers());
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
@@ -78,7 +79,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     @Test
     public void canPingWithoutQuorum() {
-        assertThatCode(SERVER.pingableLeader()::ping)
+        assertThatCode(() -> SERVER.pinger().ping(namespace.namespace()))
                 .doesNotThrowAnyException();
     }
 

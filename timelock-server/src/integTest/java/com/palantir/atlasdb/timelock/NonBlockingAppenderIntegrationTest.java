@@ -20,6 +20,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import com.google.common.collect.ImmutableList;
+
 public class NonBlockingAppenderIntegrationTest {
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "https://localhost",
@@ -27,15 +29,17 @@ public class NonBlockingAppenderIntegrationTest {
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
+    private static NamespacedClients namespace;
 
     @BeforeClass
     public static void setUp() {
-        CLUSTER.waitUntilLeaderIsElected();
+        namespace = CLUSTER.clientForRandomNamespace();
+        CLUSTER.waitUntilLeaderIsElected(ImmutableList.of(namespace.namespace()));
     }
 
     @Test
     public void canDeserializeConfigAndStart() {
-        CLUSTER.clientForRandomNamespace().getFreshTimestamp();
+        namespace.getFreshTimestamp();
     }
 
 }
