@@ -69,7 +69,7 @@ public class AsyncLockServiceTest {
             awaitedLocks,
             reaperExecutor,
             leaderClock,
-            mock(LockLog.class));
+            mock(LockLog.class), lockWatchingService);
 
     @Before
     public void before() {

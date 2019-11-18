@@ -18,17 +18,16 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
-public interface LockWatchingService {
-    void startWatching(LockWatchRequest locksToWatch);
-    void stopWatching(LockWatchRequest locksToUnwatch);
-    LockWatchStateUpdate getWatchState(Optional<Long> lastKnownVersion);
-
-    void registerLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken);
-    void registerUnlock(Set<LockDescriptor> lockToken);
+public interface LockEventLog {
+    LockWatchStateUpdate getLogDiff(Optional<Long> fromVersion);
+    void logLock(Stream<LockDescriptor> locksTakenOut);
+    void logUnlock(Stream<LockDescriptor> locksUnlocked);
+    void logOpenLocks(Set<LockDescriptor> openLocks);
+    void logLockWatchCreated(LockWatchRequest locksToWatch);
 }

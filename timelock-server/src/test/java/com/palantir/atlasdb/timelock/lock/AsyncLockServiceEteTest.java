@@ -71,7 +71,7 @@ public class AsyncLockServiceEteTest {
             new AwaitedLocksCollection(),
             executor,
             clock,
-            lockLog);
+            lockLog, lockWatchingService);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
