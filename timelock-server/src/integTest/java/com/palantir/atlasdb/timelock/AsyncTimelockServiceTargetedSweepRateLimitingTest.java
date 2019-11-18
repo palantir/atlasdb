@@ -25,6 +25,7 @@ import static com.palantir.atlasdb.timelock.lock.TargetedSweepLockDecorator.LOCK
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -44,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -54,6 +56,8 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.AsyncTimeLockUnlocker;
+import com.palantir.lock.client.TimeLockUnlocker;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -68,6 +72,8 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
 
     private final ListeningScheduledExecutorService nonRateLimitedExecutor = getExecutorService();
     private final ListeningScheduledExecutorService rateLimitedExecutor = getExecutorService();
+
+    private final Map<String, TimeLockUnlocker> unlockerForClient = Maps.newConcurrentMap();
 
     @After
     public void after() {
@@ -187,6 +193,11 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
                 .allSatisfy(AsyncTimelockServiceTargetedSweepRateLimitingTest::isRateLimited);
     }
 
+    private TimeLockUnlocker unlockerForClient(String name) {
+        return unlockerForClient.computeIfAbsent(name,
+                clientName -> AsyncTimeLockUnlocker.create(cluster.client(clientName).timelockService()));
+    }
+
     private static Supplier<LockDescriptor> lockDescriptorSupplier(
             int numShards,
             SweepStrategy sweepStrategy) {
@@ -241,7 +252,7 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
         Meter meter = new Meter();
         AtomicReference<LockToken> lastHeldToken = new AtomicReference<>();
         ListenableFuture<?> future = executor.scheduleWithFixedDelay(() -> {
-            LockResponse response = cluster.timelockServiceForClient(client).lock(requestFor(descriptor.get()));
+            LockResponse response = cluster.client(client).lock(requestFor(descriptor.get()));
             if (!response.wasSuccessful()) {
                 return;
             }
@@ -251,7 +262,7 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
             } finally {
                 if (lastHeldToken.get() != null) {
                     // synchronous unlocking  is bad for us here!
-                    cluster.unlockerForClient(client).enqueue(ImmutableSet.of(lastHeldToken.get()));
+                    unlockerForClient(client).enqueue(ImmutableSet.of(lastHeldToken.get()));
                 }
             }
         }, 0, 50, TimeUnit.MILLISECONDS);

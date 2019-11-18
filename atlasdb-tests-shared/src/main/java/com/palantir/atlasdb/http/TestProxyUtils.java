@@ -21,6 +21,7 @@ import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 
 public final class TestProxyUtils {
+
     public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_RETRYING
             = AuxiliaryRemotingParameters.builder()
                     .shouldLimitPayload(false)
