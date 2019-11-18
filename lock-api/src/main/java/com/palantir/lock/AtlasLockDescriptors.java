@@ -14,10 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.lock;
 
-import com.palantir.lock.watch.LockWatchInfo;
+public final class AtlasLockDescriptors {
+    private AtlasLockDescriptors() {
+        // no
+    }
 
-public interface TableWatchState {
-    LockWatchInfo getWatchInfo(PrefixReference rowOrCell);
+    public static LockDescriptor prefix(String qualifiedTableName, byte[] rowOrCellPrefix) {
+        return AtlasRowLockDescriptor.of(qualifiedTableName, rowOrCellPrefix);
+    }
+
+    public static LockDescriptor fullTable(String qualifiedTableName) {
+        return new LockDescriptor(qualifiedTableName.getBytes());
+    }
 }

@@ -71,8 +71,15 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
         if (other == null) {
             return false;
         }
-        if (bytes.length > other.bytes.length) ''
-        ByteUtils
+        if (this.bytes.length > other.bytes.length) {
+            return false;
+        }
+        for(int i = 0; i < this.bytes.length; i++) {
+            if (this.bytes[i] != other.bytes[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String encodeToAscii(String lockIdAsString) {

@@ -30,12 +30,12 @@ public class TableWatchingServiceAdapter implements TableWatchingService {
 
     @Override
     public void registerWatches(TableElements lockWatchEntries) {
-        kvsLockWatchingService.registerWatches(LockWatchRequest.of());
+        kvsLockWatchingService.registerWatches(LockWatchRequest.of(lockWatchEntries.asLockDescriptors()));
     }
 
     @Override
     public void deregisterWatches(TableElements lockWatchEntries) {
-
+        kvsLockWatchingService.deregisterWatches(LockWatchRequest.of(lockWatchEntries.asLockDescriptors()));
     }
 
     @Override

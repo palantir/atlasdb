@@ -29,13 +29,11 @@ import com.palantir.lock.LockDescriptor;
 @JsonSerialize(as = ImmutableLockWatchRequest.class)
 @JsonDeserialize(as = ImmutableLockWatchRequest.class)
 public interface LockWatchRequest {
-    Set<LockDescriptor> exactWatches();
-    Set<LockDescriptorPrefix> prefixWatches();
+    Set<LockDescriptor> watchPrefixes();
 
-    static LockWatchRequest of(Set<LockDescriptor> exactWatches, Set<LockDescriptorPrefix> prefixWatches) {
+    static LockWatchRequest of(Set<LockDescriptor> watchPrefixes) {
         return ImmutableLockWatchRequest.builder()
-                .exactWatches(exactWatches)
-                .prefixWatches(prefixWatches)
+                .watchPrefixes(watchPrefixes)
                 .build();
     }
 }

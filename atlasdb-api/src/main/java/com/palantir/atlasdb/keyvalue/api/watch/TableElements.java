@@ -17,12 +17,27 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
+
+import com.palantir.lock.AtlasLockDescriptors;
+import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 public interface TableElements {
-    Set<RowOrCellReference> exactRowsAndCells();
-    Set<RowPrefixReference> rowPrefixes();
+    Set<PrefixReference> prefixes();
+
+    @Value.Lazy
+    default Set<LockDescriptor> asLockDescriptors() {
+        return prefixes().stream()
+                .map(reference -> {
+                    String table = reference.tableRef().getQualifiedName();
+                    return reference.prefix().isPresent()
+                            ? AtlasLockDescriptors.prefix(table, reference.prefix().get())
+                            : AtlasLockDescriptors.fullTable(table);
+                })
+                .collect(Collectors.toSet());
+    }
 }

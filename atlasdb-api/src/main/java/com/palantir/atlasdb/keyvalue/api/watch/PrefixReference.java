@@ -20,25 +20,21 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public interface RowOrCellReference {
+public interface PrefixReference {
     TableReference tableRef();
-    byte[] rowName();
-    Optional<byte[]> colName();
+    Optional<byte[]> prefix();
 
-    static RowOrCellReference row(TableReference tableRef, byte[] rowName) {
-        return ImmutableRowOrCellReference.builder().tableRef(tableRef).rowName(rowName).build();
+    static PrefixReference prefix(TableReference tableRef, byte[] prefix) {
+        return ImmutablePrefixReference.builder().tableRef(tableRef).prefix(prefix).build();
     }
 
-    static RowOrCellReference cell(TableReference tableRef, Cell cell) {
-        return ImmutableRowOrCellReference.builder()
+    static PrefixReference table(TableReference tableRef) {
+        return ImmutablePrefixReference.builder()
                 .tableRef(tableRef)
-                .rowName(cell.getRowName())
-                .colName(cell.getColumnName())
                 .build();
     }
 }

@@ -17,11 +17,8 @@
 package com.palantir.atlasdb.transaction.api;
 
 import java.util.Optional;
-import java.util.Set;
 
-import com.palantir.atlasdb.keyvalue.api.watch.RowOrCellReference;
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchInfo;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.WatchId;
