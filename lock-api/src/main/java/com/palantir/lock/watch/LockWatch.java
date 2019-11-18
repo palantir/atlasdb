@@ -23,5 +23,5 @@ import org.immutables.value.Value;
 public abstract class LockWatch {
     abstract byte[] prefix();
 
-    
+
 }
