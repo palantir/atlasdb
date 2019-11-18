@@ -89,7 +89,6 @@ class CassandraTableCreator {
                 .gcGraceSeconds(config.gcGraceSeconds())
                 .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
                 .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
-                .populateIOCacheOnFlush(tableMetadata.getCachePriority() == CachePriority.HOTTEST)
                 .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
                 .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
                 .clusteringOrder(TIMESTAMP, SchemaBuilder.Direction.ASC)
