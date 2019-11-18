@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -39,7 +40,6 @@ import com.palantir.paxos.PaxosLearner;
  * However it should still be pingable and should be able to participate in Paxos as well.
  */
 public class IsolatedPaxosTimeLockServerIntegrationTest {
-    private static final String CLIENT = "isolated";
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "https://localhost",
@@ -50,21 +50,29 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
+    private NamespacedClients namespace;
+
+    @Before
+    public void setUp() {
+        namespace = CLUSTER.clientForRandomNamespace();
+    }
+
     @Test
     public void cannotIssueTimestampsWithoutQuorum() {
-        assertThatThrownBy(() -> CLUSTER.client(CLIENT).getFreshTimestamp())
+        assertThatThrownBy(() -> CLUSTER.clientForRandomNamespace().getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotIssueLocksWithoutQuorum() {
-        assertThatThrownBy(() -> CLUSTER.client(CLIENT).timelockService().currentTimeMillis())
+        assertThatThrownBy(() -> CLUSTER.clientForRandomNamespace().timelockService().currentTimeMillis())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotPerformTimestampManagementWithoutQuorum() {
-        assertThatThrownBy(() -> CLUSTER.client(CLIENT).timestampManagementService().fastForwardTimestamp(1000L))
+        assertThatThrownBy(
+                () -> CLUSTER.clientForRandomNamespace().timestampManagementService().fastForwardTimestamp(1000L))
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
@@ -86,7 +94,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
         learner.getGreatestLearnedValue();
     }
 
-    private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
+    private <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
@@ -94,7 +102,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
                         SERVER.serverHolder().getTimelockPort(),
                         PaxosTimeLockConstants.INTERNAL_NAMESPACE,
                         PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
-                        CLIENT),
+                        namespace.namespace()),
                 clazz,
                 TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }

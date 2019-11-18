@@ -35,7 +35,7 @@ public class NonBlockingAppenderIntegrationTest {
 
     @Test
     public void canDeserializeConfigAndStart() {
-        CLUSTER.client("namespace").getFreshTimestamp();
+        CLUSTER.clientForRandomNamespace().getFreshTimestamp();
     }
 
 }

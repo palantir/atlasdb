@@ -82,7 +82,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Before
     public void setUp() {
-        namespace = cluster.client("namespace");
+        namespace = cluster.clientForRandomNamespace();
     }
 
     @After
@@ -164,15 +164,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void immutableTimestampIsGreaterThanFreshTimestampWhenNotLocked() {
-        String randomNamespace = randomNamespace();
-        long freshTs = cluster.client(randomNamespace).getFreshTimestamp();
-        long immutableTs = cluster.client(randomNamespace).timelockService().getImmutableTimestamp();
+        long freshTs = namespace.getFreshTimestamp();
+        long immutableTs = namespace.timelockService().getImmutableTimestamp();
 
         assertThat(immutableTs).isGreaterThan(freshTs);
-    }
-
-    private static String randomNamespace() {
-        return UUID.randomUUID().toString();
     }
 
     @Test

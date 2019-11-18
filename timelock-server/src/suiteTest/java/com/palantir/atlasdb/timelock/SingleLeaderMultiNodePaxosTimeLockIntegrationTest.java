@@ -17,10 +17,10 @@
 package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.UUID;
-
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,37 +45,41 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
         return injector.getParameter();
     }
 
+    private NamespacedClients namespace;
+
+    @Before
+    public void setUp() {
+        namespace = cluster.clientForRandomNamespace();
+    }
+
     @Test
     public void clientsCreatedDynamicallyOnNonLeadersAreFunctionalAfterFailover() {
-        String client = UUID.randomUUID().toString();
         cluster.nonLeaders().forEach(server ->
-                assertThatThrownBy(() -> server.client(client).getFreshTimestamp())
+                assertThatThrownBy(() -> server.client(namespace.namespace()).getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound));
 
         cluster.failoverToNewLeader();
 
-        cluster.client(client).getFreshTimestamp();
+        namespace.getFreshTimestamp();
     }
 
     @Test
     public void clientsCreatedDynamicallyOnLeaderAreFunctionalImmediately() {
-        String client = UUID.randomUUID().toString();
-
-        cluster.currentLeader().client(client).getFreshTimestamp();
+        assertThatCode(() -> cluster.currentLeader().client(namespace.namespace()).getFreshTimestamp())
+                .doesNotThrowAnyException();
     }
 
     @Test
     public void noConflictIfLeaderAndNonLeadersSeparatelyInitializeClient() {
-        String client = UUID.randomUUID().toString();
         cluster.nonLeaders().forEach(server ->
-                assertThatThrownBy(() -> server.client(client).getFreshTimestamp())
+                assertThatThrownBy(() -> server.client(namespace.namespace()).getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound));
 
-        long ts1 = cluster.client(client).getFreshTimestamp();
+        long ts1 = namespace.getFreshTimestamp();
 
         cluster.failoverToNewLeader();
 
-        long ts2 = cluster.client(client).getFreshTimestamp();
+        long ts2 = namespace.getFreshTimestamp();
         assertThat(ts1).isLessThan(ts2);
     }
 }

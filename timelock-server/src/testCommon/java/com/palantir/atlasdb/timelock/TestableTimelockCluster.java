@@ -175,6 +175,10 @@ public class TestableTimelockCluster implements TestRule {
         return servers;
     }
 
+    NamespacedClients clientForRandomNamespace() {
+        return client(UUID.randomUUID().toString());
+    }
+
     NamespacedClients client(String namespace) {
         return clientsByNamespace.computeIfAbsent(namespace, this::uncachedNamespacedClients);
     }

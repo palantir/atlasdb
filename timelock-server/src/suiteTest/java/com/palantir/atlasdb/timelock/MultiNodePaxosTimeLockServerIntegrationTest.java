@@ -20,9 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -43,9 +41,6 @@ import com.palantir.lock.v2.LockToken;
 
 @RunWith(Parameterized.class)
 public class MultiNodePaxosTimeLockServerIntegrationTest {
-    private static final String CLIENT_1 = "test";
-    private static final String CLIENT_2 = "test2";
-    private static final List<String> ADDITIONAL_CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2);
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
@@ -68,23 +63,24 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Before
     public void bringAllNodesOnline() {
-        cluster.waitUntilAllServersOnlineAndReadyToServeClients(ADDITIONAL_CLIENTS);
-        namespace = cluster.client(CLIENT_1);
+        namespace = cluster.clientForRandomNamespace();
+        cluster.waitUntilAllServersOnlineAndReadyToServeClients(ImmutableList.of(namespace.namespace()));
     }
 
     @Test
     public void nonLeadersReturn503() {
         cluster.nonLeaders().forEach(server -> {
-            assertThatThrownBy(() -> server.client(CLIENT_2).getFreshTimestamp())
+            assertThatThrownBy(() -> server.client(namespace.namespace()).getFreshTimestamp())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
-            assertThatThrownBy(() -> server.client(CLIENT_2).lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
+            assertThatThrownBy(() ->
+                    server.client(namespace.namespace()).lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
     }
 
     @Test
     public void leaderRespondsToRequests() {
-        NamespacedClients currentLeader = cluster.currentLeader().client(CLIENT_1);
+        NamespacedClients currentLeader = cluster.currentLeader().client(namespace.namespace());
         currentLeader.getFreshTimestamp();
 
         LockToken token = currentLeader.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
@@ -101,7 +97,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void leaderLosesLeadershipIfQuorumIsNotAlive() {
-        NamespacedClients leader = cluster.currentLeader().client(CLIENT_1);
+        NamespacedClients leader = cluster.currentLeader().client(namespace.namespace());
         cluster.nonLeaders().forEach(TestableTimelockServer::kill);
 
         assertThatThrownBy(leader::getFreshTimestamp)
@@ -121,7 +117,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         bringAllNodesOnline();
         for (TestableTimelockServer server : cluster.servers()) {
             server.kill();
-            cluster.waitUntilAllServersOnlineAndReadyToServeClients(ADDITIONAL_CLIENTS);
+            cluster.waitUntilAllServersOnlineAndReadyToServeClients(ImmutableList.of(namespace.namespace()));
             namespace.getFreshTimestamp();
             server.start();
         }
@@ -171,7 +167,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void canCreateNewClientsDynamically() {
         for (int i = 0; i < 5; i++) {
-            NamespacedClients randomNamespace = cluster.client(UUID.randomUUID().toString());
+            NamespacedClients randomNamespace = cluster.clientForRandomNamespace();
 
             randomNamespace.getFreshTimestamp();
             LockToken token = randomNamespace.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
