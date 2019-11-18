@@ -2,7 +2,7 @@
 
 set -x
 
-BASE_GRADLE_ARGS="--profile --continue"
+BASE_GRADLE_ARGS="--profile --no-daemon --continue"
 
 function checkDocsBuild {
     sudo apt-get update
