@@ -18,7 +18,9 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
@@ -39,7 +41,10 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
-        RangeSet<LockDescriptor> newRanges = TreeRangeSet.create(locksToWatch.ranges());
+        RangeSet<LockDescriptor> newRanges = newRangesToWatch(locksToWatch.ranges());
+        if (newRanges.isEmpty()) {
+            return;
+        }
         addToWatches(newRanges);
         logOpenLocks(newRanges);
         logLockWatchEvent(locksToWatch);
@@ -56,7 +61,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken) {
+    public void registerLock(Set<LockDescriptor> locksTakenOut) {
         lockEventLog.logLock(locksTakenOut.stream().filter(this::hasLockWatch));
     }
 
@@ -79,5 +84,14 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     private synchronized boolean hasLockWatch(LockDescriptor lockDescriptor) {
         return ranges.contains(lockDescriptor);
+    }
+
+    private RangeSet<LockDescriptor> newRangesToWatch(Set<Range<LockDescriptor>> rangesToWatch) {
+        RangeSet<LockDescriptor> existingComplement = ranges.complement();
+        return TreeRangeSet.create(rangesToWatch.stream()
+                .map(existingComplement::subRangeSet)
+                .map(RangeSet::asRanges)
+                .flatMap(Set::stream)
+                .collect(Collectors.toList()));
     }
 }

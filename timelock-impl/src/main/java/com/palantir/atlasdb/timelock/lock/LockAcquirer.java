@@ -59,8 +59,7 @@ public class LockAcquirer implements AutoCloseable {
 
     private void registerLock(HeldLocks heldLocks) {
         lockWatchingService.registerLock(
-                heldLocks.getLocks().stream().map(AsyncLock::getDescriptor).collect(Collectors.toSet()),
-                heldLocks.getToken());
+                heldLocks.getLocks().stream().map(AsyncLock::getDescriptor).collect(Collectors.toSet()));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
