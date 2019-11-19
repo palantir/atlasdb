@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -27,17 +28,20 @@ public interface TimeLockServices {
             TimestampService timestampService,
             LockService lockService,
             AsyncTimelockResource timelockService,
+            LockWatchingResource lockWatchingResource,
             TimestampManagementService timestampManagementService) {
         return ImmutableTimeLockServices.builder()
                 .timestampService(timestampService)
                 .lockService(lockService)
                 .timestampManagementService(timestampManagementService)
                 .timelockService(timelockService)
+                .lockWatchingResource(lockWatchingResource)
                 .build();
     }
 
-    TimestampManagementService getTimestampManagementService();
     TimestampService getTimestampService();
-    AsyncTimelockResource getTimelockService();
     LockService getLockService();
+    AsyncTimelockResource getTimelockService();
+    LockWatchingResource getLockWatchingResource();
+    TimestampManagementService getTimestampManagementService();
 }

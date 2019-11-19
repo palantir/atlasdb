@@ -36,6 +36,9 @@ import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateL
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
@@ -74,12 +77,23 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
 
         LockLog maybeEnhancedLockLog = maybeEnhancedLockLog(client);
+
+        Supplier<AsyncTimelockServiceImpl> rawAsyncTimelockServiceSupplier = Suppliers.memoize(() ->
+                createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
+
         AsyncTimelockService asyncTimelockService = leadershipCreator.wrapInLeadershipProxy(
-                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog),
+                rawAsyncTimelockServiceSupplier::get,
                 AsyncTimelockService.class,
                 client);
         AsyncTimelockResource asyncTimelockResource =
                 new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
+
+        LockWatchingService lockWatchingService = leadershipCreator.wrapInLeadershipProxy(
+                Suppliers.compose(AsyncTimelockServiceImpl::getLockWatchingService,
+                        rawAsyncTimelockServiceSupplier::get),
+                LockWatchingService.class,
+                client);
+        LockWatchingResource lockWatchingResource = new LockWatchingResource(lockWatchingService);
 
         LockService lockService = leadershipCreator.wrapInLeadershipProxy(
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
@@ -90,10 +104,11 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 asyncTimelockService,
                 lockService,
                 asyncTimelockResource,
+                lockWatchingResource,
                 asyncTimelockService);
     }
 
-    private AsyncTimelockService createRawAsyncTimelockService(
+    private AsyncTimelockServiceImpl createRawAsyncTimelockService(
             String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier,
             LockLog maybeEnhancedLockLog) {

@@ -22,6 +22,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
@@ -180,5 +181,9 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public void close() {
         lockService.close();
+    }
+
+    public LockWatchingService getLockWatchingService() {
+        return lockService.LockWatchingService();
     }
 }

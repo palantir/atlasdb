@@ -188,6 +188,10 @@ public class AsyncLockService implements Closeable {
         return leaderClock.time();
     }
 
+    public LockWatchingService LockWatchingService() {
+        return lockWatchingService;
+    }
+
     /**
      * Shuts down the lock service, and fails any outstanding requests with a {@link
      * com.palantir.leader.NotCurrentLeaderException}.
