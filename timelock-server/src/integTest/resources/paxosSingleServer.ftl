@@ -1,6 +1,11 @@
 install:
+  # TODO(fdesouza): Remove this once PDS-95791 is resolved.
+  lock-diagnostic-config:
+    client-with-lock-diagnostics:
+      ttl: PT5M
+      maximum-size: 1000
   paxos:
-    data-directory: "<TEMP_DATA_DIR>"
+    data-directory: "${dataDirectory}"
     is-new-service: false
   cluster:
     cluster:
@@ -11,27 +16,35 @@ install:
         keyStorePassword: "keystore"
         keyStoreType: "JKS"
       uris:
-      - "localhost:9030"
-    local-server: "localhost:9030"
+      - "localhost:${localServerPort?c}"
+    local-server: "localhost:${localServerPort?c}"
     enableNonstandardAndPossiblyDangerousTopology: true
   timestampBoundPersistence:
 
 runtime:
   paxos:
+    timestamp-paxos:
+      use-batch-paxos: ${clientPaxos.useBatchPaxos?c}
+  targeted-sweep-locks:
+    mode: disabled-by-default
+    excluded-clients:
+      - should-rate-limit
+      - should-rate-limit-circular
+    concurrency:
+      should-rate-limit:
+        shards: 1
+      should-rate-limit-circular:
+        nodes: 2
+        shards: 8
+        conservative-threads: 1
+        thorough-threads: 2
 
 server:
-  requestLog:
-    appenders:
-      - archivedFileCount: 10
-        maxFileSize: 1GB
-        archivedLogFilenamePattern: "var/log/timelock-server-request-%i.log.gz"
-        currentLogFilename: var/log/timelock-server-request.log
-        threshold: INFO
-        timeZone: UTC
-        type: non-blocking-file
+  minThreads: 1
+  maxThreads: 200
   applicationConnectors:
     - type: h2
-      port: 9030
+      port: ${localServerPort?c}
       selectorThreads: 8
       acceptorThreads: 4
       keyStorePath: var/security/keyStore.jks
@@ -54,3 +67,4 @@ server:
         - TLS_RSA_WITH_AES_256_CBC_SHA
         - TLS_RSA_WITH_AES_128_CBC_SHA
         - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
+  adminConnectors: []

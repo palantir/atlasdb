@@ -28,6 +28,7 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
+import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.TestProxies;
@@ -42,9 +43,13 @@ import com.palantir.paxos.PaxosLearner;
  */
 public class IsolatedPaxosTimeLockServerIntegrationTest {
 
+    private static final TemplateVariables SINGLE_NODE = ImmutableTemplateVariables.builder()
+            .addServerPorts(9060)
+            .clientPaxos(TimestampPaxos.builder().isUseBatchPaxos(false).build())
+            .build();
+
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "https://localhost",
-            "paxosThreeServers.yml");
+            "paxosStaticThreeServers.ftl", SINGLE_NODE);
 
     private static final TestableTimelockServer SERVER = Iterables.getOnlyElement(CLUSTER.servers());
 

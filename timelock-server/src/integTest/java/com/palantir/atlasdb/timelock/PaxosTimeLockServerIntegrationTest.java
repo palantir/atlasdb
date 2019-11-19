@@ -18,7 +18,8 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
+import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
+
 import java.util.List;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
@@ -44,8 +45,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 
-import io.dropwizard.testing.ResourceHelpers;
-
 public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
@@ -63,12 +62,10 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
-    private static final File TIMELOCK_CONFIG_TEMPLATE =
-            new File(ResourceHelpers.resourceFilePath("paxosSingleServer.yml"));
 
     private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
-            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, TIMELOCK_CONFIG_TEMPLATE);
+            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, "paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
     private static final TestableTimelockServer TIMELOCK =

@@ -79,6 +79,7 @@ dependencies {
     testCommonImplementation (project(":atlasdb-tests-shared")) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
+    testCommonImplementation group: 'org.freemarker', name: 'freemarker'
 
     testCommonApi group: 'io.dropwizard', name: 'dropwizard-testing'
     testCommonApi group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
