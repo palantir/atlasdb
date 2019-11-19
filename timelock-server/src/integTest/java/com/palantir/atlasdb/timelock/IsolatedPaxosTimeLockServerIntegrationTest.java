@@ -44,7 +44,7 @@ import com.palantir.paxos.PaxosLearner;
 public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     private static final TemplateVariables SINGLE_NODE = ImmutableTemplateVariables.builder()
-            .addServerPorts(9060)
+            .localServerPort(9060)
             .clientPaxos(TimestampPaxos.builder().isUseBatchPaxos(false).build())
             .build();
 
