@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
@@ -41,7 +40,6 @@ import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
@@ -89,13 +87,6 @@ public final class PaxosResourcesFactory {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics.getTaggedRegistry());
 
-        Factories.LeaderPingerFactory leaderPingerFactory = dependencies -> new SingleLeaderPinger(
-                Maps.toMap(
-                        dependencies.remoteClients().nonBatchPingableLeadersWithContext(),
-                        _pingableLeader -> dependencies.sharedExecutor()),
-                dependencies.leaderPingResponseWait(),
-                dependencies.leaderUuid());
-
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
             List<PingableLeader> remotes = dependencies.remoteClients().nonBatchPingableLeaders();
@@ -112,7 +103,7 @@ public final class PaxosResourcesFactory {
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .metrics(timelockMetrics)
                 .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
-                .leaderPingerFactory(leaderPingerFactory)
+                .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
                 .build();
 

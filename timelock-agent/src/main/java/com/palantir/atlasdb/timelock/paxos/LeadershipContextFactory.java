@@ -27,7 +27,6 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
 
 @Value.Immutable
@@ -39,9 +38,9 @@ public abstract class LeadershipContextFactory implements
         Dependencies.HealthCheckPinger {
 
     abstract PaxosResourcesFactory.TimelockPaxosInstallationContext install();
-    abstract Factories.LeaderPingerFactory leaderPingerFactory();
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
+    abstract Factories.LeaderPingerFactory.Builder leaderPingerFactoryBuilder();
 
     @Value.Derived
     @Override
@@ -68,13 +67,13 @@ public abstract class LeadershipContextFactory implements
     }
 
     @Value.Derived
-    public Duration leaderPingResponseWait() {
-        return runtime().get().leaderPingResponseWait();
+    public Factories.LeaderPingerFactory leaderPingerFactory() {
+        return leaderPingerFactoryBuilder().from(this).build();
     }
 
     @Value.Derived
-    public LeaderPinger leaderPinger() {
-        return leaderPingerFactory().create(this);
+    public Duration leaderPingResponseWait() {
+        return runtime().get().leaderPingResponseWait();
     }
 
     @Value.Derived

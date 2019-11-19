@@ -16,17 +16,48 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.io.Closeable;
 import java.util.List;
 
+import org.immutables.value.Value;
+
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.LeaderPinger;
+import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 
 public interface Factories {
     interface LeaderPingerFactory {
-        LeaderPinger create(Dependencies.LeaderPinger dependencies);
+        Factory<LeaderPinger> get();
+        List<Closeable> closeables();
+
+        interface Builder {
+            Builder from(Dependencies.LeaderPinger dependencies);
+            LeaderPingerFactory build();
+        }
     }
 
     interface LeaderPingHealthCheckFactory {
         List<HealthCheckPinger> create(Dependencies.HealthCheckPinger dependencies);
+    }
+
+    @Value.Immutable
+    abstract class SingleLeaderPingerFactory implements LeaderPingerFactory, Dependencies.LeaderPinger {
+
+        @Value.Derived
+        SingleLeaderPinger pinger() {
+            return new SingleLeaderPinger(
+                    Maps.toMap(remoteClients().nonBatchPingableLeadersWithContext(), _pingable -> sharedExecutor()),
+                    leaderPingResponseWait(),
+                    leaderUuid());
+        }
+
+        @Override
+        public Factory<LeaderPinger> get() {
+            return _client -> pinger();
+        }
+
+        public abstract static class Builder implements LeaderPingerFactory.Builder {}
     }
 }
