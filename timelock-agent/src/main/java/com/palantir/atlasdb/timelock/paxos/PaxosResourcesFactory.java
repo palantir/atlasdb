@@ -40,6 +40,7 @@ import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
@@ -258,7 +259,7 @@ public final class PaxosResourcesFactory {
 
         @Value.Derived
         default boolean useLeaderForEachClient() {
-            return false;
+            return install().paxos().leaderMode() == PaxosLeaderMode.LEADER_PER_CLIENT;
         }
 
     }

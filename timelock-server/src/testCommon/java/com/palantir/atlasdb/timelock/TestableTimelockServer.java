@@ -16,13 +16,21 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
+import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TestableTimelockServer {
@@ -52,14 +60,34 @@ public class TestableTimelockServer {
     }
 
     TestableLeaderPinger pinger() {
-        PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class);
-        return namespaces -> {
-            if (pingableLeader.ping()) {
-                return ImmutableSet.copyOf(namespaces);
-            } else {
-                return ImmutableSet.of();
-            }
-        };
+        PaxosLeaderMode mode = serverHolder.installConfig().paxos().leaderMode();
+
+        switch (mode) {
+            case SINGLE_LEADER:
+                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class);
+                return namespaces -> {
+                    if (pingableLeader.ping()) {
+                        return ImmutableSet.copyOf(namespaces);
+                    } else {
+                        return ImmutableSet.of();
+                    }
+                };
+            case LEADER_PER_CLIENT:
+                BatchPingableLeader batchPingableLeader = proxies.singleNode(serverHolder, BatchPingableLeader.class);
+                return namespaces -> {
+                    Set<Client> typedNamespaces = Streams.stream(namespaces)
+                            .map(Client::of)
+                            .collect(Collectors.toSet());
+
+                    return batchPingableLeader.ping(typedNamespaces).stream()
+                            .map(Client::value)
+                            .collect(Collectors.toSet());
+                };
+            case AUTO_MIGRATION_MODE:
+                throw new UnsupportedOperationException("auto migration mode isn't supported just yet");
+        }
+
+        throw new SafeIllegalStateException("unexpected mode", SafeArg.of("mode", mode));
     }
 
     NamespacedClients client(String namespace) {
