@@ -22,7 +22,7 @@ services:
     build: .
     # We don't use console, because we might want to start/stop/restart the service.
     command: [bash, -c, '
-        dockerize -timeout 120s -wait tcp://cassandra:9160
+        dockerize -timeout 180s -wait tcp://cassandra:9160
         && service/bin/init.sh start
         && tail -F var/log/atlasdb-ete-startup.log']
     ports:
