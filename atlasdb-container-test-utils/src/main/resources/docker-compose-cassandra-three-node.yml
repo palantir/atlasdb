@@ -22,7 +22,7 @@ services:
   cassandra3:
     image: palantirtechnologies/cassandra:$CASSANDRA_VERSION
     depends_on:
-      - cassandra1
+      - cassandra2
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
@@ -32,6 +32,6 @@ services:
   cli:
     image: palantirtechnologies/cassandra:$CASSANDRA_VERSION
     depends_on:
-      - cassandra1
+      - cassandra3
     entrypoint: [bash, -c, '"$$@"', --]
     command: exit
