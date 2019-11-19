@@ -123,7 +123,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             if (leaderEligibilityLoggingRateLimiter.tryAcquire()) {
                 log.debug("Not eligible for leadership");
             }
-            return;
+            throw new InterruptedException("leader no longer eligible");
         }
 
         if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {
