@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.util.concurrent.RateLimiter;
-import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.LeaderPingResult;
@@ -123,7 +122,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             if (leaderEligibilityLoggingRateLimiter.tryAcquire()) {
                 log.debug("Not eligible for leadership");
             }
-            return;
+            throw new InterruptedException("leader no longer eligible");
         }
 
         if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {
@@ -279,7 +278,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
                 log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
                         + " state was {}.",
                         SafeArg.of("leadershipState", leadershipState));
-                throw new ServiceNotAvailableException("Couldn't relinquish leadership", e);
+                return false;
             }
         }
         return false;
