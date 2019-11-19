@@ -1,5 +1,5 @@
 type: fix
 fix:
-  description: Remove the populateIoCacheOnFlush field from the CassandraTableCreator.
+  description: Remove the `populateIoCacheOnFlush` field from the `CassandraTableCreator`.
   links:
   - https://github.com/palantir/atlasdb/pull/4422
