@@ -103,11 +103,7 @@ public class LeadershipComponents {
 
     private static void shutdownLeaderElectionService(LeaderElectionService leaderElectionService) {
         leaderElectionService.markNotEligibleForLeadership();
-        try {
-            leaderElectionService.stepDown();
-        } catch (Exception e) {
-            log.info("could not step down, continuing shutdown anyway", e);
-        }
+        leaderElectionService.stepDown();
     }
 
     private static class ShutdownAwareCloser {
