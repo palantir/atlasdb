@@ -36,6 +36,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
+import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
@@ -68,13 +69,25 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
         Consumer<Object> registrar = component -> environment.jersey().register(component);
 
-        TimeLockAgent.create(
+        TimeLockAgent timeLockAgent = TimeLockAgent.create(
                 metricsManager,
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 registrar);
+
+        environment.lifecycle().manage(new Managed() {
+            @Override
+            public void start() {
+
+            }
+
+            @Override
+            public void stop() {
+                timeLockAgent.shutdown();
+            }
+        });
     }
 
     @Provider

@@ -188,7 +188,7 @@ public class AsyncLockService implements Closeable {
         return leaderClock.time();
     }
 
-    public LockWatchingService LockWatchingService() {
+    public LockWatchingService getLockWatchingService() {
         return lockWatchingService;
     }
 

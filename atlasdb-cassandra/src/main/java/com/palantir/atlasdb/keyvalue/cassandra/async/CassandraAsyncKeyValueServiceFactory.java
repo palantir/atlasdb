@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.http;
 
-import java.util.List;
+package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timestamp.TimestampService;
 
-public final class TimestampClient {
-    private TimestampClient() {
-    }
-
-    public static TimestampService create(MetricsManager metricsManager, List<String> hosts) {
-        return TimelockUtils.createClient(metricsManager, hosts, TimestampService.class);
-    }
+public interface CassandraAsyncKeyValueServiceFactory {
+    AsyncKeyValueService constructAsyncKeyValueService(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            boolean initializeAsync);
 }

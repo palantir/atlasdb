@@ -18,8 +18,6 @@ package com.palantir.atlasdb.cassandra;
 
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -83,7 +81,7 @@ public final class CassandraServersConfigs {
 
         <T> T accept(Visitor<T> visitor);
 
-        int numberOfThriftHosts();
+        int numberOfHosts();
     }
 
     @Value.Immutable
@@ -97,7 +95,8 @@ public final class CassandraServersConfigs {
         public abstract Set<InetSocketAddress> thriftHosts();
 
         @Override
-        public int numberOfThriftHosts() {
+        @Value.Derived
+        public int numberOfHosts() {
             return thriftHosts().size();
         }
 
@@ -123,22 +122,20 @@ public final class CassandraServersConfigs {
 
         public abstract Set<InetSocketAddress> cqlHosts();
 
-        public abstract Optional<SocketAddress> socksProxy();
-
         @Value.Default
         public CqlCapableConfigTuning tuning() {
             return ImmutableCqlCapableConfigTuning.builder().build();
         }
 
         @Override
-        public final int numberOfThriftHosts() {
-            return thriftHosts().size();
+        @Value.Derived
+        public int numberOfHosts() {
+            return Math.max(thriftHosts().size(), cqlHosts().size());
         }
 
         @Value.Check
         final void check() {
             checkPortNumbers(thriftHosts(), "'thriftPort'");
-
             checkPortNumbers(cqlHosts(), "'cqlPort'");
         }
 

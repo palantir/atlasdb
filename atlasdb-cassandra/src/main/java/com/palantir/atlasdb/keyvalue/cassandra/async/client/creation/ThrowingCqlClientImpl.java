@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.async;
+package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 
 public final class ThrowingCqlClientImpl implements CqlClient {

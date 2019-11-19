@@ -33,14 +33,14 @@ import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 @Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)
 public class PaxosSuite {
 
-    public static final TestableTimelockCluster NON_BATCHED_PAXOS = new TestableTimelockCluster(
+    public static final TestableTimelockCluster NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
             ImmutableClusterName.of("non-batched paxos"),
             "https://localhost",
             "paxosMultiServer0.yml",
             "paxosMultiServer1.yml",
             "paxosMultiServer2.yml");
 
-    public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
+    public static final TestableTimelockCluster BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
             ImmutableClusterName.of("batched paxos"),
             "https://localhost",
             "paxosMultiServerBatch0.yml",
@@ -49,7 +49,7 @@ public class PaxosSuite {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestableTimelockCluster> params() {
-        return ImmutableSet.of(NON_BATCHED_PAXOS, BATCHED_PAXOS);
+        return ImmutableSet.of(NON_BATCHED_TIMESTAMP_PAXOS, BATCHED_TIMESTAMP_PAXOS);
     }
 
     @Rule

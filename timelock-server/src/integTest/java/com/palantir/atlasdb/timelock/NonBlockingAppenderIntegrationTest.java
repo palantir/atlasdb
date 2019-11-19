@@ -25,8 +25,6 @@ public class NonBlockingAppenderIntegrationTest {
             "https://localhost",
             "paxosSingleServerWithNonBlockingAppender.yml");
 
-    private static final TestableTimelockServer SERVER = CLUSTER.servers().get(0);
-
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
@@ -37,7 +35,7 @@ public class NonBlockingAppenderIntegrationTest {
 
     @Test
     public void canDeserializeConfigAndStart() {
-        SERVER.getFreshTimestamp();
+        CLUSTER.clientForRandomNamespace().getFreshTimestamp();
     }
 
 }

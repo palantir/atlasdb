@@ -34,21 +34,20 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.async.futures.CqlFuturesCombiner;
-import com.palantir.atlasdb.keyvalue.cassandra.async.futures.DefaultCqlFuturesCombiner;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
-import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec.GetQueryParameters;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
 import com.palantir.common.random.RandomBytes;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AsyncCellLoaderTests {
+public class CassandraAsyncKeyValueServiceTests {
     private static final String KEYSPACE = "test";
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "foo");
     // tests are imagined as if the visible data has a timestamp lower than 20 and non visible data has timestamp higher
@@ -61,20 +60,21 @@ public class AsyncCellLoaderTests {
             .tableReference(TABLE)
             .build();
 
-    private AsyncCellLoader asyncCellLoader;
-    private CqlFuturesCombiner cqlFuturesCombiner;
+    private AsyncKeyValueService asyncKeyValueService;
     @Mock
     private CqlClient cqlClient;
 
     @Before
     public void setUp() {
-        cqlFuturesCombiner = new DefaultCqlFuturesCombiner(MoreExecutors.newDirectExecutorService());
-        asyncCellLoader = AsyncCellLoader.create(cqlClient, cqlFuturesCombiner, KEYSPACE);
+        asyncKeyValueService = CassandraAsyncKeyValueService.create(
+                KEYSPACE,
+                cqlClient,
+                AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
     }
 
     @After
     public void tearDown() {
-        cqlFuturesCombiner.close();
+        asyncKeyValueService.close();
     }
 
     @Test
@@ -82,8 +82,7 @@ public class AsyncCellLoaderTests {
         setUpNonVisibleCells(NON_VISIBLE_CELL);
 
         Map<Cell, Long> request = ImmutableMap.of(NON_VISIBLE_CELL, TIMESTAMP);
-
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
+        Map<Cell, Value> result = asyncKeyValueService.getAsync(TABLE, request).get();
 
         assertThat(result).isEmpty();
     }
@@ -96,11 +95,9 @@ public class AsyncCellLoaderTests {
         Map<Cell, Long> request = ImmutableMap.of(
                 NON_VISIBLE_CELL, TIMESTAMP,
                 VISIBLE_CELL_1, TIMESTAMP);
+        Map<Cell, Value> result = asyncKeyValueService.getAsync(TABLE, request).get();
 
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
-
-        assertThat(result)
-                .containsOnlyKeys(VISIBLE_CELL_1);
+        assertThat(result).containsOnlyKeys(VISIBLE_CELL_1);
     }
 
     @Test
@@ -110,11 +107,9 @@ public class AsyncCellLoaderTests {
         Map<Cell, Long> request = ImmutableMap.of(
                 VISIBLE_CELL_1, TIMESTAMP,
                 VISIBLE_CELL_2, TIMESTAMP);
+        Map<Cell, Value> result = asyncKeyValueService.getAsync(TABLE, request).get();
 
-        Map<Cell, Value> result = asyncCellLoader.loadAllWithTimestamp(TABLE, request).get();
-
-        assertThat(result)
-                .containsOnlyKeys(VISIBLE_CELL_1, VISIBLE_CELL_2);
+        assertThat(result).containsOnlyKeys(VISIBLE_CELL_1, VISIBLE_CELL_2);
     }
 
     private void setUpVisibleCells(Cell... cells) {
@@ -132,11 +127,11 @@ public class AsyncCellLoaderTests {
         }
     }
 
-    private static GetQuerySpec buildGetQuerySpec(GetQueryParameters getQueryParameters) {
+    private static GetQuerySpec buildGetQuerySpec(GetQuerySpec.GetQueryParameters getQueryParameters) {
         return new GetQuerySpec(CQL_QUERY_CONTEXT, getQueryParameters);
     }
 
-    private static GetQueryParameters buildGetQueryParameter(Cell cell) {
+    private static GetQuerySpec.GetQueryParameters buildGetQueryParameter(Cell cell) {
         return ImmutableGetQueryParameters.builder()
                 .cell(cell)
                 .humanReadableTimestamp(TIMESTAMP)

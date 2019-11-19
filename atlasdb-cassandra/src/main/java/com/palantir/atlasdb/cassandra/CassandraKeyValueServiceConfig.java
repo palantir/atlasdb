@@ -31,8 +31,8 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactory;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientFactoryImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -137,7 +137,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     default double localHostWeighting() {
-        return 0.5;
+        return 1.0;
     }
 
     /**
@@ -181,12 +181,15 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     Optional<SslConfiguration> sslConfiguration();
 
     /**
-     * An object which implements the logic behind CQL client resource management. Default implementation creates a new
-     * one per CKVS.
+     * An object which implements the logic behind CQL communication resource management. Default factory object creates
+     * a new {@link com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService} with new session and thread pool every time.
+     * For smarter resource management this option should be programmatically set for client specific resource
+     * management.
      */
     @Value.Default
-    default CqlClientFactory cqlClientFactory() {
-        return CqlClientFactoryImpl.DEFAULT;
+    @JsonIgnore
+    default CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
+        return DefaultCassandraAsyncKeyValueServiceFactory.DEFAULT;
     }
 
     int replicationFactor();
@@ -322,7 +325,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Override
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().numberOfThriftHosts();
+        return poolSize() * servers().numberOfHosts();
     }
 
     @JsonIgnore

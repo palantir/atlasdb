@@ -24,6 +24,7 @@ import org.junit.rules.ExternalResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
+import com.palantir.logsafe.Preconditions;
 
 import io.dropwizard.testing.DropwizardTestSupport;
 
@@ -36,6 +37,7 @@ public class TimeLockServerHolder extends ExternalResource {
     private Supplier<String> configFilePathSupplier;
     private DropwizardTestSupport<CombinedTimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
+    private boolean portInitialised = false;
     private int timelockPort;
 
     TimeLockServerHolder(Supplier<String> configFilePathSupplier) {
@@ -53,6 +55,7 @@ public class TimeLockServerHolder extends ExternalResource {
         timelockServer = new DropwizardTestSupport<>(TimeLockServerLauncher.class, configFilePathSupplier.get());
         timelockServer.before();
         isRunning = true;
+        portInitialised = true;
     }
 
     @Override
@@ -64,12 +67,18 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     public int getTimelockPort() {
+        checkTimelockPortInitialised();
         return timelockPort;
     }
 
     public String getTimelockUri() {
+        checkTimelockPortInitialised();
         // TODO(nziebart): hack
         return "https://localhost:" + timelockPort;
+    }
+
+    private void checkTimelockPortInitialised() {
+        Preconditions.checkState(portInitialised, "timelock server isn't running yet, bad initialisation?");
     }
 
     public synchronized void kill() {

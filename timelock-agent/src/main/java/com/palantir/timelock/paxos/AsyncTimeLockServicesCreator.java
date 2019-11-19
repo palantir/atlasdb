@@ -40,6 +40,7 @@ import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
@@ -51,54 +52,47 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
     private final MetricsManager metricsManager;
     private final LockLog lockLog;
-    private final PaxosLeadershipCreator leadershipCreator;
+    private final LeadershipComponents leadershipComponents;
     private final Map<Client, LockDiagnosticConfig> lockDiagnosticConfig;
     private final Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier;
 
-    public AsyncTimeLockServicesCreator(
+    AsyncTimeLockServicesCreator(
             MetricsManager metricsManager,
             LockLog lockLog,
-            PaxosLeadershipCreator leadershipCreator,
+            LeadershipComponents leadershipComponents,
             // TODO(fdesouza): Remove this once PDS-95791 is resolved.
             Map<Client, LockDiagnosticConfig> lockDiagnosticConfig,
             Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier) {
         this.metricsManager = metricsManager;
         this.lockLog = lockLog;
-        this.leadershipCreator = leadershipCreator;
+        this.leadershipComponents = leadershipComponents;
         this.lockDiagnosticConfig = lockDiagnosticConfig;
         this.lockControlConfigSupplier = lockControlConfigSupplier;
     }
 
     @Override
     public TimeLockServices createTimeLockServices(
-            String client,
+            Client client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
-
         LockLog maybeEnhancedLockLog = maybeEnhancedLockLog(client);
 
-        Supplier<AsyncTimelockServiceImpl> rawAsyncTimelockServiceSupplier = Suppliers.memoize(() ->
-                createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
-
-        AsyncTimelockService asyncTimelockService = leadershipCreator.wrapInLeadershipProxy(
-                rawAsyncTimelockServiceSupplier::get,
+        AsyncTimelockService asyncTimelockService = leadershipComponents.wrapInLeadershipProxy(
+                client,
+                "timelock-async-timelock-service",
                 AsyncTimelockService.class,
-                client);
+                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
+
         AsyncTimelockResource asyncTimelockResource =
                 new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
+        LockWatchingResource lockWatchingResource = new LockWatchingResource(asyncTimelockService);
 
-        LockWatchingService lockWatchingService = leadershipCreator.wrapInLeadershipProxy(
-                Suppliers.compose(AsyncTimelockServiceImpl::getLockWatchingService,
-                        rawAsyncTimelockServiceSupplier::get),
-                LockWatchingService.class,
-                client);
-        LockWatchingResource lockWatchingResource = new LockWatchingResource(lockWatchingService);
-
-        LockService lockService = leadershipCreator.wrapInLeadershipProxy(
-                Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
+        LockService lockService = leadershipComponents.wrapInLeadershipProxy(
+                client,
+                "timelock-lock-service",
                 LockService.class,
-                client);
+                Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get));
 
         return TimeLockServices.create(
                 asyncTimelockService,
@@ -109,7 +103,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private AsyncTimelockServiceImpl createRawAsyncTimelockService(
-            String client,
+            Client client,
             Supplier<ManagedTimestampService> timestampServiceSupplier,
             LockLog maybeEnhancedLockLog) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
@@ -131,19 +125,19 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 timestampServiceSupplier.get());
     }
 
+    private Supplier<RateLimitConfig> rateLimitConfig(Client client) {
+        return () -> lockControlConfigSupplier.get().rateLimitConfig(client.value());
+    }
+
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
      * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
-    private LockLog maybeEnhancedLockLog(String client) {
-        return Optional.ofNullable(lockDiagnosticConfig.get(Client.of(client)))
+    private LockLog maybeEnhancedLockLog(Client client) {
+        return Optional.ofNullable(lockDiagnosticConfig.get(client))
                 .map(lockLog::withLockRequestDiagnosticCollection)
                 .orElse(lockLog);
-    }
-
-    private Supplier<RateLimitConfig> rateLimitConfig(String client) {
-        return () -> lockControlConfigSupplier.get().rateLimitConfig(client);
     }
 
 }

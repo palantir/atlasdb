@@ -23,7 +23,9 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.processors.AutoDelegate;
 
+@AutoDelegate
 public interface LockWatchingService {
     void startWatching(LockWatchRequest locksToWatch);
     void stopWatching(LockWatchRequest locksToUnwatch);

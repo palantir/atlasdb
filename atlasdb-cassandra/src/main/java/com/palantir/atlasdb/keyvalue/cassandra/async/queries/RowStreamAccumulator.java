@@ -23,6 +23,7 @@ import com.datastax.driver.core.Row;
 /**
  * {@code RowStreamAccumulator} defines an interface which should be implemented to process {@code Stream} of
  * {@code Row}s retrieved from Cassandra.
+ *
  * @param <R> type of the result of accumulating all rows
  */
 public interface RowStreamAccumulator<R> {
@@ -40,6 +41,7 @@ public interface RowStreamAccumulator<R> {
      * Should be called after all intended streams are processed. Will return the current state of the accumulator
      * without knowing if it is the end result. If invoked concurrently with either{@code accumulateRowStream}
      * or {@code result} the behaviour is not defined.
+     *
      * @return accumulated result
      */
     R result();

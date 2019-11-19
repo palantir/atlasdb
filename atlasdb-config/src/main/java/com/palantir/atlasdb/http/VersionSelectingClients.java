@@ -68,7 +68,7 @@ final class VersionSelectingClients {
                 errorMetric::increment);
     }
 
-    private static <T> T instrumentWithClientVersionTag(
+    static <T> T instrumentWithClientVersionTag(
             TaggedMetricRegistry taggedMetricRegistry,
             TargetFactory.InstanceAndVersion<T> client,
             Class<T> clazz) {

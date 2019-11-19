@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.http;
 
-import java.util.List;
+package com.palantir.atlasdb.timelock.paxos;
 
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.paxos.LeaderPinger;
+import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 
-public final class TimestampClient {
-    private TimestampClient() {
+public interface Factories {
+    interface LeaderPingerFactory {
+        LeaderPinger create(Dependencies.LeaderPinger dependencies);
     }
 
-    public static TimestampService create(MetricsManager metricsManager, List<String> hosts) {
-        return TimelockUtils.createClient(metricsManager, hosts, TimestampService.class);
+    interface LeaderPingHealthCheckFactory {
+        LeaderPingHealthCheck create(Dependencies.LeaderPingHealthCheck dependencies);
     }
 }
