@@ -85,7 +85,7 @@ public abstract class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Map<String, String> environment) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.FIVE_MINUTES, environment);
     }
 
     public static RuleChain setupComposition(
