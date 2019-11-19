@@ -105,17 +105,17 @@ public class TestableTimelockCluster implements TestRule {
         }
     }
 
-    void waitUntilLeaderIsElected(List<String> clients) {
-        waitUntilReadyToServeClients(clients);
+    void waitUntilLeaderIsElected(List<String> namespaces) {
+        waitUntilReadyToServeNamespaces(namespaces);
     }
 
-    private void waitUntilReadyToServeClients(List<String> clients) {
+    private void waitUntilReadyToServeNamespaces(List<String> namespaces) {
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        clients.forEach(name -> client(name).getFreshTimestamp());
+                        namespaces.forEach(name -> client(name).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -123,9 +123,9 @@ public class TestableTimelockCluster implements TestRule {
                 });
     }
 
-    void waitUntilAllServersOnlineAndReadyToServeClients(List<String> additionalClients) {
+    void waitUntilAllServersOnlineAndReadyToServeNamespaces(List<String> namespaces) {
         servers.forEach(TestableTimelockServer::start);
-        waitUntilReadyToServeClients(additionalClients);
+        waitUntilReadyToServeNamespaces(namespaces);
     }
 
     TestableTimelockServer currentLeaderFor(String namespace) {

@@ -64,7 +64,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Before
     public void bringAllNodesOnline() {
         namespace = cluster.clientForRandomNamespace();
-        cluster.waitUntilAllServersOnlineAndReadyToServeClients(ImmutableList.of(namespace.namespace()));
+        cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(namespace.namespace()));
     }
 
     @Test
@@ -119,7 +119,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         bringAllNodesOnline();
         for (TestableTimelockServer server : cluster.servers()) {
             server.kill();
-            cluster.waitUntilAllServersOnlineAndReadyToServeClients(ImmutableList.of(namespace.namespace()));
+            cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(namespace.namespace()));
             namespace.getFreshTimestamp();
             server.start();
         }
