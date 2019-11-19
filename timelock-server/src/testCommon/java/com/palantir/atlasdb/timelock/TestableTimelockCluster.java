@@ -151,7 +151,7 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     private static Predicate<InProgressResponseState<TestableTimelockServer, PaxosContainer<Set<String>>>>
-    untilAllNamespacesAreSeen(Set<String> namespacesIterable) {
+            untilAllNamespacesAreSeen(Set<String> namespacesIterable) {
         return state -> state.responses().values().stream()
                 .filter(PaxosContainer::isSuccessful)
                 .map(PaxosContainer::get)
@@ -166,7 +166,7 @@ public class TestableTimelockCluster implements TestRule {
 
         assertThat(currentLeaderPerNamespace.asMap().values())
                 .as("there should only be one leader per namespace")
-                .allMatch(servers -> servers.size() == 1);
+                .allMatch(leadersForNamespace -> leadersForNamespace.size() == 1);
 
         return KeyedStream.stream(currentLeaderPerNamespace)
                 .flatMap(leader -> serverToOtherServers.get(leader).stream())
