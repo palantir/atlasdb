@@ -47,7 +47,7 @@ public class HeldLocksCollectionTest {
     private AtomicLong atomicLong = new AtomicLong(1);
     private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, atomicLong::incrementAndGet);
     private LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> time.get());
-    private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(lockWatchingService, leaderClock);
+    private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(leaderClock);
 
     @Test
     public void callsSupplierForNewRequest() {
@@ -119,7 +119,7 @@ public class HeldLocksCollectionTest {
 
         Set<LockToken> expected = ImmutableSet.of(refreshableRequest);
         Set<LockToken> actual = heldLocksCollection.unlock(
-                ImmutableSet.of(refreshableRequest, nonRefreshableRequest));
+                ImmutableSet.of(refreshableRequest, nonRefreshableRequest)).lockTokens();
 
         assertThat(actual).isEqualTo(expected);
     }

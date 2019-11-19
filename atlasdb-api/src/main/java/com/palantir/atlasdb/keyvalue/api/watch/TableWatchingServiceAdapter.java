@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.transaction.api.KvsLockWatchingService;
 import com.palantir.lock.watch.LockWatchRequest;
@@ -29,17 +31,22 @@ public class TableWatchingServiceAdapter implements TableWatchingService {
     }
 
     @Override
-    public void registerWatches(TableElements lockWatchEntries) {
-        kvsLockWatchingService.registerWatches(LockWatchRequest.of(lockWatchEntries.asLockDescriptors()));
+    public void registerWatches(Set<TableElement> lockWatchEntries) {
+        kvsLockWatchingService.registerWatches(toRequest(lockWatchEntries));
     }
 
     @Override
-    public void deregisterWatches(TableElements lockWatchEntries) {
-        kvsLockWatchingService.deregisterWatches(LockWatchRequest.of(lockWatchEntries.asLockDescriptors()));
+    public void deregisterWatches(Set<TableElement> lockWatchEntries) {
+        kvsLockWatchingService.deregisterWatches(toRequest(lockWatchEntries));
     }
 
     @Override
     public TableWatchState getLockWatchState(Optional<Long> lastKnownState) {
         return null;
+    }
+
+    private static LockWatchRequest toRequest(Set<TableElement> tableElements) {
+        return LockWatchRequest.of(
+                tableElements.stream().map(TableElement::getAsRange).collect(Collectors.toSet()));
     }
 }

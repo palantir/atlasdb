@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
@@ -93,15 +94,13 @@ public class HeldLocksCollection {
         heldLocksById.values().forEach(result -> result.failIfNotCompleted(ex));
     }
 
-    public Set<LockDescriptor> heldLocksMatching(LockDescriptor lockDescriptor) {
+    public Stream<LockDescriptor> locksHeld() {
         return heldLocksById.values().stream()
                 .filter(AsyncResult::isCompletedSuccessfully)
                 .<HeldLocks>map(AsyncResult::get)
                 .map(HeldLocks::getLocks)
-                .flatMap(Collection::stream)
-                .map(AsyncLock::getDescriptor)
-                .filter(lockDescriptor::isPrefixOf)
-                .collect(Collectors.toSet());
+                .<AsyncLock>flatMap(Collection::stream)
+                .map(AsyncLock::getDescriptor);
     }
 
     private Leased<LockToken> createLeasableLockToken(HeldLocks heldLocks) {

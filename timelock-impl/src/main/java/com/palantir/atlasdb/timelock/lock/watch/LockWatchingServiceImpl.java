@@ -18,9 +18,9 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.stream.Collectors;
 
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -30,7 +30,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 public class LockWatchingServiceImpl implements LockWatchingService {
     private final LockEventLog lockEventLog;
     private final HeldLocksCollection heldLocksCollection;
-    private final ConcurrentSkipListSet<LockDescriptor> watches = new ConcurrentSkipListSet<>();
+    private final RangeSet<LockDescriptor> ranges = TreeRangeSet.create();
 
     public LockWatchingServiceImpl(LockEventLog lockEventLog, HeldLocksCollection heldLocksCollection) {
         this.lockEventLog = lockEventLog;
@@ -39,24 +39,10 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
-        addToWatches(locksToWatch);
-        logOpenLocks(locksToWatch);
+        RangeSet<LockDescriptor> newRanges = TreeRangeSet.create(locksToWatch.ranges());
+        addToWatches(newRanges);
+        logOpenLocks(newRanges);
         logLockWatchEvent(locksToWatch);
-    }
-
-    private void addToWatches(LockWatchRequest locksToWatch) {
-        watches.addAll(locksToWatch.watchPrefixes());
-    }
-
-    private void logOpenLocks(LockWatchRequest locksToWatch) {
-        lockEventLog.logOpenLocks(locksToWatch.watchPrefixes().stream()
-                .map(heldLocksCollection::heldLocksMatching)
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet()));
-    }
-
-    private void logLockWatchEvent(LockWatchRequest locksToWatch) {
-        lockEventLog.logLockWatchCreated(locksToWatch);
     }
 
     @Override
@@ -79,8 +65,19 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         lockEventLog.logUnlock(unlocked.stream().filter(this::hasLockWatch));
     }
 
-    private boolean hasLockWatch(LockDescriptor lockDescriptor) {
-        LockDescriptor candidate = watches.headSet(lockDescriptor, true).last();
-        return candidate != null && candidate.isPrefixOf(lockDescriptor);
+    private synchronized void addToWatches(RangeSet<LockDescriptor> locksToWatch) {
+        ranges.addAll(locksToWatch);
+    }
+
+    private void logOpenLocks(RangeSet<LockDescriptor> locksToWatch) {
+        lockEventLog.logOpenLocks(heldLocksCollection.locksHeld().filter(locksToWatch::contains));
+    }
+
+    private void logLockWatchEvent(LockWatchRequest locksToWatch) {
+        lockEventLog.logLockWatchCreated(locksToWatch);
+    }
+
+    private synchronized boolean hasLockWatch(LockDescriptor lockDescriptor) {
+        return ranges.contains(lockDescriptor);
     }
 }

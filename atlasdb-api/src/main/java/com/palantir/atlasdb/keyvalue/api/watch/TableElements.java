@@ -16,28 +16,102 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
 
-import com.palantir.lock.AtlasLockDescriptors;
+import com.google.common.collect.Range;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.AtlasLockDescriptorRanges;
 import com.palantir.lock.LockDescriptor;
 
-@Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public interface TableElements {
-    Set<PrefixReference> prefixes();
+public class TableElements {
+    private TableElements() {
+        // no
+    }
 
-    @Value.Lazy
-    default Set<LockDescriptor> asLockDescriptors() {
-        return prefixes().stream()
-                .map(reference -> {
-                    String table = reference.tableRef().getQualifiedName();
-                    return reference.prefix().isPresent()
-                            ? AtlasLockDescriptors.prefix(table, reference.prefix().get())
-                            : AtlasLockDescriptors.fullTable(table);
-                })
-                .collect(Collectors.toSet());
+    public static TableElement entireTable(TableReference tableRef) {
+        return ImmutableEntireTable.of(tableRef);
+    }
+
+    public static TableElement rowPrefix(TableReference tableRef, byte[] rowPrefix) {
+        return ImmutableRowPrefix.of(tableRef, rowPrefix);
+    }
+
+    public static TableElement rowRange(TableReference tableRef, byte[] startInclusive, byte[] endExclusive) {
+        return ImmutableRowRange.of(tableRef, startInclusive, endExclusive);
+    }
+
+    public static TableElement exactRow(TableReference tableRef, byte[] row) {
+        return ImmutableExactRow.of(tableRef, row);
+    }
+
+    public static TableElement exactCell(TableReference tableRef, Cell cell) {
+        return ImmutableExactCell.of(tableRef, cell);
+    }
+
+    @Value.Immutable
+    static abstract class EntireTable implements TableElement {
+        @Value.Parameter
+        abstract TableReference tableRef();
+
+        @Override
+        public Range<LockDescriptor> getAsRange() {
+            return AtlasLockDescriptorRanges.fullTable(tableRef().getQualifiedName());
+        }
+    }
+
+    @Value.Immutable
+    static abstract class RowPrefix implements TableElement {
+        @Value.Parameter
+        abstract TableReference tableRef();
+        @Value.Parameter
+        abstract byte[] row();
+
+        @Override
+        public Range<LockDescriptor> getAsRange() {
+            return AtlasLockDescriptorRanges.rowPrefix(tableRef().getQualifiedName(), row());
+        }
+    }
+
+    @Value.Immutable
+    static abstract class RowRange implements TableElement {
+        @Value.Parameter
+        abstract TableReference tableRef();
+        @Value.Parameter
+        abstract byte[] startInclusive();
+        @Value.Parameter
+        abstract byte[] endExclusive();
+
+        @Override
+        public Range<LockDescriptor> getAsRange() {
+            return AtlasLockDescriptorRanges.rowRange(tableRef().getQualifiedName(), startInclusive(), endExclusive());
+        }
+    }
+
+    @Value.Immutable
+    static abstract class ExactRow implements TableElement {
+        @Value.Parameter
+        abstract TableReference tableRef();
+        @Value.Parameter
+        abstract byte[] row();
+
+        @Override
+        public Range<LockDescriptor> getAsRange() {
+            return AtlasLockDescriptorRanges.exactRow(tableRef().getQualifiedName(), row());
+        }
+    }
+
+    @Value.Immutable
+    static abstract class ExactCell implements TableElement {
+        @Value.Parameter
+        abstract TableReference tableRef();
+        @Value.Parameter
+        abstract Cell cell();
+
+        @Override
+        public Range<LockDescriptor> getAsRange() {
+            return AtlasLockDescriptorRanges
+                    .exactCell(tableRef().getQualifiedName(), cell().getRowName(), cell().getColumnName());
+        }
     }
 }

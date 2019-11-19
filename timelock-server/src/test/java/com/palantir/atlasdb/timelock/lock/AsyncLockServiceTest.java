@@ -60,16 +60,17 @@ public class AsyncLockServiceTest {
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
+    private final DeterministicScheduler timeoutExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
             locks,
             mock(TargetedSweepLockDecorator.class),
             immutableTimestampTracker,
-            acquirer,
             heldLocks,
             awaitedLocks,
             reaperExecutor,
+            timeoutExecutor,
             leaderClock,
-            mock(LockLog.class), lockWatchingService);
+            mock(LockLog.class));
 
     @Before
     public void before() {

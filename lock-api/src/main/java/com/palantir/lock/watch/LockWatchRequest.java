@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.Range;
 import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
@@ -29,11 +30,11 @@ import com.palantir.lock.LockDescriptor;
 @JsonSerialize(as = ImmutableLockWatchRequest.class)
 @JsonDeserialize(as = ImmutableLockWatchRequest.class)
 public interface LockWatchRequest {
-    Set<LockDescriptor> watchPrefixes();
+    Set<Range<LockDescriptor>> ranges();
 
-    static LockWatchRequest of(Set<LockDescriptor> watchPrefixes) {
+    static LockWatchRequest of(Set<Range<LockDescriptor>> ranges) {
         return ImmutableLockWatchRequest.builder()
-                .watchPrefixes(watchPrefixes)
+                .ranges(ranges)
                 .build();
     }
 }

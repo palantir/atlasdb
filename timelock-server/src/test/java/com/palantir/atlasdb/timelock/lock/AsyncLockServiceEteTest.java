@@ -66,12 +66,12 @@ public class AsyncLockServiceEteTest {
             new LockCollection(OrderedLocksDecorator.DO_NOTHING),
             mock(TargetedSweepLockDecorator.class),
             new ImmutableTimestampTracker(),
-            new LockAcquirer(lockLog, Executors.newSingleThreadScheduledExecutor(), clock),
             HeldLocksCollection.create(clock),
             new AwaitedLocksCollection(),
             executor,
+            Executors.newSingleThreadScheduledExecutor(),
             clock,
-            lockLog, lockWatchingService);
+            lockLog);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();

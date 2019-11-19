@@ -28,6 +28,6 @@ public interface LockEventLog {
     LockWatchStateUpdate getLogDiff(Optional<Long> fromVersion);
     void logLock(Stream<LockDescriptor> locksTakenOut);
     void logUnlock(Stream<LockDescriptor> locksUnlocked);
-    void logOpenLocks(Set<LockDescriptor> openLocks);
+    void logOpenLocks(Stream<LockDescriptor> openLocks);
     void logLockWatchCreated(LockWatchRequest locksToWatch);
 }

@@ -67,21 +67,6 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
                 + "]";
     }
 
-    public boolean isPrefixOf(LockDescriptor other) {
-        if (other == null) {
-            return false;
-        }
-        if (this.bytes.length > other.bytes.length) {
-            return false;
-        }
-        for(int i = 0; i < this.bytes.length; i++) {
-            if (this.bytes[i] != other.bytes[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     private String encodeToAscii(String lockIdAsString) {
         return BASIC_PRINTABLE_ASCII.matchesAllOf(lockIdAsString)
                 ? lockIdAsString

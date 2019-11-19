@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.lock;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-public final class AtlasLockDescriptors {
-    private AtlasLockDescriptors() {
-        // no
-    }
+import com.google.common.collect.Range;
+import com.palantir.lock.LockDescriptor;
 
-    public static LockDescriptor prefix(String qualifiedTableName, byte[] rowOrCellPrefix) {
-        return AtlasRowLockDescriptor.of(qualifiedTableName, rowOrCellPrefix);
-    }
-
-    public static LockDescriptor fullTable(String qualifiedTableName) {
-        return new LockDescriptor(qualifiedTableName.getBytes());
-    }
+public interface TableElement {
+    Range<LockDescriptor> getAsRange();
 }
