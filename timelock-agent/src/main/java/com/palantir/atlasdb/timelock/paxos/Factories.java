@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.LeaderPinger;
@@ -40,6 +41,31 @@ public interface Factories {
 
     interface LeaderPingHealthCheckFactory {
         List<HealthCheckPinger> create(Dependencies.HealthCheckPinger dependencies);
+    }
+
+    @Value.Immutable
+    abstract class BatchingLeaderPingerFactory implements LeaderPingerFactory, Dependencies.LeaderPinger {
+
+        @Value.Derived
+        AutobatchingPingableLeaderFactory pingableLeaderFactory() {
+            return AutobatchingPingableLeaderFactory.create(
+                    Maps.toMap(remoteClients().batchPingableLeadersWithContext(), _pingableLeader -> sharedExecutor()),
+                    leaderPingResponseWait(),
+                    leaderUuid());
+        }
+
+        @Override
+        public Factory<LeaderPinger> get() {
+            return pingableLeaderFactory()::leaderPingerFor;
+        }
+
+        @Override
+        @Value.Derived
+        public List<Closeable> closeables() {
+            return ImmutableList.of(pingableLeaderFactory());
+        }
+
+        public abstract static class Builder implements LeaderPingerFactory.Builder {}
     }
 
     @Value.Immutable

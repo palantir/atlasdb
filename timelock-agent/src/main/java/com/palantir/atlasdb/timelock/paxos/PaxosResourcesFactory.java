@@ -64,9 +64,15 @@ public final class PaxosResourcesFactory {
                 .addAdhocResources(new TimestampPaxosResource(timestampContext.components()));
 
         if (install.useLeaderForEachClient()) {
-            throw new UnsupportedOperationException("not implemented yet");
+            return configureLeaderForEachClient(
+                    resourcesBuilder,
+                    install,
+                    metrics,
+                    paxosRuntime,
+                    sharedExecutor,
+                    remoteClients);
         } else {
-            configureLeaderForAllClients(
+            return configureLeaderForAllClients(
                     resourcesBuilder,
                     install,
                     metrics,
@@ -74,11 +80,46 @@ public final class PaxosResourcesFactory {
                     sharedExecutor,
                     remoteClients);
         }
-
-        return resourcesBuilder.build();
     }
 
-    private static void configureLeaderForAllClients(
+    private static PaxosResources configureLeaderForEachClient(
+            ImmutablePaxosResources.Builder resourcesBuilder,
+            TimelockPaxosInstallationContext install,
+            MetricsManager metrics,
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
+            ExecutorService sharedExecutor,
+            PaxosRemoteClients remoteClients) {
+        TimelockPaxosMetrics timelockMetrics =
+                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics.getTaggedRegistry());
+
+        Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
+            BatchPingableLeader local = dependencies.components().batchPingableLeader();
+            List<BatchPingableLeader> remotes = dependencies.remoteClients().batchPingableLeaders();
+            return Stream.concat(Stream.of(local), remotes.stream())
+                    .map(MultiLeaderHealthCheckPinger::new)
+                    .collect(Collectors.toList());
+        };
+
+        LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
+                .install(install)
+                .sharedExecutor(sharedExecutor)
+                .remoteClients(remoteClients)
+                .runtime(paxosRuntime)
+                .useCase(PaxosUseCase.LEADER_FOR_EACH_CLIENT)
+                .metrics(timelockMetrics)
+                .networkClientFactoryBuilder(ImmutableBatchingNetworkClientFactories.builder())
+                .leaderPingerFactoryBuilder(ImmutableBatchingLeaderPingerFactory.builder())
+                .healthCheckPingersFactory(healthCheckPingersFactory)
+                .build();
+
+        return resourcesBuilder
+                .leadershipContextFactory(factory)
+                .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
+                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
+                .build();
+    }
+
+    private static PaxosResources configureLeaderForAllClients(
             ImmutablePaxosResources.Builder resourcesBuilder,
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
@@ -108,12 +149,14 @@ public final class PaxosResourcesFactory {
                 .healthCheckPingersFactory(healthCheckPingersFactory)
                 .build();
 
-        resourcesBuilder.leadershipContextFactory(factory);
-        resourcesBuilder.addAdhocResources(
-                new LeadershipResource(
-                        factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
-                        factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
-                factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
+        return resourcesBuilder
+                .leadershipContextFactory(factory)
+                .addAdhocResources(
+                        new LeadershipResource(
+                                factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
+                                factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+                        factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
+                .build();
     }
 
     private static PaxosUseCaseContext timestampContext(

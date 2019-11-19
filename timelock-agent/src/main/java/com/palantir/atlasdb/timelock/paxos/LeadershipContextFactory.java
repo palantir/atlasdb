@@ -27,6 +27,7 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
 
 @Value.Immutable
@@ -99,6 +100,7 @@ public abstract class LeadershipContextFactory implements
                 .leadershipMetrics(clientAwareComponents.leadershipMetrics())
                 .leaderElectionService(leaderElectionService)
                 .addCloseables(leaderElectionService)
+                .addAllCloseables(leaderPingerFactory().closeables())
                 .build();
     }
 
@@ -128,6 +130,11 @@ public abstract class LeadershipContextFactory implements
         @Value.Derived
         public PingableLeader localPingableLeader() {
             return components().pingableLeader(paxosClient());
+        }
+
+        @Value.Derived
+        public LeaderPinger leaderPinger() {
+            return leaderPingerFactory().get().create(paxosClient());
         }
 
         @Value.Derived
