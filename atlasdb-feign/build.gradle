@@ -51,7 +51,9 @@ dependencies {
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'org.jmock', name: 'jmock'
+  testCompile(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'org.hamcrest'
+  }
   testCompile group: 'com.github.tomakehurst', name: 'wiremock'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
