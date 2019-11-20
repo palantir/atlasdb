@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
@@ -76,7 +77,8 @@ public class TestTransactionManagerModule {
                 tss,
                 lockClient,
                 ImmutableList.of(follower),
-                transactionService)
+                transactionService,
+                MetricsManagers.createForTests())
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
                 .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
                 .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())

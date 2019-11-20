@@ -66,13 +66,15 @@ public class TransactionManagerModule {
                                   @Named("kvs") KeyValueService kvs,
                                   TimelockService timelock,
                                   Follower follower,
-                                  TransactionService transactionService) {
+                                  TransactionService transactionService,
+                                  MetricsManager metricsManager) {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
                 kvs,
                 timelock,
                 ImmutableList.of(follower),
-                transactionService)
+                transactionService,
+                metricsManager)
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
                 .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
                 .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())
