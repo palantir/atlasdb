@@ -10,7 +10,9 @@ dependencies {
     compile group: 'org.codehaus.groovy', name: 'groovy-groovysh'
     compile group: 'org.codehaus.groovy', name: 'groovy-json'
 
-    testCompile group: 'org.jmock', name: 'jmock-legacy'
+    testCompile(group: 'org.jmock', name: 'jmock-legacy') {
+        exclude group: 'org.hamcrest'
+    }
     testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
