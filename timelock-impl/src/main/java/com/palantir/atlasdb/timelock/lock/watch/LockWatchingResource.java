@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.Optional;
+import java.util.OptionalLong;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -51,7 +51,7 @@ public class LockWatchingResource {
 
     @POST
     @Path("watch-state")
-    public LockWatchStateUpdate getWatchState(Optional<Long> lastKnownVersion) {
+    public LockWatchStateUpdate getWatchState(OptionalLong lastKnownVersion) {
         return lockWatchingService.getWatchState(lastKnownVersion);
     }
 }

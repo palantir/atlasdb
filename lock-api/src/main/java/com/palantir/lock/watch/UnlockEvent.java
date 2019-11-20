@@ -26,7 +26,7 @@ import com.palantir.lock.v2.LockToken;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public abstract class LockEvent implements LockWatchEvent {
+public abstract class UnlockEvent implements LockWatchEvent {
     public abstract LockToken lockToken();
     public abstract Set<LockDescriptor> lockDescriptors();
 
@@ -36,7 +36,7 @@ public abstract class LockEvent implements LockWatchEvent {
     }
 
     public static Function<Long, LockWatchEvent> fromSeq(LockToken lockToken, Set<LockDescriptor> lockDescriptors) {
-        ImmutableLockEvent.Builder builder = ImmutableLockEvent.builder()
+        ImmutableUnlockEvent.Builder builder = ImmutableUnlockEvent.builder()
                 .lockToken(lockToken)
                 .lockDescriptors(lockDescriptors);
         return seq -> builder.sequence(seq).build();

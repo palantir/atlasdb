@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,27 +25,32 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.TableElements;
+import com.palantir.atlasdb.timelock.lock.AsyncLock;
+import com.palantir.atlasdb.timelock.lock.HeldLocks;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 
 public class LockWatchingServiceImplTest {
     private final static TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
     private final static TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("prod.table");
+    private final static LockToken TOKEN = LockToken.of(UUID.randomUUID());
 
     private final static byte[] ROW = PtBytes.toBytes("row");
     private static final Cell CELL = Cell.create(ROW, ROW);
@@ -56,11 +62,17 @@ public class LockWatchingServiceImplTest {
     private final HeldLocksCollection locks = mock(HeldLocksCollection.class);
     private final LockWatchingService lockWatcher = new LockWatchingServiceImpl(log, locks);
 
+    private final HeldLocks heldLocks = mock(HeldLocks.class);
+    private final AsyncLock asyncLock = mock(AsyncLock.class);
+    private final AsyncLock asyncLock2 = mock(AsyncLock.class);
+
     @Before
     public void setup() {
-        when(locks.locksHeld())
-                .thenReturn(Stream.of(ROW_DESCRIPTOR, descriptorForTable(TABLE_2)))
-                .thenReturn(Stream.of(ROW_DESCRIPTOR, descriptorForTable(TABLE_2)));
+        when(heldLocks.getLocks()).thenReturn(ImmutableList.of(asyncLock, asyncLock2));
+        when(asyncLock.getDescriptor()).thenReturn(ROW_DESCRIPTOR);
+        when(asyncLock2.getDescriptor()).thenReturn(descriptorForTable(TABLE_2));
+        when(heldLocks.getToken()).thenReturn(TOKEN);
+        when(locks.locksHeld()).thenReturn(Stream.of(heldLocks)).thenReturn(Stream.of(heldLocks));
     }
 
     @Test
@@ -76,9 +88,7 @@ public class LockWatchingServiceImplTest {
     @Test
     public void watchExistingLocksDoesNotLogOpenLocks() {
         LockDescriptor secondRow = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("other_row"));
-        when(locks.locksHeld())
-                .thenReturn(Stream.of(ROW_DESCRIPTOR, secondRow))
-                .thenReturn(Stream.of(ROW_DESCRIPTOR, secondRow));
+        when(asyncLock2.getDescriptor()).thenReturn(secondRow);
 
         LockWatchRequest prefixRequest = prefixRequest(TABLE, ROW);
         lockWatcher.startWatching(prefixRequest);
@@ -116,7 +126,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, cellSuffixDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(TOKEN, locks);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR));
     }
 
@@ -129,7 +139,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(rowRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(TOKEN, locks);
         verifyLoggedLocks(1, ImmutableSet.of(rowDescriptor));
     }
 
@@ -143,7 +153,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(prefixRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor, notPrefixDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(TOKEN, locks);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor));
     }
 
@@ -165,7 +175,7 @@ public class LockWatchingServiceImplTest {
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(
                 cellInRange, cellOutOfRange, rowInRange, rowInRange2, rowOutOfRange);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(TOKEN, locks);
         verifyLoggedLocks(1, ImmutableSet.of(cellInRange, rowInRange, rowInRange2));
     }
 
@@ -180,7 +190,7 @@ public class LockWatchingServiceImplTest {
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet
                 .of(CELL_DESCRIPTOR, cellOutOfRange, rowInRange, rowOutOfRange);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(TOKEN, locks);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR, rowInRange));
     }
 
@@ -189,7 +199,7 @@ public class LockWatchingServiceImplTest {
         LockWatchRequest tableRequest = tableRequest(TABLE);
         lockWatcher.startWatching(tableRequest);
 
-        lockWatcher.registerUnlock(ImmutableSet.of(CELL_DESCRIPTOR));
+        lockWatcher.registerUnlock(TOKEN, ImmutableSet.of(CELL_DESCRIPTOR));
         verifyLoggedUnlocks(1, ImmutableSet.of(CELL_DESCRIPTOR));
     }
 
@@ -207,22 +217,22 @@ public class LockWatchingServiceImplTest {
 
     @SuppressWarnings("unchecked")
     private void verifyLoggedOpenLocks(int invocations, Set<LockDescriptor> locks) {
-        ArgumentCaptor<Stream<LockDescriptor>> captor = ArgumentCaptor.forClass(Stream.class);
-        verify(log, times(invocations)).logOpenLocks(captor.capture());
-        assertThat(captor.getValue().collect(Collectors.toSet())).containsExactlyInAnyOrderElementsOf(locks);
+        ArgumentCaptor<Set<LockDescriptor>> captor = ArgumentCaptor.forClass(Set.class);
+        verify(log, times(invocations)).logOpenLocks(eq(TOKEN), captor.capture());
+        assertThat(captor.getValue()).containsExactlyInAnyOrderElementsOf(locks);
     }
 
     @SuppressWarnings("unchecked")
     private void verifyLoggedLocks(int invocations, Set<LockDescriptor> locks) {
-        ArgumentCaptor<Stream<LockDescriptor>> captor = ArgumentCaptor.forClass(Stream.class);
-        verify(log, times(invocations)).logLock(captor.capture());
-        assertThat(captor.getValue().collect(Collectors.toSet())).containsExactlyInAnyOrderElementsOf(locks);
+        ArgumentCaptor<Set<LockDescriptor>> captor = ArgumentCaptor.forClass(Set.class);
+        verify(log, times(invocations)).logLock(eq(TOKEN), captor.capture());
+        assertThat(captor.getValue()).containsExactlyInAnyOrderElementsOf(locks);
     }
 
     @SuppressWarnings("unchecked")
     private void verifyLoggedUnlocks(int invocations, Set<LockDescriptor> locks) {
-        ArgumentCaptor<Stream<LockDescriptor>> captor = ArgumentCaptor.forClass(Stream.class);
-        verify(log, times(invocations)).logUnlock(captor.capture());
-        assertThat(captor.getValue().collect(Collectors.toSet())).containsExactlyInAnyOrderElementsOf(locks);
+        ArgumentCaptor<Set<LockDescriptor>> captor = ArgumentCaptor.forClass(Set.class);
+        verify(log, times(invocations)).logUnlock(eq(TOKEN), captor.capture());
+        assertThat(captor.getValue()).containsExactlyInAnyOrderElementsOf(locks);
     }
 }

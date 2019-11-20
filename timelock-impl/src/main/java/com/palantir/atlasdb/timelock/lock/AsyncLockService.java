@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.io.Closeable;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -166,9 +167,9 @@ public class AsyncLockService implements Closeable {
     }
 
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        HeldLocksCollection.UnlockResult result = heldLocks.unlock(tokens);
-        lockWatchingService.registerUnlock(result.lockDescriptors());
-        return result.lockTokens();
+        Map<LockToken, Set<LockDescriptor>> result = heldLocks.unlock(tokens);
+        result.entrySet().forEach(entry -> lockWatchingService.registerUnlock(entry.getKey(), entry.getValue()));
+        return result.keySet();
     }
 
     public boolean refresh(LockToken token) {

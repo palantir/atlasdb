@@ -17,5 +17,6 @@
 package com.palantir.lock.watch;
 
 public interface LockWatchEvent {
+    long sequence();
     void accept(LockWatchEventVisitor visitor);
 }

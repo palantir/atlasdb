@@ -13,6 +13,7 @@ dependencies {
 
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'org.mindrot', name: 'jbcrypt'
+    compile group: 'io.vavr', name: 'vavr'
 
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")

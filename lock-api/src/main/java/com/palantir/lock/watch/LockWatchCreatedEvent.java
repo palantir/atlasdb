@@ -16,9 +16,23 @@
 
 package com.palantir.lock.watch;
 
-public class LockWatchCreatedEvent implements LockWatchEvent {
+import java.util.function.Function;
+
+import org.immutables.value.Value;
+
+@Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+public abstract class LockWatchCreatedEvent implements LockWatchEvent {
+    abstract LockWatchRequest request();
+
     @Override
     public void accept(LockWatchEventVisitor visitor) {
         visitor.visit(this);
+    }
+
+    public static Function<Long, LockWatchEvent> fromSeq(LockWatchRequest request) {
+        ImmutableLockWatchCreatedEvent.Builder builder = ImmutableLockWatchCreatedEvent.builder()
+                .request(request);
+        return seq -> builder.sequence(seq).build();
     }
 }

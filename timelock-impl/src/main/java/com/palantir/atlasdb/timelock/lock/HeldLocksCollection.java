@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
@@ -29,6 +30,7 @@ import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.common.time.NanoTime;
@@ -61,17 +63,18 @@ public class HeldLocksCollection {
                 .map(this::createLeasableLockToken);
     }
 
-    public UnlockResult unlock(Set<LockToken> tokens) {
+    public Map<LockToken, Set<LockDescriptor>> unlock(Set<LockToken> tokens) {
         Set<LockToken> unlocked = filter(tokens, HeldLocks::unlockExplicitly);
-        Set<LockDescriptor> lockDescriptors = new HashSet<>();
+        ImmutableMap.Builder<LockToken, Set<LockDescriptor>> resultBuilder =
+                ImmutableMap.<LockToken, Set<LockDescriptor>>builder();
         for (LockToken token : unlocked) {
             AsyncResult<HeldLocks> lock = heldLocksById.remove(token.getRequestId());
             if (lock.isCompletedSuccessfully()) {
-                lockDescriptors.addAll(
+                resultBuilder.put(token,
                         lock.get().getLocks().stream().map(AsyncLock::getDescriptor).collect(Collectors.toSet()));
             }
         }
-        return ImmutableUnlockResult.builder().lockTokens(unlocked).lockDescriptors(lockDescriptors).build();
+        return resultBuilder.build();
     }
 
     public Leased<Set<LockToken>> refresh(Set<LockToken> tokens) {
@@ -94,13 +97,10 @@ public class HeldLocksCollection {
         heldLocksById.values().forEach(result -> result.failIfNotCompleted(ex));
     }
 
-    public Stream<LockDescriptor> locksHeld() {
+    public Stream<HeldLocks> locksHeld() {
         return heldLocksById.values().stream()
                 .filter(AsyncResult::isCompletedSuccessfully)
-                .<HeldLocks>map(AsyncResult::get)
-                .map(HeldLocks::getLocks)
-                .<AsyncLock>flatMap(Collection::stream)
-                .map(AsyncLock::getDescriptor);
+                .<HeldLocks>map(AsyncResult::get);
     }
 
     private Leased<LockToken> createLeasableLockToken(HeldLocks heldLocks) {
@@ -132,12 +132,5 @@ public class HeldLocksCollection {
         }
 
         return filtered;
-    }
-
-    @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-    public interface UnlockResult {
-        Set<LockToken> lockTokens();
-        Set<LockDescriptor> lockDescriptors();
     }
 }
