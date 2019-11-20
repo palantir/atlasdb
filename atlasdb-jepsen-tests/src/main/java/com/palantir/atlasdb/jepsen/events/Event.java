@@ -30,7 +30,7 @@ import com.palantir.atlasdb.jepsen.utils.EventUtils;
 import clojure.lang.Keyword;
 import one.util.streamex.EntryStream;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(InfoEvent.class),
         @JsonSubTypes.Type(InvokeEvent.class),
@@ -47,13 +47,13 @@ public interface Event {
         Map<String, Object> convertedMap = new HashMap<>();
         EntryStream.of(encodedMap)
                 .mapKeys(Keyword::getName)
-                .mapValues(value -> value != null && value instanceof Keyword ? ((Keyword) value).getName() : value)
+                .mapValues(value -> value instanceof Keyword ? ((Keyword) value).getName() : value)
                 .forKeyValue(convertedMap::put);
         return OBJECT_MAPPER.convertValue(convertedMap, Event.class);
     }
 
     static Map<Keyword, Object> toKeywordMap(Event event) {
-        Map<String, Object> rawStringMap = OBJECT_MAPPER.convertValue(event, new TypeReference<Map<String, ?>>() {});
+        Map<String, Object> rawStringMap = OBJECT_MAPPER.convertValue(event, new TypeReference<Map<String, Object>>() {});
         return EntryStream.of(rawStringMap)
                 .filterValues(Objects::nonNull)
                 .mapKeys(Keyword::intern)
