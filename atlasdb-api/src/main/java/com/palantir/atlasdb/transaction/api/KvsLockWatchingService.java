@@ -25,18 +25,19 @@ import com.palantir.lock.watch.WatchId;
 
 public interface KvsLockWatchingService {
     /**
-     * Registers watches
+     * Registers watches.
      */
     @Idempotent
     void registerWatches(LockWatchRequest lockWatchEntries);
 
     /**
-     * Deregisters watches
+     * Deregisters watches.
      */
     void deregisterWatches(LockWatchRequest lockWatchEntries);
 
     /**
      * Returns the current state of all registered watches.
+     *
      * @return a mapping of {@link WatchId}s to their corresponding {@link LockWatchInfo}
      */
     LockWatchState getLockWatchState(Optional<Long> lastKnownState);

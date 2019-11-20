@@ -33,7 +33,8 @@ public interface StartTransactionWithWatchesResponse {
     @Value.Parameter
     LockWatchStateUpdate watchState();
 
-    static StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res, LockWatchStateUpdate state) {
+    static StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res,
+            LockWatchStateUpdate state) {
         return ImmutableStartTransactionWithWatchesResponse.of(res, state);
     }
 }

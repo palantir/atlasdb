@@ -21,8 +21,6 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 public abstract class LockEvent implements LockWatchEvent {
-    
-
     @Override
     public void accept(LockWatchEventVisitor visitor) {
         visitor.visit(this);
