@@ -184,8 +184,13 @@ dropped.</p>
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>KVS migration involves moving all transactional data from one KVS which we call the <em>source KVS</em> to another, which
 we call the <em>destination KVS</em>. Generally speaking, this includes all user data.</p>
-<p>There are some AtlasDB internal tables which will not be migrated; correct operation of AtlasDB does not depend on the
-contents of these tables. These include:</p>
+<p>There are some AtlasDB internal tables which will not be migrated, for various reasons:</p>
+<ul class="simple">
+<li>In some cases, correct operation of AtlasDB does not depend on the contents of these tables.</li>
+<li>In some cases, the migration process obviates the need for these tables (e.g. <code class="docutils literal notranslate"><span class="pre">_transactions</span></code> isn’t needed, because
+we simulate writing all of the existing state of the world in a single transaction to the new database).</li>
+</ul>
+<p>These tables include:</p>
 <ul class="simple">
 <li>Atomic tables, as specified in <code class="docutils literal notranslate"><span class="pre">AtlasDbConstants.ATOMIC_TABLES</span></code>. These tables use check and set, and are not
 transactional.</li>
