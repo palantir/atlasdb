@@ -15,13 +15,13 @@
  */
 package com.palantir.lock.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,7 +35,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRequest.Builder;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -65,7 +64,7 @@ public class LockRefreshingLockServiceTest {
         LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, builder.build());
         Thread.sleep(10000);
         Set<HeldLocksToken> refreshTokens = server.refreshTokens(ImmutableList.of(lock.getToken()));
-        assertThat(refreshTokens.size()).isEqualTo(1);
+        assertThat(refreshTokens).hasSize(1);
     }
 
     @Test

@@ -62,7 +62,7 @@ public class LeadersTest {
 
         assertThat(paxosLearners.size()).isEqualTo(REMOTE_SERVICE_ADDRESSES.size() + 1);
         paxosLearners.forEach(object -> assertThat(object).isNotNull());
-        assertThat(Iterables.getLast(paxosLearners).getGreatestLearnedValue()).isEqualTo(value);
+        assertThat(Iterables.getLast(paxosLearners).getGreatestLearnedValue()).isEqualTo(presentPaxosValue);
         verify(localLearner).getGreatestLearnedValue();
         verifyNoMoreInteractions(localLearner);
     }

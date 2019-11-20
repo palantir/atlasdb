@@ -16,6 +16,7 @@
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.io.File;
@@ -256,10 +257,10 @@ public class PaxosConsensusFastTest {
         assertThat(state.leader(0).isStillLeading(token)).isEqualTo(StillLeadingStatus.NOT_LEADING);
         assertThat(state.leader(1).isStillLeading(token2)).isEqualTo(StillLeadingStatus.LEADING);
 
-        assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(future::get)
-                .withRootCauseInstanceOf(InterruptedException.class)
-                .withMessageContaining("leader no longer eligible");
+        assertThatThrownBy(future::get)
+                .isExactlyInstanceOf(ExecutionException.class)
+                .hasRootCauseInstanceOf(InterruptedException.class)
+                .hasMessageContaining("leader no longer eligible");
 
         exec.shutdown();
         exec.awaitTermination(10, TimeUnit.SECONDS);

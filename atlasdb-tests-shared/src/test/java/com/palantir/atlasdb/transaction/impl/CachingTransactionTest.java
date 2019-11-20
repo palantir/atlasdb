@@ -17,6 +17,8 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -95,8 +97,8 @@ public class CachingTransactionTest {
             }
         });
 
-        assertThat(ct.getRows(table, oneRow, oneColumn)).isEqualTo(emptyResults);
-        assertThat(ct.getRows(table, oneRow, oneColumn)).isEqualTo(emptyResults);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(emptyResults);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(emptyResults);
 
         mockery.assertIsSatisfied();
     }
@@ -127,8 +129,8 @@ public class CachingTransactionTest {
             }
         });
 
-        assertThat(ct.getRows(table, oneRow, oneColumn)).isEqualTo(oneResult);
-        assertThat(ct.getRows(table, oneRow, oneColumn)).isEqualTo(oneResult);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(oneResult);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(oneResult);
 
         mockery.assertIsSatisfied();
     }
@@ -157,8 +159,8 @@ public class CachingTransactionTest {
         final Set<Cell> cellSet = ImmutableSet.of(cell);
         mockery.checking(expectationsMapping.get(name).apply(cellSet, cellValueMap));
 
-        assertThat(ct.get(table, cellSet)).isEqualTo(cellValueMap);
-        assertThat(ct.get(table, cellSet)).isEqualTo(cellValueMap);
+        assertThat(cachingTransaction.get(table, cellSet)).isEqualTo(cellValueMap);
+        assertThat(cachingTransaction.get(table, cellSet)).isEqualTo(cellValueMap);
 
         mockery.assertIsSatisfied();
     }

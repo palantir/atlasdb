@@ -238,7 +238,7 @@ public class AtlasDbHttpClientsTest {
                 PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
 
         int response = client.getTestNumber();
-        assertThat(response).isEqualTo(TEST_NUMBER);
+        assertThat(response).isEqualTo(TEST_NUMBER_1);
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
@@ -255,7 +255,7 @@ public class AtlasDbHttpClientsTest {
                 TestResource.class,
                 AUXILIARY_REMOTING_PARAMETERS);
 
-        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_1));
+        assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_1);
 
         config.set(ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort2))

@@ -691,15 +691,15 @@ public class TransactionManagersTest {
                 .putAllSafeTags(tags)
                 .build();
 
-        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount(), is(equalTo(0L)));
-        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount()).isEqualTo(0L);
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount()).isEqualTo(0L);
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
-        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount(), is(equalTo(1L)));
-        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount(), is(equalTo(1L)));
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount()).isEqualTo(1L);
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount()).isEqualTo(1L);
     }
 
     private void setUpForLocalServices() throws IOException {
