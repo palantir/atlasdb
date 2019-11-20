@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.processors.AutoDelegate;

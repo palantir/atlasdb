@@ -25,18 +25,19 @@ import com.palantir.lock.watch.WatchId;
 
 public interface TableWatchingService {
     /**
-     * Registers watches
+     * Registers watches.
      */
     @Idempotent
     void registerWatches(Set<TableElement> lockWatchEntries);
 
     /**
-     * Deregisters watches
+     * Deregisters watches.
      */
     void deregisterWatches(Set<TableElement> lockWatchEntries);
 
     /**
      * Returns the current state of all registered watches.
+     *
      * @return a mapping of {@link WatchId}s to their corresponding {@link LockWatchInfo}
      */
     TableWatchState getLockWatchState(Optional<Long> lastKnownState);

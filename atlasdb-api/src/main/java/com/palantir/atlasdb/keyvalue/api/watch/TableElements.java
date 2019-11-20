@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.AtlasLockDescriptorRanges;
 import com.palantir.lock.LockDescriptor;
 
-public class TableElements {
+public final class TableElements {
     private TableElements() {
         // no
     }
@@ -50,7 +50,7 @@ public class TableElements {
     }
 
     @Value.Immutable
-    static abstract class EntireTable implements TableElement {
+    abstract static class EntireTable implements TableElement {
         @Value.Parameter
         abstract TableReference tableRef();
 
@@ -61,7 +61,7 @@ public class TableElements {
     }
 
     @Value.Immutable
-    static abstract class RowPrefix implements TableElement {
+    abstract static class RowPrefix implements TableElement {
         @Value.Parameter
         abstract TableReference tableRef();
         @Value.Parameter
@@ -74,7 +74,7 @@ public class TableElements {
     }
 
     @Value.Immutable
-    static abstract class RowRange implements TableElement {
+    abstract static class RowRange implements TableElement {
         @Value.Parameter
         abstract TableReference tableRef();
         @Value.Parameter
@@ -89,7 +89,7 @@ public class TableElements {
     }
 
     @Value.Immutable
-    static abstract class ExactRow implements TableElement {
+    abstract static class ExactRow implements TableElement {
         @Value.Parameter
         abstract TableReference tableRef();
         @Value.Parameter
@@ -102,7 +102,7 @@ public class TableElements {
     }
 
     @Value.Immutable
-    static abstract class ExactCell implements TableElement {
+    abstract static class ExactCell implements TableElement {
         @Value.Parameter
         abstract TableReference tableRef();
         @Value.Parameter
