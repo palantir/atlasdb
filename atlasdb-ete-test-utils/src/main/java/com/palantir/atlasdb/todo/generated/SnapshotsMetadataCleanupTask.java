@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -13,7 +15,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.streams.KeyedStream;
 
@@ -51,6 +52,9 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
+                if (streamsWithNoReferences.contains(e.getKey())) {
+                    LoggerFactory.getLogger(SnapshotsMetadataCleanupTask.class).info("cleaning stream without refs={}", e.getKey());
+                }
                 toDelete.add(e.getKey().getId());
             }
         }

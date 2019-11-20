@@ -13,7 +13,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.streams.KeyedStream;
 
@@ -32,6 +31,7 @@ public class DataMetadataCleanupTask implements OnCleanupTask {
         for (Cell cell : cells) {
             rows.add(DataStreamMetadataTable.DataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
+
         DataStreamIdxTable indexTable = tables.getDataStreamIdxTable(t);
         Set<DataStreamIdxTable.DataStreamIdxRow> indexRows = rows.stream()
                 .map(DataStreamMetadataTable.DataStreamMetadataRow::getId)
@@ -47,6 +47,7 @@ public class DataMetadataCleanupTask implements OnCleanupTask {
                 .map(DataStreamIdxTable.DataStreamIdxRow::getId)
                 .map(DataStreamMetadataTable.DataStreamMetadataRow::of)
                 .collect(Collectors.toSet());
+
         Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {

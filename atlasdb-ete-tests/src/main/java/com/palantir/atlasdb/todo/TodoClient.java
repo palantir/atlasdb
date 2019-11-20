@@ -22,6 +22,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -31,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -254,5 +259,25 @@ public class TodoClient {
     public boolean namespacedTodoDoesNotExistBeforeTimestamp(long id, long timestamp, String namespace) {
         return kvs.get().get(TodoSchema.namespacedTodoTable(),
                 ImmutableMap.of(Cell.create(PtBytes.toBytes(namespace), PtBytes.toBytes(id)), timestamp + 1)).isEmpty();
+    }
+
+    public void fuzzStreams(InputStream data) {
+        TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
+        SnapshotsStreamStore streamStore = SnapshotsStreamStore.of(transactionManager, tableFactory);
+        ExecutorService ex = Executors.newFixedThreadPool(50);
+        List<Future<?>> futures = Lists.newArrayList();
+        for (int i = 0; i < 1000; i++) {
+            futures.add(ex.submit(() -> storeStreamAndGetId(data, streamStore)));
+            futures.add(ex.submit(this::runIterationOfTargetedSweep));
+        }
+        futures.forEach(f -> {
+            try {
+                f.get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

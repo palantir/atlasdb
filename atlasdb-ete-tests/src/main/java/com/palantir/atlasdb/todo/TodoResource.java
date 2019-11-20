@@ -31,6 +31,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 @Path("/todos")
 public interface TodoResource {
     @POST
+    @Path("/fuzz")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void fuzzStreams();
+
+    @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     void addTodo(Todo todo);

@@ -94,6 +94,11 @@ public class TargetedSweepEteTest {
     }
 
     @Test
+    public void markRaceConditions() {
+        todoClient.fuzzStreams();
+    }
+
+    @Test
     public void targetedSweepCleanupUnmarkedStreamsTest() {
         todoClient.storeUnmarkedSnapshot("snap");
         todoClient.storeUnmarkedSnapshot("crackle");

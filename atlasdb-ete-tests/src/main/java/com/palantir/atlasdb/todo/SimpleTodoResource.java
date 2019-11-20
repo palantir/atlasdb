@@ -31,6 +31,12 @@ public class SimpleTodoResource implements TodoResource {
     }
 
     @Override
+    public void fuzzStreams() {
+        String s = "af32npq0f 290t19 -412 15 15 125 ";
+        atlas.fuzzStreams(new ByteArrayInputStream(s.getBytes()));
+    }
+
+    @Override
     public void addTodo(Todo todo) {
         atlas.addTodo(todo);
     }
