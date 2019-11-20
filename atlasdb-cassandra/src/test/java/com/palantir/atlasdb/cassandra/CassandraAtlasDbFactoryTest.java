@@ -123,7 +123,9 @@ public class CassandraAtlasDbFactoryTest {
                 .preprocessKvsRuntimeConfig(Optional::empty)
                 .get();
 
-        assertThat(returnedConfig).describedAs("Empty config should resolve to default").isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+        assertThat(returnedConfig)
+                .describedAs("Empty config should resolve to default")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 
     @Test
@@ -141,8 +143,12 @@ public class CassandraAtlasDbFactoryTest {
         CassandraKeyValueServiceRuntimeConfig firstReturnedConfig = processedRuntimeConfig.get();
         CassandraKeyValueServiceRuntimeConfig secondReturnedConfig = processedRuntimeConfig.get();
 
-        assertThat(firstReturnedConfig).describedAs("First returned config should be valid").isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
-        assertThat(secondReturnedConfig).describedAs("Second invalid config should be ignored").isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+        assertThat(firstReturnedConfig)
+                .describedAs("First returned config should be valid")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+        assertThat(secondReturnedConfig)
+                .describedAs("Second invalid config should be ignored")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 
     @Test
@@ -151,6 +157,8 @@ public class CassandraAtlasDbFactoryTest {
                 .preprocessKvsRuntimeConfig(() -> Optional.of(INVALID_CKVS_RUNTIME_CONFIG))
                 .get();
 
-        assertThat(returnedConfig).describedAs("First invalid config should resolve to default").isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+        assertThat(returnedConfig)
+                .describedAs("First invalid config should resolve to default")
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 }
