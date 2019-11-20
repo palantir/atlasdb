@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -86,7 +85,9 @@ public class CassandraSchemaLockTest {
         CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         assertThat(kvs.getAllTableNames()).contains(table1);
 
-        assertThat(new File(CONTAINERS.getLogDirectory())).is(new HamcrestCondition<>(containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError()))));
+        assertThat(new File(CONTAINERS.getLogDirectory())).isDirectoryContaining(
+                file -> containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())).matches(file)
+        );
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")

@@ -202,12 +202,12 @@ public class CassandraClientPoolTest {
 
         assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool))
                 .isInstanceOf(AtlasDbDependencyException.class);
-        assertThat(blacklist.contains(HOST_1)).isEqualTo(true);
+        assertThat(blacklist.contains(HOST_1)).isTrue();
 
         fail.set(false);
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1)).isEqualTo(false);
+        assertThat(blacklist.contains(HOST_1)).isFalse();
     }
 
     @Test
@@ -218,12 +218,12 @@ public class CassandraClientPoolTest {
                 pool, container -> container.getHost().equals(downHost.get())));
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1)).isEqualTo(true);
+        assertThat(blacklist.contains(HOST_1)).isTrue();
 
         downHost.set(HOST_2);
 
         runNoopWithRetryOnHost(HOST_2, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1)).isEqualTo(false);
+        assertThat(blacklist.contains(HOST_1)).isFalse();
     }
 
     @Test
@@ -245,7 +245,7 @@ public class CassandraClientPoolTest {
                 .inPool(cassandraClientPool);
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_2)).isEqualTo(false);
+        assertThat(blacklist.contains(HOST_2)).isFalse();
     }
 
     @Test
