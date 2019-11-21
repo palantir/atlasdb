@@ -32,25 +32,10 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
         for (Cell cell : cells) {
             rows.add(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
-        HotspottyDataStreamIdxTable indexTable = tables.getHotspottyDataStreamIdxTable(t);
-        Set<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow> indexRows = rows.stream()
-                .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::getId)
-                .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::of)
-                .collect(Collectors.toSet());
-        Map<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, Iterator<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue>> referenceIteratorByStream
-                = indexTable.getRowsColumnRangeIterator(indexRows,
-                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> streamsWithNoReferences
-                = KeyedStream.stream(referenceIteratorByStream)
-                .filter(valueIterator -> !valueIterator.hasNext())
-                .keys() // (authorized)
-                .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::getId)
-                .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::of)
-                .collect(Collectors.toSet());
         Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
+            if (e.getValue().getStatus() != Status.STORED) {
                 toDelete.add(e.getKey().getId());
             }
         }
