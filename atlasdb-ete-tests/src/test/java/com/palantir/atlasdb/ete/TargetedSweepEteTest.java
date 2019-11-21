@@ -94,15 +94,14 @@ public class TargetedSweepEteTest {
     }
 
     @Test
-    public void targetedSweepCleanupUnmarkedStreamsTest() {
+    // TODO (jkong): This is obviously not the desired behaviour, but we are doing this in the interest of safety.
+    public void targetedSweepDoesNotCleanupUnmarkedStreamsTest() {
         todoClient.storeUnmarkedSnapshot("snap");
         todoClient.storeUnmarkedSnapshot("crackle");
         todoClient.storeUnmarkedSnapshot("pop");
         todoClient.runIterationOfTargetedSweep();
 
-        // Nothing can be deleted from Index because it wasn't written. There should be 3 entries in the other tables
-        // (hash, metadata and value), one per stream, all of which should be cleaned up.
-        assertDeleted(0, 3, 3, 3);
+        assertDeleted(0, 0, 0, 0);
     }
 
     private void assertDeleted(long idx, long hash, long meta, long val) {
