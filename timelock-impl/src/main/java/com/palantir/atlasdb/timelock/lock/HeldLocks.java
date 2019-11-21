@@ -104,8 +104,7 @@ public class HeldLocks {
         return expirationTimer.lastRefreshTime();
     }
 
-    @VisibleForTesting
-    Collection<AsyncLock> getLocks() {
+    public Collection<AsyncLock> getLocks() {
         return acquiredLocks;
     }
 

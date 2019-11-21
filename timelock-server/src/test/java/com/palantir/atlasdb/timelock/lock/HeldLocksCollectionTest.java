@@ -119,7 +119,7 @@ public class HeldLocksCollectionTest {
 
         Set<LockToken> expected = ImmutableSet.of(refreshableRequest);
         Set<LockToken> actual = heldLocksCollection.unlock(
-                ImmutableSet.of(refreshableRequest, nonRefreshableRequest));
+                ImmutableSet.of(refreshableRequest, nonRefreshableRequest)).keySet();
 
         assertThat(actual).isEqualTo(expected);
     }

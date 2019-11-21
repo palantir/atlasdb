@@ -15,24 +15,32 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollection {
-
     @VisibleForTesting
     final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
 
@@ -55,12 +63,18 @@ public class HeldLocksCollection {
                 .map(this::createLeasableLockToken);
     }
 
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
+    public Map<LockToken, Set<LockDescriptor>> unlock(Set<LockToken> tokens) {
         Set<LockToken> unlocked = filter(tokens, HeldLocks::unlockExplicitly);
+        ImmutableMap.Builder<LockToken, Set<LockDescriptor>> resultBuilder =
+                ImmutableMap.<LockToken, Set<LockDescriptor>>builder();
         for (LockToken token : unlocked) {
-            heldLocksById.remove(token.getRequestId());
+            AsyncResult<HeldLocks> lock = heldLocksById.remove(token.getRequestId());
+            if (lock.isCompletedSuccessfully()) {
+                resultBuilder.put(token,
+                        lock.get().getLocks().stream().map(AsyncLock::getDescriptor).collect(Collectors.toSet()));
+            }
         }
-        return unlocked;
+        return resultBuilder.build();
     }
 
     public Leased<Set<LockToken>> refresh(Set<LockToken> tokens) {
@@ -81,6 +95,12 @@ public class HeldLocksCollection {
     public void failAllOutstandingRequestsWithNotCurrentLeaderException() {
         NotCurrentLeaderException ex = new NotCurrentLeaderException("This lock service has been closed");
         heldLocksById.values().forEach(result -> result.failIfNotCompleted(ex));
+    }
+
+    public Stream<HeldLocks> locksHeld() {
+        return heldLocksById.values().stream()
+                .filter(AsyncResult::isCompletedSuccessfully)
+                .<HeldLocks>map(AsyncResult::get);
     }
 
     private Leased<LockToken> createLeasableLockToken(HeldLocks heldLocks) {

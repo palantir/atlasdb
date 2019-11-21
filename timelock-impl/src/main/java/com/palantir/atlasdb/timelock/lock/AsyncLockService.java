@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.io.Closeable;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -30,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -48,7 +50,7 @@ public class AsyncLockService implements Closeable {
     private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
     private final LockLog lockLog;
-    private final LockWatchingService lockWatchingService = null;
+    private final LockWatchingService lockWatchingService;
 
     /**
      * Creates a new asynchronous lock service, using a standard {@link LeaderClock}.
@@ -74,10 +76,10 @@ public class AsyncLockService implements Closeable {
                 new LockCollection(targetedSweepLockDecorator),
                 targetedSweepLockDecorator,
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(lockLog, timeoutExecutor, clock),
                 HeldLocksCollection.create(clock),
                 new AwaitedLocksCollection(),
                 reaperExecutor,
+                timeoutExecutor,
                 clock,
                 lockLog);
     }
@@ -87,22 +89,23 @@ public class AsyncLockService implements Closeable {
             LockCollection locks,
             TargetedSweepLockDecorator decorator,
             ImmutableTimestampTracker immutableTimestampTracker,
-            LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
             ScheduledExecutorService reaperExecutor,
+            ScheduledExecutorService timeoutExecutor,
             LeaderClock leaderClock,
             // TODO(fdesouza): Remove this once PDS-95791 is resolved.
             LockLog lockLog) {
         this.locks = locks;
         this.decorator = decorator;
         this.immutableTsTracker = immutableTimestampTracker;
-        this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
         this.leaderClock = leaderClock;
         this.lockLog = lockLog;
+        this.lockWatchingService = new LockWatchingServiceImpl(null, heldLocks);
+        this.lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, leaderClock, lockWatchingService);
 
         scheduleExpiredLockReaper();
     }
@@ -164,7 +167,9 @@ public class AsyncLockService implements Closeable {
     }
 
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return heldLocks.unlock(tokens);
+        Map<LockToken, Set<LockDescriptor>> result = heldLocks.unlock(tokens);
+        result.entrySet().forEach(entry -> lockWatchingService.registerUnlock(entry.getKey(), entry.getValue()));
+        return result.keySet();
     }
 
     public boolean refresh(LockToken token) {
