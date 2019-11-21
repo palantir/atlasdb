@@ -36,7 +36,7 @@ public interface OnCleanupTask {
      * an opportunity to use the fresh transaction to make decisions about what else needs
      * to be cleaned up.
      * <p>
-     * This method may be called for uncommited cells or old cells with new values.
+     * This method may be called for uncommitted cells or old cells with new values.
      * <p>
      * If the current transaction fills up this method should return true and it will be called
      * again with a fresh transaction.  This is useful if a large cleanup is needed.
