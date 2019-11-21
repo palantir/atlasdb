@@ -125,9 +125,6 @@ public class KeyValueServiceMigrator {
         processMessage("creating tables", KvsMigrationMessageLevel.INFO);
         toKvs.createTables(metadataByTableName);
         processMessage("setup complete", KvsMigrationMessageLevel.INFO);
-
-
-
     }
 
     public void migrate() {

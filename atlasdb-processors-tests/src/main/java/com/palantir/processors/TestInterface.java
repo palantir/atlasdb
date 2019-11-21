@@ -34,9 +34,11 @@ public interface TestInterface {
     void overloadedMethod(int p1);
     void overloadedMethod(Integer p1, Integer p2);
 
-    default void defaultMethod() {}
+    default void defaultMethod() {
+    }
 
     void overriddenMethod(Integer p1, Integer p2, Integer p3);
 
-    static void staticMethod() {}
+    static void staticMethod() {
+    }
 }

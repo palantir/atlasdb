@@ -101,13 +101,13 @@ public class JepsenHistoryCheckerTest {
                 .isInstanceOf(Exception.class);
     }
 
-    private Map<Keyword, Object> runJepsenChecker(Checker ... checkers) {
+    private Map<Keyword, Object> runJepsenChecker(Checker... checkers) {
         JepsenHistoryChecker jepsenChecker = new JepsenHistoryChecker(checkers);
         return jepsenChecker.checkClojureHistory(ImmutableList.of(INFO_EVENT));
     }
 
 
-    private Checker createMockedChecker(boolean valid, Map<Keyword, ?> ... errors) {
+    private Checker createMockedChecker(boolean valid, Map<Keyword, ?>... errors) {
         List<Map<Keyword, ?>> listOfErrors = ImmutableList.copyOf(errors);
         List<Event> listOfErrorsAsEvents = listOfErrors.stream()
                 .map(Event::fromKeywordMap)
