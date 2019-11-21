@@ -722,6 +722,8 @@ public class StreamStoreRenderer {
                     line(StreamIndexTable, " indexTable = tables.get", StreamIndexTable, "(t);");
                     line("Set<", StreamId, "> unreferencedStreamIds = findUnreferencedStreams(indexTable, rows);");
                     line("if (cleanupFollowerConfig.dangerousRiskOfDataCorruptionEnableCleanupOfUnreferencedStreamsInStreamStoreCleanupTasks()) {"); {
+                        line("log.info(\"Deleting streams {}, which are stored, but we believe to be unreferenced.\",");
+                        line("        SafeArg.of(\"additionalStreamIds\", Sets.difference(unreferencedStreamIds, toDelete)));");
                         line("toDelete.addAll(unreferencedStreamIds);");
                     } line("}");
                     line(StreamStore, ".of(tables).deleteStreams(t, toDelete);");

@@ -55,6 +55,8 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
         HotspottyDataStreamIdxTable indexTable = tables.getHotspottyDataStreamIdxTable(t);
         Set<Long> unreferencedStreamIds = findUnreferencedStreams(indexTable, rows);
         if (cleanupFollowerConfig.dangerousRiskOfDataCorruptionEnableCleanupOfUnreferencedStreamsInStreamStoreCleanupTasks()) {
+            log.info("Deleting streams {}, which are stored, but we believe to be unreferenced.",
+                    SafeArg.of("additionalStreamIds", Sets.difference(unreferencedStreamIds, toDelete)));
             toDelete.addAll(unreferencedStreamIds);
         }
         HotspottyDataStreamStore.of(tables).deleteStreams(t, toDelete);

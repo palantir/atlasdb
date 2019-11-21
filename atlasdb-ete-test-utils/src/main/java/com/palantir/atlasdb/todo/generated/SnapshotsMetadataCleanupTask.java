@@ -55,6 +55,8 @@ public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
         SnapshotsStreamIdxTable indexTable = tables.getSnapshotsStreamIdxTable(t);
         Set<Long> unreferencedStreamIds = findUnreferencedStreams(indexTable, rows);
         if (cleanupFollowerConfig.dangerousRiskOfDataCorruptionEnableCleanupOfUnreferencedStreamsInStreamStoreCleanupTasks()) {
+            log.info("Deleting streams {}, which are stored, but we believe to be unreferenced.",
+                    SafeArg.of("additionalStreamIds", Sets.difference(unreferencedStreamIds, toDelete)));
             toDelete.addAll(unreferencedStreamIds);
         }
         SnapshotsStreamStore.of(tables).deleteStreams(t, toDelete);

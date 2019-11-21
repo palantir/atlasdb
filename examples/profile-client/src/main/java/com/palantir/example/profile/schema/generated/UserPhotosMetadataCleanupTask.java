@@ -55,6 +55,8 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
         UserPhotosStreamIdxTable indexTable = tables.getUserPhotosStreamIdxTable(t);
         Set<Long> unreferencedStreamIds = findUnreferencedStreams(indexTable, rows);
         if (cleanupFollowerConfig.dangerousRiskOfDataCorruptionEnableCleanupOfUnreferencedStreamsInStreamStoreCleanupTasks()) {
+            log.info("Deleting streams {}, which are stored, but we believe to be unreferenced.",
+                    SafeArg.of("additionalStreamIds", Sets.difference(unreferencedStreamIds, toDelete)));
             toDelete.addAll(unreferencedStreamIds);
         }
         UserPhotosStreamStore.of(tables).deleteStreams(t, toDelete);
