@@ -26,3 +26,6 @@ sweep:
 
 internalSchema:
   targetTransactionsSchemaVersion: 1
+
+cleanupFollower:
+  dangerousRiskOfDataCorruptionEnableCleanupOfUnreferencedStreamsInStreamStoreCleanupTasks: true

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.CleanupFollowerConfig;
+import com.palantir.atlasdb.cleaner.api.ImmutableCleanupFollowerConfig;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaConfig;

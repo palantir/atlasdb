@@ -59,6 +59,9 @@ public class AtlasDbRuntimeConfigDeserializationTest {
                 });
 
         assertThat(runtimeConfig.internalSchema().targetTransactionsSchemaVersion()).contains(1);
+        assertThat(runtimeConfig.cleanupFollower()
+                .dangerousRiskOfDataCorruptionEnableCleanupOfUnreferencedStreamsInStreamStoreCleanupTasks())
+                .isTrue();
     }
 
     private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {
@@ -76,5 +79,9 @@ public class AtlasDbRuntimeConfigDeserializationTest {
         assertThat(runtimeConfig.timelockRuntime()).isPresent();
         assertThat(runtimeConfig.timelockRuntime().get().serversList().servers()).isEmpty();
         assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).isEmpty();
+
+        assertThat(runtimeConfig.cleanupFollower()
+                .dangerousRiskOfDataCorruptionEnableCleanupOfUnreferencedStreamsInStreamStoreCleanupTasks())
+                .isFalse();
     }
 }
