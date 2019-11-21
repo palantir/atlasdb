@@ -18,41 +18,42 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
 
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.UnlockEvent;
 
-public final class NoOpLog implements LockEventLog {
-    public static LockEventLog INSTANCE = new NoOpLog();
-
-    private NoOpLog() {
-        // pl0x no
-    }
+public class LockEventLogImpl implements LockEventLog {
+    private final UUID leaderId = UUID.randomUUID();
+    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(1000);
 
     @Override
     public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion) {
-        return LockWatchStateUpdate.EMPTY;
+        return LockWatchStateUpdate.of(leaderId, slidingWindow.getFromVersion(fromVersion));
     }
 
     @Override
     public void logLock(LockToken lockToken, Set<LockDescriptor> locksTakenOut) {
-        // noop
+        slidingWindow.add(LockEvent.fromSeq(lockToken, locksTakenOut));
     }
 
     @Override
     public void logUnlock(LockToken lockToken, Set<LockDescriptor> locksUnlocked) {
-        // noop
+        slidingWindow.add(UnlockEvent.fromSeq(lockToken, locksUnlocked));
     }
 
     @Override
     public void logOpenLocks(LockToken lockToken, Set<LockDescriptor> openLocks) {
-        // noop
+        slidingWindow.add(LockEvent.fromSeq(lockToken, openLocks));
     }
 
     @Override
     public void logLockWatchCreated(LockWatchRequest locksToWatch) {
-        // noop
+        slidingWindow.add(LockWatchCreatedEvent.fromSeq(locksToWatch));
     }
 }
