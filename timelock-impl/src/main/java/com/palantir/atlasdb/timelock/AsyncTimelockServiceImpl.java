@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,9 +38,12 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
@@ -162,6 +166,18 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService, AutoDeleg
                 LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
 
         return Leased.of(lockImmutableTimestampResponse, leasedLock.lease());
+    }
+
+    @Override
+    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
+        return StartTransactionResponseV5.fromV4(
+                startTransactions(request.requestV4()),
+                getWatchState(request.lastKnownLockLogVersion()));
+    }
+
+    @Override
+    public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion) {
+        return TimestampWithWatches.of(getFreshTimestamp(), getWatchState(lastKnownVersion));
     }
 
     @Override

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock;
 
 import java.io.Closeable;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
@@ -31,8 +32,11 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 
 public interface AsyncTimelockService extends ManagedTimestampService, LockWatchingService, Closeable {
@@ -56,6 +60,10 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
     StartAtlasDbTransactionResponseV3 startTransaction(StartIdentifiedAtlasDbTransactionRequest request);
 
     StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request);
+
+    StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request);
+
+    TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion);
 
     LeaderTime leaderTime();
 }

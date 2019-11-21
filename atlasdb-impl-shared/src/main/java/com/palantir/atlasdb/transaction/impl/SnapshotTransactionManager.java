@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -156,7 +157,7 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         StartTransactionWithWatchesResponse responseWithWatches = timelockService
-                .startTransactionWithWatches(Optional.empty());
+                .startTransactionWithWatches(OptionalLong.empty());
         StartIdentifiedAtlasDbTransactionResponse transactionResponse = responseWithWatches.response();
 
         try {
