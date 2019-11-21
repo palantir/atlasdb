@@ -27,7 +27,6 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
-import com.palantir.atlasdb.cleaner.api.CleanupFollowerConfig;
 import com.palantir.atlasdb.cleaner.api.ImmutableCleanupFollowerConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.debug.ConflictTracer;
