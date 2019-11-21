@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cleaner.api.CleanupFollowerConfig;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaConfig;
@@ -106,6 +107,11 @@ public abstract class AtlasDbRuntimeConfig {
     @Value.Default
     public RemotingClientConfig remotingClient() {
         return ImmutableRemotingClientConfig.builder().build();
+    }
+
+    @Value.Default
+    public CleanupFollowerConfig cleanupFollower() {
+        return ImmutableCleanupFollowerConfig.builder().build();
     }
 
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
