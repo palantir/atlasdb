@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -47,7 +45,6 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;

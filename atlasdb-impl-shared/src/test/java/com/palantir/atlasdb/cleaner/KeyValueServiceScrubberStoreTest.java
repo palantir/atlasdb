@@ -64,7 +64,7 @@ public class KeyValueServiceScrubberStoreTest {
         TableReference ref = TableReference.fromString("foo.bar");
         long timestamp = 10;
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell, ref), timestamp, 1000);
-        assertThat(getScrubQueue()).isEqualTo(ImmutableList.of(ImmutableSortedMap.of(timestamp, ImmutableMultimap.of(ref, cell))));
+        assertThat(getScrubQueue()).containsExactly(ImmutableSortedMap.of(timestamp, ImmutableMultimap.of(ref, cell)));
         scrubStore.markCellsAsScrubbed(ImmutableMap.of(ref, ImmutableMultimap.of(cell, timestamp)), 1000);
         assertThat(getScrubQueue()).isEqualTo(ImmutableList.of());
     }

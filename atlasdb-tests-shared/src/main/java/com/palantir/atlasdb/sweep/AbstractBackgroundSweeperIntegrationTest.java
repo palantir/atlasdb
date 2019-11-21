@@ -163,7 +163,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                         .allSatisfy((cell, value) ->
                                 assertThat(
                                         value.size() == 1
-                                                || (conservative && value.size() == 2 && value.contains(-1L))));
+                                                || (conservative && value.size() == 2 && value.contains(-1L)))
+                                        .isTrue());
             }
             assertThat(numCells).isEqualTo(expectedCells);
         }
