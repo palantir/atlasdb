@@ -392,7 +392,8 @@ public abstract class TransactionManagers {
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        CleanupFollower follower = CleanupFollower.create(schemas());
+        CleanupFollower follower = CleanupFollower.create(
+                schemas(), () -> runtimeConfigSupplier.get().cleanupFollower());
 
         Cleaner cleaner = initializeCloseable(() ->
                         new DefaultCleanerBuilder(keyValueService, lockAndTimestampServices.timelock(),

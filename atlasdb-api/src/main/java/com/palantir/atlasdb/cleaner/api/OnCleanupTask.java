@@ -44,4 +44,12 @@ public interface OnCleanupTask {
      * @return true if this method should be called again with a fresh transaction
      */
     boolean cellsCleanedUp(Transaction transaction, Set<Cell> cells);
+
+    /**
+     * Similar to {@link #cellsCleanedUp(Transaction, Set)}, but admits a configuration object that allows for
+     * user-configurable behaviour at runtime. Not all cleanup tasks may be responsive to configuration.
+     */
+    default boolean cellsCleanedUp(Transaction transaction, Set<Cell> cells, CleanupFollowerConfig _config) {
+        return cellsCleanedUp(transaction, cells);
+    }
 }

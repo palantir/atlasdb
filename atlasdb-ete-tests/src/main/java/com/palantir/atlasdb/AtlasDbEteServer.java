@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.cleaner.api.ImmutableCleanupFollowerConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
@@ -78,7 +79,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             TodoSchema.getSchema(),
             BlobSchema.getSchema());
-    private static final Follower FOLLOWER = CleanupFollower.create(ETE_SCHEMAS);
+    private static final Follower FOLLOWER = CleanupFollower.create(ETE_SCHEMAS,
+            () -> ImmutableCleanupFollowerConfig.builder().build());
 
 
     public static void main(String[] args) throws Exception {
@@ -136,7 +138,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 new NoOpPersistentLockService(),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
-        CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS);
+        CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS,
+                () -> ImmutableCleanupFollowerConfig.builder().build());
         CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, noLocks, ImmutableList.of(follower));
         return new SweepTaskRunner(kvs, ts, ts, txnService, ssm, cellsSweeper);
     }
