@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -94,6 +95,7 @@ public class TargetedSweepEteTest {
     }
 
     @Test
+    @Ignore // This is desired behaviour, but is disabled as part of safety investigations on PDS-104895
     public void targetedSweepCleanupUnmarkedStreamsTest() {
         todoClient.storeUnmarkedSnapshot("snap");
         todoClient.storeUnmarkedSnapshot("crackle");
