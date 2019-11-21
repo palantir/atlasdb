@@ -223,7 +223,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigCanHaveEmptyNamespace() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertThat(kvsConfig.namespace().isPresent()).describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default").isFalse();
+        assertThat(kvsConfig.namespace())
+                .as("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isPresent();
         ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace(Optional.empty())
                 .keyValueService(kvsConfig)
@@ -234,7 +236,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigWorksWithNonTestNamespace() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertThat(kvsConfig.namespace().isPresent()).describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default").isFalse();
+        assertThat(kvsConfig.namespace())
+                .as("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isPresent();
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace("clive")
                 .keyValueService(kvsConfig)
@@ -245,7 +249,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigCannotHaveEmptyNamespaceWithEmptyTimelockClient() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertThat(kvsConfig.namespace().isPresent()).describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default").isFalse();
+        assertThat(kvsConfig.namespace())
+                .as("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isPresent();
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .namespace(Optional.empty())
                 .keyValueService(kvsConfig)
@@ -260,7 +266,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryKeyspaceAndTimelockClientCanBeDifferent() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertThat(kvsConfig.namespace().isPresent()).describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default").isFalse();
+        assertThat(kvsConfig.namespace())
+                .as("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isPresent();
         ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(kvsConfig)
                 .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)

@@ -63,7 +63,9 @@ public class PaxosTestState {
             fail(e.getMessage(), e);
         }
         if (checkAfterwards) {
-            assertThat(leader(leaderNum).isStillLeading(token)).describedAs("leader should still be leading right after becoming leader").isEqualTo(StillLeadingStatus.LEADING);
+            assertThat(leader(leaderNum).isStillLeading(token))
+                    .as("leader should still be leading right after becoming leader")
+                    .isEqualTo(StillLeadingStatus.LEADING);
         }
         return token;
     }

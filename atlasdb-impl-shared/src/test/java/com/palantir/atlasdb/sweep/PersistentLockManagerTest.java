@@ -285,7 +285,9 @@ public class PersistentLockManagerTest {
     public void noOpPersistentLockDoesNotThrow() {
         PersistentLockManager noOpManager = new PersistentLockManager(
                 metricsManager, new NoOpPersistentLockService(), 0L);
-        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock").isTrue();
+        assertThat(noOpManager.tryAcquirePersistentLock())
+                .as("NoOpPersistentLockService should return true when acquiring lock")
+                .isTrue();
         noOpManager.releasePersistentLock();
     }
 
@@ -293,8 +295,12 @@ public class PersistentLockManagerTest {
     public void noOpPersistentLockCanLockTwice() {
         PersistentLockManager noOpManager = new PersistentLockManager(
                 metricsManager, new NoOpPersistentLockService(), 0L);
-        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock").isTrue();
-        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock for the second time").isTrue();
+        assertThat(noOpManager.tryAcquirePersistentLock())
+                .as("NoOpPersistentLockService should return true when acquiring lock")
+                .isTrue();
+        assertThat(noOpManager.tryAcquirePersistentLock())
+                .as("NoOpPersistentLockService should return true when acquiring lock for the second time")
+                .isTrue();
     }
 
     private void whenWeGetTheLockFirstTimeAndThenHoldItForever() {

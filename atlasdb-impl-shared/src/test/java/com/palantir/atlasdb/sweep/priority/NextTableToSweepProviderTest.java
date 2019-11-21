@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -34,10 +32,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -143,7 +141,8 @@ public class NextTableToSweepProviderTest {
 
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
         assertThat(tableToSweep.isPresent()).isTrue();
-        assertThat(tableToSweep.get().getTableRef()).is(new HamcrestCondition<>(anyOf(is(table("table2")), is(table("table3")), is(table("table4")))));
+        assertThat(ImmutableList.of(table("table2"), table("table3"), table("table4")))
+                .contains(tableToSweep.get().getTableRef());
     }
 
     @Test
@@ -278,10 +277,11 @@ public class NextTableToSweepProviderTest {
 
     private void thenTableIsChosenAtLeastOnce(TableReference table) {
         assertThat(tablesToSweep.stream()
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .map(TableToSweep::getTableRef)
-                        .anyMatch(chosenTable -> chosenTable.equals(table))).describedAs("expected table " + table + " to be chosen at least once, but wasn't!").isTrue();
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(TableToSweep::getTableRef))
+                .as("expected table " + table + " to be chosen at least once, but wasn't!")
+                .contains(table);
     }
 
     // helpers

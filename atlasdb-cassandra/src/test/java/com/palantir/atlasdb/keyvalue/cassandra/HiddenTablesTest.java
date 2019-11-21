@@ -46,7 +46,8 @@ public class HiddenTablesTest {
 
     @Test
     public void shouldSayANamespacedTableIsNotHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table"))).isEqualTo(false);
+        assertThat(HiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table")))
+                .isEqualTo(false);
     }
 
     @Test

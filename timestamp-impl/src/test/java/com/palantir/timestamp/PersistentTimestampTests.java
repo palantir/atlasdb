@@ -60,7 +60,8 @@ public class PersistentTimestampTests {
 
     @Test public void
     shouldIncreaseUpperLimitWhenHandingOutNewTimestamps() {
-        assertThat(timestamp.incrementBy(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound()).isEqualTo(UPPER_LIMIT + 10);
+        assertThat(timestamp.incrementBy(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound())
+                .isEqualTo(UPPER_LIMIT + 10);
 
         verify(upperLimit).increaseToAtLeast(UPPER_LIMIT + 10);
     }

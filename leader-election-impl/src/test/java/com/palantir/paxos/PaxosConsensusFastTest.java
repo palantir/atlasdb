@@ -92,10 +92,14 @@ public class PaxosConsensusFastTest {
     public void loseQuorum() {
         LeadershipToken token = state.gainLeadership(0);
         knockOutQuorumNotIncludingZero();
-        assertThat(StillLeadingStatus.LEADING).describedAs("leader cannot maintain leadership without quorum").isNotSameAs(state.leader(0).isStillLeading(token));
+        assertThat(StillLeadingStatus.LEADING)
+                .as("leader cannot maintain leadership without quorum")
+                .isNotSameAs(state.leader(0).isStillLeading(token));
         state.comeUp(1);
         state.gainLeadership(0);
-        assertThat(StillLeadingStatus.NOT_LEADING).describedAs("leader can confirm leadership with quorum").isNotSameAs(state.leader(0).isStillLeading(token));
+        assertThat(StillLeadingStatus.NOT_LEADING)
+                .as("leader can confirm leadership with quorum")
+                .isNotSameAs(state.leader(0).isStillLeading(token));
     }
 
     @Test
@@ -135,7 +139,9 @@ public class PaxosConsensusFastTest {
         });
         // Don't check leadership immediately after gaining it, since quorum might get lost.
         LeadershipToken token2 = state.gainLeadershipWithoutCheckingAfter(0);
-        assertThat(token.sameAs(token2)).describedAs("leader can confirm leadership with quorum").isTrue();
+        assertThat(token.sameAs(token2))
+                .as("leader can confirm leadership with quorum")
+                .isTrue();
         future.cancel(true);
         exec.shutdown();
         exec.awaitTermination(10, TimeUnit.SECONDS);

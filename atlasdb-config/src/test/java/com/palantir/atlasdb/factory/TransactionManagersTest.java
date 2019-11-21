@@ -537,7 +537,9 @@ public class TransactionManagersTest {
         setUpTimeLockBlockInInstallConfig();
         verifyUsingTimeLockByGettingAFreshTimestamp();
 
-        assertThat(!runtimeConfig.timelockRuntime().isPresent()).describedAs("Runtime config was not expected to contain a timelock block").isTrue();
+        assertThat(runtimeConfig.timelockRuntime())
+                .as("Runtime config was not expected to contain a timelock block")
+                .isEmpty();
     }
 
     @Test

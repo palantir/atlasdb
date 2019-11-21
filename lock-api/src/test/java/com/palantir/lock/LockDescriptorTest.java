@@ -70,7 +70,8 @@ public class LockDescriptorTest {
     private void testAsciiLockDescriptors(String lockId) {
         assertThat(StringLockDescriptor.of(lockId).toString()).isEqualTo(expectedLockDescriptorToString(lockId));
 
-        assertThat(ByteArrayLockDescriptor.of(stringToBytes(lockId)).toString()).isEqualTo(expectedLockDescriptorToString(lockId));
+        assertThat(ByteArrayLockDescriptor.of(stringToBytes(lockId)).toString())
+                .isEqualTo(expectedLockDescriptorToString(lockId));
     }
 
     private void testEncodedLockDescriptors(String lockId) {
@@ -80,7 +81,8 @@ public class LockDescriptorTest {
     }
 
     private void testEncodedLockId(byte[] bytes) {
-        assertThat(ByteArrayLockDescriptor.of(bytes).toString()).isEqualTo(expectedEncodedLockDescriptorToString(bytes));
+        assertThat(ByteArrayLockDescriptor.of(bytes).toString())
+                .isEqualTo(expectedEncodedLockDescriptorToString(bytes));
     }
 
     private static String expectedLockDescriptorToString(String lockId) {

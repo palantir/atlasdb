@@ -94,7 +94,8 @@ public class IndexTest extends AtlasDbTestCase {
         });
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
             DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
-            assertThat(Iterables.getOnlyElement(index1.getRowColumns(Index1IdxRow.of(2L))).getColumnName().getId()).isEqualTo(1L);
+            assertThat(Iterables.getOnlyElement(index1.getRowColumns(Index1IdxRow.of(2L))).getColumnName().getId())
+                    .isEqualTo(1L);
             return null;
         });
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
@@ -142,7 +143,8 @@ public class IndexTest extends AtlasDbTestCase {
         long hashedValue = Hashing.murmur3_128().hashBytes(ValueType.FIXED_LONG.convertFromJava(rawComponent)).asLong();
         byte[] expected = PtBytes.toBytes(Long.MIN_VALUE ^ hashedValue);
 
-        byte[] firstComponentOfRow = Arrays.copyOf(persistedRow, 8); // We're only interested in the first 8 bytes.
+        // We're only interested in the first 8 bytes.
+        byte[] firstComponentOfRow = Arrays.copyOf(persistedRow, 8);
 
         assertThat(firstComponentOfRow).isEqualTo(expected);
     }

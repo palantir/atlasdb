@@ -232,7 +232,7 @@ public class TestSweepCommand {
             assertThat(get(kvs, TABLE_ONE, "foo", mid(ts2, ts4))).isEqualTo(deletedValue("biz"));
             assertThat(get(kvs, TABLE_ONE, "boo", mid(ts3, ts5))).isEqualTo("biz");
             assertThat(getAllTs(kvs, TABLE_ONE, "foo"))
-                    .containsExactly(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4);
+                    .contains(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4);
             assertThat(getAllTs(kvs, TABLE_ONE, "boo")).containsExactly(ts3);
         }
     }

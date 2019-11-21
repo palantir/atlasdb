@@ -70,11 +70,15 @@ public class PaxosConsensusSlowTest {
                 if (i + 1 < QUORUM_SIZE) {
                     assertThat(leadershipCompletionService.poll(
                                     NO_QUORUM_POLL_WAIT_TIME_IN_MS,
-                                    TimeUnit.MILLISECONDS)).describedAs("proposer should continue to block without quorum").isNull();
+                                    TimeUnit.MILLISECONDS))
+                            .as("proposer should continue to block without quorum")
+                            .isNull();
                 } else {
                     assertThat(leadershipCompletionService.poll(
                                     QUORUM_POLL_WAIT_TIME_IN_MS,
-                                    TimeUnit.MILLISECONDS)).describedAs("proposer should get leadership with quorum").isNotNull();
+                                    TimeUnit.MILLISECONDS))
+                            .as("proposer should get leadership with quorum")
+                            .isNotNull();
                     return;
                 }
             } catch (InterruptedException ignored) {

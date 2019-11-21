@@ -99,7 +99,8 @@ public class SweepResultsTest {
 
     @Test
     public void accumulateAll() {
-        assertThat(RESULTS_NO_START_ROW.accumulateWith(RESULTS).accumulateWith(OTHER_RESULTS)).isEqualTo(SweepResults.builder()
+        assertThat(RESULTS_NO_START_ROW.accumulateWith(RESULTS).accumulateWith(OTHER_RESULTS))
+                .isEqualTo(SweepResults.builder()
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 2000L + 3000L)
                         .staleValuesDeleted(100L + 200L + 300L)

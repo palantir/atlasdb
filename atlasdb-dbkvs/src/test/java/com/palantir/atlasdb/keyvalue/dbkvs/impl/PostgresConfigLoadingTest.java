@@ -54,7 +54,8 @@ public class PostgresConfigLoadingTest {
         // Our connectionTimeout is instead translated to "connectTimeout", which is how long a connection
         // can be open for.
         ConnectionConfig connectionConfig = getConnectionConfig();
-        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout()).isEqualTo((long) connectionConfig.getCheckoutTimeout());
+        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout())
+                .isEqualTo((long) connectionConfig.getCheckoutTimeout());
     }
 
     @Test
@@ -99,6 +100,8 @@ public class PostgresConfigLoadingTest {
     private void verifyHikariProperty(ConnectionConfig connectionConfig, String property, int expectedValueSeconds) {
         Properties hikariProps = connectionConfig.getHikariConfig().getDataSourceProperties();
 
-        assertThat(Integer.valueOf(hikariProps.getProperty(property))).describedAs(String.format("Hikari property %s should be populated from connectionConfig", property)).isEqualTo(expectedValueSeconds);
+        assertThat(Integer.valueOf(hikariProps.getProperty(property)))
+                .as(String.format("Hikari property %s should be populated from connectionConfig", property))
+                .isEqualTo(expectedValueSeconds);
     }
 }

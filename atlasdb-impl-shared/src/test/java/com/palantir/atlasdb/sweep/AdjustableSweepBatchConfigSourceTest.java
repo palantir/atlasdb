@@ -16,17 +16,9 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 import java.util.function.Function;
 
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.Test;
 
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -49,7 +41,7 @@ public class AdjustableSweepBatchConfigSourceTest {
         adjustableConfig.decreaseMultiplier();
 
         // Then
-        assertThat(adjustableConfig.getBatchSizeMultiplier()).is(new HamcrestCondition<>(is(lessThan(previousMultiplier))));
+        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier()).isLessThan(previousMultiplier);
     }
 
     @Test
@@ -61,7 +53,7 @@ public class AdjustableSweepBatchConfigSourceTest {
 
         whenIncreasingTheMultiplier_thenAdjustedConfigValuesIncrease();
 
-        assertThat(adjustableConfig.getBatchSizeMultiplier()).isEqualTo(1.0);
+        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier()).isEqualTo(1.0);
     }
 
     @Test
@@ -73,7 +65,7 @@ public class AdjustableSweepBatchConfigSourceTest {
 
         whenIncreasingTheMultiplier_thenAdjustedConfigValuesIncrease();
 
-        assertThat(adjustableConfig.getBatchSizeMultiplier()).isEqualTo(1.0);
+        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier()).isEqualTo(1.0);
     }
 
     @Test
@@ -85,7 +77,7 @@ public class AdjustableSweepBatchConfigSourceTest {
 
         whenIncreasingTheMultiplier_thenAdjustedConfigValuesIncrease();
 
-        assertThat(adjustableConfig.getBatchSizeMultiplier()).isEqualTo(1.0);
+        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier()).isEqualTo(1.0);
     }
 
     private void whenDecreasingTheMultiplier_thenAdjustedConfigValuesDecrease() {
@@ -134,14 +126,14 @@ public class AdjustableSweepBatchConfigSourceTest {
     }
 
     private void batchSizeMultiplierDecreases() {
-        assertThat(adjustableConfig.getBatchSizeMultiplier()).is(new HamcrestCondition<>(is(lessThanOrEqualTo(previousMultiplier))));
+        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier()).isLessThanOrEqualTo(previousMultiplier);
     }
 
     private void decreasesToOne(Function<SweepBatchConfig, Integer> getValue) {
         int newValue = getValue.apply(adjustableConfig.getAdjustedSweepConfig());
         int previousValue = getValue.apply(previousConfig);
 
-        assertThat(newValue).is(new HamcrestCondition<>(is(anyOf(equalTo(1), lessThan(previousValue)))));
+        assertThat(newValue).matches(value -> value == 1 || value < previousValue);
     }
 
     private void maxCellTsPairsToExamineDecreasesToAMinimumOfOne() {
@@ -157,11 +149,12 @@ public class AdjustableSweepBatchConfigSourceTest {
     }
 
     private void batchSizeMultiplierIncreases() {
-        assertThat(adjustableConfig.getBatchSizeMultiplier()).is(new HamcrestCondition<>(is(greaterThanOrEqualTo(previousMultiplier))));
+        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier())
+                .isGreaterThanOrEqualTo(previousMultiplier);
     }
 
     private void batchSizeMultiplierDoesNotExceedOne() {
-        assertThat(adjustableConfig.getBatchSizeMultiplier()).is(new HamcrestCondition<>(is(lessThanOrEqualTo(1.0))));
+        assertThat(AdjustableSweepBatchConfigSource.getBatchSizeMultiplier()).isLessThanOrEqualTo(1.0);
     }
 
     private void maxCellTsPairsToExamineIncreasesBackUpToBaseConfig() {
@@ -177,14 +170,14 @@ public class AdjustableSweepBatchConfigSourceTest {
     }
 
     private void increasesBackUpToBaseConfig(Function<SweepBatchConfig, Integer> getValue) {
-        assertThat(getValue.apply(adjustableConfig.getAdjustedSweepConfig())).is(new HamcrestCondition<>(is(anyOf(
-                        greaterThan(getValue.apply(previousConfig)),
-                        lessThanOrEqualTo(getValue.apply(adjustableConfig.getRawSweepConfig()))
-                ))));
+        assertThat(getValue.apply(adjustableConfig.getAdjustedSweepConfig()))
+                .matches(value ->
+                        value > getValue.apply(previousConfig)
+                                || value <= getValue.apply(adjustableConfig.getRawSweepConfig()));
     }
 
     private void updatePreviousValues() {
-        previousMultiplier = adjustableConfig.getBatchSizeMultiplier();
+        previousMultiplier = AdjustableSweepBatchConfigSource.getBatchSizeMultiplier();
         previousConfig = adjustableConfig.getAdjustedSweepConfig();
     }
 }

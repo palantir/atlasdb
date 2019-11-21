@@ -509,8 +509,10 @@ public class CassandraClientPoolTest {
     private void verifyAggregateFailureMetrics(
             double requestFailureProportion,
             double requestConnectionExceptionProportion) {
-        assertThat(getAggregateMetricValueForMetricName("requestFailureProportion")).isEqualTo(requestFailureProportion);
-        assertThat(getAggregateMetricValueForMetricName("requestConnectionExceptionProportion")).isEqualTo(requestConnectionExceptionProportion);
+        assertThat(getAggregateMetricValueForMetricName("requestFailureProportion"))
+                .isEqualTo(requestFailureProportion);
+        assertThat(getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"))
+                .isEqualTo(requestConnectionExceptionProportion);
     }
 
     private void verifyBlacklistMetric(Integer expectedSize) {

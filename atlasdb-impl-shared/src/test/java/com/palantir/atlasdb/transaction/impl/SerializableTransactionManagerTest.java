@@ -190,7 +190,8 @@ public class SerializableTransactionManagerTest {
         everythingInitialized();
         tickInitializingThread();
 
-        assertThat(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByCallbackFailure()).isTrue();
+        assertThat(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByCallbackFailure())
+                .isTrue();
         assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasCause(cause);
