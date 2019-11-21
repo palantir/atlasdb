@@ -14,31 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
+import java.util.function.Function;
 
-import com.palantir.lock.watch.LockWatchRequest;
+import org.immutables.value.Value;
 
-public final class NoOpKvsLockWatchingService implements KvsLockWatchingService {
-    public static final KvsLockWatchingService INSTANCE = new NoOpKvsLockWatchingService();
-
-    private NoOpKvsLockWatchingService() {
-        // nope
-    }
+@Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+public abstract class LockWatchCreatedEvent implements LockWatchEvent {
+    abstract LockWatchRequest request();
 
     @Override
-    public void registerWatches(LockWatchRequest lockWatchEntries) {
-        // noop
+    public void accept(LockWatchEventVisitor visitor) {
+        visitor.visit(this);
     }
 
-    @Override
-    public void deregisterWatches(LockWatchRequest lockWatchEntries) {
-        // noop
-    }
-
-    @Override
-    public LockWatchState getLockWatchState(OptionalLong lastKnownState) {
-        return null;
+    public static Function<Long, LockWatchEvent> fromSeq(LockWatchRequest request) {
+        ImmutableLockWatchCreatedEvent.Builder builder = ImmutableLockWatchCreatedEvent.builder()
+                .request(request);
+        return seq -> builder.sequence(seq).build();
     }
 }

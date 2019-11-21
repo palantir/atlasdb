@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.UUID;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -31,7 +29,7 @@ import javax.ws.rs.core.MediaType;
 public interface LockWatchingRpcClient {
     @POST
     @Path("start-watching")
-    WatchIdToLockDesciptor startWatching(@PathParam("namespace") String namespace, LockWatchRequest lockWatchRequest);
+    void startWatching(@PathParam("namespace") String namespace, LockWatchRequest lockWatchRequest);
 
     @POST
     @Path("stop-watching")
@@ -40,5 +38,5 @@ public interface LockWatchingRpcClient {
     // as usual, GET is allowed to be cached, and we are not allowed to use a stale result
     @POST
     @Path("watch-state")
-    LockWatchState getWatchState(@PathParam("namespace") String namespace, UUID serviceId);
+    LockWatchStateUpdate getWatchState(@PathParam("namespace") String namespace);
 }

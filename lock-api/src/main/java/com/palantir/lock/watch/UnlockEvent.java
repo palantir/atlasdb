@@ -16,22 +16,29 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableWatchIdToLockDesciptor.class)
-@JsonDeserialize(as = ImmutableWatchIdToLockDesciptor.class)
-public interface WatchIdToLockDesciptor {
-    Map<WatchId, LockDescriptor> mapping();
+public abstract class UnlockEvent implements LockWatchEvent {
+    public abstract LockToken lockToken();
+    public abstract Set<LockDescriptor> lockDescriptors();
 
-    static WatchIdToLockDesciptor of(Map<WatchId, LockDescriptor> mapping) {
-        return ImmutableWatchIdToLockDesciptor.builder().mapping(mapping).build();
+    @Override
+    public void accept(LockWatchEventVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    public static Function<Long, LockWatchEvent> fromSeq(LockToken lockToken, Set<LockDescriptor> lockDescriptors) {
+        ImmutableUnlockEvent.Builder builder = ImmutableUnlockEvent.builder()
+                .lockToken(lockToken)
+                .lockDescriptors(lockDescriptors);
+        return seq -> builder.sequence(seq).build();
     }
 }

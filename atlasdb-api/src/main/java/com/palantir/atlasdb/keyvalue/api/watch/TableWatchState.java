@@ -14,27 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.OptionalLong;
-
-import com.palantir.common.annotation.Idempotent;
-import com.palantir.lock.watch.LockWatchRequest;
-
-public interface KvsLockWatchingService {
-    /**
-     * Registers watches.
-     */
-    @Idempotent
-    void registerWatches(LockWatchRequest lockWatchEntries);
-
-    /**
-     * Deregisters watches.
-     */
-    void deregisterWatches(LockWatchRequest lockWatchEntries);
-
-    /**
-     * Returns the current state of all registered watches.
-     **/
-    LockWatchState getLockWatchState(OptionalLong lastKnownState);
+public interface TableWatchState {
 }

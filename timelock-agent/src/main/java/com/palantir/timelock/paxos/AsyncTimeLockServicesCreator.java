@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateL
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -80,8 +81,10 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 "timelock-async-timelock-service",
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
+
         AsyncTimelockResource asyncTimelockResource =
                 new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
+        LockWatchingResource lockWatchingResource = new LockWatchingResource(asyncTimelockService);
 
         LockService lockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
@@ -93,6 +96,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 asyncTimelockService,
                 lockService,
                 asyncTimelockResource,
+                lockWatchingResource,
                 asyncTimelockService);
     }
 

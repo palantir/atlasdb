@@ -24,17 +24,20 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-@JsonDeserialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-public interface StartTransactionWithWatchesResponse {
-    @Value.Parameter
-    StartIdentifiedAtlasDbTransactionResponse response();
+@JsonSerialize(as = ImmutableStartTransactionResponseV5.class)
+@JsonDeserialize(as = ImmutableStartTransactionResponseV5.class)
+public interface StartTransactionResponseV5 {
+    LockImmutableTimestampResponse immutableTimestamp();
+    PartitionedTimestamps timestamps();
+    Lease lease();
+    LockWatchStateUpdate lockWatchUpdate();
 
-    @Value.Parameter
-    LockWatchStateUpdate watchState();
-
-    static com.palantir.lock.v2.StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res,
-            LockWatchStateUpdate state) {
-        return ImmutableStartTransactionWithWatchesResponse.of(res, state);
+    static StartTransactionResponseV5 fromV4(StartTransactionResponseV4 v4response, LockWatchStateUpdate lockWatch) {
+        return ImmutableStartTransactionResponseV5.builder()
+                .immutableTimestamp(v4response.immutableTimestamp())
+                .timestamps(v4response.timestamps())
+                .lease(v4response.lease())
+                .lockWatchUpdate(lockWatch)
+                .build();
     }
 }

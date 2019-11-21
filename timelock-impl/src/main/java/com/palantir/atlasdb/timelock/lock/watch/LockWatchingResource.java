@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.UUID;
+import java.util.OptionalLong;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -25,8 +25,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.watch.LockWatchRequest;
-import com.palantir.lock.watch.LockWatchState;
-import com.palantir.lock.watch.WatchIdToLockDesciptor;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @Path("/lock-watch")
 @Produces(MediaType.APPLICATION_JSON)
@@ -40,19 +39,19 @@ public class LockWatchingResource {
 
     @POST
     @Path("start-watching")
-    public WatchIdToLockDesciptor startWatching(LockWatchRequest lockWatchRequest) {
-        return lockWatchingService.startWatching(lockWatchRequest.serviceId(), lockWatchRequest.lockDescriptors());
+    public void startWatching(LockWatchRequest lockWatchRequest) {
+        lockWatchingService.startWatching(lockWatchRequest);
     }
 
     @POST
     @Path("stop-watching")
     public void stopWatching(LockWatchRequest lockWatchRequest) {
-        lockWatchingService.stopWatching(lockWatchRequest.serviceId(), lockWatchRequest.lockDescriptors());
+        lockWatchingService.stopWatching(lockWatchRequest);
     }
 
     @POST
     @Path("watch-state")
-    public LockWatchState getWatchState(UUID serviceId) {
-        return lockWatchingService.getWatchState(serviceId);
+    public LockWatchStateUpdate getWatchState(OptionalLong lastKnownVersion) {
+        return lockWatchingService.getWatchState(lastKnownVersion);
     }
 }

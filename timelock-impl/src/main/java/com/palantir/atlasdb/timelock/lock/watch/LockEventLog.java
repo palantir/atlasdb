@@ -14,31 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.OptionalLong;
+import java.util.Set;
 
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
-public final class NoOpKvsLockWatchingService implements KvsLockWatchingService {
-    public static final KvsLockWatchingService INSTANCE = new NoOpKvsLockWatchingService();
-
-    private NoOpKvsLockWatchingService() {
-        // nope
-    }
-
-    @Override
-    public void registerWatches(LockWatchRequest lockWatchEntries) {
-        // noop
-    }
-
-    @Override
-    public void deregisterWatches(LockWatchRequest lockWatchEntries) {
-        // noop
-    }
-
-    @Override
-    public LockWatchState getLockWatchState(OptionalLong lastKnownState) {
-        return null;
-    }
+public interface LockEventLog {
+    LockWatchStateUpdate getLogDiff(OptionalLong fromVersion);
+    void logLock(LockToken lockToken, Set<LockDescriptor> locksTakenOut);
+    void logUnlock(LockToken lockToken, Set<LockDescriptor> locksUnlocked);
+    void logOpenLocks(LockToken lockToken, Set<LockDescriptor> openLocks);
+    void logLockWatchCreated(LockWatchRequest locksToWatch);
 }

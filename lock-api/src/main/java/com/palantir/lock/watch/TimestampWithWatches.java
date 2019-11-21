@@ -14,27 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.lock.watch;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-@JsonDeserialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-public interface StartTransactionWithWatchesResponse {
-    @Value.Parameter
-    StartIdentifiedAtlasDbTransactionResponse response();
+@JsonSerialize(as = ImmutableTimestampWithWatches.class)
+@JsonDeserialize(as = ImmutableTimestampWithWatches.class)
+public interface TimestampWithWatches {
+    long timestamp();
+    LockWatchStateUpdate lockWatches();
 
-    @Value.Parameter
-    LockWatchStateUpdate watchState();
-
-    static com.palantir.lock.v2.StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res,
-            LockWatchStateUpdate state) {
-        return ImmutableStartTransactionWithWatchesResponse.of(res, state);
+    static TimestampWithWatches of(long timestamp, LockWatchStateUpdate lockWatches) {
+        return ImmutableTimestampWithWatches.builder().timestamp(timestamp).lockWatches(lockWatches).build();
     }
 }

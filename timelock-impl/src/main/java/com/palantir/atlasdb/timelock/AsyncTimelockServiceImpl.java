@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,6 +23,8 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
+import com.palantir.atlasdb.timelock.lock.watch.AutoDelegate_LockWatchingService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
@@ -35,13 +38,16 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
-public class AsyncTimelockServiceImpl implements AsyncTimelockService {
+public class AsyncTimelockServiceImpl implements AsyncTimelockService, AutoDelegate_LockWatchingService {
 
     private final AsyncLockService lockService;
     private final ClientAwareManagedTimestampService timestampService;
@@ -51,6 +57,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
             ManagedTimestampService timestampService) {
         this.lockService = lockService;
         this.timestampService = DelegatingClientAwareManagedTimestampService.createDefault(timestampService);
+    }
+
+    @Override
+    public LockWatchingService delegate() {
+        return lockService.getLockWatchingService();
     }
 
     @Override
@@ -155,6 +166,18 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
 
         return Leased.of(lockImmutableTimestampResponse, leasedLock.lease());
+    }
+
+    @Override
+    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
+        return StartTransactionResponseV5.fromV4(
+                startTransactions(request.requestV4()),
+                getWatchState(request.lastKnownLockLogVersion()));
+    }
+
+    @Override
+    public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion) {
+        return TimestampWithWatches.of(getFreshTimestamp(), getWatchState(lastKnownVersion));
     }
 
     @Override

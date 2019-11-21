@@ -14,27 +14,31 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.lock.watch;
+
+import java.util.List;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.google.common.collect.ImmutableList;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-@JsonDeserialize(as = ImmutableStartTransactionWithWatchesResponse.class)
-public interface StartTransactionWithWatchesResponse {
-    @Value.Parameter
-    StartIdentifiedAtlasDbTransactionResponse response();
+@JsonSerialize(as = ImmutableLockWatchStateUpdate.class)
+@JsonDeserialize(as = ImmutableLockWatchStateUpdate.class)
+public interface LockWatchStateUpdate {
+    LockWatchStateUpdate EMPTY = LockWatchStateUpdate.of(UUID.randomUUID(), ImmutableList.of());
 
-    @Value.Parameter
-    LockWatchStateUpdate watchState();
+    UUID leaderId();
+    List<LockWatchEvent> events();
 
-    static com.palantir.lock.v2.StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res,
-            LockWatchStateUpdate state) {
-        return ImmutableStartTransactionWithWatchesResponse.of(res, state);
+    static LockWatchStateUpdate of(UUID leaderId, List<LockWatchEvent> events) {
+        return ImmutableLockWatchStateUpdate.builder()
+                .leaderId(leaderId)
+                .events(events)
+                .build();
     }
 }

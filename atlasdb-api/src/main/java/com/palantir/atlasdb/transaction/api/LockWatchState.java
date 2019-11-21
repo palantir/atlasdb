@@ -16,29 +16,5 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.OptionalLong;
-
-import com.palantir.lock.watch.LockWatchRequest;
-
-public final class NoOpKvsLockWatchingService implements KvsLockWatchingService {
-    public static final KvsLockWatchingService INSTANCE = new NoOpKvsLockWatchingService();
-
-    private NoOpKvsLockWatchingService() {
-        // nope
-    }
-
-    @Override
-    public void registerWatches(LockWatchRequest lockWatchEntries) {
-        // noop
-    }
-
-    @Override
-    public void deregisterWatches(LockWatchRequest lockWatchEntries) {
-        // noop
-    }
-
-    @Override
-    public LockWatchState getLockWatchState(OptionalLong lastKnownState) {
-        return null;
-    }
+public interface LockWatchState {
 }

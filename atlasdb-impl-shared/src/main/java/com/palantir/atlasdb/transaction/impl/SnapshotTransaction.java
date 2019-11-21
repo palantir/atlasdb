@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1987,7 +1988,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 lockDescriptors,
                 lockAcquireTimeoutMillis,
                 Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
-        TimestampedLockResponse lockResponse = timelockService.acquireLocksForWrites(request);
+        TimestampedLockResponse lockResponse = timelockService.acquireLocksForWrites(OptionalLong.empty(), request);
         if (!lockResponse.wasSuccessful()) {
             log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
                             + "First ten required locks were {}.",

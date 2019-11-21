@@ -14,25 +14,31 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.lock.watch;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 import org.immutables.value.Value;
 
-import com.palantir.lock.watch.WatchId;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public abstract class WatchIdToRowReferenceMapping {
-    abstract Map<WatchId, RowReference> mapping();
+public abstract class LockEvent implements LockWatchEvent {
+    public abstract LockToken lockToken();
+    public abstract Set<LockDescriptor> lockDescriptors();
 
-    public Optional<RowReference> rowReferenceForRowId(WatchId lockId) {
-        return Optional.ofNullable(mapping().get(lockId));
+    @Override
+    public void accept(LockWatchEventVisitor visitor) {
+        visitor.visit(this);
     }
 
-    public static WatchIdToRowReferenceMapping of(Map<WatchId, RowReference> mapping) {
-        return ImmutableWatchIdToRowReferenceMapping.builder().mapping(mapping).build();
+    public static Function<Long, LockWatchEvent> fromSeq(LockToken lockToken, Set<LockDescriptor> lockDescriptors) {
+        ImmutableLockEvent.Builder builder = ImmutableLockEvent.builder()
+                .lockToken(lockToken)
+                .lockDescriptors(lockDescriptors);
+        return seq -> builder.sequence(seq).build();
     }
 }

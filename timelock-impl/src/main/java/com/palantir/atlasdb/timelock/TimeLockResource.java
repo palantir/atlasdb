@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
@@ -78,6 +79,11 @@ public class TimeLockResource {
     @Path("/timelock")
     public AsyncTimelockResource getTimelockService(@Safe @PathParam("namespace") String namespace) {
         return getOrCreateServices(namespace).getTimelockService();
+    }
+
+    @Path("/lock-watch")
+    public LockWatchingResource getLockWatchingResource(@Safe @PathParam("namespace") String namespace) {
+        return getOrCreateServices(namespace).getLockWatchingResource();
     }
 
     @Path("/timestamp-management")

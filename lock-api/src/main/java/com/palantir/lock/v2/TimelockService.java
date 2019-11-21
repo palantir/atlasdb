@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,13 @@
  */
 package com.palantir.lock.v2;
 
+import java.util.OptionalLong;
 import java.util.Set;
 
 import javax.ws.rs.QueryParam;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.lock.watch.LockWatchState;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.lock.watch.TimestampedLockResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
@@ -86,14 +87,19 @@ public interface TimelockService {
 
     // todo(gmaretic): implement
     @DoNotDelegate
-    default StartTransactionWithWatchesResponse startTransactionWithWatches() {
-        return StartTransactionWithWatchesResponse.of(
-                startIdentifiedAtlasDbTransaction(), LockWatchState.of(ImmutableMap.of()));
+    default StartTransactionWithWatchesResponse startTransactionWithWatches(OptionalLong lastKnownState) {
+        return StartTransactionWithWatchesResponse.of(startIdentifiedAtlasDbTransaction(), LockWatchStateUpdate.EMPTY);
+    }
+
+    // todo(gmaretic): remove if not needed
+    @DoNotDelegate
+    default TimestampedLockResponse acquireLocksForWrites(OptionalLong lastKnownState, LockRequest lockRequest) {
+        return TimestampedLockResponse.of(null, lock(lockRequest));
     }
 
     // todo(gmaretic): implement
     @DoNotDelegate
-    default TimestampedLockResponse acquireLocksForWrites(LockRequest lockRequest) {
-        return TimestampedLockResponse.of(null, lock(lockRequest));
+    default TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownState) {
+        return TimestampWithWatches.of(getFreshTimestamp(), LockWatchStateUpdate.EMPTY);
     }
 }

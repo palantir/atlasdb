@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.lock.v2;
+
+import java.util.OptionalLong;
 
 import org.immutables.value.Value;
 
@@ -22,27 +24,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatch.class)
-@JsonDeserialize(as = ImmutableLockWatch.class)
-public interface LockWatch {
-    LockWatch INVALID = ImmutableLockWatch.of(-1L, false);
-
-    @Value.Parameter
-    long timestamp();
-
-    @Value.Parameter
-    boolean fromCommittedTransaction();
-
-    static LockWatch committed(long timestamp) {
-        return ImmutableLockWatch.of(timestamp, true);
-    }
-
-    static LockWatch uncommitted(long timestamp) {
-        return ImmutableLockWatch.of(timestamp, false);
-    }
-
-    static LockWatch latest(LockWatch first, LockWatch second) {
-        return first.timestamp() > second.timestamp() ? first : second;
-    }
+@JsonSerialize(as = ImmutableStartTransactionRequestV5.class)
+@JsonDeserialize(as = ImmutableStartTransactionRequestV5.class)
+public interface StartTransactionRequestV5 {
+    OptionalLong lastKnownLockLogVersion();
+    StartTransactionRequestV4 requestV4();
 }
