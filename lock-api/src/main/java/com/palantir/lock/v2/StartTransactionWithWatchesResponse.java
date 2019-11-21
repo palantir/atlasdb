@@ -33,8 +33,8 @@ public interface StartTransactionWithWatchesResponse {
     @Value.Parameter
     LockWatchStateUpdate watchState();
 
-    static com.palantir.lock.v2.StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res,
-            LockWatchStateUpdate state) {
-        return ImmutableStartTransactionWithWatchesResponse.of(res, state);
+    static StartTransactionWithWatchesResponse of(StartIdentifiedAtlasDbTransactionResponse res,
+            LockWatchStateUpdate watchStateUpdate) {
+        return ImmutableStartTransactionWithWatchesResponse.of(res, watchStateUpdate);
     }
 }
