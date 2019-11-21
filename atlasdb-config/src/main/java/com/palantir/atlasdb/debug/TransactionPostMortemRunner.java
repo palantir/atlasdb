@@ -26,6 +26,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -56,6 +59,8 @@ import com.palantir.util.OptionalResolver;
 @Deprecated
 public class TransactionPostMortemRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(TransactionPostMortemRunner.class);
+
     private final String timelockNamespace;
     private final ClientLockDiagnosticCollector clientLockDiagnosticCollector;
     private final WritesDigestEmitter writesDigestEmitter;
@@ -79,8 +84,7 @@ public class TransactionPostMortemRunner {
             Function<Value, T> deserializer) {
         WritesDigest<T> digest = writesDigestEmitter.getDigest(row, columnName, deserializer);
         Map<Long, ClientLockDiagnosticDigest> snapshot = clientLockDiagnosticCollector.getSnapshot();
-        Optional<LockDiagnosticInfo> lockDiagnosticInfo =
-                timelockDiagnosticService.getEnhancedLockDiagnosticInfo(timelockNamespace, requestIds(snapshot));
+        Optional<LockDiagnosticInfo> lockDiagnosticInfo = getTimelockDiagnostics(snapshot);
 
         Set<UUID> lockRequestIdsEvictedMidLockRequest = lockDiagnosticInfo
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
@@ -101,6 +105,16 @@ public class TransactionPostMortemRunner {
                 .lockRequestIdsEvictedMidLockRequest(lockRequestIdsEvictedMidLockRequest)
                 .completedTransactionDigests(transactionDigests)
                 .build();
+    }
+
+    private Optional<LockDiagnosticInfo> getTimelockDiagnostics(
+            Map<Long, ClientLockDiagnosticDigest> snapshot) {
+        try {
+            return timelockDiagnosticService.getEnhancedLockDiagnosticInfo(timelockNamespace, requestIds(snapshot));
+        } catch (Exception e) {
+            log.warn("recieved exception whilst trying to fetch timelock diagnostics", e);
+            return Optional.empty();
+        }
     }
 
     private static Set<UUID> requestIds(Map<Long, ClientLockDiagnosticDigest> clientDigests) {
