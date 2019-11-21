@@ -85,9 +85,11 @@ public class CassandraSchemaLockTest {
         CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         assertThat(kvs.getAllTableNames()).contains(table1);
 
-        assertThat(new File(CONTAINERS.getLogDirectory())).isDirectoryContaining(
-                file -> containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())).matches(file)
-        );
+        assertThat(new File(CONTAINERS.getLogDirectory()))
+                .satisfies(file ->
+                        assertThat(containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError()))
+                                .matches(file))
+                .isTrue());
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
