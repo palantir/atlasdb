@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.cleaner.api.CleanupFollowerConfig;
+import com.palantir.atlasdb.cleaner.api.ImmutableCleanupFollowerConfig;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -34,13 +36,15 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
 
     @Override
     public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {
+        return cellsCleanedUp(t, cells, ImmutableCleanupFollowerConfig.builder().build());
+    }
+    @Override
+    public boolean cellsCleanedUp(Transaction t, Set<Cell> cells, CleanupFollowerConfig cleanupFollowerConfig) {
         UserPhotosStreamMetadataTable metaTable = tables.getUserPhotosStreamMetadataTable(t);
         Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rows = Sets.newHashSetWithExpectedSize(cells.size());
         for (Cell cell : cells) {
             rows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
-        UserPhotosStreamIdxTable indexTable = tables.getUserPhotosStreamIdxTable(t);
-        executeUnreferencedStreamDiagnostics(indexTable, rows);
         Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
@@ -48,17 +52,32 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
                 toDelete.add(e.getKey().getId());
             }
         }
+        UserPhotosStreamIdxTable indexTable = tables.getUserPhotosStreamIdxTable(t);
+        Set<Long> unreferencedStreamIds = findUnreferencedStreams(indexTable, rows);
+        if (cleanupFollowerConfig.dangerousRiskOfDataCorruptionEnableCleanupOfUnreferencedStreamsInStreamStoreCleanupTasks()) {
+            toDelete.addAll(unreferencedStreamIds);
+        }
         UserPhotosStreamStore.of(tables).deleteStreams(t, toDelete);
         return false;
     }
 
-    private static UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow convertFromIndexRow(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow idxRow) {
-        return UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of(idxRow.getId());
-    }
-    private static Set<Long> convertToIdsForLogging(Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> iteratorExcess) {
-        return iteratorExcess.stream()
+    private static Set<Long> findUnreferencedStreams(UserPhotosStreamIdxTable indexTable, Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> metadataRows) {
+        Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> indexRows = metadataRows.stream()
                 .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::getId)
+                .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::of)
                 .collect(Collectors.toSet());
+        Set<Long> unreferencedStreamsByIterator = convertToIds(getUnreferencedStreamsByIterator(indexTable, indexRows));
+        Set<Long> unreferencedStreamsByMultimap = convertToIds(getUnreferencedStreamsByMultimap(indexTable, indexRows));
+        if (!unreferencedStreamsByIterator.equals(unreferencedStreamsByMultimap)) {
+            log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
+                    SafeArg.of("unreferencedByIterator", unreferencedStreamsByIterator),
+                    SafeArg.of("unreferencedByMultimap", unreferencedStreamsByMultimap));
+            return Sets.intersection(unreferencedStreamsByIterator, unreferencedStreamsByMultimap);
+        } else {
+            log.info("We searched for unreferenced streams and consistently found {}.",
+                    SafeArg.of("unreferencedStreamIds", unreferencedStreamsByIterator));
+            return unreferencedStreamsByIterator;
+        }
     }
 
     private static Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> getUnreferencedStreamsByMultimap(UserPhotosStreamIdxTable indexTable, Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> indexRows) {
@@ -88,20 +107,12 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
         return unreferencedStreamMetadata;
     }
 
-    private static void executeUnreferencedStreamDiagnostics(UserPhotosStreamIdxTable indexTable, Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> metadataRows) {
-        Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> indexRows = metadataRows.stream()
+    private static UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow convertFromIndexRow(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow idxRow) {
+        return UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of(idxRow.getId());
+    }
+    private static Set<Long> convertToIds(Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> iteratorExcess) {
+        return iteratorExcess.stream()
                 .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::getId)
-                .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::of)
                 .collect(Collectors.toSet());
-        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> unreferencedStreamsByIterator = getUnreferencedStreamsByIterator(indexTable, indexRows);
-        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> unreferencedStreamsByMultimap = getUnreferencedStreamsByMultimap(indexTable, indexRows);
-        if (!unreferencedStreamsByIterator.equals(unreferencedStreamsByMultimap)) {
-            log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
-                    SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
-                    SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
-        } else {
-            log.info("We searched for unreferenced streams and consistently found {}.",
-                    SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
-        }
     }
 }
