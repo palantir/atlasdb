@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: AtlasDB clients using Stream Stores now log diagnostic information concerning unreferenced streams
+    when a stream is cleaned up (via one of its cleanup tasks).
+  links:
+    - https://github.com/palantir/atlasdb/pull/4235
+
