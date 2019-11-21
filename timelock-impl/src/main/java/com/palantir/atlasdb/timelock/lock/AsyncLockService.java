@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
+import com.palantir.atlasdb.timelock.lock.watch.NoOpLog;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -104,7 +105,7 @@ public class AsyncLockService implements Closeable {
         this.reaperExecutor = reaperExecutor;
         this.leaderClock = leaderClock;
         this.lockLog = lockLog;
-        this.lockWatchingService = new LockWatchingServiceImpl(null, heldLocks);
+        this.lockWatchingService = new LockWatchingServiceImpl(NoOpLog.INSTANCE, heldLocks);
         this.lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, leaderClock, lockWatchingService);
 
         scheduleExpiredLockReaper();
