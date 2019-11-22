@@ -17,7 +17,6 @@
 package com.palantir.lock.watch;
 
 import java.util.Set;
-import java.util.function.Function;
 
 import org.immutables.value.Value;
 
@@ -35,7 +34,7 @@ public abstract class UnlockEvent implements LockWatchEvent {
         visitor.visit(this);
     }
 
-    public static Function<Long, LockWatchEvent> fromSeq(LockToken lockToken, Set<LockDescriptor> lockDescriptors) {
+    public static LockWatchEvent.Builder builder(LockToken lockToken, Set<LockDescriptor> lockDescriptors) {
         ImmutableUnlockEvent.Builder builder = ImmutableUnlockEvent.builder()
                 .lockToken(lockToken)
                 .lockDescriptors(lockDescriptors);

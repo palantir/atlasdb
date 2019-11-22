@@ -24,14 +24,15 @@ public final class AtlasLockDescriptorRanges {
     }
 
     public static Range<LockDescriptor> fullTable(String qualifiedTableName) {
-        return Range.closed(
-                new LockDescriptor(bytesForTableName(qualifiedTableName)),
-                new LockDescriptor(endNameForTableName(qualifiedTableName)));
+        byte[] tableNameBytes = bytesForTableName(qualifiedTableName);
+        return Range.open(
+                new LockDescriptor(tableNameBytes),
+                new LockDescriptor(createEndNameForPrefixScan(tableNameBytes)));
     }
 
     public static Range<LockDescriptor> rowPrefix(String qualifiedTableName, byte[] prefix) {
         LockDescriptor start = AtlasRowLockDescriptor.of(qualifiedTableName, prefix);
-        return Range.closed(
+        return Range.open(
                 start,
                 new LockDescriptor(createEndNameForPrefixScan(start.getBytes())));
     }
@@ -52,24 +53,20 @@ public final class AtlasLockDescriptorRanges {
         return Range.closed(descriptor, descriptor);
     }
 
-
     private static byte[] bytesForTableName(String tableName) {
         return tableName.getBytes();
     }
 
-    private static byte[] endNameForTableName(String tableName) {
-        return createEndNameForPrefixScan(bytesForTableName(tableName));
-    }
-
-    public static byte[] createEndNameForPrefixScan(byte[] rowName) {
-        for (int i = rowName.length - 1; i >= 0; i--) {
-            if ((rowName[i] & 0xff) != 0xff) {
+    private static byte[] createEndNameForPrefixScan(byte[] prefix) {
+        for (int i = prefix.length - 1; i >= 0; i--) {
+            if ((prefix[i] & 0xff) != 0xff) {
                 byte[] ret = new byte[i + 1];
-                System.arraycopy(rowName, 0, ret, 0, i + 1);
+                System.arraycopy(prefix, 0, ret, 0, i + 1);
                 ret[i]++;
                 return ret;
             }
         }
-        throw new IllegalArgumentException();
+        // this is unreachable when a part of prefix was created from a String
+        throw new IllegalArgumentException("The prefix must be constructed using a valid table name.");
     }
 }

@@ -42,7 +42,7 @@ public class TableWatchingServiceAdapter implements TableWatchingService {
 
     @Override
     public TableWatchState getLockWatchState(Optional<Long> lastKnownState) {
-        return null;
+        throw new UnsupportedOperationException("not implemented yet");
     }
 
     private static LockWatchRequest toRequest(Set<TableElement> tableElements) {
