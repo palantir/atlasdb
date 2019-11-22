@@ -55,21 +55,21 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 config,
                 initializeAsync);
 
-        int numberOfHosts = config.servers().accept(new Visitor<Integer>() {
+        int threadPoolSize = config.servers().accept(new Visitor<Integer>() {
             @Override
             public Integer visit(DefaultConfig defaultConfig) {
-                return 0;
+                return 1;
             }
 
             @Override
             public Integer visit(CqlCapableConfig cqlCapableConfig) {
-                return cqlCapableConfig.cqlHosts().size();
+                return cqlCapableConfig.cqlHosts().size() * config.poolSize();
             }
         });
 
         ExecutorService executorService = tracingExecutorService(
                 instrumentExecutorService(
-                        createThreadPool(numberOfHosts * config.poolSize()),
+                        createThreadPool(threadPoolSize),
                         metricsManager));
 
         return CassandraAsyncKeyValueService.create(
