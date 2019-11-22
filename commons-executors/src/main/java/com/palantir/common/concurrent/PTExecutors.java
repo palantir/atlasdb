@@ -509,7 +509,7 @@ public final class PTExecutors {
     public static ScheduledExecutorService wrap(
             final String operationName,
             final ScheduledExecutorService scheduledExecutorService) {
-        return new AbstractForwardingScheduledExecutorService() {
+        return new InternalForwardingScheduledExecutorService() {
             @Override protected ScheduledExecutorService delegate() {
                 return scheduledExecutorService;
             }
@@ -520,6 +520,11 @@ public final class PTExecutors {
 
             @Override protected <T> Callable<T> wrap(Callable<T> callable) {
                 return PTExecutors.wrap(operationName, callable);
+            }
+
+            @Override protected Runnable wrapRecurring(Runnable runnable) {
+                // Intentionally does not retain current thread state.
+                return Tracers.wrapWithNewTrace(operationName, runnable);
             }
         };
     }
