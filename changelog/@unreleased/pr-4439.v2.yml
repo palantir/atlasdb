@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: fix
+fix:
   description: Fixes the problem for configurations which have different number of
     CQL and Thrift C* hosts.
   links:
