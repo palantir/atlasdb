@@ -17,6 +17,7 @@
 package com.palantir.lock.v2;
 
 import java.util.OptionalLong;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -27,6 +28,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableStartTransactionRequestV5.class)
 @JsonDeserialize(as = ImmutableStartTransactionRequestV5.class)
 public interface StartTransactionRequestV5 {
+    UUID requestId();
+    UUID requestorId();
     OptionalLong lastKnownLockLogVersion();
-    StartTransactionRequestV4 requestV4();
+    int numTransactions();
 }
