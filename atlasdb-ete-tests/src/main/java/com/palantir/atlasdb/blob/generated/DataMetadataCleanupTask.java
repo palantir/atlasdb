@@ -32,25 +32,10 @@ public class DataMetadataCleanupTask implements OnCleanupTask {
         for (Cell cell : cells) {
             rows.add(DataStreamMetadataTable.DataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
-        DataStreamIdxTable indexTable = tables.getDataStreamIdxTable(t);
-        Set<DataStreamIdxTable.DataStreamIdxRow> indexRows = rows.stream()
-                .map(DataStreamMetadataTable.DataStreamMetadataRow::getId)
-                .map(DataStreamIdxTable.DataStreamIdxRow::of)
-                .collect(Collectors.toSet());
-        Map<DataStreamIdxTable.DataStreamIdxRow, Iterator<DataStreamIdxTable.DataStreamIdxColumnValue>> referenceIteratorByStream
-                = indexTable.getRowsColumnRangeIterator(indexRows,
-                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<DataStreamMetadataTable.DataStreamMetadataRow> streamsWithNoReferences
-                = KeyedStream.stream(referenceIteratorByStream)
-                .filter(valueIterator -> !valueIterator.hasNext())
-                .keys() // (authorized)
-                .map(DataStreamIdxTable.DataStreamIdxRow::getId)
-                .map(DataStreamMetadataTable.DataStreamMetadataRow::of)
-                .collect(Collectors.toSet());
         Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
         for (Map.Entry<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
+            if (e.getValue().getStatus() != Status.STORED) {
                 toDelete.add(e.getKey().getId());
             }
         }
