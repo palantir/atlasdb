@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.function.Function;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -30,7 +28,7 @@ public abstract class LockWatchCreatedEvent implements LockWatchEvent {
         visitor.visit(this);
     }
 
-    public static Function<Long, LockWatchEvent> fromSeq(LockWatchRequest request) {
+    public static LockWatchEvent.Builder builder(LockWatchRequest request) {
         ImmutableLockWatchCreatedEvent.Builder builder = ImmutableLockWatchCreatedEvent.builder()
                 .request(request);
         return seq -> builder.sequence(seq).build();

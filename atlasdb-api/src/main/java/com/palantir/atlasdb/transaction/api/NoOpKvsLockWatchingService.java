@@ -39,6 +39,6 @@ public final class NoOpKvsLockWatchingService implements KvsLockWatchingService 
 
     @Override
     public LockWatchState getLockWatchState(OptionalLong lastKnownState) {
-        return null;
+        throw new UnsupportedOperationException("not implemented yet");
     }
 }
