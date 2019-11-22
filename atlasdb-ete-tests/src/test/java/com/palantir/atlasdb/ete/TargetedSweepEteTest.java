@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -94,8 +95,18 @@ public class TargetedSweepEteTest {
     }
 
     @Test
-    // TODO (jkong): This is obviously not the desired behaviour, but we are doing this in the interest of safety.
-    public void targetedSweepDoesNotCleanupUnmarkedStreamsTest() {
+    @Ignore // TODO (jkong): This is obviously not the desired behaviour, but we are doing this for safety.
+    public void targetedSweepCleansUpUnmarkedStreamsTest() {
+        todoClient.storeUnmarkedSnapshot("snap");
+        todoClient.storeUnmarkedSnapshot("crackle");
+        todoClient.storeUnmarkedSnapshot("pop");
+        todoClient.runIterationOfTargetedSweep();
+
+        assertDeleted(0, 3, 3, 3);
+    }
+
+    @Test
+    public void targetedSweepCurrentlyDoesNotCleanupUnmarkedStreamsTest() {
         todoClient.storeUnmarkedSnapshot("snap");
         todoClient.storeUnmarkedSnapshot("crackle");
         todoClient.storeUnmarkedSnapshot("pop");
