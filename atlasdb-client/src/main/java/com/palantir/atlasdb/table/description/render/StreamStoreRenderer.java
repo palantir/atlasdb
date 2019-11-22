@@ -651,6 +651,8 @@ public class StreamStoreRenderer {
                 line();
                 line("public class ", MetadataCleanupTask, " implements OnCleanupTask {"); {
                     line();
+                    line("private static final Logger log = LoggerFactory.getLogger(", MetadataCleanupTask, ".class);");
+                    line();
                     line("private final ", TableFactory, " tables;");
                     line();
                     line("public ", MetadataCleanupTask, "(Namespace namespace) {"); {
@@ -658,6 +660,8 @@ public class StreamStoreRenderer {
                     } line("}");
                     line();
                     cellsCleanedUp();
+                    line();
+                    streamDiagnostics();
                 } line("}");
             }
 
@@ -669,6 +673,10 @@ public class StreamStoreRenderer {
                 line("import java.util.Set;");
                 line("import java.util.stream.Collectors;");
                 line();
+                line("import org.slf4j.Logger;");
+                line("import org.slf4j.LoggerFactory;");
+                line();
+                line("import com.google.common.collect.Multimap;");
                 line("import com.google.common.collect.Sets;");
                 line("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
                 line("import com.palantir.atlasdb.encoding.PtBytes;");
@@ -680,6 +688,7 @@ public class StreamStoreRenderer {
                 line("import com.palantir.atlasdb.table.description.ValueType;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
                 line("import com.palantir.common.streams.KeyedStream;");
+                line("import com.palantir.logsafe.SafeArg;");
 
                 if (streamIdType == ValueType.SHA256HASH) {
                     line("import com.palantir.util.crypto.Sha256Hash;");
@@ -694,6 +703,8 @@ public class StreamStoreRenderer {
                     line("for (Cell cell : cells) {"); {
                         line("rows.add(", StreamMetadataRow, ".BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));");
                     } line("}");
+                    line(StreamIndexTable, " indexTable = tables.get", StreamIndexTable, "(t);");
+                    line("executeUnreferencedStreamDiagnostics(indexTable, rows);");
                     line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);");
                     line("Set<", StreamId, "> toDelete = Sets.newHashSet();");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {"); {
@@ -703,6 +714,82 @@ public class StreamStoreRenderer {
                     } line("}");
                     line(StreamStore, ".of(tables).deleteStreams(t, toDelete);");
                     line("return false;");
+                } line("}");
+            }
+
+            private void streamDiagnostics() {
+                conversionHelpers();
+                line();
+                diagnosticsByMultimap();
+                line();
+                diagnosticsByIterator();
+                line();
+                evaluation();
+            }
+
+            private void evaluation() {
+                line("private static void executeUnreferencedStreamDiagnostics(", StreamIndexTable, " indexTable, Set<", StreamMetadataRow, "> metadataRows) {"); {
+                    line("Set<", StreamIndexRow, "> indexRows = metadataRows.stream()");
+                    line("        .map(", StreamMetadataRow, "::getId)");
+                    line("        .map(", StreamIndexRow, "::of)");
+                    line("        .collect(Collectors.toSet());");
+
+                    line("Set<", StreamMetadataRow, "> unreferencedStreamsByIterator = getUnreferencedStreamsByIterator(indexTable, indexRows);");
+                    line("Set<", StreamMetadataRow, "> unreferencedStreamsByMultimap = getUnreferencedStreamsByMultimap(indexTable, indexRows);");
+
+                    line("if (!unreferencedStreamsByIterator.equals(unreferencedStreamsByMultimap)) {"); {
+                        line("log.info(\"We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.\",");
+                        line("        SafeArg.of(\"unreferencedByIterator\", convertToIdsForLogging(unreferencedStreamsByIterator)),");
+                        line("        SafeArg.of(\"unreferencedByMultimap\", convertToIdsForLogging(unreferencedStreamsByMultimap)));");
+                    } line("} else {"); {
+                        line("log.info(\"We searched for unreferenced streams and consistently found {}.\",");
+                        line("        SafeArg.of(\"unreferencedStreamIds\", convertToIdsForLogging(unreferencedStreamsByIterator)));");
+                    } line("}");
+                } line("}");
+            }
+
+            private void conversionHelpers() {
+                line("private static ", StreamMetadataRow, " convertFromIndexRow(", StreamIndexRow, " idxRow) {"); {
+                    line("return ", StreamMetadataRow, ".of(idxRow.getId());");
+                } line("}");
+
+                line("private static Set<Long> convertToIdsForLogging(Set<", StreamMetadataRow, "> iteratorExcess) {"); {
+                    line("return iteratorExcess.stream()");
+                    line("        .map(", StreamMetadataRow, "::getId)");
+                    line("        .collect(Collectors.toSet());");
+                } line("}");
+            }
+
+            private void diagnosticsByMultimap() {
+                line("private static Set<", StreamMetadataRow, "> getUnreferencedStreamsByMultimap(", StreamIndexTable, " indexTable, Set<", StreamIndexRow, "> indexRows) {"); {
+                    line("Multimap<", StreamIndexRow, ", ", StreamIndexColumnValue, "> indexValues = indexTable.getRowsMultimap(indexRows);");
+                    line("Set<", StreamMetadataRow, "> presentMetadataRows");
+                    line("        = indexValues.keySet().stream()");
+                    line("        .map(", MetadataCleanupTask, "::convertFromIndexRow)");
+                    line("        .collect(Collectors.toSet());");
+
+                    line("Set<", StreamMetadataRow, "> queriedMetadataRows");
+                    line("        = indexRows.stream()");
+                    line("        .map(", MetadataCleanupTask, "::convertFromIndexRow)");
+                    line("        .collect(Collectors.toSet());");
+
+                    line("return Sets.difference(queriedMetadataRows, presentMetadataRows);");
+                } line("}");
+            }
+
+            private void diagnosticsByIterator() {
+                line("private static Set<", StreamMetadataRow, "> getUnreferencedStreamsByIterator(", StreamIndexTable, " indexTable, Set<", StreamIndexRow, "> indexRows) {"); {
+                    line("Map<", StreamIndexRow, ", Iterator<", StreamIndexColumnValue, ">> referenceIteratorByStream");
+                    line("        = indexTable.getRowsColumnRangeIterator(indexRows,");
+                    line("                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));");
+                    line("Set<", StreamMetadataRow, "> unreferencedStreamMetadata");
+                    line("        = KeyedStream.stream(referenceIteratorByStream)");
+                    line("        .filter(valueIterator -> !valueIterator.hasNext())");
+                    line("        .keys() // (authorized)"); // required for large internal product
+                    line("        .map(", StreamIndexRow, "::getId)");
+                    line("        .map(", StreamMetadataRow, "::of)");
+                    line("        .collect(Collectors.toSet());");
+                    line("return unreferencedStreamMetadata;");
                 } line("}");
             }
         }.render();
