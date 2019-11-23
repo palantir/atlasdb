@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Reduced the time between periods of background scrubber activity to
+    account for services with short lifetimes.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4441
