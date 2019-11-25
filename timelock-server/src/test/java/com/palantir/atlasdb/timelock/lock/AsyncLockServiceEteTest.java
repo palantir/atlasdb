@@ -36,6 +36,9 @@ import org.junit.rules.TestRule;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.timelock.lock.watch.LockEventLog;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -62,14 +65,21 @@ public class AsyncLockServiceEteTest {
     private final LeaderClock clock = LeaderClock.create();
 
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 2L);
+    private final HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
+    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(
+            mock(LockEventLog.class), heldLocks);
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(OrderedLocksDecorator.DO_NOTHING),
             mock(TargetedSweepLockDecorator.class),
             new ImmutableTimestampTracker(),
-            HeldLocksCollection.create(clock),
+            new LockAcquirer(new LockLog(new MetricRegistry(), () -> 2L),
+                    Executors.newSingleThreadScheduledExecutor(),
+                    clock,
+                    lockWatchingService),
+            heldLocks,
             new AwaitedLocksCollection(),
+            lockWatchingService,
             executor,
-            Executors.newSingleThreadScheduledExecutor(),
             clock,
             lockLog);
 

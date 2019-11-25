@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -72,7 +71,7 @@ public class LockWatchingServiceImplTest {
         when(asyncLock.getDescriptor()).thenReturn(ROW_DESCRIPTOR);
         when(asyncLock2.getDescriptor()).thenReturn(descriptorForTable(TABLE_2));
         when(heldLocks.getToken()).thenReturn(TOKEN);
-        when(locks.locksHeld()).thenReturn(Stream.of(heldLocks)).thenReturn(Stream.of(heldLocks));
+        when(locks.locksHeld()).thenReturn(ImmutableSet.of(heldLocks));
     }
 
     @Test

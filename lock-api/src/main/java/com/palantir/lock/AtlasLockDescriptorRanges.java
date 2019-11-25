@@ -25,20 +25,20 @@ public final class AtlasLockDescriptorRanges {
 
     public static Range<LockDescriptor> fullTable(String qualifiedTableName) {
         byte[] tableNameBytes = bytesForTableName(qualifiedTableName);
-        return Range.open(
+        return Range.closedOpen(
                 new LockDescriptor(tableNameBytes),
-                new LockDescriptor(createEndNameForPrefixScan(tableNameBytes)));
+                new LockDescriptor(createExclusiveEndNameForPrefixScan(tableNameBytes)));
     }
 
     public static Range<LockDescriptor> rowPrefix(String qualifiedTableName, byte[] prefix) {
         LockDescriptor start = AtlasRowLockDescriptor.of(qualifiedTableName, prefix);
-        return Range.open(
+        return Range.closedOpen(
                 start,
-                new LockDescriptor(createEndNameForPrefixScan(start.getBytes())));
+                new LockDescriptor(createExclusiveEndNameForPrefixScan(start.getBytes())));
     }
 
     public static Range<LockDescriptor> rowRange(String qualifiedTableName, byte[] startInc, byte[] endExc) {
-        return Range.open(
+        return Range.closedOpen(
                 AtlasRowLockDescriptor.of(qualifiedTableName, startInc),
                 AtlasRowLockDescriptor.of(qualifiedTableName, endExc));
     }
@@ -57,7 +57,7 @@ public final class AtlasLockDescriptorRanges {
         return tableName.getBytes();
     }
 
-    private static byte[] createEndNameForPrefixScan(byte[] prefix) {
+    private static byte[] createExclusiveEndNameForPrefixScan(byte[] prefix) {
         for (int i = prefix.length - 1; i >= 0; i--) {
             if ((prefix[i] & 0xff) != 0xff) {
                 byte[] ret = new byte[i + 1];
