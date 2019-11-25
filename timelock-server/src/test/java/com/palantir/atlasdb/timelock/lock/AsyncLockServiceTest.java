@@ -38,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -60,15 +61,15 @@ public class AsyncLockServiceTest {
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
-    private final DeterministicScheduler timeoutExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
             locks,
             mock(TargetedSweepLockDecorator.class),
             immutableTimestampTracker,
+            acquirer,
             heldLocks,
             awaitedLocks,
+            mock(LockWatchingService.class),
             reaperExecutor,
-            timeoutExecutor,
             leaderClock,
             mock(LockLog.class));
 

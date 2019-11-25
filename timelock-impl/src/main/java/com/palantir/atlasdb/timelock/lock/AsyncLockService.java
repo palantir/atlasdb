@@ -73,14 +73,20 @@ public class AsyncLockService implements Closeable {
         LeaderClock clock = LeaderClock.create();
         TargetedSweepLockDecorator targetedSweepLockDecorator =
                 TargetedSweepLockDecorator.create(targetedSweepRateLimitConfig, timeoutExecutor);
+
+        HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
+        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(NoOpLog.INSTANCE, heldLocks);
+        LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
+
         return new AsyncLockService(
                 new LockCollection(targetedSweepLockDecorator),
                 targetedSweepLockDecorator,
                 new ImmutableTimestampTracker(),
-                HeldLocksCollection.create(clock),
+                lockAcquirer,
+                heldLocks,
                 new AwaitedLocksCollection(),
+                lockWatchingService,
                 reaperExecutor,
-                timeoutExecutor,
                 clock,
                 lockLog);
     }
@@ -90,10 +96,11 @@ public class AsyncLockService implements Closeable {
             LockCollection locks,
             TargetedSweepLockDecorator decorator,
             ImmutableTimestampTracker immutableTimestampTracker,
+            LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
+            LockWatchingService lockWatchingService,
             ScheduledExecutorService reaperExecutor,
-            ScheduledExecutorService timeoutExecutor,
             LeaderClock leaderClock,
             // TODO(fdesouza): Remove this once PDS-95791 is resolved.
             LockLog lockLog) {
@@ -105,8 +112,8 @@ public class AsyncLockService implements Closeable {
         this.reaperExecutor = reaperExecutor;
         this.leaderClock = leaderClock;
         this.lockLog = lockLog;
-        this.lockWatchingService = new LockWatchingServiceImpl(NoOpLog.INSTANCE, heldLocks);
-        this.lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, leaderClock, lockWatchingService);
+        this.lockWatchingService = lockWatchingService;
+        this.lockAcquirer = acquirer;
 
         scheduleExpiredLockReaper();
     }
