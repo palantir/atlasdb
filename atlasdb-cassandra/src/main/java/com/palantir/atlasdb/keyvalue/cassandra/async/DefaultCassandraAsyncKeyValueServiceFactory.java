@@ -63,7 +63,7 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
 
             @Override
             public Integer visit(CqlCapableConfig cqlCapableConfig) {
-                return cqlCapableConfig.cqlHosts().size() * config.poolSize();
+                return Math.max(1, cqlCapableConfig.cqlHosts().size() * config.poolSize());
             }
         });
 
