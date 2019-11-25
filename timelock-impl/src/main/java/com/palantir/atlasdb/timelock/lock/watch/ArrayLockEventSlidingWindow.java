@@ -35,12 +35,21 @@ public class ArrayLockEventSlidingWindow {
         this.maxSize = maxSize;
     }
 
+    /**
+     * Adds an event to the sliding window. Assigns a unique sequence to the event.
+     */
     public synchronized void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
         buffer[LongMath.mod(nextSequence, maxSize)] = event;
         nextSequence++;
     }
 
+    /**
+     * Returns a list of all events that occurred starting with requested version up to the most recent version, ordered
+     * by consecutively increasing sequence numbers. If the list cannot be created, either a priori or because new
+     * events are added to the window during execution of this method causing eviction an event before it was read, the
+     * method will return a singleton list containing only the most recent event, if it exists.
+     */
     public List<LockWatchEvent> getFromVersion(OptionalLong version) {
         if (!version.isPresent()) {
             return getLastEntry();
@@ -48,20 +57,28 @@ public class ArrayLockEventSlidingWindow {
         long lastWrittenSequence = nextSequence - 1;
         long lastVersion = version.getAsLong();
 
-        if (lastVersion > lastWrittenSequence || lastWrittenSequence - lastVersion + 1 > maxSize) {
+        if (requestedVersionInTheFuture(lastVersion, lastWrittenSequence)
+                || requestedVersionTooOld(lastVersion, lastWrittenSequence)) {
             return getLastEntry();
         }
 
-        int start = LongMath.mod(lastVersion, maxSize);
+        int startIndex = LongMath.mod(lastVersion, maxSize);
+        int windowSize = Ints.saturatedCast(lastWrittenSequence - lastVersion + 1);
+        List<LockWatchEvent> events = new ArrayList<>(windowSize);
 
-        int numEvents = Math.min(maxSize, Ints.saturatedCast(lastWrittenSequence - lastVersion + 1));
-        List<LockWatchEvent> events = new ArrayList<>(numEvents);
-
-        for (int i = start; events.size() < numEvents; i = (i + 1) % maxSize) {
+        for (int i = startIndex; events.size() < windowSize; i = (i + 1) % maxSize) {
             events.add(buffer[i]);
         }
 
         return validateConsistencyOrReturnEmpty(lastVersion, events);
+    }
+
+    private boolean requestedVersionInTheFuture(long lastVersion, long lastWrittenSequence) {
+        return lastVersion > lastWrittenSequence;
+    }
+
+    private boolean requestedVersionTooOld(long lastVersion, long lastWrittenSequence) {
+        return lastWrittenSequence - lastVersion + 1 > maxSize;
     }
 
     private ImmutableList<LockWatchEvent> getLastEntry() {
@@ -70,9 +87,9 @@ public class ArrayLockEventSlidingWindow {
                 : ImmutableList.of();
     }
 
-    private List<LockWatchEvent> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
-        for (int i = 0; i < events.size(); i++, version++) {
-            if (events.get(i).sequence() != version) {
+    private List<LockWatchEvent> validateConsistencyOrReturnEmpty(long startVersion, List<LockWatchEvent> events) {
+        for (int i = 0; i < events.size(); i++) {
+            if (events.get(i).sequence() != i + startVersion) {
                 return getLastEntry();
             }
         }
