@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
@@ -55,22 +56,23 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 config,
                 initializeAsync);
 
-        int threadPoolSize = config.servers().accept(new Visitor<Integer>() {
+        ExecutorService executorService = config.servers().accept(new Visitor<ExecutorService>() {
             @Override
-            public Integer visit(DefaultConfig defaultConfig) {
-                return 1;
+            public ExecutorService visit(DefaultConfig defaultConfig) {
+                return MoreExecutors.newDirectExecutorService();
             }
 
             @Override
-            public Integer visit(CqlCapableConfig cqlCapableConfig) {
-                return cqlCapableConfig.cqlHosts().size() * config.poolSize();
+            public ExecutorService visit(CqlCapableConfig cqlCapableConfig) {
+                if (cqlCapableConfig.cqlHosts().isEmpty()) {
+                    return MoreExecutors.newDirectExecutorService();
+                }
+                return tracingExecutorService(
+                        instrumentExecutorService(
+                                createThreadPool(cqlCapableConfig.cqlHosts().size() * config.poolSize()),
+                                metricsManager));
             }
         });
-
-        ExecutorService executorService = tracingExecutorService(
-                instrumentExecutorService(
-                        createThreadPool(threadPoolSize),
-                        metricsManager));
 
         return CassandraAsyncKeyValueService.create(
                 config.getKeyspaceOrThrow(),
