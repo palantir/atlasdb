@@ -16,13 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
