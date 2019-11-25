@@ -39,21 +39,21 @@ public class LockEventLogImpl implements LockEventLog {
 
     @Override
     public void logLock(LockToken lockToken, Set<LockDescriptor> locksTakenOut) {
-        slidingWindow.add(LockEvent.fromSeq(lockToken, locksTakenOut));
+        slidingWindow.add(LockEvent.builder(lockToken, locksTakenOut));
     }
 
     @Override
     public void logUnlock(LockToken lockToken, Set<LockDescriptor> locksUnlocked) {
-        slidingWindow.add(UnlockEvent.fromSeq(lockToken, locksUnlocked));
+        slidingWindow.add(UnlockEvent.builder(lockToken, locksUnlocked));
     }
 
     @Override
     public void logOpenLocks(LockToken lockToken, Set<LockDescriptor> openLocks) {
-        slidingWindow.add(LockEvent.fromSeq(lockToken, openLocks));
+        slidingWindow.add(LockEvent.builder(lockToken, openLocks));
     }
 
     @Override
     public void logLockWatchCreated(LockWatchRequest locksToWatch) {
-        slidingWindow.add(LockWatchCreatedEvent.fromSeq(locksToWatch));
+        slidingWindow.add(LockWatchCreatedEvent.builder(locksToWatch));
     }
 }

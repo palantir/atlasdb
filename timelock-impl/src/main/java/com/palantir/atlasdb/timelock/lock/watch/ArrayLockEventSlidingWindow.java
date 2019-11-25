@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalLong;
-import java.util.function.Function;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.LongMath;
@@ -36,8 +35,8 @@ public class ArrayLockEventSlidingWindow {
         this.maxSize = maxSize;
     }
 
-    public synchronized void add(Function<Long, LockWatchEvent> eventBuilder) {
-        LockWatchEvent event = eventBuilder.apply(nextSequence);
+    public synchronized void add(LockWatchEvent.Builder eventBuilder) {
+        LockWatchEvent event = eventBuilder.build(nextSequence);
         buffer[LongMath.mod(nextSequence, maxSize)] = event;
         nextSequence++;
     }
