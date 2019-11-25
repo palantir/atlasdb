@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Range;
@@ -33,7 +34,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 public class LockWatchingServiceImpl implements LockWatchingService {
     private final LockEventLog lockEventLog;
     private final HeldLocksCollection heldLocksCollection;
-    private final RangeSet<LockDescriptor> ranges = TreeRangeSet.create();
+    private final AtomicReference<RangeSet<LockDescriptor>> ranges = new AtomicReference<>(TreeRangeSet.create());
 
     public LockWatchingServiceImpl(LockEventLog lockEventLog, HeldLocksCollection heldLocksCollection) {
         this.lockEventLog = lockEventLog;
@@ -51,6 +52,12 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         logLockWatchEvent(locksToWatch);
     }
 
+    /**
+     * Removing watches is not supported in this implementation.
+     *
+     * WARNING: if you wish to implement this functionality, carefully review thread safety, as the current
+     * implementation implicitly assumes ranges are never removed from the range set.
+     */
     @Override
     public void stopWatching(LockWatchRequest locksToUnwatch) {
         throw new UnsupportedOperationException("Not implemented in this version");
@@ -72,7 +79,10 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     private synchronized void addToWatches(RangeSet<LockDescriptor> locksToWatch) {
-        ranges.addAll(locksToWatch);
+        RangeSet<LockDescriptor> oldRanges = ranges.get();
+        RangeSet<LockDescriptor> newRanges = TreeRangeSet.create(oldRanges);
+        newRanges.addAll(locksToWatch);
+        ranges.set(newRanges);
     }
 
     private void logOpenLocks(RangeSet<LockDescriptor> locksToWatch) {
@@ -92,11 +102,11 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     private synchronized boolean hasLockWatch(LockDescriptor lockDescriptor) {
-        return ranges.contains(lockDescriptor);
+        return ranges.get().contains(lockDescriptor);
     }
 
     private RangeSet<LockDescriptor> newRangesToWatch(Set<Range<LockDescriptor>> rangesToWatch) {
-        RangeSet<LockDescriptor> existingComplement = ranges.complement();
+        RangeSet<LockDescriptor> existingComplement = ranges.get().complement();
         return TreeRangeSet.create(rangesToWatch.stream()
                 .map(existingComplement::subRangeSet)
                 .map(RangeSet::asRanges)

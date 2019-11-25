@@ -97,10 +97,11 @@ public class HeldLocksCollection {
         heldLocksById.values().forEach(result -> result.failIfNotCompleted(ex));
     }
 
-    public Stream<HeldLocks> locksHeld() {
+    public Set<HeldLocks> locksHeld() {
         return heldLocksById.values().stream()
                 .filter(AsyncResult::isCompletedSuccessfully)
-                .<HeldLocks>map(AsyncResult::get);
+                .<HeldLocks>map(AsyncResult::get)
+                .collect(Collectors.toSet());
     }
 
     private Leased<LockToken> createLeasableLockToken(HeldLocks heldLocks) {
