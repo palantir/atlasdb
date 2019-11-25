@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -55,22 +56,23 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 config,
                 initializeAsync);
 
-        int threadPoolSize = config.servers().accept(new Visitor<Integer>() {
+        ExecutorService executorService = config.servers().accept(new Visitor<ExecutorService>() {
             @Override
-            public Integer visit(DefaultConfig defaultConfig) {
-                return 1;
+            public ExecutorService visit(DefaultConfig defaultConfig) {
+                return MoreExecutors.newDirectExecutorService();
             }
 
             @Override
-            public Integer visit(CqlCapableConfig cqlCapableConfig) {
-                return Math.max(1, cqlCapableConfig.cqlHosts().size() * config.poolSize());
+            public ExecutorService visit(CqlCapableConfig cqlCapableConfig) {
+                if (cqlCapableConfig.cqlHosts().isEmpty()) {
+                    return MoreExecutors.newDirectExecutorService();
+                }
+                return tracingExecutorService(
+                        instrumentExecutorService(
+                                createThreadPool(cqlCapableConfig.cqlHosts().size() * config.poolSize()),
+                                metricsManager));
             }
         });
-
-        ExecutorService executorService = tracingExecutorService(
-                instrumentExecutorService(
-                        createThreadPool(threadPoolSize),
-                        metricsManager));
 
         return CassandraAsyncKeyValueService.create(
                 config.getKeyspaceOrThrow(),
