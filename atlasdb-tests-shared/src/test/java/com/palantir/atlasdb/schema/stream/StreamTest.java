@@ -585,14 +585,12 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void readingStreamIdsByHashInTheSameTransactionIsPermitted() throws IOException {
-        final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
         long id = timestampService.getFreshTimestamp();
 
-        Random rand = new Random();
-        rand.nextBytes(bytes);
+        byte[] bytes = generateRandomTwoBlockStream();
         Sha256Hash hash = Sha256Hash.computeHash(bytes);
 
-        ImmutableMap<Long, InputStream> streams = ImmutableMap.of(id, new ByteArrayInputStream(bytes));
+        Map<Long, InputStream> streams = ImmutableMap.of(id, new ByteArrayInputStream(bytes));
 
         storeStreamAndCheckHash(id, hash, streams);
         byte[] bytesInKvs = readBytesForSingleStream(id);
@@ -601,14 +599,12 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void streamsAreNotReused() throws IOException {
-        final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
         long id = timestampService.getFreshTimestamp();
 
-        Random rand = new Random();
-        rand.nextBytes(bytes);
+        byte[] bytes = generateRandomTwoBlockStream();
         Sha256Hash hash = Sha256Hash.computeHash(bytes);
 
-        ImmutableMap<Long, InputStream> streams = ImmutableMap.of(id,
+        Map<Long, InputStream> streams = ImmutableMap.of(id,
                 new CloseEnforcingInputStream(new ByteArrayInputStream(bytes)));
 
         storeStreamAndCheckHash(id, hash, streams);
@@ -618,14 +614,12 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void testStoreCopy() {
-        final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
-        Random rand = new Random();
-        rand.nextBytes(bytes);
+        byte[] bytes = generateRandomTwoBlockStream();
 
         long id1 = timestampService.getFreshTimestamp();
         long id2 = timestampService.getFreshTimestamp();
 
-        ImmutableMap<Long, InputStream> streams = ImmutableMap.of(
+        Map<Long, InputStream> streams = ImmutableMap.of(
                 id1, new ByteArrayInputStream(bytes),
                 id2, new ByteArrayInputStream(bytes));
 
@@ -696,6 +690,13 @@ public class StreamTest extends AtlasDbTestCase {
         assertEquals(expectedBlocksUsed, numBlocksUsed);
     }
 
+    private byte[] generateRandomTwoBlockStream() {
+        byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        Random rand = new Random();
+        rand.nextBytes(bytes);
+        return bytes;
+    }
+
     private StreamMetadata getStreamMetadata(long id) {
         return txManager.runTaskReadOnly(t -> {
             StreamTestWithHashStreamMetadataTable table = StreamTestTableFactory.of()
@@ -717,7 +718,7 @@ public class StreamTest extends AtlasDbTestCase {
         });
     }
 
-    private void storeStreamAndCheckHash(long id, Sha256Hash hash, ImmutableMap<Long, InputStream> streams) {
+    private void storeStreamAndCheckHash(long id, Sha256Hash hash, Map<Long, InputStream> streams) {
         txManager.runTaskWithRetry(t -> {
             Map<Long, Sha256Hash> hashes = defaultStore.storeStreams(t, streams);
             assertEquals(hash, hashes.get(id));
@@ -807,7 +808,7 @@ public class StreamTest extends AtlasDbTestCase {
         @Override
         protected InputStream delegate() {
             if (closed.get()) {
-                throw new UnsupportedOperationException("This byte array input stream has been closed");
+                throw new UnsupportedOperationException("The underlying input stream has been closed");
             }
             return delegate;
         }

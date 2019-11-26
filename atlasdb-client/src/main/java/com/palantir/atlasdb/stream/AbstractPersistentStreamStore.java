@@ -145,10 +145,9 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 .collectToMap();
         putMetadataAndHashIndexTask(tx, idsToMetadata);
 
-        Map<Long, Sha256Hash> hashes = KeyedStream.stream(idsToMetadata)
+        return KeyedStream.stream(idsToMetadata)
                 .map(metadata -> new Sha256Hash(metadata.getHash().toByteArray()))
                 .collectToMap();
-        return hashes;
     }
 
     // This method is overridden in generated code. Changes to this method may have unintended consequences.
