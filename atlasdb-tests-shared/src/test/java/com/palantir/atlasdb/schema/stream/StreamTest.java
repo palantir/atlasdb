@@ -814,8 +814,8 @@ public class StreamTest extends AtlasDbTestCase {
 
         @Override
         public void close() throws IOException {
+            delegate.close();
             closed.set(true);
-            delegate().close();
         }
     }
 }
