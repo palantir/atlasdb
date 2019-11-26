@@ -313,11 +313,11 @@ actually deserialises to</p>
 </div>
 <p>AtlasDB interprets a specific <code class="docutils literal notranslate"><span class="pre">LockEntry</span></code> value as meaning that the lock is available:</p>
 <div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="c1">// &#39;{&quot;lockName&quot;:&quot;BackupLock&quot;,&quot;instanceId&quot;:&quot;00000000-0000-0000-0000-000000000000&quot;,&quot;reason&quot;:&quot;Available&quot;}&#39;</span>
-<span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">LockEntry</span> <span class="n">LOCK_OPEN</span> <span class="o">=</span> <span class="n">ImmutableLockEntry</span><span class="o">.</span><span class="na">builder</span><span class="o">()</span>
-            <span class="o">.</span><span class="na">lockName</span><span class="o">(</span><span class="n">BACKUP_LOCK_NAME</span><span class="o">)</span>
-            <span class="o">.</span><span class="na">instanceId</span><span class="o">(</span><span class="n">UUID</span><span class="o">.</span><span class="na">fromString</span><span class="o">(</span><span class="s">&quot;0-0-0-0-0&quot;</span><span class="o">))</span>
-            <span class="o">.</span><span class="na">reason</span><span class="o">(</span><span class="s">&quot;Available&quot;</span><span class="o">)</span>
-            <span class="o">.</span><span class="na">build</span><span class="o">();</span>
+<span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">LockEntry</span> <span class="n">LOCK_OPEN</span> <span class="o">=</span> <span class="n">ImmutableLockEntry</span><span class="p">.</span><span class="na">builder</span><span class="p">()</span>
+            <span class="p">.</span><span class="na">lockName</span><span class="p">(</span><span class="n">BACKUP_LOCK_NAME</span><span class="p">)</span>
+            <span class="p">.</span><span class="na">instanceId</span><span class="p">(</span><span class="n">UUID</span><span class="p">.</span><span class="na">fromString</span><span class="p">(</span><span class="s">&quot;0-0-0-0-0&quot;</span><span class="p">))</span>
+            <span class="p">.</span><span class="na">reason</span><span class="p">(</span><span class="s">&quot;Available&quot;</span><span class="p">)</span>
+            <span class="p">.</span><span class="na">build</span><span class="p">();</span>
 </pre></div>
 </div>
 <p>Thus, we can set the relevant cell to be the serialised value of the backup lock. To be safe, we recommend using a

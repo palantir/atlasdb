@@ -215,14 +215,14 @@ are in-flight and have yet to either commit or abort will not have an entry in t
 |             37 |              -1 |
 |        3141592 |         3141595 |</p>
 <p>This table is accessed via the <code class="docutils literal notranslate"><span class="pre">TransactionService</span></code> class in AtlasDB, which offers a simple interface:</p>
-<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">TransactionService</span> <span class="o">{</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">TransactionService</span> <span class="p">{</span>
     <span class="nd">@CheckForNull</span>
-    <span class="n">Long</span> <span class="nf">get</span><span class="o">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="o">);</span>
+    <span class="n">Long</span> <span class="nf">get</span><span class="p">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="p">);</span>
 
-    <span class="n">Map</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">,</span> <span class="n">Long</span><span class="o">&gt;</span> <span class="nf">get</span><span class="o">(</span><span class="n">Iterable</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">&gt;</span> <span class="n">startTimestamps</span><span class="o">);</span>
+    <span class="n">Map</span><span class="o">&lt;</span><span class="n">Long</span><span class="p">,</span> <span class="n">Long</span><span class="o">&gt;</span> <span class="nf">get</span><span class="p">(</span><span class="n">Iterable</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">&gt;</span> <span class="n">startTimestamps</span><span class="p">);</span>
 
-    <span class="kt">void</span> <span class="nf">putUnlessExists</span><span class="o">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="o">,</span> <span class="kt">long</span> <span class="n">commitTimestamp</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">KeyAlreadyExistsException</span><span class="o">;</span>
-<span class="o">}</span>
+    <span class="kt">void</span> <span class="nf">putUnlessExists</span><span class="p">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="p">,</span> <span class="kt">long</span> <span class="n">commitTimestamp</span><span class="p">)</span> <span class="kd">throws</span> <span class="n">KeyAlreadyExistsException</span><span class="p">;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>In practice, calling both the single and multi-timestamp versions of <code class="docutils literal notranslate"><span class="pre">get</span></code> may read from this table, though
@@ -341,11 +341,11 @@ where ordering over the 3-tuples is interpreted lexicographically.</p>
 Cassandra.
 Given that we want to avoid hot-spotting and ensure horizontal scalability, we need to ensure that the rows we may
 be writing data to are distributed differently in byte-space. We thus reverse the bits of each row before encoding it.</p>
-<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">private</span> <span class="kd">static</span> <span class="kt">byte</span><span class="o">[]</span> <span class="nf">encodeRowName</span><span class="o">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="o">)</span> <span class="o">{</span>
-    <span class="kt">long</span> <span class="n">row</span> <span class="o">=</span> <span class="o">(</span><span class="n">startTimestamp</span> <span class="o">/</span> <span class="n">PARTITIONING_QUANTUM</span><span class="o">)</span> <span class="o">*</span> <span class="n">ROWS_PER_QUANTUM</span>
-            <span class="o">+</span> <span class="o">(</span><span class="n">startTimestamp</span> <span class="o">%</span> <span class="n">PARTITIONING_QUANTUM</span><span class="o">)</span> <span class="o">%</span> <span class="n">ROWS_PER_QUANTUM</span><span class="o">;</span>
-    <span class="k">return</span> <span class="n">PtBytes</span><span class="o">.</span><span class="na">toBytes</span><span class="o">(</span><span class="n">Long</span><span class="o">.</span><span class="na">reverse</span><span class="o">(</span><span class="n">row</span><span class="o">));</span>
-<span class="o">}</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">private</span> <span class="kd">static</span> <span class="kt">byte</span><span class="o">[]</span> <span class="nf">encodeRowName</span><span class="p">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">long</span> <span class="n">row</span> <span class="o">=</span> <span class="p">(</span><span class="n">startTimestamp</span> <span class="o">/</span> <span class="n">PARTITIONING_QUANTUM</span><span class="p">)</span> <span class="o">*</span> <span class="n">ROWS_PER_QUANTUM</span>
+            <span class="o">+</span> <span class="p">(</span><span class="n">startTimestamp</span> <span class="o">%</span> <span class="n">PARTITIONING_QUANTUM</span><span class="p">)</span> <span class="o">%</span> <span class="n">ROWS_PER_QUANTUM</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">PtBytes</span><span class="p">.</span><span class="na">toBytes</span><span class="p">(</span><span class="n">Long</span><span class="p">.</span><span class="na">reverse</span><span class="p">(</span><span class="n">row</span><span class="p">));</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>We are using a fixed-long encoding here, which uses a constant 8 bytes (instead of variable between 1 and 9). This was
