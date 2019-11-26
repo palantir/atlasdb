@@ -33,7 +33,9 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.common.time.NanoTime;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
@@ -43,11 +45,13 @@ public class HeldLocksCollectionTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
     private static final UUID REQUEST_ID_2 = UUID.randomUUID();
+    private static final LockDescriptor LOCK_DESCRIPTOR = StringLockDescriptor.of("foo");
 
     private AtomicLong atomicLong = new AtomicLong(1);
     private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, atomicLong::incrementAndGet);
     private LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> time.get());
     private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(leaderClock);
+    private final LockWatchingService lockWatcher = mock(LockWatchingService.class);
 
     @Test
     public void callsSupplierForNewRequest() {
@@ -119,7 +123,7 @@ public class HeldLocksCollectionTest {
 
         Set<LockToken> expected = ImmutableSet.of(refreshableRequest);
         Set<LockToken> actual = heldLocksCollection.unlock(
-                ImmutableSet.of(refreshableRequest, nonRefreshableRequest)).keySet();
+                ImmutableSet.of(refreshableRequest, nonRefreshableRequest));
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -184,6 +188,38 @@ public class HeldLocksCollectionTest {
     }
 
     @Test
+    public void lockWatchingServiceIsUpdatedAfterLockIsCreatedAndReaped() {
+        setTime(123);
+        AsyncResult<HeldLocks> result = new AsyncResult<>();
+        AsyncResult<Leased<LockToken>> asyncResult =
+                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        result.complete(heldLocksForId(REQUEST_ID));
+        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR));
+
+        Lease lease = asyncResult.get().lease();
+
+        advance(LockLeaseContract.SERVER_LEASE_TIMEOUT.plus(Duration.ofNanos(1)));
+        assertThat(lease.isValid(leaderClock.time())).isFalse();
+        assertUnlocked(REQUEST_ID);
+        verify(lockWatcher).registerUnlock(ImmutableSet.of(LOCK_DESCRIPTOR));
+        verifyNoMoreInteractions(lockWatcher);
+    }
+
+    @Test
+    public void lockWatchingServiceIsUpdatedAfterLockIsCreatedAndUnlocked() {
+        setTime(123);
+        AsyncResult<HeldLocks> result = new AsyncResult<>();
+        AsyncResult<Leased<LockToken>> asyncResult =
+                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        result.complete(heldLocksForId(REQUEST_ID));
+        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR));
+
+        heldLocksCollection.unlock(ImmutableSet.of(LockToken.of(REQUEST_ID)));
+        verify(lockWatcher).registerUnlock(ImmutableSet.of(LOCK_DESCRIPTOR));
+        verifyNoMoreInteractions(lockWatcher);
+    }
+
+    @Test
     public void leaseShouldStartBeforeRefreshTime() {
         LockToken t1 = lockSync(REQUEST_ID);
         LockToken t2 = lockSync(REQUEST_ID_2);
@@ -239,10 +275,11 @@ public class HeldLocksCollectionTest {
     }
 
     private HeldLocks heldLocksForId(UUID id) {
-        return new HeldLocks(new LockLog(new MetricRegistry(), () -> 2L),
-                ImmutableSet.of(new ExclusiveLock(StringLockDescriptor.of("foo"))),
+        return HeldLocks.create(new LockLog(new MetricRegistry(), () -> 2L),
+                ImmutableSet.of(new ExclusiveLock(LOCK_DESCRIPTOR)),
                 id,
-                leaderClock);
+                leaderClock,
+                lockWatcher);
     }
 
     private void advance(Duration duration) {

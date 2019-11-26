@@ -14,20 +14,27 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.lock.watch;
+package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
 import java.util.Set;
 
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchRequest;
-import com.palantir.lock.watch.LockWatchStateUpdate;
+import org.immutables.value.Value;
 
-public interface LockEventLog {
-    LockWatchStateUpdate getLogDiff(OptionalLong fromVersion);
-    void logLock(Set<LockDescriptor> locksTakenOut);
-    void logUnlock(Set<LockDescriptor> locksUnlocked);
-    void logOpenLocks(Set<LockDescriptor> openLocks);
-    void logLockWatchCreated(LockWatchRequest locksToWatch);
+import com.palantir.lock.LockDescriptor;
+
+@Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+public abstract class LockWatchOpenLocksEvent implements LockWatchEvent {
+    public abstract Set<LockDescriptor> lockDescriptors();
+
+    @Override
+    public void accept(LockWatchEventVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors) {
+        ImmutableLockWatchOpenLocksEvent.Builder builder = ImmutableLockWatchOpenLocksEvent.builder()
+                .lockDescriptors(lockDescriptors);
+        return seq -> builder.sequence(seq).build();
+    }
 }

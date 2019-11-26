@@ -31,6 +31,6 @@ public interface LockWatchingService {
     void stopWatching(LockWatchRequest locksToUnwatch);
     LockWatchStateUpdate getWatchState(OptionalLong lastKnownVersion);
 
-    void registerLock(LockToken token, Set<LockDescriptor> locksTakenOut);
-    void registerUnlock(LockToken token, Set<LockDescriptor> locksUnlocked);
+    void registerLock(Set<LockDescriptor> locksTakenOut);
+    void registerUnlock(Set<LockDescriptor> locksUnlocked);
 }
