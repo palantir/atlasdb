@@ -20,6 +20,7 @@ import java.util.OptionalLong;
 
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.VersionedLockWatchState;
 
 public interface KvsLockWatchingService {
     /**
@@ -36,5 +37,5 @@ public interface KvsLockWatchingService {
     /**
      * Returns the current state of all registered watches.
      **/
-    LockWatchState getLockWatchState(OptionalLong lastKnownState);
+    VersionedLockWatchState getLockWatchState();
 }

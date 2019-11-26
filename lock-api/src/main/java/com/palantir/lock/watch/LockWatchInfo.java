@@ -14,12 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.lock.watch;
 
 import java.util.Optional;
 
-import com.palantir.lock.LockDescriptor;
+import org.immutables.value.Value;
 
-public interface LockWatchState {
-    Optional<Long> sequenceForDescriptor(LockDescriptor lockDescriptor);
+import com.palantir.lock.v2.LockToken;
+
+@Value.Immutable
+public interface LockWatchInfo {
+    @Value.Parameter
+    Optional<Long> lastChange();
+    @Value.Parameter
+    Optional<LockToken> lockToken();
+    @Value.Parameter
+    State state();
+
+    enum State {
+        LOCKED, UNLOCKED;
+    }
 }
