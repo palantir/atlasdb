@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: We no longer read and store streams lazily in the Atlas stream store.
+    This fixes a bug where users who stored and marked streams in a single transaction
+    and subsequently referenced the returned `Sha256Hash` may throw when storing streams,
+    and/or suffer from data corruption.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4444
