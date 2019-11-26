@@ -582,6 +582,30 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void readingStreamIdsByHashInTheSameTransactionIsPermitted() throws IOException {
+        final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        long id = timestampService.getFreshTimestamp();
+
+        Random rand = new Random();
+        rand.nextBytes(bytes);
+        Sha256Hash hash = Sha256Hash.computeHash(bytes);
+
+        ImmutableMap<Long, InputStream> streams = ImmutableMap.of(id, new ByteArrayInputStream(bytes));
+
+        txManager.runTaskWithRetry(t -> {
+            Map<Long, Sha256Hash> hashes = defaultStore.storeStreams(t, streams);
+            assertEquals(hash, hashes.get(id));
+            return null;
+        });
+
+        byte[] bytesInKvs = txManager.runTaskWithRetry(t -> {
+            Optional<InputStream> inputStream = defaultStore.loadSingleStream(t, id);
+            return IOUtils.toByteArray(inputStream.get());
+        });
+        assertArrayEquals(bytesInKvs, bytes);
+    }
+
+    @Test
     public void testStoreCopy() {
         final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
         Random rand = new Random();
