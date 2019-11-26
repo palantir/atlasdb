@@ -18,9 +18,11 @@ package com.palantir.lock.watch;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
+import com.google.common.collect.TreeRangeMap;
 import com.palantir.lock.LockDescriptor;
 
 public class LockWatchStateEventVisitor implements LockWatchEventVisitor {
@@ -37,14 +39,13 @@ public class LockWatchStateEventVisitor implements LockWatchEventVisitor {
             Map.Entry<Range<LockDescriptor>, LockWatchInfo> entry = lockWatchState.getEntry(descriptor);
             if (entry == null) {
                 lockWatchState.put(Range.singleton(descriptor),
-                        ImmutableLockWatchInfo.of(Optional.of(
-                                lockEvent.sequence()),
-                                Optional.of(lockEvent.lockToken()),
-                                LockWatchInfo.State.LOCKED
-                ));
+                        ImmutableLockWatchInfo.of(OptionalLong.of(lockEvent.sequence()), LockWatchInfo.State.LOCKED));
             } else {
                 LockWatchInfo currentInfo = entry.getValue();
-
+                if (currentInfo.lastChange().isPresent() && currentInfo.lastChange().getAsLong() < lockEvent.sequence()) {
+                    lockWatchState.put(Range.singleton(descriptor),
+                            ImmutableLockWatchInfo.of(OptionalLong.of(lockEvent.sequence()), LockWatchInfo.State.LOCKED));
+                }
             }
         }
     }
@@ -55,7 +56,19 @@ public class LockWatchStateEventVisitor implements LockWatchEventVisitor {
     }
 
     @Override
-    public void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+    public void visit(LockWatchOpenLocksEvent openLocksEvent) {
 
+    }
+
+    @Override
+    public void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+        for (Range<LockDescriptor> range: lockWatchCreatedEvent.request().ranges()) {
+            RangeMap<LockDescriptor, LockWatchInfo> update = TreeRangeMap.create();
+            update.put(range, ImmutableLockWatchInfo.of(OptionalLong.empty(), LockWatchInfo.State.LOCKED));
+            RangeMap<LockDescriptor, LockWatchInfo> existingRangeMappings = lockWatchState.subRangeMap(range);
+            for (Map.Entry<Range<LockDescriptor>, LockWatchInfo> entry: existingRangeMappings.asMapOfRanges().entrySet()) {
+
+            }
+        }
     }
 }

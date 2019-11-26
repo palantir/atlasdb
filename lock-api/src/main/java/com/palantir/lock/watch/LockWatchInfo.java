@@ -16,18 +16,14 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Optional;
+import java.util.OptionalLong;
 
 import org.immutables.value.Value;
-
-import com.palantir.lock.v2.LockToken;
 
 @Value.Immutable
 public interface LockWatchInfo {
     @Value.Parameter
-    Optional<Long> lastChange();
-    @Value.Parameter
-    Optional<LockToken> lockToken();
+    OptionalLong lastChange();
     @Value.Parameter
     State state();
 

@@ -16,17 +16,11 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Optional;
+import java.util.OptionalLong;
 
-import org.immutables.value.Value;
-
-import com.google.common.collect.RangeMap;
 import com.palantir.lock.LockDescriptor;
 
-@Value.Immutable
 public interface VersionedLockWatchState {
-    @Value.Parameter
-    Optional<Long> version();
-    @Value.Parameter
-    RangeMap<LockDescriptor, LockWatchInfo> lockWatchState();
+    OptionalLong version();
+    LockWatchInfo lockWatchState(LockDescriptor lockDescriptor);
 }

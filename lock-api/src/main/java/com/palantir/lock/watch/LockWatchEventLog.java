@@ -16,21 +16,35 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
 import com.palantir.lock.LockDescriptor;
 
 public abstract class LockWatchEventLog {
-    private final AtomicReference<RangeMap<LockDescriptor, LockWatchInfo>> log = new AtomicReference<>(
+    private final AtomicReference<RangeMap<LockDescriptor, LockWatchInfo>> watches = new AtomicReference<>(
             TreeRangeMap.create());
-    private volatile Optional<Long> lastKnownVersion = Optional.empty();
+    private final AtomicReference<Map<LockDescriptor, LockWatchInfo>> singleLocks = new AtomicReference<>(ImmutableMap.of());
+    private volatile OptionalLong lastKnownVersion = OptionalLong.empty();
+    private UUID leaderId = UUID.randomUUID();
 
     synchronized VersionedLockWatchState currentState() {
-        return ImmutableVersionedLockWatchState.of(lastKnownVersion, log.get());
+        return new VersionedLockWatchStateImpl(lastKnownVersion, watches.get(), singleLocks.get());
     }
 
-    abstract void updateState(LockWatchStateUpdate update);
+    void updateState(LockWatchStateUpdate update) {
+        if (leaderId != update.leaderId() || !lastKnownVersion.isPresent() || update.events().isEmpty()
+                || update.events().get(0).sequence() != lastKnownVersion.getAsLong()) {
+            resetAll(update);
+        }
+
+    }
+
+    protected abstract void resetAll(LockWatchStateUpdate update);
 }
