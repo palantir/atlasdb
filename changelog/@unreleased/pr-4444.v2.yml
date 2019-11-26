@@ -1,9 +1,13 @@
 type: fix
 fix:
-  description: We no longer read and physically store streams lazily in the Atlas
-    stream store when `storeStreams()` is called. This fixes a bug where users who
-    stored and marked streams in a single transaction and subsequently referenced
-    the returned `Sha256Hash` may throw when storing streams, and/or suffer from data
-    corruption.
+  description: "We no longer read and physically store streams lazily in the AtlasDB
+    store when transactionally storing a stream (via `storeStreams()`). \n\nPreviously,
+    users who stored and marked streams in a single transaction and subsequently referenced
+    the returned `Sha256Hash` may fail in the following ways:\n\n- if the provided
+    `InputStream`s throw when they are read after being closed, these exceptions would
+    be thrown out to the user.\n- if the provided `InputStream`s do not throw when
+    they are read after being closed, AtlasDB would erroneously write an empty block
+    as the first block of the stream, and incorrect metadata of the stream being a
+    1-block empty stream."
   links:
   - https://github.com/palantir/atlasdb/pull/4444
