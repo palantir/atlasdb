@@ -194,14 +194,14 @@ public class HeldLocksCollectionTest {
         AsyncResult<Leased<LockToken>> asyncResult =
                 heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
-        verify(lockWatcher).registerLock(LockToken.of(REQUEST_ID), ImmutableSet.of(LOCK_DESCRIPTOR));
+        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR));
 
         Lease lease = asyncResult.get().lease();
 
         advance(LockLeaseContract.SERVER_LEASE_TIMEOUT.plus(Duration.ofNanos(1)));
         assertThat(lease.isValid(leaderClock.time())).isFalse();
         assertUnlocked(REQUEST_ID);
-        verify(lockWatcher).registerUnlock(LockToken.of(REQUEST_ID), ImmutableSet.of(LOCK_DESCRIPTOR));
+        verify(lockWatcher).registerUnlock(ImmutableSet.of(LOCK_DESCRIPTOR));
         verifyNoMoreInteractions(lockWatcher);
     }
 
@@ -212,10 +212,10 @@ public class HeldLocksCollectionTest {
         AsyncResult<Leased<LockToken>> asyncResult =
                 heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
-        verify(lockWatcher).registerLock(LockToken.of(REQUEST_ID), ImmutableSet.of(LOCK_DESCRIPTOR));
+        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR));
 
         heldLocksCollection.unlock(ImmutableSet.of(LockToken.of(REQUEST_ID)));
-        verify(lockWatcher).registerUnlock(LockToken.of(REQUEST_ID), ImmutableSet.of(LOCK_DESCRIPTOR));
+        verify(lockWatcher).registerUnlock(ImmutableSet.of(LOCK_DESCRIPTOR));
         verifyNoMoreInteractions(lockWatcher);
     }
 

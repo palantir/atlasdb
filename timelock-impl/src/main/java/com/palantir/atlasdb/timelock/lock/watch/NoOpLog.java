@@ -20,7 +20,6 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
@@ -37,17 +36,17 @@ public final class NoOpLog implements LockEventLog {
     }
 
     @Override
-    public void logLock(LockToken lockToken, Set<LockDescriptor> locksTakenOut) {
+    public void logLock(Set<LockDescriptor> locksTakenOut) {
         // noop
     }
 
     @Override
-    public void logUnlock(LockToken lockToken, Set<LockDescriptor> locksUnlocked) {
+    public void logUnlock(Set<LockDescriptor> locksUnlocked) {
         // noop
     }
 
     @Override
-    public void logOpenLocks(LockToken lockToken, Set<LockDescriptor> openLocks) {
+    public void logOpenLocks(Set<LockDescriptor> openLocks) {
         // noop
     }
 

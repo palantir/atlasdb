@@ -61,7 +61,7 @@ public class HeldLocks {
     }
 
     private void registerLock() {
-        lockWatchingService.registerLock(token, descriptors.get());
+        lockWatchingService.registerLock(descriptors.get());
     }
 
     /**
@@ -99,11 +99,11 @@ public class HeldLocks {
             return false;
         }
         isUnlocked = true;
+        lockWatchingService.registerUnlock(descriptors.get());
 
         for (AsyncLock lock : acquiredLocks) {
             lock.unlock(token.getRequestId());
         }
-        lockWatchingService.registerUnlock(token, descriptors.get());
 
         return true;
     }
