@@ -21,12 +21,10 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 public abstract class UnlockEvent implements LockWatchEvent {
-    public abstract LockToken lockToken();
     public abstract Set<LockDescriptor> lockDescriptors();
 
     @Override
@@ -34,9 +32,8 @@ public abstract class UnlockEvent implements LockWatchEvent {
         visitor.visit(this);
     }
 
-    public static LockWatchEvent.Builder builder(LockToken lockToken, Set<LockDescriptor> lockDescriptors) {
+    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors) {
         ImmutableUnlockEvent.Builder builder = ImmutableUnlockEvent.builder()
-                .lockToken(lockToken)
                 .lockDescriptors(lockDescriptors);
         return seq -> builder.sequence(seq).build();
     }

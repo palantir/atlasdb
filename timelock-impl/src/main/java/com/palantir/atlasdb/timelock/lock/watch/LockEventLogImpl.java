@@ -21,9 +21,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchOpenLocksEvent;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
@@ -38,18 +38,18 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     @Override
-    public void logLock(LockToken lockToken, Set<LockDescriptor> locksTakenOut) {
-        slidingWindow.add(LockEvent.builder(lockToken, locksTakenOut));
+    public void logLock(Set<LockDescriptor> locksTakenOut) {
+        slidingWindow.add(LockEvent.builder(locksTakenOut));
     }
 
     @Override
-    public void logUnlock(LockToken lockToken, Set<LockDescriptor> locksUnlocked) {
-        slidingWindow.add(UnlockEvent.builder(lockToken, locksUnlocked));
+    public void logUnlock(Set<LockDescriptor> locksUnlocked) {
+        slidingWindow.add(UnlockEvent.builder(locksUnlocked));
     }
 
     @Override
-    public void logOpenLocks(LockToken lockToken, Set<LockDescriptor> openLocks) {
-        slidingWindow.add(LockEvent.builder(lockToken, openLocks));
+    public void logOpenLocks(Set<LockDescriptor> openLocks) {
+        slidingWindow.add(LockWatchOpenLocksEvent.builder(openLocks));
     }
 
     @Override
