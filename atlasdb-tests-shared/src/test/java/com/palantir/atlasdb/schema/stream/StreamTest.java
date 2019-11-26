@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -90,6 +91,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.io.ForwardingInputStream;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -592,16 +594,25 @@ public class StreamTest extends AtlasDbTestCase {
 
         ImmutableMap<Long, InputStream> streams = ImmutableMap.of(id, new ByteArrayInputStream(bytes));
 
-        txManager.runTaskWithRetry(t -> {
-            Map<Long, Sha256Hash> hashes = defaultStore.storeStreams(t, streams);
-            assertEquals(hash, hashes.get(id));
-            return null;
-        });
+        storeStreamAndCheckHash(id, hash, streams);
+        byte[] bytesInKvs = readBytesForSingleStream(id);
+        assertArrayEquals(bytesInKvs, bytes);
+    }
 
-        byte[] bytesInKvs = txManager.runTaskWithRetry(t -> {
-            Optional<InputStream> inputStream = defaultStore.loadSingleStream(t, id);
-            return IOUtils.toByteArray(inputStream.get());
-        });
+    @Test
+    public void streamsAreNotReused() throws IOException {
+        final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        long id = timestampService.getFreshTimestamp();
+
+        Random rand = new Random();
+        rand.nextBytes(bytes);
+        Sha256Hash hash = Sha256Hash.computeHash(bytes);
+
+        ImmutableMap<Long, InputStream> streams = ImmutableMap.of(id,
+                new CloseEnforcingInputStream(new ByteArrayInputStream(bytes)));
+
+        storeStreamAndCheckHash(id, hash, streams);
+        byte[] bytesInKvs = readBytesForSingleStream(id);
         assertArrayEquals(bytesInKvs, bytes);
     }
 
@@ -706,6 +717,21 @@ public class StreamTest extends AtlasDbTestCase {
         });
     }
 
+    private void storeStreamAndCheckHash(long id, Sha256Hash hash, ImmutableMap<Long, InputStream> streams) {
+        txManager.runTaskWithRetry(t -> {
+            Map<Long, Sha256Hash> hashes = defaultStore.storeStreams(t, streams);
+            assertEquals(hash, hashes.get(id));
+            return null;
+        });
+    }
+
+    private byte[] readBytesForSingleStream(long id) throws IOException {
+        return txManager.runTaskWithRetry(t -> {
+            Optional<InputStream> inputStream = defaultStore.loadSingleStream(t, id);
+            return IOUtils.toByteArray(inputStream.get());
+        });
+    }
+
     private void assertStreamDoesNotExist(final long streamId) {
         assertFalse("This element should have been deleted", getStream(streamId).isPresent());
     }
@@ -768,5 +794,28 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] data = new byte[size];
         new Random(0).nextBytes(data);
         return data;
+    }
+
+    private static class CloseEnforcingInputStream extends ForwardingInputStream {
+        private final InputStream delegate;
+        private final AtomicBoolean closed = new AtomicBoolean(false);
+
+        private CloseEnforcingInputStream(InputStream delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        protected InputStream delegate() {
+            if (closed.get()) {
+                throw new UnsupportedOperationException("This byte array input stream has been closed");
+            }
+            return delegate;
+        }
+
+        @Override
+        public void close() throws IOException {
+            closed.set(true);
+            delegate().close();
+        }
     }
 }
