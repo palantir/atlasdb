@@ -7,7 +7,7 @@ fix:
     `InputStream`s throw when they are read after being closed, these exceptions would
     be thrown out to the user.\n- if the provided `InputStream`s do not throw when
     they are read after being closed, AtlasDB would erroneously write an empty block
-    as the first block of the stream, and incorrect metadata of the stream being a
-    1-block empty stream."
+    as the first block of the stream, and incorrect metadata of the stream being an
+    empty stream."
   links:
   - https://github.com/palantir/atlasdb/pull/4444
