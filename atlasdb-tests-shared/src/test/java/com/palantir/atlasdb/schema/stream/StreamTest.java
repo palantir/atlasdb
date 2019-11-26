@@ -797,7 +797,7 @@ public class StreamTest extends AtlasDbTestCase {
         return data;
     }
 
-    private static class CloseEnforcingInputStream extends ForwardingInputStream {
+    private static final class CloseEnforcingInputStream extends ForwardingInputStream {
         private final InputStream delegate;
         private final AtomicBoolean closed = new AtomicBoolean(false);
 
