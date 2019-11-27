@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -71,9 +70,8 @@ public class ArrayLockEventSlidingWindowTest {
     }
 
     private void assertContainsEventsInOrderFromTo(long version, int startInclusive, int endInclusive) {
-        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(version);
-        assertThat(result.isPresent());
-        assertThat(result.get()).containsExactlyElementsOf(
+        List<LockWatchEvent> result = slidingWindow.getFromVersion(version);
+        assertThat(result).containsExactlyElementsOf(
                 LongStream.rangeClosed(startInclusive, endInclusive)
                         .boxed()
                         .map(ArrayLockEventSlidingWindowTest::createEvent)

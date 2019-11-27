@@ -55,11 +55,11 @@ public class ArrayLockEventSlidingWindow {
      * events are added to the window during execution of this method causing eviction an event before it was read, the
      * method will return a singleton list containing only the most recent event, if it exists.
      */
-    public Optional<List<LockWatchEvent>> getFromVersion(long version) {
+    public List<LockWatchEvent> getFromVersion(long version) {
         long lastWrittenSequence = nextSequence - 1;
 
         if (versionInTheFuture(version, lastWrittenSequence) || versionTooOld(version, lastWrittenSequence)) {
-            return Optional.empty();
+            return ImmutableList.of();
         }
 
         int startIndex = LongMath.mod(version, maxSize);
@@ -81,12 +81,12 @@ public class ArrayLockEventSlidingWindow {
         return lastWrittenSequence - lastVersion + 1 > maxSize;
     }
 
-    private Optional<List<LockWatchEvent>> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
+    private List<LockWatchEvent> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
         for (int i = 0; i < events.size(); i++) {
             if (events.get(i).sequence() != i + version) {
-                return Optional.empty();
+                return ImmutableList.of();
             }
         }
-        return Optional.of(events);
+        return events;
     }
 }
