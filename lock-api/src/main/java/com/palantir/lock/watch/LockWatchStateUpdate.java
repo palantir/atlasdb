@@ -40,8 +40,8 @@ public interface LockWatchStateUpdate {
     List<LockWatchEvent> events();
 
     @Value.Check
-    default void successHasEvents() {
-        Preconditions.checkState(!success() || !events().isEmpty(), "Success must have events.");
+    default void successHasLastKnownVersion() {
+        Preconditions.checkState(!success() || lastKnownVersion().isPresent(), "Success must have a version.");
     }
 
     @Value.Check

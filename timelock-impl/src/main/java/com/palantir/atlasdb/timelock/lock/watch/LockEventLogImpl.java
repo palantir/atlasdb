@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
@@ -39,12 +40,13 @@ public class LockEventLogImpl implements LockEventLog {
         if (!fromVersion.isPresent()) {
             return LockWatchStateUpdate.failure(leaderId, slidingWindow.getVersion());
         }
-        List<LockWatchEvent> events = slidingWindow.getFromVersion(fromVersion.getAsLong());
-        if (events.isEmpty()) {
-            return LockWatchStateUpdate.failure(leaderId, OptionalLong.empty());
+        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromVersion(fromVersion.getAsLong());
+        if (!maybeEvents.isPresent()) {
+            return LockWatchStateUpdate.failure(leaderId, slidingWindow.getVersion());
         }
+        List<LockWatchEvent> events = maybeEvents.get();
         return LockWatchStateUpdate
-                .of(leaderId, true, OptionalLong.of(events.get(events.size() - 1).sequence()), events);
+                .of(leaderId, true, OptionalLong.of(fromVersion.getAsLong() + events.size()), events);
     }
 
     @Override
