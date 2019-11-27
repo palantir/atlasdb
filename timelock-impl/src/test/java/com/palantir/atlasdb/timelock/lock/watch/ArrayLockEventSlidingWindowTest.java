@@ -19,12 +19,14 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.immutables.value.Value;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.lock.watch.LockWatchEvent;
 
 public class ArrayLockEventSlidingWindowTest {
@@ -34,28 +36,36 @@ public class ArrayLockEventSlidingWindowTest {
     public void whenLastKnownVersionIsAfterCurrentReturnEmpty() {
         int numEntries = 5;
         addEvents(numEntries);
-        assertThat(slidingWindow.getFromVersion(numEntries + 1)).isEmpty();
+        assertThat(slidingWindow.getFromVersion(numEntries + 1).isPresent()).isFalse();
     }
 
     @Test
     public void whenLastKnownVersionIsTooOldReturnEmpty() {
         int numEntries = 15;
         addEvents(numEntries);
-        assertThat(slidingWindow.getFromVersion(2)).isEmpty();
+        assertThat(slidingWindow.getFromVersion(2).isPresent()).isFalse();
+    }
+
+    @Test
+    public void whenNoNewEventsReturnEmptyList() {
+        int numEntries = 5;
+        addEvents(numEntries);
+        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(numEntries - 1);
+        assertThat(result).contains(ImmutableList.of());
     }
 
     @Test
     public void returnConsecutiveRange() {
         int numEntries = 5;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(2, 2, numEntries - 1);
+        assertContainsEventsInOrderFromTo(2, 3, numEntries - 1);
     }
 
     @Test
     public void returnWrappingRange() {
         int numEntries = 15;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(8, 8, numEntries - 1);
+        assertContainsEventsInOrderFromTo(8, 9, numEntries - 1);
     }
 
     private void addEvent() {
@@ -69,8 +79,9 @@ public class ArrayLockEventSlidingWindowTest {
     }
 
     private void assertContainsEventsInOrderFromTo(long version, int startInclusive, int endInclusive) {
-        List<LockWatchEvent> result = slidingWindow.getFromVersion(version);
-        assertThat(result).containsExactlyElementsOf(
+        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(version);
+        assertThat(result).isPresent();
+        assertThat(result.get()).containsExactlyElementsOf(
                 LongStream.rangeClosed(startInclusive, endInclusive)
                         .boxed()
                         .map(ArrayLockEventSlidingWindowTest::createEvent)
