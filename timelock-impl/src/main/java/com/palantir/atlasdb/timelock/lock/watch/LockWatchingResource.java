@@ -44,14 +44,8 @@ public class LockWatchingResource {
     }
 
     @POST
-    @Path("stop-watching")
-    public void stopWatching(LockWatchRequest lockWatchRequest) {
-        lockWatchingService.stopWatching(lockWatchRequest);
-    }
-
-    @POST
     @Path("watch-state")
     public LockWatchStateUpdate getWatchState(OptionalLong lastKnownVersion) {
-        return lockWatchingService.getWatchState(lastKnownVersion);
+        return lockWatchingService.getWatchStateUpdate(lastKnownVersion);
     }
 }

@@ -34,6 +34,6 @@ public class NamespacedLockWatchingRpcClient {
     }
 
     public LockWatchStateUpdate getWatchState() {
-        return lockWatchingRpcClient.getWatchState(namespace);
+        return lockWatchingRpcClient.getWatchStateUpdate(namespace);
     }
 }

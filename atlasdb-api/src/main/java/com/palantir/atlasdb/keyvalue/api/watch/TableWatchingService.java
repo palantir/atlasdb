@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.common.annotation.Idempotent;
@@ -29,12 +29,7 @@ public interface TableWatchingService {
     void registerWatches(Set<TableElement> lockWatchEntries);
 
     /**
-     * Deregisters watches.
-     */
-    void deregisterWatches(Set<TableElement> lockWatchEntries);
-
-    /**
      * Returns the current state of all registered watches.
      */
-    TableWatchState getLockWatchState(Optional<Long> lastKnownState);
+    TableWatchState getLockWatchStateUpdate(OptionalLong lastKnownState);
 }
