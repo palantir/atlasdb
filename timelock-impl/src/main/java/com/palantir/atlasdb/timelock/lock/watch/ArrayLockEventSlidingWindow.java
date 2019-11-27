@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalLong;
 
 import com.google.common.collect.ImmutableList;
@@ -35,6 +36,10 @@ public class ArrayLockEventSlidingWindow {
         this.maxSize = maxSize;
     }
 
+    public OptionalLong getVersion() {
+        return nextSequence == 0 ? OptionalLong.empty() : OptionalLong.of(nextSequence - 1);
+    }
+
     /**
      * Adds an event to the sliding window. Assigns a unique sequence to the event.
      */
@@ -50,47 +55,36 @@ public class ArrayLockEventSlidingWindow {
      * events are added to the window during execution of this method causing eviction an event before it was read, the
      * method will return a singleton list containing only the most recent event, if it exists.
      */
-    public List<LockWatchEvent> getFromVersion(OptionalLong version) {
-        if (!version.isPresent()) {
-            return getLastEntry();
-        }
+    public List<LockWatchEvent> getFromVersion(long version) {
         long lastWrittenSequence = nextSequence - 1;
-        long lastVersion = version.getAsLong();
 
-        if (requestedVersionInTheFuture(lastVersion, lastWrittenSequence)
-                || requestedVersionTooOld(lastVersion, lastWrittenSequence)) {
-            return getLastEntry();
+        if (versionInTheFuture(version, lastWrittenSequence) || versionTooOld(version, lastWrittenSequence)) {
+            return ImmutableList.of();
         }
 
-        int startIndex = LongMath.mod(lastVersion, maxSize);
-        int windowSize = Ints.saturatedCast(lastWrittenSequence - lastVersion + 1);
+        int startIndex = LongMath.mod(version, maxSize);
+        int windowSize = Ints.saturatedCast(lastWrittenSequence - version + 1);
         List<LockWatchEvent> events = new ArrayList<>(windowSize);
 
         for (int i = startIndex; events.size() < windowSize; i = (i + 1) % maxSize) {
             events.add(buffer[i]);
         }
 
-        return validateConsistencyOrReturnEmpty(lastVersion, events);
+        return validateConsistencyOrReturnEmpty(version, events);
     }
 
-    private boolean requestedVersionInTheFuture(long lastVersion, long lastWrittenSequence) {
+    private boolean versionInTheFuture(long lastVersion, long lastWrittenSequence) {
         return lastVersion > lastWrittenSequence;
     }
 
-    private boolean requestedVersionTooOld(long lastVersion, long lastWrittenSequence) {
+    private boolean versionTooOld(long lastVersion, long lastWrittenSequence) {
         return lastWrittenSequence - lastVersion + 1 > maxSize;
     }
 
-    private ImmutableList<LockWatchEvent> getLastEntry() {
-        return nextSequence > 0
-                ? ImmutableList.of(buffer[LongMath.mod(nextSequence - 1, maxSize)])
-                : ImmutableList.of();
-    }
-
-    private List<LockWatchEvent> validateConsistencyOrReturnEmpty(long startVersion, List<LockWatchEvent> events) {
+    private List<LockWatchEvent> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
         for (int i = 0; i < events.size(); i++) {
-            if (events.get(i).sequence() != i + startVersion) {
-                return getLastEntry();
+            if (events.get(i).sequence() != i + version) {
+                return ImmutableList.of();
             }
         }
         return events;

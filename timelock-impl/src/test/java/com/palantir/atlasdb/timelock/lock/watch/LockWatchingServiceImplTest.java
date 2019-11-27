@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -85,7 +84,7 @@ public class LockWatchingServiceImplTest {
     }
 
     @Test
-    public void watchExistingLocksDoesNotLogOpenLocks() {
+    public void registeringWatchLogsAllCoveredLocksAgain() {
         LockDescriptor secondRow = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("other_row"));
         when(asyncLock2.getDescriptor()).thenReturn(secondRow);
 
@@ -97,12 +96,12 @@ public class LockWatchingServiceImplTest {
         LockWatchRequest entireTableRequest = tableRequest(TABLE);
         lockWatcher.startWatching(entireTableRequest);
 
-        verifyLoggedOpenLocks(2, ImmutableSet.of(secondRow));
+        verifyLoggedOpenLocks(2, ImmutableSet.of(ROW_DESCRIPTOR, secondRow));
         verify(log).logLockWatchCreated(entireTableRequest);
     }
 
     @Test
-    public void watchThatIsAlreadyCoveredIsNoOp() {
+    public void watchThatIsAlreadyCoveredIsLoggedAgain() {
         LockWatchRequest request = tableRequest(TABLE);
         lockWatcher.startWatching(request);
 
@@ -111,8 +110,7 @@ public class LockWatchingServiceImplTest {
 
         LockWatchRequest prefixRequest = prefixRequest(TABLE, ROW);
         lockWatcher.startWatching(prefixRequest);
-        verifyNoMoreInteractions(log);
-
+        verify(log).logLockWatchCreated(prefixRequest);
     }
 
     @Test

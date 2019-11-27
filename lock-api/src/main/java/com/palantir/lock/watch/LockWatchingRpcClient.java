@@ -38,5 +38,5 @@ public interface LockWatchingRpcClient {
     // as usual, GET is allowed to be cached, and we are not allowed to use a stale result
     @POST
     @Path("watch-state")
-    LockWatchStateUpdate getWatchState(@PathParam("namespace") String namespace);
+    LockWatchStateUpdate getWatchStateUpdate(@PathParam("namespace") String namespace);
 }

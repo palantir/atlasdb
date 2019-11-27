@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
@@ -30,7 +29,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
-@SuppressWarnings("UnstableApiUsage")
 public class LockWatchingServiceImpl implements LockWatchingService {
     private final LockEventLog lockEventLog;
     private final HeldLocksCollection heldLocksCollection;
@@ -43,28 +41,13 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
-        RangeSet<LockDescriptor> newRanges = newRangesToWatch(locksToWatch.ranges());
-        if (newRanges.isEmpty()) {
-            return;
-        }
-        addToWatches(newRanges);
-        logOpenLocks(newRanges);
+        addToWatches(locksToWatch);
+        logOpenLocks(locksToWatch);
         logLockWatchEvent(locksToWatch);
     }
 
-    /**
-     * Removing watches is not supported in this implementation.
-     *
-     * WARNING: if you wish to implement this functionality, carefully review thread safety, as the current
-     * implementation implicitly assumes ranges are never removed from the range set.
-     */
     @Override
-    public void stopWatching(LockWatchRequest locksToUnwatch) {
-        throw new UnsupportedOperationException("Not implemented in this version");
-    }
-
-    @Override
-    public LockWatchStateUpdate getWatchState(OptionalLong lastKnownVersion) {
+    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion) {
         return lockEventLog.getLogDiff(lastKnownVersion);
     }
 
@@ -78,18 +61,19 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         lockEventLog.logUnlock(unlocked.stream().filter(this::hasLockWatch).collect(Collectors.toSet()));
     }
 
-    private synchronized void addToWatches(RangeSet<LockDescriptor> locksToWatch) {
+    private synchronized void addToWatches(LockWatchRequest request) {
         RangeSet<LockDescriptor> oldRanges = ranges.get();
         RangeSet<LockDescriptor> newRanges = TreeRangeSet.create(oldRanges);
-        newRanges.addAll(locksToWatch);
+        newRanges.addAll(request.ranges());
         ranges.set(newRanges);
     }
 
-    private void logOpenLocks(RangeSet<LockDescriptor> locksToWatch) {
+    private void logOpenLocks(LockWatchRequest request) {
+        RangeSet<LockDescriptor> requestAsRangeSet = TreeRangeSet.create(request.ranges());
         heldLocksCollection.locksHeld().forEach(locksHeld -> {
                     Set<LockDescriptor> descriptors = locksHeld.getLocks().stream()
                             .map(AsyncLock::getDescriptor)
-                            .filter(locksToWatch::contains)
+                            .filter(requestAsRangeSet::contains)
                             .collect(Collectors.toSet());
                     lockEventLog.logOpenLocks(descriptors);
                 }
@@ -100,16 +84,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         lockEventLog.logLockWatchCreated(locksToWatch);
     }
 
-    private synchronized boolean hasLockWatch(LockDescriptor lockDescriptor) {
+    private boolean hasLockWatch(LockDescriptor lockDescriptor) {
         return ranges.get().contains(lockDescriptor);
-    }
-
-    private RangeSet<LockDescriptor> newRangesToWatch(Set<Range<LockDescriptor>> rangesToWatch) {
-        RangeSet<LockDescriptor> existingComplement = ranges.get().complement();
-        return TreeRangeSet.create(rangesToWatch.stream()
-                .map(existingComplement::subRangeSet)
-                .map(RangeSet::asRanges)
-                .flatMap(Set::stream)
-                .collect(Collectors.toList()));
     }
 }

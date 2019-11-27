@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,12 +36,7 @@ public class TableWatchingServiceAdapter implements TableWatchingService {
     }
 
     @Override
-    public void deregisterWatches(Set<TableElement> lockWatchEntries) {
-        kvsLockWatchingService.deregisterWatches(toRequest(lockWatchEntries));
-    }
-
-    @Override
-    public TableWatchState getLockWatchState(Optional<Long> lastKnownState) {
+    public TableWatchState getLockWatchStateUpdate(OptionalLong lastKnownState) {
         throw new UnsupportedOperationException("not implemented yet");
     }
 
