@@ -139,12 +139,10 @@ public final class CqlClientImpl implements CqlClient {
             Statement executableStatement,
             Executor executor,
             RowStreamAccumulator<V> rowStreamAccumulator) {
-        Executor tracingExecutor = AtlasFutures.traceRestoringExecutor(executor, "CqlClientImpl: iterate");
-
         return Futures.transformAsync(
                 session.executeAsync(executableStatement),
                 iterate(executor, rowStreamAccumulator),
-                tracingExecutor);
+                executor);
     }
 
     private <V> AsyncFunction<ResultSet, V> iterate(Executor executor, RowStreamAccumulator<V> rowStreamAccumulator) {

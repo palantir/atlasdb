@@ -97,7 +97,7 @@ public final class AtlasFutures {
         }
     }
 
-    public static Executor traceRestoringExecutor(Executor executor, String operation) {
+    private static Executor traceRestoringExecutor(Executor executor, String operation) {
         DeferredTracer deferredTracer = new DeferredTracer(operation);
         return command -> executor.execute(() -> deferredTracer.withTrace(() -> {
             command.run();
