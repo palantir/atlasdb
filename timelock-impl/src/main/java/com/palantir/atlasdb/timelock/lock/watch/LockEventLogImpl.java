@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
@@ -23,6 +25,7 @@ import java.util.UUID;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchOpenLocksEvent;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -34,7 +37,16 @@ public class LockEventLogImpl implements LockEventLog {
 
     @Override
     public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion) {
-        return LockWatchStateUpdate.of(leaderId, slidingWindow.getFromVersion(fromVersion));
+        if (!fromVersion.isPresent()) {
+            return LockWatchStateUpdate.failure(leaderId, slidingWindow.getVersion());
+        }
+        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromVersion(fromVersion.getAsLong());
+        if (!maybeEvents.isPresent()) {
+            return LockWatchStateUpdate.failure(leaderId, slidingWindow.getVersion());
+        }
+        List<LockWatchEvent> events = maybeEvents.get();
+        return LockWatchStateUpdate
+                .of(leaderId, true, OptionalLong.of(events.get(events.size() - 1).sequence()), events);
     }
 
     @Override

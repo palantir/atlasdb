@@ -17,10 +17,9 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import java.util.OptionalLong;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -34,53 +33,31 @@ public class ArrayLockEventSlidingWindowTest {
     private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(10);
 
     @Test
-    public void noLastVersionNoEntriesReturnsEmpty() {
-        assertThat(slidingWindow.getFromVersion(OptionalLong.empty())).isEmpty();
-    }
-
-    @Test
-    public void noLastVersionWithEntriesReturnsMostRecentOnly() {
+    public void whenLastKnownVersionIsAfterCurrentReturnEmpty() {
         int numEntries = 5;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(OptionalLong.empty(), numEntries - 1, numEntries - 1);
+        assertThat(slidingWindow.getFromVersion(numEntries + 1)).isEmpty();
     }
 
     @Test
-    public void whenLastKnownVersionIsAfterCurrentReturnEmptyMostRecentOnly() {
-        int numEntries = 5;
-        addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(OptionalLong.of(numEntries + 3), numEntries - 1, numEntries - 1);
-    }
-
-    @Test
-    public void whenLastKnownVersionIsTooOldReturnMostRecentOnly() {
+    public void whenLastKnownVersionIsTooOldReturnEmpty() {
         int numEntries = 15;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(OptionalLong.of(2), numEntries - 1, numEntries - 1);
+        assertThat(slidingWindow.getFromVersion(2)).isEmpty();
     }
 
     @Test
     public void returnConsecutiveRange() {
         int numEntries = 5;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(OptionalLong.of(2), 2, numEntries - 1);
+        assertContainsEventsInOrderFromTo(2, 2, numEntries - 1);
     }
 
     @Test
     public void returnWrappingRange() {
         int numEntries = 15;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(OptionalLong.of(8), 8, numEntries - 1);
-    }
-
-    @Test
-    public void returnEmptyWhenRangeBecomesInconsistent() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        OptionalLong optionalLongAddingTenEntries = mock(OptionalLong.class);
-        when(optionalLongAddingTenEntries.isPresent()).thenReturn(true);
-        when(optionalLongAddingTenEntries.getAsLong()).thenAnswer(ignore -> addTenEntriesAndReturnEight());
-        assertContainsEventsInOrderFromTo(optionalLongAddingTenEntries, numEntries + 9, numEntries + 9);
+        assertContainsEventsInOrderFromTo(8, 8, numEntries - 1);
     }
 
     private void addEvent() {
@@ -93,13 +70,10 @@ public class ArrayLockEventSlidingWindowTest {
         }
     }
 
-    private Long addTenEntriesAndReturnEight() {
-        addEvents(10);
-        return 8L;
-    }
-
-    private void assertContainsEventsInOrderFromTo(OptionalLong version, int startInclusive, int endInclusive) {
-        assertThat(slidingWindow.getFromVersion(version)).containsExactlyElementsOf(
+    private void assertContainsEventsInOrderFromTo(long version, int startInclusive, int endInclusive) {
+        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(version);
+        assertThat(result.isPresent());
+        assertThat(result.get()).containsExactlyElementsOf(
                 LongStream.rangeClosed(startInclusive, endInclusive)
                         .boxed()
                         .map(ArrayLockEventSlidingWindowTest::createEvent)
