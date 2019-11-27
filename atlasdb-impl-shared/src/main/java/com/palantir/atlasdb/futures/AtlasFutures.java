@@ -19,12 +19,14 @@ package com.palantir.atlasdb.futures;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.tracing.DeferredTracer;
 
 public final class AtlasFutures {
     private AtlasFutures() {
@@ -65,14 +67,16 @@ public final class AtlasFutures {
      */
     public static <T, R> ListenableFuture<Map<T, R>> allAsMap(
             Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap,
-            ExecutorService executorService) {
+            Executor executor) {
+        Executor tracingExecutor = traceRestoringExecutor(executor, "AtlasFutures: allAsMap");
+
         return Futures.whenAllSucceed(inputToListenableFutureMap.values())
                 .call(() -> KeyedStream.stream(inputToListenableFutureMap)
                                 .map(AtlasFutures::getDone)
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
                                 .collectToMap(),
-                        executorService);
+                        tracingExecutor);
     }
 
     public static <R> R getDone(ListenableFuture<R> resultFuture) {
@@ -91,5 +95,13 @@ public final class AtlasFutures {
         } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    public static Executor traceRestoringExecutor(Executor executorService, String operation) {
+        DeferredTracer deferredTracer = new DeferredTracer(operation);
+        return command -> executorService.execute(() -> deferredTracer.withTrace(() -> {
+            command.run();
+            return null;
+        }));
     }
 }

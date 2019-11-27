@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.RowStreamAccumulator;
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.CachingStatementPreparer;
@@ -138,10 +139,12 @@ public final class CqlClientImpl implements CqlClient {
             Statement executableStatement,
             Executor executor,
             RowStreamAccumulator<V> rowStreamAccumulator) {
+        Executor tracingExecutor = AtlasFutures.traceRestoringExecutor(executor, "CqlClientImpl: iterate");
+
         return Futures.transformAsync(
                 session.executeAsync(executableStatement),
                 iterate(executor, rowStreamAccumulator),
-                executor);
+                tracingExecutor);
     }
 
     private <V> AsyncFunction<ResultSet, V> iterate(Executor executor, RowStreamAccumulator<V> rowStreamAccumulator) {
