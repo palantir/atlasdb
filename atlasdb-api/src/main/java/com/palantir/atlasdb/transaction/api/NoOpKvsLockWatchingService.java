@@ -33,11 +33,6 @@ public final class NoOpKvsLockWatchingService implements KvsLockWatchingService 
     }
 
     @Override
-    public void deregisterWatches(LockWatchRequest lockWatchEntries) {
-        // noop
-    }
-
-    @Override
     public LockWatchState getLockWatchState(OptionalLong lastKnownState) {
         throw new UnsupportedOperationException("not implemented yet");
     }

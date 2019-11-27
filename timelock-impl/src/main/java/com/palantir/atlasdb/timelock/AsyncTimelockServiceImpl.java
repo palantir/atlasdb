@@ -23,10 +23,9 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
-import com.palantir.atlasdb.timelock.lock.watch.AutoDelegate_LockWatchingService;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableStartTransactionRequestV4;
@@ -44,12 +43,13 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
-public class AsyncTimelockServiceImpl implements AsyncTimelockService, AutoDelegate_LockWatchingService {
-
+public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
     private final ClientAwareManagedTimestampService timestampService;
 
@@ -58,11 +58,6 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService, AutoDeleg
             ManagedTimestampService timestampService) {
         this.lockService = lockService;
         this.timestampService = DelegatingClientAwareManagedTimestampService.createDefault(timestampService);
-    }
-
-    @Override
-    public LockWatchingService delegate() {
-        return lockService.getLockWatchingService();
     }
 
     @Override
@@ -177,12 +172,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService, AutoDeleg
                         .requestorId(request.requestorId())
                         .numTransactions(request.numTransactions())
                         .build()),
-                getWatchState(request.lastKnownLockLogVersion()));
+                getWatchStateUpdate(request.lastKnownLockLogVersion()));
     }
 
     @Override
     public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion) {
-        return TimestampWithWatches.of(getFreshTimestamp(), getWatchState(lastKnownVersion));
+        return TimestampWithWatches.of(getFreshTimestamp(), getWatchStateUpdate(lastKnownVersion));
     }
 
     @Override
@@ -208,5 +203,25 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService, AutoDeleg
     @Override
     public void close() {
         lockService.close();
+    }
+
+    @Override
+    public void startWatching(LockWatchRequest locksToWatch) {
+        lockService.getLockWatchingService().startWatching(locksToWatch);
+    }
+
+    @Override
+    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion) {
+        return lockService.getLockWatchingService().getWatchStateUpdate(lastKnownVersion);
+    }
+
+    @Override
+    public void registerLock(LockToken token, Set<LockDescriptor> locksTakenOut) {
+        lockService.getLockWatchingService().registerLock(token, locksTakenOut);
+    }
+
+    @Override
+    public void registerUnlock(LockToken token, Set<LockDescriptor> locksUnlocked) {
+        lockService.getLockWatchingService().registerUnlock(token, locksUnlocked);
     }
 }
