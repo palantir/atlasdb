@@ -17,7 +17,6 @@
 package com.palantir.lock.watch;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.OptionalLong;
 
 import com.google.common.collect.Range;
@@ -25,7 +24,7 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
 import com.palantir.lock.LockDescriptor;
 
-public class LockWatchStateEventVisitor implements LockWatchEventVisitor {
+public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor {
     private final RangeMap<LockDescriptor, LockWatchInfo> lockWatchState;
 
     public LockWatchStateEventVisitor(

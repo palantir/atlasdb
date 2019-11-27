@@ -24,7 +24,7 @@ public abstract class LockWatchCreatedEvent implements LockWatchEvent {
     abstract LockWatchRequest request();
 
     @Override
-    public void accept(LockWatchEventVisitor visitor) {
+    public void accept(Visitor visitor) {
         visitor.visit(this);
     }
 

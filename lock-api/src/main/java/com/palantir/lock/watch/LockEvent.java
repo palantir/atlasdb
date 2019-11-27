@@ -28,7 +28,7 @@ public abstract class LockEvent implements LockWatchEvent {
     public abstract Set<LockDescriptor> lockDescriptors();
 
     @Override
-    public void accept(LockWatchEventVisitor visitor) {
+    public void accept(Visitor visitor) {
         visitor.visit(this);
     }
 
