@@ -29,11 +29,6 @@ public interface KvsLockWatchingService {
     void registerWatches(LockWatchRequest lockWatchEntries);
 
     /**
-     * Deregisters watches.
-     */
-    void deregisterWatches(LockWatchRequest lockWatchEntries);
-
-    /**
      * Returns the current state of all registered watches.
      **/
     LockWatchState getLockWatchState(OptionalLong lastKnownState);
