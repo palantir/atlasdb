@@ -108,8 +108,7 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
 
     private Cluster.Builder withSocketOptions(Cluster.Builder clusterBuilder, CassandraKeyValueServiceConfig config) {
         return clusterBuilder.withSocketOptions(
-                new SocketOptions()
-                        .setReadTimeoutMillis(config.socketQueryTimeoutMillis()));
+                new SocketOptions().setReadTimeoutMillis(config.socketQueryTimeoutMillis()));
     }
 
     private static Cluster.Builder withSslOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
