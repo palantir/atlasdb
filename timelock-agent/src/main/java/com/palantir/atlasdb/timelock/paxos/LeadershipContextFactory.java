@@ -23,13 +23,10 @@ import org.immutables.value.Value;
 
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
-import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosProposer;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 
 @Value.Immutable
@@ -84,13 +81,22 @@ public abstract class LeadershipContextFactory implements
         return leaderPingHealthCheckFactory().create(this);
     }
 
+    @Value.Derived
+    LeaderElectionServiceFactory leaderElectionServiceFactory() {
+        return new LeaderElectionServiceFactory();
+    }
+
     @Override
     public LeadershipContext create(Client client) {
-        return ImmutableClientAwareComponents.builder()
+        ClientAwareComponents clientAwareComponents = ImmutableClientAwareComponents.builder()
                 .from(this)
                 .proxyClient(client)
-                .build()
-                .leadershipContext();
+                .build();
+
+        return ImmutableLeadershipContext.builder()
+                .leadershipMetrics(clientAwareComponents.leadershipMetrics())
+                .leaderElectionService(leaderElectionServiceFactory().create(clientAwareComponents))
+                .build();
     }
 
     @Value.Derived
@@ -101,17 +107,18 @@ public abstract class LeadershipContextFactory implements
     @Value.Immutable
     abstract static class ClientAwareComponents implements
             Dependencies.ClientAwareComponents,
+            Dependencies.LeaderElectionService,
             Dependencies.LeadershipMetrics {
 
         public abstract Client proxyClient();
 
         @Value.Derived
-        Client paxosClient() {
+        public Client paxosClient() {
             return useCase().resolveClient(proxyClient());
         }
 
         @Value.Derived
-        PaxosLearner localLearner() {
+        public PaxosLearner localLearner() {
             return components().learner(paxosClient());
         }
 
@@ -128,37 +135,6 @@ public abstract class LeadershipContextFactory implements
         @Value.Derived
         public PaxosLeadershipEventRecorder eventRecorder() {
             return leadershipMetrics().eventRecorder();
-        }
-
-        @Value.Derived
-        LeaderElectionService leaderElectionService() {
-            return new LeaderElectionServiceBuilder()
-                    .leaderPinger(leaderPinger())
-                    .leaderUuid(leaderUuid())
-                    .pingRate(runtime().get().pingRate())
-                    .randomWaitBeforeProposingLeadership(runtime().get().maximumWaitBeforeProposingLeadership())
-                    .eventRecorder(eventRecorder())
-                    .knowledge(localLearner())
-                    .acceptorClient(networkClientFactories().acceptor().create(paxosClient()))
-                    .learnerClient(networkClientFactories().learner().create(paxosClient()))
-                    .decorateProposer(this::instrumentProposer)
-                    .build();
-        }
-
-        @Value.Derived
-        LeadershipContext leadershipContext() {
-            return ImmutableLeadershipContext.builder()
-                    .leadershipMetrics(leadershipMetrics())
-                    .leaderElectionService(leaderElectionService())
-                    .build();
-        }
-
-        private PaxosProposer instrumentProposer(PaxosProposer uninstrumentedPaxosProposer) {
-            return metrics().instrument(
-                    PaxosProposer.class,
-                    uninstrumentedPaxosProposer,
-                    "paxos-proposer",
-                    paxosClient());
         }
 
     }
