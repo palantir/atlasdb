@@ -1,7 +1,7 @@
 type: fix
 fix:
   description: 'Ensure we use the same instance of `LeaderElectionService` when in
-    `leader-for-all clients` mode, this brings request rates back to the same rate
+    `leader-for-all-clients` mode, this brings request rates back to the same rate
     before PR 4340 merged. This addresses internal issue PDS-105806.'
   links:
   - https://github.com/palantir/atlasdb/pull/4448
