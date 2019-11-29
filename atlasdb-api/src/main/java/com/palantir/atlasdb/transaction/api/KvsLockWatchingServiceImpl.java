@@ -20,28 +20,39 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
+import com.palantir.lock.watch.NewLocksVisitor;
 import com.palantir.lock.watch.VersionedLockWatchState;
 
-public final class NoOpKvsLockWatchingService implements KvsLockWatchingService {
-    public static final KvsLockWatchingService INSTANCE = new NoOpKvsLockWatchingService();
+public class KvsLockWatchingServiceImpl implements KvsLockWatchingService {
+    private final NamespacedLockWatchingRpcClient client;
+    private final LockWatchEventLog lockWatchEventLog;
 
-    private NoOpKvsLockWatchingService() {
-        // nope
+    public KvsLockWatchingServiceImpl(NamespacedLockWatchingRpcClient client,
+            LockWatchEventLog lockWatchEventLog) {
+        this.client = client;
+        this.lockWatchEventLog = lockWatchEventLog;
     }
 
     @Override
     public void registerWatches(LockWatchRequest lockWatchEntries) {
-        // noop
+        client.startWatching(lockWatchEntries);
     }
 
     @Override
     public VersionedLockWatchState getLockWatchState() {
-        throw new UnsupportedOperationException("not implemented yet");
+        return lockWatchEventLog.currentState();
     }
 
     @Override
     public Set<LockDescriptor> lockedSinceVersion(long version) {
-        throw new UnsupportedOperationException("not implemented yet");
+        LockWatchStateUpdate update = client.getWatchStateUpdate(OptionalLong.of(version));
+        lockWatchEventLog.updateState(update);
+        NewLocksVisitor visitor = new NewLocksVisitor();
+        update.events().forEach(event -> event.accept(visitor));
+        return visitor.getLocks();
     }
 }

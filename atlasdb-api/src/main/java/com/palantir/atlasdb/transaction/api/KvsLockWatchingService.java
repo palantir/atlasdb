@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.transaction.api;
 
 import java.util.OptionalLong;
+import java.util.Set;
 
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.VersionedLockWatchState;
 
@@ -33,4 +35,6 @@ public interface KvsLockWatchingService {
      * Returns the current state of all registered watches.
      **/
     VersionedLockWatchState getLockWatchState();
+
+    Set<LockDescriptor> lockedSinceVersion(long version);
 }

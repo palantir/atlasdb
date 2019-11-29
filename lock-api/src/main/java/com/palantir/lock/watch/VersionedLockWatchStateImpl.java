@@ -19,18 +19,17 @@ package com.palantir.lock.watch;
 import java.util.Map;
 import java.util.OptionalLong;
 
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
+import com.google.common.collect.RangeSet;
 import com.palantir.lock.LockDescriptor;
 
 public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
     private final OptionalLong version;
-    private final RangeMap<LockDescriptor, LockWatchInfo> watchedRanges;
-    private final Map<LockDescriptor, LockWatchInfo> locks;
+    private final RangeSet<LockDescriptor> watchedRanges;
+    private final Map<LockDescriptor, LockWatchState> locks;
 
     public VersionedLockWatchStateImpl(OptionalLong version,
-            RangeMap<LockDescriptor, LockWatchInfo> watchedRanges,
-            Map<LockDescriptor, LockWatchInfo> locks) {
+            RangeSet<LockDescriptor> watchedRanges,
+            Map<LockDescriptor, LockWatchState> locks) {
         this.version = version;
         this.watchedRanges = watchedRanges;
         this.locks = locks;
@@ -42,14 +41,13 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
     }
 
     @Override
-    public LockWatchInfo lockWatchState(LockDescriptor lockDescriptor) {
+    public LockWatchState lockWatchState(LockDescriptor lockDescriptor) {
         if (locks.containsKey(lockDescriptor)) {
             return locks.get(lockDescriptor);
         }
-        Map.Entry<Range<LockDescriptor>, LockWatchInfo> watchedRange = watchedRanges.getEntry(lockDescriptor);
-        if (watchedRange != null) {
-            return watchedRange.getValue();
+        if (watchedRanges.contains(lockDescriptor)) {
+            return LockWatchState.UNLOCKED;
         }
-        return ImmutableLockWatchInfo.of(OptionalLong.empty(), LockWatchInfo.State.LOCKED);
+        return LockWatchState.NOT_WATCHED;
     }
 }

@@ -16,18 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
-
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface LockWatchInfo {
-    @Value.Parameter
-    OptionalLong lastChange();
-    @Value.Parameter
-    State state();
-
-    enum State {
-        LOCKED, UNLOCKED;
-    }
+public enum LockWatchState {
+        LOCKED, UNLOCKED, NOT_WATCHED;
 }

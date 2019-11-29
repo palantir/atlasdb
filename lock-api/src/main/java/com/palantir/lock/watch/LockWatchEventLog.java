@@ -16,35 +16,62 @@
 
 package com.palantir.lock.watch;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.RangeMap;
+import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeMap;
+import com.google.common.collect.TreeRangeSet;
+import com.google.common.primitives.Ints;
+import com.palantir.common.annotation.Immutable;
 import com.palantir.lock.LockDescriptor;
 
-public abstract class LockWatchEventLog {
-    private final AtomicReference<RangeMap<LockDescriptor, LockWatchInfo>> watches = new AtomicReference<>(
-            TreeRangeMap.create());
-    private final AtomicReference<Map<LockDescriptor, LockWatchInfo>> singleLocks = new AtomicReference<>(ImmutableMap.of());
+public class LockWatchEventLog {
+    private final Object UPDATE = new Object();
+    private AtomicReference<RangeSet<LockDescriptor>> watches = new AtomicReference<>(
+            TreeRangeSet.create());
+    private AtomicReference<Map<LockDescriptor, LockWatchState>> singleLocks = new AtomicReference<>(ImmutableMap.of());
     private volatile OptionalLong lastKnownVersion = OptionalLong.empty();
-    private UUID leaderId = UUID.randomUUID();
+    private volatile UUID leaderId = UUID.randomUUID();
 
-    synchronized VersionedLockWatchState currentState() {
+    public synchronized VersionedLockWatchState currentState() {
         return new VersionedLockWatchStateImpl(lastKnownVersion, watches.get(), singleLocks.get());
     }
 
-    void updateState(LockWatchStateUpdate update) {
-        if (leaderId != update.leaderId() || !lastKnownVersion.isPresent() || update.events().isEmpty()
-                || update.events().get(0).sequence() != lastKnownVersion.getAsLong()) {
-            resetAll(update);
+    public void updateState(LockWatchStateUpdate update) {
+        synchronized (UPDATE) {
+            if (leaderId != update.leaderId() || !lastKnownVersion.isPresent() || !update.success()) {
+                resetAll(update);
+            }
+            if (update.events().isEmpty() || update.lastKnownVersion().getAsLong() <= lastKnownVersion.getAsLong()) {
+                return;
+            }
+
+            TreeRangeSet<LockDescriptor> updatedWatches = TreeRangeSet.create(watches.get());
+            Map<LockDescriptor, LockWatchState> updatedLocks = new HashMap<>(singleLocks.get());
+            LockWatchStateEventVisitor visitor = new LockWatchStateEventVisitor(updatedWatches, updatedLocks);
+
+            long firstVersion = update.events().get(0).sequence();
+            update.events().subList(Ints.saturatedCast(lastKnownVersion.getAsLong() - firstVersion),
+                    update.events().size()).forEach(event -> event.accept(visitor));
+            synchronized (this) {
+                watches.set(updatedWatches);
+                singleLocks.set(updatedLocks);
+                lastKnownVersion = update.lastKnownVersion();
+            }
         }
 
     }
 
-    protected abstract void resetAll(LockWatchStateUpdate update);
+    private synchronized void resetAll(LockWatchStateUpdate update) {
+        watches.set(TreeRangeSet.create());
+        singleLocks.set(ImmutableMap.of());
+        lastKnownVersion = update.lastKnownVersion();
+        leaderId = update.leaderId();
+    }
 }

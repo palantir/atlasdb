@@ -17,57 +17,43 @@
 package com.palantir.lock.watch;
 
 import java.util.Map;
-import java.util.OptionalLong;
 
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
-import com.google.common.collect.TreeRangeMap;
+import com.google.common.collect.RangeSet;
 import com.palantir.lock.LockDescriptor;
 
 public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor {
-    private final RangeMap<LockDescriptor, LockWatchInfo> lockWatchState;
+    private final RangeSet<LockDescriptor> watches;
+    private final Map<LockDescriptor, LockWatchState> lockWatchState;
 
     public LockWatchStateEventVisitor(
-            RangeMap<LockDescriptor, LockWatchInfo> lockWatchState) {
+            RangeSet<LockDescriptor> watches,
+            Map<LockDescriptor, LockWatchState> lockWatchState) {
+        this.watches = watches;
         this.lockWatchState = lockWatchState;
     }
 
     @Override
     public void visit(LockEvent lockEvent) {
         for (LockDescriptor descriptor: lockEvent.lockDescriptors()) {
-            Map.Entry<Range<LockDescriptor>, LockWatchInfo> entry = lockWatchState.getEntry(descriptor);
-            if (entry == null) {
-                lockWatchState.put(Range.singleton(descriptor),
-                        ImmutableLockWatchInfo.of(OptionalLong.of(lockEvent.sequence()), LockWatchInfo.State.LOCKED));
-            } else {
-                LockWatchInfo currentInfo = entry.getValue();
-                if (currentInfo.lastChange().isPresent() && currentInfo.lastChange().getAsLong() < lockEvent.sequence()) {
-                    lockWatchState.put(Range.singleton(descriptor),
-                            ImmutableLockWatchInfo.of(OptionalLong.of(lockEvent.sequence()), LockWatchInfo.State.LOCKED));
-                }
-            }
+            lockWatchState.put(descriptor, LockWatchState.LOCKED);
         }
     }
 
     @Override
     public void visit(UnlockEvent unlockEvent) {
-
+        for (LockDescriptor descriptor: unlockEvent.lockDescriptors()) {
+            lockWatchState.put(descriptor, LockWatchState.UNLOCKED);
+        }
     }
 
     @Override
     public void visit(LockWatchOpenLocksEvent openLocksEvent) {
-
-    }
+        for (LockDescriptor descriptor: openLocksEvent.lockDescriptors()) {
+            lockWatchState.put(descriptor, LockWatchState.LOCKED);
+        }    }
 
     @Override
     public void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-        for (Range<LockDescriptor> range: lockWatchCreatedEvent.request().ranges()) {
-            RangeMap<LockDescriptor, LockWatchInfo> update = TreeRangeMap.create();
-            update.put(range, ImmutableLockWatchInfo.of(OptionalLong.empty(), LockWatchInfo.State.LOCKED));
-            RangeMap<LockDescriptor, LockWatchInfo> existingRangeMappings = lockWatchState.subRangeMap(range);
-            for (Map.Entry<Range<LockDescriptor>, LockWatchInfo> entry: existingRangeMappings.asMapOfRanges().entrySet()) {
-
-            }
-        }
+        watches.addAll(lockWatchCreatedEvent.request().ranges());
     }
 }

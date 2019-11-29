@@ -16,11 +16,35 @@
 
 package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.palantir.lock.LockDescriptor;
 
-public interface VersionedLockWatchState {
-    OptionalLong version();
-    LockWatchState lockWatchState(LockDescriptor lockDescriptor);
+public class NewLocksVisitor implements LockWatchEvent.Visitor {
+    private final Set<LockDescriptor> locks = new HashSet<>();
+
+    public Set<LockDescriptor> getLocks() {
+        return locks;
+    }
+
+    @Override
+    public void visit(LockEvent lockEvent) {
+        locks.addAll(lockEvent.lockDescriptors());
+    }
+
+    @Override
+    public void visit(UnlockEvent unlockEvent) {
+        // noop
+    }
+
+    @Override
+    public void visit(LockWatchOpenLocksEvent openLocksEvent) {
+        // noop
+    }
+
+    @Override
+    public void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+        // noop
+    }
 }

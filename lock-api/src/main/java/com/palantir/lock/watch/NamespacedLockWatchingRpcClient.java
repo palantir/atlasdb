@@ -16,6 +16,8 @@
 
 package com.palantir.lock.watch;
 
+import java.util.OptionalLong;
+
 public class NamespacedLockWatchingRpcClient {
     private final String namespace;
     private final LockWatchingRpcClient lockWatchingRpcClient;
@@ -29,11 +31,7 @@ public class NamespacedLockWatchingRpcClient {
         lockWatchingRpcClient.startWatching(namespace, lockWatchRequest);
     }
 
-    public void stopWatching(LockWatchRequest lockWatchRequest) {
-        lockWatchingRpcClient.stopWatching(namespace, lockWatchRequest);
-    }
-
-    public LockWatchStateUpdate getWatchState() {
-        return lockWatchingRpcClient.getWatchStateUpdate(namespace);
+    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion) {
+        return lockWatchingRpcClient.getWatchStateUpdate(namespace, lastKnownVersion);
     }
 }

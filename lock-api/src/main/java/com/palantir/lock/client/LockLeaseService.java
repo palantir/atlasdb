@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -36,7 +37,9 @@ import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
@@ -76,6 +79,21 @@ class LockLeaseService {
                 LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
                 response.timestamps(),
                 lease);
+    }
+
+    StartTransactionResponseV5 startTransactionsWithWatches(OptionalLong lastKnownVersion, int batchSize) {
+        StartTransactionRequestV5 request = StartTransactionRequestV5
+                .createForRequestor(clientId, lastKnownVersion, batchSize);
+        StartTransactionResponseV5 response = delegate.startTransactionsWithWatches(request);
+
+        Lease lease = response.lease();
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
+        long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
+        return StartTransactionResponseV5.of(
+                LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
+                response.timestamps(),
+                lease,
+                response.lockWatchUpdate());
     }
 
     LockResponse lock(LockRequest request) {
