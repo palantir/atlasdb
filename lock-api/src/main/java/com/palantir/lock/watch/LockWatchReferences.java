@@ -28,6 +28,8 @@ import com.palantir.lock.AtlasLockDescriptorRanges;
 import com.palantir.lock.LockDescriptor;
 
 public final class LockWatchReferences {
+    public static final LockDescriptorRangeVisitor TO_RANGES_VISITOR = new LockDescriptorRangeVisitor();
+
     private LockWatchReferences() {
         // no
     }
@@ -168,7 +170,7 @@ public final class LockWatchReferences {
         }
     }
 
-    public static class LockDescriptorRangeVisitor implements Visitor<Range<LockDescriptor>> {
+    private static class LockDescriptorRangeVisitor implements Visitor<Range<LockDescriptor>> {
         @Override
         public Range<LockDescriptor> visit(EntireTable reference) {
             return AtlasLockDescriptorRanges.fullTable(reference.qualifiedTableRef());
