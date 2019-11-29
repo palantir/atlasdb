@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
-import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -48,7 +47,7 @@ public class LeadershipComponents {
     private final Factory<LeadershipContext> leadershipContextFactory;
     private final LeaderPingHealthCheck leaderPingHealthCheck;
 
-    public LeadershipComponents(
+    LeadershipComponents(
             TimelockPaxosMetrics metrics,
             Factory<LeadershipContext> leadershipContextFactory,
             LeaderPingHealthCheck leaderPingHealthCheck) {
@@ -84,13 +83,9 @@ public class LeadershipComponents {
         LeadershipContext uninstrumentedLeadershipContext = leadershipContextFactory.create(client);
         closer.register(uninstrumentedLeadershipContext.closeables());
 
-        BatchingLeaderElectionService batchingLeaderElectionService =
-                new BatchingLeaderElectionService(uninstrumentedLeadershipContext.leaderElectionService());
-        closer.register(batchingLeaderElectionService);
-
         LeaderElectionService leaderElectionService = metrics.instrument(
                 LeaderElectionService.class,
-                batchingLeaderElectionService,
+                uninstrumentedLeadershipContext.leaderElectionService(),
                 "leader-election-service",
                 client);
         closer.register(() -> shutdownLeaderElectionService(leaderElectionService));

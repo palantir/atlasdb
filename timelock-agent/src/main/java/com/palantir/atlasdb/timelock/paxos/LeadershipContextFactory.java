@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
+import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.LeaderPinger;
@@ -93,9 +94,12 @@ public abstract class LeadershipContextFactory implements
                 .proxyClient(client)
                 .build();
 
+        BatchingLeaderElectionService leaderElectionService =
+                leaderElectionServiceFactory().create(clientAwareComponents);
         return ImmutableLeadershipContext.builder()
                 .leadershipMetrics(clientAwareComponents.leadershipMetrics())
-                .leaderElectionService(leaderElectionServiceFactory().create(clientAwareComponents))
+                .leaderElectionService(leaderElectionService)
+                .addCloseables(leaderElectionService)
                 .build();
     }
 
