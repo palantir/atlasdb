@@ -43,15 +43,12 @@ public class LeadershipComponents {
     private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = Maps.newConcurrentMap();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
-    private final TimelockPaxosMetrics metrics;
     private final Factory<LeadershipContext> leadershipContextFactory;
     private final LeaderPingHealthCheck leaderPingHealthCheck;
 
     LeadershipComponents(
-            TimelockPaxosMetrics metrics,
             Factory<LeadershipContext> leadershipContextFactory,
             LeaderPingHealthCheck leaderPingHealthCheck) {
-        this.metrics = metrics;
         this.leadershipContextFactory = leadershipContextFactory;
         this.leaderPingHealthCheck = leaderPingHealthCheck;
     }
@@ -83,11 +80,10 @@ public class LeadershipComponents {
         LeadershipContext uninstrumentedLeadershipContext = leadershipContextFactory.create(client);
         closer.register(uninstrumentedLeadershipContext.closeables());
 
-        LeaderElectionService leaderElectionService = metrics.instrument(
-                LeaderElectionService.class,
-                uninstrumentedLeadershipContext.leaderElectionService(),
+        LeaderElectionService leaderElectionService = uninstrumentedLeadershipContext.leadershipMetrics().instrument(
                 "leader-election-service",
-                client);
+                LeaderElectionService.class,
+                uninstrumentedLeadershipContext.leaderElectionService());
         closer.register(() -> shutdownLeaderElectionService(leaderElectionService));
 
         return ImmutableLeadershipContext.builder()
