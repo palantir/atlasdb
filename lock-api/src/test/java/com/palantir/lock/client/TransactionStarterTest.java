@@ -19,12 +19,14 @@ package com.palantir.lock.client;
 import static java.util.stream.Collectors.toList;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
@@ -50,12 +52,16 @@ import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV5;
+import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
+import com.palantir.lock.watch.LockWatchEventLog;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.VersionedLockWatchState;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionStarterTest {
     @Mock private LockLeaseService lockLeaseService;
+    @Mock private LockWatchEventLog log = new LockWatchEventLog();
     private TransactionStarter transactionStarter;
 
     private static final int NUM_PARTITIONS = 16;
@@ -68,7 +74,9 @@ public class TransactionStarterTest {
 
     @Before
     public void before() {
-        transactionStarter = TransactionStarter.create(lockLeaseService);
+        transactionStarter = TransactionStarter.create(lockLeaseService, log);
+        when(log.currentState()).thenReturn(VersionedLockWatchState.NONE);
+        when(log.updateState(any())).thenReturn(VersionedLockWatchState.NONE);
     }
 
     @After
@@ -78,22 +86,20 @@ public class TransactionStarterTest {
 
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_singleTransaction() {
-        StartTransactionResponseV4 startTransactionResponse = getStartTransactionResponse(12, 1);
+        StartTransactionResponseV5 startTransactionResponse = getStartTransactionResponse(12, 1);
 
-        when(lockLeaseService.startTransactions(1)).thenReturn(startTransactionResponse);
-        StartIdentifiedAtlasDbTransactionResponse response =
-                transactionStarter.startIdentifiedAtlasDbTransaction();
+        when(lockLeaseService.startTransactionsWithWatches(OptionalLong.empty(), 1)).thenReturn(startTransactionResponse);
+        StartTransactionWithWatchesResponse response = transactionStarter.startIdentifiedAtlasDbTransaction();
 
         assertDerivableFromBatchedResponse(response, startTransactionResponse);
     }
 
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_multipleTransactions() {
-        StartTransactionResponseV4 batchResponse = getStartTransactionResponse(40, 3);
-        when(lockLeaseService.startTransactions(3))
-                .thenReturn(batchResponse);
+        StartTransactionResponseV5 batchResponse = getStartTransactionResponse(40, 3);
+        when(lockLeaseService.startTransactionsWithWatches(OptionalLong.empty(),3)).thenReturn(batchResponse);
 
-        List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(3);
+        List<StartTransactionWithWatchesResponse> responses = requestBatches(3);
         assertThat(responses)
                 .satisfies(TransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
                 .hasSize(3)
@@ -102,29 +108,29 @@ public class TransactionStarterTest {
 
     @Test
     public void shouldCallTimelockMultipleTimesUntilCollectsAllRequiredTimestamps() {
-        when(lockLeaseService.startTransactions(anyInt()))
+        when(lockLeaseService.startTransactionsWithWatches(any(OptionalLong.class), anyInt()))
                 .thenReturn(getStartTransactionResponse(40, 2))
                 .thenReturn(getStartTransactionResponse(100, 1));
 
         requestBatches(3);
-        verify(lockLeaseService).startTransactions(3);
-        verify(lockLeaseService).startTransactions(1);
+        verify(lockLeaseService).startTransactionsWithWatches(OptionalLong.empty(), 3);
+        verify(lockLeaseService).startTransactionsWithWatches(OptionalLong.empty(),1);
 
     }
 
-    private List<StartIdentifiedAtlasDbTransactionResponse> requestBatches(int size) {
-        List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>> elements = IntStream.range(0, size)
+    private List<StartTransactionWithWatchesResponse> requestBatches(int size) {
+        List<BatchElement<Void, StartTransactionWithWatchesResponse>> elements = IntStream.range(0, size)
                 .mapToObj(unused -> ImmutableTestBatchElement.builder()
                         .argument(null)
                         .result(SettableFuture.create())
                         .build())
                 .collect(toList());
-        TransactionStarter.consumer(lockLeaseService).accept(elements);
+        TransactionStarter.consumer(lockLeaseService, log).accept(elements);
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 
     private static void assertThatStartTransactionResponsesAreUnique(
-            List<? extends StartIdentifiedAtlasDbTransactionResponse> responses) {
+            List<? extends StartTransactionWithWatchesResponse> responses) {
         assertThat(responses)
                 .as("Each response should have a different immutable ts lock token")
                 .extracting(response -> response.immutableTimestamp().getLock().getRequestId())
@@ -137,8 +143,8 @@ public class TransactionStarterTest {
     }
 
     private static void assertDerivableFromBatchedResponse(
-            StartIdentifiedAtlasDbTransactionResponse startTransactionResponse,
-            StartTransactionResponseV4 batchedStartTransactionResponse) {
+            StartTransactionWithWatchesResponse startTransactionResponse,
+            StartTransactionResponseV5 batchedStartTransactionResponse) {
 
         assertThat(startTransactionResponse.immutableTimestamp().getLock())
                 .as("Should have a lock token share referencing to immutable ts lock token")
@@ -160,12 +166,13 @@ public class TransactionStarterTest {
     }
 
 
-    private static StartTransactionResponseV4 getStartTransactionResponse(
+    private static StartTransactionResponseV5 getStartTransactionResponse(
             long lowestStartTs, int count) {
-        return StartTransactionResponseV4.of(
+        return StartTransactionResponseV5.of(
                 IMMUTABLE_TS_RESPONSE,
                 getPartitionedTimestamps(lowestStartTs, count),
-                LEASE);
+                LEASE,
+                LockWatchStateUpdate.EMPTY);
     }
 
     private static PartitionedTimestamps getPartitionedTimestamps(long startTs, int count) {
@@ -177,7 +184,7 @@ public class TransactionStarterTest {
     }
 
     @Value.Immutable
-    interface TestBatchElement extends BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse> {
+    interface TestBatchElement extends BatchElement<Void, StartTransactionWithWatchesResponse> {
         @Override
         @Nullable Void argument();
     }

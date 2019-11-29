@@ -19,8 +19,8 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpTableWatchingService;
 import com.palantir.atlasdb.keyvalue.api.watch.TableWatchingService;
-import com.palantir.atlasdb.keyvalue.api.watch.TableWatchingServiceAdapter;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
@@ -319,8 +319,8 @@ public interface TransactionManager extends AutoCloseable {
 
     // todo(gmaretic): implement
     @DoNotDelegate
-    default TableWatchingService getLockWatchingService() {
-        return new TableWatchingServiceAdapter(NoOpKvsLockWatchingService.INSTANCE);
+    default TableWatchingService getTableWatchingService() {
+        return NoOpTableWatchingService.INSTANCE;
     }
 
     /**

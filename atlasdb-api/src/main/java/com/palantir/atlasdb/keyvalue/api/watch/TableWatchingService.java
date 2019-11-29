@@ -16,20 +16,22 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.TimestampWithLockInfo;
+import com.palantir.lock.watch.VersionedLockWatchState;
 
 public interface TableWatchingService {
     /**
      * Registers watches.
      */
     @Idempotent
-    void registerWatches(Set<TableElement> lockWatchEntries);
+    void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchEntries);
 
     /**
      * Returns the current state of all registered watches.
      */
-    TableWatchState getLockWatchStateUpdate(OptionalLong lastKnownState);
+    TimestampWithLockInfo getCommitTimestampWithLockInfo(VersionedLockWatchState oldState);
 }

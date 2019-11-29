@@ -16,35 +16,31 @@
 
 package com.palantir.lock.watch;
 
-import java.util.HashSet;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 
-public class NewLocksVisitor implements LockWatchEvent.Visitor {
-    private final Set<LockDescriptor> locks = new HashSet<>();
+public final class NewLocksVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+    public static NewLocksVisitor INSTANCE = new NewLocksVisitor();
 
-    public Set<LockDescriptor> getLocks() {
-        return locks;
+    @Override
+    public Set<LockDescriptor> visit(LockEvent lockEvent) {
+        return lockEvent.lockDescriptors();
     }
 
     @Override
-    public void visit(LockEvent lockEvent) {
-        locks.addAll(lockEvent.lockDescriptors());
+    public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
+        return ImmutableSet.of();
     }
 
     @Override
-    public void visit(UnlockEvent unlockEvent) {
-        // noop
+    public Set<LockDescriptor> visit(LockWatchOpenLocksEvent openLocksEvent) {
+        return openLocksEvent.lockDescriptors();
     }
 
     @Override
-    public void visit(LockWatchOpenLocksEvent openLocksEvent) {
-        // noop
-    }
-
-    @Override
-    public void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-        // noop
+    public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+        return ImmutableSet.of();
     }
 }

@@ -14,34 +14,28 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.OptionalLong;
 import java.util.Set;
 
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.VersionedLockWatchState;
 
-public final class NoOpKvsLockWatchingService implements KvsLockWatchingService {
-    public static final KvsLockWatchingService INSTANCE = new NoOpKvsLockWatchingService();
+public final class NoOpTableWatchingService implements TableWatchingService {
+    public static final TableWatchingService INSTANCE = new NoOpTableWatchingService();
 
-    private NoOpKvsLockWatchingService() {
-        // nope
+    private NoOpTableWatchingService() {
+        // ...
     }
 
     @Override
-    public void registerWatches(LockWatchRequest lockWatchEntries) {
+    public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchEntries) {
         // noop
     }
 
     @Override
     public VersionedLockWatchState getLockWatchState() {
-        throw new UnsupportedOperationException("not implemented yet");
-    }
-
-    @Override
-    public Set<LockDescriptor> lockedSinceVersion(long version) {
         throw new UnsupportedOperationException("not implemented yet");
     }
 }

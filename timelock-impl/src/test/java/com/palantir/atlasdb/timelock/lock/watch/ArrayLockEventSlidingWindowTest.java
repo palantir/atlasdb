@@ -98,8 +98,8 @@ public class ArrayLockEventSlidingWindowTest {
         public abstract long sequence();
 
         @Override
-        public void accept(Visitor visitor) {
-            // do nothing
+        public <T> T accept(Visitor<T> visitor) {
+            return null;
         }
     }
 }

@@ -17,11 +17,12 @@
 package com.palantir.lock.watch;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.RangeSet;
 import com.palantir.lock.LockDescriptor;
 
-public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor {
+public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor<Void> {
     private final RangeSet<LockDescriptor> watches;
     private final Map<LockDescriptor, LockWatchState> lockWatchState;
 
@@ -33,27 +34,34 @@ public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor {
     }
 
     @Override
-    public void visit(LockEvent lockEvent) {
+    public Void visit(LockEvent lockEvent) {
         for (LockDescriptor descriptor: lockEvent.lockDescriptors()) {
             lockWatchState.put(descriptor, LockWatchState.LOCKED);
         }
+        return null;
     }
 
     @Override
-    public void visit(UnlockEvent unlockEvent) {
+    public Void visit(UnlockEvent unlockEvent) {
         for (LockDescriptor descriptor: unlockEvent.lockDescriptors()) {
             lockWatchState.put(descriptor, LockWatchState.UNLOCKED);
         }
+        return null;
     }
 
     @Override
-    public void visit(LockWatchOpenLocksEvent openLocksEvent) {
+    public Void visit(LockWatchOpenLocksEvent openLocksEvent) {
         for (LockDescriptor descriptor: openLocksEvent.lockDescriptors()) {
             lockWatchState.put(descriptor, LockWatchState.LOCKED);
-        }    }
+        }
+        return null;
+    }
 
     @Override
-    public void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-        watches.addAll(lockWatchCreatedEvent.request().ranges());
+    public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+        watches.addAll(lockWatchCreatedEvent.request().references().stream()
+                .map(ref -> ref.accept(LockWatchReferences.TO_RANGES_VISITOR))
+                .collect(Collectors.toList()));
+        return null;
     }
 }

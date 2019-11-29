@@ -23,11 +23,11 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.LockWatchEventLog;
 import com.palantir.timestamp.TimestampRange;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
@@ -35,18 +35,14 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
 
-    private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient) {
+    private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient, LockWatchEventLog lockWatchLog) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(rpcClient);
-        this.transactionStarter = TransactionStarter.create(lockLeaseService);
+        this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchLog);
     }
 
-    public static RemoteTimelockServiceAdapter create(NamespacedTimelockRpcClient rpcClient) {
-        return new RemoteTimelockServiceAdapter(rpcClient);
-    }
-
-    public static RemoteTimelockServiceAdapter create(TimelockRpcClient rpcClient, String timelockNamespace) {
-        return create(new NamespacedTimelockRpcClient(rpcClient, timelockNamespace));
+    public static RemoteTimelockServiceAdapter create(NamespacedTimelockRpcClient rpcClient, LockWatchEventLog lockWatchLog) {
+        return new RemoteTimelockServiceAdapter(rpcClient, lockWatchLog);
     }
 
     @Override
@@ -80,7 +76,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+    public StartTransactionWithWatchesResponse startIdentifiedAtlasDbTransaction() {
         return transactionStarter.startIdentifiedAtlasDbTransaction();
     }
 

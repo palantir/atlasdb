@@ -16,30 +16,27 @@
 
 package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
-import java.util.UUID;
+import java.util.Set;
 
+import org.immutables.value.Value;
+
+import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 
-public interface VersionedLockWatchState {
-    VersionedLockWatchState NONE = new VersionedLockWatchState() {
-        @Override
-        public OptionalLong version() {
-            return OptionalLong.empty();
-        }
+@Value.Immutable
+public interface TimestampWithLockInfo {
+    @Value.Parameter
+    long timestamp();
+    @Value.Parameter
+    boolean invalidateAll();
+    @Value.Parameter
+    Set<LockDescriptor> locksSinceLastKnownState();
 
-        @Override
-        public UUID leaderId() {
-            return UUID.randomUUID();
-        }
+    static TimestampWithLockInfo invalidate(long timestamp) {
+        return ImmutableTimestampWithLockInfo.of(timestamp, true, ImmutableSet.of());
+    }
 
-        @Override
-        public LockWatchState lockWatchState(LockDescriptor lockDescriptor) {
-            return LockWatchState.NOT_WATCHED;
-        }
-    };
-
-    OptionalLong version();
-    UUID leaderId();
-    LockWatchState lockWatchState(LockDescriptor lockDescriptor);
+    static TimestampWithLockInfo diff(long timestamp, Set<LockDescriptor> newLocks) {
+        return ImmutableTimestampWithLockInfo.of(timestamp, false, newLocks);
+    }
 }
