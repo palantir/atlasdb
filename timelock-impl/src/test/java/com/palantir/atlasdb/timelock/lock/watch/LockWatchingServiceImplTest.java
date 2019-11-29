@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.TableElements;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchReferenceUtils;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocks;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
@@ -118,8 +118,7 @@ public class LockWatchingServiceImplTest {
         LockDescriptor cellSuffixDescriptor = AtlasCellLockDescriptor
                 .of(TABLE.getQualifiedName(), CELL.getRowName(), PtBytes.toBytes("row2"));
 
-        LockWatchRequest request = LockWatchRequest.of(
-                ImmutableSet.of(TableElements.exactCell(TABLE, CELL).getAsRange()));
+        LockWatchRequest request = LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.exactCell(TABLE, CELL)));
         lockWatcher.startWatching(request);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, cellSuffixDescriptor);
@@ -132,7 +131,7 @@ public class LockWatchingServiceImplTest {
         LockDescriptor rowDescriptor = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW);
 
         LockWatchRequest rowRequest = LockWatchRequest.of(
-                ImmutableSet.of(TableElements.exactRow(TABLE, ROW).getAsRange()));
+                ImmutableSet.of(LockWatchReferenceUtils.exactRow(TABLE, ROW)));
         lockWatcher.startWatching(rowRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor);
@@ -157,17 +156,17 @@ public class LockWatchingServiceImplTest {
     @Test
     public void rowRangeWatchTest() {
         byte[] startOfRange = PtBytes.toBytes("aaz");
-        byte[] endofRange = PtBytes.toBytes("cca");
+        byte[] endOfRange = PtBytes.toBytes("cca");
 
         LockDescriptor cellInRange = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), startOfRange, ROW);
-        LockDescriptor cellOutOfRange = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), endofRange, ROW);
+        LockDescriptor cellOutOfRange = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), endOfRange, ROW);
 
         LockDescriptor rowInRange = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("b"));
         LockDescriptor rowInRange2 = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("cc"));
         LockDescriptor rowOutOfRange = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("cca"));
 
         LockWatchRequest rangeRequest = LockWatchRequest.of(ImmutableSet.of(
-                TableElements.rowRange(TABLE, startOfRange, endofRange).getAsRange()));
+                LockWatchReferenceUtils.rowRange(TABLE, startOfRange, endOfRange)));
         lockWatcher.startWatching(rangeRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(
@@ -201,11 +200,11 @@ public class LockWatchingServiceImplTest {
     }
 
     private static LockWatchRequest tableRequest(TableReference tableRef) {
-        return LockWatchRequest.of(ImmutableSet.of(TableElements.entireTable(tableRef).getAsRange()));
+        return LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.entireTable(tableRef)));
     }
 
     private static LockWatchRequest prefixRequest(TableReference tableRef, byte[] prefix) {
-        return LockWatchRequest.of(ImmutableSet.of(TableElements.rowPrefix(tableRef, prefix).getAsRange()));
+        return LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.rowPrefix(tableRef, prefix)));
     }
 
     private static LockDescriptor descriptorForTable(TableReference tableRef) {

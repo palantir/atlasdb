@@ -22,19 +22,17 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.Range;
-import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @JsonSerialize(as = ImmutableLockWatchRequest.class)
 @JsonDeserialize(as = ImmutableLockWatchRequest.class)
 public interface LockWatchRequest {
-    Set<Range<LockDescriptor>> ranges();
+    Set<LockWatchReferences.LockWatchReference> references();
 
-    static LockWatchRequest of(Set<Range<LockDescriptor>> ranges) {
+    static LockWatchRequest of(Set<LockWatchReferences.LockWatchReference> references) {
         return ImmutableLockWatchRequest.builder()
-                .ranges(ranges)
+                .references(references)
                 .build();
     }
 }
