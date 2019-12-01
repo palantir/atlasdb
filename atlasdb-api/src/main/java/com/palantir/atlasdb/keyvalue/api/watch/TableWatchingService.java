@@ -30,8 +30,5 @@ public interface TableWatchingService {
     @Idempotent
     void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchEntries);
 
-    /**
-     * Returns the current state of all registered watches.
-     */
     TimestampWithLockInfo getCommitTimestampWithLockInfo(VersionedLockWatchState oldState);
 }

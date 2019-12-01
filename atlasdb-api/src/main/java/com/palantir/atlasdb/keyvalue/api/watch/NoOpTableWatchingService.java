@@ -20,6 +20,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.TimestampWithLockInfo;
 import com.palantir.lock.watch.VersionedLockWatchState;
 
 public final class NoOpTableWatchingService implements TableWatchingService {
@@ -35,7 +36,7 @@ public final class NoOpTableWatchingService implements TableWatchingService {
     }
 
     @Override
-    public VersionedLockWatchState getLockWatchState() {
-        throw new UnsupportedOperationException("not implemented yet");
+    public TimestampWithLockInfo getCommitTimestampWithLockInfo(VersionedLockWatchState oldState) {
+        return null;
     }
 }

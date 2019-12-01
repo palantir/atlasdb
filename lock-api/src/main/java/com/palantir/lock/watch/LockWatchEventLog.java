@@ -38,8 +38,8 @@ public class LockWatchEventLog {
     private volatile UUID leaderId = UUID.randomUUID();
 
     public VersionedLockWatchState currentState() {
+        lock.readLock().lock();
         try {
-            lock.readLock().lock();
             return new VersionedLockWatchStateImpl(lastKnownVersion, watches.get(), singleLocks.get(), leaderId);
         } finally {
             lock.readLock().unlock();
@@ -67,8 +67,8 @@ public class LockWatchEventLog {
     }
 
     private void resetAll(LockWatchStateUpdate update) {
+        lock.writeLock().lock();
         try {
-            lock.writeLock().lock();
             watches.set(TreeRangeSet.create());
             singleLocks.set(ImmutableMap.of());
             lastKnownVersion = update.lastKnownVersion();
@@ -80,8 +80,8 @@ public class LockWatchEventLog {
 
     private void setAll(TreeRangeSet<LockDescriptor> updatedWatches, Map<LockDescriptor, LockWatchState> updatedLocks,
             OptionalLong version) {
+        lock.writeLock().lock();
         try {
-            lock.writeLock().lock();
             watches.set(updatedWatches);
             singleLocks.set(updatedLocks);
             lastKnownVersion = version;

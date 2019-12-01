@@ -88,7 +88,7 @@ public class SnapshotTransactionManagerTest {
             executorService,
             true,
             () -> ImmutableTransactionConfig.builder().build(),
-            ConflictTracer.NO_OP);
+            ConflictTracer.NO_OP, tableWatchingService);
 
     @Test
     public void isAlwaysInitialized() {
@@ -136,7 +136,7 @@ public class SnapshotTransactionManagerTest {
                 executorService,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP, tableWatchingService);
         newTransactionManager.close(); // should not throw
     }
 
@@ -229,6 +229,6 @@ public class SnapshotTransactionManagerTest {
                 () -> ImmutableTransactionConfig.builder()
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
                         .build(),
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP, tableWatchingService);
     }
 }

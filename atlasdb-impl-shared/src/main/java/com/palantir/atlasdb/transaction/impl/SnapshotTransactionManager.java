@@ -38,6 +38,7 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.TableWatchingService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -56,7 +57,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -88,6 +88,7 @@ import com.palantir.timestamp.TimestampService;
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
     private final ConflictTracer conflictTracer;
+    private final TableWatchingService tableWatchingService;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -108,7 +109,8 @@ import com.palantir.timestamp.TimestampService;
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            TableWatchingService tableWatchingService) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -131,6 +133,7 @@ import com.palantir.timestamp.TimestampService;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.conflictTracer = conflictTracer;
+        this.tableWatchingService = tableWatchingService;
     }
 
     @Override
@@ -379,6 +382,11 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TimelockService getTimelockService() {
         return timelockService;
+    }
+
+    @Override
+    public TableWatchingService getTableWatchingService() {
+        return tableWatchingService;
     }
 
     /**

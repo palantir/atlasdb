@@ -84,6 +84,7 @@ public final class LockWatchReferences {
 
         @Value.Parameter
         abstract String qualifiedTableRef();
+
         @Override
         public <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
