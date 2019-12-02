@@ -52,7 +52,7 @@ public class LockWatchTestingService {
     }
 
     private void start() {
-        executor.scheduleAtFixedRate(this::runOneIteration, 5, 10, TimeUnit.SECONDS);
+        executor.scheduleAtFixedRate(this::runOneIteration, 5, 5, TimeUnit.MINUTES);
     }
 
     private void runOneIteration() {
