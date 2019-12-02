@@ -249,7 +249,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            TableWatchingService tableWatchingService, TransactionService transactionService,
+            TableWatchingService tableWatchingService,
+            TransactionService transactionService,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,
             ConflictDetectionManager conflictDetectionManager,
@@ -1571,7 +1572,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!hasWrites()) {
             if (hasReads()) {
                 // verify any pre-commit conditions on the transaction
-                preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
+                preCommitCondition.throwIfConditionInvalid(TimestampWithLockInfo.diff(getStartTimestamp(),
+                        ImmutableSet.of()));
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
@@ -1682,9 +1684,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             + "; the following locks are no longer valid: " + expiredLocks;
     }
 
-    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, TimestampWithLockInfo commitTsWithWatches) {
+    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-        throwIfPreCommitConditionInvalid(commitTsWithWatches);
+        throwIfPreCommitConditionInvalid(TimestampWithLockInfo.diff(timestamp, ImmutableSet.of()));
     }
 
     private void throwIfPreCommitConditionInvalid(TimestampWithLockInfo commitTsWithWatches) {

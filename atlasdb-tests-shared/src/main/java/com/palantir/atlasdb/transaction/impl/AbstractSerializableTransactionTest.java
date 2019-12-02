@@ -52,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.TimelockDelegatingTableWatchingService;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -70,6 +71,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.TimelockService;
 
 @SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
@@ -107,10 +109,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictHandler.SERIALIZABLE,
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
+        TimelockService timelock = new LegacyTimelockService(timestampService, lockService, lockClient);
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                timelock,
+                new TimelockDelegatingTableWatchingService(timelock),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),

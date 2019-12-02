@@ -96,6 +96,7 @@ import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
 
@@ -124,6 +125,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     public SerializableTransaction(MetricsManager metricsManager,
                                    KeyValueService keyValueService,
                                    TimelockService timelockService,
+                                   TableWatchingService tableWatchingService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,
                                    Supplier<Long> startTimeStamp,
@@ -147,7 +149,8 @@ public class SerializableTransaction extends SnapshotTransaction {
         super(metricsManager,
               keyValueService,
               timelockService,
-                tableWatchingService, transactionService,
+              tableWatchingService,
+              transactionService,
               cleaner,
               startTimeStamp,
               conflictDetectionManager,
@@ -766,7 +769,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 metricsManager,
                 keyValueService,
                 timelockService,
-                tableWatchingService, defaultTransactionService,
+                tableWatchingService,
+                defaultTransactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(commitTs + 1),
                 ConflictDetectionManagers.createWithNoConflictDetection(),

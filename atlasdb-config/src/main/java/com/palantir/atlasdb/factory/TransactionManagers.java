@@ -89,7 +89,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpTableWatchingService;
+import com.palantir.atlasdb.keyvalue.api.watch.TimelockDelegatingTableWatchingService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -463,7 +463,7 @@ public abstract class TransactionManagers {
                         transactionConfigSupplier,
                         conflictTracer,
                         lockAndTimestampServices.tableWatchingService()
-                                .orElseGet(() -> new NoOpTableWatchingService(lockAndTimestampServices.timelock()))),
+                                .orElseGet(() -> new TimelockDelegatingTableWatchingService(lockAndTimestampServices.timelock()))),
                 closeables);
 
         transactionManager.registerClosingCallback(lockAndTimestampServices.close());

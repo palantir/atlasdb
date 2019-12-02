@@ -38,7 +38,6 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.watch.TableWatchingService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -57,6 +56,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.TableWatchingService;
@@ -89,7 +89,7 @@ import com.palantir.timestamp.TimestampService;
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
     private final ConflictTracer conflictTracer;
-    private final TableWatchingService tableWatchingService;
+    final TableWatchingService tableWatchingService;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -159,15 +159,15 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        StartTransactionWithWatchesResponse transactionResponse = timelockService.startIdentifiedAtlasDbTransaction();
+        StartIdentifiedAtlasDbTransactionResponse response = timelockService.startIdentifiedAtlasDbTransaction();
         try {
-            LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
-            long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
+            LockToken immutableTsLock = response.immutableTimestamp().getLock();
+            long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
 
-            cleaner.punch(transactionResponse.startTimestampAndPartition().timestamp());
+            cleaner.punch(response.startTimestampAndPartition().timestamp());
             Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                    transactionResponse.startTimestampAndPartition().timestamp());
+                    response.startTimestampAndPartition().timestamp());
 
             Transaction transaction = createTransaction(
                     immutableTs,
@@ -176,7 +176,7 @@ import com.palantir.timestamp.TimestampService;
                     condition);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
-            timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
+            timelockService.tryUnlock(ImmutableSet.of(response.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }

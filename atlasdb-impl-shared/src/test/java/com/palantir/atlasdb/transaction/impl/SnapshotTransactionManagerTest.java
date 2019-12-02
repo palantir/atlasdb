@@ -40,6 +40,7 @@ import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.TimelockDelegatingTableWatchingService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -68,11 +69,12 @@ public class SnapshotTransactionManagerTest {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
+    private final TimelockService timelock = new LegacyTimelockService(timestampService, closeableLockService,
+            LockClient.of("lock"));
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             metricsManager,
             keyValueService,
-            new LegacyTimelockService(timestampService, closeableLockService,
-                    LockClient.of("lock")),
+            timelock,
             timestampService,
             closeableLockService,
             mock(TransactionService.class),
@@ -88,7 +90,8 @@ public class SnapshotTransactionManagerTest {
             executorService,
             true,
             () -> ImmutableTransactionConfig.builder().build(),
-            ConflictTracer.NO_OP, tableWatchingService);
+            ConflictTracer.NO_OP,
+            new TimelockDelegatingTableWatchingService(timelock));
 
     @Test
     public void isAlwaysInitialized() {
@@ -116,11 +119,11 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
+        TimelockService newTimelock = new LegacyTimelockService(ts, closeableLockService, LockClient.of("lock"));
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(ts, closeableLockService,
-                        LockClient.of("lock")),
+                timelock,
                 ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -136,7 +139,8 @@ public class SnapshotTransactionManagerTest {
                 executorService,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
-                ConflictTracer.NO_OP, tableWatchingService);
+                ConflictTracer.NO_OP,
+                new TimelockDelegatingTableWatchingService(newTimelock));
         newTransactionManager.close(); // should not throw
     }
 
@@ -229,6 +233,7 @@ public class SnapshotTransactionManagerTest {
                 () -> ImmutableTransactionConfig.builder()
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
                         .build(),
-                ConflictTracer.NO_OP, tableWatchingService);
+                ConflictTracer.NO_OP,
+                new TimelockDelegatingTableWatchingService(timelockService));
     }
 }

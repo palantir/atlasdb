@@ -38,6 +38,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -172,6 +173,11 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
+    public TableWatchingService getTableWatchingService() {
+        return null;
+    }
+
+    @Override
     public TimestampService getTimestampService() {
         return null;
     }
@@ -209,6 +215,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
                 metricsManager,
                 keyValueService,
+                getTableWatchingService(),
                 transactionService,
                 startTimestamp.get(),
                 constraintCheckingMode,

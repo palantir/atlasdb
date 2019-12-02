@@ -30,7 +30,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.watch.TableWatchingService;
+import com.palantir.atlasdb.keyvalue.api.watch.TimelockDelegatingTableWatchingService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -430,12 +430,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            MultiTableSweepQueueWriter sweepQueue,
-            TableWatchingService tableWatchingService) {
+            MultiTableSweepQueueWriter sweepQueue) {
+        TimelockService timelock = new LegacyTimelockService(timestampService, lockService, lockClient);
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                timelock,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -452,7 +452,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                tableWatchingService);
+                new TimelockDelegatingTableWatchingService(timelock));
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -508,6 +508,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                tableWatchingService,
                 transactionService,
                 cleaner,
                 startTimestampSupplier,

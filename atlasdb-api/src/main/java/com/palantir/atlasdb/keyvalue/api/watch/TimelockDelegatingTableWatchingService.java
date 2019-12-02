@@ -24,10 +24,10 @@ import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.lock.watch.TimestampWithLockInfo;
 import com.palantir.lock.watch.VersionedLockWatchState;
 
-public class NoOpTableWatchingService implements TableWatchingService {
+public class TimelockDelegatingTableWatchingService implements TableWatchingService {
     private final TimelockService timelock;
 
-    public NoOpTableWatchingService(TimelockService timelock) {
+    public TimelockDelegatingTableWatchingService(TimelockService timelock) {
         this.timelock = timelock;
     }
 

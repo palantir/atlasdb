@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.lock.watch.TableWatchingService;
 
 /**
  * This will read the values of all committed transactions.
@@ -71,6 +72,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
 
     public ShouldNotDeleteAndRollbackTransaction(MetricsManager metricsManager,
                                KeyValueService keyValueService,
+                               TableWatchingService tableWatchingService,
                                TransactionService transactionService,
                                long startTimeStamp,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
@@ -83,7 +85,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
         super(metricsManager,
                 keyValueService,
                 null,
-                tableWatchingService, transactionService,
+                null,
+                transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimeStamp,
                 ConflictDetectionManagers.createWithNoConflictDetection(),
