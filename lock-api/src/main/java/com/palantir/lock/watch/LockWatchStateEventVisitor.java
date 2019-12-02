@@ -16,7 +16,11 @@
 
 package com.palantir.lock.watch;
 
+import static com.palantir.lock.watch.LockWatchInfo.State.LOCKED;
+import static com.palantir.lock.watch.LockWatchInfo.State.UNLOCKED;
+
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.RangeSet;
@@ -24,11 +28,11 @@ import com.palantir.lock.LockDescriptor;
 
 public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor<Void> {
     private final RangeSet<LockDescriptor> watches;
-    private final Map<LockDescriptor, LockWatchState> lockWatchState;
+    private final Map<LockDescriptor, LockWatchInfo> lockWatchState;
 
     public LockWatchStateEventVisitor(
             RangeSet<LockDescriptor> watches,
-            Map<LockDescriptor, LockWatchState> lockWatchState) {
+            Map<LockDescriptor, LockWatchInfo> lockWatchState) {
         this.watches = watches;
         this.lockWatchState = lockWatchState;
     }
@@ -36,7 +40,7 @@ public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor<Void> 
     @Override
     public Void visit(LockEvent lockEvent) {
         for (LockDescriptor descriptor: lockEvent.lockDescriptors()) {
-            lockWatchState.put(descriptor, LockWatchState.LOCKED);
+            lockWatchState.put(descriptor, LockWatchInfo.of(LOCKED, lockEvent.sequence()));
         }
         return null;
     }
@@ -44,7 +48,8 @@ public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor<Void> 
     @Override
     public Void visit(UnlockEvent unlockEvent) {
         for (LockDescriptor descriptor: unlockEvent.lockDescriptors()) {
-            lockWatchState.put(descriptor, LockWatchState.UNLOCKED);
+            OptionalLong lastLocked = lockWatchState.get(descriptor).lastLocked();
+            lockWatchState.put(descriptor, LockWatchInfo.of(UNLOCKED, lastLocked));
         }
         return null;
     }
@@ -52,7 +57,7 @@ public class LockWatchStateEventVisitor implements LockWatchEvent.Visitor<Void> 
     @Override
     public Void visit(LockWatchOpenLocksEvent openLocksEvent) {
         for (LockDescriptor descriptor: openLocksEvent.lockDescriptors()) {
-            lockWatchState.put(descriptor, LockWatchState.LOCKED);
+            lockWatchState.put(descriptor, LockWatchInfo.of(LOCKED, openLocksEvent.sequence()));
         }
         return null;
     }

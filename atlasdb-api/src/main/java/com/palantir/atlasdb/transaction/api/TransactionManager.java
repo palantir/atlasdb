@@ -19,8 +19,6 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpTableWatchingService;
-import com.palantir.atlasdb.keyvalue.api.watch.TableWatchingService;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
@@ -28,6 +26,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampManagementService;

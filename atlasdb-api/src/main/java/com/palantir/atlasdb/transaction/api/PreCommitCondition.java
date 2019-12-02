@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.lock.watch.TimestampWithLockInfo;
+
 /**
  * General condition that is checked before a transaction commits for validity. All conditions associated with a
  * transaction must be true for that transaction to commit successfully. If a given condition is valid at commit
@@ -32,13 +34,18 @@ package com.palantir.atlasdb.transaction.api;
  * at the beginning of a transaction.
  */
 @FunctionalInterface
-public interface PreCommitCondition {
+public interface PreCommitCondition extends PreCommitConditionWithWatches {
 
     /**
      * Checks that the condition is valid at the given timestamp, otherwise throws a
      * {@link TransactionFailedException}. If the condition is not valid, the transaction will not be committed.
      */
     void throwIfConditionInvalid(long timestamp);
+
+    @Override
+    default void throwIfConditionInvalid(TimestampWithLockInfo commitTimestampWithLockWatchInfo) {
+        throwIfConditionInvalid(commitTimestampWithLockWatchInfo.timestamp());
+    }
 
     /**
      * Cleans up any state managed by this condition, e.g. a lock that should be held for the lifetime of the

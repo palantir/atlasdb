@@ -59,6 +59,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampManagementService;
@@ -233,7 +234,7 @@ import com.palantir.timestamp.TimestampService;
                 metricsManager,
                 keyValueService,
                 timelockService,
-                transactionService,
+                tableWatchingService, transactionService,
                 cleaner,
                 startTimestampSupplier,
                 conflictDetectionManager,
@@ -273,7 +274,7 @@ import com.palantir.timestamp.TimestampService;
                 metricsManager,
                 keyValueService,
                 timelockService,
-                transactionService,
+                tableWatchingService, transactionService,
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),
                 conflictDetectionManager,

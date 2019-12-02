@@ -16,32 +16,28 @@
 
 package com.palantir.lock.watch;
 
-import static com.palantir.lock.watch.LockWatchInfo.State.NOT_WATCHED;
-
 import java.util.OptionalLong;
-import java.util.UUID;
 
-import com.palantir.lock.LockDescriptor;
+import org.immutables.value.Value;
 
-public interface VersionedLockWatchState {
-    VersionedLockWatchState NONE = new VersionedLockWatchState() {
-        @Override
-        public OptionalLong version() {
-            return OptionalLong.empty();
+@Value.Immutable
+public interface LockWatchInfo {
+        LockWatchInfo NOT_WATCHED = ImmutableLockWatchInfo.of(State.NOT_WATCHED, OptionalLong.empty());
+
+        @Value.Parameter
+        State state();
+        @Value.Parameter
+        OptionalLong lastLocked();
+
+        static LockWatchInfo of(State state, OptionalLong lastLocked) {
+                return ImmutableLockWatchInfo.of(state, lastLocked);
         }
 
-        @Override
-        public UUID leaderId() {
-            return UUID.randomUUID();
+        static LockWatchInfo of(State state, long lastLocked) {
+                return ImmutableLockWatchInfo.of(state, OptionalLong.of(lastLocked));
         }
 
-        @Override
-        public LockWatchInfo lockWatchState(LockDescriptor lockDescriptor) {
-            return ImmutableLockWatchInfo.of(NOT_WATCHED, OptionalLong.empty());
+        enum State {
+                LOCKED, UNLOCKED, NOT_WATCHED
         }
-    };
-
-    OptionalLong version();
-    UUID leaderId();
-    LockWatchInfo lockWatchState(LockDescriptor lockDescriptor);
 }

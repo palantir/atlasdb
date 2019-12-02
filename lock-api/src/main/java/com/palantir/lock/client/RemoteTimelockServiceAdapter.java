@@ -23,11 +23,15 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
-import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventLog;
+import com.palantir.lock.watch.LockWatchEventLogImpl;
+import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
+import com.palantir.lock.watch.TableWatchingService;
+import com.palantir.lock.watch.TableWatchingServiceImpl;
 import com.palantir.timestamp.TimestampRange;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
@@ -76,7 +80,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
-    public StartTransactionWithWatchesResponse startIdentifiedAtlasDbTransaction() {
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         return transactionStarter.startIdentifiedAtlasDbTransaction();
     }
 

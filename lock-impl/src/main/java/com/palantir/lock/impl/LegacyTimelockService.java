@@ -104,11 +104,10 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public StartTransactionWithWatchesResponse startIdentifiedAtlasDbTransaction() {
-        return StartTransactionWithWatchesResponse.of(
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+        return StartIdentifiedAtlasDbTransactionResponse.of(
                 lockImmutableTimestamp(),
-                TimestampAndPartition.of(getFreshTimestamp(), 0),
-                VersionedLockWatchState.NONE);
+                TimestampAndPartition.of(getFreshTimestamp(), 0));
     }
 
     @Override

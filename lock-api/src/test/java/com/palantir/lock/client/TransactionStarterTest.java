@@ -54,14 +54,14 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
-import com.palantir.lock.watch.LockWatchEventLog;
+import com.palantir.lock.watch.LockWatchEventLogImpl;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.VersionedLockWatchState;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionStarterTest {
     @Mock private LockLeaseService lockLeaseService;
-    @Mock private LockWatchEventLog log = new LockWatchEventLog();
+    @Mock private LockWatchEventLogImpl log = new LockWatchEventLogImpl();
     private TransactionStarter transactionStarter;
 
     private static final int NUM_PARTITIONS = 16;

@@ -16,6 +16,8 @@
 
 package com.palantir.lock.watch;
 
+import static com.palantir.lock.watch.LockWatchInfo.State.UNLOCKED;
+
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.UUID;
@@ -26,12 +28,12 @@ import com.palantir.lock.LockDescriptor;
 public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
     private final OptionalLong version;
     private final RangeSet<LockDescriptor> watchedRanges;
-    private final Map<LockDescriptor, LockWatchState> locks;
+    private final Map<LockDescriptor, LockWatchInfo> locks;
     private final UUID leaderId;
 
     public VersionedLockWatchStateImpl(OptionalLong version,
             RangeSet<LockDescriptor> watchedRanges,
-            Map<LockDescriptor, LockWatchState> locks, UUID leaderId) {
+            Map<LockDescriptor, LockWatchInfo> locks, UUID leaderId) {
         this.version = version;
         this.watchedRanges = watchedRanges;
         this.locks = locks;
@@ -49,13 +51,13 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
     }
 
     @Override
-    public LockWatchState lockWatchState(LockDescriptor lockDescriptor) {
+    public LockWatchInfo lockWatchState(LockDescriptor lockDescriptor) {
         if (locks.containsKey(lockDescriptor)) {
             return locks.get(lockDescriptor);
         }
         if (watchedRanges.contains(lockDescriptor)) {
-            return LockWatchState.UNLOCKED;
+            return LockWatchInfo.of(UNLOCKED, OptionalLong.empty());
         }
-        return LockWatchState.NOT_WATCHED;
+        return LockWatchInfo.NOT_WATCHED;
     }
 }

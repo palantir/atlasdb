@@ -122,7 +122,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         return new SnapshotTransaction(metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                transactionService,
+                tableWatchingService, transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,
                 ConflictDetectionManagers.create(keyValueService),

@@ -16,6 +16,22 @@
 
 package com.palantir.lock.watch;
 
-public enum LockWatchState {
-        LOCKED, UNLOCKED, NOT_WATCHED;
+import java.util.Set;
+
+import com.palantir.common.annotation.Idempotent;
+import com.palantir.lock.v2.StartTransactionResponseV5;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.TimestampWithLockInfo;
+import com.palantir.lock.watch.VersionedLockWatchState;
+
+public interface TableWatchingService {
+    /**
+     * Registers watches.
+     */
+    @Idempotent
+    void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchEntries);
+
+    VersionedLockWatchState getLockWatchState(long startTimestamp);
+
+    TimestampWithLockInfo getCommitTimestampWithLockInfo(long startTimestamp);
 }

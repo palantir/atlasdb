@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.lock.watch;
 
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
+import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -33,10 +36,13 @@ import com.palantir.lock.watch.VersionedLockWatchState;
 public class TableWatchingServiceImpl implements TableWatchingService {
     private final NamespacedLockWatchingRpcClient lockWatcher;
     private final NamespacedTimelockRpcClient timelock;
+    private final LockWatchEventLog lockWatchEventLog;
 
-    public TableWatchingServiceImpl(NamespacedLockWatchingRpcClient lockWatcher, NamespacedTimelockRpcClient timelock) {
+    public TableWatchingServiceImpl(NamespacedLockWatchingRpcClient lockWatcher, NamespacedTimelockRpcClient timelock,
+            LockWatchEventLog lockWatchEventLog) {
         this.lockWatcher = lockWatcher;
         this.timelock = timelock;
+        this.lockWatchEventLog = lockWatchEventLog;
     }
 
     @Override
@@ -45,10 +51,16 @@ public class TableWatchingServiceImpl implements TableWatchingService {
     }
 
     @Override
-    public TimestampWithLockInfo getCommitTimestampWithLockInfo(VersionedLockWatchState oldState) {
-        TimestampWithWatches response = timelock.getCommitTimestampWithWatches(oldState.version());
+    public VersionedLockWatchState getLockWatchState(long startTimestamp) {
+        return lockWatchEventLog.getLockWatchStateForStartTimestamp(startTimestamp);
+    }
+
+    @Override
+    public TimestampWithLockInfo getCommitTimestampWithLockInfo(long startTimestamp) {
+        VersionedLockWatchState startState = lockWatchEventLog.removeLockWatchStateForStartTimestamp(startTimestamp);
+        TimestampWithWatches response = timelock.getCommitTimestampWithWatches(startState.version());
         LockWatchStateUpdate update = response.lockWatches();
-        if (!update.success() || update.leaderId() != oldState.leaderId()) {
+        if (!update.success() || update.leaderId() != startState.leaderId()) {
             return TimestampWithLockInfo.invalidate(response.timestamp());
         }
 

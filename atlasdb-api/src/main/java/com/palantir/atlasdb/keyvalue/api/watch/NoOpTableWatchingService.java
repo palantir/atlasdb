@@ -16,18 +16,19 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.OptionalLong;
 import java.util.Set;
 
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.lock.watch.TimestampWithLockInfo;
 import com.palantir.lock.watch.VersionedLockWatchState;
 
-public final class NoOpTableWatchingService implements TableWatchingService {
-    public static final TableWatchingService INSTANCE = new NoOpTableWatchingService();
+public class NoOpTableWatchingService implements TableWatchingService {
+    private final TimelockService timelock;
 
-    private NoOpTableWatchingService() {
-        // ...
+    public NoOpTableWatchingService(TimelockService timelock) {
+        this.timelock = timelock;
     }
 
     @Override
@@ -36,7 +37,13 @@ public final class NoOpTableWatchingService implements TableWatchingService {
     }
 
     @Override
-    public TimestampWithLockInfo getCommitTimestampWithLockInfo(VersionedLockWatchState oldState) {
-        return null;
+    public VersionedLockWatchState getLockWatchState(long startTimestamp) {
+        return VersionedLockWatchState.NONE;
+    }
+
+    @Override
+    public TimestampWithLockInfo getCommitTimestampWithLockInfo(long startTimestamp) {
+        long commitTs = timelock.getFreshTimestamp();
+        return TimestampWithLockInfo.invalidate(commitTs);
     }
 }

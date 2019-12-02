@@ -14,21 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.transaction.api;
 
-import java.util.Set;
-
-import com.palantir.common.annotation.Idempotent;
-import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.TimestampWithLockInfo;
-import com.palantir.lock.watch.VersionedLockWatchState;
 
-public interface TableWatchingService {
-    /**
-     * Registers watches.
-     */
-    @Idempotent
-    void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchEntries);
-
-    TimestampWithLockInfo getCommitTimestampWithLockInfo(VersionedLockWatchState oldState);
+public interface PreCommitConditionWithWatches {
+    void throwIfConditionInvalid(TimestampWithLockInfo commitTimestampWithLockWatchInfo);
 }

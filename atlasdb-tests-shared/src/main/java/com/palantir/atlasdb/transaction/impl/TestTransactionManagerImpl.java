@@ -177,7 +177,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 new SnapshotTransaction(metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
-                        transactionService,
+                        tableWatchingService, transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> startTimestamp,
                         getConflictDetectionManager(),
