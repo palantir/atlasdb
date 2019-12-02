@@ -24,8 +24,8 @@ public abstract class LockWatchCreatedEvent implements LockWatchEvent {
     abstract LockWatchRequest request();
 
     @Override
-    public void accept(LockWatchEventVisitor visitor) {
-        visitor.visit(this);
+    public <T> T accept(LockWatchEventVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
     public static LockWatchEvent.Builder builder(LockWatchRequest request) {
