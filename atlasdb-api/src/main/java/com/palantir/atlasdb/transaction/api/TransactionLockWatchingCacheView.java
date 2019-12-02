@@ -21,7 +21,7 @@ import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.watch.LockWatchState;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public interface TransactionLockWatchingCacheView {
     /**
@@ -43,7 +43,7 @@ public interface TransactionLockWatchingCacheView {
      * @param writes entries read from the KVS
      * @param lwState lock watch state when the view was created
      */
-    void tryCacheNewValuesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchState lwState);
+    void tryCacheNewValuesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchStateUpdate lwState);
 
     /**
      * Try to cache values written to the kvs in this transaction. This method must be called only after the writing

@@ -14,35 +14,30 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.lock.v2;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatch.class)
-@JsonDeserialize(as = ImmutableLockWatch.class)
-public interface LockWatch {
-    LockWatch INVALID = ImmutableLockWatch.of(-1L, false);
+@JsonSerialize(as = ImmutableStartTransactionResponseV5.class)
+@JsonDeserialize(as = ImmutableStartTransactionResponseV5.class)
+public interface StartTransactionResponseV5 {
+    LockImmutableTimestampResponse immutableTimestamp();
+    PartitionedTimestamps timestamps();
+    Lease lease();
+    LockWatchStateUpdate lockWatchUpdate();
 
-    @Value.Parameter
-    long timestamp();
-
-    @Value.Parameter
-    boolean fromCommittedTransaction();
-
-    static LockWatch committed(long timestamp) {
-        return ImmutableLockWatch.of(timestamp, true);
-    }
-
-    static LockWatch uncommitted(long timestamp) {
-        return ImmutableLockWatch.of(timestamp, false);
-    }
-
-    static LockWatch latest(LockWatch first, LockWatch second) {
-        return first.timestamp() > second.timestamp() ? first : second;
+    static StartTransactionResponseV5 fromV4(StartTransactionResponseV4 v4response, LockWatchStateUpdate lockWatch) {
+        return ImmutableStartTransactionResponseV5.builder()
+                .immutableTimestamp(v4response.immutableTimestamp())
+                .timestamps(v4response.timestamps())
+                .lease(v4response.lease())
+                .lockWatchUpdate(lockWatch)
+                .build();
     }
 }

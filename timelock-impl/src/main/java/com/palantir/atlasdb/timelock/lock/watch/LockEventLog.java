@@ -24,10 +24,10 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
-public interface LockWatchingService {
-    void startWatching(LockWatchRequest locksToWatch);
-    LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion);
-
-    void registerLock(LockToken token, Set<LockDescriptor> locksTakenOut);
-    void registerUnlock(LockToken token, Set<LockDescriptor> locksUnlocked);
+public interface LockEventLog {
+    LockWatchStateUpdate getLogDiff(OptionalLong fromVersion);
+    void logLock(LockToken lockToken, Set<LockDescriptor> locksTakenOut);
+    void logUnlock(LockToken lockToken, Set<LockDescriptor> locksUnlocked);
+    void logOpenLocks(LockToken lockToken, Set<LockDescriptor> openLocks);
+    void logLockWatchCreated(LockWatchRequest locksToWatch);
 }

@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -44,7 +43,6 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -202,8 +200,6 @@ public class TransactionManagerTest extends TransactionTestSetup {
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())),
                         TimestampAndPartition.of(1L, 1)
                 ));
-        when(timelock.startTransactionWithWatches()).thenCallRealMethod();
-        when(timelock.acquireLocksForWrites(any(LockRequest.class))).thenCallRealMethod();
         TRM.registerTransactionManager(txnManagerWithMocks);
         return txnManagerWithMocks;
     }

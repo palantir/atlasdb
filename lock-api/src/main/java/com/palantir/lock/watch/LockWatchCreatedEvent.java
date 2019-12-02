@@ -16,21 +16,21 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Map;
-
 import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchState.class)
-@JsonDeserialize(as = ImmutableLockWatchState.class)
-public interface LockWatchState {
-    Map<WatchId, LockWatch> watches();
+public abstract class LockWatchCreatedEvent implements LockWatchEvent {
+    abstract LockWatchRequest request();
 
-    static LockWatchState of(Map<WatchId, LockWatch> state) {
-        return ImmutableLockWatchState.builder().watches(state).build();
+    @Override
+    public void accept(LockWatchEventVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    public static LockWatchEvent.Builder builder(LockWatchRequest request) {
+        ImmutableLockWatchCreatedEvent.Builder builder = ImmutableLockWatchCreatedEvent.builder()
+                .request(request);
+        return seq -> builder.sequence(seq).build();
     }
 }

@@ -16,23 +16,19 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Set;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchRequest.class)
-@JsonDeserialize(as = ImmutableLockWatchRequest.class)
-public interface LockWatchRequest {
-    Set<LockWatchReferences.LockWatchReference> references();
+@JsonSerialize(as = ImmutableTimestampWithWatches.class)
+@JsonDeserialize(as = ImmutableTimestampWithWatches.class)
+public interface TimestampWithWatches {
+    long timestamp();
+    LockWatchStateUpdate lockWatches();
 
-    static LockWatchRequest of(Set<LockWatchReferences.LockWatchReference> references) {
-        return ImmutableLockWatchRequest.builder()
-                .references(references)
-                .build();
+    static TimestampWithWatches of(long timestamp, LockWatchStateUpdate lockWatches) {
+        return ImmutableTimestampWithWatches.builder().timestamp(timestamp).lockWatches(lockWatches).build();
     }
 }

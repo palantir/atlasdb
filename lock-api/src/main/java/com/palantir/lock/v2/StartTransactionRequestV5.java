@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.lock.v2;
 
-import java.util.Set;
+import java.util.OptionalLong;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -24,15 +25,11 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchRequest.class)
-@JsonDeserialize(as = ImmutableLockWatchRequest.class)
-public interface LockWatchRequest {
-    Set<LockWatchReferences.LockWatchReference> references();
-
-    static LockWatchRequest of(Set<LockWatchReferences.LockWatchReference> references) {
-        return ImmutableLockWatchRequest.builder()
-                .references(references)
-                .build();
-    }
+@JsonSerialize(as = ImmutableStartTransactionRequestV5.class)
+@JsonDeserialize(as = ImmutableStartTransactionRequestV5.class)
+public interface StartTransactionRequestV5 {
+    UUID requestId();
+    UUID requestorId();
+    OptionalLong lastKnownLockLogVersion();
+    int numTransactions();
 }

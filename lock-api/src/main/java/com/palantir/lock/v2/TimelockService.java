@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,6 @@ import java.util.Set;
 
 import javax.ws.rs.QueryParam;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.lock.watch.LockWatchState;
-import com.palantir.lock.watch.TimestampedLockResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoNotDelegate;
@@ -83,17 +80,4 @@ public interface TimelockService {
     }
 
     long currentTimeMillis();
-
-    // todo(gmaretic): implement
-    @DoNotDelegate
-    default StartTransactionWithWatchesResponse startTransactionWithWatches() {
-        return StartTransactionWithWatchesResponse.of(
-                startIdentifiedAtlasDbTransaction(), LockWatchState.of(ImmutableMap.of()));
-    }
-
-    // todo(gmaretic): implement
-    @DoNotDelegate
-    default TimestampedLockResponse acquireLocksForWrites(LockRequest lockRequest) {
-        return TimestampedLockResponse.of(null, lock(lockRequest));
-    }
 }

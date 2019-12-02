@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.lock.watch;
+package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
-import java.util.Set;
+public interface LockWatchEvent {
+    long sequence();
+    void accept(LockWatchEventVisitor visitor);
 
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchRequest;
-import com.palantir.lock.watch.LockWatchStateUpdate;
-
-public interface LockWatchingService {
-    void startWatching(LockWatchRequest locksToWatch);
-    LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion);
-
-    void registerLock(LockToken token, Set<LockDescriptor> locksTakenOut);
-    void registerUnlock(LockToken token, Set<LockDescriptor> locksUnlocked);
+    interface Builder {
+        LockWatchEvent build(long sequence);
+    }
 }

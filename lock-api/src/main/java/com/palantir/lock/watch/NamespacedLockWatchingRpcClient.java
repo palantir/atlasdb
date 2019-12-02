@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import java.util.UUID;
-
 public class NamespacedLockWatchingRpcClient {
     private final String namespace;
     private final LockWatchingRpcClient lockWatchingRpcClient;
@@ -27,15 +25,15 @@ public class NamespacedLockWatchingRpcClient {
         this.lockWatchingRpcClient = lockWatchingRpcClient;
     }
 
-    public WatchIdToLockDesciptor startWatching(LockWatchRequest lockWatchRequest) {
-        return lockWatchingRpcClient.startWatching(namespace, lockWatchRequest);
+    public void startWatching(LockWatchRequest lockWatchRequest) {
+        lockWatchingRpcClient.startWatching(namespace, lockWatchRequest);
     }
 
     public void stopWatching(LockWatchRequest lockWatchRequest) {
         lockWatchingRpcClient.stopWatching(namespace, lockWatchRequest);
     }
 
-    public LockWatchState getWatchState(UUID serviceId) {
-        return lockWatchingRpcClient.getWatchState(namespace, serviceId);
+    public LockWatchStateUpdate getWatchState() {
+        return lockWatchingRpcClient.getWatchStateUpdate(namespace);
     }
 }

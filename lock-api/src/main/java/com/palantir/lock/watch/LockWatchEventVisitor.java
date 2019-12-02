@@ -16,19 +16,8 @@
 
 package com.palantir.lock.watch;
 
-import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
-@Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableWatchId.class)
-@JsonDeserialize(as = ImmutableWatchId.class)
-public interface WatchId {
-    long id();
-
-    static WatchId of(long id) {
-        return ImmutableWatchId.builder().id(id).build();
-    }
+public interface LockWatchEventVisitor {
+    void visit(LockEvent lockEvent);
+    void visit(UnlockEvent unlockEvent);
+    void visit(LockWatchCreatedEvent lockWatchCreatedEvent);
 }
