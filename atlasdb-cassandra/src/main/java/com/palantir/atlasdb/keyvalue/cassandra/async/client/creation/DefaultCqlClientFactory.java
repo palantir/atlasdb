@@ -32,6 +32,7 @@ import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.ThreadingOptions;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.LatencyAwarePolicy;
@@ -94,6 +95,7 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
                 clusterBuilder = withPoolingOptions(clusterBuilder, config);
                 clusterBuilder = withQueryOptions(clusterBuilder, config);
                 clusterBuilder = withLoadBalancingPolicy(clusterBuilder, config, servers);
+                clusterBuilder = withSocketOptions(clusterBuilder, config);
 
                 return CqlClientImpl.create(
                         taggedMetricRegistry,
@@ -102,6 +104,11 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
                         initializeAsync);
             }
         });
+    }
+
+    private Cluster.Builder withSocketOptions(Cluster.Builder clusterBuilder, CassandraKeyValueServiceConfig config) {
+        return clusterBuilder.withSocketOptions(
+                new SocketOptions().setReadTimeoutMillis(config.socketQueryTimeoutMillis()));
     }
 
     private static Cluster.Builder withSslOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {

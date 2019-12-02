@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -90,6 +91,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.io.ForwardingInputStream;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -582,15 +584,42 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void readingStreamIdsByHashInTheSameTransactionIsPermitted() throws IOException {
+        long id = timestampService.getFreshTimestamp();
+
+        byte[] bytes = generateRandomTwoBlockStream();
+        Sha256Hash hash = Sha256Hash.computeHash(bytes);
+
+        Map<Long, InputStream> streams = ImmutableMap.of(id, new ByteArrayInputStream(bytes));
+
+        storeStreamAndCheckHash(id, hash, streams);
+        byte[] bytesInKvs = readBytesForSingleStream(id);
+        assertArrayEquals(bytesInKvs, bytes);
+    }
+
+    @Test
+    public void streamsAreNotReused() throws IOException {
+        long id = timestampService.getFreshTimestamp();
+
+        byte[] bytes = generateRandomTwoBlockStream();
+        Sha256Hash hash = Sha256Hash.computeHash(bytes);
+
+        Map<Long, InputStream> streams = ImmutableMap.of(id,
+                new CloseEnforcingInputStream(new ByteArrayInputStream(bytes)));
+
+        storeStreamAndCheckHash(id, hash, streams);
+        byte[] bytesInKvs = readBytesForSingleStream(id);
+        assertArrayEquals(bytesInKvs, bytes);
+    }
+
+    @Test
     public void testStoreCopy() {
-        final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
-        Random rand = new Random();
-        rand.nextBytes(bytes);
+        byte[] bytes = generateRandomTwoBlockStream();
 
         long id1 = timestampService.getFreshTimestamp();
         long id2 = timestampService.getFreshTimestamp();
 
-        ImmutableMap<Long, InputStream> streams = ImmutableMap.of(
+        Map<Long, InputStream> streams = ImmutableMap.of(
                 id1, new ByteArrayInputStream(bytes),
                 id2, new ByteArrayInputStream(bytes));
 
@@ -661,6 +690,13 @@ public class StreamTest extends AtlasDbTestCase {
         assertEquals(expectedBlocksUsed, numBlocksUsed);
     }
 
+    private byte[] generateRandomTwoBlockStream() {
+        byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        Random rand = new Random();
+        rand.nextBytes(bytes);
+        return bytes;
+    }
+
     private StreamMetadata getStreamMetadata(long id) {
         return txManager.runTaskReadOnly(t -> {
             StreamTestWithHashStreamMetadataTable table = StreamTestTableFactory.of()
@@ -679,6 +715,21 @@ public class StreamTest extends AtlasDbTestCase {
         return txManager.runTaskThrowOnConflict(t -> {
             StreamTestStreamStore streamStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
             return streamStore.loadSingleStream(t, streamId);
+        });
+    }
+
+    private void storeStreamAndCheckHash(long id, Sha256Hash hash, Map<Long, InputStream> streams) {
+        txManager.runTaskWithRetry(t -> {
+            Map<Long, Sha256Hash> hashes = defaultStore.storeStreams(t, streams);
+            assertEquals(hash, hashes.get(id));
+            return null;
+        });
+    }
+
+    private byte[] readBytesForSingleStream(long id) throws IOException {
+        return txManager.runTaskWithRetry(t -> {
+            Optional<InputStream> inputStream = defaultStore.loadSingleStream(t, id);
+            return IOUtils.toByteArray(inputStream.get());
         });
     }
 
@@ -744,5 +795,28 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] data = new byte[size];
         new Random(0).nextBytes(data);
         return data;
+    }
+
+    private static final class CloseEnforcingInputStream extends ForwardingInputStream {
+        private final InputStream delegate;
+        private final AtomicBoolean closed = new AtomicBoolean(false);
+
+        private CloseEnforcingInputStream(InputStream delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        protected InputStream delegate() {
+            if (closed.get()) {
+                throw new UnsupportedOperationException("The underlying input stream has been closed");
+            }
+            return delegate;
+        }
+
+        @Override
+        public void close() throws IOException {
+            delegate.close();
+            closed.set(true);
+        }
     }
 }
