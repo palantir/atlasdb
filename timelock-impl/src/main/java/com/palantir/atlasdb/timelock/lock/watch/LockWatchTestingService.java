@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -41,7 +43,7 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.SafeArg;
 
 public class LockWatchTestingService {
-    private final Logger log = LoggerFactory.getLogger(LockWatchTestingService.class);
+    private static final Logger log = LoggerFactory.getLogger(LockWatchTestingService.class);
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor();
     private final Supplier<LockWatchTestRuntimeConfig> runtime;
     private final Function<String, LockWatchingResource> resource;
@@ -79,7 +81,7 @@ public class LockWatchTestingService {
 
                 long startRegistering = System.currentTimeMillis();
                 lockWatcher.startWatching(request);
-                log.info("Registered lock watches for keyspace {} and tables {} in {} seconds.",
+                log.info("Registered lock watches for keyspace {} and tables {} in {} milliseconds.",
                         SafeArg.of("keyspace", config.namespaceToWatch().get()),
                         SafeArg.of("tables", config.tablesToWatch()),
                         SafeArg.of("seconds", System.currentTimeMillis() - startRegistering));
@@ -88,18 +90,21 @@ public class LockWatchTestingService {
                 LockWatchStateUpdate versionAfter = lockWatcher.getWatchState(versionBefore.lastKnownVersion());
                 long duration = System.currentTimeMillis() - startUpdate;
                 if (versionAfter.success()) {
-                    Optional<LockWatchEvent> result = versionAfter.events().stream()
+                    List<Integer> result = versionAfter.events().stream()
                             .map(event -> event.accept(filter))
                             .filter(Optional::isPresent)
                             .map(Optional::get)
-                            .findFirst();
-                    if (!result.isPresent()) {
-                        log.info("Registered lock watches, but did not find any open locks. Took {} seconds",
+                            .map(LockWatchOpenLocksEvent::lockDescriptors)
+                            .map(Set::size)
+                            .collect(Collectors.toList());
+                    if (result.isEmpty()) {
+                        log.info("Registered lock watches, but did not find any open locks. Took {} milliseconds",
                                 SafeArg.of("duration", duration));
                     } else {
-                        log.info("Registered lock watches, found {} open locks. Took {} seconds.",
-                                SafeArg.of("numberOfWatches",
-                                        ((LockWatchOpenLocksEvent) result.get()).lockDescriptors().size()),
+                        log.info("Registered lock watches, found {} open locks entries in the log. They contained {}"
+                                        + " locks respecively. This registration event ook {} milliseconds.",
+                                SafeArg.of("numberOfEvents", result.size()),
+                                SafeArg.of("numberOfWatches", result),
                                 SafeArg.of("duration", duration));
                     }
                 } else {
@@ -113,24 +118,24 @@ public class LockWatchTestingService {
         }
     }
 
-    private static class OpenLocksFilter implements LockWatchEventVisitor<Optional<LockWatchEvent>> {
+    private static class OpenLocksFilter implements LockWatchEventVisitor<Optional<LockWatchOpenLocksEvent>> {
         @Override
-        public Optional<LockWatchEvent> visit(LockEvent lockEvent) {
+        public Optional<LockWatchOpenLocksEvent> visit(LockEvent lockEvent) {
             return Optional.empty();
         }
 
         @Override
-        public Optional<LockWatchEvent> visit(UnlockEvent unlockEvent) {
+        public Optional<LockWatchOpenLocksEvent> visit(UnlockEvent unlockEvent) {
             return Optional.empty();
         }
 
         @Override
-        public Optional<LockWatchEvent> visit(LockWatchOpenLocksEvent openLocksEvent) {
+        public Optional<LockWatchOpenLocksEvent> visit(LockWatchOpenLocksEvent openLocksEvent) {
             return Optional.of(openLocksEvent);
         }
 
         @Override
-        public Optional<LockWatchEvent> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+        public Optional<LockWatchOpenLocksEvent> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             return Optional.empty();
         }
     }
