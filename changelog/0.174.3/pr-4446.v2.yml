@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: '`AtlasFutures` now maintains correct tracing information. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/4446

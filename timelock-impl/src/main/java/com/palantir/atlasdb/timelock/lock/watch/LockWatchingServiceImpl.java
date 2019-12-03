@@ -71,16 +71,14 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         ranges.set(newRanges);
     }
 
+    // todo(gmaretic): if this is not performant enough, consider a more tailored approach
     private void logOpenLocks(LockWatchRequest request) {
         RangeSet<LockDescriptor> requestAsRangeSet = TreeRangeSet.create(toRanges(request));
-        heldLocksCollection.locksHeld().forEach(locksHeld -> {
-                    Set<LockDescriptor> descriptors = locksHeld.getLocks().stream()
-                            .map(AsyncLock::getDescriptor)
-                            .filter(requestAsRangeSet::contains)
-                            .collect(Collectors.toSet());
-                    lockEventLog.logOpenLocks(descriptors);
-                }
-        );
+        Set<LockDescriptor> openLocks = heldLocksCollection.locksHeld().stream()
+                .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
+                .filter(requestAsRangeSet::contains)
+                .collect(Collectors.toSet());
+        lockEventLog.logOpenLocks(openLocks);
     }
 
     private void logLockWatchEvent(LockWatchRequest locksToWatch) {

@@ -36,14 +36,14 @@ public class ArrayLockEventSlidingWindowTest {
     public void whenLastKnownVersionIsAfterCurrentReturnEmpty() {
         int numEntries = 5;
         addEvents(numEntries);
-        assertThat(slidingWindow.getFromVersion(numEntries + 1).isPresent()).isFalse();
+        assertThat(slidingWindow.getFromVersion(numEntries + 1)).isEmpty();
     }
 
     @Test
     public void whenLastKnownVersionIsTooOldReturnEmpty() {
         int numEntries = 15;
         addEvents(numEntries);
-        assertThat(slidingWindow.getFromVersion(2).isPresent()).isFalse();
+        assertThat(slidingWindow.getFromVersion(2)).isEmpty();
     }
 
     @Test
@@ -66,6 +66,20 @@ public class ArrayLockEventSlidingWindowTest {
         int numEntries = 15;
         addEvents(numEntries);
         assertContainsEventsInOrderFromTo(8, 9, numEntries - 1);
+    }
+
+    @Test
+    public void returnWrappingRangeOnBoundary() {
+        int numEntries = 15;
+        addEvents(numEntries);
+        assertContainsEventsInOrderFromTo(9, 10, numEntries - 1);
+    }
+
+    @Test
+    public void returnRangeAfterBoundary() {
+        int numEntries = 15;
+        addEvents(numEntries);
+        assertContainsEventsInOrderFromTo(10, 11, numEntries - 1);
     }
 
     private void addEvent() {

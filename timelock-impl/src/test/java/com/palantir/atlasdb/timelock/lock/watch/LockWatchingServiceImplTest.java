@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchReferenceUtils;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
+import com.palantir.atlasdb.timelock.lock.ExclusiveLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocks;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.AtlasCellLockDescriptor;
@@ -46,29 +47,27 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 
 public class LockWatchingServiceImplTest {
-    private final static TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
-    private final static TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("prod.table");
-    private final static LockToken TOKEN = LockToken.of(UUID.randomUUID());
+    private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
+    private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("prod.table");
+    private static final LockToken TOKEN = LockToken.of(UUID.randomUUID());
 
-    private final static byte[] ROW = PtBytes.toBytes("row");
-    private static final Cell CELL = Cell.create(ROW, ROW);
+    private static final byte[] ROW = PtBytes.toBytes("row");
+    private static final Cell CELL = Cell.create(ROW, PtBytes.toBytes("col"));
     private static final LockDescriptor CELL_DESCRIPTOR = AtlasCellLockDescriptor
             .of(TABLE.getQualifiedName(), CELL.getRowName(), CELL.getColumnName());
     private static final LockDescriptor ROW_DESCRIPTOR = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW);
+    private static final AsyncLock LOCK = new ExclusiveLock(ROW_DESCRIPTOR);
+    private static final AsyncLock LOCK_2 = new ExclusiveLock(descriptorForTable(TABLE_2));
 
     private final LockEventLog log = mock(LockEventLog.class);
     private final HeldLocksCollection locks = mock(HeldLocksCollection.class);
     private final LockWatchingService lockWatcher = new LockWatchingServiceImpl(log, locks);
 
     private final HeldLocks heldLocks = mock(HeldLocks.class);
-    private final AsyncLock asyncLock = mock(AsyncLock.class);
-    private final AsyncLock asyncLock2 = mock(AsyncLock.class);
 
     @Before
     public void setup() {
-        when(heldLocks.getLocks()).thenReturn(ImmutableList.of(asyncLock, asyncLock2));
-        when(asyncLock.getDescriptor()).thenReturn(ROW_DESCRIPTOR);
-        when(asyncLock2.getDescriptor()).thenReturn(descriptorForTable(TABLE_2));
+        when(heldLocks.getLocks()).thenReturn(ImmutableList.of(LOCK, LOCK_2));
         when(heldLocks.getToken()).thenReturn(TOKEN);
         when(locks.locksHeld()).thenReturn(ImmutableSet.of(heldLocks));
     }
@@ -86,7 +85,7 @@ public class LockWatchingServiceImplTest {
     @Test
     public void registeringWatchLogsAllCoveredLocksAgain() {
         LockDescriptor secondRow = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("other_row"));
-        when(asyncLock2.getDescriptor()).thenReturn(secondRow);
+        when(heldLocks.getLocks()).thenReturn(ImmutableList.of(LOCK, new ExclusiveLock(secondRow)));
 
         LockWatchRequest prefixRequest = prefixRequest(TABLE, ROW);
         lockWatcher.startWatching(prefixRequest);

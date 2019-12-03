@@ -412,7 +412,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
         super(createInstrumentedFixedThreadPool(
-                config.poolSize() * config.servers().numberOfHosts(),
+                config.poolSize() * config.servers().numberOfThriftHosts(),
                 metricsManager.getRegistry()
         ));
         this.log = log;
