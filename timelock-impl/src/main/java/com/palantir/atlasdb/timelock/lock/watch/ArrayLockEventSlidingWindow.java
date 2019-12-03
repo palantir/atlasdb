@@ -77,7 +77,7 @@ public class ArrayLockEventSlidingWindow {
     }
 
     private boolean versionTooOld(long lastVersion, long lastWrittenSequence) {
-        return lastWrittenSequence - lastVersion> maxSize;
+        return lastWrittenSequence - lastVersion > maxSize;
     }
 
     private Optional<List<LockWatchEvent>> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
