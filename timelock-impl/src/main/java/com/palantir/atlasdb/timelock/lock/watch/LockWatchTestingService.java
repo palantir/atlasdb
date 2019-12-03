@@ -102,7 +102,7 @@ public class LockWatchTestingService {
                                 SafeArg.of("duration", duration));
                     } else {
                         log.info("Registered lock watches, found {} open locks entries in the log. They contained {}"
-                                        + " locks respecively. This registration event ook {} milliseconds.",
+                                        + " locks respectively. This registration event took {} milliseconds.",
                                 SafeArg.of("numberOfEvents", result.size()),
                                 SafeArg.of("numberOfWatches", result),
                                 SafeArg.of("duration", duration));
