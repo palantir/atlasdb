@@ -22,7 +22,11 @@ import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
@@ -52,10 +56,23 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 config,
                 initializeAsync);
 
-        ExecutorService executorService = tracingExecutorService(
-                instrumentExecutorService(
-                        createThreadPool(config.servers().numberOfHosts() * config.poolSize()),
-                        metricsManager));
+        ExecutorService executorService = config.servers().accept(new Visitor<ExecutorService>() {
+            @Override
+            public ExecutorService visit(DefaultConfig defaultConfig) {
+                return MoreExecutors.newDirectExecutorService();
+            }
+
+            @Override
+            public ExecutorService visit(CqlCapableConfig cqlCapableConfig) {
+                if (cqlCapableConfig.cqlHosts().isEmpty()) {
+                    return MoreExecutors.newDirectExecutorService();
+                }
+                return tracingExecutorService(
+                        instrumentExecutorService(
+                                createThreadPool(cqlCapableConfig.cqlHosts().size() * config.poolSize()),
+                                metricsManager));
+            }
+        });
 
         return CassandraAsyncKeyValueService.create(
                 config.getKeyspaceOrThrow(),

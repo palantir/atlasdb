@@ -81,7 +81,7 @@ public final class CassandraServersConfigs {
 
         <T> T accept(Visitor<T> visitor);
 
-        int numberOfHosts();
+        int numberOfThriftHosts();
     }
 
     @Value.Immutable
@@ -96,7 +96,7 @@ public final class CassandraServersConfigs {
 
         @Override
         @Value.Derived
-        public int numberOfHosts() {
+        public int numberOfThriftHosts() {
             return thriftHosts().size();
         }
 
@@ -129,8 +129,8 @@ public final class CassandraServersConfigs {
 
         @Override
         @Value.Derived
-        public int numberOfHosts() {
-            return Math.max(thriftHosts().size(), cqlHosts().size());
+        public int numberOfThriftHosts() {
+            return thriftHosts().size();
         }
 
         @Value.Check

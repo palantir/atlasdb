@@ -21,7 +21,9 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
+import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 
 public interface Dependencies {
@@ -59,6 +61,17 @@ public interface Dependencies {
         com.palantir.atlasdb.timelock.paxos.NetworkClientFactories networkClientFactories();
         Supplier<PaxosRuntimeConfiguration> runtime();
         AutobatchingLeadershipObserverFactory leadershipObserverFactory();
+    }
+
+    interface LeaderElectionService {
+        Client paxosClient();
+        UUID leaderUuid();
+        TimelockPaxosMetrics metrics();
+        com.palantir.paxos.LeaderPinger leaderPinger();
+        Supplier<PaxosRuntimeConfiguration> runtime();
+        PaxosLeadershipEventRecorder eventRecorder();
+        PaxosLearner localLearner();
+        com.palantir.atlasdb.timelock.paxos.NetworkClientFactories networkClientFactories();
     }
 
     interface LeaderPingHealthCheck {

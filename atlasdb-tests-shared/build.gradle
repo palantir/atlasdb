@@ -9,6 +9,8 @@ dependencies {
   compile project(":atlasdb-config")
   testCompile project(":atlasdb-config")
 
+  testCompile project(":commons-api")
+
   compile project(path: ":atlasdb-feign", configuration: "shadow")
 
   compile group: 'com.palantir.tracing', name: 'tracing'
