@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Restore batching behaviour across all clients that use the same `LeaderElectionService`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4450
