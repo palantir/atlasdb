@@ -29,9 +29,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
+import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
-import com.palantir.atlasdb.timelock.lock.watch.NoOpLog;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -74,7 +74,7 @@ public class AsyncLockService implements Closeable {
                 TargetedSweepLockDecorator.create(targetedSweepRateLimitConfig, timeoutExecutor);
 
         HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(NoOpLog.INSTANCE, heldLocks);
+        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(new LockEventLogImpl(), heldLocks);
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
 
         return new AsyncLockService(
