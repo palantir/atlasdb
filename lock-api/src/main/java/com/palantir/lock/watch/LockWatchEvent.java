@@ -18,9 +18,16 @@ package com.palantir.lock.watch;
 
 public interface LockWatchEvent {
     long sequence();
-    void accept(LockWatchEventVisitor visitor);
+    <T> T accept(Visitor<T> visitor);
 
     interface Builder {
         LockWatchEvent build(long sequence);
+    }
+
+    interface Visitor<T> {
+        T visit(LockEvent lockEvent);
+        T visit(UnlockEvent unlockEvent);
+        T visit(LockWatchOpenLocksEvent openLocksEvent);
+        T visit(LockWatchCreatedEvent lockWatchCreatedEvent);
     }
 }

@@ -27,7 +27,7 @@ public class LockWatchStateUpdater implements LockWatchEvent.Visitor<Void> {
     private final RangeSet<LockDescriptor> watches;
     private final Map<LockDescriptor, LockWatchInfo> lockWatchState;
 
-    public LockWatchStateEventVisitor(
+    public LockWatchStateUpdater(
             RangeSet<LockDescriptor> watches,
             Map<LockDescriptor, LockWatchInfo> lockWatchState) {
         this.watches = watches;

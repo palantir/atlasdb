@@ -62,7 +62,7 @@ public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
 
         TreeRangeSet<LockDescriptor> updatedWatches = TreeRangeSet.create(watches.get());
         Map<LockDescriptor, LockWatchInfo> updatedLocks = new HashMap<>(singleLocks.get());
-        LockWatchStateEventVisitor visitor = new LockWatchStateEventVisitor(updatedWatches, updatedLocks);
+        LockWatchStateUpdater visitor = new LockWatchStateUpdater(updatedWatches, updatedLocks);
 
         long firstVersion = update.events().get(0).sequence();
         update.events().subList(Ints.saturatedCast(lastKnownVersion.getAsLong() - firstVersion),
