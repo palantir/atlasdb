@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -79,12 +78,27 @@ public class CassandraService implements AutoCloseable {
     private List<InetSocketAddress> cassandraHosts;
 
     private volatile Set<InetSocketAddress> localHosts = ImmutableSet.of();
-    private final Supplier<Optional<HostLocation>> myLocationSupplier;
+    private final HostLocationSupplier myLocationSupplier;
 
     private final Counter randomHostsSelected;
     private final Counter localHostsSelected;
 
     private final Random random = new Random();
+
+    public CassandraService(MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Blacklist blacklist,
+            HostLocationSupplier hostLocationSupplier) {
+        this.metricsManager = metricsManager;
+        this.randomHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
+                .safeName(MetricRegistry.name(CassandraService.class, "randomHostsSelected")).build());
+        this.localHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
+                .safeName(MetricRegistry.name(CassandraService.class, "localHostsSelected")).build());
+        this.config = config;
+        this.blacklist = blacklist;
+        this.myLocationSupplier = hostLocationSupplier;
+    }
+
 
     public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
         this.metricsManager = metricsManager;
@@ -93,8 +107,10 @@ public class CassandraService implements AutoCloseable {
         this.localHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
                 .safeName(MetricRegistry.name(CassandraService.class, "localHostsSelected")).build());
         this.config = config;
-        this.myLocationSupplier = new HostLocationSupplier(this::getSnitch, config.overrideHostLocation());
         this.blacklist = blacklist;
+        this.myLocationSupplier = new CombiningHostLocationSupplier(
+                config::overrideHostLocation,
+                Ec2SnitchAwareHostLocationSupplier.create(this::getSnitch));
     }
 
     @Override
@@ -160,6 +176,10 @@ public class CassandraService implements AutoCloseable {
 
     private List<TokenRange> getTokenRanges() throws Exception {
         return getRandomGoodHost().runWithPooledResource(CassandraUtils.getDescribeRing(config));
+    }
+
+    public HostLocationSupplier getHostLocationSupplier() {
+        return myLocationSupplier;
     }
 
     private String getSnitch() {

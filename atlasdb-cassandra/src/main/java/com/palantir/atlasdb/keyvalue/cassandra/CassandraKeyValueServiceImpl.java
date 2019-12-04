@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -53,6 +54,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -101,6 +103,11 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CombiningHostLocationSupplier;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.Ec2SnitchAwareHostLocationSupplier;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocationSupplier;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
@@ -234,6 +241,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
+
         CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
                 config,
                 CassandraClientPoolImpl.StartupChecks.RUN,
@@ -309,8 +317,35 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
+
+        Blacklist blacklist = new Blacklist(config);
+        CassandraService service = new CassandraService(metricsManager, config, blacklist);
+
+        return create(
+                metricsManager,
+                config,
+                runtimeConfigSupplier,
+                mutationTimestampProvider,
+                log,
+                blacklist,
+                service,
+                initializeAsync
+        );
+    }
+
+    private static CassandraKeyValueService create(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            CassandraMutationTimestampProvider mutationTimestampProvider,
+            Logger log,
+            Blacklist blacklist,
+            CassandraService service,
+            boolean initializeAsync) {
         CassandraClientPool clientPool = CassandraClientPoolImpl.create(
                 metricsManager,
+                blacklist,
+                service,
                 config,
                 runtimeConfigSupplier,
                 initializeAsync);

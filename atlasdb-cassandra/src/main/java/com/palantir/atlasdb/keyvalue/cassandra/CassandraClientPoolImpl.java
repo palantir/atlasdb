@@ -47,6 +47,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CombiningHostLocationSupplier;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocationSupplier;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
@@ -121,12 +123,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             StartupChecks startupChecks,
             Blacklist blacklist) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
+        HostLocationSupplier supplier = HostLocationSupplier.createForTests();
+        CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.create(
                 metricsManager,
                 config,
                 startupChecks,
                 exceptionHandler,
-                blacklist);
+                blacklist,
+                new CassandraService(metricsManager, config, blacklist, supplier));
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
@@ -153,32 +157,36 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     public static CassandraClientPool create(MetricsManager metricsManager,
+            Blacklist blacklist,
+            CassandraService cassandra,
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             boolean initializeAsync) {
-        Blacklist blacklist = new Blacklist(config);
         CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
                 () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
                 () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
                 () -> runtimeConfig.get().conservativeRequestExceptionHandler(),
                 blacklist);
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
+        CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.create(
                 metricsManager,
                 config,
                 StartupChecks.RUN,
                 exceptionHandler,
-                blacklist);
+                blacklist,
+                cassandra);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
-    private CassandraClientPoolImpl(
+    private static CassandraClientPoolImpl create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
-            Blacklist blacklist) {
-        this(metricsManager,
+            Blacklist blacklist,
+            CassandraService cassandra) {
+        return new CassandraClientPoolImpl(
+                metricsManager,
                 config,
                 startupChecks,
                 PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
@@ -187,7 +195,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                         .build()),
                 exceptionHandler,
                 blacklist,
-                new CassandraService(metricsManager, config, blacklist));
+                cassandra);
     }
 
     private CassandraClientPoolImpl(

@@ -31,6 +31,7 @@ import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.ext.refresh.Refreshable;
 
 public class CassandraServiceTest {
     private static final int DEFAULT_PORT = 5000;
@@ -183,7 +184,11 @@ public class CassandraServiceTest {
 
         blacklist = new Blacklist(config);
 
-        CassandraService service = new CassandraService(MetricsManagers.createForTests(), config, blacklist);
+        CassandraService service = new CassandraService(
+                MetricsManagers.createForTests(),
+                config,
+                blacklist,
+                HostLocationSupplier.createForTests());
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);
