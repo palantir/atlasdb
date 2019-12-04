@@ -19,19 +19,19 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import java.util.Optional;
 
 final class CombiningHostLocationSupplier implements HostLocationSupplier {
-    private final HostLocationSupplier overrideLocation;
+    private final HostLocationSupplier overrideLocationSupplier;
     private final HostLocationSupplier locationSupplier;
 
     CombiningHostLocationSupplier(
             HostLocationSupplier overrideLocationSupplier,
             HostLocationSupplier locationSupplier) {
-        this.overrideLocation = overrideLocationSupplier;
+        this.overrideLocationSupplier = overrideLocationSupplier;
         this.locationSupplier = locationSupplier;
     }
 
     @Override
     public Optional<HostLocation> get() {
-        Optional<HostLocation> location = overrideLocation.get();
+        Optional<HostLocation> location = overrideLocationSupplier.get();
         if (location.isPresent()) {
             return location;
         }

@@ -22,7 +22,7 @@ import java.util.Optional;
 
 import org.junit.Test;
 
-public class CombiningAwareHostLocationSupplierTests {
+public class CombiningHostLocationSupplierTests {
     private static final Optional<HostLocation> US_1 = Optional.of(HostLocation.of("dc", "us1"));
 
     @Test

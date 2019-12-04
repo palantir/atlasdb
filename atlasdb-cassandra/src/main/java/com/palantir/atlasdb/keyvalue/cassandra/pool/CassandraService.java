@@ -95,7 +95,7 @@ public class CassandraService implements AutoCloseable {
         this.blacklist = blacklist;
         this.myLocationSupplier = new CombiningHostLocationSupplier(
                 config::overrideHostLocation,
-                Ec2AwareHostLocationSupplier.create(this::getSnitch));
+                Ec2AwareHostLocationSupplier.createMemoized(this::getSnitch));
     }
 
     @VisibleForTesting

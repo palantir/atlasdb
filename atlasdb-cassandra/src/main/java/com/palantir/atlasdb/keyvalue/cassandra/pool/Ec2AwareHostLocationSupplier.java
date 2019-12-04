@@ -32,8 +32,19 @@ final class Ec2AwareHostLocationSupplier implements HostLocationSupplier {
     private final Supplier<String> snitchSupplier;
     private final Supplier<HostLocation> ec2Supplier;
 
-    public static HostLocationSupplier create(Supplier<String> snitchSupplier) {
-        return new Ec2AwareHostLocationSupplier(snitchSupplier, new Ec2HostLocationSupplier());
+    public static HostLocationSupplier createMemoized(Supplier<String> snitchSupplier) {
+        HostLocationSupplier delegate = new Ec2AwareHostLocationSupplier(
+                snitchSupplier,
+                new Ec2HostLocationSupplier());
+
+        return new HostLocationSupplier() {
+            private final Supplier<Optional<HostLocation>> memoized = Suppliers.memoize(delegate::get);
+
+            @Override
+            public Optional<HostLocation> get() {
+                return memoized.get();
+            }
+        };
     }
 
     @VisibleForTesting
