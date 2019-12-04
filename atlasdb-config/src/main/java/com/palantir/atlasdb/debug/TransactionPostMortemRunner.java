@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -42,7 +41,6 @@ import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagno
 import com.palantir.atlasdb.debug.FullDiagnosticDigest.LockDigest;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.persist.Persistable;
@@ -78,11 +76,8 @@ public class TransactionPostMortemRunner {
         this.writesDigestEmitter = new WritesDigestEmitter(transactionManager, tableReference);
     }
 
-    public <T> FullDiagnosticDigest<T> conductPostMortem(
-            Persistable row,
-            byte[] columnName,
-            Function<Value, T> deserializer) {
-        WritesDigest<T> digest = writesDigestEmitter.getDigest(row, columnName, deserializer);
+    public FullDiagnosticDigest<String> conductPostMortem(Persistable row, byte[] columnName) {
+        WritesDigest<String> digest = writesDigestEmitter.getDigest(row, columnName);
         Map<Long, ClientLockDiagnosticDigest> snapshot = clientLockDiagnosticCollector.getSnapshot();
         Optional<LockDiagnosticInfo> lockDiagnosticInfo = getTimelockDiagnostics(snapshot);
 
@@ -90,7 +85,7 @@ public class TransactionPostMortemRunner {
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
                 .orElseGet(ImmutableSet::of);
 
-        Set<FullDiagnosticDigest.CompletedTransactionDigest<T>> transactionDigests = digest
+        Set<FullDiagnosticDigest.CompletedTransactionDigest<String>> transactionDigests = digest
                 .completedOrAbortedTransactions().keySet().stream()
                 .map(startTimestamp -> transactionDigest(
                         startTimestamp,
@@ -99,7 +94,7 @@ public class TransactionPostMortemRunner {
                         snapshot.getOrDefault(startTimestamp, ClientLockDiagnosticDigest.missingEntry())))
                 .collect(Collectors.toSet());
 
-        return ImmutableFullDiagnosticDigest.<T>builder()
+        return ImmutableFullDiagnosticDigest.<String>builder()
                 .rawData(ImmutableRawData.of(digest, lockDiagnosticInfo, snapshot))
                 .addAllInProgressTransactions(digest.inProgressTransactions())
                 .lockRequestIdsEvictedMidLockRequest(lockRequestIdsEvictedMidLockRequest)

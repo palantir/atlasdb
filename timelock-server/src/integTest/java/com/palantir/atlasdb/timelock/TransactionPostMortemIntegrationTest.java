@@ -93,11 +93,9 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
         runWithRetryVoid(store -> store.putPhotoStreamId(ImmutableMap.of(row, 11L)));
         runWithRetryVoid(store -> store.putPhotoStreamId(ImmutableMap.of(row, 19L)));
         runWithRetryVoid(store -> store.putPhotoStreamId(ImmutableMap.of(row, 23L)));
+        runWithRetryVoid(store -> store.deletePhotoStreamId(row));
 
-        FullDiagnosticDigest<Long> digest = runner.conductPostMortem(
-                row,
-                PhotoStreamId.of(0L).persistColumnName(),
-                value -> PhotoStreamId.BYTES_HYDRATOR.hydrateFromBytes(value.getContents()).getValue());
+        FullDiagnosticDigest<String> digest = runner.conductPostMortem(row, PhotoStreamId.of(0L).persistColumnName());
 
         System.out.println(
                 ObjectMappers.newServerObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(digest));

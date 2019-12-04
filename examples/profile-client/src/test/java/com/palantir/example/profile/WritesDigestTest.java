@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -77,10 +78,7 @@ public class WritesDigestTest {
         runWithRetryVoid(store -> store.putPhotoStreamId(ImmutableMap.of(row, 19L)));
         runWithRetryVoid(store -> store.putPhotoStreamId(ImmutableMap.of(row, 23L)));
 
-        WritesDigest<Long> digest = emitter.getDigest(
-                row,
-                PhotoStreamId.of(0L).persistColumnName(),
-                value -> PhotoStreamId.BYTES_HYDRATOR.hydrateFromBytes(value.getContents()).getValue());
+        WritesDigest<String> digest = emitter.getDigest(row, PhotoStreamId.of(0L).persistColumnName());
 
         assertThat(digest.allWrittenTimestamps())
                 .as("nothing should be swept, we can see all the timestamps we've written at thus far")
@@ -88,7 +86,13 @@ public class WritesDigestTest {
 
         assertThat(digest.allWrittenValuesDeserialized().values())
                 .as("nothing should be swept, we can see all the values we've written thus far")
-                .containsOnly(5L, 11L, 19L, 23L);
+                .containsOnly(
+                        base64PhotoStreamId(5L),
+                        base64PhotoStreamId(11L),
+                        base64PhotoStreamId(19L),
+                        base64PhotoStreamId(23L));
+
+        System.out.println(digest);
     }
 
     private <T> T runWithRetry(Function<UserProfileTable, T> task) {
@@ -101,5 +105,9 @@ public class WritesDigestTest {
             task.accept(store);
             return null;
         });
+    }
+
+    private static String base64PhotoStreamId(long id) {
+        return BaseEncoding.base64().encode(PhotoStreamId.of(id).persistValue());
     }
 }

@@ -20,13 +20,13 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -48,7 +48,7 @@ public class WritesDigestEmitter {
         this.tableReference = tableReference;
     }
 
-    public <T> WritesDigest<T> getDigest(Persistable row, byte[] columnName, Function<Value, T> deserializer) {
+    public WritesDigest<String> getDigest(Persistable row, byte[] columnName) {
         Cell asCell = Cell.create(row.persistToBytes(), columnName);
 
         Multimap<Cell, Long> allWrittenCells =
@@ -66,22 +66,26 @@ public class WritesDigestEmitter {
                 .map(existingTimestamp -> existingTimestamp + 1)
                 .collect(Collectors.toSet());
 
-        Map<Long, T> allSeenWrittenValues = boundsForCell.stream()
+        Map<Long, String> allSeenWrittenValues = boundsForCell.stream()
                 .map(bound -> ImmutableMap.of(asCell, bound))
                 .map(request -> keyValueService.get(tableReference, request))
                 .map(result -> result.get(asCell))
                 .filter(Objects::nonNull)
                 .collect(KeyedStream.toKeyedStream())
                 .mapKeys(Value::getTimestamp)
-                .map(deserializer)
+                .map(WritesDigestEmitter::base64Encode)
                 .collectToMap();
 
-        return ImmutableWritesDigest.<T>builder()
+        return ImmutableWritesDigest.<String>builder()
                 .allWrittenTimestamps(allWrittenTimestamps)
                 .completedOrAbortedTransactions(transactionCommitStatuses)
                 .inProgressTransactions(inProgressTransactions)
                 .allWrittenValuesDeserialized(allSeenWrittenValues)
                 .build();
+    }
+
+    private static String base64Encode(Value value) {
+        return BaseEncoding.base64Url().encode(value.getContents());
     }
 
 }
