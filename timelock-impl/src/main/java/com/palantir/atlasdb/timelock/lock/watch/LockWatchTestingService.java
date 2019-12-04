@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchOpenLocksEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchRequest;
@@ -116,7 +117,7 @@ public class LockWatchTestingService {
         }
     }
 
-    private static class OpenLocksFilter implements LockWatchEventVisitor<Optional<LockWatchOpenLocksEvent>> {
+    private static class OpenLocksFilter implements LockWatchEvent.Visitor<Optional<LockWatchOpenLocksEvent>> {
         @Override
         public Optional<LockWatchOpenLocksEvent> visit(LockEvent lockEvent) {
             return Optional.empty();
