@@ -113,8 +113,9 @@ public class ArrayLockEventSlidingWindowTest {
         public abstract long sequence();
 
         @Override
-        public void accept(LockWatchEventVisitor visitor) {
+        public <T> T accept(LockWatchEventVisitor<T> visitor) {
             // do nothing
+            return null;
         }
     }
 }

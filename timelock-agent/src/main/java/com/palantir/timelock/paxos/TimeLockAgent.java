@@ -35,6 +35,7 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestingService;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
@@ -160,6 +161,9 @@ public class TimeLockAgent {
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
+        LockWatchTestingService.create(
+                Suppliers.compose(TimeLockRuntimeConfiguration::lockWatchTestConfig, runtime::get),
+                resource::getLockWatchingResource);
         registrar.accept(resource);
     }
 

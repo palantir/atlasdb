@@ -16,9 +16,9 @@
 
 package com.palantir.lock.watch;
 
-public interface LockWatchEventVisitor {
-    void visit(LockEvent lockEvent);
-    void visit(UnlockEvent unlockEvent);
-    void visit(LockWatchOpenLocksEvent openLocksEvent);
-    void visit(LockWatchCreatedEvent lockWatchCreatedEvent);
+public interface LockWatchEventVisitor<T> {
+    T visit(LockEvent lockEvent);
+    T visit(UnlockEvent unlockEvent);
+    T visit(LockWatchOpenLocksEvent openLocksEvent);
+    T visit(LockWatchCreatedEvent lockWatchCreatedEvent);
 }

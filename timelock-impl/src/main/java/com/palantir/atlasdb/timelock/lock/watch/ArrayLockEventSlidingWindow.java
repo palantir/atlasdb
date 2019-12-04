@@ -68,7 +68,7 @@ public class ArrayLockEventSlidingWindow {
      * visible. This does not affect correctness:
      *   a) the newer updates are not expected to be reflected in the returned list
      *   b) if (some of) the newer updates are visible and overwrite a value that should have been included in the
-     *      returned list, it will may end up included in the candidate result. This will be detected by
+     *      returned list, it may end up included in the candidate result. This will be detected by
      *      validateConsistencyOrReturnEmpty, and {@link Optional#empty()} will be returned. This correctly reflects
      *      the state where, even though all the necessary events were in the requested window at the start of executing
      *      this method, that is no longer the case when the method returns.

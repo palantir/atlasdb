@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestRuntimeConfig;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
@@ -60,6 +61,12 @@ public abstract class TimeLockRuntimeConfiguration {
     @Value.Default
     public TargetedSweepLockControlConfig targetedSweepLockControlConfig() {
         return TargetedSweepLockControlConfig.defaultConfig();
+    }
+
+    @JsonProperty("test-only-lock-watches")
+    @Value.Default
+    public LockWatchTestRuntimeConfig lockWatchTestConfig() {
+        return LockWatchTestRuntimeConfig.defaultConfig();
     }
 
     @Value.Check
