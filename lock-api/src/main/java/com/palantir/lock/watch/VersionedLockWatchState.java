@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import static com.palantir.lock.watch.LockWatchInfo.State.NOT_WATCHED;
-
 import java.util.OptionalLong;
 import java.util.UUID;
 
@@ -37,7 +35,7 @@ public interface VersionedLockWatchState {
 
         @Override
         public LockWatchInfo lockWatchState(LockDescriptor lockDescriptor) {
-            return ImmutableLockWatchInfo.of(NOT_WATCHED, OptionalLong.empty());
+            return ImmutableLockWatchInfo.of(LockWatchInfo.State.NOT_WATCHED, OptionalLong.empty());
         }
     };
 

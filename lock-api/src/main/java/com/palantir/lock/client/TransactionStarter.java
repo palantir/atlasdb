@@ -38,10 +38,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionResponseV5;
-import com.palantir.lock.v2.StartTransactionWithWatchesResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.watch.LockWatchEventLog;
-import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.lock.watch.VersionedLockWatchState;
 
 /**
@@ -163,9 +161,11 @@ final class TransactionStarter implements AutoCloseable {
                     lockWatchLog.currentState().version(), numberOfTransactions - result.size());
             VersionedLockWatchState lockWatchState = lockWatchLog.updateState(response.lockWatchUpdate());
             List<StartIdentifiedAtlasDbTransactionResponse> splitResponses = split(response);
-            splitResponses.forEach(one -> {
-                lockWatchLog.setLockWatchStateForStartTimestamp(one.startTimestampAndPartition().timestamp(), lockWatchState);
-                result.add(one);
+            splitResponses.forEach(instance -> {
+                lockWatchLog.setLockWatchStateForStartTimestamp(
+                        instance.startTimestampAndPartition().timestamp(),
+                        lockWatchState);
+                result.add(instance);
             });
         }
         return result;

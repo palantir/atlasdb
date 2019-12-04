@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.TimelockDelegatingTableWatchingService;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -110,7 +111,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 MoreExecutors.newDirectExecutorService(),
                 true,
                 () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                new TimelockDelegatingTableWatchingService(new LegacyTimelockService(
+                        timestampService, lockService, lockClient)));
         this.transactionWrapper =  WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
     }
@@ -149,7 +152,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 deleteExecutor,
                 true,
                 () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                new TimelockDelegatingTableWatchingService(new LegacyTimelockService(
+                        timestampService, lockService, lockClient)));
         this.transactionWrapper = transactionWrapper;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
@@ -212,6 +217,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
+                        new TimelockDelegatingTableWatchingService(timelockService),
                         transactionService,
                         cleaner,
                         startTimestampSupplier,

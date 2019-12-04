@@ -17,21 +17,10 @@
 package com.palantir.lock.watch;
 
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
-import com.palantir.lock.v2.StartTransactionResponseV5;
-import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.LockWatchRequest;
-import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
-import com.palantir.lock.watch.NewLocksVisitor;
-import com.palantir.lock.watch.TimestampWithLockInfo;
-import com.palantir.lock.watch.TimestampWithWatches;
-import com.palantir.lock.watch.VersionedLockWatchState;
 
 public class TableWatchingServiceImpl implements TableWatchingService {
     private final NamespacedLockWatchingRpcClient lockWatcher;

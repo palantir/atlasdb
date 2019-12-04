@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import static com.palantir.lock.watch.LockWatchInfo.State.UNLOCKED;
-
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.UUID;
@@ -56,7 +54,7 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
             return locks.get(lockDescriptor);
         }
         if (watchedRanges.contains(lockDescriptor)) {
-            return LockWatchInfo.of(UNLOCKED, OptionalLong.empty());
+            return LockWatchInfo.of(LockWatchInfo.State.UNLOCKED, OptionalLong.empty());
         }
         return LockWatchInfo.NOT_WATCHED;
     }

@@ -462,8 +462,8 @@ public abstract class TransactionManagers {
                         validateLocksOnReads(),
                         transactionConfigSupplier,
                         conflictTracer,
-                        lockAndTimestampServices.tableWatchingService()
-                                .orElseGet(() -> new TimelockDelegatingTableWatchingService(lockAndTimestampServices.timelock()))),
+                        lockAndTimestampServices.tableWatchingService().orElseGet(() ->
+                                new TimelockDelegatingTableWatchingService(lockAndTimestampServices.timelock()))),
                 closeables);
 
         transactionManager.registerClosingCallback(lockAndTimestampServices.close());
@@ -1005,7 +1005,8 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 creator.createService(TimestampManagementRpcClient.class), timelockNamespace);
         TableWatchingService tableWatchingService = new TableWatchingServiceImpl(
-                new NamespacedLockWatchingRpcClient(timelockNamespace, creator.createService(LockWatchingRpcClient.class)),
+                new NamespacedLockWatchingRpcClient(timelockNamespace,
+                        creator.createService(LockWatchingRpcClient.class)),
                 namespacedTimelockRpcClient,
                 lockWatchEventLog);
 

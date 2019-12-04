@@ -240,7 +240,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected volatile boolean hasReads;
 
     /**
-     * @param tableWatchingService
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
@@ -1632,8 +1631,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTsWithWatches));
                 timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
-                timedAndTraced("commitPutCommitTs",
-                        () -> putCommitTimestamp(commitTsWithWatches.timestamp(), commitLocksToken, transactionService));
+                timedAndTraced("commitPutCommitTs", () ->
+                        putCommitTimestamp(commitTsWithWatches.timestamp(), commitLocksToken, transactionService));
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);

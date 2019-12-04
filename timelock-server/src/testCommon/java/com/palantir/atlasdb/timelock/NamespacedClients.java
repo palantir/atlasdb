@@ -31,6 +31,8 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.LockWatchEventLog;
+import com.palantir.lock.watch.LockWatchEventLogImpl;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
@@ -49,13 +51,18 @@ public interface NamespacedClients {
     @Value.Parameter
     ProxyFactory proxyFactory();
 
+    @Value.Default
+    default LockWatchEventLog lockWatchEventLog() {
+        return new LockWatchEventLogImpl();
+    }
+
     static NamespacedClients from(String namespace, ProxyFactory proxyFactory) {
         return ImmutableNamespacedClients.of(namespace, proxyFactory);
     }
 
     @Value.Derived
     default TimelockService timelockService() {
-        return RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient());
+        return RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient(), lockWatchEventLog());
     }
 
     @Value.Derived

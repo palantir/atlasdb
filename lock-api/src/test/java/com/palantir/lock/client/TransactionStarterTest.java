@@ -88,7 +88,8 @@ public class TransactionStarterTest {
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_singleTransaction() {
         StartTransactionResponseV5 startTransactionResponse = getStartTransactionResponse(12, 1);
 
-        when(lockLeaseService.startTransactionsWithWatches(OptionalLong.empty(), 1)).thenReturn(startTransactionResponse);
+        when(lockLeaseService.startTransactionsWithWatches(OptionalLong.empty(), 1))
+                .thenReturn(startTransactionResponse);
         StartIdentifiedAtlasDbTransactionResponse response = transactionStarter.startIdentifiedAtlasDbTransaction();
 
         assertDerivableFromBatchedResponse(response, startTransactionResponse);
@@ -97,7 +98,7 @@ public class TransactionStarterTest {
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_multipleTransactions() {
         StartTransactionResponseV5 batchResponse = getStartTransactionResponse(40, 3);
-        when(lockLeaseService.startTransactionsWithWatches(OptionalLong.empty(),3)).thenReturn(batchResponse);
+        when(lockLeaseService.startTransactionsWithWatches(OptionalLong.empty(), 3)).thenReturn(batchResponse);
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(3);
         assertThat(responses)
@@ -114,7 +115,7 @@ public class TransactionStarterTest {
 
         requestBatches(3);
         verify(lockLeaseService).startTransactionsWithWatches(OptionalLong.empty(), 3);
-        verify(lockLeaseService).startTransactionsWithWatches(OptionalLong.empty(),1);
+        verify(lockLeaseService).startTransactionsWithWatches(OptionalLong.empty(), 1);
 
     }
 

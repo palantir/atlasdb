@@ -28,10 +28,6 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventLog;
-import com.palantir.lock.watch.LockWatchEventLogImpl;
-import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
-import com.palantir.lock.watch.TableWatchingService;
-import com.palantir.lock.watch.TableWatchingServiceImpl;
 import com.palantir.timestamp.TimestampRange;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
@@ -45,8 +41,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchLog);
     }
 
-    public static RemoteTimelockServiceAdapter create(NamespacedTimelockRpcClient rpcClient, LockWatchEventLog lockWatchLog) {
-        return new RemoteTimelockServiceAdapter(rpcClient, lockWatchLog);
+    public static RemoteTimelockServiceAdapter create(NamespacedTimelockRpcClient rpcClient, LockWatchEventLog log) {
+        return new RemoteTimelockServiceAdapter(rpcClient, log);
     }
 
     @Override

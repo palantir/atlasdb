@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 
 public final class NewLocksVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-    public static NewLocksVisitor INSTANCE = new NewLocksVisitor();
+    public static final NewLocksVisitor INSTANCE = new NewLocksVisitor();
 
     @Override
     public Set<LockDescriptor> visit(LockEvent lockEvent) {

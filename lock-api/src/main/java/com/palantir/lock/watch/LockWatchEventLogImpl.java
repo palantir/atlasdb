@@ -52,23 +52,23 @@ public class LockWatchEventLogImpl implements LockWatchEventLog {
 
     @Override
     public synchronized VersionedLockWatchState updateState(LockWatchStateUpdate update) {
-            if (leaderId != update.leaderId() || !lastKnownVersion.isPresent() || !update.success()) {
-                resetAll(update);
-                return currentState();
-            }
-            if (update.events().isEmpty() || update.lastKnownVersion().getAsLong() <= lastKnownVersion.getAsLong()) {
-                return currentState();
-            }
-
-            TreeRangeSet<LockDescriptor> updatedWatches = TreeRangeSet.create(watches.get());
-            Map<LockDescriptor, LockWatchInfo> updatedLocks = new HashMap<>(singleLocks.get());
-            LockWatchStateEventVisitor visitor = new LockWatchStateEventVisitor(updatedWatches, updatedLocks);
-
-            long firstVersion = update.events().get(0).sequence();
-            update.events().subList(Ints.saturatedCast(lastKnownVersion.getAsLong() - firstVersion),
-                    update.events().size()).forEach(event -> event.accept(visitor));
-            setAll(updatedWatches, updatedLocks, update.lastKnownVersion());
+        if (leaderId != update.leaderId() || !lastKnownVersion.isPresent() || !update.success()) {
+            resetAll(update);
             return currentState();
+        }
+        if (update.events().isEmpty() || update.lastKnownVersion().getAsLong() <= lastKnownVersion.getAsLong()) {
+            return currentState();
+        }
+
+        TreeRangeSet<LockDescriptor> updatedWatches = TreeRangeSet.create(watches.get());
+        Map<LockDescriptor, LockWatchInfo> updatedLocks = new HashMap<>(singleLocks.get());
+        LockWatchStateEventVisitor visitor = new LockWatchStateEventVisitor(updatedWatches, updatedLocks);
+
+        long firstVersion = update.events().get(0).sequence();
+        update.events().subList(Ints.saturatedCast(lastKnownVersion.getAsLong() - firstVersion),
+                update.events().size()).forEach(event -> event.accept(visitor));
+        setAll(updatedWatches, updatedLocks, update.lastKnownVersion());
+        return currentState();
     }
 
     @Override

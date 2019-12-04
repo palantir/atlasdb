@@ -22,22 +22,22 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface LockWatchInfo {
-        LockWatchInfo NOT_WATCHED = ImmutableLockWatchInfo.of(State.NOT_WATCHED, OptionalLong.empty());
+    LockWatchInfo NOT_WATCHED = ImmutableLockWatchInfo.of(State.NOT_WATCHED, OptionalLong.empty());
 
-        @Value.Parameter
-        State state();
-        @Value.Parameter
-        OptionalLong lastLocked();
+    @Value.Parameter
+    State state();
+    @Value.Parameter
+    OptionalLong lastLocked();
 
-        static LockWatchInfo of(State state, OptionalLong lastLocked) {
-                return ImmutableLockWatchInfo.of(state, lastLocked);
-        }
+    static LockWatchInfo of(State state, OptionalLong lastLocked) {
+        return ImmutableLockWatchInfo.of(state, lastLocked);
+    }
 
-        static LockWatchInfo of(State state, long lastLocked) {
-                return ImmutableLockWatchInfo.of(state, OptionalLong.of(lastLocked));
-        }
+    static LockWatchInfo of(State state, long lastLocked) {
+        return ImmutableLockWatchInfo.of(state, OptionalLong.of(lastLocked));
+    }
 
-        enum State {
-                LOCKED, UNLOCKED, NOT_WATCHED
-        }
+    enum State {
+        LOCKED, UNLOCKED, NOT_WATCHED
+    }
 }
