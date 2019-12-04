@@ -183,7 +183,11 @@ public class CassandraServiceTest {
 
         blacklist = new Blacklist(config);
 
-        CassandraService service = new CassandraService(MetricsManagers.createForTests(), config, blacklist);
+        CassandraService service = new CassandraService(
+                MetricsManagers.createForTests(),
+                config,
+                blacklist,
+                HostLocationSupplier.createForTests());
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

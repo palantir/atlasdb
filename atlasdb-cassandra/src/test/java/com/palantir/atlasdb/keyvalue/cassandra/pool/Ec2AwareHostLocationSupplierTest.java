@@ -18,30 +18,20 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.junit.Test;
 
-public class HostLocationSupplierTest {
-
+public final class Ec2AwareHostLocationSupplierTest {
     private static final Supplier<String> ec2SnitchSupplier = () -> "org.apache.cassandra.locator.Ec2Snitch";
     private static final Supplier<HostLocation> ec2LocationSupplier = () -> HostLocation.of("dc2", "rack2");
 
-    @Test
-    public void shouldReturnOverrideLocation() {
-        Optional<HostLocation> overrideLocation = Optional.of(HostLocation.of("dc1", "rack1"));
-
-        Supplier<Optional<HostLocation>> hostLocationSupplier = new HostLocationSupplier(ec2SnitchSupplier,
-                ec2LocationSupplier, overrideLocation);
-
-        assertThat(hostLocationSupplier.get()).isEqualTo(overrideLocation);
-    }
 
     @Test
     public void shouldReturnEc2Location() {
-        Supplier<Optional<HostLocation>> hostLocationSupplier = new HostLocationSupplier(ec2SnitchSupplier,
-                ec2LocationSupplier, Optional.empty());
+        HostLocationSupplier hostLocationSupplier = new Ec2AwareHostLocationSupplier(
+                ec2SnitchSupplier,
+                ec2LocationSupplier);
 
         assertThat(hostLocationSupplier.get()).isPresent();
         assertThat(hostLocationSupplier.get().get()).isEqualTo(ec2LocationSupplier.get());
@@ -51,8 +41,9 @@ public class HostLocationSupplierTest {
     public void shouldReturnEmptyLocationFromUnexpectedSnitch() {
         Supplier<String> unexpectedSnitchSupplier = () -> "unexpected snitch";
 
-        Supplier<Optional<HostLocation>> hostLocationSupplier = new HostLocationSupplier(unexpectedSnitchSupplier,
-                ec2LocationSupplier, Optional.empty());
+        HostLocationSupplier hostLocationSupplier = new Ec2AwareHostLocationSupplier(
+                unexpectedSnitchSupplier,
+                ec2LocationSupplier);
 
         assertThat(hostLocationSupplier.get()).isNotPresent();
     }
@@ -63,8 +54,9 @@ public class HostLocationSupplierTest {
             throw new RuntimeException();
         };
 
-        Supplier<Optional<HostLocation>> hostLocationSupplier = new HostLocationSupplier(badSnitchSupplier,
-                ec2LocationSupplier, Optional.empty());
+        HostLocationSupplier hostLocationSupplier = new Ec2AwareHostLocationSupplier(
+                badSnitchSupplier,
+                ec2LocationSupplier);
 
         assertThat(hostLocationSupplier.get()).isNotPresent();
     }
@@ -75,8 +67,9 @@ public class HostLocationSupplierTest {
             throw new RuntimeException();
         };
 
-        Supplier<Optional<HostLocation>> hostLocationSupplier = new HostLocationSupplier(ec2SnitchSupplier,
-                ec2BadLocationSupplier, Optional.empty());
+        HostLocationSupplier hostLocationSupplier = new Ec2AwareHostLocationSupplier(
+                ec2SnitchSupplier,
+                ec2BadLocationSupplier);
 
         assertThat(hostLocationSupplier.get()).isNotPresent();
     }
@@ -86,5 +79,4 @@ public class HostLocationSupplierTest {
         HostLocation awsLocation = HostLocation.of("us-east", "1a");
         assertThat(Ec2HostLocationSupplier.parseHostLocation("us-east-1a")).isEqualTo(awsLocation);
     }
-
 }

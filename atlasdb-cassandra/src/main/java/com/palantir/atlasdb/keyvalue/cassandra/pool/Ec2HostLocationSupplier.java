@@ -55,7 +55,7 @@ import okhttp3.Response;
  * AWS has an endpoint that returns the datacenter and rack (in Cassandra terms) - this request will fail if not on AWS.
  * The reply comes in the form "datacenter"+"rack", e.g. "us-east-1a", where datacenter is "us-east-1" and rack is "a".
  */
-public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
+final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
 
     /*
         This is a supplier to avoid class loading races breaking downstream internal products.
