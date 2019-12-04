@@ -16,12 +16,16 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -32,21 +36,32 @@ public class HeldLocks {
     private final Collection<AsyncLock> acquiredLocks;
     private final LockToken token;
     private final LeaseExpirationTimer expirationTimer;
+    private final LockWatchingService lockWatchingService;
+    private final Supplier<Set<LockDescriptor>> descriptors = Suppliers.memoize(this::getLockDescriptors);
 
     @GuardedBy("this")
     private boolean isUnlocked = false;
 
-    public HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId, LeaderClock leaderClock) {
-        this(lockLog, acquiredLocks, requestId, new LeaseExpirationTimer(() -> leaderClock.time().currentTime()));
-    }
-
     @VisibleForTesting
     HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks,
-            UUID requestId, LeaseExpirationTimer expirationTimer) {
+            UUID requestId, LeaseExpirationTimer expirationTimer, LockWatchingService lockWatchingService) {
         this.lockLog = lockLog;
         this.acquiredLocks = acquiredLocks;
         this.token = LockToken.of(requestId);
         this.expirationTimer = expirationTimer;
+        this.lockWatchingService = lockWatchingService;
+    }
+
+    public static HeldLocks create(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId,
+            LeaderClock leaderClock, LockWatchingService lockWatchingService) {
+        HeldLocks locks = new HeldLocks(lockLog, acquiredLocks, requestId,
+                new LeaseExpirationTimer(() -> leaderClock.time().currentTime()), lockWatchingService);
+        locks.registerLock();
+        return locks;
+    }
+
+    private void registerLock() {
+        lockWatchingService.registerLock(descriptors.get());
     }
 
     /**
@@ -56,7 +71,7 @@ public class HeldLocks {
     public synchronized boolean unlockIfExpired() {
         if (expirationTimer.isExpired()) {
             if (unlockInternal()) {
-                lockLog.lockExpired(token.getRequestId(), getLockDescriptors());
+                lockLog.lockExpired(token.getRequestId(), descriptors.get());
             }
         }
         return isUnlocked;
@@ -84,6 +99,7 @@ public class HeldLocks {
             return false;
         }
         isUnlocked = true;
+        lockWatchingService.registerUnlock(descriptors.get());
 
         for (AsyncLock lock : acquiredLocks) {
             lock.unlock(token.getRequestId());
@@ -104,15 +120,14 @@ public class HeldLocks {
         return expirationTimer.lastRefreshTime();
     }
 
-    @VisibleForTesting
-    Collection<AsyncLock> getLocks() {
+    public Collection<AsyncLock> getLocks() {
         return acquiredLocks;
     }
 
-    private Collection<LockDescriptor> getLockDescriptors() {
+    private Set<LockDescriptor> getLockDescriptors() {
         return acquiredLocks.stream()
                 .map(AsyncLock::getDescriptor)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
 }

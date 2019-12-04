@@ -20,14 +20,38 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
-public interface LockEventLog {
-    LockWatchStateUpdate getLogDiff(OptionalLong fromVersion);
-    void logLock(Set<LockDescriptor> locksTakenOut);
-    void logUnlock(Set<LockDescriptor> locksUnlocked);
-    void logOpenLocks(Set<LockDescriptor> openLocks);
-    void logLockWatchCreated(LockWatchRequest locksToWatch);
+public final class NoOpLog implements LockEventLog {
+    public static LockEventLog INSTANCE = new NoOpLog();
+
+    private NoOpLog() {
+        // pl0x no
+    }
+
+    @Override
+    public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion) {
+        return LockWatchStateUpdate.EMPTY;
+    }
+
+    @Override
+    public void logLock(Set<LockDescriptor> locksTakenOut) {
+        // noop
+    }
+
+    @Override
+    public void logUnlock(Set<LockDescriptor> locksUnlocked) {
+        // noop
+    }
+
+    @Override
+    public void logOpenLocks(Set<LockDescriptor> openLocks) {
+        // noop
+    }
+
+    @Override
+    public void logLockWatchCreated(LockWatchRequest locksToWatch) {
+        // noop
+    }
 }

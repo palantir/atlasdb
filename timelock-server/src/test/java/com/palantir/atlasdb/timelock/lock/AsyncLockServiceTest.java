@@ -38,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -67,6 +68,7 @@ public class AsyncLockServiceTest {
             acquirer,
             heldLocks,
             awaitedLocks,
+            mock(LockWatchingService.class),
             reaperExecutor,
             leaderClock,
             mock(LockLog.class));

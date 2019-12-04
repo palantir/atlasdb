@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -51,7 +52,7 @@ public class HeldLocksTest {
         lockA.lock(REQUEST_ID);
         lockB.lock(REQUEST_ID);
         heldLocks = new HeldLocks(new LockLog(new MetricRegistry(), () -> 2L),
-                ImmutableList.of(lockA, lockB), REQUEST_ID, timer);
+                ImmutableList.of(lockA, lockB), REQUEST_ID, timer, mock(LockWatchingService.class));
     }
 
     @Test

@@ -30,6 +30,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
+import com.palantir.atlasdb.timelock.lock.watch.NoOpLog;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -48,7 +50,7 @@ public class AsyncLockService implements Closeable {
     private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
     private final LockLog lockLog;
-    private final LockWatchingService lockWatchingService = null;
+    private final LockWatchingService lockWatchingService;
 
     /**
      * Creates a new asynchronous lock service, using a standard {@link LeaderClock}.
@@ -70,13 +72,19 @@ public class AsyncLockService implements Closeable {
         LeaderClock clock = LeaderClock.create();
         TargetedSweepLockDecorator targetedSweepLockDecorator =
                 TargetedSweepLockDecorator.create(targetedSweepRateLimitConfig, timeoutExecutor);
+
+        HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
+        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(NoOpLog.INSTANCE, heldLocks);
+        LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
+
         return new AsyncLockService(
                 new LockCollection(targetedSweepLockDecorator),
                 targetedSweepLockDecorator,
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(lockLog, timeoutExecutor, clock),
-                HeldLocksCollection.create(clock),
+                lockAcquirer,
+                heldLocks,
                 new AwaitedLocksCollection(),
+                lockWatchingService,
                 reaperExecutor,
                 clock,
                 lockLog);
@@ -90,6 +98,7 @@ public class AsyncLockService implements Closeable {
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
+            LockWatchingService lockWatchingService,
             ScheduledExecutorService reaperExecutor,
             LeaderClock leaderClock,
             // TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -97,12 +106,13 @@ public class AsyncLockService implements Closeable {
         this.locks = locks;
         this.decorator = decorator;
         this.immutableTsTracker = immutableTimestampTracker;
-        this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
         this.leaderClock = leaderClock;
         this.lockLog = lockLog;
+        this.lockWatchingService = lockWatchingService;
+        this.lockAcquirer = acquirer;
 
         scheduleExpiredLockReaper();
     }

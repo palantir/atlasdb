@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -32,7 +32,6 @@ import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollection {
-
     @VisibleForTesting
     final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
 
@@ -69,18 +68,19 @@ public class HeldLocksCollection {
     }
 
     public void removeExpired() {
-        Iterator<AsyncResult<HeldLocks>> iterator = heldLocksById.values().iterator();
-        while (iterator.hasNext()) {
-            AsyncResult<HeldLocks> lockResult = iterator.next();
-            if (shouldRemove(lockResult)) {
-                iterator.remove();
-            }
-        }
+        heldLocksById.values().removeIf(this::shouldRemove);
     }
 
     public void failAllOutstandingRequestsWithNotCurrentLeaderException() {
         NotCurrentLeaderException ex = new NotCurrentLeaderException("This lock service has been closed");
         heldLocksById.values().forEach(result -> result.failIfNotCompleted(ex));
+    }
+
+    public Set<HeldLocks> locksHeld() {
+        return heldLocksById.values().stream()
+                .filter(AsyncResult::isCompletedSuccessfully)
+                .<HeldLocks>map(AsyncResult::get)
+                .collect(Collectors.toSet());
     }
 
     private Leased<LockToken> createLeasableLockToken(HeldLocks heldLocks) {
