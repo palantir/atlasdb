@@ -47,6 +47,7 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
 
@@ -78,12 +79,17 @@ public class TransactionPostMortemRunner {
 
     public FullDiagnosticDigest<String> conductPostMortem(Persistable row, byte[] columnName) {
         WritesDigest<String> digest = writesDigestEmitter.getDigest(row, columnName);
+        log.info("raw digest", SafeArg.of("rawDigest", digest));
         Map<Long, ClientLockDiagnosticDigest> snapshot = clientLockDiagnosticCollector.getSnapshot();
+        log.info("client lock diagnostic digest", SafeArg.of("clientLockDiagnosticDigest", snapshot));
         Optional<LockDiagnosticInfo> lockDiagnosticInfo = getTimelockDiagnostics(snapshot);
-
+        log.info("lock diagnostic info", SafeArg.of("timelockLockDiagnosticInfo", lockDiagnosticInfo));
         Set<UUID> lockRequestIdsEvictedMidLockRequest = lockDiagnosticInfo
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
                 .orElseGet(ImmutableSet::of);
+
+        log.info("lock Request Ids Evicted Mid Lock Request",
+                SafeArg.of("lockRequestIdsEvictedMidLockRequest", lockRequestIdsEvictedMidLockRequest));
 
         Set<FullDiagnosticDigest.CompletedTransactionDigest<String>> transactionDigests = digest
                 .completedOrAbortedTransactions().keySet().stream()
@@ -93,6 +99,8 @@ public class TransactionPostMortemRunner {
                         lockDiagnosticInfo,
                         snapshot.getOrDefault(startTimestamp, ClientLockDiagnosticDigest.missingEntry())))
                 .collect(Collectors.toSet());
+
+        log.info("transaction digests", SafeArg.of("transactionDigests", transactionDigests));
 
         return ImmutableFullDiagnosticDigest.<String>builder()
                 .rawData(ImmutableRawData.of(digest, lockDiagnosticInfo, snapshot))

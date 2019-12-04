@@ -22,6 +22,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -35,8 +38,11 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 
 public class WritesDigestEmitter {
+
+    private static final Logger log = LoggerFactory.getLogger(WritesDigestEmitter.class);
 
     private final TransactionService transactionService;
     private final TableReference tableReference;
@@ -55,12 +61,16 @@ public class WritesDigestEmitter {
                 keyValueService.getAllTimestamps(tableReference, ImmutableSet.of(asCell), Long.MAX_VALUE);
 
         Collection<Long> allWrittenTimestamps = allWrittenCells.get(asCell);
+        log.info("All written timestamps", SafeArg.of("allWrittenTimestamps", allWrittenTimestamps));
 
         Map<Long, Long> transactionCommitStatuses = transactionService.get(allWrittenTimestamps);
+        log.info("Transaction commit statuses", SafeArg.of("transactionCommitStatuses", transactionCommitStatuses));
 
         Set<Long> inProgressTransactions = Sets.difference(
                 ImmutableSet.copyOf(allWrittenTimestamps),
                 transactionCommitStatuses.keySet());
+
+        log.info("In progress transactions", SafeArg.of("inProgressTransactions", inProgressTransactions));
 
         Set<Long> boundsForCell = allWrittenTimestamps.stream()
                 .map(existingTimestamp -> existingTimestamp + 1)
@@ -75,6 +85,8 @@ public class WritesDigestEmitter {
                 .mapKeys(Value::getTimestamp)
                 .map(WritesDigestEmitter::base64Encode)
                 .collectToMap();
+
+        log.info("All seen written values", SafeArg.of("allSeenWrittenValues", allSeenWrittenValues));
 
         return ImmutableWritesDigest.<String>builder()
                 .allWrittenTimestamps(allWrittenTimestamps)
