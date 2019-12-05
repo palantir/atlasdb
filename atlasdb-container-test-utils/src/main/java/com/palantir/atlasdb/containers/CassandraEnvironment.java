@@ -30,7 +30,7 @@ public final class CassandraEnvironment {
     static final String CASSANDRA_HEAP_NEWSIZE = "CASSANDRA_HEAP_NEWSIZE";
 
     @VisibleForTesting
-    static final String DEFAULT_VERSION = "3.11.4-pt-2.0.0-rc11";
+    static final String DEFAULT_VERSION = "3.11.4-pt-2.0.0-rc12";
     @VisibleForTesting
     static final String DEFAULT_MAX_HEAP_SIZE = "512m";
     @VisibleForTesting

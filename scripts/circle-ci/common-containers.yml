@@ -2,7 +2,7 @@
 #  image: palantirtechnologies/cassandra:2.2.9
 
 cassandra3: # Uncomment when Cassandra 3.11 testing is enabled.
-  image: palantirtechnologies/cassandra:3.11.4-pt-2.0.0-rc11
+  image: palantirtechnologies/cassandra:3.11.4-pt-2.0.0-rc12
 
 postgres:
   image: postgres:9.6-alpine
