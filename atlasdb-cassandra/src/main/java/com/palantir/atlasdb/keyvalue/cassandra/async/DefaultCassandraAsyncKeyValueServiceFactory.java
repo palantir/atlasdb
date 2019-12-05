@@ -31,6 +31,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocationSupplier;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -50,10 +51,12 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
     public AsyncKeyValueService constructAsyncKeyValueService(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            HostLocationSupplier hostLocationSupplier,
             boolean initializeAsync) {
         CqlClient cqlClient = cqlClientFactory.constructClient(
                 metricsManager.getTaggedRegistry(),
                 config,
+                hostLocationSupplier,
                 initializeAsync);
 
         ExecutorService executorService = config.servers().accept(new Visitor<ExecutorService>() {

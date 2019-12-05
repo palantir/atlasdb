@@ -44,6 +44,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocationSupplier;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -65,6 +66,7 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
     public CqlClient constructClient(
             TaggedMetricRegistry taggedMetricRegistry,
             CassandraKeyValueServiceConfig config,
+            HostLocationSupplier hostLocationSupplier,
             boolean initializeAsync) {
         return config.servers().accept(new CassandraServersConfigs.Visitor<CqlClient>() {
             @Override

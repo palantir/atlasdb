@@ -102,6 +102,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTs
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocationSupplier;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
@@ -235,6 +236,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
+        Blacklist blacklist = new Blacklist(config);
+        CassandraService service = new CassandraService(metricsManager, config, blacklist);
 
         CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
                 config,
@@ -246,6 +249,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
+                service.getHostLocationSupplier(),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
@@ -258,20 +262,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 mutationTimestampProvider,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    public static CassandraKeyValueService create(
-            MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            CassandraMutationTimestampProvider mutationTimestampProvider,
-            CassandraClientPool clientPool) {
-        return createOrShutdownClientPool(metricsManager,
-                config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
-                clientPool,
-                mutationTimestampProvider,
-                LoggerFactory.getLogger(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
@@ -311,7 +301,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
-
         Blacklist blacklist = new Blacklist(config);
         CassandraService service = new CassandraService(metricsManager, config, blacklist);
 
@@ -351,6 +340,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool,
                 mutationTimestampProvider,
                 log,
+                service.getHostLocationSupplier(),
                 initializeAsync);
     }
 
@@ -361,6 +351,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
+            HostLocationSupplier hostLocationSupplier,
             boolean initializeAsync) {
         try {
             return createWithCqlClient(
@@ -370,6 +361,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     clientPool,
                     mutationTimestampProvider,
                     log,
+                    hostLocationSupplier,
                     initializeAsync);
         } catch (Exception e) {
             log.warn("Error occurred in creating Cassandra KVS. Now attempting to shut down client pool...", e);
@@ -391,10 +383,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
+            HostLocationSupplier hostLocationSupplier,
             boolean initializeAsync) {
         try {
             AsyncKeyValueService asyncKeyValueService = config.asyncKeyValueServiceFactory()
-                    .constructAsyncKeyValueService(metricsManager, config, initializeAsync);
+                    .constructAsyncKeyValueService(metricsManager, config, hostLocationSupplier, initializeAsync);
 
             return createAndInitialize(
                     metricsManager,

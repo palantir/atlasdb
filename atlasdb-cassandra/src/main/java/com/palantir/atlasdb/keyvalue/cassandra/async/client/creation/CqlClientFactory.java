@@ -18,11 +18,13 @@ package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocationSupplier;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public interface CqlClientFactory {
     CqlClient constructClient(
             TaggedMetricRegistry taggedMetricRegistry,
             CassandraKeyValueServiceConfig config,
+            HostLocationSupplier hostLocationSupplier,
             boolean initializeAsync);
 }

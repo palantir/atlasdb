@@ -18,11 +18,13 @@ package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocationSupplier;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public interface CassandraAsyncKeyValueServiceFactory {
     AsyncKeyValueService constructAsyncKeyValueService(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            HostLocationSupplier hostLocationSupplier,
             boolean initializeAsync);
 }
