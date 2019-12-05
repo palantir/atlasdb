@@ -268,6 +268,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            CassandraMutationTimestampProvider mutationTimestampProvider,
+            CassandraClientPool clientPool,
+            HostLocationSupplier hostLocationSupplier) {
+        return createOrShutdownClientPool(metricsManager,
+                config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault,
+                clientPool,
+                mutationTimestampProvider,
+                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                hostLocationSupplier,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static CassandraKeyValueService create(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             boolean initializeAsync) {
