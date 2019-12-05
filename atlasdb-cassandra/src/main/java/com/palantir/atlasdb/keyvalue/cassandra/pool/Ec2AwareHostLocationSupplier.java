@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.palantir.logsafe.SafeArg;
 
 final class Ec2AwareHostLocationSupplier implements HostLocationSupplier {
@@ -32,25 +31,16 @@ final class Ec2AwareHostLocationSupplier implements HostLocationSupplier {
     private final Supplier<String> snitchSupplier;
     private final Supplier<HostLocation> ec2Supplier;
 
-    public static HostLocationSupplier createMemoized(Supplier<String> snitchSupplier) {
-        HostLocationSupplier delegate = new Ec2AwareHostLocationSupplier(
+    public static HostLocationSupplier create(Supplier<String> snitchSupplier) {
+        return new Ec2AwareHostLocationSupplier(
                 snitchSupplier,
                 new Ec2HostLocationSupplier());
-
-        return new HostLocationSupplier() {
-            private final Supplier<Optional<HostLocation>> memoized = Suppliers.memoize(delegate::get);
-
-            @Override
-            public Optional<HostLocation> get() {
-                return memoized.get();
-            }
-        };
     }
 
     @VisibleForTesting
     Ec2AwareHostLocationSupplier(Supplier<String> snitchSupplier, Supplier<HostLocation> ec2Supplier) {
-        this.snitchSupplier = Suppliers.memoize(snitchSupplier::get);
-        this.ec2Supplier = Suppliers.memoize(ec2Supplier::get);
+        this.snitchSupplier = snitchSupplier;
+        this.ec2Supplier = ec2Supplier;
     }
 
     @Override

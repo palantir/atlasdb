@@ -17,7 +17,19 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
-public interface HostLocationSupplier {
-    Optional<HostLocation> get();
+import com.google.common.base.Suppliers;
+
+final class MemoizedHostLocationSupplier implements HostLocationSupplier {
+    private final Supplier<Optional<HostLocation>> delegate;
+
+    MemoizedHostLocationSupplier(HostLocationSupplier hostLocationSupplier) {
+        this.delegate = Suppliers.memoize(hostLocationSupplier::get);
+    }
+
+    @Override
+    public Optional<HostLocation> get() {
+        return delegate.get();
+    }
 }
