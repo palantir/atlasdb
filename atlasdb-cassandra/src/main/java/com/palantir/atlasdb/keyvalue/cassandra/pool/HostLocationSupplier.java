@@ -21,10 +21,6 @@ import java.util.function.Supplier;
 
 public interface HostLocationSupplier extends Supplier<Optional<HostLocation>> {
 
-    static HostLocationSupplier createForTests() {
-        return Optional::empty;
-    }
-
     @Override
     Optional<HostLocation> get();
 }

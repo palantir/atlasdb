@@ -187,7 +187,7 @@ public class CassandraServiceTest {
                 MetricsManagers.createForTests(),
                 config,
                 blacklist,
-                HostLocationSupplier.createForTests());
+                Optional::empty);
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);
