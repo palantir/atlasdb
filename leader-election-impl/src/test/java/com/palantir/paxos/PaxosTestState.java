@@ -16,12 +16,11 @@
 package com.palantir.paxos;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.assertj.core.api.Assertions;
 
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
@@ -61,7 +60,7 @@ public class PaxosTestState {
         try {
             token = leader(leaderNum).blockOnBecomingLeader();
         } catch (InterruptedException e) {
-            Assertions.fail(e.getMessage(), e);
+            fail(e.getMessage());
         }
         if (checkAfterwards) {
             assertEquals(

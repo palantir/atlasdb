@@ -49,8 +49,7 @@ public interface LeaderElectionService {
     void markNotEligibleForLeadership();
 
     /**
-     * This method will block until this node becomes the leader and is supported by a quorum of nodes. If for any
-     * reason leadership cannot be obtained, this will throw a {@link InterruptedException}.
+     * This method will block until this node becomes the leader and is supported by a quorum of nodes.
      *
      * @return a leadership token to be used with {@link #isStillLeading}
      */

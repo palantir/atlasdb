@@ -61,6 +61,7 @@ public class TimeLockAgent {
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
     private final PaxosResources paxosResources;
+    private final PaxosLeadershipCreator leadershipCreator;
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
@@ -107,6 +108,7 @@ public class TimeLockAgent {
         this.registrar = registrar;
         this.paxosResources = paxosResources;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
+        this.leadershipCreator = new PaxosLeadershipCreator(metricsManager, install, runtime, registrar);
         this.timestampCreator = getTimestampCreator();
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
@@ -116,7 +118,7 @@ public class TimeLockAgent {
         this.timelockCreator = new AsyncTimeLockServicesCreator(
                 metricsManager,
                 lockLog,
-                paxosResources.leadershipComponents(),
+                leadershipCreator,
                 install.lockDiagnosticConfig(),
                 targetedSweepLockControlConfig);
     }
@@ -154,9 +156,10 @@ public class TimeLockAgent {
     private void createAndRegisterResources() {
         registerPaxosResource();
         registerExceptionMappers();
+        leadershipCreator.registerLeaderElectionService();
 
         // Finally, register the health check, and endpoints associated with the clients.
-        healthCheck = paxosResources.leadershipComponents().healthCheck();
+        healthCheck = leadershipCreator.getHealthCheck();
         resource = TimeLockResource.create(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
@@ -228,14 +231,13 @@ public class TimeLockAgent {
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
                 .build();
 
-        Client typedClient = Client.of(client);
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
-                .createTimestampService(typedClient, leaderConfig);
+                .createTimestampService(Client.of(client), leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
-        return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
+        return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
 
     public void shutdown() {
-        paxosResources.leadershipComponents().shutdown();
+        leadershipCreator.shutdown();
     }
 }
