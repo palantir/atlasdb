@@ -27,38 +27,21 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public enum PaxosUseCase {
 
-    // <data-directory>/<client="leaderPaxos">/{acceptor/learner}
-    LEADER_FOR_ALL_CLIENTS(LEADER_PAXOS_NAMESPACE, Paths.get("")) {
-        @Override
-        public Client resolveClient(Client client) {
-            return PSEUDO_LEADERSHIP_CLIENT;
-        }
-    },
-
-    // <data-directory>/leaderPaxos/multiLeaderPaxos/<client>/{acceptor/learner}
+    LEADER_FOR_ALL_CLIENTS(
+            LEADER_PAXOS_NAMESPACE,
+            Paths.get("")), // <data-directory>/<client="leaderPaxos">/{acceptor/learner}
     LEADER_FOR_EACH_CLIENT(
             MULTI_LEADER_PAXOS_NAMESPACE,
-            Paths.get(LEADER_PAXOS_NAMESPACE, MULTI_LEADER_PAXOS_NAMESPACE)) {
-        @Override
-        public Client resolveClient(Client client) {
-            return client;
-        }
-    },
-
-    // <data-directory>/<client>/{acceptor/learner}
-    TIMESTAMP(CLIENT_PAXOS_NAMESPACE, Paths.get("")) {
-        @Override
-        public Client resolveClient(Client client) {
-            throw new SafeIllegalArgumentException("timestamp paxos should not be resolving clients");
-        }
-    };
+            // <data-directory>/leaderPaxos/multiLeaderPaxos/<client>/{acceptor/learner}
+            Paths.get(LEADER_PAXOS_NAMESPACE, MULTI_LEADER_PAXOS_NAMESPACE)),
+    TIMESTAMP(
+            CLIENT_PAXOS_NAMESPACE,
+            Paths.get("")); // <data-directory>
 
     PaxosUseCase(String useCasePath, Path relativeLogDirectory) {
         this.useCasePath = useCasePath;
         this.relativeLogDirectory = relativeLogDirectory;
     }
-
-    static final Client PSEUDO_LEADERSHIP_CLIENT = Client.of(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
 
     private final String useCasePath;
     private final Path relativeLogDirectory;
@@ -88,6 +71,4 @@ public enum PaxosUseCase {
     public Path logDirectoryRelativeToDataDirectory(Path dataDirectory) {
         return dataDirectory.resolve(relativeLogDirectory);
     }
-
-    public abstract Client resolveClient(Client client);
 }

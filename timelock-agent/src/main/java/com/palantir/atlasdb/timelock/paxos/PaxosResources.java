@@ -30,8 +30,6 @@ public abstract class PaxosResources {
     public abstract PaxosResourcesFactory.PaxosUseCaseContext timestamp();
     abstract List<Object> adhocResources();
 
-    abstract LeadershipContextFactory leadershipContextFactory();
-
     @Value.Derived
     public List<Object> resourcesForRegistration() {
         Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase =
@@ -46,14 +44,6 @@ public abstract class PaxosResources {
                 .addAll(adhocResources())
                 .add(combinedBatchResource)
                 .build();
-    }
-
-    @Value.Derived
-    public LeadershipComponents leadershipComponents() {
-        return new LeadershipComponents(
-                leadershipContextFactory().metrics(),
-                leadershipContextFactory(),
-                leadershipContextFactory().leaderPingHealthCheck());
     }
 
     private static BatchPaxosResources batchResourcesForUseCase(
