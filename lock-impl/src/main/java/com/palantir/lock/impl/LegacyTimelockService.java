@@ -96,7 +96,11 @@ public class LegacyTimelockService implements TimelockService {
                     LockTokenConverter.toTokenV2(lock));
         } catch (Throwable e) {
             if (lock != null) {
-                lockService.unlock(lock);
+                try {
+                    lockService.unlock(lock);
+                } catch (Throwable unlockThrowable) {
+                    e.addSuppressed(unlockThrowable);
+                }
             }
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
@@ -109,9 +113,13 @@ public class LegacyTimelockService implements TimelockService {
             return StartIdentifiedAtlasDbTransactionResponse.of(
                     immutableTimestamp,
                     TimestampAndPartition.of(getFreshTimestamp(), 0));
-        } catch (Throwable throwable) {
-            unlock(ImmutableSet.of(immutableTimestamp.getLock()));
-            throw Throwables.throwUncheckedException(throwable);
+        } catch (RuntimeException | Error throwable) {
+            try {
+                unlock(ImmutableSet.of(immutableTimestamp.getLock()));
+            } catch (Throwable unlockThrowable) {
+                throwable.addSuppressed(unlockThrowable);
+            }
+            throw Throwables.rewrapAndThrowUncheckedException(throwable);
         }
     }
 
