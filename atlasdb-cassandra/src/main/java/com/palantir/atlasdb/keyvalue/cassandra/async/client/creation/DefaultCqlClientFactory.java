@@ -77,7 +77,7 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
             public Optional<CqlClient> visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
                 if (!cqlCapableConfig.validateHosts()) {
                     log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same, using "
-                            + "async API will result in an exception.");
+                            + "async API will be falling back to synchronous implementations.");
                     return Optional.empty();
                 }
 
