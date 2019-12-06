@@ -141,6 +141,12 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
+    public void tryUnlock(Set<LockToken> tokens) {
+        // Generally this involves putting the token on a queue.
+        delegate.tryUnlock(tokens);
+    }
+
+    @Override
     public long currentTimeMillis() {
         return runTaskTimed("currentTimeMillis", delegate::currentTimeMillis);
     }

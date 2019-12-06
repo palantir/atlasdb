@@ -68,16 +68,14 @@ public interface TimelockService {
 
     /**
      * A version of {@link TimelockService#unlock(Set)} where one does not need to know whether the locks associated
-     * with the provided tokens were successfully unlocked or not.
+     * with the provided tokens were successfully unlocked or not. In general, this may be implemented as a call to
+     * {@link #unlock(Set)} ignoring the return value.
      *
      * In some implementations, this may be more performant than a standard unlock.
      *
      * @param tokens Tokens for which associated locks should be unlocked.
      */
-    @DoNotDelegate
-    default void tryUnlock(Set<LockToken> tokens) {
-        unlock(tokens);
-    }
+    void tryUnlock(Set<LockToken> tokens);
 
     long currentTimeMillis();
 }

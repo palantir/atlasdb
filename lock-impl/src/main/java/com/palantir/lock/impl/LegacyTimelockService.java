@@ -168,6 +168,11 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
+    public void tryUnlock(Set<LockToken> tokens) {
+        unlock(tokens);
+    }
+
+    @Override
     public long currentTimeMillis() {
         return lockService.currentTimeMillis();
     }

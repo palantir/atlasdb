@@ -95,6 +95,12 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
+    public void tryUnlock(Set<LockToken> tokens) {
+        // This is just above the RPC level
+        throw new UnsupportedOperationException("tryUnlock in transaction protocol is wrong");
+    }
+
+    @Override
     public long currentTimeMillis() {
         return rpcClient.currentTimeMillis();
     }
