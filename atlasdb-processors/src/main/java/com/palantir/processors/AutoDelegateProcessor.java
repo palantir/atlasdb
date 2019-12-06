@@ -110,6 +110,8 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 TypeElement typeElement = validateAnnotatedElement(annotatedElement);
                 TypeToExtend typeToExtend = createTypeToExtend(typeElement);
 
+                validateMethodsToBeAutoDelegated(typeElement, typeToExtend);
+
                 if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
                     continue;
                 }
@@ -137,6 +139,20 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
 
         return (TypeElement) annotatedElement;
+    }
+
+    private static void validateMethodsToBeAutoDelegated(Element annotatedElement, TypeToExtend typeToExtend)
+            throws ProcessingException {
+        Set<ExecutableElement> methodsToBeDelegated = typeToExtend.getMethods();
+
+        for (ExecutableElement methodElement : methodsToBeDelegated) {
+            if (methodElement.getModifiers().contains(Modifier.DEFAULT)
+                && methodElement.getAnnotation(DoDelegate.class) == null
+            ) {
+                throw new ProcessingException(annotatedElement, "Default methods must be annotated with " +
+                        "either @DoNotDelegate or @DoDelegate");
+            }
+        }
     }
 
     private TypeToExtend createTypeToExtend(TypeElement annotatedElement) throws ProcessingException {
