@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
 import java.net.InetSocketAddress;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -62,22 +63,22 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
         this(Cluster::builder);
     }
 
-    public CqlClient constructClient(
+    public Optional<CqlClient> constructClient(
             TaggedMetricRegistry taggedMetricRegistry,
             CassandraKeyValueServiceConfig config,
             boolean initializeAsync) {
-        return config.servers().accept(new CassandraServersConfigs.Visitor<CqlClient>() {
+        return config.servers().accept(new CassandraServersConfigs.Visitor<Optional<CqlClient>>() {
             @Override
-            public CqlClient visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
-                return ThrowingCqlClientImpl.SINGLETON;
+            public Optional<CqlClient> visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
+                return Optional.empty();
             }
 
             @Override
-            public CqlClient visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
+            public Optional<CqlClient> visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
                 if (!cqlCapableConfig.validateHosts()) {
                     log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same, using "
                             + "async API will result in an exception.");
-                    return ThrowingCqlClientImpl.SINGLETON;
+                    return Optional.empty();
                 }
 
                 Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
@@ -97,11 +98,11 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
                 clusterBuilder = withLoadBalancingPolicy(clusterBuilder, config, servers);
                 clusterBuilder = withSocketOptions(clusterBuilder, config);
 
-                return CqlClientImpl.create(
+                return Optional.of(CqlClientImpl.create(
                         taggedMetricRegistry,
                         clusterBuilder.build(),
                         cqlCapableConfig.tuning(),
-                        initializeAsync);
+                        initializeAsync));
             }
         });
     }
