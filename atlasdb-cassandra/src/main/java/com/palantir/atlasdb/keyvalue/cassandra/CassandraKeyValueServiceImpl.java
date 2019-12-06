@@ -216,7 +216,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
-    private final AsyncKeyValueService asyncKeyValueService;
+    private final Optional<AsyncKeyValueService> asyncKeyValueService;
     private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
@@ -364,7 +364,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            AsyncKeyValueService asyncKeyValueService = config.asyncKeyValueServiceFactory()
+            Optional<AsyncKeyValueService> asyncKeyValueService = config.asyncKeyValueServiceFactory()
                     .constructAsyncKeyValueService(metricsManager, config, initializeAsync);
 
             return createAndInitialize(
@@ -387,7 +387,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
-            AsyncKeyValueService asyncKeyValueService,
+            Optional<AsyncKeyValueService> asyncKeyValueService,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
@@ -407,7 +407,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
-            AsyncKeyValueService asyncKeyValueService,
+            Optional<AsyncKeyValueService> asyncKeyValueService,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
@@ -1669,7 +1669,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
-        asyncKeyValueService.close();
+        asyncKeyValueService.ifPresent(AsyncKeyValueService::close);
         super.close();
     }
 
@@ -1943,7 +1943,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return Futures.immediateFuture(ImmutableMap.of());
         }
 
-        return asyncKeyValueService.getAsync(tableRef, timestampByCell);
+        return asyncKeyValueService.map(asyncKvs -> asyncKvs.getAsync(tableRef, timestampByCell))
+                .orElseGet(() -> Futures.immediateFuture(this.get(tableRef, timestampByCell)));
     }
 
     private static class TableCellAndValue {

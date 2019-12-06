@@ -123,7 +123,7 @@ public class CassandraContainer extends Container {
         return config;
     }
 
-    CassandraKeyValueServiceConfig getConfigWithProxy(SocketAddress proxyAddress) {
+    public CassandraKeyValueServiceConfig getConfigWithProxy(SocketAddress proxyAddress) {
         Preconditions.checkState(config.servers() instanceof CqlCapableConfig, "Has to be CqlCapableConfig");
         CqlCapableConfig cqlCapableConfig = (CqlCapableConfig) config.servers();
 
@@ -139,7 +139,7 @@ public class CassandraContainer extends Container {
                 .build();
     }
 
-    String getServiceName() {
+    public String getServiceName() {
         return name;
     }
 }

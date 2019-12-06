@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -47,11 +48,11 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
     }
 
     @Override
-    public AsyncKeyValueService constructAsyncKeyValueService(
+    public Optional<AsyncKeyValueService> constructAsyncKeyValueService(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             boolean initializeAsync) {
-        CqlClient cqlClient = cqlClientFactory.constructClient(
+        Optional<CqlClient> cqlClient = cqlClientFactory.constructClient(
                 metricsManager.getTaggedRegistry(),
                 config,
                 initializeAsync);
@@ -74,10 +75,10 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
             }
         });
 
-        return CassandraAsyncKeyValueService.create(
+        return cqlClient.map(client -> CassandraAsyncKeyValueService.create(
                 config.getKeyspaceOrThrow(),
-                cqlClient,
-                AtlasFutures.futuresCombiner(executorService));
+                client,
+                AtlasFutures.futuresCombiner(executorService)));
     }
 
     /**
