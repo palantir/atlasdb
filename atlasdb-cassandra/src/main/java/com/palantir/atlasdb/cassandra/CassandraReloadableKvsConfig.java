@@ -15,14 +15,19 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.base.MoreObjects;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
-public class CassandraReloadableKvsConfig implements AutoDelegate_CassandraKeyValueServiceConfig {
+public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceConfig {
     private final CassandraKeyValueServiceConfig config;
     private final Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigSupplier;
 
@@ -33,14 +38,104 @@ public class CassandraReloadableKvsConfig implements AutoDelegate_CassandraKeyVa
     }
 
     @Override
-    public CassandraKeyValueServiceConfig delegate() {
-        return config;
+    public CassandraServersConfigs.CassandraServersConfig servers() {
+        return config.servers();
+    }
+
+    @Override
+    public Map<String, InetSocketAddress> addressTranslation() {
+        return config.addressTranslation();
+    }
+
+    @Override
+    public Optional<String> namespace() {
+        return config.namespace();
+    }
+
+    @Override
+    public int poolSize() {
+        return config.poolSize();
+    }
+
+    @Override
+    public int maxConnectionBurstSize() {
+        return config.maxConnectionBurstSize();
+    }
+
+    @Override
+    public double proportionConnectionsToCheckPerEvictionRun() {
+        return config.proportionConnectionsToCheckPerEvictionRun();
+    }
+
+    @Override
+    public int idleConnectionTimeoutSeconds() {
+        return config.idleConnectionTimeoutSeconds();
+    }
+
+    @Override
+    public int timeBetweenConnectionEvictionRunsSeconds() {
+        return config.timeBetweenConnectionEvictionRunsSeconds();
+    }
+
+    @Override
+    public int poolRefreshIntervalSeconds() {
+        return config.poolRefreshIntervalSeconds();
     }
 
     @Override
     public int unresponsiveHostBackoffTimeSeconds() {
         return chooseConfig(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds,
                 config.unresponsiveHostBackoffTimeSeconds());
+    }
+
+    @Override
+    public int gcGraceSeconds() {
+        return config.gcGraceSeconds();
+    }
+
+    @Override
+    public double localHostWeighting() {
+        return config.localHostWeighting();
+    }
+
+    @Override
+    public Optional<HostLocation> overrideHostLocation() {
+        return config.overrideHostLocation();
+    }
+
+    @Override
+    public String getKeyspaceOrThrow() {
+        return config.getKeyspaceOrThrow();
+    }
+
+    @Override
+    public Optional<String> keyspace() {
+        return config.keyspace();
+    }
+
+    @Override
+    public CassandraCredentialsConfig credentials() {
+        return config.credentials();
+    }
+
+    @Override
+    public Optional<Boolean> ssl() {
+        return config.ssl();
+    }
+
+    @Override
+    public Optional<SslConfiguration> sslConfiguration() {
+        return config.sslConfiguration();
+    }
+
+    @Override
+    public CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
+        return config.asyncKeyValueServiceFactory();
+    }
+
+    @Override
+    public int replicationFactor() {
+        return config.replicationFactor();
     }
 
 
@@ -63,9 +158,99 @@ public class CassandraReloadableKvsConfig implements AutoDelegate_CassandraKeyVa
     }
 
     @Override
+    public boolean ignoreNodeTopologyChecks() {
+        return config.ignoreNodeTopologyChecks();
+    }
+
+    @Override
+    public boolean ignoreInconsistentRingChecks() {
+        return config.ignoreInconsistentRingChecks();
+    }
+
+    @Override
+    public boolean ignoreDatacenterConfigurationChecks() {
+        return config.ignoreDatacenterConfigurationChecks();
+    }
+
+    @Override
+    public boolean ignorePartitionerChecks() {
+        return config.ignorePartitionerChecks();
+    }
+
+    @Override
+    public boolean autoRefreshNodes() {
+        return config.autoRefreshNodes();
+    }
+
+    @Override
+    public boolean clusterMeetsNormalConsistencyGuarantees() {
+        return config.clusterMeetsNormalConsistencyGuarantees();
+    }
+
+    @Override
+    public int socketTimeoutMillis() {
+        return config.socketTimeoutMillis();
+    }
+
+    @Override
+    public int socketQueryTimeoutMillis() {
+        return config.socketQueryTimeoutMillis();
+    }
+
+    @Override
+    public int cqlPoolTimeoutMillis() {
+        return config.cqlPoolTimeoutMillis();
+    }
+
+    @Override
+    public int schemaMutationTimeoutMillis() {
+        return config.schemaMutationTimeoutMillis();
+    }
+
+    @Override
+    public int rangesConcurrency() {
+        return config.rangesConcurrency();
+    }
+
+    @Override
+    public Integer timestampsGetterBatchSize() {
+        return config.timestampsGetterBatchSize();
+    }
+
+    @Override
     public Integer sweepReadThreads() {
         return chooseConfig(CassandraKeyValueServiceRuntimeConfig::sweepReadThreads,
                 config.sweepReadThreads());
+    }
+
+    @Override
+    public Optional<CassandraJmxCompactionConfig> jmx() {
+        return config.jmx();
+    }
+
+    @Override
+    public String type() {
+        return config.type();
+    }
+
+    @Override
+    public int concurrentGetRangesThreadPoolSize() {
+        return config.concurrentGetRangesThreadPoolSize();
+    }
+
+    @Override
+    public int defaultGetRangesConcurrency() {
+        return config.defaultGetRangesConcurrency();
+    }
+
+    @Override
+    public boolean usingSsl() {
+        return config.usingSsl();
+    }
+
+    @Override
+    public void check() {
+
     }
 
     private <T> T chooseConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> runtimeConfig, T installConfig) {

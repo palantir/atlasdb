@@ -44,7 +44,6 @@ import com.palantir.processors.AutoDelegate;
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
-@AutoDelegate
 @Value.Immutable
 public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
