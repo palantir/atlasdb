@@ -24,7 +24,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.net.Proxy;
 import java.util.Optional;
 
 import org.junit.After;
@@ -54,17 +53,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     public static final CassandraResource CASSANDRA_RESOURCE = new CassandraResource();
 
     private KeyValueService keyValueService;
-    private Proxy socksProxy;
     private AsyncKeyValueService asyncKeyValueService;
     private CassandraAsyncKeyValueServiceFactory factory;
-
-    private static ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(
-            CassandraKeyValueServiceConfig config,
-            int gcGraceSeconds) {
-        return ImmutableCassandraKeyValueServiceConfig
-                .copyOf(config)
-                .withGcGraceSeconds(gcGraceSeconds);
-    }
 
 
     @Before
