@@ -21,9 +21,12 @@ import java.util.Map;
 import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -32,10 +35,27 @@ import com.google.common.collect.TreeRangeSet;
 import com.google.common.primitives.Ints;
 import com.palantir.lock.LockDescriptor;
 
+/**
+ * Note on concurrency:
+ *
+ * Multiple threads may simultaneously try to update the tracker, potentially with overlapping updates. At the same
+ * time, it is allowed to return a slightly stale version on calls to currentState, so we do not want to block on
+ * updates. This is implemented as follows.
+ *
+ * 1. Updates are synchronized, and the values of watches, singleLocks, openLocksEvents, lastKnownVersion, and leaderId
+ *    are only changed within the synchronized block. This ensures that two threads are not going to conflict during an
+ *    update, or do unnecessary work.
+ * 2. Furthermore, changes to the values of watches, singleLocks, openLocksEvents, lastKnownVersion are also guarded by
+ *    a write lock. This allows calls to currentState() to return a consistent version of lock watch state even if an
+ *    update is in progress, as long as the write lock is not locked
+ */
+@ThreadSafe
 public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
-    private ReadWriteLock lock = new ReentrantReadWriteLock();
-    private AtomicReference<RangeSet<LockDescriptor>> watches = new AtomicReference<>(TreeRangeSet.create());
-    private AtomicReference<Map<LockDescriptor, LockWatchInfo>> singleLocks = new AtomicReference<>(ImmutableMap.of());
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final AtomicReference<RangeSet<LockDescriptor>> watches = new AtomicReference<>(TreeRangeSet.create());
+    private final AtomicReference<Map<LockDescriptor, LockWatchInfo>> singleLocks = new AtomicReference<>(
+            ImmutableMap.of());
+    private final ConcurrentSkipListSet<UUID> openLocksEvents = new ConcurrentSkipListSet<>();
     private final ConcurrentMap<Long, VersionedLockWatchState> startTsToLockWatchState = Maps.newConcurrentMap();
     private volatile OptionalLong lastKnownVersion = OptionalLong.empty();
     private volatile UUID leaderId = UUID.randomUUID();
@@ -52,23 +72,89 @@ public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
 
     @Override
     public synchronized VersionedLockWatchState updateState(LockWatchStateUpdate update) {
-        if (leaderId != update.leaderId() || !lastKnownVersion.isPresent() || !update.success()) {
-            resetAll(update);
-            return currentState();
-        }
-        if (update.events().isEmpty() || update.lastKnownVersion().getAsLong() <= lastKnownVersion.getAsLong()) {
+        if (!update.success()) {
+            resetAllState(update);
             return currentState();
         }
 
-        TreeRangeSet<LockDescriptor> updatedWatches = TreeRangeSet.create(watches.get());
-        Map<LockDescriptor, LockWatchInfo> updatedLocks = new HashMap<>(singleLocks.get());
-        LockWatchStateUpdater visitor = new LockWatchStateUpdater(updatedWatches, updatedLocks);
+        if (leaderId != update.leaderId()) {
+            runUpdate(true, update);
+            return currentState();
+        }
 
-        long firstVersion = update.events().get(0).sequence();
-        update.events().subList(Ints.saturatedCast(lastKnownVersion.getAsLong() - firstVersion),
-                update.events().size()).forEach(event -> event.accept(visitor));
-        setAll(updatedWatches, updatedLocks, update.lastKnownVersion());
+        if (!lastKnownVersion.isPresent()) {
+            resetAllState(update);
+            return currentState();
+        }
+
+        long currentTrackedVersion = lastKnownVersion.getAsLong();
+        if (updateNotPossible(update, currentTrackedVersion)) {
+            return currentState();
+        }
+
+        runUpdate(false, update);
         return currentState();
+    }
+
+    private void resetAllState(LockWatchStateUpdate update) {
+        lock.writeLock().lock();
+        try {
+            openLocksEvents.clear();
+            watches.set(TreeRangeSet.create());
+            singleLocks.set(ImmutableMap.of());
+            lastKnownVersion = update.lastKnownVersion();
+            leaderId = update.leaderId();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private void runUpdate(boolean resetState, LockWatchStateUpdate update) {
+        TreeRangeSet<LockDescriptor> watchesToUpdate;
+        Map<LockDescriptor, LockWatchInfo> locksToUpdate;
+        int firstUpdateIndex;
+
+        if (resetState) {
+            openLocksEvents.clear();
+            watchesToUpdate = TreeRangeSet.create();
+            locksToUpdate = new HashMap<>();
+            firstUpdateIndex = 0;
+        } else {
+            watchesToUpdate = TreeRangeSet.create(watches.get());
+            locksToUpdate = new HashMap<>(singleLocks.get());
+            firstUpdateIndex = Ints.saturatedCast(lastKnownVersion.getAsLong() + 1 - update.events().get(0).sequence());
+        }
+
+        LockWatchStateUpdater visitor = new LockWatchStateUpdater(watchesToUpdate, locksToUpdate, openLocksEvents);
+        update.events().listIterator(firstUpdateIndex).forEachRemaining(event -> event.accept(visitor));
+        setAll(watchesToUpdate, locksToUpdate, update);
+    }
+
+    private void setAll(TreeRangeSet<LockDescriptor> updatedWatches, Map<LockDescriptor, LockWatchInfo> updatedLocks,
+            LockWatchStateUpdate update) {
+        lock.writeLock().lock();
+        try {
+            watches.set(updatedWatches);
+            singleLocks.set(updatedLocks);
+            lastKnownVersion = update.lastKnownVersion();
+            leaderId = update.leaderId();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private boolean updateNotPossible(LockWatchStateUpdate update, long currentTrackedVersion) {
+        return update.events().isEmpty()
+                || staleUpdate(update, currentTrackedVersion)
+                || versionDiscontinuity(update, currentTrackedVersion);
+    }
+
+    private boolean staleUpdate(LockWatchStateUpdate update, long currentTrackedVersion) {
+        return update.lastKnownVersion().getAsLong() <= currentTrackedVersion;
+    }
+
+    private boolean versionDiscontinuity(LockWatchStateUpdate update, long currentTrackedVersion) {
+        return update.events().get(0).sequence() > currentTrackedVersion + 1;
     }
 
     @Override
@@ -84,29 +170,5 @@ public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
     @Override
     public VersionedLockWatchState removeLockWatchStateForStartTimestamp(long startTimestamp) {
         return startTsToLockWatchState.remove(startTimestamp);
-    }
-
-    private void resetAll(LockWatchStateUpdate update) {
-        lock.writeLock().lock();
-        try {
-            watches.set(TreeRangeSet.create());
-            singleLocks.set(ImmutableMap.of());
-            lastKnownVersion = update.lastKnownVersion();
-            leaderId = update.leaderId();
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    private void setAll(TreeRangeSet<LockDescriptor> updatedWatches, Map<LockDescriptor, LockWatchInfo> updatedLocks,
-            OptionalLong version) {
-        lock.writeLock().lock();
-        try {
-            watches.set(updatedWatches);
-            singleLocks.set(updatedLocks);
-            lastKnownVersion = version;
-        } finally {
-            lock.writeLock().unlock();
-        }
     }
 }

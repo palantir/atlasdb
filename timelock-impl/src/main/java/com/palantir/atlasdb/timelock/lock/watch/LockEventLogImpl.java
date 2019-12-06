@@ -60,12 +60,12 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     @Override
-    public void logOpenLocks(Set<LockDescriptor> openLocks) {
-        slidingWindow.add(LockWatchOpenLocksEvent.builder(openLocks));
+    public void logOpenLocks(Set<LockDescriptor> openLocks, UUID requestId) {
+        slidingWindow.add(LockWatchOpenLocksEvent.builder(openLocks, requestId));
     }
 
     @Override
-    public void logLockWatchCreated(LockWatchRequest locksToWatch) {
-        slidingWindow.add(LockWatchCreatedEvent.builder(locksToWatch));
+    public void logLockWatchCreated(LockWatchRequest locksToWatch, UUID requestId) {
+        slidingWindow.add(LockWatchCreatedEvent.builder(locksToWatch, requestId));
     }
 }

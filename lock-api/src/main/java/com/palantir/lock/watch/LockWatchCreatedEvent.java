@@ -16,21 +16,25 @@
 
 package com.palantir.lock.watch;
 
+import java.util.UUID;
+
 import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 public abstract class LockWatchCreatedEvent implements LockWatchEvent {
-    abstract LockWatchRequest request();
+    public abstract UUID lockWatchId();
+    public abstract LockWatchRequest request();
 
     @Override
     public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
     }
 
-    public static LockWatchEvent.Builder builder(LockWatchRequest request) {
+    public static LockWatchEvent.Builder builder(LockWatchRequest request, UUID lockWatchId) {
         ImmutableLockWatchCreatedEvent.Builder builder = ImmutableLockWatchCreatedEvent.builder()
-                .request(request);
+                .request(request)
+                .lockWatchId(lockWatchId);
         return seq -> builder.sequence(seq).build();
     }
 }

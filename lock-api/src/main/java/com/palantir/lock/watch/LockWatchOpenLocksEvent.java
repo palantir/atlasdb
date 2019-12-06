@@ -17,6 +17,7 @@
 package com.palantir.lock.watch;
 
 import java.util.Set;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -25,6 +26,7 @@ import com.palantir.lock.LockDescriptor;
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 public abstract class LockWatchOpenLocksEvent implements LockWatchEvent {
+    public abstract UUID lockWatchId();
     public abstract Set<LockDescriptor> lockDescriptors();
 
     @Override
@@ -32,9 +34,10 @@ public abstract class LockWatchOpenLocksEvent implements LockWatchEvent {
         return visitor.visit(this);
     }
 
-    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors) {
+    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, UUID lockWatchId) {
         ImmutableLockWatchOpenLocksEvent.Builder builder = ImmutableLockWatchOpenLocksEvent.builder()
-                .lockDescriptors(lockDescriptors);
+                .lockDescriptors(lockDescriptors)
+                .lockWatchId(lockWatchId);
         return seq -> builder.sequence(seq).build();
     }
 }

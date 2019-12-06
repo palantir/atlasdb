@@ -18,6 +18,8 @@ package com.palantir.lock.watch;
 
 import java.util.Map;
 import java.util.OptionalLong;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.RangeSet;
@@ -26,12 +28,15 @@ import com.palantir.lock.LockDescriptor;
 public class LockWatchStateUpdater implements LockWatchEvent.Visitor<Void> {
     private final RangeSet<LockDescriptor> watches;
     private final Map<LockDescriptor, LockWatchInfo> lockWatchState;
+    private final Set<UUID> unmatchedOpenLocksEvents;
 
-    public LockWatchStateUpdater(
+    LockWatchStateUpdater(
             RangeSet<LockDescriptor> watches,
-            Map<LockDescriptor, LockWatchInfo> lockWatchState) {
+            Map<LockDescriptor, LockWatchInfo> lockWatchState,
+            Set<UUID> unmatchedOpenLocksEvents) {
         this.watches = watches;
         this.lockWatchState = lockWatchState;
+        this.unmatchedOpenLocksEvents = unmatchedOpenLocksEvents;
     }
 
     @Override
@@ -45,7 +50,7 @@ public class LockWatchStateUpdater implements LockWatchEvent.Visitor<Void> {
     @Override
     public Void visit(UnlockEvent unlockEvent) {
         for (LockDescriptor descriptor : unlockEvent.lockDescriptors()) {
-            OptionalLong lastLocked = lockWatchState.get(descriptor).lastLocked();
+            OptionalLong lastLocked = lockWatchState.getOrDefault(descriptor, LockWatchInfo.NOT_WATCHED).lastLocked();
             lockWatchState.put(descriptor, LockWatchInfo.of(LockWatchInfo.State.UNLOCKED, lastLocked));
         }
         return null;
@@ -56,14 +61,17 @@ public class LockWatchStateUpdater implements LockWatchEvent.Visitor<Void> {
         for (LockDescriptor descriptor : openLocksEvent.lockDescriptors()) {
             lockWatchState.put(descriptor, LockWatchInfo.of(LockWatchInfo.State.LOCKED, openLocksEvent.sequence()));
         }
+        unmatchedOpenLocksEvents.add(openLocksEvent.lockWatchId());
         return null;
     }
 
     @Override
     public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-        watches.addAll(lockWatchCreatedEvent.request().references().stream()
-                .map(ref -> ref.accept(LockWatchReferences.TO_RANGES_VISITOR))
-                .collect(Collectors.toList()));
+        if (unmatchedOpenLocksEvents.remove(lockWatchCreatedEvent.lockWatchId())) {
+            watches.addAll(lockWatchCreatedEvent.request().references().stream()
+                    .map(ref -> ref.accept(LockWatchReferences.TO_RANGES_VISITOR))
+                    .collect(Collectors.toList()));
+        }
         return null;
     }
 }

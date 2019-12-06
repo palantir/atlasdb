@@ -63,7 +63,11 @@ public interface LockWatchStateUpdate {
                 .build();
     }
 
-    static LockWatchStateUpdate failure(UUID uuid, OptionalLong version) {
-        return of(uuid, false, version, ImmutableList.of());
+    static LockWatchStateUpdate failure(UUID uuid, OptionalLong lastKnownVersion) {
+        return of(uuid, false, lastKnownVersion, ImmutableList.of());
+    }
+
+    static LockWatchStateUpdate update(UUID uuid, long lastKnownVersion, List<LockWatchEvent> events) {
+        return of(uuid, true, OptionalLong.of(lastKnownVersion), events);
     }
 }

@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -78,7 +80,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         verifyLoggedOpenLocks(1, ImmutableSet.of(ROW_DESCRIPTOR));
-        verify(log).logLockWatchCreated(request);
+        verify(log).logLockWatchCreated(eq(request), any(UUID.class));
         verifyNoMoreInteractions(log);
     }
 
@@ -96,7 +98,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(entireTableRequest);
 
         verifyLoggedOpenLocks(2, ImmutableSet.of(ROW_DESCRIPTOR, secondRow));
-        verify(log).logLockWatchCreated(entireTableRequest);
+        verify(log).logLockWatchCreated(eq(entireTableRequest), any(UUID.class));
     }
 
     @Test
@@ -105,11 +107,11 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         verifyLoggedOpenLocks(1, ImmutableSet.of(ROW_DESCRIPTOR));
-        verify(log).logLockWatchCreated(request);
+        verify(log).logLockWatchCreated(eq(request), any(UUID.class));
 
         LockWatchRequest prefixRequest = prefixRequest(TABLE, ROW);
         lockWatcher.startWatching(prefixRequest);
-        verify(log).logLockWatchCreated(prefixRequest);
+        verify(log).logLockWatchCreated(eq(prefixRequest), any(UUID.class));
     }
 
     @Test
@@ -213,7 +215,7 @@ public class LockWatchingServiceImplTest {
     @SuppressWarnings("unchecked")
     private void verifyLoggedOpenLocks(int invocations, Set<LockDescriptor> locks) {
         ArgumentCaptor<Set<LockDescriptor>> captor = ArgumentCaptor.forClass(Set.class);
-        verify(log, times(invocations)).logOpenLocks(captor.capture());
+        verify(log, times(invocations)).logOpenLocks(captor.capture(), any(UUID.class));
         assertThat(captor.getValue()).containsExactlyInAnyOrderElementsOf(locks);
     }
 
