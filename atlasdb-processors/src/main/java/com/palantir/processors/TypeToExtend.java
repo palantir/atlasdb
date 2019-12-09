@@ -71,6 +71,7 @@ final class TypeToExtend {
         return element.getKind() == ElementKind.METHOD
                 && element.getModifiers().contains(Modifier.PUBLIC)
                 && !element.getModifiers().contains(Modifier.STATIC)
+                && !element.getModifiers().contains(Modifier.DEFAULT)
                 && element.getAnnotation(DoNotDelegate.class) == null;
     }
 

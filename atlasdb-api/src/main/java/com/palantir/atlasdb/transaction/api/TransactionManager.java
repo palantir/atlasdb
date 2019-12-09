@@ -153,7 +153,6 @@ public interface TransactionManager extends AutoCloseable {
      * @deprecated use {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)} instead.
      * @see #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)
      */
-    @DoNotDelegate
     @Deprecated
     @Timed
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
@@ -188,7 +187,6 @@ public interface TransactionManager extends AutoCloseable {
      * @deprecated use {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)} instead.
      * @see #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)
      */
-    @DoNotDelegate
     @Deprecated
     @Timed
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
@@ -240,7 +238,6 @@ public interface TransactionManager extends AutoCloseable {
      * @deprecated use {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)} instead.
      * @see #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)
      */
-    @DoNotDelegate
     @Deprecated
     @Timed
     default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
@@ -318,7 +315,6 @@ public interface TransactionManager extends AutoCloseable {
     TimelockService getTimelockService();
 
     // todo(gmaretic): implement
-    @DoNotDelegate
     default TableWatchingService getTableWatchingService() {
         return NoOpTableWatchingService.INSTANCE;
     }

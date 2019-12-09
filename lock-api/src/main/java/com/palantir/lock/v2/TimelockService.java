@@ -33,7 +33,6 @@ public interface TimelockService {
      *
      * @return true iff the TimelockService has been fully initialized and is ready to use
      */
-    @DoNotDelegate
     default boolean isInitialized() {
         return true;
     }
