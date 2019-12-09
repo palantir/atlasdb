@@ -95,6 +95,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
+    public void tryUnlock(Set<LockToken> tokens) {
+        unlock(tokens);
+    }
+
+    @Override
     public long currentTimeMillis() {
         return rpcClient.currentTimeMillis();
     }

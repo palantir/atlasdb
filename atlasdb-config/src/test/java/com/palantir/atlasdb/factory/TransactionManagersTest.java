@@ -47,6 +47,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.ws.rs.core.Response;
 
@@ -104,7 +105,9 @@ import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.PingableLeader;
+import com.palantir.lock.AutoDelegate_LockService;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
@@ -112,6 +115,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
@@ -308,6 +312,56 @@ public class TransactionManagersTest {
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(0, postRequestedFor(urlMatching(LOCK_PATH))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+    }
+
+    @Test
+    public void tryUnlockIsAsync() throws IOException {
+        setUpForLocalServices();
+        setUpLeaderBlockInConfig();
+
+        ThreadLocal<Boolean> inRequest = ThreadLocal.withInitial(() -> false);
+        Supplier<LockService> lockServiceSupplier = () -> {
+            LockService lockService = LockServiceImpl.create();
+            return new AutoDelegate_LockService() {
+
+                @Override
+                public boolean unlock(LockRefreshToken token) {
+                    assertThat(inRequest.get()).describedAs("unlock was synchronous").isFalse();
+                    return delegate().unlock(token);
+                }
+
+                @Override
+                public LockService delegate() {
+                    return lockService;
+                }
+            };
+        };
+
+        InMemoryTimestampService ts = new InMemoryTimestampService();
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp =
+                TransactionManagers.createLockAndTimestampServices(
+                        metricsManager,
+                        config,
+                        () -> runtimeConfig,
+                        environment,
+                        lockServiceSupplier,
+                        () -> ts,
+                        invalidator,
+                        USER_AGENT,
+                        Optional.empty());
+
+        LockRequest lockRequest = LockRequest
+                .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE)).build();
+        LockResponse lockResponse = lockAndTimestamp.timelock().lock(
+                com.palantir.lock.v2.LockRequest.of(lockRequest.getLockDescriptors(), 0));
+        assertThat(lockResponse.wasSuccessful()).isTrue();
+
+        try {
+            inRequest.set(true);
+            lockAndTimestamp.timelock().tryUnlock(ImmutableSet.of(lockResponse.getToken()));
+        } finally {
+            inRequest.set(false);
+        }
     }
 
     @Test

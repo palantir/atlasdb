@@ -74,10 +74,7 @@ public interface TimelockService {
      *
      * @param tokens Tokens for which associated locks should be unlocked.
      */
-    @DoNotDelegate
-    default void tryUnlock(Set<LockToken> tokens) {
-        unlock(tokens);
-    }
+    void tryUnlock(Set<LockToken> tokens);
 
     long currentTimeMillis();
 }
