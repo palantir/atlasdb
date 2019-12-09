@@ -24,5 +24,7 @@ dependencies {
   compile group: "org.awaitility", name: "awaitility"
 
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
-  testCompile group: 'org.jmock', name: 'jmock'
+  testCompile(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'org.hamcrest'
+  }
 }

@@ -16,7 +16,9 @@ dependencies {
 
   testCompile project(":atlasdb-tests-shared")
   testCompile group: 'junit', name: 'junit'
-  testCompile group: 'org.jmock', name: 'jmock'
+  testCompile(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'org.hamcrest'
+  }
   testCompile group: 'org.awaitility', name: 'awaitility'
   testCompile group: 'org.mockito', name: 'mockito-core'
 }
