@@ -21,7 +21,6 @@ import javax.ws.rs.QueryParam;
 
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
-import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 @AutoDelegate

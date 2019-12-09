@@ -27,7 +27,6 @@ public interface TestInterface {
     int methodWithReturnTypeAndParameters(int p1);
     int methodWithReturnTypeAndVarArgs(int... parameters);
 
-    @DoNotDelegate
     void methodThatMustBeImplemented();
 
     void overloadedMethod();
