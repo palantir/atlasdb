@@ -2124,7 +2124,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         Map<Long, Long> startToCommitTimestamps = Maps.newHashMap();
         Set<Long> gets = Sets.newHashSet();
-        for (long startTs : startTimestamps) {
+        for (Long startTs : startTimestamps) {
             Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
             if (cached != null) {
                 startToCommitTimestamps.put(startTs, cached);
@@ -2154,8 +2154,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 rawResults -> {
                     for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
                         if (e.getValue() != null) {
-                            long startTs = e.getKey();
-                            long commitTs = e.getValue();
+                            Long startTs = e.getKey();
+                            Long commitTs = e.getValue();
                             startToCommitTimestamps.put(startTs, commitTs);
                             timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
                         }
@@ -2206,7 +2206,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
-            long singleTs = startTimestamps.iterator().next();
+            Long singleTs = startTimestamps.iterator().next();
             return Futures.transform(asyncTransactionService.getAsync(singleTs),
                     commitTsOrNull -> commitTsOrNull == null
                             ? ImmutableMap.of()
