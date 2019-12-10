@@ -119,7 +119,7 @@ public class LegacyTimelockService implements TimelockService {
             } catch (Throwable unlockThrowable) {
                 throwable.addSuppressed(unlockThrowable);
             }
-            throw Throwables.rewrapAndThrowUncheckedException(throwable);
+            throw throwable;
         }
     }
 
