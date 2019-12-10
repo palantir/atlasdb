@@ -22,7 +22,11 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface LockWatchInfo {
-    LockWatchInfo NOT_WATCHED = ImmutableLockWatchInfo.of(State.NOT_WATCHED, OptionalLong.empty());
+    /**
+     * Used to denote lock watch info for locks that are not watched, or more generally, for locks for which the state
+     * is currently unknown.
+     */
+    LockWatchInfo UNKNOWN = ImmutableLockWatchInfo.of(State.NOT_WATCHED, OptionalLong.empty());
 
     @Value.Parameter
     State state();

@@ -50,7 +50,7 @@ public class LockWatchStateUpdater implements LockWatchEvent.Visitor<Void> {
     @Override
     public Void visit(UnlockEvent unlockEvent) {
         for (LockDescriptor descriptor : unlockEvent.lockDescriptors()) {
-            OptionalLong lastLocked = lockWatchState.getOrDefault(descriptor, LockWatchInfo.NOT_WATCHED).lastLocked();
+            OptionalLong lastLocked = lockWatchState.getOrDefault(descriptor, LockWatchInfo.UNKNOWN).lastLocked();
             lockWatchState.put(descriptor, LockWatchInfo.of(LockWatchInfo.State.UNLOCKED, lastLocked));
         }
         return null;

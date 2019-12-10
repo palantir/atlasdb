@@ -31,7 +31,8 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
 
     public VersionedLockWatchStateImpl(OptionalLong version,
             RangeSet<LockDescriptor> watchedRanges,
-            Map<LockDescriptor, LockWatchInfo> locks, UUID leaderId) {
+            Map<LockDescriptor, LockWatchInfo> locks,
+            UUID leaderId) {
         this.version = version;
         this.watchedRanges = watchedRanges;
         this.locks = locks;
@@ -56,6 +57,6 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
         if (watchedRanges.contains(lockDescriptor)) {
             return LockWatchInfo.of(LockWatchInfo.State.UNLOCKED, OptionalLong.empty());
         }
-        return LockWatchInfo.NOT_WATCHED;
+        return LockWatchInfo.UNKNOWN;
     }
 }

@@ -47,7 +47,7 @@ public class LockWatchEventTrackerImplTest {
     public void stateWithNoUpdatesIsNotWatched() {
         VersionedLockWatchState state = tracker.currentState();
         assertThat(state.version()).isEmpty();
-        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.NOT_WATCHED);
+        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.UNKNOWN);
     }
 
     @Test
@@ -58,9 +58,9 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(update);
         VersionedLockWatchState state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(0));
+        assertThat(state.version()).hasValue(0);
         assertThat(state.leaderId()).isEqualTo(leaderId);
-        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.NOT_WATCHED);
+        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.UNKNOWN);
     }
 
     @Test
@@ -73,10 +73,27 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(update);
         VersionedLockWatchState state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(1));
+        assertThat(state.version()).hasValue(1);
         assertThat(state.leaderId()).isEqualTo(leaderId);
         assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, OptionalLong.of(0)));
         assertThat(state.lockWatchState(OTHER_DESCRIPTOR)).isEqualTo(LockWatchInfo.of(UNLOCKED, OptionalLong.empty()));
+    }
+
+    @Test
+    public void lockAfterOpenLockBeforeLockWatchCreatedMeansLockIsLocked() {
+        UUID leaderId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        LockWatchStateUpdate update = LockWatchStateUpdate.update(leaderId, 2, ImmutableList.of(
+                LockWatchOpenLocksEvent.builder(ImmutableSet.of(DESCRIPTOR), requestId).build(0),
+                LockEvent.builder(ImmutableSet.of(OTHER_DESCRIPTOR)).build(1),
+                LockWatchCreatedEvent.builder(ROW_PREFIX_REQ, requestId).build(2)));
+
+        tracker.updateState(update);
+        VersionedLockWatchState state = tracker.currentState();
+        assertThat(state.version()).hasValue(2);
+        assertThat(state.leaderId()).isEqualTo(leaderId);
+        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, OptionalLong.of(0)));
+        assertThat(state.lockWatchState(OTHER_DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, OptionalLong.of(1)));
     }
 
     @Test
@@ -88,7 +105,7 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(update);
         VersionedLockWatchState state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(1));
+        assertThat(state.version()).hasValue(1);
         assertThat(state.leaderId()).isEqualTo(leaderId);
         assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(UNLOCKED, OptionalLong.of(0)));
 
@@ -97,7 +114,7 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(secondUpdate);
         state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(2));
+        assertThat(state.version()).hasValue(2);
         assertThat(state.leaderId()).isEqualTo(leaderId);
         assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, OptionalLong.of(2)));
     }
@@ -111,7 +128,7 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(update);
         VersionedLockWatchState state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(0));
+        assertThat(state.version()).hasValue(0);
         assertThat(state.leaderId()).isEqualTo(oldLeader);
         assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, OptionalLong.of(0)));
 
@@ -119,9 +136,9 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(newUpdate);
         state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(6));
+        assertThat(state.version()).hasValue(6);
         assertThat(state.leaderId()).isEqualTo(oldLeader);
-        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.NOT_WATCHED);
+        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.UNKNOWN);
 
         LockWatchStateUpdate attemptToRegister = LockWatchStateUpdate.update(oldLeader, 7,
                 ImmutableList.of(LockWatchCreatedEvent.builder(ROW_PREFIX_REQ, lockWatchId).build(7)));
@@ -130,7 +147,7 @@ public class LockWatchEventTrackerImplTest {
         state = tracker.currentState();
         assertThat(state.version()).isEqualTo(OptionalLong.of(7));
         assertThat(state.leaderId()).isEqualTo(oldLeader);
-        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.NOT_WATCHED);
+        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.UNKNOWN);
     }
 
     @Test
@@ -142,7 +159,7 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(update);
         VersionedLockWatchState state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(0));
+        assertThat(state.version()).hasValue(0);
         assertThat(state.leaderId()).isEqualTo(oldLeader);
         assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, OptionalLong.of(0)));
 
@@ -153,9 +170,9 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(newUpdate);
         state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(6));
+        assertThat(state.version()).hasValue(6);
         assertThat(state.leaderId()).isEqualTo(newLeader);
-        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.NOT_WATCHED);
+        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.UNKNOWN);
         assertThat(state.lockWatchState(OTHER_DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, 6));
 
         LockWatchStateUpdate attemptToRegister = LockWatchStateUpdate.update(newLeader, 7,
@@ -163,9 +180,9 @@ public class LockWatchEventTrackerImplTest {
 
         tracker.updateState(attemptToRegister);
         state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(7));
+        assertThat(state.version()).hasValue(7);
         assertThat(state.leaderId()).isEqualTo(newLeader);
-        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.NOT_WATCHED);
+        assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.UNKNOWN);
     }
 
     @Test
@@ -178,7 +195,7 @@ public class LockWatchEventTrackerImplTest {
         tracker.updateState(update);
         tracker.updateState(update);
         VersionedLockWatchState state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(0));
+        assertThat(state.version()).hasValue(0);
         assertThat(state.leaderId()).isEqualTo(leaderId);
         assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, OptionalLong.of(0)));
     }
@@ -195,9 +212,9 @@ public class LockWatchEventTrackerImplTest {
         tracker.updateState(update);
         tracker.updateState(futureUpdate);
         VersionedLockWatchState state = tracker.currentState();
-        assertThat(state.version()).isEqualTo(OptionalLong.of(0));
+        assertThat(state.version()).hasValue(0);
         assertThat(state.leaderId()).isEqualTo(leaderId);
         assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(LOCKED, OptionalLong.of(0)));
-        assertThat(state.lockWatchState(OTHER_DESCRIPTOR)).isEqualTo(LockWatchInfo.NOT_WATCHED);
+        assertThat(state.lockWatchState(OTHER_DESCRIPTOR)).isEqualTo(LockWatchInfo.UNKNOWN);
     }
 }

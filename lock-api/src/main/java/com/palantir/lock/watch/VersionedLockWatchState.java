@@ -19,6 +19,7 @@ package com.palantir.lock.watch;
 import java.util.OptionalLong;
 import java.util.UUID;
 
+import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.LockDescriptor;
 
 public interface VersionedLockWatchState {
@@ -39,7 +40,17 @@ public interface VersionedLockWatchState {
         }
     };
 
+    /**
+     * The last known log version that was used to build this lock watch state.
+     */
     OptionalLong version();
+    /**
+     * The id of the timelock leader that the lock watch state is associated with.
+     */
     UUID leaderId();
+    /**
+     * Given a lockDescriptor, returns the associated lock watch info given the current lock watch state.
+     */
+    @Idempotent
     LockWatchInfo lockWatchState(LockDescriptor lockDescriptor);
 }

@@ -43,11 +43,12 @@ import com.palantir.lock.LockDescriptor;
  * updates. This is implemented as follows.
  *
  * 1. Updates are synchronized, and the values of watches, singleLocks, openLocksEvents, lastKnownVersion, and leaderId
- *    are only changed within the synchronized block. This ensures that two threads are not going to conflict during an
+ *    are only changed within the synchronized block. This ensures that no two threads are going to conflict during an
  *    update, or do unnecessary work.
- * 2. Furthermore, changes to the values of watches, singleLocks, openLocksEvents, lastKnownVersion are also guarded by
- *    a write lock. This allows calls to currentState() to return a consistent version of lock watch state even if an
- *    update is in progress, as long as the write lock is not locked
+ * 2. Furthermore, access to watches, singleLocks, openLocksEvents, and lastKnownVersion is generally guarded by a
+ *    read/write lock (except for reads in the synchronized block, which are safe due to 1.). This allows calls to
+ *    currentState() to return a consistent version of lock watch state using a read lock without blocking on an
+ *    in-progress update, as long as the write lock is not locked
  */
 @ThreadSafe
 public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
@@ -77,13 +78,8 @@ public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
             return currentState();
         }
 
-        if (leaderId != update.leaderId()) {
-            runUpdate(true, update);
-            return currentState();
-        }
-
-        if (!lastKnownVersion.isPresent()) {
-            resetAllState(update);
+        if (leaderId != update.leaderId() || !lastKnownVersion.isPresent()) {
+            resetAllStateAndSeedWith(update);
             return currentState();
         }
 
@@ -92,10 +88,13 @@ public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
             return currentState();
         }
 
-        runUpdate(false, update);
+        accumulateStateWith(update);
         return currentState();
     }
 
+    /**
+     * In this case, the update contains no events, so we can only set the leader ID and last known version.
+     */
     private void resetAllState(LockWatchStateUpdate update) {
         lock.writeLock().lock();
         try {
@@ -109,7 +108,21 @@ public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
         }
     }
 
-    private void runUpdate(boolean resetState, LockWatchStateUpdate update) {
+    /**
+     * In this case, we have to reset the state, but we can seed the new state with the events from the update.
+     */
+    private void resetAllStateAndSeedWith(LockWatchStateUpdate update) {
+        updateInternal(true, update);
+    }
+
+    /**
+     * Success case, where we add the events from the update to the current state.
+     */
+    private void accumulateStateWith(LockWatchStateUpdate update) {
+        updateInternal(false, update);
+    }
+
+    private void updateInternal(boolean resetState, LockWatchStateUpdate update) {
         TreeRangeSet<LockDescriptor> watchesToUpdate;
         Map<LockDescriptor, LockWatchInfo> locksToUpdate;
         int firstUpdateIndex;
