@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.leader.NotCurrentLeaderException;
 
 /**
@@ -63,7 +62,7 @@ final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
             } catch (InvocationTargetException e) {
                 Throwable targetException = e.getTargetException();
                 if (targetException instanceof NotCurrentLeaderException) {
-                    Uninterruptibles.sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
+                    Thread.sleep(10);
                     continue;
                 }
                 throw targetException;

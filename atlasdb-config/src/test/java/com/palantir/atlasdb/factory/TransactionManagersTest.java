@@ -17,6 +17,7 @@ package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -39,12 +40,16 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -76,6 +81,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
@@ -104,7 +110,9 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
@@ -401,6 +409,36 @@ public class TransactionManagersTest {
                 .serializable();
         assertThat(metrics.getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+    }
+
+    @Test
+    public void interruptingLocalLeaderElectionTerminates() throws IOException {
+        Path tempDir = Files.createTempDirectory("foo");
+        Leaders.LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
+                metricsManager,
+                environment,
+                ImmutableLeaderConfig.builder()
+                        .localServer("https://example")
+                        .quorumSize(1)
+                        .addLeaders("https://example")
+                        .acceptorLogDir(tempDir.resolve("acceptor").toFile())
+                        .learnerLogDir(tempDir.resolve("learner").toFile())
+                        .build(),
+                () -> ImmutableLeaderRuntimeConfig.builder().build(),
+                USER_AGENT);
+        LeaderElectionService leader = localPaxosServices.leaderElectionService();
+        LockService lockService = LockServiceImpl.create();
+        LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(
+                LockService.class, () -> lockService, leader);
+        LockService localOrRemoteLock = LocalOrRemoteProxy.newProxyInstance(
+                LockService.class, leadershipLock, null, CompletableFuture.completedFuture(true));
+        try {
+            Thread.currentThread().interrupt();
+            localOrRemoteLock.currentTimeMillis();
+            fail("expected InterruptedException");
+        } catch (UndeclaredThrowableException e) {
+            assertThat(e.getCause()).isInstanceOf(InterruptedException.class);
+        }
     }
 
     @Test
