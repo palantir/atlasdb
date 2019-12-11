@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingTableWatchingService;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -95,6 +96,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
+                new NotWatchingTableWatchingService(
+                        new LegacyTimelockService(timestampService, lockService, lockClient)),
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -134,6 +137,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
+                new NotWatchingTableWatchingService(
+                        new LegacyTimelockService(timestampService, lockService, lockClient)),
                 timestampManagementService,
                 lockService,
                 transactionService,

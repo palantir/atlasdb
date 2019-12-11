@@ -37,8 +37,10 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.LockWatchEventTracker;
+import com.palantir.lock.watch.VersionedLockWatchState;
 
 /**
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
@@ -59,9 +61,9 @@ final class TransactionStarter implements AutoCloseable {
         this.lockLeaseService = lockLeaseService;
     }
 
-    static TransactionStarter create(LockLeaseService lockLeaseService) {
+    static TransactionStarter create(LockLeaseService lockLeaseService, LockWatchEventTracker lockWatchTracker) {
         DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher = Autobatchers
-                .independent(consumer(lockLeaseService))
+                .independent(consumer(lockLeaseService, lockWatchTracker))
                 .safeLoggablePurpose("transaction-starter")
                 .build();
         return new TransactionStarter(autobatcher,
@@ -138,12 +140,12 @@ final class TransactionStarter implements AutoCloseable {
 
     @VisibleForTesting
     static Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
-            LockLeaseService lockLeaseService) {
+            LockLeaseService lockLeaseService, LockWatchEventTracker lockWatchTracker) {
         return batch -> {
             int numTransactions = batch.size();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(lockLeaseService, numTransactions);
+                    getStartTransactionResponses(lockLeaseService, lockWatchTracker, numTransactions);
 
             for (int i = 0; i < numTransactions; i++) {
                 batch.get(i).result().set(startTransactionResponses.get(i));
@@ -152,15 +154,24 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockLeaseService lockLeaseService, int numberOfTransactions) {
+            LockLeaseService lockLeaseService, LockWatchEventTracker lockWatchTracker, int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
-            result.addAll(split(lockLeaseService.startTransactions(numberOfTransactions - result.size())));
+            StartTransactionResponseV5 response = lockLeaseService.startTransactionsWithWatches(
+                    lockWatchTracker.currentState().version(), numberOfTransactions - result.size());
+            VersionedLockWatchState lockWatchState = lockWatchTracker.updateState(response.lockWatchUpdate());
+            List<StartIdentifiedAtlasDbTransactionResponse> splitResponses = split(response);
+            splitResponses.forEach(instance -> {
+                lockWatchTracker.setLockWatchStateForStartTimestamp(
+                        instance.startTimestampAndPartition().timestamp(),
+                        lockWatchState);
+                result.add(instance);
+            });
         }
         return result;
     }
 
-    private static List<StartIdentifiedAtlasDbTransactionResponse> split(StartTransactionResponseV4 batchedResponse) {
+    private static List<StartIdentifiedAtlasDbTransactionResponse> split(StartTransactionResponseV5 batchedResponse) {
         PartitionedTimestamps partitionedTimestamps = batchedResponse.timestamps();
         int partition = partitionedTimestamps.partition();
 

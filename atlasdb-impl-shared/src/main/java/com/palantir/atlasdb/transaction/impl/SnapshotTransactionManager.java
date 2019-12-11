@@ -58,6 +58,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampManagementService;
@@ -70,6 +71,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
+    private final TableWatchingService tableWatchingService;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -92,6 +94,7 @@ import com.palantir.timestamp.TimestampService;
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TableWatchingService tableWatchingService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -113,6 +116,7 @@ import com.palantir.timestamp.TimestampService;
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
+        this.tableWatchingService = tableWatchingService;
         this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
         this.transactionService = transactionService;
@@ -379,6 +383,11 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TimelockService getTimelockService() {
         return timelockService;
+    }
+
+    @Override
+    public TableWatchingService getTableWatchingService() {
+        return tableWatchingService;
     }
 
     /**

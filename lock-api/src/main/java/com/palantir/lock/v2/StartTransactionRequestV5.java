@@ -32,4 +32,13 @@ public interface StartTransactionRequestV5 {
     UUID requestorId();
     OptionalLong lastKnownLockLogVersion();
     int numTransactions();
+
+    static StartTransactionRequestV5 createForRequestor(UUID requestorId, OptionalLong lockVersion, int number) {
+        return ImmutableStartTransactionRequestV5.builder()
+                .requestId(UUID.randomUUID())
+                .requestorId(requestorId)
+                .lastKnownLockLogVersion(lockVersion)
+                .numTransactions(number)
+                .build();
+    }
 }

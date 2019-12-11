@@ -14,23 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.v2.LockToken;
 
 public interface TableWatchingService {
-    /**
-     * Registers watches.
-     */
     @Idempotent
     void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchEntries);
 
-    /**
-     * Returns the current state of all registered watches.
-     */
-    TableWatchState getLockWatchStateUpdate(OptionalLong lastKnownState);
+    VersionedLockWatchState getLockWatchState(long startTimestamp);
+
+    TimestampWithLockInfo getCommitTimestampWithLockInfo(long startTimestamp, LockToken locksToIgnore);
 }

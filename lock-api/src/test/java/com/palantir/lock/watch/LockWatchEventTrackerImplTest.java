@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 
 public class LockWatchEventTrackerImplTest {
     private static final String TABLE_NAME = "test.table";
@@ -40,6 +41,7 @@ public class LockWatchEventTrackerImplTest {
     private static final LockDescriptor OTHER_DESCRIPTOR = AtlasCellLockDescriptor.of(TABLE_NAME, ROW, LOL);
     private static final LockWatchRequest ROW_PREFIX_REQ = LockWatchRequest.of(
             ImmutableSet.of(LockWatchReferences.rowPrefix(TABLE_NAME, ROW)));
+    private static final LockToken TOKEN = LockToken.of(UUID.randomUUID());
 
     private final LockWatchEventTracker tracker = new LockWatchEventTrackerImpl();
 
@@ -85,7 +87,7 @@ public class LockWatchEventTrackerImplTest {
         UUID requestId = UUID.randomUUID();
         LockWatchStateUpdate update = LockWatchStateUpdate.update(leaderId, 2, ImmutableList.of(
                 LockWatchOpenLocksEvent.builder(ImmutableSet.of(DESCRIPTOR), requestId).build(0),
-                LockEvent.builder(ImmutableSet.of(OTHER_DESCRIPTOR)).build(1),
+                LockEvent.builder(ImmutableSet.of(OTHER_DESCRIPTOR), TOKEN).build(1),
                 LockWatchCreatedEvent.builder(ROW_PREFIX_REQ, requestId).build(2)));
 
         tracker.updateState(update);
@@ -100,7 +102,7 @@ public class LockWatchEventTrackerImplTest {
     public void lockCanBeUpdated() {
         UUID leaderId = UUID.randomUUID();
         LockWatchStateUpdate update = LockWatchStateUpdate.update(leaderId, 1, ImmutableList.of(
-                        LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(0),
+                        LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(0),
                         UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(1)));
 
         tracker.updateState(update);
@@ -110,7 +112,7 @@ public class LockWatchEventTrackerImplTest {
         assertThat(state.lockWatchState(DESCRIPTOR)).isEqualTo(LockWatchInfo.of(UNLOCKED, OptionalLong.of(0)));
 
         LockWatchStateUpdate secondUpdate = LockWatchStateUpdate.update(leaderId, 2, ImmutableList.of(
-                        LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(2)));
+                        LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(2)));
 
         tracker.updateState(secondUpdate);
         state = tracker.currentState();
@@ -166,7 +168,7 @@ public class LockWatchEventTrackerImplTest {
         UUID newLeader = UUID.randomUUID();
         LockWatchStateUpdate newUpdate = LockWatchStateUpdate.update(newLeader, 6, ImmutableList.of(
                 UnlockEvent.builder(ImmutableSet.of(OTHER_DESCRIPTOR)).build(5),
-                LockEvent.builder(ImmutableSet.of(OTHER_DESCRIPTOR)).build(6)));
+                LockEvent.builder(ImmutableSet.of(OTHER_DESCRIPTOR), TOKEN).build(6)));
 
         tracker.updateState(newUpdate);
         state = tracker.currentState();
@@ -189,7 +191,7 @@ public class LockWatchEventTrackerImplTest {
     public void repeatingUpdatesIsNoOp() {
         UUID leaderId = UUID.randomUUID();
         LockWatchStateUpdate update = LockWatchStateUpdate.update(leaderId, 0, ImmutableList.of(
-                        LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(0)));
+                        LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(0)));
 
         tracker.updateState(update);
         tracker.updateState(update);
@@ -204,10 +206,10 @@ public class LockWatchEventTrackerImplTest {
     public void updateStartingAfterLastKnownVersionIsNoOp() {
         UUID leaderId = UUID.randomUUID();
         LockWatchStateUpdate update = LockWatchStateUpdate.update(leaderId, 0, ImmutableList.of(
-                LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(0)));
+                LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(0)));
 
         LockWatchStateUpdate futureUpdate = LockWatchStateUpdate.update(leaderId, 7, ImmutableList.of(
-                LockEvent.builder(ImmutableSet.of(OTHER_DESCRIPTOR)).build(7)));
+                LockEvent.builder(ImmutableSet.of(OTHER_DESCRIPTOR), TOKEN).build(7)));
 
         tracker.updateState(update);
         tracker.updateState(futureUpdate);

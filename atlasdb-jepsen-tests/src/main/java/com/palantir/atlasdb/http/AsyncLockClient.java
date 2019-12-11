@@ -27,13 +27,14 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchEventTrackerImpl;
 import com.palantir.logsafe.Preconditions;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private final TimelockService timelockService;
 
     private AsyncLockClient(NamespacedTimelockRpcClient timelockService) {
-        this.timelockService = RemoteTimelockServiceAdapter.create(timelockService);
+        this.timelockService = RemoteTimelockServiceAdapter.create(timelockService, new LockWatchEventTrackerImpl());
     }
 
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {

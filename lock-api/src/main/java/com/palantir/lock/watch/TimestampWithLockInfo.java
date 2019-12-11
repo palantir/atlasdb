@@ -20,25 +20,23 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public abstract class LockEvent implements LockWatchEvent {
-    public abstract Set<LockDescriptor> lockDescriptors();
-    public abstract LockToken lockToken();
+public interface TimestampWithLockInfo {
+    @Value.Parameter
+    long timestamp();
+    @Value.Parameter
+    boolean invalidateAll();
+    @Value.Parameter
+    Set<LockDescriptor> locksSinceLastKnownState();
 
-    @Override
-    public <T> T accept(Visitor<T> visitor) {
-        return visitor.visit(this);
+    static TimestampWithLockInfo invalidate(long timestamp) {
+        return ImmutableTimestampWithLockInfo.of(timestamp, true, ImmutableSet.of());
     }
 
-    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, LockToken lockToken) {
-        ImmutableLockEvent.Builder builder = ImmutableLockEvent.builder()
-                .lockDescriptors(lockDescriptors)
-                .lockToken(lockToken);
-        return seq -> builder.sequence(seq).build();
+    static TimestampWithLockInfo diff(long timestamp, Set<LockDescriptor> newLocks) {
+        return ImmutableTimestampWithLockInfo.of(timestamp, false, newLocks);
     }
 }
-

@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingTableWatchingService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -50,6 +51,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -206,6 +208,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TableWatchingService tableWatchingService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -228,6 +231,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         return create(metricsManager,
                 keyValueService,
                 timelockService,
+                tableWatchingService,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -255,6 +259,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TableWatchingService tableWatchingService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -277,6 +282,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         return create(metricsManager,
                 keyValueService,
                 timelockService,
+                tableWatchingService,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -303,6 +309,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TableWatchingService tableWatchingService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -326,6 +333,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                tableWatchingService,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -352,6 +360,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TableWatchingService tableWatchingService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -376,6 +385,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                tableWatchingService,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -423,10 +433,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue) {
+        TimelockService legacyTimelock = new LegacyTimelockService(timestampService, lockService, lockClient);
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                legacyTimelock,
+                new NotWatchingTableWatchingService(legacyTimelock),
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -448,6 +460,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public SerializableTransactionManager(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TableWatchingService tableWatchingService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -468,6 +481,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                tableWatchingService,
                 timestampManagementService,
                 lockService,
                 transactionService,

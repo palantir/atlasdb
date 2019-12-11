@@ -40,6 +40,7 @@ import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingTableWatchingService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -68,11 +69,13 @@ public class SnapshotTransactionManagerTest {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
+    private final TimelockService legacyTimelock = new LegacyTimelockService(timestampService, closeableLockService,
+            LockClient.of("lock"));
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             metricsManager,
             keyValueService,
-            new LegacyTimelockService(timestampService, closeableLockService,
-                    LockClient.of("lock")),
+            legacyTimelock,
+            new NotWatchingTableWatchingService(legacyTimelock),
             timestampService,
             closeableLockService,
             mock(TransactionService.class),
@@ -116,11 +119,13 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
+        TimelockService otherTimelock = new LegacyTimelockService(ts, closeableLockService, LockClient.of("lock"));
+
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(ts, closeableLockService,
-                        LockClient.of("lock")),
+                otherTimelock,
+                new NotWatchingTableWatchingService(otherTimelock),
                 ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -212,6 +217,7 @@ public class SnapshotTransactionManagerTest {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                new NotWatchingTableWatchingService(timelockService),
                 timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),

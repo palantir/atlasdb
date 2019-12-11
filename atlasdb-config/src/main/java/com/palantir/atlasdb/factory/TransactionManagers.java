@@ -89,6 +89,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingTableWatchingService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -164,6 +165,12 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchEventTracker;
+import com.palantir.lock.watch.LockWatchEventTrackerImpl;
+import com.palantir.lock.watch.LockWatchingRpcClient;
+import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
+import com.palantir.lock.watch.TableWatchingService;
+import com.palantir.lock.watch.TableWatchingServiceImpl;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -430,11 +437,16 @@ public abstract class TransactionManagers {
                 .<ConflictTracer>map(Function.identity())
                 .orElse(ConflictTracer.NO_OP);
 
+        TableWatchingService tableWatchingService = lockAndTimestampServices
+                .tableWatchingService()
+                .orElseGet(() -> new NotWatchingTableWatchingService(lockAndTimestampServices.timelock()));
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
                         keyValueService,
                         lockAndTimestampServices.timelock(),
+                        tableWatchingService,
                         lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
                         transactionService,
@@ -989,16 +1001,24 @@ public abstract class TransactionManagers {
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(withDiagnosticsTimelockClient, timelockNamespace);
 
+        LockWatchEventTracker lockWatchTracker = new LockWatchEventTrackerImpl();
+
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
-                = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient);
+                = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient, lockWatchTracker);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 creator.createService(TimestampManagementRpcClient.class), timelockNamespace);
+        TableWatchingService tableWatchingService = new TableWatchingServiceImpl(
+                new NamespacedLockWatchingRpcClient(timelockNamespace,
+                        creator.createService(LockWatchingRpcClient.class)),
+                namespacedTimelockRpcClient,
+                lockWatchTracker);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
                 .timelock(remoteTimelockServiceAdapter)
+                .tableWatchingService(tableWatchingService)
                 .close(remoteTimelockServiceAdapter::close)
                 .build();
     }
@@ -1183,6 +1203,7 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagement();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
+        Optional<TableWatchingService> tableWatchingService();
 
         @Value.Derived
         default ManagedTimestampService managedTimestampService() {

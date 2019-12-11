@@ -123,7 +123,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, cellSuffixDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR));
     }
 
@@ -136,7 +136,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(rowRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(rowDescriptor));
     }
 
@@ -150,7 +150,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(prefixRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor, notPrefixDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor));
     }
 
@@ -172,7 +172,7 @@ public class LockWatchingServiceImplTest {
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(
                 cellInRange, cellOutOfRange, rowInRange, rowInRange2, rowOutOfRange);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(cellInRange, rowInRange, rowInRange2));
     }
 
@@ -187,7 +187,7 @@ public class LockWatchingServiceImplTest {
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet
                 .of(CELL_DESCRIPTOR, cellOutOfRange, rowInRange, rowOutOfRange);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR, rowInRange));
     }
 
@@ -222,7 +222,7 @@ public class LockWatchingServiceImplTest {
     @SuppressWarnings("unchecked")
     private void verifyLoggedLocks(int invocations, Set<LockDescriptor> locks) {
         ArgumentCaptor<Set<LockDescriptor>> captor = ArgumentCaptor.forClass(Set.class);
-        verify(log, times(invocations)).logLock(captor.capture());
+        verify(log, times(invocations)).logLock(captor.capture(), eq(TOKEN));
         assertThat(captor.getValue()).containsExactlyInAnyOrderElementsOf(locks);
     }
 

@@ -40,6 +40,7 @@ import com.google.common.collect.TreeRangeSet;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 
 public class LockWatchStateUpdaterTest {
@@ -53,6 +54,7 @@ public class LockWatchStateUpdaterTest {
     private static final LockWatchEvent OPEN_LOCKS_EVENT = LockWatchOpenLocksEvent
             .builder(ImmutableSet.of(DESCRIPTOR), UUID.randomUUID())
             .build(1);
+    private static final LockToken TOKEN = LockToken.of(UUID.randomUUID());
 
     private final RangeSet<LockDescriptor> watches = TreeRangeSet.create();
     private final Map<LockDescriptor, LockWatchInfo> lockWatchState = new HashMap<>();
@@ -148,7 +150,7 @@ public class LockWatchStateUpdaterTest {
 
     @Test
     public void watchesAreNotUpdatedOnOtherEvents() {
-        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(1);
+        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(1);
         LockWatchEvent unlock = UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(2);
         LockWatchEvent openLocks = LockWatchOpenLocksEvent
                 .builder(ImmutableSet.of(DESCRIPTOR), UUID.randomUUID())
@@ -170,7 +172,7 @@ public class LockWatchStateUpdaterTest {
 
     @Test
     public void correctlyUpdatesOnLock() {
-        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(1);
+        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(1);
         lock.accept(updater);
         assertThat(lockWatchState).containsExactly(entry(DESCRIPTOR, LockWatchInfo.of(LOCKED, OptionalLong.of(1))));
     }
@@ -183,7 +185,7 @@ public class LockWatchStateUpdaterTest {
 
     @Test
     public void correctlyUpdatesLockThenUnlock() {
-        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(1);
+        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(1);
         LockWatchEvent unlock = UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(2);
 
         lock.accept(updater);
@@ -207,7 +209,7 @@ public class LockWatchStateUpdaterTest {
     @Test
     public void correctlyUpdatesUnlockThenLock() {
         LockWatchEvent unlock = UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(1);
-        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(2);
+        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(2);
 
         unlock.accept(updater);
         lock.accept(updater);
@@ -218,7 +220,7 @@ public class LockWatchStateUpdaterTest {
 
     @Test
     public void updatesForDifferentLockDescriptorsAreIndependent() {
-        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR)).build(1);
+        LockWatchEvent lock = LockEvent.builder(ImmutableSet.of(DESCRIPTOR), TOKEN).build(1);
         LockDescriptor cellDescriptor = AtlasCellLockDescriptor.of(TABLE_NAME, ROW, ROW);
         LockWatchEvent unlock = UnlockEvent.builder(ImmutableSet.of(cellDescriptor)).build(2);
 

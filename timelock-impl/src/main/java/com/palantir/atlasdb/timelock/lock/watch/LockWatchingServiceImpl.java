@@ -29,6 +29,7 @@ import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -57,8 +58,8 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public void registerLock(Set<LockDescriptor> locksTakenOut) {
-        lockEventLog.logLock(locksTakenOut.stream().filter(this::hasLockWatch).collect(Collectors.toSet()));
+    public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
+        lockEventLog.logLock(locksTakenOut.stream().filter(this::hasLockWatch).collect(Collectors.toSet()), token);
     }
 
     @Override
