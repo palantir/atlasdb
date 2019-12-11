@@ -20,19 +20,13 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
+import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public abstract class AbstractConditionAwareTransactionManager extends AbstractTransactionManager {
     private final Supplier<TransactionRetryStrategy> retryStrategy;
-
-    protected static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
-        @Override
-        public void throwIfConditionInvalid(long timestamp) {}
-
-        @Override
-        public void cleanup() {}
-    };
 
     AbstractConditionAwareTransactionManager(
             MetricsManager metricsManager, TimestampCache timestampCache, Supplier<TransactionRetryStrategy> retryStrategy) {
@@ -41,7 +35,7 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
         return retryStrategy.get().runWithRetry(this::shouldStopRetrying, () -> {
             checkOpen();
@@ -53,16 +47,17 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionThrowOnConflict(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+        return runTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP, (txn, condition) -> task.execute(txn));
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionWithRetry(() -> NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+        return runTaskWithConditionWithRetry(() -> PreCommitConditions.NO_OP, (txn, condition) -> task.execute(txn));
     }
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionReadOnly(NO_OP_CONDITION, (transaction, condition) -> task.execute(transaction));
+        return runTaskWithConditionReadOnly(PreCommitConditions.NO_OP,
+                (transaction, condition) -> task.execute(transaction));
     }
 }

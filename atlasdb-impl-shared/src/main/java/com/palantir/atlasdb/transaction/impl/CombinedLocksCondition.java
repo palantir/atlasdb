@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockService;
+import com.palantir.lock.watch.TimestampWithLockInfo;
 
 public class CombinedLocksCondition implements AdvisoryLocksCondition {
     private final ExternalLocksCondition externalLocksCondition;
@@ -37,9 +38,9 @@ public class CombinedLocksCondition implements AdvisoryLocksCondition {
     }
 
     @Override
-    public void throwIfConditionInvalid(long timestamp) {
-        externalLocksCondition.throwIfConditionInvalid(timestamp);
-        transactionLocksCondition.throwIfConditionInvalid(timestamp);
+    public void throwIfConditionInvalid(TimestampWithLockInfo commitTimestampWithLockWatchInfo) {
+        externalLocksCondition.throwIfConditionInvalid(commitTimestampWithLockWatchInfo);
+        transactionLocksCondition.throwIfConditionInvalid(commitTimestampWithLockWatchInfo);
     }
 
     @Override

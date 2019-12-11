@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -82,6 +83,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager,
                 keyValueService,
+                null,
                 null,
                 transactionService,
                 NoOpCleaner.INSTANCE,

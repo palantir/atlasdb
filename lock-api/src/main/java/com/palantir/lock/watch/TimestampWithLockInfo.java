@@ -39,4 +39,8 @@ public interface TimestampWithLockInfo {
     static TimestampWithLockInfo diff(long timestamp, Set<LockDescriptor> newLocks) {
         return ImmutableTimestampWithLockInfo.of(timestamp, false, newLocks);
     }
+
+    static TimestampWithLockInfo withNoLockInfo(long timestamp) {
+        return diff(timestamp, ImmutableSet.of());
+    }
 }

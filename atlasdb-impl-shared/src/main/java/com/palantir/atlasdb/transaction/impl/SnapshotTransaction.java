@@ -110,7 +110,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -147,6 +147,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.TableWatchingService;
+import com.palantir.lock.watch.TimestampWithLockInfo;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -191,6 +193,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected final TimelockService timelockService;
+    protected final TableWatchingService tableWatchingService;
     final KeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
@@ -204,7 +207,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
-    private final PreCommitCondition preCommitCondition;
+    private final PreCommitConditionWithWatches preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
@@ -244,6 +247,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TableWatchingService tableWatchingService,
             TransactionService transactionService,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,
@@ -251,7 +255,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             SweepStrategyManager sweepStrategyManager,
             long immutableTimestamp,
             Optional<LockToken> immutableTimestampLock,
-            PreCommitCondition preCommitCondition,
+            PreCommitConditionWithWatches preCommitCondition,
             AtlasDbConstraintCheckingMode constraintCheckingMode,
             Long transactionTimeoutMillis,
             TransactionReadSentinelBehavior readSentinelBehavior,
@@ -270,6 +274,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.keyValueService = keyValueService;
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
+        this.tableWatchingService = tableWatchingService;
         this.defaultTransactionService = transactionService;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;
@@ -1565,8 +1570,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!hasWrites()) {
             if (hasReads()) {
                 // verify any pre-commit conditions on the transaction
-                preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
-
+                preCommitCondition.throwIfConditionInvalid(TimestampWithLockInfo.withNoLockInfo(getStartTimestamp()));
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
@@ -1599,32 +1603,33 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
-                long commitTimestamp = timedAndTraced("getCommitTimestamp", timelockService::getFreshTimestamp);
-                commitTsForScrubbing = commitTimestamp;
+                TimestampWithLockInfo commitTsWithWatches = timedAndTraced("getCommitTimestamp", () ->
+                        tableWatchingService.getCommitTimestampWithLockInfo(startTimestamp.get(), commitLocksToken));
+                commitTsForScrubbing = commitTsWithWatches.timestamp();
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,
                 // we won't block forever waiting for the unreadable timestamp to advance past the
                 // scrub timestamp (same as the hard delete transaction's start timestamp).
                 // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
                 // might well cost more.
-                timedAndTraced("microsForPunch", () -> cleaner.punch(commitTimestamp));
+                timedAndTraced("microsForPunch", () -> cleaner.punch(commitTsWithWatches.timestamp()));
 
                 // Serializable transactions need to check their reads haven't changed, by reading again at
                 // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
                 // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
                 // from underneath us.
                 timedAndTraced("readWriteConflictCheck",
-                        () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
+                        () -> throwIfReadWriteConflictForSerializable(commitTsWithWatches.timestamp()));
 
                 // Verify that our locks and pre-commit conditions are still valid before we actually commit;
                 // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
                 // We check the pre-commit conditions first since they may operate similarly to read write conflict
                 // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
-                timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
+                timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTsWithWatches));
                 timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
-                timedAndTraced("commitPutCommitTs",
-                        () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
+                timedAndTraced("commitPutCommitTs", () -> putCommitTimestamp(commitTsWithWatches.timestamp(),
+                        commitLocksToken, transactionService));
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
@@ -1677,12 +1682,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-        throwIfPreCommitConditionInvalid(timestamp);
+        throwIfPreCommitConditionInvalid(TimestampWithLockInfo.withNoLockInfo(timestamp));
     }
 
-    private void throwIfPreCommitConditionInvalid(long timestamp) {
+    private void throwIfPreCommitConditionInvalid(TimestampWithLockInfo commitTsWithWatches) {
         try {
-            preCommitCondition.throwIfConditionInvalid(timestamp);
+            preCommitCondition.throwIfConditionInvalid(commitTsWithWatches);
         } catch (TransactionFailedException ex) {
             transactionOutcomeMetrics.markPreCommitCheckFailed();
             throw ex;

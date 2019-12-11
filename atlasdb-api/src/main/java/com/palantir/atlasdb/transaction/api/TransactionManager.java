@@ -229,24 +229,8 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
-    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+    <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
-
-    /**
-     * This is the same as {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)}, but instead
-     * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
-     *
-     * @deprecated use {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)} instead.
-     * @see #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)
-     */
-    @DoNotDelegate
-    @Deprecated
-    @Timed
-    default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
-            com.google.common.base.Supplier<C> guavaSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
-        Supplier<C> javaSupplier = guavaSupplier::get;
-        return runTaskWithConditionWithRetry(javaSupplier, task);
-    }
 
     /**
      * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it takes
@@ -262,7 +246,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
-    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
+    <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task)
             throws E, TransactionFailedRetriableException;
 
@@ -281,7 +265,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
-    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+    <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
     /**
@@ -428,12 +412,12 @@ public interface TransactionManager extends AutoCloseable {
      */
     @Deprecated
     @Timed
-    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
+    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitConditionWithWatches condition);
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
-     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}. If no further work needs to be done with
-     * the transaction, a no-op task can be passed in.
+     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitConditionWithWatches)}. If no further work needs to be
+     * done with the transaction, a no-op task can be passed in.
      *
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
      *

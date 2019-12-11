@@ -44,7 +44,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -75,7 +75,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldAcquireRowLockIfLocksAtRowLevel(ConflictHandler conflictHandler) {
         Assume.assumeTrue(conflictHandler.lockRowsForConflicts());
 
-        PreCommitCondition rowLocksAcquired = (ignored) -> {
+        PreCommitConditionWithWatches rowLocksAcquired = (ignored) -> {
             LockResponse response = acquireRowLock(ROW);
             assertFalse(response.wasSuccessful());
         };
@@ -87,7 +87,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldAcquireCellLockIfLocksAtCellLevel(ConflictHandler conflictHandler) {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts());
 
-        PreCommitCondition cellLocksAcquired = (ignored) -> {
+        PreCommitConditionWithWatches cellLocksAcquired = (ignored) -> {
             LockResponse response = acquireCellLock(ROW, COLUMN);
             assertFalse(response.wasSuccessful());
         };
@@ -99,7 +99,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldNotAcquireRowLockIfDoesNotLockAtRowLevel(ConflictHandler conflictHandler) {
         Assume.assumeFalse(conflictHandler.lockRowsForConflicts());
 
-        PreCommitCondition canAcquireRowLock = (ignored) -> {
+        PreCommitConditionWithWatches canAcquireRowLock = (ignored) -> {
             LockResponse response = acquireRowLock(ROW);
             assertTrue(response.wasSuccessful());
         };
@@ -111,7 +111,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldNotAcquireCellLockIfDoesNotLockAtCellLevel(ConflictHandler conflictHandler) {
         Assume.assumeFalse(conflictHandler.lockCellsForConflicts());
 
-        PreCommitCondition canAcquireCellLock = (ignored) -> {
+        PreCommitConditionWithWatches canAcquireCellLock = (ignored) -> {
             LockResponse response = acquireCellLock(ROW, COLUMN);
             //current lock implementation allows you to get a cell lock on a row that is already locked
             assertTrue(response.wasSuccessful());
@@ -124,7 +124,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void shouldAcquireRowAndCellLockIfRequiresBoth(ConflictHandler conflictHandler) {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts() && conflictHandler.lockRowsForConflicts());
 
-        PreCommitCondition cellAndRowLockAcquired = (ignored) -> {
+        PreCommitConditionWithWatches cellAndRowLockAcquired = (ignored) -> {
             LockResponse cellLockResponse = acquireCellLock(ROW, COLUMN);
             LockResponse rowLockResponse = acquireRowLock(ROW);
 
@@ -139,7 +139,7 @@ public class CommitLockTest extends TransactionTestSetup {
     public void canAcquireLockOnMultipleCellsOnSameRow(ConflictHandler conflictHandler) {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts());
 
-        PreCommitCondition canAcquireLockOnDifferentCell = (ignored) -> {
+        PreCommitConditionWithWatches canAcquireLockOnDifferentCell = (ignored) -> {
             LockResponse response = acquireCellLock(ROW, OTHER_COLUMN);
             assertTrue(response.wasSuccessful());
         };
@@ -147,13 +147,13 @@ public class CommitLockTest extends TransactionTestSetup {
         commitWriteWith(canAcquireLockOnDifferentCell, conflictHandler);
     }
 
-    private void commitWriteWith(PreCommitCondition preCommitCondition, ConflictHandler conflictHandler) {
+    private void commitWriteWith(PreCommitConditionWithWatches preCommitCondition, ConflictHandler conflictHandler) {
         Transaction transaction = startTransaction(preCommitCondition, conflictHandler);
         put(transaction, ROW, COLUMN, "100");
         transaction.commit();
     }
 
-    private Transaction startTransaction(PreCommitCondition preCommitCondition, ConflictHandler conflictHandler) {
+    private Transaction startTransaction(PreCommitConditionWithWatches condition, ConflictHandler conflictHandler) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 conflictHandler,
@@ -163,6 +163,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timelockService,
+                tableWatchingService,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
@@ -170,7 +171,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
                 Optional.empty(),
-                preCommitCondition,
+                condition,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

@@ -71,6 +71,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingTableWatchingService;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -82,6 +83,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -94,6 +96,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -119,9 +122,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     protected Transaction startTransaction() {
         long startTimestamp = timestampService.getFreshTimestamp();
+        TimelockService legacyTimelock = new LegacyTimelockService(timestampService, lockService, lockClient);
         return new SnapshotTransaction(metricsManager,
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                legacyTimelock,
+                new NotWatchingTableWatchingService(legacyTimelock),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,

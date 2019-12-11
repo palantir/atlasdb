@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -51,7 +51,7 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
         return (transaction, locks) -> task.execute(wrap(transaction), locks);
     }
 
-    private <T, C extends PreCommitCondition, E extends Exception> ConditionAwareTransactionTask<T, C, E>
+    private <T, C extends PreCommitConditionWithWatches, E extends Exception> ConditionAwareTransactionTask<T, C, E>
             wrapTask(ConditionAwareTransactionTask<T, C, E> task) {
         return (transaction, condition) -> task.execute(wrap(transaction), condition);
     }
@@ -98,7 +98,7 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier,
             ConditionAwareTransactionTask<T, C, E> task)
             throws E {
@@ -106,7 +106,7 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
+    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition,
             ConditionAwareTransactionTask<T, C, E> task)
             throws E, TransactionFailedRetriableException {
@@ -114,7 +114,7 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionReadOnly(
             C condition,
             ConditionAwareTransactionTask<T, C, E> task)
             throws E {

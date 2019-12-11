@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.api;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.lock.watch.TimestampWithLockInfo;
 
 public final class PreCommitConditions {
 
     private static final Logger log = LoggerFactory.getLogger(PreCommitConditions.class);
 
-    public static final PreCommitCondition NO_OP = new PreCommitCondition() {
+    public static final PreCommitConditionWithWatches NO_OP = new PreCommitConditionWithWatches() {
         @Override
-        public void throwIfConditionInvalid(long timestamp) {}
+        public void throwIfConditionInvalid(TimestampWithLockInfo ignore) {}
 
         @Override
         public void cleanup() {}

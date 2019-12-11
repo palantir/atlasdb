@@ -35,7 +35,8 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
+import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -182,6 +183,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 new SnapshotTransaction(metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
+                        tableWatchingService,
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> startTimestamp,
@@ -210,13 +212,14 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
-            PreCommitCondition preCommitCondition) {
+            PreCommitConditionWithWatches preCommitCondition) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
+                        tableWatchingService,
                         transactionService,
                         cleaner,
                         startTimestampSupplier,

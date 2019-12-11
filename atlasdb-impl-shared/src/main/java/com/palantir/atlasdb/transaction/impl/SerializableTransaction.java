@@ -80,7 +80,8 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
+import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -96,6 +97,7 @@ import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
 
@@ -124,6 +126,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     public SerializableTransaction(MetricsManager metricsManager,
                                    KeyValueService keyValueService,
                                    TimelockService timelockService,
+                                   TableWatchingService tableWatchingService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,
                                    Supplier<Long> startTimeStamp,
@@ -131,7 +134,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
                                    Optional<LockToken> immutableTsLock,
-                                   PreCommitCondition preCommitCondition,
+                                   PreCommitConditionWithWatches preCommitCondition,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
@@ -145,28 +148,29 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    Supplier<TransactionConfig> transactionConfig,
                                    ConflictTracer conflictTracer) {
         super(metricsManager,
-              keyValueService,
-              timelockService,
-              transactionService,
-              cleaner,
-              startTimeStamp,
-              conflictDetectionManager,
-              sweepStrategyManager,
-              immutableTimestamp,
-              immutableTsLock,
-              preCommitCondition,
-              constraintCheckingMode,
-              transactionTimeoutMillis,
-              readSentinelBehavior,
-              allowHiddenTableAccess,
-              timestampCache,
-              getRangesExecutor,
-              defaultGetRangesConcurrency,
-              sweepQueue,
-              deleteExecutor,
-              validateLocksOnReads,
-              transactionConfig,
-              conflictTracer);
+                keyValueService,
+                timelockService,
+                tableWatchingService,
+                transactionService,
+                cleaner,
+                startTimeStamp,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                immutableTimestamp,
+                immutableTsLock,
+                preCommitCondition,
+                constraintCheckingMode,
+                transactionTimeoutMillis,
+                readSentinelBehavior,
+                allowHiddenTableAccess,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue,
+                deleteExecutor,
+                validateLocksOnReads,
+                transactionConfig,
+                conflictTracer);
     }
 
     @Override
@@ -766,6 +770,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                tableWatchingService,
                 defaultTransactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(commitTs + 1),

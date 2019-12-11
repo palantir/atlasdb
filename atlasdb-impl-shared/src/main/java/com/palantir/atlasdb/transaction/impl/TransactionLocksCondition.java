@@ -20,9 +20,11 @@ import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockService;
+import com.palantir.lock.watch.TimestampWithLockInfo;
 import com.palantir.logsafe.UnsafeArg;
 
 public class TransactionLocksCondition implements AdvisoryLocksCondition {
@@ -38,7 +40,7 @@ public class TransactionLocksCondition implements AdvisoryLocksCondition {
     }
 
     @Override
-    public void throwIfConditionInvalid(long timestamp) {
+    public void throwIfConditionInvalid(TimestampWithLockInfo commitTimestampWithLockWatchInfo) {
         if (lockService.refreshLockRefreshTokens(Collections.singleton(heldLock.getLockRefreshToken())).isEmpty()) {
             log.warn("Lock service locks were no longer valid",
                     UnsafeArg.of("invalidToken", heldLock.getLockRefreshToken()));

@@ -28,6 +28,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.watch.TimestampWithLockInfo;
 import com.palantir.logsafe.Preconditions;
 
 public final class AdvisoryLockConditionSuppliers {
@@ -105,7 +106,7 @@ public final class AdvisoryLockConditionSuppliers {
         }
 
         @Override
-        public void throwIfConditionInvalid(long timestamp) {}
+        public void throwIfConditionInvalid(TimestampWithLockInfo commitTimestampWithLockWatchInfo) {}
 
         @Override
         public void cleanup() {}

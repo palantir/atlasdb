@@ -43,9 +43,10 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import com.palantir.lock.watch.TimestampWithLockInfo;
 
 public class TargetedSweepTest extends AtlasDbTestCase {
     private static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.1");
@@ -286,9 +287,9 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         });
     }
 
-    private static class FailingPreCommitCondition implements PreCommitCondition {
+    private static class FailingPreCommitCondition implements PreCommitConditionWithWatches {
         @Override
-        public void throwIfConditionInvalid(long timestamp) {
+        public void throwIfConditionInvalid(TimestampWithLockInfo commitTimestampWithLockWatchInfo) {
             throw new RuntimeException("test");
         }
 
