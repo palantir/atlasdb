@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -40,9 +40,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
@@ -125,6 +122,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
@@ -474,7 +472,6 @@ public class TransactionManagersTest {
 
     @Test
     public void interruptingLocalLeaderElectionTerminates() throws IOException {
-        Path tempDir = Files.createTempDirectory("foo");
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
                 metricsManager,
                 environment,
@@ -482,8 +479,8 @@ public class TransactionManagersTest {
                         .localServer("https://example")
                         .quorumSize(1)
                         .addLeaders("https://example")
-                        .acceptorLogDir(tempDir.resolve("acceptor").toFile())
-                        .learnerLogDir(tempDir.resolve("learner").toFile())
+                        .acceptorLogDir(temporaryFolder.newFolder())
+                        .learnerLogDir(temporaryFolder.newFolder())
                         .build(),
                 () -> ImmutableLeaderRuntimeConfig.builder().build(),
                 USER_AGENT);
@@ -495,10 +492,13 @@ public class TransactionManagersTest {
                 LockService.class, leadershipLock, null, CompletableFuture.completedFuture(true));
         try {
             Thread.currentThread().interrupt();
-            localOrRemoteLock.currentTimeMillis();
-            fail("expected InterruptedException");
-        } catch (UndeclaredThrowableException e) {
-            assertThat(e.getCause()).isInstanceOf(InterruptedException.class);
+            assertThatCode(localOrRemoteLock::currentTimeMillis)
+                    .as("proxy correctly handles interrupts")
+                    .isInstanceOf(SafeIllegalStateException.class);
+            assertThat(Thread.currentThread().isInterrupted());
+        } finally {
+            // clear the interrupt flag to avoid affecting future tests
+            Thread.interrupted();
         }
     }
 

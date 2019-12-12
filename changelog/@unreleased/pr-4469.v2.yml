@@ -1,13 +1,7 @@
 type: fix
 fix:
   description: |-
-    fix infinite loop in LocalOrRemoteProxy
-
-    previously LocalOrRemoteProxy would infinitely retry its call as long as
-    the delegate was throwing a NotCurrentLeaderException, regardless of
-    whether the thread was interrupted. Calling a local service behind a
-    AwaitingLeadershipProxy on an interrupted thread would trigger a
-    NotCurrentLeaderException without clearing the interrupt, leading to an
-    infinte loop.
+    Services running with a leader block no longer get into infinite loops when
+    interrupted and now deal with interrupts correctly.
   links:
   - https://github.com/palantir/atlasdb/pull/4469
