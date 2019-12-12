@@ -2,8 +2,6 @@ type: improvement
 improvement:
   description: |-
     Increase number of retries in `ClientOptions` to 13.
-
-    **Goals (and why)**:
-    https://github.com/palantir/atlasdb/issues/4470
   links:
   - https://github.com/palantir/atlasdb/pull/4472
+  - https://github.com/palantir/atlasdb/issues/4470
