@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Remove Rollback Other Transaction Logline
+
+    Remove the logging message `This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone else's request with start: {}` from `SnapshotTransaction` as we already have logging for when that happens.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4473
