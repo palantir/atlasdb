@@ -22,7 +22,9 @@ import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.AutoDelegate_TimelockRpcClient;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -52,6 +54,17 @@ public class LockDiagnosticTimelockRpcClient implements AutoDelegate_TimelockRpc
     @Override
     public StartTransactionResponseV4 startTransactions(String namespace, StartTransactionRequestV4 request) {
         StartTransactionResponseV4 response = delegate().startTransactions(namespace, request);
+        lockDiagnosticCollector.collect(
+                response.timestamps().stream(),
+                response.immutableTimestamp().getImmutableTimestamp(),
+                request.requestId());
+        return response;
+    }
+
+    @Override
+    public StartTransactionResponseV5 startTransactionsWithWatches(String namespace,
+            StartTransactionRequestV5 request) {
+        StartTransactionResponseV5 response = delegate().startTransactionsWithWatches(namespace, request);
         lockDiagnosticCollector.collect(
                 response.timestamps().stream(),
                 response.immutableTimestamp().getImmutableTimestamp(),
