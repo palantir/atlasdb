@@ -16,6 +16,15 @@
 
 package com.palantir.lock.watch;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = ImmutableLockEvent.class, name = LockEvent.TYPE),
+        @JsonSubTypes.Type(value = ImmutableUnlockEvent.class, name = UnlockEvent.TYPE),
+        @JsonSubTypes.Type(value = ImmutableLockWatchOpenLocksEvent.class, name = LockWatchOpenLocksEvent.TYPE),
+        @JsonSubTypes.Type(value = ImmutableLockWatchCreatedEvent.class, name = LockWatchCreatedEvent.TYPE)})
 public interface LockWatchEvent {
     long sequence();
     <T> T accept(Visitor<T> visitor);

@@ -21,11 +21,19 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@JsonSerialize(as = ImmutableLockWatchOpenLocksEvent.class)
+@JsonDeserialize(as = ImmutableLockWatchOpenLocksEvent.class)
+@JsonTypeName(LockWatchOpenLocksEvent.TYPE)
 public abstract class LockWatchOpenLocksEvent implements LockWatchEvent {
+    static final String TYPE = "openLocks";
+
     public abstract UUID lockWatchId();
     public abstract Set<LockDescriptor> lockDescriptors();
 
