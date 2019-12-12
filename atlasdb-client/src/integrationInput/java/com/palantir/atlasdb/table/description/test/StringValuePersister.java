@@ -25,4 +25,9 @@ public class StringValuePersister extends JacksonPersister<StringValue> {
     public StringValuePersister() {
         super(StringValue.class, MAPPER);
     }
+
+    @Override
+    public boolean isReusable() {
+        return true;
+    }
 }

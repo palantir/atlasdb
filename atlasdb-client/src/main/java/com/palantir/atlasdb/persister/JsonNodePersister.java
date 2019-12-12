@@ -48,4 +48,9 @@ public class JsonNodePersister implements Persister<JsonNode> {
     public Class<JsonNode> getPersistingClassType() {
         return JsonNode.class;
     }
+
+    @Override
+    public boolean isReusable() {
+        return true;
+    }
 }

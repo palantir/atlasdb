@@ -86,6 +86,12 @@ public final class ColumnValueDescription {
     final Compression compression;
     final ValueType type;
     @Nullable final String className; // null if format is VALUE_TYPE
+
+    @Nullable
+    public String getCanonicalClassName() {
+        return canonicalClassName;
+    }
+
     @Nullable final String canonicalClassName; // null if format is VALUE_TYPE
     // null if not a proto or descriptor is missing
     @Nullable final Descriptor protoDescriptor;
@@ -306,7 +312,7 @@ public final class ColumnValueDescription {
     }
 
     public String getHydrateCode(String varName) {
-        varName = "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName + ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
+        varName = composeVarName(varName);
         if (format == Format.PERSISTABLE) {
             return canonicalClassName + "." + Persistable.HYDRATOR_NAME + ".hydrateFromBytes(" + varName + ")";
         } else if (format == Format.PERSISTER) {
@@ -325,6 +331,12 @@ public final class ColumnValueDescription {
         } else {
             return type.getHydrateCode(varName, "0");
         }
+    }
+
+    //TODO (Sudiksha): refactor name
+    public String composeVarName(String varName) {
+        varName = "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName + ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
+        return varName;
     }
 
     @SuppressWarnings("unchecked")
