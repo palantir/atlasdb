@@ -40,7 +40,7 @@ public abstract class ClientOptions {
             .readTimeout(Duration.ofSeconds(65))
             .backoffSlotSize(Duration.ofMillis(10))
             .failedUrlCooldown(Duration.ofMillis(100))
-            .maxNumRetries(11)
+            .maxNumRetries(13)
             .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
             .build();
 
