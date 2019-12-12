@@ -34,7 +34,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 @Value.Immutable
 public abstract class ClientOptions {
     // TODO (jkong): Re-enable client QoS after response body leaks are handled correctly.
-    // Throws after expected outages of 1/2 * 0.01 * (2^11 - 1) = 10.24 s
+    // Throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
     public static final ClientOptions DEFAULT_RETRYING = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofSeconds(10))
             .readTimeout(Duration.ofSeconds(65))
