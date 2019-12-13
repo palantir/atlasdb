@@ -16,12 +16,14 @@
 
 package com.palantir.paxos;
 
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.derive4j.Data;
 
+import com.google.common.net.HostAndPort;
 import com.palantir.leader.PaxosLeaderElectionEventRecorder;
 
 @Data
@@ -29,20 +31,12 @@ public abstract class LeaderPingResult {
 
     interface Cases<R> {
         R pingTimedOut();
-        R pingReturnedTrue();
+        R pingReturnedTrue(UUID leaderUuid, HostAndPort leader);
         R pingReturnedFalse();
         R pingCallFailure(Throwable exception);
     }
 
     public abstract <R> R match(Cases<R> cases);
-
-    public static LeaderPingResult fromBooleanResult(boolean result) {
-        if (result) {
-            return LeaderPingResults.pingReturnedTrue();
-        } else {
-            return LeaderPingResults.pingReturnedFalse();
-        }
-    }
 
     public void recordEvent(PaxosLeaderElectionEventRecorder eventRecorder) {
         LeaderPingResults.caseOf(this)
@@ -50,12 +44,6 @@ public abstract class LeaderPingResult {
                 .pingReturnedFalse(wrap(eventRecorder::recordLeaderPingReturnedFalse))
                 .pingCallFailure(wrap(eventRecorder::recordLeaderPingFailure))
                 .otherwise_(null);
-    }
-
-    public boolean isSuccessful() {
-        return LeaderPingResults.caseOf(this)
-                .pingReturnedTrue_(true)
-                .otherwise_(false);
     }
 
     private static <R> Supplier<R> wrap(Runnable runnable) {

@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.Futures;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.leader.PingableLeader;
@@ -42,13 +43,13 @@ public class SingleLeaderPinger implements LeaderPinger {
 
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
 
-    private final ConcurrentMap<UUID, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
-    private final Map<PingableLeader, ExecutorService> leaderPingExecutors;
+    private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache = Maps.newConcurrentMap();
+    private final Map<LeaderPingerContext<PingableLeader>, ExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
     private final UUID localUuid;
 
     public SingleLeaderPinger(
-            Map<PingableLeader, ExecutorService> otherPingableExecutors,
+            Map<LeaderPingerContext<PingableLeader>, ExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             UUID localUuid) {
         this.leaderPingExecutors = otherPingableExecutors;
@@ -58,44 +59,49 @@ public class SingleLeaderPinger implements LeaderPinger {
 
     @Override
     public LeaderPingResult pingLeaderWithUuid(UUID uuid) {
-        Optional<PingableLeader> suspectedLeader = getSuspectedLeader(uuid);
+        Optional<LeaderPingerContext<PingableLeader>> suspectedLeader = getSuspectedLeader(uuid);
         if (!suspectedLeader.isPresent()) {
             return LeaderPingResults.pingReturnedFalse();
         }
 
-        PingableLeader leader = suspectedLeader.get();
+        LeaderPingerContext<PingableLeader> leader = suspectedLeader.get();
 
-        MultiplexingCompletionService<PingableLeader, Boolean> multiplexingCompletionService
+        MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, Boolean> multiplexingCompletionService
                 = MultiplexingCompletionService.create(leaderPingExecutors);
 
-        multiplexingCompletionService.submit(leader, leader::ping);
+        multiplexingCompletionService.submit(leader, () -> leader.pinger().ping());
 
         try {
-            Future<Map.Entry<PingableLeader, Boolean>> pingFuture = multiplexingCompletionService.poll(
+            Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture = multiplexingCompletionService.poll(
                     leaderPingResponseWait.toMillis(),
                     TimeUnit.MILLISECONDS);
-            return getAndRecordLeaderPingResult(pingFuture);
+            return getLeaderPingResult(uuid, pingFuture);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(ex);
         }
     }
 
-    private static LeaderPingResult getAndRecordLeaderPingResult(
-            @Nullable Future<Map.Entry<PingableLeader, Boolean>> pingFuture) throws InterruptedException {
+    private static LeaderPingResult getLeaderPingResult(
+            UUID uuid,
+            @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture) {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
 
         try {
-            boolean isLeader = pingFuture.get().getValue();
-            return LeaderPingResult.fromBooleanResult(isLeader);
+            boolean isLeader = Futures.getDone(pingFuture).getValue();
+            if (isLeader) {
+                return LeaderPingResults.pingReturnedTrue(uuid, Futures.getDone(pingFuture).getKey().hostAndPort());
+            } else {
+                return LeaderPingResults.pingReturnedFalse();
+            }
         } catch (ExecutionException ex) {
             return LeaderPingResults.pingCallFailure(ex.getCause());
         }
     }
 
-    private Optional<PingableLeader> getSuspectedLeader(UUID uuid) {
+    private Optional<LeaderPingerContext<PingableLeader>> getSuspectedLeader(UUID uuid) {
         if (uuidToServiceCache.containsKey(uuid)) {
             return Optional.of(uuidToServiceCache.get(uuid));
         }
@@ -121,17 +127,17 @@ public class SingleLeaderPinger implements LeaderPinger {
         }
     }
 
-    private Optional<PingableLeader> getSuspectedLeaderOverNetwork(UUID uuid) {
-        PaxosResponsesWithRemote<PingableLeader, PaxosString> responses = PaxosQuorumChecker.collectUntil(
+    private Optional<LeaderPingerContext<PingableLeader>> getSuspectedLeaderOverNetwork(UUID uuid) {
+        PaxosResponsesWithRemote<LeaderPingerContext<PingableLeader>, PaxosString> responses = PaxosQuorumChecker.collectUntil(
                 ImmutableList.copyOf(leaderPingExecutors.keySet()),
-                pingableLeader -> new PaxosString(pingableLeader.getUUID()),
+                pingableLeader -> new PaxosString(pingableLeader.pinger().getUUID()),
                 leaderPingExecutors,
                 leaderPingResponseWait,
                 state -> state.responses().values().stream().map(PaxosString::get).anyMatch(uuid.toString()::equals));
 
-        for (Map.Entry<PingableLeader, PaxosString> cacheEntry : responses.responses().entrySet()) {
+        for (Map.Entry<LeaderPingerContext<PingableLeader>, PaxosString> cacheEntry : responses.responses().entrySet()) {
             UUID uuidFromRequest = UUID.fromString(cacheEntry.getValue().get());
-            PingableLeader service = uuidToServiceCache.putIfAbsent(uuidFromRequest, cacheEntry.getKey());
+            LeaderPingerContext<PingableLeader> service = uuidToServiceCache.putIfAbsent(uuidFromRequest, cacheEntry.getKey());
             throwIfInvalidSetup(service, cacheEntry.getKey(), uuidFromRequest);
 
             // return the leader if it matches
@@ -143,8 +149,8 @@ public class SingleLeaderPinger implements LeaderPinger {
         return Optional.empty();
     }
 
-    private void throwIfInvalidSetup(PingableLeader cachedService,
-            PingableLeader pingedService,
+    private void throwIfInvalidSetup(LeaderPingerContext<PingableLeader> cachedService,
+            LeaderPingerContext<PingableLeader> pingedService,
             UUID pingedServiceUuid) {
         if (cachedService == null) {
             return;

@@ -18,6 +18,7 @@ package com.palantir.leader;
 import java.io.Serializable;
 import java.util.Optional;
 
+import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.metrics.Timed;
 
 public interface LeaderElectionService {
@@ -82,4 +83,13 @@ public interface LeaderElectionService {
      * @return true if and only if this node was able to cause itself to lose leadership
      */
     boolean stepDown();
+
+    /**
+     * If this {@link LeaderElectionService} has successfully pinged the leader recently (up to the implementation),
+     * it returns the address through which the leader can be contacted.
+     *
+     * @return {@link Optional} containing address of suspected leader, otherwise empty if this
+     * {@link LeaderElectionService} has not been able to contact the leader recently.
+     */
+    Optional<HostAndPort> getSuspectedLeaderHost();
 }
