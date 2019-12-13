@@ -20,7 +20,12 @@ import java.util.OptionalLong;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Value.Immutable
+@JsonSerialize(as = ImmutableLockWatchInfo.class)
+@JsonDeserialize(as = ImmutableLockWatchInfo.class)
 public interface LockWatchInfo {
     /**
      * Used to denote lock watch info for locks that are not watched, or more generally, for locks for which the state

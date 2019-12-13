@@ -20,10 +20,14 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
+@JsonSerialize(as = ImmutableTimestampWithLockInfo.class)
+@JsonDeserialize(as = ImmutableTimestampWithLockInfo.class)
 public interface TimestampWithLockInfo {
     @Value.Parameter
     long timestamp();
