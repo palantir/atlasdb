@@ -80,6 +80,7 @@ org.mortbay.jetty.alpn:jetty-alpn-agent = 2.0.9
 org.mindrot:jbcrypt = 0.3m
 org.objenesis:objenesis = 3.1
 org.ow2.asm:asm = 7.0
+org.rocksdb:rocksdbjni = 6.4.6
 org.slf4j:* = 1.7.25
 org.yaml:snakeyaml = 1.23
 
