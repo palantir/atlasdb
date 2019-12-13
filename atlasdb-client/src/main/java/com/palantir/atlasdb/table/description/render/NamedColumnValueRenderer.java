@@ -167,7 +167,7 @@ public class NamedColumnValueRenderer extends Renderer {
                     line("}");
                 break;
                 case PERSISTER:
-                    persisterBytesHydrator();
+                    line("return of(", col.getValue().getHydrateCode("bytes"));
                     break;
                 case VALUE_TYPE:
                         line("return of(", col.getValue().getValueType().getHydrateCode("bytes", "0"), ");");
@@ -178,22 +178,6 @@ public class NamedColumnValueRenderer extends Renderer {
                 }
             }
         } line("};");
-    }
-
-    private void persisterBytesHydrator() {
-        Class<Persister<?>> persisterClass = (Class<Persister<?>>) col.getValue().getImportClass();
-        String canonicalClassName = persisterClass.getCanonicalName();
-        String varName = col.getValue().composeVarName("bytes");
-
-        if (persisterClass.isAnnotationPresent(Reusable.class)) {
-                line("return of(REUSABLE_PERSISTER.hydrateFromBytes(", varName, "));");
-            line("}\n");
-            line("private final ", canonicalClassName, " REUSABLE_PERSISTER = \n" +
-                    "new ", canonicalClassName, "();");
-        } else {
-                line("return of(", col.getValue().getHydrateCode("bytes"), ");");
-            line("}");
-        }
     }
 
     private void renderToString() {

@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.palantir.atlasdb.processors.Reusable;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -308,10 +309,20 @@ public final class ColumnValueDescription {
 
     public String getHydrateCode(String varName) {
         varName = composeVarName(varName);
+
         if (format == Format.PERSISTABLE) {
             return canonicalClassName + "." + Persistable.HYDRATOR_NAME + ".hydrateFromBytes(" + varName + ")";
         } else if (format == Format.PERSISTER) {
-            return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")";
+            Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
+            if (persisterClass.isAnnotationPresent(Reusable.class)) {
+                return "REUSABLE_PERSISTER.hydrateFromBytes(" + varName + "));\n" +
+                    "} \n" +
+                    "private final " + canonicalClassName + " REUSABLE_PERSISTER = \n" +
+                                            "new " + canonicalClassName + "();";
+            } else {
+                return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")); " +
+                    "}";
+            }
         } else if (format == Format.PROTO) {
                 return "new Supplier<" + canonicalClassName + ">() { " +
                     "@Override " +
@@ -328,7 +339,6 @@ public final class ColumnValueDescription {
         }
     }
 
-    //TODO (Sudiksha): refactor name
     public String composeVarName(String varName) {
         return "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName +
                 ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
