@@ -21,8 +21,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.processors.Reusable;
 import com.palantir.common.base.Throwables;
 
+
+@Reusable
 public class JsonNodePersister implements Persister<JsonNode> {
     static final ObjectMapper mapper = new ObjectMapper();
 
@@ -47,10 +50,5 @@ public class JsonNodePersister implements Persister<JsonNode> {
     @Override
     public Class<JsonNode> getPersistingClassType() {
         return JsonNode.class;
-    }
-
-    @Override
-    public boolean isReusable() {
-        return true;
     }
 }

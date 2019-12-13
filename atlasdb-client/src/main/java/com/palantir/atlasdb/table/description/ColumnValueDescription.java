@@ -335,8 +335,8 @@ public final class ColumnValueDescription {
 
     //TODO (Sudiksha): refactor name
     public String composeVarName(String varName) {
-        varName = "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName + ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
-        return varName;
+        return "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName +
+                ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
     }
 
     @SuppressWarnings("unchecked")

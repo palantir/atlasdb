@@ -23,5 +23,4 @@ import com.palantir.common.persist.Persistable.Hydrator;
 public interface Persister<T> extends Hydrator<T> {
     byte[] persistToBytes(T objectToPersist);
     Class<T> getPersistingClassType();
-    boolean isReusable();
 }

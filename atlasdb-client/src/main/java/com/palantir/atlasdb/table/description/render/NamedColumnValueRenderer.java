@@ -20,6 +20,7 @@ import static com.palantir.atlasdb.table.description.render.ColumnRenderers.long
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.short_name;
 
 import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.processors.Reusable;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
@@ -154,22 +155,22 @@ public class NamedColumnValueRenderer extends Renderer {
                 line("bytes = CompressionUtils.decompress(bytes, Compression.", col.getValue().getCompression().name(), ");");
                 switch (col.getValue().getFormat()) {
                 case PERSISTABLE:
-                    line("return of(", TypeName(col), ".BYTES_HYDRATOR.hydrateFromBytes(bytes));");
+                        line("return of(", TypeName(col), ".BYTES_HYDRATOR.hydrateFromBytes(bytes));");
                     line("}");
                     break;
                 case PROTO:
-                    line("try {"); {
-                        line("return of(", TypeName(col), ".parseFrom(bytes));");
-                    } line("} catch (InvalidProtocolBufferException e) {"); {
-                        line("throw Throwables.throwUncheckedException(e);");
-                    } line("}");
+                        line("try {"); {
+                            line("return of(", TypeName(col), ".parseFrom(bytes));");
+                        } line("} catch (InvalidProtocolBufferException e) {"); {
+                            line("throw Throwables.throwUncheckedException(e);");
+                        } line("}");
                     line("}");
                 break;
                 case PERSISTER:
                     persisterBytesHydrator();
                     break;
                 case VALUE_TYPE:
-                    line("return of(", col.getValue().getValueType().getHydrateCode("bytes", "0"), ");");
+                        line("return of(", col.getValue().getValueType().getHydrateCode("bytes", "0"), ");");
                     line("}");
                     break;
                 default:
@@ -180,18 +181,17 @@ public class NamedColumnValueRenderer extends Renderer {
     }
 
     private void persisterBytesHydrator() {
-        String canonicalClassName = col.getValue().getCanonicalClassName();
-        Persister<?> persister = col.getValue().getPersister();
-
+        Class<Persister<?>> persisterClass = (Class<Persister<?>>) col.getValue().getImportClass();
+        String canonicalClassName = persisterClass.getCanonicalName();
         String varName = col.getValue().composeVarName("bytes");
 
-        if (persister.isReusable()) {
-            line("return of(REUSABLE_PERSISTER.hydrateFromBytes(", varName, "));");
+        if (persisterClass.isAnnotationPresent(Reusable.class)) {
+                line("return of(REUSABLE_PERSISTER.hydrateFromBytes(", varName, "));");
             line("}\n");
             line("private final ", canonicalClassName, " REUSABLE_PERSISTER = \n" +
                     "new ", canonicalClassName, "();");
         } else {
-            line("return of(", col.getValue().getHydrateCode("bytes"), ");");
+                line("return of(", col.getValue().getHydrateCode("bytes"), ");");
             line("}");
         }
     }
