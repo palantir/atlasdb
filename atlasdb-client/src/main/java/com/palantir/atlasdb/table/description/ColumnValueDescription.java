@@ -87,11 +87,6 @@ public final class ColumnValueDescription {
     final ValueType type;
     @Nullable final String className; // null if format is VALUE_TYPE
 
-    @Nullable
-    public String getCanonicalClassName() {
-        return canonicalClassName;
-    }
-
     @Nullable final String canonicalClassName; // null if format is VALUE_TYPE
     // null if not a proto or descriptor is missing
     @Nullable final Descriptor protoDescriptor;
