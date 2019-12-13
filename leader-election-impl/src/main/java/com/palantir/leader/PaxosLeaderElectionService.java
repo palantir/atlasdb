@@ -15,6 +15,7 @@
  */
 package com.palantir.leader;
 
+import java.net.URL;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -150,6 +151,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private LeadershipState determineLeadershipState() {
         Optional<PaxosValue> greatestLearnedValue = knowledge.getGreatestLearnedValue();
+        Optional<URL> currentLeaderURL = greatestLearnedValue.flatMap(
+                paxosValue -> proposer.getURLForUuid(paxosValue.getLeaderUUID()));
         StillLeadingStatus leadingStatus = determineLeadershipStatus(greatestLearnedValue);
 
         return LeadershipState.of(greatestLearnedValue, leadingStatus);
@@ -285,6 +288,11 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         return false;
     }
 
+    @Override
+    public Optional<URL> getCurrentLeader() {
+        return determineLeadershipState().leaderURL();
+    }
+
     private static long getNextSequenceNumber(Optional<PaxosValue> paxosValue) {
         return paxosValue.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
     }
@@ -296,6 +304,9 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         Optional<PaxosValue> greatestLearnedValue();
 
         @Value.Parameter
+        Optional<URL> leaderURL();
+
+        @Value.Parameter
         StillLeadingStatus status();
 
         default Optional<LeadershipToken> confirmedToken() {
@@ -305,8 +316,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             return Optional.empty();
         }
 
-        static LeadershipState of(Optional<PaxosValue> value, StillLeadingStatus status) {
-            return ImmutableLeadershipState.of(value, status);
+        static LeadershipState of(Optional<PaxosValue> value, Optional<URL> leaderURL, StillLeadingStatus status) {
+            return ImmutableLeadershipState.of(value, leaderURL, status);
         }
     }
 }

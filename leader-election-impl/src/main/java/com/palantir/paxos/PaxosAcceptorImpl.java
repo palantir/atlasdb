@@ -16,6 +16,9 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
+import java.net.URL;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.slf4j.Logger;
@@ -92,6 +95,8 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             logger.error("Log read failed for request at sequence {}", SafeArg.of("sequence", seq), e);
             return new BooleanPaxosResponse(false); // nack
         }
+
+//        uuidToURL.put(proposal.val.leaderUuid)
 
         for (;;) {
             PaxosAcceptorState oldState = state.get(seq);

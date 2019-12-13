@@ -17,6 +17,7 @@
 package com.palantir.leader;
 
 import java.io.Closeable;
+import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -67,6 +68,11 @@ public class BatchingLeaderElectionService implements LeaderElectionService, Clo
     @Override
     public boolean stepDown() {
         return delegate.stepDown();
+    }
+
+    @Override
+    public Optional<URL> getCurrentLeader() {
+        return delegate.getCurrentLeader();
     }
 
     private void processBatch(List<BatchElement<Void, LeadershipToken>> batch) {

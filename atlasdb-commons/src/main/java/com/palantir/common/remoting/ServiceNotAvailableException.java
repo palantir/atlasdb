@@ -15,9 +15,8 @@
  */
 package com.palantir.common.remoting;
 
+import java.net.URL;
 import java.util.Optional;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * If a server is shutting down or cannot respond to a call for another reson this exception may be thrown.
@@ -28,16 +27,21 @@ import com.google.common.net.HostAndPort;
 public class ServiceNotAvailableException extends RuntimeException {
     private static final long serialVersionUID = 2L;
 
-    private final Optional<HostAndPort> serviceHint;
+    private final Optional<URL> serviceHint;
 
-    public ServiceNotAvailableException(String message, Throwable cause, HostAndPort serviceHint) {
+    public ServiceNotAvailableException(String message, Throwable cause, URL serviceHint) {
         super(message, cause);
         this.serviceHint = Optional.of(serviceHint);
     }
 
-    public ServiceNotAvailableException(String message, HostAndPort serviceHint) {
+    public ServiceNotAvailableException(String message, URL serviceHint) {
         super(message);
         this.serviceHint = Optional.of(serviceHint);
+    }
+
+    public ServiceNotAvailableException(String message, Throwable cause, Optional<URL> serviceHint) {
+        super(message, cause);
+        this.serviceHint = serviceHint;
     }
 
     public ServiceNotAvailableException(String message, Throwable cause) {
@@ -55,7 +59,7 @@ public class ServiceNotAvailableException extends RuntimeException {
         this.serviceHint = Optional.empty();
     }
 
-    public Optional<HostAndPort> getServiceHint() {
+    public Optional<URL> getServiceHint() {
         return serviceHint;
     }
 }

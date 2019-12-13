@@ -16,6 +16,7 @@
 package com.palantir.leader;
 
 import java.io.Serializable;
+import java.net.URL;
 import java.util.Optional;
 
 import com.palantir.atlasdb.metrics.Timed;
@@ -81,4 +82,6 @@ public interface LeaderElectionService {
      * @return true if and only if this node was able to cause itself to lose leadership
      */
     boolean stepDown();
+
+    Optional<URL> getCurrentLeader();
 }

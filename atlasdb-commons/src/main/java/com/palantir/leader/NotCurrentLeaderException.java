@@ -15,7 +15,9 @@
  */
 package com.palantir.leader;
 
-import com.google.common.net.HostAndPort;
+import java.net.URL;
+import java.util.Optional;
+
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
 /**
@@ -27,12 +29,16 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 public class NotCurrentLeaderException extends ServiceNotAvailableException {
     private static final long serialVersionUID = 1L;
 
-    public NotCurrentLeaderException(String message, Throwable cause, HostAndPort leaderHint) {
+    public NotCurrentLeaderException(String message, Throwable cause, URL leaderHint) {
         super(message, cause, leaderHint);
     }
 
-    public NotCurrentLeaderException(String message, HostAndPort leaderHint) {
+    public NotCurrentLeaderException(String message, URL leaderHint) {
         super(message, leaderHint);
+    }
+
+    public NotCurrentLeaderException(String message, Throwable cause, Optional<URL> leaderHint) {
+        super(message, cause, leaderHint);
     }
 
     public NotCurrentLeaderException(String message, Throwable cause) {

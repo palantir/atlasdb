@@ -254,11 +254,11 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         return leadershipTokenRef.get() == leadershipToken;
     }
 
-    private static NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
-        return new NotCurrentLeaderException(message, cause);
+    private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
+        return new NotCurrentLeaderException(message, cause, leaderElectionService.getCurrentLeader());
     }
 
-    private static NotCurrentLeaderException notCurrentLeaderException(String message) {
+    private NotCurrentLeaderException notCurrentLeaderException(String message) {
         return notCurrentLeaderException(message, null /* cause */);
     }
 
