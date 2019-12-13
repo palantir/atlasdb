@@ -100,6 +100,7 @@ public final class LeaderElectionServiceBuilder {
         return new PaxosLeaderElectionService(
                 proposerDecorator.apply(buildProposer()),
                 knowledge(),
+                leaderLearner,
                 leaderPinger(),
                 acceptorClient(),
                 learnerClient(),

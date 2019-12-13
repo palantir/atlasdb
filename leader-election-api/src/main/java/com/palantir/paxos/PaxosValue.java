@@ -39,6 +39,9 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     @Nullable
     final byte[] data;
     final String leaderUuid;
+    @Nullable
+    final String leaderUrl;
+
     final long seq;
 
     public static final Hydrator<PaxosValue> BYTES_HYDRATOR = input -> {
@@ -52,15 +55,22 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
 
     public PaxosValue(@JsonProperty("leaderUUID") String leaderUuid,
                       @JsonProperty("round") long round,
-                      @JsonProperty("data") @Nullable byte[] data) {
+                      @JsonProperty("data") @Nullable byte[] data,
+                      @JsonProperty("leaderUrl") @Nullable String leaderUrl) {
         this.leaderUuid = Preconditions.checkNotNull(leaderUuid, "leaderUUID should never be null");
         this.seq = round;
         this.data = data;
+        this.leaderUrl = leaderUrl;
     }
 
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
     public String getLeaderUUID() {
         return leaderUuid;
+    }
+
+    @Nullable
+    public String getLeaderUrl() {
+        return leaderUrl;
     }
 
     public long getRound() {
@@ -93,7 +103,7 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
         if (message.hasBytes()) {
             bytes = message.getBytes().toByteArray();
         }
-        return new PaxosValue(leaderUuid, seq, bytes);
+        return new PaxosValue(leaderUuid, seq, bytes, null);
     }
 
     @Override

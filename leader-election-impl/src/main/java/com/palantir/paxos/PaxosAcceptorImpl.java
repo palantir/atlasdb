@@ -16,8 +16,10 @@
 package com.palantir.paxos;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -26,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.logsafe.SafeArg;
 
-public final class PaxosAcceptorImpl implements PaxosAcceptor {
+public final class PaxosAcceptorImpl implements PaxosAcceptor, LeaderLearner {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
 
     public static PaxosAcceptor newAcceptor(String logDir) {
@@ -40,6 +42,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
     private final ConcurrentSkipListMap<Long, PaxosAcceptorState> state;
     private final PaxosStateLog<PaxosAcceptorState> log;
     private final long greatestInLogAtStartup;
+    private final Map<String, URL> leaderUrls = new ConcurrentHashMap<>();
 
     private PaxosAcceptorImpl(ConcurrentSkipListMap<Long, PaxosAcceptorState> state,
                               PaxosStateLog<PaxosAcceptorState> log,
@@ -96,8 +99,6 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             return new BooleanPaxosResponse(false); // nack
         }
 
-//        uuidToURL.put(proposal.val.leaderUuid)
-
         for (;;) {
             PaxosAcceptorState oldState = state.get(seq);
 
@@ -113,6 +114,8 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
                 log.writeRound(seq, newState);
+
+                rememberLeader(proposal);
                 return new BooleanPaxosResponse(true);
             }
         }
@@ -145,4 +148,18 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
         }
     }
 
+    private void rememberLeader(PaxosProposal proposal) {
+        if (proposal.getValue().getLeaderUrl() != null) {
+            try {
+                leaderUrls.put(proposal.getValue().getLeaderUUID(), new URL(proposal.getValue().getLeaderUrl()));
+            } catch (MalformedURLException e) {
+                // IGNORE
+            }
+        }
+    }
+
+    @Override
+    public Optional<URL> getURLForUUID(String uuid) {
+        return Optional.ofNullable(leaderUrls.get(uuid));
+    }
 }

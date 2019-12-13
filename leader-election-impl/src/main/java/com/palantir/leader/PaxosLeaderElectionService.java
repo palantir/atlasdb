@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
+import com.palantir.paxos.LeaderLearner;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
@@ -58,6 +59,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
+    private final LeaderLearner leaderLearner;
 
     private final LeaderPinger leaderPinger;
     private final PaxosLearnerNetworkClient learnerClient;
@@ -73,7 +75,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     PaxosLeaderElectionService(
             PaxosProposer proposer,
             PaxosLearner knowledge,
-            LeaderPinger leaderPinger,
+            LeaderLearner leaderLearner, LeaderPinger leaderPinger,
             PaxosAcceptorNetworkClient acceptorClient,
             PaxosLearnerNetworkClient learnerClient,
             long updatePollingWaitInMs,
@@ -81,6 +83,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             PaxosLeaderElectionEventRecorder eventRecorder) {
         this.proposer = proposer;
         this.knowledge = knowledge;
+        this.leaderLearner = leaderLearner;
         this.leaderPinger = leaderPinger;
         this.learnerClient = learnerClient;
         this.updatePollingRateInMs = updatePollingWaitInMs;
@@ -152,10 +155,10 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     private LeadershipState determineLeadershipState() {
         Optional<PaxosValue> greatestLearnedValue = knowledge.getGreatestLearnedValue();
         Optional<URL> currentLeaderURL = greatestLearnedValue.flatMap(
-                paxosValue -> proposer.getURLForUuid(paxosValue.getLeaderUUID()));
+                paxosValue -> leaderLearner.getURLForUUID(paxosValue.getLeaderUUID()));
         StillLeadingStatus leadingStatus = determineLeadershipStatus(greatestLearnedValue);
 
-        return LeadershipState.of(greatestLearnedValue, leadingStatus);
+        return LeadershipState.of(greatestLearnedValue, currentLeaderURL, leadingStatus);
     }
 
     private LeaderPingResult pingLeader(Optional<PaxosValue> maybeGreatestLearnedValue) {
