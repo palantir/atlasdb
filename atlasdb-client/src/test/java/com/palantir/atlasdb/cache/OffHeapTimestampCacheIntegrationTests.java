@@ -1,0 +1,92 @@
+/*
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.atlasdb.cache;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.IOException;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+
+import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
+import com.palantir.atlasdb.off.heap.rocksdb.RocksDbPersistentTimestampStore;
+
+public class OffHeapTimestampCacheIntegrationTests {
+    @ClassRule
+    public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+    private static final int CACHE_SIZE = 2;
+
+    private TimestampCache offHeapTimestampCache;
+    private PersistentTimestampStore persistentTimestampStore;
+
+    @Before
+    public void before() throws RocksDBException, IOException {
+        RocksDB rocksDb = RocksDB.open(TEMPORARY_FOLDER.newFolder().getAbsolutePath());
+
+        persistentTimestampStore = new RocksDbPersistentTimestampStore(rocksDb);
+
+        offHeapTimestampCache = OffHeapTimestampCache.create(persistentTimestampStore, CACHE_SIZE);
+    }
+
+    @After
+    public void after() throws Exception {
+        persistentTimestampStore.close();
+    }
+
+    @Test
+    public void cachedEntry() {
+        offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isEqualTo(3L);
+    }
+
+    @Test
+    public void nonCachedEntry() {
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
+    }
+
+    @Test
+    public void overwritingPrevented() {
+        offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
+        offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 4L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isEqualTo(3L);
+    }
+
+    @Test
+    public void cacheNuked() {
+        offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
+        offHeapTimestampCache.putAlreadyCommittedTransaction(2L, 4L);
+        offHeapTimestampCache.putAlreadyCommittedTransaction(5L, 6L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(2L)).isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(5L)).isEqualTo(6L);
+    }
+
+    @Test
+    public void clearCache() {
+        offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isEqualTo(3L);
+
+        offHeapTimestampCache.clear();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
+    }
+}
