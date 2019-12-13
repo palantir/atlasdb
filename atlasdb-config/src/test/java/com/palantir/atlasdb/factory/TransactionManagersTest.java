@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -77,6 +79,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
@@ -104,7 +107,9 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.AutoDelegate_LockService;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -117,6 +122,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
@@ -462,6 +468,38 @@ public class TransactionManagersTest {
                 .serializable();
         assertThat(metrics.getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+    }
+
+    @Test
+    public void interruptingLocalLeaderElectionTerminates() throws IOException {
+        Leaders.LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
+                metricsManager,
+                environment,
+                ImmutableLeaderConfig.builder()
+                        .localServer("https://example")
+                        .quorumSize(1)
+                        .addLeaders("https://example")
+                        .acceptorLogDir(temporaryFolder.newFolder())
+                        .learnerLogDir(temporaryFolder.newFolder())
+                        .build(),
+                () -> ImmutableLeaderRuntimeConfig.builder().build(),
+                USER_AGENT);
+        LeaderElectionService leader = localPaxosServices.leaderElectionService();
+        LockService lockService = LockServiceImpl.create();
+        LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(
+                LockService.class, () -> lockService, leader);
+        LockService localOrRemoteLock = LocalOrRemoteProxy.newProxyInstance(
+                LockService.class, leadershipLock, null, CompletableFuture.completedFuture(true));
+        try {
+            Thread.currentThread().interrupt();
+            assertThatCode(localOrRemoteLock::currentTimeMillis)
+                    .as("proxy correctly handles interrupts")
+                    .isInstanceOf(SafeIllegalStateException.class);
+            assertThat(Thread.currentThread().isInterrupted());
+        } finally {
+            // clear the interrupt flag to avoid affecting future tests
+            Thread.interrupted();
+        }
     }
 
     @Test
