@@ -1,5 +1,5 @@
 type: improvement
 improvement:
-  description: Fixed logging in AsyncTimeLockUnlocker.
+  description: Fixed logging in `AsyncTimeLockUnlocker`.
   links:
   - https://github.com/palantir/atlasdb/pull/4480
