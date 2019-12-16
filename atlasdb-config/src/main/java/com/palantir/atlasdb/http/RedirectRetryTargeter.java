@@ -59,13 +59,13 @@ public final class RedirectRetryTargeter {
     }
 
     Optional<URL> redirectRequest(Optional<HostAndPort> leaderHint) {
+        if (otherServers.isEmpty()) {
+            return Optional.empty();
+        }
+
         if (leaderHint.isPresent()) {
             HostAndPort leader = leaderHint.get();
             return Optional.ofNullable(urlsToHostAndPort.get(leader));
-        }
-
-        if (otherServers.isEmpty()) {
-            return Optional.empty();
         }
         return Optional.of(otherServers.get(ThreadLocalRandom.current().nextInt(otherServers.size())));
     }
