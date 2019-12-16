@@ -68,11 +68,6 @@ public interface PaxosRuntimeConfiguration {
         return Duration.ofMillis(leaderPingResponseWaitMs());
     }
 
-    @JsonProperty("leader-address-cache-ttl")
-    default Duration leaderAddressCacheTtl() {
-        return Duration.ofSeconds(1);
-    }
-
     @JsonProperty("only-log-on-quorum-failure")
     @Value.Default
     default boolean onlyLogOnQuorumFailure() {

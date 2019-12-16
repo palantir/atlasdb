@@ -98,6 +98,7 @@ public abstract class LeaderConfig {
         return Duration.ofMillis(leaderPingResponseWaitMs());
     }
 
+    @JsonIgnore
     @Value.Default
     public Duration leaderAddressCacheTtl() {
         return Duration.ofSeconds(15);
