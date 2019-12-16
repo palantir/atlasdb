@@ -154,10 +154,10 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private boolean isSuccessfulPing(LeaderPingResult leaderPingResult) {
         return LeaderPingResults.caseOf(leaderPingResult)
-                .pingReturnedTrue(((leaderUuid, leader) -> {
+                .pingReturnedTrue((leaderUuid, leader) -> {
                     leaderAddressCache.put(leaderUuid, leader);
                     return true;
-                }))
+                })
                 .otherwise_(false);
     }
 

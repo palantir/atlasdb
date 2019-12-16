@@ -72,9 +72,8 @@ public class SingleLeaderPinger implements LeaderPinger {
         multiplexingCompletionService.submit(leader, () -> leader.pinger().ping());
 
         try {
-            Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture = multiplexingCompletionService.poll(
-                    leaderPingResponseWait.toMillis(),
-                    TimeUnit.MILLISECONDS);
+            Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture = multiplexingCompletionService
+                    .poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(uuid, pingFuture);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -128,16 +127,20 @@ public class SingleLeaderPinger implements LeaderPinger {
     }
 
     private Optional<LeaderPingerContext<PingableLeader>> getSuspectedLeaderOverNetwork(UUID uuid) {
-        PaxosResponsesWithRemote<LeaderPingerContext<PingableLeader>, PaxosString> responses = PaxosQuorumChecker.collectUntil(
-                ImmutableList.copyOf(leaderPingExecutors.keySet()),
-                pingableLeader -> new PaxosString(pingableLeader.pinger().getUUID()),
-                leaderPingExecutors,
-                leaderPingResponseWait,
-                state -> state.responses().values().stream().map(PaxosString::get).anyMatch(uuid.toString()::equals));
+        PaxosResponsesWithRemote<LeaderPingerContext<PingableLeader>, PaxosString> responses = PaxosQuorumChecker
+                .collectUntil(
+                        ImmutableList.copyOf(leaderPingExecutors.keySet()),
+                        pingableLeader -> new PaxosString(pingableLeader.pinger().getUUID()),
+                        leaderPingExecutors,
+                        leaderPingResponseWait,
+                        state -> state.responses().values().stream().map(PaxosString::get).anyMatch(
+                                uuid.toString()::equals));
 
-        for (Map.Entry<LeaderPingerContext<PingableLeader>, PaxosString> cacheEntry : responses.responses().entrySet()) {
+        for (Map.Entry<LeaderPingerContext<PingableLeader>, PaxosString> cacheEntry :
+                responses.responses().entrySet()) {
             UUID uuidFromRequest = UUID.fromString(cacheEntry.getValue().get());
-            LeaderPingerContext<PingableLeader> service = uuidToServiceCache.putIfAbsent(uuidFromRequest, cacheEntry.getKey());
+            LeaderPingerContext<PingableLeader> service =
+                    uuidToServiceCache.putIfAbsent(uuidFromRequest, cacheEntry.getKey());
             throwIfInvalidSetup(service, cacheEntry.getKey(), uuidFromRequest);
 
             // return the leader if it matches

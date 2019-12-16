@@ -212,12 +212,15 @@ public final class Leaders {
                 PingableLeader.class,
                 new LocalPingableLeader(ourLearner, leaderUuid));
 
+        List<PingableLeader> remotePingableLeaders = otherLeaders.stream()
+                .map(LeaderPingerContext::pinger)
+                .collect(toList());
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .localPingableLeader(pingableLeader)
-                .remotePingableLeaders(otherLeaders.stream().map(LeaderPingerContext::pinger).collect(toList()))
+                .remotePingableLeaders(remotePingableLeaders)
                 .build();
     }
 
