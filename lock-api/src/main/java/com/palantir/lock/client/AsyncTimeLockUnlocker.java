@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -56,7 +57,10 @@ public final class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoClosea
                     } catch (Throwable t) {
                         log.info("Failed to unlock lock tokens {} from timelock. They will eventually expire on their "
                                         + "own, but if this message recurs frequently, it may be worth investigation.",
-                                SafeArg.of("lockTokens", allTokensToUnlock),
+                                SafeArg.of("numFailed", allTokensToUnlock.size()),
+                                SafeArg.of("firstFailures",
+                                        Iterables.transform(Iterables.limit(allTokensToUnlock, 20),
+                                                LockToken::getRequestId)),
                                 t);
                     }
                     batch.stream().map(BatchElement::result).forEach(f -> f.set(null));
