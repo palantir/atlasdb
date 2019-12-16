@@ -5,3 +5,4 @@ improvement:
     failures.
   links:
   - https://github.com/palantir/atlasdb/pull/4481
+  - https://github.com/palantir/atlasdb/issues/4471
