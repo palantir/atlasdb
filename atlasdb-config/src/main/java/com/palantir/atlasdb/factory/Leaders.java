@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +27,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -214,7 +213,7 @@ public final class Leaders {
 
         List<PingableLeader> remotePingableLeaders = otherLeaders.stream()
                 .map(LeaderPingerContext::pinger)
-                .collect(toList());
+                .collect(Collectors.toList());
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
@@ -280,7 +279,7 @@ public final class Leaders {
                                 .shouldRetry(true)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
-                .collect(toList());
+                .collect(Collectors.toList());
 
         return ImmutableList.copyOf(Iterables.concat(
                 remotes,
@@ -309,7 +308,7 @@ public final class Leaders {
                 .map(HostAndPort::fromString)
                 .map(ImmutableLeaderPingerContext::of)
                 .values()
-                .collect(toList());
+                .collect(Collectors.toList());
     }
 
     @Value.Immutable
