@@ -23,15 +23,23 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.net.HostAndPort;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class RedirectRetryTargeter {
     private final List<URL> otherServers;
+    private final BiMap<HostAndPort, URL> urlsToHostAndPort;
 
     private RedirectRetryTargeter(List<URL> otherServers) {
         this.otherServers = otherServers;
+        this.urlsToHostAndPort = KeyedStream.of(otherServers)
+                .mapKeys(url -> HostAndPort.fromParts(url.getHost(), url.getPort()))
+                .collectTo(HashBiMap::create);
     }
 
     public static RedirectRetryTargeter create(URL localServer, List<URL> clusterUrls) {
@@ -50,7 +58,12 @@ public final class RedirectRetryTargeter {
         return new RedirectRetryTargeter(otherServers);
     }
 
-    Optional<URL> redirectRequest() {
+    Optional<URL> redirectRequest(Optional<HostAndPort> leaderHint) {
+        if (leaderHint.isPresent()) {
+            HostAndPort leader = leaderHint.get();
+            return Optional.ofNullable(urlsToHostAndPort.get(leader));
+        }
+
         if (otherServers.isEmpty()) {
             return Optional.empty();
         }

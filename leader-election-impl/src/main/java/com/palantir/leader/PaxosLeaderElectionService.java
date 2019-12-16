@@ -308,7 +308,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     @Override
-    public Optional<HostAndPort> getSuspectedLeaderHost() {
+    public Optional<HostAndPort> getRecentlyPingedLeaderHost() {
         return extractLeaderUuid(knowledge.getGreatestLearnedValue()).map(leaderAddressCache::getIfPresent);
     }
 

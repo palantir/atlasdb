@@ -259,7 +259,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
-        return leaderElectionService.getSuspectedLeaderHost()
+        return leaderElectionService.getRecentlyPingedLeaderHost()
                 .map(hostAndPort -> new NotCurrentLeaderException(message, cause, hostAndPort))
                 .orElseGet(() -> new NotCurrentLeaderException(message, cause));
     }

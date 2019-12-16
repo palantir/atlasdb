@@ -86,10 +86,10 @@ public interface LeaderElectionService {
 
     /**
      * If this {@link LeaderElectionService} has successfully pinged the leader recently (up to the implementation),
-     * it returns the address through which the leader can be contacted.
+     * it returns the {@link HostAndPort} through which the leader can be contacted.
      *
      * @return {@link Optional} containing address of suspected leader, otherwise empty if this
      * {@link LeaderElectionService} has not been able to contact the leader recently.
      */
-    Optional<HostAndPort> getSuspectedLeaderHost();
+    Optional<HostAndPort> getRecentlyPingedLeaderHost();
 }

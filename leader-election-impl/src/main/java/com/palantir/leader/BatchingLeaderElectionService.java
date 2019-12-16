@@ -71,8 +71,8 @@ public class BatchingLeaderElectionService implements LeaderElectionService, Clo
     }
 
     @Override
-    public Optional<HostAndPort> getSuspectedLeaderHost() {
-        return delegate.getSuspectedLeaderHost();
+    public Optional<HostAndPort> getRecentlyPingedLeaderHost() {
+        return delegate.getRecentlyPingedLeaderHost();
     }
 
     private void processBatch(List<BatchElement<Void, LeadershipToken>> batch) {
