@@ -135,7 +135,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             throw new InterruptedException("leader no longer eligible");
         }
 
-        if (isSuccessfulPing(pingLeader(currentState.greatestLearnedValue()))) {
+        if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {
             Thread.sleep(updatePollingRate.toMillis());
             return;
         }
@@ -150,15 +150,6 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         Thread.sleep(backoffTime);
 
         proposeLeadershipAfter(currentState.greatestLearnedValue());
-    }
-
-    private boolean isSuccessfulPing(LeaderPingResult leaderPingResult) {
-        return LeaderPingResults.caseOf(leaderPingResult)
-                .pingReturnedTrue((leaderUuid, leader) -> {
-                    leaderAddressCache.put(leaderUuid, leader);
-                    return true;
-                })
-                .otherwise_(false);
     }
 
     @Override
@@ -177,6 +168,11 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         Optional<LeaderPingResult> maybeLeaderPingResult = extractLeaderUuid(maybeGreatestLearnedValue)
                 .map(leaderPinger::pingLeaderWithUuid);
         maybeLeaderPingResult.ifPresent(leaderPingResult -> leaderPingResult.recordEvent(eventRecorder));
+        maybeLeaderPingResult.ifPresent(leaderPingResult -> LeaderPingResults.caseOf(leaderPingResult)
+                .pingReturnedTrue((key, value) -> {
+                    leaderAddressCache.put(key, value);
+                    return null;
+                }).otherwise_(null));
         return maybeLeaderPingResult.orElseGet(LeaderPingResults::pingReturnedFalse);
     }
 

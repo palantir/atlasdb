@@ -46,6 +46,12 @@ public abstract class LeaderPingResult {
                 .otherwise_(null);
     }
 
+    public boolean isSuccessful() {
+        return LeaderPingResults.caseOf(this)
+                .pingReturnedTrue_(true)
+                .otherwise_(false);
+    }
+
     private static <R> Supplier<R> wrap(Runnable runnable) {
         return () -> {
             runnable.run();
