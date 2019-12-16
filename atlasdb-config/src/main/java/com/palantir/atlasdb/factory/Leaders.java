@@ -201,6 +201,7 @@ public final class Leaders {
                 .learnerClient(learnerNetworkClient)
                 .decorateProposer(proposer ->
                         AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(), PaxosProposer.class, proposer))
+                .leaderAddressCacheTtl(config.leaderAddressCacheTtl())
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrumentTimed(

@@ -32,7 +32,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.SafeArg;
 
@@ -100,8 +99,8 @@ public abstract class LeaderConfig {
     }
 
     @Value.Default
-    public HumanReadableDuration leaderAddressCacheTtl() {
-        return HumanReadableDuration.seconds(15);
+    public Duration leaderAddressCacheTtl() {
+        return Duration.ofSeconds(15);
     }
 
     @Value.Check
