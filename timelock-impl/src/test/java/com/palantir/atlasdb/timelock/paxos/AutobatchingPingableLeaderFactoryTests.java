@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -86,26 +87,28 @@ public class AutobatchingPingableLeaderFactoryTests {
 
     @Test
     public void twoDifferentLeaders() {
+        HostAndPort leader1 = HostAndPort.fromParts("timelock-1", 8080);
+        HostAndPort leader2 = HostAndPort.fromParts("timelock-2", 8080);
         LeaderPingerContext<BatchPingableLeader> client1Leader =
-                batchPingableLeader(HostAndPort.fromParts("timelock-1", 8080), CLIENT_1);
+                batchPingableLeader(leader1, CLIENT_1);
         LeaderPingerContext<BatchPingableLeader> client2Leader =
-                batchPingableLeader(HostAndPort.fromParts("timelock-2", 8080), CLIENT_2);
+                batchPingableLeader(leader2, CLIENT_2);
 
         AutobatchingPingableLeaderFactory factory = factoryForPingables(client1Leader, client2Leader);
         LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
         LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
         assertThat(client1Pinger.pingLeaderWithUuid(client1Leader.pinger().uuid()))
-                .isEqualTo(LeaderPingResults.pingReturnedTrue(client1Leader.pinger().uuid(), HOST_AND_PORT));
+                .isEqualTo(LeaderPingResults.pingReturnedTrue(client1Leader.pinger().uuid(), leader1));
 
         assertThat(client2Pinger.pingLeaderWithUuid(client2Leader.pinger().uuid()))
-                .isEqualTo(LeaderPingResults.pingReturnedTrue(client2Leader.pinger().uuid(), HOST_AND_PORT));
+                .isEqualTo(LeaderPingResults.pingReturnedTrue(client2Leader.pinger().uuid(), leader2));
     }
 
     @Test
     public void pingFailureReturnsFalse() {
         UUID uuid = UUID.randomUUID();
-        BatchPingableLeader rpc = mock(BatchPingableLeader.class);
+        BatchPingableLeader rpc = mock(BatchPingableLeader.class, Answers.RETURNS_SMART_NULLS);
         when(rpc.uuid()).thenReturn(uuid);
         RuntimeException error = new RuntimeException("ping failure");
         when(rpc.ping(anySet())).thenThrow(error);

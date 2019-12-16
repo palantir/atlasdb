@@ -121,12 +121,13 @@ public class GetSuspectedLeaderWithUuidTests {
         function.accept(ImmutableList.of(secondRequest));
 
         assertThat(secondRequest.get()).contains(remote);
-        verifyNoMoreInteractions(remote);
+        verifyNoMoreInteractions(remote.underlyingRpcClient().pinger());
     }
 
     private static ClientAwarePingableLeader remoteWithUuid(UUID uuid) {
         ClientAwarePingableLeader mock = mock(ClientAwarePingableLeader.class, Answers.RETURNS_DEEP_STUBS);
-        return when(mock.underlyingRpcClient().pinger().uuid()).thenReturn(uuid).getMock();
+        when(mock.underlyingRpcClient().pinger().uuid()).thenReturn(uuid);
+        return mock;
     }
 
     private static ClientAwarePingableLeader remoteWithRandomUuid() {

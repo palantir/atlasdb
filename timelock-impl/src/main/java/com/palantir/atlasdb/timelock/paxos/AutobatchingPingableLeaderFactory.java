@@ -156,7 +156,8 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
                 }
 
                 ClientAwarePingableLeader pingableLeaderWithUuid = maybePingableLeader.get();
-                return executors.get(pingableLeaderWithUuid).submit(() -> pingableLeaderWithUuid.ping(uuid, client))
+                return executors.get(pingableLeaderWithUuid.underlyingRpcClient())
+                        .submit(() -> pingableLeaderWithUuid.ping(uuid, client))
                         .get(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 log.warn("received interrupt whilst trying to ping leader",
