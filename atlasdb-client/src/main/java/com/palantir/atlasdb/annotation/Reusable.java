@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.processors;
+package com.palantir.atlasdb.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

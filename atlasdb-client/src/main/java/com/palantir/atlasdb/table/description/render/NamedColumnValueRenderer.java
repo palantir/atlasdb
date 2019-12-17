@@ -19,9 +19,6 @@ import static com.palantir.atlasdb.table.description.render.ColumnRenderers.Type
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.long_name;
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.short_name;
 
-import com.palantir.atlasdb.persist.api.Persister;
-import com.palantir.atlasdb.processors.Reusable;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix

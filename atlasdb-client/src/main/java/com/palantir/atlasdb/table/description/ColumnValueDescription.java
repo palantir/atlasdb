@@ -22,7 +22,7 @@ import java.lang.reflect.Method;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import com.palantir.atlasdb.processors.Reusable;
+import com.palantir.atlasdb.annotation.Reusable;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
