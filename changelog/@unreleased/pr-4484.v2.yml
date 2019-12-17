@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: fix
+fix:
   description: Users of embedded or leader block services now attempt to explicitly
     unlock a successfully acquired immutable timestamp lock if a subsequent call to
     the timestamp or lock services fails. Previously this could lead to the immutable
