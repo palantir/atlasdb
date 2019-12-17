@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +35,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -56,6 +58,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -526,14 +529,14 @@ public class SerializableTransaction extends SnapshotTransaction {
                 // We want to filter out all our reads to just the set that matches our column selection.
                 originalReads = Maps.filterKeys(originalReads, input -> columns.contains(input.getColumnName()));
 
-                if (writesByTable.get(table) != null) {
+                if (!transactionWriteBuffer.writesByTable(table).isEmpty()) {
                     // We don't want to verify any reads that we wrote to cause
                     // we will just read our own values.
                     // NB: We filter our write set out here because our normal SI
                     // checking handles this case to ensure the value hasn't changed.
                     originalReads = Maps.filterKeys(
                             originalReads,
-                            Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
+                            Predicates.not(Predicates.in(transactionWriteBuffer.writtenCells(table))));
                 }
 
                 if (currentRow == null && originalReads.isEmpty()) {
@@ -545,14 +548,14 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
 
                 Map<Cell, byte[]> currentCells = Maps2.fromEntries(currentRow.getCells());
-                if (writesByTable.get(table) != null) {
+                if (!transactionWriteBuffer.writesByTable(table).isEmpty()) {
                     // We don't want to verify any reads that we wrote to cause
                     // we will just read our own values.
                     // NB: We filter our write set out here because our normal SI
                     // checking handles this case to ensure the value hasn't changed.
                     currentCells = Maps.filterKeys(
                             currentCells,
-                            Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
+                            Predicates.not(Predicates.in(transactionWriteBuffer.writtenCells(table))));
                 }
                 if (!areMapsEqual(originalReads, currentCells)) {
                     handleTransactionConflict(table);
@@ -585,10 +588,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Iterable<Cell> batch : Iterables.partition(cells, BATCH_SIZE)) {
                 // We don't want to verify any reads that we wrote to cause we will just read our own values.
                 // NB: If the value has changed between read and write, our normal SI checking handles this case
-                Iterable<Cell> batchWithoutWrites = writesByTable.get(table) != null
-                        ? Iterables.filter(batch, Predicates.not(Predicates.in(writesByTable.get(table).keySet())))
-                        : batch;
-                ImmutableSet<Cell> batchWithoutWritesSet = ImmutableSet.copyOf(batchWithoutWrites);
+                ImmutableSet<Cell> batchWithoutWritesSet = batchWithoutWrites(table, batch);
                 Map<Cell, byte[]> currentBatch = readOnlyTransaction.get(table, batchWithoutWritesSet);
                 ImmutableMap<Cell, byte[]> originalReads = Maps.toMap(
                         Sets.intersection(batchWithoutWritesSet, readsForTable.keySet()),
@@ -598,6 +598,15 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
             }
         }
+    }
+
+    private ImmutableSet<Cell> batchWithoutWrites(TableReference table, Iterable<Cell> batch) {
+        Collection<Cell> writesPerTable = transactionWriteBuffer.writtenCells(table);
+        if (writesPerTable.isEmpty()) {
+            return ImmutableSet.copyOf(batch);
+        }
+        return ImmutableSet.copyOf(
+                Streams.stream(batch).filter(cell -> !writesPerTable.contains(cell)).collect(Collectors.toList()));
     }
 
     private void verifyRanges(Transaction readOnlyTransaction) {
@@ -616,7 +625,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                             .build();
                 }
 
-                ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
+                SortedMap<Cell, byte[]> writes = transactionWriteBuffer.writesByTable(table);
                 BatchingVisitableView<RowResult<byte[]>> bv = BatchingVisitableView.of(
                         readOnlyTransaction.getRange(table, range));
                 NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
@@ -646,7 +655,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             Cell endCell = Cells.createSmallestCellForRow(RangeRequests.nextLexicographicName(row));
             reads = reads.headMap(endCell, false);
         }
-        ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
+        SortedMap<Cell, byte[]> writes = transactionWriteBuffer.writesByTable(table);
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }
@@ -712,17 +721,17 @@ public class SerializableTransaction extends SnapshotTransaction {
     private List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
             Iterable<Entry<Cell, byte[]>> cells,
             TableReference table) {
-        return filterWritesFromCells(cells, writesByTable.get(table));
+        return filterWritesFromCells(cells, transactionWriteBuffer.writesByTable(table));
     }
 
     private static List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
             Iterable<Entry<Cell, byte[]>> cells,
-            @Nullable Map<Cell, byte[]> writes) {
+            Map<Cell, byte[]> writes) {
         List<Entry<Cell, ByteBuffer>> cellsWithoutWrites = Lists.newArrayList();
         for (Entry<Cell, byte[]> cell : cells) {
             // NB: We filter our write set out here because our normal SI
             // checking handles this case to ensure the value hasn't changed.
-            if (writes == null || !writes.containsKey(cell.getKey())) {
+            if (!writes.containsKey(cell.getKey())) {
                 cellsWithoutWrites.add(Maps.immutableEntry(cell.getKey(), ByteBuffer.wrap(cell.getValue())));
             }
         }
@@ -748,7 +757,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         if (range.getEndExclusive().length != 0) {
             reads = reads.headMap(Cells.createSmallestCellForRow(range.getEndExclusive()), false);
         }
-        Map<Cell, byte[]> writes = writesByTable.get(table);
+        Map<Cell, byte[]> writes = transactionWriteBuffer.writesByTable(table);
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }

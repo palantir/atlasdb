@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.off.heap;
 
+import java.util.Collection;
+import java.util.SortedMap;
 import java.util.UUID;
 
 import org.immutables.value.Value;
@@ -69,4 +71,8 @@ public interface PersistentTimestampStore extends AutoCloseable {
      * handle to a non existing namespace
      */
     void dropNamespace(StoreNamespace storeNamespace);
+
+    Collection<Long> loadAllKeys(StoreNamespace storeNamespace);
+
+    SortedMap<Long, Long> loadTableData(StoreNamespace storeNamespace);
 }

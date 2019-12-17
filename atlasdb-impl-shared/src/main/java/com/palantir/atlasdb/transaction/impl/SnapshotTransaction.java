@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -52,7 +50,6 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.AbstractIterator;
@@ -119,6 +116,8 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
+import com.palantir.atlasdb.transaction.impl.buffering.TransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -207,8 +206,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
-    protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
-            Maps.newConcurrentMap();
+    protected final TransactionWriteBuffer transactionWriteBuffer =
+            new DefaultTransactionWriteBuffer(Maps.newConcurrentMap());
     protected final TransactionConflictDetectionManager conflictDetectionManager;
     private final AtomicLong byteCount = new AtomicLong();
 
@@ -338,8 +337,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
-        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes != null) {
+        SortedMap<Cell, byte[]> writes = transactionWriteBuffer.writesByTable(tableRef);
+        if (!writes.isEmpty()) {
             for (byte[] row : rows) {
                 extractLocalWritesForRow(result, writes, row, columnSelection);
             }
@@ -634,8 +633,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
 
         Map<Cell, byte[]> result = Maps.newHashMap();
-        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes != null) {
+        SortedMap<Cell, byte[]> writes = transactionWriteBuffer.writesByTable(tableRef);
+        if (!writes.isEmpty()) {
             for (Cell cell : cells) {
                 if (writes.containsKey(cell)) {
                     result.put(cell, writes.get(cell));
@@ -1063,15 +1062,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         };
     }
 
-    private ConcurrentNavigableMap<Cell, byte[]> getLocalWrites(TableReference tableRef) {
-        return writesByTable.computeIfAbsent(tableRef, unused -> new ConcurrentSkipListMap<>());
-    }
-
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
      */
     private SortedMap<Cell, byte[]> getLocalWritesForRange(TableReference tableRef, byte[] startRow, byte[] endRow) {
-        SortedMap<Cell, byte[]> writes = getLocalWrites(tableRef);
+        SortedMap<Cell, byte[]> writes = transactionWriteBuffer.writesByTable(tableRef);
         if (startRow.length != 0) {
             writes = writes.tailMap(Cells.createSmallestCellForRow(startRow));
         }
@@ -1085,7 +1080,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             BatchColumnRangeSelection columnRangeSelection,
             byte[] row) {
-        SortedMap<Cell, byte[]> writes = getLocalWrites(tableRef);
+        SortedMap<Cell, byte[]> writes = transactionWriteBuffer.writesByTable(tableRef);
         Cell startCell;
         if (columnRangeSelection.getStartCol().length != 0) {
             startCell = Cell.create(row, columnRangeSelection.getStartCol());
@@ -1412,9 +1407,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // We need to check the status after incrementing writers to ensure that we fail if we are committing.
             ensureUncommitted();
 
-            ConcurrentNavigableMap<Cell, byte[]> writes = getLocalWrites(tableRef);
-
-            putWritesAndLogIfTooLarge(values, writes);
+            transactionWriteBuffer.putWrites(tableRef, values);
         } finally {
             numWriters.decrementAndGet();
         }
@@ -1429,27 +1422,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    private void putWritesAndLogIfTooLarge(Map<Cell, byte[]> values, SortedMap<Cell, byte[]> writes) {
-        for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-            byte[] val = MoreObjects.firstNonNull(e.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
-            Cell cell = e.getKey();
-            if (writes.put(cell, val) == null) {
-                long toAdd = val.length + Cells.getApproxSizeOfCell(cell);
-                long newVal = byteCount.addAndGet(toAdd);
-                if (newVal >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
-                        && newVal - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
-                    log.warn("A single transaction has put quite a few bytes: {}. "
-                            + "Enable debug logging for more information",
-                            SafeArg.of("numBytes", newVal));
-                    if (log.isDebugEnabled()) {
-                        log.debug("This exception and stack trace are provided for debugging purposes.",
-                                new RuntimeException());
-                    }
-                }
-            }
-        }
-    }
-
     @Override
     public void abort() {
         if (state.get() == State.ABORTED) {
@@ -1458,7 +1430,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         while (true) {
             ensureUncommitted();
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
-                if (hasWrites()) {
+                if (transactionWriteBuffer.hasWrites()) {
                     throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
                 transactionOutcomeMetrics.markAbort();
@@ -1546,8 +1518,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void checkConstraints() {
         List<String> violations = Lists.newArrayList();
         for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
-            SortedMap<Cell, byte[]> sortedMap = writesByTable.get(entry.getKey());
-            if (sortedMap != null) {
+            SortedMap<Cell, byte[]> sortedMap = transactionWriteBuffer.writesByTable(entry.getKey());
+            if (!sortedMap.isEmpty()) {
                 violations.addAll(entry.getValue().findConstraintFailures(sortedMap, this, constraintCheckingMode));
             }
         }
@@ -1562,7 +1534,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void commitWrites(TransactionService transactionService) {
-        if (!hasWrites()) {
+        if (!transactionWriteBuffer.hasWrites()) {
             if (hasReads()) {
                 // verify any pre-commit conditions on the transaction
                 preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
@@ -1590,11 +1562,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // Write to the targeted sweep queue. We must do this before writing to the key value service -
                 // otherwise we may have hanging values that targeted sweep won't know about.
-                timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));
+                timedAndTraced("writingToSweepQueue",
+                        () -> sweepQueue.enqueue(transactionWriteBuffer.all(), getStartTimestamp()));
 
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
+                timedAndTraced("commitWrite", this::flushToWritesToKvs);
 
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
@@ -1628,12 +1601,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
-                getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
+                getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN)
+                        .update(transactionWriteBuffer.byteCount());
             } finally {
                 timedAndTraced("postCommitUnlock",
                         () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
             }
         });
+    }
+
+    private void flushToWritesToKvs() {
+        if (transactionWriteBuffer.byteCount() >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
+            log.warn(
+                    "A single transaction has put quite a few bytes. Enable debug logging for more information",
+                    SafeArg.of("numBytes", transactionWriteBuffer.byteCount()));
+            if (log.isDebugEnabled()) {
+                log.debug("This exception and stack trace are provided for debugging purposes.",
+                        new RuntimeException());
+            }
+        }
+        keyValueService.multiPut(transactionWriteBuffer.all(), getStartTimestamp());
     }
 
     private void timedAndTraced(String timerName, Runnable runnable) {
@@ -1652,10 +1639,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
         // This is for overriding to get serializable transactions
-    }
-
-    private boolean hasWrites() {
-        return writesByTable.values().stream().anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
@@ -1724,15 +1707,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     protected void throwIfConflictOnCommit(LockToken commitLocksToken, TransactionService transactionService)
             throws TransactionConflictException {
-        for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write : writesByTable.entrySet()) {
-            ConflictHandler conflictHandler = getConflictHandlerForTable(write.getKey());
-            throwIfWriteAlreadyCommitted(
-                    write.getKey(),
-                    write.getValue(),
-                    conflictHandler,
-                    commitLocksToken,
-                    transactionService);
-        }
+        transactionWriteBuffer.applyPostCondition((tableReference, writes) -> {
+            ConflictHandler conflictHandler = getConflictHandlerForTable(tableReference);
+            throwIfWriteAlreadyCommitted(tableReference, writes, conflictHandler, commitLocksToken, transactionService);
+        });
     }
 
     protected void throwIfWriteAlreadyCommitted(TableReference tableRef,
@@ -1999,10 +1977,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected Set<LockDescriptor> getLocksForWrites() {
         Set<LockDescriptor> result = Sets.newHashSet();
-        for (TableReference tableRef : writesByTable.keySet()) {
+        for (TableReference tableRef : transactionWriteBuffer.tablesWrittenTo()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
-                for (Cell cell : getLocalWrites(tableRef).keySet()) {
+                for (Cell cell : transactionWriteBuffer.writtenCells(tableRef)) {
                     result.add(
                             AtlasCellLockDescriptor.of(
                                     tableRef.getQualifiedName(),
@@ -2013,7 +1991,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             if (conflictHandler.lockRowsForConflicts()) {
                 Cell lastCell = null;
-                for (Cell cell : getLocalWrites(tableRef).keySet()) {
+                for (Cell cell : transactionWriteBuffer.writtenCells(tableRef)) {
                     if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
                         result.add(
                                 AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()));
@@ -2325,36 +2303,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Multimap<Cell, TableReference> getCellsToScrubByCell(State expectedState) {
-        Multimap<Cell, TableReference> cellToTableName = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
-            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
-                TableReference table = entry.getKey();
-                Set<Cell> cells = entry.getValue().keySet();
-                for (Cell c : cells) {
-                    cellToTableName.put(c, table);
-                }
-            }
-        } else {
-            AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
+            return transactionWriteBuffer.cellsToScrubByCell();
         }
-        return cellToTableName;
+        AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
+        return HashMultimap.create();
     }
 
 
     private Multimap<TableReference, Cell> getCellsToScrubByTable(State expectedState) {
-        Multimap<TableReference, Cell> tableRefToCells = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
-            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
-                TableReference table = entry.getKey();
-                Set<Cell> cells = entry.getValue().keySet();
-                tableRefToCells.putAll(table, cells);
-            }
-        } else {
-            AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
+            return transactionWriteBuffer.cellsToScrubByTable();
         }
-        return tableRefToCells;
+        AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
+        return HashMultimap.create();
     }
 
     private Timer getTimer(String name) {

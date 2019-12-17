@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.off.heap.rocksdb;
 
+import java.util.Collection;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,9 +25,12 @@ import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
 import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -90,6 +95,28 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
         dropColumnFamily(availableColumnFamilies.get(storeNamespace.uniqueName()));
         availableColumnFamilies.remove(storeNamespace.uniqueName());
+    }
+
+    @Override
+    public Collection<Long> loadAllKeys(StoreNamespace storeNamespace) {
+        RocksIterator iterator = rocksDB.newIterator(availableColumnFamilies.get(storeNamespace.uniqueName()));
+        ImmutableList.Builder<Long> builder = ImmutableList.builder();
+        while (iterator.isValid()) {
+            builder.add((Long) ValueType.VAR_LONG.convertToJava(iterator.key(), 0));
+        }
+        return builder.build();
+    }
+
+    @Override
+    public SortedMap<Long, Long> loadTableData(StoreNamespace storeNamespace) {
+        RocksIterator iterator = rocksDB.newIterator(availableColumnFamilies.get(storeNamespace.uniqueName()));
+        ImmutableSortedMap.Builder<Long, Long> builder = ImmutableSortedMap.naturalOrder();
+        while (iterator.isValid()) {
+            builder.put(
+                    (Long) ValueType.VAR_LONG.convertToJava(iterator.key(), 0),
+                    (Long) ValueType.VAR_LONG.convertToJava(iterator.value(), 0));
+        }
+        return builder.build();
     }
 
     @Override
