@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: Users of embedded or leader block services now attempt to explicitly
+    unlock a successfully acquired immutable timestamp lock if a subsequent call to
+    the timestamp or lock services fails. Previously this could lead to the immutable
+    timestamp being suppressed for long periods of time, meaning that sweep and/or
+    hard deletes would be stuck.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4484
