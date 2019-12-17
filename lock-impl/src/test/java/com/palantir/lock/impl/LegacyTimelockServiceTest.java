@@ -16,6 +16,9 @@
 package com.palantir.lock.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -131,6 +134,41 @@ public class LegacyTimelockServiceTest {
         assertEquals(LockResponse.successful(LOCK_TOKEN_V2), timelock.lock(
                 LockRequest.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
+    }
+
+    @Test
+    public void unlocksImmutableTimestampLockIfGettingMinLockedInVersionThrows() throws InterruptedException {
+        Exception illegalStateException = new IllegalStateException();
+        when(timestampService.getFreshTimestamp()).thenReturn(5L);
+        when(lockService.lock(eq(LOCK_CLIENT.getClientId()), any())).thenReturn(LOCK_REFRESH_TOKEN);
+        when(lockService.getMinLockedInVersionId(any(LockClient.class))).thenThrow(illegalStateException);
+
+        try {
+            timelock.lockImmutableTimestamp();
+            fail();
+        } catch (Exception e) {
+            assertEquals(e, illegalStateException);
+        }
+
+        verify(lockService).unlock(LOCK_REFRESH_TOKEN);
+    }
+
+    @Test
+    public void unlocksImmutableTimestampLockFromStartAtlasDbTransaction() throws InterruptedException {
+        Exception illegalStateException = new IllegalStateException();
+        when(timestampService.getFreshTimestamp())
+                .thenReturn(5L) // needed because locking the immutable timestamp takes out a fresh ts
+                .thenThrow(illegalStateException);
+        when(lockService.lock(eq(LOCK_CLIENT.getClientId()), any())).thenReturn(LOCK_REFRESH_TOKEN);
+
+        try {
+            timelock.startIdentifiedAtlasDbTransaction();
+            fail();
+        } catch (Exception e) {
+            assertEquals(e, illegalStateException);
+        }
+
+        verify(lockService).unlock(LOCK_REFRESH_TOKEN);
     }
 
     @Test
