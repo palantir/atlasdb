@@ -29,11 +29,36 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 
 import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore.StoreNamespace;
+import com.palantir.atlasdb.off.heap.PersistentStore;
+import com.palantir.atlasdb.off.heap.PersistentStore.Serializer;
+import com.palantir.atlasdb.off.heap.PersistentStore.StoreNamespace;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
-public final class RocksDbPersistentTimestampStoreTests {
+public final class RocksDbPersistentStoreTests {
+    private static final Serializer<Long, Long> SERIALIZER =
+            new Serializer<Long, Long>() {
+                @Override
+                public byte[] serializeKey(Long key) {
+                    return ValueType.VAR_LONG.convertFromJava(key);
+                }
+
+                @Override
+                public Long deserializeKey(byte[] key) {
+                    return (Long) ValueType.VAR_LONG.convertToJava(key, 0);
+                }
+
+                @Override
+                public byte[] serializeValue(Long key, Long value) {
+                    return ValueType.VAR_LONG.convertFromJava(value - key);
+                }
+
+                @Override
+                public Long deserializeValue(Long key, byte[] value) {
+                    return key + (Long) ValueType.VAR_LONG.convertToJava(value, 0);
+                }
+            };
+
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -43,14 +68,14 @@ public final class RocksDbPersistentTimestampStoreTests {
             .uniqueName(UUID.randomUUID())
             .build();
 
-    private PersistentTimestampStore timestampMappingStore;
+    private PersistentStore<Long, Long> timestampMappingStore;
     private StoreNamespace defaultNamespace;
 
     @Before
     public void before() throws Exception {
         RocksDB rocksDb = RocksDB.open(temporaryFolder.newFolder().getAbsolutePath());
 
-        timestampMappingStore = new RocksDbPersistentTimestampStore(rocksDb);
+        timestampMappingStore = new RocksDbPersistentStore<>(rocksDb, SERIALIZER);
         defaultNamespace = timestampMappingStore.createNamespace(DEFAULT);
     }
 

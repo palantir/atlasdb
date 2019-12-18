@@ -16,39 +16,48 @@
 
 package com.palantir.atlasdb.off.heap;
 
+import java.util.Collection;
+import java.util.SortedMap;
 import java.util.UUID;
 
 import org.immutables.value.Value;
 
-public interface PersistentTimestampStore extends AutoCloseable {
+public interface PersistentStore<K extends Comparable<K>, V> extends AutoCloseable {
     @Value.Immutable
     interface StoreNamespace {
         String humanReadableName();
         UUID uniqueName();
     }
 
+    interface Serializer<T, R> {
+        byte[] serializeKey(T key);
+        T deserializeKey(byte[] key);
+        byte[] serializeValue(T key, R value);
+        R deserializeValue(T key, byte[] value);
+    }
+
     /**
-     * Gets the commit timestamp associated with the entry specified by {@code startTs}.
+     * Gets the value associated with the entry specified by {@code key}.
      *
-     * @param storeNamespace handle to the namespace from which we want to retrieve the commit timestamp
-     * @param startTs        entry key for which we want to retrieve commit timestamp
-     * @return the associated timestamp or null if the entry is missing
+     * @param storeNamespace handle to the namespace from which we want to retrieve the value
+     * @param key        entry key for which we want to retrieve value
+     * @return the associated value or null if the entry is missing
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    Long get(StoreNamespace storeNamespace, Long startTs);
+    V get(StoreNamespace storeNamespace, K key);
 
     /**
-     * Stores the {@code commitTs} for the associated {@code startTs} while overwriting the existing value in the
+     * Stores the {@code value} for the associated {@code key} while overwriting the existing value in the
      * specified {@code storeNamespace}.
      *
      * @param storeNamespace of the store to which we should store the entry
-     * @param startTs        entry key
-     * @param commitTs       entry value
+     * @param key        entry key
+     * @param value       entry value
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    void put(StoreNamespace storeNamespace, Long startTs, Long commitTs);
+    void put(StoreNamespace storeNamespace, K key, V value);
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to
@@ -69,4 +78,20 @@ public interface PersistentTimestampStore extends AutoCloseable {
      * handle to a non existing namespace
      */
     void dropNamespace(StoreNamespace storeNamespace);
+
+    /**
+     * Loads all keys stored in the {@code storeNamespace}
+     *
+     * @param storeNamespace for which to retrieve the data
+     * @return all the keys for the given {@link StoreNamespace} or empty collection if the namespace is empty
+     */
+    Collection<K> loadNamespaceKeys(StoreNamespace storeNamespace);
+
+    /**
+     * Loads all entries for the {@code storeNamespace}.
+     *
+     * @param storeNamespace for which to load entries
+     * @return {@link SortedMap} of the entries in storage
+     */
+    SortedMap<K, V> loadNamespaceEntries(StoreNamespace storeNamespace);
 }

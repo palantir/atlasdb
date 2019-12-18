@@ -26,31 +26,62 @@ import java.util.function.BiConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore.StoreNamespace;
+import com.palantir.atlasdb.off.heap.PersistentStore;
+import com.palantir.atlasdb.off.heap.PersistentStore.Serializer;
+import com.palantir.atlasdb.off.heap.PersistentStore.StoreNamespace;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
 
 public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuffer {
     private static final Logger log = LoggerFactory.getLogger(OffHeapTransactionWriteBuffer.class);
-    private static final ImmutableSortedMap<Cell, byte[]> EMPTY_WRITES = ImmutableSortedMap.of();
+    @VisibleForTesting
+    static final Serializer<Cell, byte[]> DEFAULT_SERIALIZER = new Serializer<Cell, byte[]>() {
+        @Override
+        public byte[] serializeKey(Cell key) {
+            byte[] encodedRow = ValueType.SIZED_BLOB.convertFromJava(key.getRowName());
+            return Bytes.concat(encodedRow, key.getColumnName());
+        }
 
-    private final PersistentTimestampStore persistentTimestampStore;
+        @Override
+        public Cell deserializeKey(byte[] key) {
+            byte[] rowName = (byte[]) ValueType.SIZED_BLOB.convertToJava(key, 0);
+            int offset = ValueType.VAR_LONG.sizeOf((long) rowName.length) + rowName.length;
+            return Cell.create(rowName, (byte[]) ValueType.BLOB.convertToJava(key, offset));
+        }
+
+        @Override
+        public byte[] serializeValue(Cell key, byte[] value) {
+            return value;
+        }
+
+        @Override
+        public byte[] deserializeValue(Cell key, byte[] value) {
+            return value;
+        }
+    };
+
+    private final PersistentStore<Cell, byte[]> persistentStore;
     private final ConcurrentHashMap<TableReference, StoreNamespace> tableMappings = new ConcurrentHashMap<>();
     private final AtomicLong byteCount = new AtomicLong();
     private volatile boolean hasWrites = false;
 
-    OffHeapTransactionWriteBuffer(PersistentTimestampStore persistentTimestampStore) {
-        this.persistentTimestampStore = persistentTimestampStore;
+    public static TransactionWriteBuffer create(PersistentStore<Cell, byte[]> persistentStore) {
+        return new OffHeapTransactionWriteBuffer(persistentStore);
+    }
+
+    OffHeapTransactionWriteBuffer(PersistentStore<Cell, byte[]> persistentStore) {
+        this.persistentStore = persistentStore;
     }
 
     @Override
@@ -64,11 +95,9 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
             byte[] val = MoreObjects.firstNonNull(e.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
             Cell cell = e.getKey();
             StoreNamespace tableStoreNamespace = storeNamespace(tableRef);
-            // TODO change this
-            Long previous = persistentTimestampStore.get(tableStoreNamespace, 1L);
-            persistentTimestampStore.put(tableStoreNamespace, 1L, 2L);
+            byte[] previous = persistentStore.get(tableStoreNamespace, cell);
+            persistentStore.put(tableStoreNamespace, cell, val);
             hasWrites = true;
-            // end of changing
             if (previous == null) {
                 long toAdd = val.length + Cells.getApproxSizeOfCell(cell);
                 byteCount.addAndGet(toAdd);
@@ -81,18 +110,16 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
         }
     }
 
-
     @Override
     public void applyPostCondition(BiConsumer<TableReference, Map<Cell, byte[]>> postCondition) {
-
+        tableMappings.forEach((tableReference, storeNamespace) ->
+                postCondition.accept(tableReference, writesByStoreNamespace(storeNamespace)));
     }
 
     @Override
     public Collection<Cell> writtenCells(TableReference tableRef) {
-        // TODO change this
         return getCells(storeNamespace(tableRef));
     }
-
 
     @Override
     public Iterable<TableReference> tablesWrittenTo() {
@@ -102,8 +129,8 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
     @Override
     public Map<TableReference, ? extends Map<Cell, byte[]>> all() {
         ImmutableMap.Builder<TableReference, Map<Cell, byte[]>> builder = ImmutableMap.builder();
-        tableMappings.forEach(((tableReference, storeNamespace) ->
-                builder.put(tableReference, writesByStoreNamespace(storeNamespace))));
+        tableMappings.forEach((tableReference, storeNamespace) ->
+                builder.put(tableReference, writesByStoreNamespace(storeNamespace)));
         return builder.build();
     }
 
@@ -111,7 +138,6 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
     public SortedMap<Cell, byte[]> writesByTable(TableReference tableRef) {
         return writesByStoreNamespace(storeNamespace(tableRef));
     }
-
 
     @Override
     public boolean hasWrites() {
@@ -126,7 +152,6 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
             for (Cell cell : cells) {
                 cellToTableName.put(cell, tableReference);
             }
-
         });
         return cellToTableName;
     }
@@ -140,16 +165,16 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
     }
 
     private SortedMap<Cell, byte[]> writesByStoreNamespace(StoreNamespace storeNamespace) {
-        return persistentTimestampStore.loadTableData(storeNamespace);
+        return persistentStore.loadNamespaceEntries(storeNamespace);
     }
 
     private Collection<Cell> getCells(StoreNamespace storeNamespace) {
-        return persistentTimestampStore.loadAllKeys(storeNamespace);
+        return persistentStore.loadNamespaceKeys(storeNamespace);
     }
 
     private StoreNamespace storeNamespace(TableReference tableRef) {
         return tableMappings.computeIfAbsent(
                 tableRef,
-                $ -> persistentTimestampStore.createNamespace(tableRef.getQualifiedName()));
+                $ -> persistentStore.createNamespace(tableRef.getQualifiedName()));
     }
 }

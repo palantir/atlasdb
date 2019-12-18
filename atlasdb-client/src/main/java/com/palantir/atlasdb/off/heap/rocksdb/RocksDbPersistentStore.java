@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.off.heap.rocksdb;
 
+import java.util.Collection;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,50 +25,54 @@ import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
-import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.off.heap.PersistentStore;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 
-public final class RocksDbPersistentTimestampStore implements PersistentTimestampStore {
-    private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentTimestampStore.class);
+public final class RocksDbPersistentStore<K extends Comparable<K>, V> implements PersistentStore<K, V> {
+    private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);
 
     private final ConcurrentHashMap<UUID, ColumnFamilyHandle> availableColumnFamilies = new ConcurrentHashMap<>();
     private final RocksDB rocksDB;
+    private final Serializer<K, V> serializer;
 
-    public RocksDbPersistentTimestampStore(RocksDB rocksDB) {
+    public RocksDbPersistentStore(RocksDB rocksDB, Serializer<K, V> serializer) {
         this.rocksDB = rocksDB;
+        this.serializer = serializer;
     }
 
     @Override
-    public Long get(StoreNamespace storeNamespace, Long startTs) {
+    public V get(StoreNamespace storeNamespace, K key) {
         if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
             throw new SafeIllegalArgumentException("Store namespace does not exist");
         }
 
-        byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
+        byte[] byteKeyValue = serializer.serializeKey(key);
         byte[] value = getWithExceptionHandling(availableColumnFamilies.get(storeNamespace.uniqueName()), byteKeyValue);
 
         if (value == null) {
             return null;
         }
-        return startTs + (Long) ValueType.VAR_LONG.convertToJava(value, 0);
+        return serializer.deserializeValue(key, value);
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, Long startTs, Long commitTs) {
+    public void put(StoreNamespace storeNamespace, K key, V value) {
         if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
             throw new SafeIllegalArgumentException("Store namespace does not exist");
         }
 
-        byte[] key = ValueType.VAR_LONG.convertFromJava(startTs);
-        byte[] value = ValueType.VAR_LONG.convertFromJava(commitTs - startTs);
-
-        putWithExceptionHandling(availableColumnFamilies.get(storeNamespace.uniqueName()), key, value);
+        putWithExceptionHandling(
+                availableColumnFamilies.get(storeNamespace.uniqueName()),
+                serializer.serializeKey(key),
+                serializer.serializeValue(key, value));
     }
 
     @Override
@@ -90,6 +96,31 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
         dropColumnFamily(availableColumnFamilies.get(storeNamespace.uniqueName()));
         availableColumnFamilies.remove(storeNamespace.uniqueName());
+    }
+
+    @Override
+    public Collection<K> loadNamespaceKeys(StoreNamespace storeNamespace) {
+        RocksIterator rocksIterator = rocksDB.newIterator(availableColumnFamilies.get(storeNamespace.uniqueName()));
+        ImmutableList.Builder<K> builder = ImmutableList.builder();
+        rocksIterator.seekToFirst();
+        while (rocksIterator.isValid()) {
+            builder.add(serializer.deserializeKey(rocksIterator.key()));
+            rocksIterator.next();
+        }
+        return builder.build();
+    }
+
+    @Override
+    public SortedMap<K, V> loadNamespaceEntries(StoreNamespace storeNamespace) {
+        RocksIterator rocksIterator = rocksDB.newIterator(availableColumnFamilies.get(storeNamespace.uniqueName()));
+        ImmutableSortedMap.Builder<K, V> builder = ImmutableSortedMap.naturalOrder();
+        rocksIterator.seekToFirst();
+        while (rocksIterator.isValid()) {
+            K key = serializer.deserializeKey(rocksIterator.key());
+            builder.put(key, serializer.deserializeValue(key, rocksIterator.value()));
+            rocksIterator.next();
+        }
+        return builder.build();
     }
 
     @Override
