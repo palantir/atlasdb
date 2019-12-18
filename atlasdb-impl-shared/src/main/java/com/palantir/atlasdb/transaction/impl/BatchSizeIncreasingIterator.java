@@ -50,8 +50,8 @@ public class BatchSizeIncreasingIterator<T> {
         Preconditions.checkArgument(originalBatchSize > 0);
         this.batchProvider = batchProvider;
         this.originalBatchSize = originalBatchSize;
-        this.currentResults = new ExhaustibleClosableIterator<>(currentResults);
         if (currentResults != null) {
+            this.currentResults = new ExhaustibleClosableIterator<>(currentResults);
             this.lastBatchSize = originalBatchSize;
         }
     }
@@ -91,15 +91,17 @@ public class BatchSizeIncreasingIterator<T> {
             return;
         }
 
-        // If we already ran out of iterator, we are done.
-        if (currentResults.isExhausted()) {
-            return;
-        }
-
         // If the last row we got was the maximal row, then we are done.
         if (!batchProvider.hasNext(lastToken)) {
             currentResults = new ExhaustibleClosableIterator<>(
                     ClosableIterators.wrap(ImmutableList.<T>of().iterator()));
+            return;
+        }
+
+        // If we already ran out of iterator, we need a new batch.
+        if (currentResults.isExhausted()) {
+            currentResults.close();
+            currentResults = new ExhaustibleClosableIterator<>(batchProvider.getBatch(lastBatchSize, lastToken));
             return;
         }
 
