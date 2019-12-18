@@ -29,7 +29,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 
 public class BatchSizeIncreasingIteratorTest {
-    private class OneAtATimeBatchProvider implements BatchProvider<Integer> {
+    private final static class OneAtATimeBatchProvider implements BatchProvider<Integer> {
         private List<Integer> values;
 
         private OneAtATimeBatchProvider(List<Integer> values) {
