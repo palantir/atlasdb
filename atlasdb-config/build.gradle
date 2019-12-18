@@ -1,9 +1,9 @@
 
 apply from: "../gradle/shared.gradle"
-apply plugin: 'com.palantir.revapi'
 
 dependencies {
     compile project(':atlasdb-api')
+    compile project(':atlasdb-conjure')
     compile project(path: ':atlasdb-feign', configuration: 'shadow')
     compile project(':atlasdb-impl-shared')
     compile project(':leader-election-impl')
@@ -40,7 +40,9 @@ dependencies {
     testCompileOnly 'org.immutables:value::annotations'
 
     testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
-    testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
+    testCompile(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'org.hamcrest'
+    }
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.github.tomakehurst', name: 'wiremock'
     testCompile group: 'org.assertj', name: 'assertj-core'

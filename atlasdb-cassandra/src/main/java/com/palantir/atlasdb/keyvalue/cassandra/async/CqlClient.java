@@ -17,10 +17,14 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
 public interface CqlClient extends AutoCloseable {
 
     <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec);
+
+    @Override
+    void close();
 }

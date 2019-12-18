@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[PDS-95791] Shore up `TransactionPostMortemRunner`'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4453

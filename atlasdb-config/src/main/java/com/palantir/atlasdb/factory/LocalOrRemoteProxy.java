@@ -26,6 +26,7 @@ import java.util.concurrent.TimeoutException;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * A proxy that chooses between using a local or remote proxy based on a task that may take a while to complete.
@@ -58,6 +59,10 @@ final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                // do not clear the interrupt flag
+                throw new SafeIllegalStateException("interrupted");
+            }
             try {
                 return method.invoke(delegate(), args);
             } catch (InvocationTargetException e) {

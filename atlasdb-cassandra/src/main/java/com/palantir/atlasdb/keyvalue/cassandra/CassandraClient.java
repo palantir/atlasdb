@@ -44,6 +44,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocol;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.processors.AutoDelegate;
 
 @SuppressWarnings({"all"}) // thrift variable names.
@@ -59,6 +60,7 @@ public interface CassandraClient extends Closeable {
 
     String describe_snitch() throws org.apache.thrift.TException;
 
+    @Timed
     Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
             TableReference tableRef,
             List<ByteBuffer> keys,
@@ -66,12 +68,14 @@ public interface CassandraClient extends Closeable {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
+    @Timed
     Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(String kvsMethodName,
             TableReference tableRef,
             List<KeyPredicate> keyPredicates,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
+    @Timed
     List<KeySlice> get_range_slices(String kvsMethodName,
             TableReference tableRef,
             SlicePredicate predicate,
@@ -79,11 +83,13 @@ public interface CassandraClient extends Closeable {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
+    @Timed
     void batch_mutate(String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
+    @Timed
     ColumnOrSuperColumn get(TableReference tableReference,
             ByteBuffer key,
             byte[] column,
@@ -91,6 +97,7 @@ public interface CassandraClient extends Closeable {
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException,
             org.apache.thrift.TException;
 
+    @Timed
     CASResult cas(TableReference tableReference,
             ByteBuffer key,
             List<Column> expected,
@@ -99,6 +106,7 @@ public interface CassandraClient extends Closeable {
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
+    @Timed
     public CASResult put_unless_exists(TableReference tableReference,
             ByteBuffer key,
             List<Column> updates,
@@ -112,6 +120,7 @@ public interface CassandraClient extends Closeable {
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             org.apache.thrift.TException;
 
+    @Timed
     void remove(String kvsMethodName,
             TableReference tableRef,
             byte[] row,
@@ -142,23 +151,24 @@ public interface CassandraClient extends Closeable {
     String system_update_keyspace(KsDef ks_def)
             throws InvalidRequestException, SchemaDisagreementException, TException;
 
-    String system_add_column_family(CfDef cf_def)
-            throws InvalidRequestException, SchemaDisagreementException, TException;
-
     String system_update_column_family(CfDef cf_def)
             throws InvalidRequestException, SchemaDisagreementException, TException;
 
     String system_drop_column_family(String column_family)
             throws InvalidRequestException, SchemaDisagreementException, TException;
 
+    @Timed
     CqlPreparedResult prepare_cql3_query(ByteBuffer query, Compression compression)
             throws InvalidRequestException, TException;
 
+    @Timed
     CqlResult execute_prepared_cql3_query(int intemId, List<ByteBuffer> values, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
 
+    @Timed
     ByteBuffer trace_next_query() throws TException;
 
+    @Timed
     void truncate(String cfname)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 

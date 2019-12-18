@@ -18,6 +18,7 @@ package com.palantir.leader;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -43,8 +44,8 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     public static PaxosLeadershipEventRecorder create(
             TaggedMetricRegistry metrics,
             String leaderUuid,
-            LeadershipObserver observer,
-            List<SafeArg<Object>> safeArgs) {
+            @Nullable LeadershipObserver observer,
+            List<SafeArg<String>> safeArgs) {
         return new PaxosLeadershipEventRecorder(
                 new LeadershipEvents(metrics, safeArgs),
                 leaderUuid,

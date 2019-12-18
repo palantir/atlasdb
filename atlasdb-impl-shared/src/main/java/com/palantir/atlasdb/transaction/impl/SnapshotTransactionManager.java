@@ -35,6 +35,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
@@ -44,6 +45,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -82,9 +84,9 @@ import com.palantir.timestamp.TimestampService;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
     final Supplier<TransactionConfig> transactionConfig;
-
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
+    private final ConflictTracer conflictTracer;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -104,7 +106,8 @@ import com.palantir.timestamp.TimestampService;
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -126,6 +129,7 @@ import com.palantir.timestamp.TimestampService;
         this.deleteExecutor = deleteExecutor;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.conflictTracer = conflictTracer;
     }
 
     @Override
@@ -161,8 +165,11 @@ import com.palantir.timestamp.TimestampService;
             Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
                     transactionResponse.startTimestampAndPartition().timestamp());
 
-            SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
-                    immutableTsLock, condition);
+            Transaction transaction = createTransaction(
+                    immutableTs,
+                    startTimestampSupplier,
+                    immutableTsLock,
+                    condition);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
             timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
@@ -179,7 +186,7 @@ import com.palantir.timestamp.TimestampService;
 
         TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
 
-        SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
+        Transaction tx = txAndLock.transaction();
         T result;
         try {
             result = runTaskThrowOnConflict(wrappedTask, tx);
@@ -187,7 +194,7 @@ import com.palantir.timestamp.TimestampService;
             postTaskContext = postTaskTimer.time();
             timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
         }
-        scrubForAggressiveHardDelete(tx);
+        scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
         postTaskContext.stop();
         return result;
     }
@@ -214,7 +221,7 @@ import com.palantir.timestamp.TimestampService;
         return !validateLocksOnReads;
     }
 
-    protected SnapshotTransaction createTransaction(
+    protected Transaction createTransaction(
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
@@ -241,8 +248,10 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                conflictTracer);
     }
+
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
@@ -279,7 +288,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                conflictTracer);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
@@ -328,7 +338,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private void shutdownExecutor(ExecutorService executor) {
+    private static void shutdownExecutor(ExecutorService executor) {
         executor.shutdown();
         try {
             executor.awaitTermination(10, TimeUnit.SECONDS);
@@ -442,7 +452,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private Optional<Throwable> runShutdownCallbackSafely(Runnable callback) {
+    private static Optional<Throwable> runShutdownCallbackSafely(Runnable callback) {
         try {
             callback.run();
             return Optional.empty();
@@ -466,5 +476,16 @@ import com.palantir.timestamp.TimestampService;
 
     private Timer getTimer(String name) {
         return metricsManager.registerOrGetTimer(SnapshotTransactionManager.class, name);
+    }
+
+    private static SnapshotTransaction extractSnapshotTransaction(Transaction transaction) {
+        if (transaction instanceof SnapshotTransaction) {
+            return (SnapshotTransaction) transaction;
+        }
+        if (transaction instanceof ForwardingTransaction) {
+            return extractSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
+        }
+        throw new IllegalArgumentException("Can't use a transaction which is not SnapshotTransaction in "
+                + "SnapshotTransactionManager");
     }
 }

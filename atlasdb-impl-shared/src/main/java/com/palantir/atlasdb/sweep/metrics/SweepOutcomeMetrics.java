@@ -19,73 +19,91 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+
+import org.immutables.value.Value;
 
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.util.MetricsManager;
 
+@Value.Enclosing
 public final class SweepOutcomeMetrics {
     public static final List<SweepOutcome> LEGACY_OUTCOMES = Arrays.asList(SweepOutcome.values());
-    public static final List<SweepOutcome> TARGETED_OUTCOMES = ImmutableList.of(SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE,
-            SweepOutcome.DISABLED, SweepOutcome.SUCCESS, SweepOutcome.ERROR, SweepOutcome.NOTHING_TO_SWEEP);
+    public static final List<SweepOutcome> TARGETED_OUTCOMES = ImmutableList.of(
+            SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE,
+            SweepOutcome.SUCCESS,
+            SweepOutcome.ERROR,
+            SweepOutcome.NOTHING_TO_SWEEP);
 
-    private final Reservoir reservoir;
-    private volatile boolean shutdown = false;
-    private volatile boolean fatal = false;
+    private final Supplier<Metrics> metrics;
 
-    private SweepOutcomeMetrics() {
-        reservoir = new SlidingTimeWindowArrayReservoir(60L, TimeUnit.SECONDS);
+    private SweepOutcomeMetrics(Supplier<Metrics> metrics) {
+        this.metrics = metrics;
     }
 
     public static SweepOutcomeMetrics registerLegacy(MetricsManager metricsManager) {
-        SweepOutcomeMetrics metrics = new SweepOutcomeMetrics();
-        metrics.registerMetric(metricsManager, LEGACY_OUTCOMES, ImmutableMap.of(), BackgroundSweeperImpl.class);
-        return metrics;
+        return new SweepOutcomeMetrics(
+                buildMetrics(metricsManager, LEGACY_OUTCOMES, ImmutableMap.of(), BackgroundSweeperImpl.class));
     }
 
     public static SweepOutcomeMetrics registerTargeted(MetricsManager metricsManager, Map<String, String> strategyTag) {
-        SweepOutcomeMetrics metrics = new SweepOutcomeMetrics();
-        metrics.registerMetric(metricsManager, TARGETED_OUTCOMES, strategyTag, TargetedSweepMetrics.class);
-        return metrics;
+        return new SweepOutcomeMetrics(
+                buildMetrics(metricsManager, TARGETED_OUTCOMES, strategyTag, TargetedSweepMetrics.class));
     }
 
-    private void registerMetric(MetricsManager manager, List<SweepOutcome> outcomes,
-            Map<String, String> additionalTags, Class<?> forClass) {
-        outcomes.forEach(outcome -> manager.registerOrGet(forClass, AtlasDbMetricNames.SWEEP_OUTCOME,
-                () -> getOutcomeCount(outcome),
-                ImmutableMap.<String, String>builder()
-                        .putAll(additionalTags)
-                        .put(AtlasDbMetricNames.TAG_OUTCOME, outcome.name())
-                        .build()));
-    }
-
-    private Long getOutcomeCount(SweepOutcome outcome) {
-        if (outcome == SweepOutcome.SHUTDOWN) {
-            return shutdown ? 1L : 0L;
-        }
+    public void registerOccurrenceOf(SweepOutcome outcome) {
         if (outcome == SweepOutcome.FATAL) {
-            return fatal ? 1L : 0L;
+            metrics.get().fatal().set(true);
+            return;
         }
 
-        return Arrays.stream(reservoir.getSnapshot().getValues())
+        metrics.get().reservoir().update(outcome.ordinal());
+    }
+
+    private static Supplier<Metrics> buildMetrics(
+            MetricsManager manager,
+            List<SweepOutcome> outcomes,
+            Map<String, String> additionalTags,
+            Class<?> forClass) {
+        return Suppliers.memoize(() -> {
+            Metrics metrics = ImmutableSweepOutcomeMetrics.Metrics.builder().build();
+            outcomes.forEach(outcome -> manager.registerOrGet(forClass, AtlasDbMetricNames.SWEEP_OUTCOME,
+                    () -> getOutcomeCount(metrics, outcome),
+                    ImmutableMap.<String, String>builder()
+                            .putAll(additionalTags)
+                            .put(AtlasDbMetricNames.TAG_OUTCOME, outcome.name())
+                            .build()));
+            return metrics;
+        });
+    }
+
+    private static Long getOutcomeCount(Metrics metrics, SweepOutcome outcome) {
+        if (outcome == SweepOutcome.FATAL) {
+            return metrics.fatal().get() ? 1L : 0L;
+        }
+
+        return Arrays.stream(metrics.reservoir().getSnapshot().getValues())
                 .filter(l -> l == outcome.ordinal())
                 .count();
     }
 
-    public void registerOccurrenceOf(SweepOutcome outcome) {
-        if (outcome == SweepOutcome.SHUTDOWN) {
-            shutdown = true;
-            return;
-        }
-        if (outcome == SweepOutcome.FATAL) {
-            fatal = true;
-            return;
+    @Value.Immutable
+    interface Metrics {
+        @Value.Default
+        default Reservoir reservoir() {
+            return new SlidingTimeWindowArrayReservoir(60L, TimeUnit.SECONDS);
         }
 
-        reservoir.update(outcome.ordinal());
+        @Value.Default
+        default AtomicBoolean fatal() {
+            return new AtomicBoolean();
+        }
     }
 }

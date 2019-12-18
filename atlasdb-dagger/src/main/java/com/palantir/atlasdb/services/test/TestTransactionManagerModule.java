@@ -26,6 +26,7 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.ServicesConfig;
@@ -36,6 +37,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
@@ -75,7 +77,8 @@ public class TestTransactionManagerModule {
                 tss,
                 lockClient,
                 ImmutableList.of(follower),
-                transactionService)
+                transactionService,
+                MetricsManagers.createForTests())
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
                 .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
                 .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())
@@ -116,7 +119,8 @@ public class TestTransactionManagerModule {
                 MultiTableSweepQueueWriter.NO_OP,
                 PTExecutors.newSingleThreadExecutor(true),
                 true,
-                () -> config.atlasDbRuntimeConfig().transaction());
+                () -> config.atlasDbRuntimeConfig().transaction(),
+                ConflictTracer.NO_OP);
     }
 
 }

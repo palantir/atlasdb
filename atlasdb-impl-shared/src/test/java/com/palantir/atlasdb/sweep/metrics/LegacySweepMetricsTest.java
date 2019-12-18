@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -75,6 +72,7 @@ public class LegacySweepMetricsTest {
     @Before
     public void setUp() {
         sweepMetrics = new LegacySweepMetrics(metricRegistry);
+        assertThat(metricRegistry.getMetrics()).isEmpty();
     }
 
     @Test
@@ -118,13 +116,13 @@ public class LegacySweepMetricsTest {
         sweepMetrics.sweepError();
         sweepMetrics.sweepError();
 
-        assertThat(getCounter(AtlasDbMetricNames.SWEEP_ERROR).getCount(), equalTo(2L));
+        assertThat(getCounter(AtlasDbMetricNames.SWEEP_ERROR).getCount()).isEqualTo(2L);
     }
 
     private void assertRecordedExaminedDeletedTime(List<Long> values) {
         for (int index = 0; index < 3; index++) {
             Counter counter = getCounter(CURRENT_VALUE_LONG_METRIC_NAMES.get(index));
-            assertThat(counter.getCount(), equalTo(values.get(index)));
+            assertThat(counter.getCount()).isEqualTo(values.get(index));
         }
     }
 
@@ -142,7 +140,7 @@ public class LegacySweepMetricsTest {
     }
 
     private void assertWithinErrorMarginOf(long actual, long expected) {
-        assertThat(actual, greaterThan((long) (expected * .95)));
-        assertThat(actual, lessThanOrEqualTo((long) (expected * 1.05)));
+        assertThat(actual).isGreaterThan((long) (expected * .95));
+        assertThat(actual).isLessThanOrEqualTo((long) (expected * 1.05));
     }
 }

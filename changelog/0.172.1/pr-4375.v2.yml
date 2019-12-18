@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bumping the Datastax Cassandra driver to the newest version along with necessary refactoring.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4375

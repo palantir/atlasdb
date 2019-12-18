@@ -126,6 +126,10 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         doubles.assertIsCloseTo(info, getEntriesReadInBatchMeanThorough(), value, Offset.offset(0.1));
     }
 
+    public void hasNotRegisteredLegacyOutcome(SweepOutcome outcome) {
+        objects.assertNull(info, getGaugeForLegacyOutcome(outcome));
+    }
+
     public void hasLegacyOutcomeEqualTo(SweepOutcome outcome, long value) {
         objects.assertEqual(info, getGaugeForLegacyOutcome(outcome).getValue(), value);
     }

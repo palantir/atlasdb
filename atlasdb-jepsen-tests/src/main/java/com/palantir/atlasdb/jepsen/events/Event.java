@@ -53,7 +53,8 @@ public interface Event {
     }
 
     static Map<Keyword, Object> toKeywordMap(Event event) {
-        Map<String, Object> rawStringMap = OBJECT_MAPPER.convertValue(event, new TypeReference<Map<String, ?>>() {});
+        Map<String, Object> rawStringMap =
+                OBJECT_MAPPER.convertValue(event, new TypeReference<Map<String, Object>>() {});
         return EntryStream.of(rawStringMap)
                 .filterValues(Objects::nonNull)
                 .mapKeys(Keyword::intern)

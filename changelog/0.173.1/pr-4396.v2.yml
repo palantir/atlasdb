@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Remove all references to the Cassandra table property `populate_io_cache_on_flush`,
+    which is supported or used in Cassandra.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4396

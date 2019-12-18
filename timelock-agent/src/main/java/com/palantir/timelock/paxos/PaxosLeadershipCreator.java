@@ -32,8 +32,11 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
+import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory;
+import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
@@ -47,7 +50,6 @@ import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
-import com.palantir.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -89,12 +91,12 @@ class PaxosLeadershipCreator {
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
                 metricsManager,
                 leaderConfig,
-                Suppliers.compose(getLeaderRuntimeConfig::apply, runtime::get),
                 ImmutableRemotePaxosServerSpec.builder()
                         .remoteLeaderUris(remoteServers)
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
+                () -> RemotingClientConfigs.ALWAYS_USE_CONJURE,
                 UserAgent.of(UserAgent.Agent.of("leader-election-service", UserAgent.Agent.DEFAULT_VERSION)),
                 leadershipObserver);
         leaderElectionService = localPaxosServices.leaderElectionService();

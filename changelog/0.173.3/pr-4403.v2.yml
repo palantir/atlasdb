@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Services configured to use leader blocks now use CJR by default.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4403

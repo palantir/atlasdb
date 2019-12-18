@@ -1,4 +1,9 @@
 install:
+  # TODO(fdesouza): Remove this once PDS-95791 is resolved.
+  lock-diagnostic-config:
+    client-with-lock-diagnostics:
+      ttl: PT5M
+      maximum-size: 1000
   paxos:
     data-directory: "<TEMP_DATA_DIR>"
     is-new-service: false

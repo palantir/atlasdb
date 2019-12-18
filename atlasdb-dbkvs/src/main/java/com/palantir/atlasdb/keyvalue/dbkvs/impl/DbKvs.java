@@ -210,9 +210,13 @@ public final class DbKvs extends AbstractKeyValueService {
         OracleTableNameGetter tableNameGetter = new OracleTableNameGetter(oracleDdlConfig);
         OraclePrefixedTableNames prefixedTableNames = new OraclePrefixedTableNames(tableNameGetter);
         TableValueStyleCache valueStyleCache = new TableValueStyleCache();
+        DbTableFactory tableFactory = new OracleDbTableFactory(
+                oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache, executor);
+        TableMetadataCache tableMetadataCache = new TableMetadataCache(tableFactory);
         OverflowValueLoader overflowValueLoader = new OracleOverflowValueLoader(oracleDdlConfig, tableNameGetter);
         DbKvsGetRange getRange = new OracleGetRange(
-                connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig);
+                connections, overflowValueLoader, tableNameGetter,
+                valueStyleCache, tableMetadataCache, oracleDdlConfig);
         CellTsPairLoader cellTsPageLoader = new OracleCellTsPageLoader(
                 connections, tableNameGetter, valueStyleCache, oracleDdlConfig);
         return new DbKvs(

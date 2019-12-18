@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -35,7 +35,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * A service which stores key-value pairs.
  */
 @AutoDelegate
-public interface KeyValueService extends AutoCloseable {
+public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
@@ -65,6 +65,7 @@ public interface KeyValueService extends AutoCloseable {
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
     @Idempotent
+    @Timed
     Map<Cell, Value> getRows(TableReference tableRef,
                              Iterable<byte[]> rows,
                              ColumnSelection columnSelection,
@@ -84,6 +85,7 @@ public interface KeyValueService extends AutoCloseable {
      * @throws IllegalArgumentException if {@code rows} contains duplicates.
      */
     @Idempotent
+    @Timed
     Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
@@ -109,6 +111,7 @@ public interface KeyValueService extends AutoCloseable {
      * @throws IllegalArgumentException if {@code rows} contains duplicates.
      */
     @Idempotent
+    @Timed
     RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
@@ -129,6 +132,7 @@ public interface KeyValueService extends AutoCloseable {
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
     @Idempotent
+    @Timed
     Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     /**
@@ -145,6 +149,7 @@ public interface KeyValueService extends AutoCloseable {
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
     @Idempotent
+    @Timed
     Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     /**
@@ -168,6 +173,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
     @Idempotent
+    @Timed
     void put(TableReference tableRef,
              Map<Cell, byte[]> values,
              long timestamp) throws KeyAlreadyExistsException;
@@ -192,6 +198,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
     @Idempotent
+    @Timed
     void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
                   long timestamp) throws KeyAlreadyExistsException;
 
@@ -220,6 +227,7 @@ public interface KeyValueService extends AutoCloseable {
      */
     @NonIdempotent
     @Idempotent
+    @Timed
     void putWithTimestamps(TableReference tableRef,
                            Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
 
@@ -245,6 +253,7 @@ public interface KeyValueService extends AutoCloseable {
      * @throws KeyAlreadyExistsException If you are putting a Cell with the same timestamp as
      *                                      one that already exists.
      */
+    @Timed
     void putUnlessExists(TableReference tableRef,
                          Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
@@ -287,6 +296,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param checkAndSetRequest the request, including table, cell, old value and new value.
      * @throws CheckAndSetException if the stored value for the cell was not as expected.
      */
+    @Timed
     void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
 
     /**
@@ -312,6 +322,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param keys map containing the keys to delete values for; the map should specify, for each
      */
     @Idempotent
+    @Timed
     void delete(TableReference tableRef, Multimap<Cell, Long> keys);
 
     /**
@@ -328,6 +339,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param range the range to delete
      */
     @Idempotent
+    @Timed
     void deleteRange(TableReference tableRef, RangeRequest range);
 
     /**
@@ -348,6 +360,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param rows rows to delete
      */
     @Idempotent
+    @Timed
     void deleteRows(TableReference tableRef, Iterable<byte[]> rows);
 
     /**
@@ -361,6 +374,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param deletes cells to be deleted, and the ranges of timestamps to delete for each cell
      */
     @Idempotent
+    @Timed
     void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes)
             throws InsufficientConsistencyException;
 
@@ -400,6 +414,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's
      */
     @Idempotent
+    @Timed
     ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
                                                 RangeRequest rangeRequest,
                                                 long timestamp);
@@ -424,6 +439,7 @@ public interface KeyValueService extends AutoCloseable {
      */
     @Idempotent
     @Deprecated
+    @Timed
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef,
             RangeRequest rangeRequest,
@@ -444,6 +460,7 @@ public interface KeyValueService extends AutoCloseable {
      * We return an iterator of lists instead of a "flat" iterator of results so that we preserve the information
      * about batching. The caller can always use Iterators.concat() or similar if this is undesired.
      */
+    @Timed
     ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef,
             CandidateCellForSweepingRequest request);
@@ -465,6 +482,7 @@ public interface KeyValueService extends AutoCloseable {
      * moreResultsAvailable set to false.
      */
     @Idempotent
+    @Timed
     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
@@ -554,6 +572,7 @@ public interface KeyValueService extends AutoCloseable {
      * a value already exists at that time stamp, nothing is written for that cell.
      */
     @Idempotent
+    @Timed
     void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells);
 
     /**
@@ -572,6 +591,7 @@ public interface KeyValueService extends AutoCloseable {
      * @return multimap of timestamps by cell
      */
     @Idempotent
+    @Timed
     Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
             throws AtlasDbDependencyException;
 
@@ -581,12 +601,14 @@ public interface KeyValueService extends AutoCloseable {
      *
      * This call must be implemented so that it completes synchronously.
      */
+    @Timed
     void compactInternally(TableReference tableRef);
 
     /**
      * Some compaction operations might block reads and writes.
      * These operations will trigger only if inMaintenanceMode is set to true.
      */
+    @Timed
     default void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         compactInternally(tableRef);
     }
@@ -604,6 +626,7 @@ public interface KeyValueService extends AutoCloseable {
      * <p>
      * This call must be implemented so that it completes synchronously.
      */
+    @Timed
     ClusterAvailabilityStatus getClusterAvailabilityStatus();
 
     ////////////////////////////////////////////////////////////
@@ -633,20 +656,4 @@ public interface KeyValueService extends AutoCloseable {
     default boolean shouldTriggerCompactions() {
         return false;
     }
-
-    ////////////////////////////////////////////////////////////
-    // ASYNC API ENTRY POINTS
-    ////////////////////////////////////////////////////////////
-    /**
-     * Asynchronously gets values from the key-value store when the store allows it. In other cases it just wraps the
-     * result in an immediate future.
-     *
-     * @param tableRef the name of the table to retrieve values from.
-     * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
-     *        retrieve that rows's value.
-     * @return listenable future containing map of retrieved values. Values which do not exist (either
-     *         because they were deleted or never created in the first place) are simply not returned.
-     */
-    @Idempotent
-    ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 }

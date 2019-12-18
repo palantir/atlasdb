@@ -62,12 +62,17 @@ public class ShouldRunBackgroundSweepSupplierTest {
     }
 
     @Test
-    public void enableBackgroundSweepIfNotSetAndTargetedSweepNotFullyEnabled() {
+    public void disableBackgroundSweepIfNotSetAndTargetedSweepQueueWritesEnabled() {
         assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_ENABLED, TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET))
-                .isTrue();
+                .isFalse();
+    }
+
+    @Test
+    public void enableBackgroundSweepIfNotSetAndTargetedSweepQueueWritesDisabled() {
         assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_DISABLED, TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET))
                 .isTrue();
     }
+
 
     @Test
     public void disableBackgroundSweepIfNotSetAndTargetedSweepFullyEnabled() {
@@ -85,17 +90,18 @@ public class ShouldRunBackgroundSweepSupplierTest {
                 .thenReturn(createRuntimeConfig(TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED));
 
         ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
-                SWEEP_QUEUE_WRITES_ENABLED, runtimeConfigSupplier);
+                () -> runtimeConfigSupplier.get().sweep(), SWEEP_QUEUE_WRITES_ENABLED.enableSweepQueueWrites());
 
         assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET").isFalse();
-        assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET").isTrue();
+        assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET").isFalse();
         assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED").isTrue();
     }
 
     private static boolean runBackgroundSweep(
             TargetedSweepInstallConfig tsInstall, TargetedSweepRuntimeConfig tsRuntime, SweepConfig bgSweepConfig) {
-        return new ShouldRunBackgroundSweepSupplier(tsInstall, () -> createRuntimeConfig(tsRuntime, bgSweepConfig))
-                .getAsBoolean();
+        return new ShouldRunBackgroundSweepSupplier(
+                () -> createRuntimeConfig(tsRuntime, bgSweepConfig).sweep(),
+                tsInstall.enableSweepQueueWrites()).getAsBoolean();
     }
 
     private static AtlasDbRuntimeConfig createRuntimeConfig(TargetedSweepRuntimeConfig targetedSweepRuntimeConfig,

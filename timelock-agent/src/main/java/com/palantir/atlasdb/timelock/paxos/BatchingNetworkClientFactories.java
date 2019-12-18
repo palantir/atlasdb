@@ -16,22 +16,29 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLearnerNetworkClient;
+
 @Value.Immutable
-abstract class BatchingNetworkClientFactories {
+abstract class BatchingNetworkClientFactories implements NetworkClientFactories {
 
     abstract PaxosUseCase useCase();
     abstract TimelockPaxosMetrics metrics();
     abstract PaxosRemoteClients remoteClients();
-    abstract PaxosComponents components();
+    abstract LocalPaxosComponents components();
     abstract int quorumSize();
     abstract ExecutorService sharedExecutor();
 
-    public NetworkClientFactories factories() {
+    @Value.Auxiliary
+    @Value.Derived
+    AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory() {
         List<BatchPaxosAcceptor> allBatchAcceptors = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosAcceptor.class,
@@ -39,10 +46,12 @@ abstract class BatchingNetworkClientFactories {
                         UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor()),
                         "batch-paxos-acceptor")
                 .all();
+        return AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
+    }
 
-        AutobatchingPaxosAcceptorNetworkClientFactory acceptorFactory =
-                AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
-
+    @Value.Auxiliary
+    @Value.Derived
+    AutobatchingPaxosLearnerNetworkClientFactory learnerNetworkClientFactory() {
         LocalAndRemotes<BatchPaxosLearner> allBatchLearners = metrics()
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
@@ -50,13 +59,24 @@ abstract class BatchingNetworkClientFactories {
                         UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()),
                         "batch-paxos-learner");
 
-        AutobatchingPaxosLearnerNetworkClientFactory learnerFactory =
-                AutobatchingPaxosLearnerNetworkClientFactory.create(allBatchLearners, sharedExecutor(), quorumSize());
-
-        return ImmutableNetworkClientFactories.builder()
-                .acceptor(acceptorFactory::paxosAcceptorForClient)
-                .learner(learnerFactory::paxosLearnerForClient)
-                .addCloseables(acceptorFactory, learnerFactory)
-                .build();
+        return AutobatchingPaxosLearnerNetworkClientFactory.create(allBatchLearners, sharedExecutor(), quorumSize());
     }
+
+    @Value.Auxiliary
+    @Value.Derived
+    @Override
+    public List<Closeable> closeables() {
+        return ImmutableList.of(acceptorNetworkClientFactory(), learnerNetworkClientFactory());
+    }
+
+    @Override
+    public Factory<PaxosAcceptorNetworkClient> acceptor() {
+        return acceptorNetworkClientFactory()::paxosAcceptorForClient;
+    }
+
+    @Override
+    public Factory<PaxosLearnerNetworkClient> learner() {
+        return learnerNetworkClientFactory()::paxosLearnerForClient;
+    }
+
 }

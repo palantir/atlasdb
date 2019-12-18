@@ -19,23 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.SortedMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
-import org.eclipse.jetty.http.HttpStatus;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -43,46 +31,21 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.FeignOkHttpClients;
-import com.palantir.atlasdb.http.TestProxyUtils;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
-import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
-import com.palantir.atlasdb.timelock.util.TestProxies;
-import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
-import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.client.RemoteLockServiceAdapter;
-import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.NamespacedTimelockRpcClient;
-import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.RemoteTimestampManagementAdapter;
-import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
@@ -90,10 +53,8 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_3 = "test3";
     private static final String LEARNER = "learner";
     private static final String ACCEPTOR = "acceptor";
-    private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
+    private static final List<String> NAMESPACES = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
     private static final String INVALID_CLIENT = "test2\b";
-
-    private static final int MAX_CONCURRENT_LOCK_REQUESTS = CombinedTimeLockServerConfiguration.threadPoolSize();
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
@@ -111,15 +72,11 @@ public class PaxosTimeLockServerIntegrationTest {
             new TemporaryConfigurationHolder(TEMPORARY_FOLDER, TIMELOCK_CONFIG_TEMPLATE);
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
+    private static final TestableTimelockServer TIMELOCK =
+            new TestableTimelockServer("https://localhost", TIMELOCK_SERVER_HOLDER);
 
-    private static final com.palantir.lock.LockRequest REQUEST_LOCK_WITH_LONG_TIMEOUT = com.palantir.lock.LockRequest
-            .builder(ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
-            .timeoutAfter(SimpleTimeDuration.of(20, TimeUnit.SECONDS))
-            .blockForAtMost(SimpleTimeDuration.of(4, TimeUnit.SECONDS))
-            .build();
-
-    private final TimestampService timestampService = getTimestampService(CLIENT_1);
-    private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
+    private static NamespacedClients namespace1;
+    private static NamespacedClients namespace2;
 
     @ClassRule
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
@@ -128,21 +85,18 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
-        PingableLeader leader = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
-                Optional.of(TestProxies.TRUST_CONTEXT),
-                "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
-                PingableLeader.class,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
+        namespace1 = TIMELOCK.client(CLIENT_1);
+        namespace2 = TIMELOCK.client(CLIENT_2);
+        PingableLeader leader = TIMELOCK.pingableLeader();
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
                 .until(() -> {
                     try {
                         // Returns true only if this node is ready to serve timestamps and locks on all clients.
-                        CLIENTS.forEach(client -> getTimelockService(client).getFreshTimestamp());
-                        CLIENTS.forEach(client -> getTimelockService(client).currentTimeMillis());
-                        CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
+                        NAMESPACES.forEach(client -> TIMELOCK.client(client).getFreshTimestamp());
+                        NAMESPACES.forEach(client -> TIMELOCK.client(client).timelockService().currentTimeMillis());
+                        NAMESPACES.forEach(client -> TIMELOCK.client(client).legacyLockService().currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
                         LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class).error("erreur!", t);
@@ -152,88 +106,8 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void singleClientCanUseLocalAndSharedThreads() throws Exception {
-        List<LockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
-
-        assertThat(lockAndUnlockAndCountExceptions(lockService, MAX_CONCURRENT_LOCK_REQUESTS)).isEqualTo(0);
-    }
-
-    @Test
-    public void multipleClientsCanUseSharedThreads() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(
-                getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, MAX_CONCURRENT_LOCK_REQUESTS / 3)).isEqualTo(0);
-    }
-
-    @Test
-    public void throwsOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(getLockService(CLIENT_1));
-
-        int exceedingRequests = 10;
-        int maxRequestsForOneClient = MAX_CONCURRENT_LOCK_REQUESTS;
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, exceedingRequests + maxRequestsForOneClient))
-                .isEqualTo(exceedingRequests);
-    }
-
-    @Test
-    public void throwsOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(
-                getLockService(CLIENT_1), getLockService(CLIENT_2));
-        int exceedingRequests = 10;
-        int requestsPerClient = (MAX_CONCURRENT_LOCK_REQUESTS + exceedingRequests) / 2;
-
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
-                .isEqualTo(exceedingRequests);
-    }
-
-    private int lockAndUnlockAndCountExceptions(List<LockService> lockServices, int numRequestsPerClient)
-            throws Exception {
-        ExecutorService executorService = Executors.newFixedThreadPool(lockServices.size() * numRequestsPerClient);
-
-        Map<LockService, LockRefreshToken> tokenMap = new HashMap<>();
-        for (LockService service : lockServices) {
-            LockRefreshToken token = service.lock(CLIENT_1, REQUEST_LOCK_WITH_LONG_TIMEOUT);
-            assertThat(token).isNotNull();
-            tokenMap.put(service, token);
-        }
-
-        List<Future<LockRefreshToken>> futures = Lists.newArrayList();
-        for (LockService lockService : lockServices) {
-            for (int i = 0; i < numRequestsPerClient; i++) {
-                int currentTrial = i;
-                futures.add(executorService.submit(() ->
-                        lockService.lock(CLIENT_2 + currentTrial, REQUEST_LOCK_WITH_LONG_TIMEOUT))
-                );
-            }
-        }
-
-        executorService.shutdown();
-        executorService.awaitTermination(2, TimeUnit.SECONDS);
-
-        AtomicInteger exceptionCounter = new AtomicInteger(0);
-        futures.forEach(future -> {
-            try {
-                assertThat(future.get()).isNull();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                assertThat(cause.getClass().getName()).contains("RetryableException");
-                assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
-                exceptionCounter.getAndIncrement();
-            } catch (InterruptedException e) {
-                throw Throwables.propagate(e);
-            }
-        });
-
-        tokenMap.forEach((service, token) -> assertThat(service.unlock(token)).isTrue());
-
-        return exceptionCounter.get();
-    }
-
-    @Test
     public void lockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
-        LockService lockService = getLockService(CLIENT_1);
+        LockService lockService = namespace1.legacyLockService();
 
         LockRefreshToken token = lockService.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
@@ -246,8 +120,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockServiceShouldAllowUsToTakeOutSameLockInDifferentNamespaces() throws InterruptedException {
-        LockService lockService1 = getLockService(CLIENT_1);
-        LockService lockService2 = getLockService(CLIENT_2);
+        LockService lockService1 = namespace1.legacyLockService();
+        LockService lockService2 = namespace2.legacyLockService();
 
         LockRefreshToken token1 = lockService1.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
@@ -265,12 +139,14 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockServiceShouldNotAllowUsToRefreshLocksFromDifferentNamespaces() throws InterruptedException {
-        LockService lockService1 = getLockService(CLIENT_1);
-        LockService lockService2 = getLockService(CLIENT_2);
+        LockService lockService1 = namespace1.legacyLockService();
+        LockService lockService2 = namespace2.legacyLockService();
 
-        LockRefreshToken token = lockService1.lock(LOCK_CLIENT_NAME, com.palantir.lock.LockRequest.builder(LOCK_MAP)
+        com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
-                .build());
+                .build();
+
+        LockRefreshToken token = lockService1.lock(LOCK_CLIENT_NAME, request);
 
         assertThat(token).isNotNull();
         assertThat(lockService1.refreshLockRefreshTokens(ImmutableList.of(token))).isNotEmpty();
@@ -280,59 +156,47 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void asyncLockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
-        TimelockService timelockService = getTimelockService(CLIENT_1);
-
-        LockToken token = timelockService.lock(newLockV2Request(LOCK_1)).getToken();
-
-        assertThat(timelockService.unlock(ImmutableSet.of(token))).contains(token);
+    public void asyncLockServiceShouldAllowUsToTakeOutLocks() {
+        LockToken token = namespace1.lock(newLockV2Request(LOCK_1)).getToken();
+        assertThat(namespace1.unlock(token)).isTrue();
     }
 
     @Test
-    public void asyncLockServiceShouldAllowUsToTakeOutSameLockInDifferentNamespaces() throws InterruptedException {
-        TimelockService lockService1 = getTimelockService(CLIENT_1);
-        TimelockService lockService2 = getTimelockService(CLIENT_2);
+    public void asyncLockServiceShouldAllowUsToTakeOutSameLockInDifferentNamespaces() {
+        LockToken token1 = namespace1.lock(newLockV2Request(LOCK_1)).getToken();
+        LockToken token2 = namespace2.lock(newLockV2Request(LOCK_1)).getToken();
 
-        LockToken token1 = lockService1.lock(newLockV2Request(LOCK_1)).getToken();
-        LockToken token2 = lockService2.lock(newLockV2Request(LOCK_1)).getToken();
-
-        lockService1.unlock(ImmutableSet.of(token1));
-        lockService2.unlock(ImmutableSet.of(token2));
+        namespace1.unlock(token1);
+        namespace2.unlock(token2);
     }
 
     @Test
-    public void asyncLockServiceShouldNotAllowUsToRefreshLocksFromDifferentNamespaces() throws InterruptedException {
-        TimelockService lockService1 = getTimelockService(CLIENT_1);
-        TimelockService lockService2 = getTimelockService(CLIENT_2);
+    public void asyncLockServiceShouldNotAllowUsToRefreshLocksFromDifferentNamespaces() {
+        LockToken token = namespace1.lock(newLockV2Request(LOCK_1)).getToken();
 
-        LockToken token = lockService1.lock(newLockV2Request(LOCK_1)).getToken();
+        assertThat(namespace1.refreshLockLease(token)).isTrue();
+        assertThat(namespace2.refreshLockLease(token)).isFalse();
 
-        assertThat(lockService1.refreshLockLeases(ImmutableSet.of(token))).isNotEmpty();
-        assertThat(lockService2.refreshLockLeases(ImmutableSet.of(token))).isEmpty();
-
-        lockService1.unlock(ImmutableSet.of(token));
+        namespace1.unlock(token);
     }
 
     @Test
     public void timestampServiceShouldGiveUsIncrementalTimestamps() {
-        long timestamp1 = timestampService.getFreshTimestamp();
-        long timestamp2 = timestampService.getFreshTimestamp();
+        long timestamp1 = namespace1.getFreshTimestamp();
+        long timestamp2 = namespace1.getFreshTimestamp();
 
         assertThat(timestamp1).isLessThan(timestamp2);
     }
 
     @Test
     public void timestampServiceShouldRespectDistinctClientsWhenIssuingTimestamps() {
-        TimestampService timestampService1 = getTimestampService(CLIENT_1);
-        TimestampService timestampService2 = getTimestampService(CLIENT_2);
+        long firstServiceFirstTimestamp = namespace1.getFreshTimestamp();
+        long secondServiceFirstTimestamp = namespace2.getFreshTimestamp();
 
-        long firstServiceFirstTimestamp = timestampService1.getFreshTimestamp();
-        long secondServiceFirstTimestamp = timestampService2.getFreshTimestamp();
+        getFortyTwoFreshTimestamps(namespace1.timelockService());
 
-        getFortyTwoFreshTimestamps(timestampService1);
-
-        long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
-        long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
+        long firstServiceSecondTimestamp = namespace1.getFreshTimestamp();
+        long secondServiceSecondTimestamp = namespace2.getFreshTimestamp();
 
         assertThat(firstServiceSecondTimestamp - firstServiceFirstTimestamp).isGreaterThanOrEqualTo(FORTY_TWO);
         assertThat(secondServiceSecondTimestamp - secondServiceFirstTimestamp).isBetween(0L, (long) FORTY_TWO);
@@ -340,24 +204,25 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void timestampServiceRespectsTimestampManagementService() {
-        long currentTimestampIncrementedByOneMillion = timestampService.getFreshTimestamp() + ONE_MILLION;
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
-        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByOneMillion);
+        long currentTimestampIncrementedByOneMillion = namespace1.getFreshTimestamp() + ONE_MILLION;
+        namespace1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        assertThat(namespace1.getFreshTimestamp())
+                .isGreaterThan(currentTimestampIncrementedByOneMillion);
     }
 
     @Test
     public void timestampManagementServiceRespectsTimestampService() {
-        long currentTimestampIncrementedByOneMillion = timestampService.getFreshTimestamp() + ONE_MILLION;
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
-        getFortyTwoFreshTimestamps(timestampService);
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion + 1);
-        assertThat(timestampService.getFreshTimestamp())
+        long currentTimestampIncrementedByOneMillion = namespace1.getFreshTimestamp() + ONE_MILLION;
+        namespace1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        getFortyTwoFreshTimestamps(namespace1.timelockService());
+        namespace1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion + 1);
+        assertThat(namespace1.getFreshTimestamp())
                 .isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
     }
 
     @Test
     public void lockServiceShouldDisallowGettingMinLockedInVersionId() {
-        LockService lockService = getLockService(CLIENT_1);
+        LockService lockService = namespace1.legacyLockService();
 
         // Catching any exception since this currently is an error deserialization exception
         // until we stop requiring http-remoting2 errors
@@ -365,143 +230,47 @@ public class PaxosTimeLockServerIntegrationTest {
                 .isInstanceOf(Exception.class);
     }
 
-    private static void getFortyTwoFreshTimestamps(TimestampService timestampService) {
+    private static void getFortyTwoFreshTimestamps(TimelockService timelockService) {
         for (int i = 0; i < FORTY_TWO; i++) {
-            timestampService.getFreshTimestamp();
+            timelockService.getFreshTimestamp();
         }
     }
 
     @Test
     public void fastForwardRespectsDistinctClients() {
-        TimestampManagementService anotherClientTimestampManagementService = getTimestampManagementService(CLIENT_2);
+        TimestampManagementService anotherClientTimestampManagementService = namespace2.timestampManagementService();
 
-        long currentTimestamp = timestampService.getFreshTimestamp();
+        long currentTimestamp = namespace1.getFreshTimestamp();
         anotherClientTimestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
-        assertThat(timestampService.getFreshTimestamp())
+        assertThat(namespace1.getFreshTimestamp())
                 .isBetween(currentTimestamp + 1, currentTimestamp + ONE_MILLION - 1);
     }
 
     @Test
     public void fastForwardToThePastDoesNothing() {
-        long currentTimestamp = timestampService.getFreshTimestamp();
+        long currentTimestamp = namespace1.getFreshTimestamp();
         long currentTimestampIncrementedByOneMillion = currentTimestamp + ONE_MILLION;
         long currentTimestampIncrementedByTwoMillion = currentTimestamp + TWO_MILLION;
 
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByTwoMillion);
-        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
-        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByTwoMillion);
+        namespace1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByTwoMillion);
+        namespace1.timestampManagementService().fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        assertThat(namespace1.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByTwoMillion);
     }
 
     @Test
     public void throwsOnQueryingTimestampWithInvalidClientName() {
-        TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
-        assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
+        TimelockService invalidTimelockService = TIMELOCK.client(INVALID_CLIENT).timelockService();
+        assertThatThrownBy(invalidTimelockService::getFreshTimestamp)
                 .hasMessageContaining("NOT_FOUND");
     }
 
     @Test
-    public void supportsClientNamesMatchingPaxosRoles() throws InterruptedException {
-        getTimestampService(LEARNER).getFreshTimestamp();
-        getTimestampService(ACCEPTOR).getFreshTimestamp();
+    public void supportsClientNamesMatchingPaxosRoles() {
+        TIMELOCK.client(LEARNER).getFreshTimestamp();
+        TIMELOCK.client(ACCEPTOR).getFreshTimestamp();
     }
 
-    @Test
-    public void throwsOnFastForwardWithUnspecifiedParameter() throws IOException {
-        Response response = makeEmptyPostToUri(getFastForwardUriForClientOne());
-        assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
-    }
-
-    @Test
-    public void throwsOnFastForwardWithIncorrectParameter() throws IOException {
-        String uriWithParam = getFastForwardUriForClientOne() + "?newMinimum=1200";
-        Response response = makeEmptyPostToUri(uriWithParam);
-        assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST_400);
-    }
-
-    private static String getFastForwardUriForClientOne() {
-        return getRootUriForClient(CLIENT_1) + "/timestamp-management/fast-forward";
-    }
-
-    private static Response makeEmptyPostToUri(String uri) throws IOException {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .sslSocketFactory(
-                        TestProxies.TRUST_CONTEXT.sslSocketFactory(),
-                        TestProxies.TRUST_CONTEXT.x509TrustManager())
-                .connectionSpecs(FeignOkHttpClients.CONNECTION_SPEC_WITH_CYPHER_SUITES)
-                .build();
-        return client.newCall(new Request.Builder()
-                .url(uri)
-                .post(RequestBody.create(MediaType.parse("application/json"), ""))
-                .build()).execute();
-    }
-
-    private static MetricsOutput getMetricsOutput() throws IOException {
-        return new MetricsOutput(new ObjectMapper().readTree(
-                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics")));
-    }
-
-    private static TimelockService getTimelockService(String client) {
-        return RemoteTimelockServiceAdapter.create(
-                new NamespacedTimelockRpcClient(getProxyForRootService(client, TimelockRpcClient.class), client));
-    }
-
-    private static LockService getLockService(String client) {
-        LockRpcClient lockRpcClient = getProxyForRootService(client, LockRpcClient.class);
-        return RemoteLockServiceAdapter.create(lockRpcClient, client);
-    }
-
-    private static TimestampService getTimestampService(String client) {
-        return getProxyForService(client, TimestampService.class);
-    }
-
-    private static TimestampManagementService getTimestampManagementService(String client) {
-        return new RemoteTimestampManagementAdapter(
-                getProxyForRootService(client, TimestampManagementRpcClient.class),
-                client);
-    }
-
-    private static <T> T getProxyForRootService(String client, Class<T> clazz) {
-        return AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
-                Optional.of(TestProxies.TRUST_CONTEXT),
-                getGenericRootUri(),
-                clazz,
-                remotingParametersForClient(client));
-    }
-
-    private static <T> T getProxyForService(String client, Class<T> clazz) {
-        return AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
-                Optional.of(TestProxies.TRUST_CONTEXT),
-                getRootUriForClient(client),
-                clazz,
-                remotingParametersForClient(client));
-    }
-
-    private static AuxiliaryRemotingParameters remotingParametersForClient(String client) {
-        return AuxiliaryRemotingParameters.builder()
-                .shouldLimitPayload(true)
-                .userAgent(UserAgents.tryParse(client))
-                .shouldRetry(true)
-                .build();
-    }
-
-    private static String getGenericRootUri() {
-        return String.format("https://localhost:%d", TIMELOCK_SERVER_HOLDER.getTimelockPort());
-    }
-
-    private static String getRootUriForClient(String client) {
-        return String.format("https://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
-    }
-
-    private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
-        assertThat(throwable).isInstanceOf(AtlasDbRemoteException.class);
-
-        AtlasDbRemoteException remoteException = (AtlasDbRemoteException) throwable;
-        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
-    }
-
-    private LockRequest newLockV2Request(LockDescriptor lock) {
+    private static LockRequest newLockV2Request(LockDescriptor lock) {
         return LockRequest.of(ImmutableSet.of(lock), 10_000L);
     }
 }

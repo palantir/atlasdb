@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcomeMetrics;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
@@ -49,7 +48,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
     private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
-    private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
     private final SweepOutcomeMetrics sweepOutcomeMetrics;
 
@@ -62,7 +60,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Supplier<Integer> sweepThreads,
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
-            PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         this.sweepOutcomeMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
         this.lockService = lockService;
@@ -72,7 +69,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         this.sweepThreads = sweepThreads;
         this.sweepPauseMillis = sweepPauseMillis;
         this.sweepPriorityOverrideConfig = sweepPriorityOverrideConfig;
-        this.persistentLockManager = persistentLockManager;
         this.specificTableSweeper = specificTableSweeper;
     }
 
@@ -83,7 +79,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Supplier<Integer> sweepThreads,
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
-            PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider
                 .create(specificTableSweeper.getKvs(),
@@ -99,7 +94,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                 sweepThreads,
                 sweepPauseMillis,
                 sweepPriorityOverrideConfig,
-                persistentLockManager,
                 specificTableSweeper);
     }
 
@@ -130,7 +124,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     @Override
     public synchronized void shutdown() {
-        sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
         if (daemons == null) {
             return;
         }

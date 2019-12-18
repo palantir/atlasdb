@@ -40,6 +40,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private final T experimentalService;
     private final T fallbackService;
     private final BooleanSupplier useExperimental;
+    private final BooleanSupplier enableFallback;
     private final Clock clock;
     private final Runnable errorTask;
 
@@ -50,19 +51,32 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
             T experimentalService,
             T fallbackService,
             BooleanSupplier useExperimental,
+            BooleanSupplier enableFallback,
             Clock clock,
             Runnable errorTask) {
         this.experimentalService = experimentalService;
         this.fallbackService = fallbackService;
         this.useExperimental = useExperimental;
+        this.enableFallback = enableFallback;
         this.clock = clock;
         this.errorTask = errorTask;
     }
 
-    public static <T> T newProxyInstance(T experimentalService, T fallbackService, BooleanSupplier useExperimental,
-            Class<T> clazz, Runnable markErrorMetric) {
+    @SuppressWarnings("unchecked")
+    public static <T> T newProxyInstance(
+            T experimentalService,
+            T fallbackService,
+            BooleanSupplier useExperimental,
+            BooleanSupplier enableFallback,
+            Class<T> clazz,
+            Runnable markErrorMetric) {
         ExperimentRunningProxy<T> service = new ExperimentRunningProxy<>(
-                experimentalService, fallbackService, useExperimental, Clock.systemUTC(), markErrorMetric);
+                experimentalService,
+                fallbackService,
+                useExperimental,
+                enableFallback,
+                Clock.systemUTC(),
+                markErrorMetric);
         return (T) Proxy.newProxyInstance(
                 clazz.getClassLoader(),
                 new Class[] { clazz },
@@ -87,14 +101,29 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     }
 
     private boolean useExperimental() {
-        return useExperimental.getAsBoolean() && Instant.now(clock).compareTo(nextPermittedExperiment.get()) > 0;
+        if (!useExperimental.getAsBoolean()) {
+            return false;
+        }
+
+        if (!enableFallback.getAsBoolean()) {
+            return true;
+        }
+
+        return sufficientTimeSinceFailure();
+    }
+
+    private boolean sufficientTimeSinceFailure() {
+        return Instant.now(clock).compareTo(nextPermittedExperiment.get()) > 0;
     }
 
     private void markExperimentFailure(Exception exception) {
-        nextPermittedExperiment.accumulateAndGet(Instant.now(clock).plus(REFRESH_INTERVAL),
-                (existing, current) -> existing.compareTo(current) > 0 ? existing : current);
+        if (enableFallback.getAsBoolean()) {
+            nextPermittedExperiment.accumulateAndGet(Instant.now(clock).plus(REFRESH_INTERVAL),
+                    (existing, current) -> existing.compareTo(current) > 0 ? existing : current);
+            log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use the "
+                    + "experimental service again after a timeout.",
+                    SafeArg.of("timeout", REFRESH_INTERVAL), exception);
+        }
         errorTask.run();
-        log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use the"
-                + " experimental service again after a timeout.", SafeArg.of("timeout", REFRESH_INTERVAL), exception);
     }
 }

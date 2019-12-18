@@ -15,8 +15,11 @@
  */
 package com.palantir.timelock.config;
 
+import java.time.Duration;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -32,16 +35,37 @@ public interface PaxosRuntimeConfiguration {
         return 50L;
     }
 
+    @JsonIgnore
+    @Value.Derived
+    @Value.Auxiliary
+    default Duration pingRate() {
+        return Duration.ofMillis(pingRateMs());
+    }
+
     @JsonProperty("maximum-wait-before-proposal-in-ms")
     @Value.Default
     default long maximumWaitBeforeProposalMs() {
         return 300L;
     }
 
+    @JsonIgnore
+    @Value.Derived
+    @Value.Auxiliary
+    default Duration maximumWaitBeforeProposingLeadership() {
+        return Duration.ofMillis(maximumWaitBeforeProposalMs());
+    }
+
     @JsonProperty("leader-ping-response-wait-in-ms")
     @Value.Default
     default long leaderPingResponseWaitMs() {
         return 2000L;
+    }
+
+    @JsonIgnore
+    @Value.Derived
+    @Value.Auxiliary
+    default Duration leaderPingResponseWait() {
+        return Duration.ofMillis(leaderPingResponseWaitMs());
     }
 
     @JsonProperty("only-log-on-quorum-failure")

@@ -23,11 +23,15 @@ import javax.ws.rs.Path;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
@@ -81,18 +85,28 @@ public abstract class PaxosRemoteClients {
                 "batch-paxos-learner-rpc-client");
     }
 
+    @Value.Derived
+    public List<PingableLeader> nonBatchPingableLeaders() {
+        return createInstrumentedRemoteProxies(PingableLeader.class, "paxos-pingable-leader-rpc-client", false);
+    }
+
     private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, String name) {
+        return createInstrumentedRemoteProxies(clazz, name, true);
+    }
+
+    private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, String name, boolean shouldRetry) {
         return context().remoteUris().stream()
-                // TODO(fdesouza): wire up the configurable cutover to CJR
-                .map(uri -> AtlasDbHttpClients.LEGACY_FEIGN_TARGET_FACTORY.createProxy(
+                .map(uri -> AtlasDbHttpClients.createProxy(
+                        MetricsManagers.of(new MetricRegistry(), metrics()),
                         context().trustContext(),
                         uri,
                         clazz,
                         AuxiliaryRemotingParameters.builder()
                                 .userAgent(UserAgents.tryParse(name))
                                 .shouldLimitPayload(false)
-                                .shouldRetry(true)
-                                .build()).instance())
+                                .shouldRetry(shouldRetry)
+                                .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
+                                .build()))
                 .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         metrics(),
                         clazz,

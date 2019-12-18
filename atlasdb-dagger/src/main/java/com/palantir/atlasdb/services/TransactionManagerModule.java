@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -65,13 +66,15 @@ public class TransactionManagerModule {
                                   @Named("kvs") KeyValueService kvs,
                                   TimelockService timelock,
                                   Follower follower,
-                                  TransactionService transactionService) {
+                                  TransactionService transactionService,
+                                  MetricsManager metricsManager) {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
                 kvs,
                 timelock,
                 ImmutableList.of(follower),
-                transactionService)
+                transactionService,
+                metricsManager)
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
                 .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
                 .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())
@@ -113,7 +116,8 @@ public class TransactionManagerModule {
                 Executors.newSingleThreadExecutor(
                         new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
                 true,
-                () -> config.atlasDbRuntimeConfig().transaction());
+                () -> config.atlasDbRuntimeConfig().transaction(),
+                ConflictTracer.NO_OP);
     }
 
 }

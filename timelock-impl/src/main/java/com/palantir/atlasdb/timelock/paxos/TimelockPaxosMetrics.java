@@ -22,8 +22,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -37,14 +41,16 @@ public abstract class TimelockPaxosMetrics {
         return new SlidingWindowTaggedMetricRegistry(35, TimeUnit.SECONDS);
     }
 
+    @Value.Derived
+    MetricsManager asMetricsManager() {
+        // we don't use the normal metric registry so we don't care about this
+        return MetricsManagers.of(new MetricRegistry(), metrics());
+    }
+
     public static TimelockPaxosMetrics of(PaxosUseCase paxosUseCase, TaggedMetricRegistry parentRegistry) {
         TimelockPaxosMetrics metrics = ImmutableTimelockPaxosMetrics.builder().paxosUseCase(paxosUseCase).build();
         metrics.attachToParentMetricRegistry(parentRegistry);
         return metrics;
-    }
-
-    private void attachToParentMetricRegistry(TaggedMetricRegistry parent) {
-        parent.addMetrics("paxosUseCase", paxosUseCase().toString(), metrics());
     }
 
     public <T, U extends T> T instrument(Class<T> clazz, U instance, String name) {
@@ -53,7 +59,7 @@ public abstract class TimelockPaxosMetrics {
     }
 
     public <T, U extends T> T instrument(Class<T> clazz, U instance, String name, Client client) {
-        Map<String, String> tags = ImmutableMap.of("client", client.value());
+        Map<String, String> tags = ImmutableMap.of(AtlasDbMetricNames.TAG_CLIENT, client.value());
         return AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, instance, name, _context -> tags);
     }
 
@@ -70,6 +76,10 @@ public abstract class TimelockPaxosMetrics {
             Client client) {
         return LocalAndRemotes.of(local, remotes)
                 .map(instance -> instrument(clazz, instance, name, client));
+    }
+
+    private void attachToParentMetricRegistry(TaggedMetricRegistry parent) {
+        parent.addMetrics(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, paxosUseCase().toString(), metrics());
     }
 
 }

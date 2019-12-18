@@ -16,13 +16,8 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
-import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 
 /**
  * Synthesises provided install and runtime configurations, and uses this to decide whether the background sweeper
@@ -30,40 +25,20 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
  *
  * <ul>
  *     <li>if the background sweeper has been explicitly enabled or disabled, use that setting;</li>
- *     <li>otherwise if Targeted Sweep is fully enabled (both writing to the sweep queue and actually sweeping), disable
- *     background sweep</li>
- *     <li>otherwise, follow {@link AtlasDbConstants#DEFAULT_ENABLE_SWEEP}.</li>
+ *     <li>otherwise if Targeted Sweep is writing to the sweep queue, disable background sweep</li>
  * </ul>
  */
 public class ShouldRunBackgroundSweepSupplier implements BooleanSupplier {
-    private final TargetedSweepInstallConfig targetedSweepInstallConfig;
-    private final Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier;
+    private final Supplier<SweepConfig> runtimeConfigSupplier;
+    private final boolean sweepQueueWritesEnabled;
 
-    public ShouldRunBackgroundSweepSupplier(
-            TargetedSweepInstallConfig targetedSweepInstallConfig,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        this.targetedSweepInstallConfig = targetedSweepInstallConfig;
-        this.runtimeConfigSupplier = runtimeConfigSupplier;
+    public ShouldRunBackgroundSweepSupplier(Supplier<SweepConfig> runtimeConfig, boolean sweepQueueWritesEnabled) {
+        this.runtimeConfigSupplier = runtimeConfig;
+        this.sweepQueueWritesEnabled = sweepQueueWritesEnabled;
     }
 
     @Override
     public boolean getAsBoolean() {
-        AtlasDbRuntimeConfig runtimeConfig = runtimeConfigSupplier.get();
-
-        Optional<Boolean> backgroundSweepEnabled = runtimeConfig.sweep().enabled();
-        if (backgroundSweepEnabled.isPresent()) {
-            return backgroundSweepEnabled.get();
-        }
-
-        if (targetedSweepIsFullyEnabled(runtimeConfig.targetedSweep())) {
-            return false;
-        }
-
-        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
-    }
-
-
-    private boolean targetedSweepIsFullyEnabled(TargetedSweepRuntimeConfig targetedSweepRuntimeConfig) {
-        return targetedSweepInstallConfig.enableSweepQueueWrites() && targetedSweepRuntimeConfig.enabled();
+        return runtimeConfigSupplier.get().enabled().orElse(!sweepQueueWritesEnabled);
     }
 }

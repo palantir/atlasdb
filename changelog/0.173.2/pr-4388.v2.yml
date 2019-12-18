@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Added some instrumentation to help with a pressing support ticket. See internal reference PDS-95791
+  links:
+  - https://github.com/palantir/atlasdb/pull/4388

@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -28,9 +28,9 @@ import com.palantir.paxos.PaxosValue;
 public class BatchPingableLeaderResource implements BatchPingableLeader {
 
     private final UUID leadershipUuid;
-    private final PaxosComponents components;
+    private final LocalPaxosComponents components;
 
-    public BatchPingableLeaderResource(UUID leadershipUuid, PaxosComponents components) {
+    public BatchPingableLeaderResource(UUID leadershipUuid, LocalPaxosComponents components) {
         this.leadershipUuid = leadershipUuid;
         this.components = components;
     }
@@ -40,7 +40,8 @@ public class BatchPingableLeaderResource implements BatchPingableLeader {
         return KeyedStream.of(clients)
                 .map(components::learner)
                 .map(PaxosLearner::getGreatestLearnedValue)
-                .filter(Objects::nonNull)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .filter(this::isThisNodeTheLeaderFor)
                 .keys()
                 .collect(Collectors.toSet());

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import javax.ws.rs.QueryParam;
 
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 @AutoDelegate
@@ -32,6 +33,7 @@ public interface TimelockService {
      *
      * @return true iff the TimelockService has been fully initialized and is ready to use
      */
+    @DoNotDelegate
     default boolean isInitialized() {
         return true;
     }
@@ -72,10 +74,7 @@ public interface TimelockService {
      *
      * @param tokens Tokens for which associated locks should be unlocked.
      */
-    default void tryUnlock(Set<LockToken> tokens) {
-        unlock(tokens);
-    }
+    void tryUnlock(Set<LockToken> tokens);
 
     long currentTimeMillis();
-
 }

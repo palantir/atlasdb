@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.metrics.Timed;
 
 /**
  * A {@link CoordinationService} is used to agree on values being relevant or correct at a given timestamp.
@@ -48,6 +49,7 @@ public interface CoordinationService<T> {
      * @param timestamp timestamp to retrieve the coordinated value for
      * @return value associated with that timestamp
      */
+    @Timed
     Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp);
 
     /**
@@ -65,6 +67,7 @@ public interface CoordinationService<T> {
      *
      * @throws IllegalStateException if check and set fails, but no current value exists
      */
+    @Timed
     CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform);
 
     /**

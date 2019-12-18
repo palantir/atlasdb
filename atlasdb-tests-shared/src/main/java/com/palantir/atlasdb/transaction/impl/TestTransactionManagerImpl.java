@@ -19,11 +19,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
@@ -32,6 +34,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -39,13 +42,16 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
-    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+    static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
+    private final WrapperWithTracker<Transaction> transactionWrapper;
+    private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
     private Optional<Long> unreadableTs = Optional.empty();
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -60,24 +66,20 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             SweepStrategyManager sweepStrategyManager,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor) {
-        super(metricsManager,
-                createAssertKeyValue(keyValueService, lockService),
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+        this(
+                metricsManager,
+                keyValueService,
+                timestampService,
                 timestampManagementService,
+                lockClient,
                 lockService,
                 transactionService,
-                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 sweepStrategyManager,
-                NoOpCleaner.INSTANCE,
-                DefaultTimestampCache.createForTests(),
-                false,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
                 deleteExecutor,
-                true,
-                () -> TRANSACTION_CONFIG);
+                WrapperWithTracker.TRANSACTION_NO_OP,
+                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -89,7 +91,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockService lockService,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode) {
-        super(metricsManager,
+        super(
+                metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 timestampManagementService,
@@ -106,7 +109,49 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                ConflictTracer.NO_OP);
+        this.transactionWrapper =  WrapperWithTracker.TRANSACTION_NO_OP;
+        this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
+    }
+
+    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
+    public TestTransactionManagerImpl(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimestampService timestampService,
+            TimestampManagementService timestampManagementService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            MultiTableSweepQueueWriter sweepQueue,
+            ExecutorService deleteExecutor,
+            WrapperWithTracker<Transaction> transactionWrapper,
+            WrapperWithTracker<KeyValueService> keyValueServiceWrapper) {
+        super(
+                metricsManager,
+                createAssertKeyValue(keyValueService, lockService),
+                new LegacyTimelockService(timestampService, lockService, lockClient),
+                timestampManagementService,
+                lockService,
+                transactionService,
+                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                conflictDetectionManager,
+                sweepStrategyManager,
+                NoOpCleaner.INSTANCE,
+                DefaultTimestampCache.createForTests(),
+                false,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                sweepQueue,
+                deleteExecutor,
+                true,
+                () -> TRANSACTION_CONFIG,
+                ConflictTracer.NO_OP);
+        this.transactionWrapper = transactionWrapper;
+        this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
 
     @Override
@@ -127,28 +172,67 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @Override
     public Transaction createNewTransaction() {
         long startTimestamp = timelockService.getFreshTimestamp();
-        return new SnapshotTransaction(metricsManager,
-                keyValueService,
-                timelockService,
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                () -> startTimestamp,
-                getConflictDetectionManager(),
-                SweepStrategyManagers.createDefault(keyValueService),
-                startTimestamp,
-                Optional.empty(),
-                PreCommitConditions.NO_OP,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                null,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false,
-                timestampValidationReadCache,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter,
-                deleteExecutor,
-                validateLocksOnReads,
-                () -> TRANSACTION_CONFIG);
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        return transactionWrapper.apply(
+                new SnapshotTransaction(metricsManager,
+                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                        timelockService,
+                        transactionService,
+                        NoOpCleaner.INSTANCE,
+                        () -> startTimestamp,
+                        getConflictDetectionManager(),
+                        SweepStrategyManagers.createDefault(keyValueService),
+                        startTimestamp,
+                        Optional.empty(),
+                        PreCommitConditions.NO_OP,
+                        AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                        null,
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        false,
+                        timestampValidationReadCache,
+                        getRangesExecutor,
+                        defaultGetRangesConcurrency,
+                        sweepQueueWriter,
+                        deleteExecutor,
+                        validateLocksOnReads,
+                        () -> TRANSACTION_CONFIG,
+                        ConflictTracer.NO_OP),
+                pathTypeTracker);
+    }
+
+    @Override
+    protected Transaction createTransaction(
+            long immutableTimestamp,
+            Supplier<Long> startTimestampSupplier,
+            LockToken immutableTsLock,
+            PreCommitCondition preCommitCondition) {
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        return transactionWrapper.apply(
+                new SerializableTransaction(
+                        metricsManager,
+                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                        timelockService,
+                        transactionService,
+                        cleaner,
+                        startTimestampSupplier,
+                        getConflictDetectionManager(),
+                        sweepStrategyManager,
+                        immutableTimestamp,
+                        Optional.of(immutableTsLock),
+                        preCommitCondition,
+                        constraintModeSupplier.get(),
+                        cleaner.getTransactionReadTimeoutMillis(),
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        allowHiddenTableAccess,
+                        timestampValidationReadCache,
+                        getRangesExecutor,
+                        defaultGetRangesConcurrency,
+                        sweepQueueWriter,
+                        deleteExecutor,
+                        validateLocksOnReads,
+                        transactionConfig,
+                        ConflictTracer.NO_OP),
+                pathTypeTracker);
     }
 
     @Override

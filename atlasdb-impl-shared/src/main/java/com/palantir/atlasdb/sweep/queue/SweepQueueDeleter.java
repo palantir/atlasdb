@@ -74,7 +74,8 @@ public class SweepQueueDeleter {
                         });
             } catch (Exception e) {
                 if (tableWasDropped(entry.getKey())) {
-                    log.info("The table {} has been deleted.", LoggingArgs.tableRef(entry.getKey()), e);
+                    log.debug("Dropping sweeper work for table {}, which has been dropped.",
+                            LoggingArgs.tableRef(entry.getKey()), e);
                 } else {
                     throw e;
                 }

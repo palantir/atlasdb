@@ -252,7 +252,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private void runOneIteration() {
             if (!runtime.get().enabled()) {
-                metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.DISABLED);
                 return;
             }
 

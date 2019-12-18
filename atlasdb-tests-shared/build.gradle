@@ -9,6 +9,8 @@ dependencies {
   compile project(":atlasdb-config")
   testCompile project(":atlasdb-config")
 
+  testCompile project(":commons-api")
+
   compile project(path: ":atlasdb-feign", configuration: "shadow")
 
   compile group: 'com.palantir.tracing', name: 'tracing'
@@ -22,5 +24,7 @@ dependencies {
   compile group: "org.awaitility", name: "awaitility"
 
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
-  testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
+  testCompile(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'org.hamcrest'
+  }
 }

@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -51,12 +52,12 @@ public class HeldLocksTest {
         lockA.lock(REQUEST_ID);
         lockB.lock(REQUEST_ID);
         heldLocks = new HeldLocks(new LockLog(new MetricRegistry(), () -> 2L),
-                ImmutableList.of(lockA, lockB), REQUEST_ID, timer);
+                ImmutableList.of(lockA, lockB), REQUEST_ID, timer, mock(LockWatchingService.class));
     }
 
     @Test
     public void unlocksHeldLocks() {
-        heldLocks.unlock();
+        heldLocks.unlockExplicitly();
 
         verify(lockA).unlock(REQUEST_ID);
         verify(lockB).unlock(REQUEST_ID);
@@ -69,15 +70,15 @@ public class HeldLocksTest {
 
     @Test
     public void cannotRefreshAfterUnlocking() {
-        heldLocks.unlock();
+        heldLocks.unlockExplicitly();
 
         assertFalse(heldLocks.refresh());
     }
 
     @Test
     public void canOnlyUnlockOnce() {
-        assertTrue(heldLocks.unlock());
-        assertFalse(heldLocks.unlock());
+        assertTrue(heldLocks.unlockExplicitly());
+        assertFalse(heldLocks.unlockExplicitly());
     }
 
     @Test

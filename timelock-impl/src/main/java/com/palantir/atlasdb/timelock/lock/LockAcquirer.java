@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.logsafe.SafeArg;
 
 public class LockAcquirer implements AutoCloseable {
@@ -33,18 +34,22 @@ public class LockAcquirer implements AutoCloseable {
     private final LockLog lockLog;
     private final ScheduledExecutorService timeoutExecutor;
     private final LeaderClock leaderClock;
+    private final LockWatchingService lockWatcher;
 
     public LockAcquirer(LockLog lockLog,
             ScheduledExecutorService timeoutExecutor,
-            LeaderClock leaderClock) {
+            LeaderClock leaderClock,
+            LockWatchingService lockWatcher) {
         this.lockLog = lockLog;
         this.timeoutExecutor = timeoutExecutor;
         this.leaderClock = leaderClock;
+        this.lockWatcher = lockWatcher;
     }
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
-        return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId)).execute()
-                .map(ignored -> new HeldLocks(lockLog, locks.get(), requestId, leaderClock));
+        return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId))
+                .execute()
+                .map(ignored -> HeldLocks.create(lockLog, locks.get(), requestId, leaderClock, lockWatcher));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
@@ -54,6 +59,9 @@ public class LockAcquirer implements AutoCloseable {
 
     @Override
     public void close() {
+        log.info("Shutting down, logging lock diagnostic info");
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+        lockLog.logLockDiagnosticInfo();
         timeoutExecutor.shutdown();
     }
 

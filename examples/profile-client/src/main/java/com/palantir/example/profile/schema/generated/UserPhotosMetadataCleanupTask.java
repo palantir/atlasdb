@@ -5,6 +5,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -16,8 +20,11 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 
 public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
+
+    private static final Logger log = LoggerFactory.getLogger(UserPhotosMetadataCleanupTask.class);
 
     private final ProfileTableFactory tables;
 
@@ -33,28 +40,68 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
             rows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         UserPhotosStreamIdxTable indexTable = tables.getUserPhotosStreamIdxTable(t);
-        Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> indexRows = rows.stream()
+        executeUnreferencedStreamDiagnostics(indexTable, rows);
+        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
+        Set<Long> toDelete = Sets.newHashSet();
+        for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
+            if (e.getValue().getStatus() != Status.STORED) {
+                toDelete.add(e.getKey().getId());
+            }
+        }
+        UserPhotosStreamStore.of(tables).deleteStreams(t, toDelete);
+        return false;
+    }
+
+    private static UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow convertFromIndexRow(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow idxRow) {
+        return UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of(idxRow.getId());
+    }
+    private static Set<Long> convertToIdsForLogging(Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> iteratorExcess) {
+        return iteratorExcess.stream()
                 .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::getId)
-                .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::of)
                 .collect(Collectors.toSet());
+    }
+
+    private static Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> getUnreferencedStreamsByMultimap(UserPhotosStreamIdxTable indexTable, Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> indexRows) {
+        Multimap<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue> indexValues = indexTable.getRowsMultimap(indexRows);
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> presentMetadataRows
+                = indexValues.keySet().stream()
+                .map(UserPhotosMetadataCleanupTask::convertFromIndexRow)
+                .collect(Collectors.toSet());
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> queriedMetadataRows
+                = indexRows.stream()
+                .map(UserPhotosMetadataCleanupTask::convertFromIndexRow)
+                .collect(Collectors.toSet());
+        return Sets.difference(queriedMetadataRows, presentMetadataRows);
+    }
+
+    private static Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> getUnreferencedStreamsByIterator(UserPhotosStreamIdxTable indexTable, Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> indexRows) {
         Map<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, Iterator<UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> streamsWithNoReferences
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> unreferencedStreamMetadata
                 = KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys() // (authorized)
                 .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::getId)
                 .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::of)
                 .collect(Collectors.toSet());
-        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
-        Set<Long> toDelete = Sets.newHashSet();
-        for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED || streamsWithNoReferences.contains(e.getKey())) {
-                toDelete.add(e.getKey().getId());
-            }
+        return unreferencedStreamMetadata;
+    }
+
+    private static void executeUnreferencedStreamDiagnostics(UserPhotosStreamIdxTable indexTable, Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> metadataRows) {
+        Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> indexRows = metadataRows.stream()
+                .map(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow::getId)
+                .map(UserPhotosStreamIdxTable.UserPhotosStreamIdxRow::of)
+                .collect(Collectors.toSet());
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> unreferencedStreamsByIterator = getUnreferencedStreamsByIterator(indexTable, indexRows);
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> unreferencedStreamsByMultimap = getUnreferencedStreamsByMultimap(indexTable, indexRows);
+        if (!unreferencedStreamsByIterator.equals(unreferencedStreamsByMultimap)) {
+            log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
+                    SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
+                    SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
+        } else {
+            log.info("We searched for unreferenced streams and consistently found {}.",
+                    SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
         }
-        UserPhotosStreamStore.of(tables).deleteStreams(t, toDelete);
-        return false;
     }
 }

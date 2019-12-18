@@ -25,9 +25,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
+import com.palantir.paxos.LeaderPingResult;
+import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -64,6 +67,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
     private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
+    private final RateLimiter leaderEligibilityLoggingRateLimiter = RateLimiter.create(1);
 
     PaxosLeaderElectionService(
             PaxosProposer proposer,
@@ -85,6 +89,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
                 new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
     }
 
+    @Override
     public void markNotEligibleForLeadership() {
         boolean previousLeaderEligible = leaderEligible.getAndSet(false);
         if (previousLeaderEligible) {
@@ -113,9 +118,15 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         }
     }
 
-    private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState)
-            throws InterruptedException {
-        if (pingLeader(currentState.greatestLearnedValue())) {
+    private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState) throws InterruptedException {
+        if (!leaderEligible.get()) {
+            if (leaderEligibilityLoggingRateLimiter.tryAcquire()) {
+                log.debug("Not eligible for leadership");
+            }
+            return;
+        }
+
+        if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {
             Thread.sleep(updatePollingRateInMs);
             return;
         }
@@ -129,11 +140,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         log.debug("Waiting for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
         Thread.sleep(backoffTime);
 
-        if (leaderEligible.get()) {
-            proposeLeadershipAfter(currentState.greatestLearnedValue());
-        } else {
-            log.debug("Not eligible for leadership");
-        }
+        proposeLeadershipAfter(currentState.greatestLearnedValue());
     }
 
     @Override
@@ -142,18 +149,19 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private LeadershipState determineLeadershipState() {
-        Optional<PaxosValue> greatestLearnedValue = getGreatestLearnedPaxosValue();
+        Optional<PaxosValue> greatestLearnedValue = knowledge.getGreatestLearnedValue();
         StillLeadingStatus leadingStatus = determineLeadershipStatus(greatestLearnedValue);
 
         return LeadershipState.of(greatestLearnedValue, leadingStatus);
     }
 
-    private boolean pingLeader(Optional<PaxosValue> maybeGreatestLearnedValue) {
-        return maybeGreatestLearnedValue
+    private LeaderPingResult pingLeader(Optional<PaxosValue> maybeGreatestLearnedValue) {
+        Optional<LeaderPingResult> maybeLeaderPingResult = maybeGreatestLearnedValue
                 .map(PaxosValue::getLeaderUUID)
                 .map(UUID::fromString)
-                .map(leaderPinger::pingLeaderWithUuid)
-                .orElse(false);
+                .map(leaderPinger::pingLeaderWithUuid);
+        maybeLeaderPingResult.ifPresent(leaderPingResult -> leaderPingResult.recordEvent(eventRecorder));
+        return maybeLeaderPingResult.orElseGet(LeaderPingResults::pingReturnedFalse);
     }
 
     private void proposeLeadershipAfter(Optional<PaxosValue> value) {
@@ -176,10 +184,6 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         } finally {
             lock.unlock();
         }
-    }
-
-    private Optional<PaxosValue> getGreatestLearnedPaxosValue() {
-        return Optional.ofNullable(knowledge.getGreatestLearnedValue());
     }
 
     @Override
@@ -221,7 +225,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private boolean isLatestRound(Optional<PaxosValue> valueIfAny) {
-        return valueIfAny.equals(getGreatestLearnedPaxosValue());
+        return valueIfAny.equals(knowledge.getGreatestLearnedValue());
     }
 
     private void recordLeadershipStatus(
@@ -253,7 +257,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         for (PaxosUpdate update : updates.get()) {
             ImmutableCollection<PaxosValue> values = update.getValues();
             for (PaxosValue value : values) {
-                if (knowledge.getLearnedValue(value.getRound()) == null) {
+                if (!knowledge.getLearnedValue(value.getRound()).isPresent()) {
                     knowledge.learn(value.getRound(), value);
                     learned = true;
                 }

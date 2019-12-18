@@ -1,0 +1,8 @@
+type: manualTask
+manualTask:
+  description: |-
+    Stream stores now no longer automatically clean up streams that were stored but never marked as used. We have noticed an increasing incidence of said cleaning being more aggressive than we anticipated.
+
+    Users that use stream stores *must* regenerate their schemas as part of upgrading to this version.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4434
