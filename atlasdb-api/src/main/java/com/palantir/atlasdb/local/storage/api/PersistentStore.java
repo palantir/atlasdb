@@ -22,14 +22,15 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
-public interface PersistentStore<K extends Comparable<K>, V> extends AutoCloseable {
+public interface PersistentStore extends AutoCloseable {
     @Value.Immutable
-    interface StoreNamespace {
+    interface StoreNamespace<T extends Comparable<T>, R> {
         String humanReadableName();
         UUID uniqueName();
+        Serializer<T, R> serializer();
     }
 
-    interface Serializer<T, R> {
+    interface Serializer<T extends Comparable<T>, R> {
         byte[] serializeKey(T key);
         T deserializeKey(byte[] key);
         byte[] serializeValue(T key, R value);
@@ -45,7 +46,7 @@ public interface PersistentStore<K extends Comparable<K>, V> extends AutoCloseab
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    V get(StoreNamespace storeNamespace, K key);
+    <K extends Comparable<K>, V> V get(StoreNamespace<K, V> storeNamespace, K key);
 
     /**
      * Stores the {@code value} for the associated {@code key} while overwriting the existing value in the
@@ -57,7 +58,7 @@ public interface PersistentStore<K extends Comparable<K>, V> extends AutoCloseab
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    void put(StoreNamespace storeNamespace, K key, V value);
+    <K extends Comparable<K>, V> void put(StoreNamespace<K, V> storeNamespace, K key, V value);
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to
@@ -67,7 +68,7 @@ public interface PersistentStore<K extends Comparable<K>, V> extends AutoCloseab
      * @param name in human readable format of the namespace to be created
      * @return {@link StoreNamespace} which represents a handle to the created namespace
      */
-    StoreNamespace createNamespace(String name);
+    <K extends Comparable<K>, V> StoreNamespace<K, V> createNamespace(String name, Serializer<K, V> serializer);
 
     /**
      * Drops the namespace specified by the supplied handle. Dropping of a namespace may fail if called there are
@@ -77,7 +78,7 @@ public interface PersistentStore<K extends Comparable<K>, V> extends AutoCloseab
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException if the supplied {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    void dropNamespace(StoreNamespace storeNamespace);
+    void dropNamespace(StoreNamespace<?, ?> storeNamespace);
 
     /**
      * Loads all keys stored in the {@code storeNamespace}
@@ -85,7 +86,7 @@ public interface PersistentStore<K extends Comparable<K>, V> extends AutoCloseab
      * @param storeNamespace for which to retrieve the data
      * @return all the keys for the given {@link StoreNamespace} or empty collection if the namespace is empty
      */
-    Collection<K> loadNamespaceKeys(StoreNamespace storeNamespace);
+    <K extends Comparable<K>> Collection<K> loadNamespaceKeys(StoreNamespace<K, ?> storeNamespace);
 
     /**
      * Loads all entries for the {@code storeNamespace}.
@@ -93,5 +94,5 @@ public interface PersistentStore<K extends Comparable<K>, V> extends AutoCloseab
      * @param storeNamespace for which to load entries
      * @return {@link SortedMap} of the entries in storage
      */
-    SortedMap<K, V> loadNamespaceEntries(StoreNamespace storeNamespace);
+    <K extends Comparable<K>, V> SortedMap<K, V> loadNamespaceEntries(StoreNamespace<K, V> storeNamespace);
 }

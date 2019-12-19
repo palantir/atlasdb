@@ -31,65 +31,23 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.local.storage.api.ImmutableStoreNamespace;
 import com.palantir.atlasdb.local.storage.api.PersistentStore;
-import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 
-public final class RocksDbPersistentStore<K extends Comparable<K>, V> implements PersistentStore<K, V> {
+public final class RocksDbPersistentStore implements PersistentStore {
     private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);
 
     private final ConcurrentHashMap<UUID, ColumnFamilyHandle> availableColumnFamilies = new ConcurrentHashMap<>();
     private final RocksDB rocksDB;
-    private final Serializer<K, V> serializer;
 
-    public RocksDbPersistentStore(RocksDB rocksDB, Serializer<K, V> serializer) {
+    public RocksDbPersistentStore(RocksDB rocksDB) {
         this.rocksDB = rocksDB;
-        this.serializer = serializer;
     }
 
     @Override
-    public V get(StoreNamespace storeNamespace, K key) {
-        if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
-            throw new SafeIllegalArgumentException("Store namespace does not exist");
-        }
-
-        byte[] byteKeyValue = serializer.serializeKey(key);
-        byte[] value = getWithExceptionHandling(availableColumnFamilies.get(storeNamespace.uniqueName()), byteKeyValue);
-
-        if (value == null) {
-            return null;
-        }
-        return serializer.deserializeValue(key, value);
-    }
-
-    @Override
-    public void put(StoreNamespace storeNamespace, K key, V value) {
-        if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
-            throw new SafeIllegalArgumentException("Store namespace does not exist");
-        }
-
-        putWithExceptionHandling(
-                availableColumnFamilies.get(storeNamespace.uniqueName()),
-                serializer.serializeKey(key),
-                serializer.serializeValue(key, value));
-    }
-
-    @Override
-    public StoreNamespace createNamespace(String name) {
-        UUID randomUuid = UUID.randomUUID();
-        ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
-                rocksDB.createColumnFamily(new ColumnFamilyDescriptor(randomUuid.toString().getBytes())));
-        availableColumnFamilies.put(randomUuid, columnFamilyHandle);
-
-        return ImmutableStoreNamespace.builder()
-                .humanReadableName(name)
-                .uniqueName(randomUuid)
-                .build();
-    }
-
-    @Override
-    public void dropNamespace(StoreNamespace storeNamespace) {
+    public void dropNamespace(StoreNamespace<?, ?> storeNamespace) {
         if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
             throw new SafeIllegalArgumentException("Store namespace does not exist");
         }
@@ -99,22 +57,23 @@ public final class RocksDbPersistentStore<K extends Comparable<K>, V> implements
     }
 
     @Override
-    public Collection<K> loadNamespaceKeys(StoreNamespace storeNamespace) {
+    public <K extends Comparable<K>> Collection<K> loadNamespaceKeys(StoreNamespace<K, ?> storeNamespace) {
         RocksIterator rocksIterator = rocksDB.newIterator(availableColumnFamilies.get(storeNamespace.uniqueName()));
         ImmutableList.Builder<K> builder = ImmutableList.builder();
         rocksIterator.seekToFirst();
         while (rocksIterator.isValid()) {
-            builder.add(serializer.deserializeKey(rocksIterator.key()));
+            builder.add(storeNamespace.serializer().deserializeKey(rocksIterator.key()));
             rocksIterator.next();
         }
         return builder.build();
     }
 
     @Override
-    public SortedMap<K, V> loadNamespaceEntries(StoreNamespace storeNamespace) {
+    public <K extends Comparable<K>, V> SortedMap<K, V> loadNamespaceEntries(StoreNamespace<K, V> storeNamespace) {
         RocksIterator rocksIterator = rocksDB.newIterator(availableColumnFamilies.get(storeNamespace.uniqueName()));
         ImmutableSortedMap.Builder<K, V> builder = ImmutableSortedMap.naturalOrder();
         rocksIterator.seekToFirst();
+        Serializer<K, V> serializer = storeNamespace.serializer();
         while (rocksIterator.isValid()) {
             K key = serializer.deserializeKey(rocksIterator.key());
             builder.put(key, serializer.deserializeValue(key, rocksIterator.value()));
@@ -153,5 +112,48 @@ public final class RocksDbPersistentStore<K extends Comparable<K>, V> implements
             log.warn("Rocks db raised an exception", exception);
             throw new RuntimeException(exception);
         }
+    }
+
+    @Override
+    public <K extends Comparable<K>, V> V get(StoreNamespace<K, V> storeNamespace, K key) {
+        if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
+            throw new SafeIllegalArgumentException("Store namespace does not exist");
+        }
+
+        Serializer<K, V> serializer = storeNamespace.serializer();
+        byte[] byteKeyValue = serializer.serializeKey(key);
+        byte[] value = getWithExceptionHandling(availableColumnFamilies.get(storeNamespace.uniqueName()), byteKeyValue);
+
+        if (value == null) {
+            return null;
+        }
+        return serializer.deserializeValue(key, value);
+    }
+
+    @Override
+    public <K extends Comparable<K>, V> void put(StoreNamespace<K, V> storeNamespace, K key, V value) {
+        if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
+            throw new SafeIllegalArgumentException("Store namespace does not exist");
+        }
+
+        Serializer<K, V> serializer = storeNamespace.serializer();
+        putWithExceptionHandling(
+                availableColumnFamilies.get(storeNamespace.uniqueName()),
+                serializer.serializeKey(key),
+                serializer.serializeValue(key, value));
+    }
+
+    @Override
+    public <K extends Comparable<K>, V> StoreNamespace<K, V> createNamespace(String name, Serializer<K, V> serializer) {
+        UUID randomUuid = UUID.randomUUID();
+        ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
+                rocksDB.createColumnFamily(new ColumnFamilyDescriptor(randomUuid.toString().getBytes())));
+        availableColumnFamilies.put(randomUuid, columnFamilyHandle);
+
+        return ImmutableStoreNamespace.<K, V>builder()
+                .serializer(serializer)
+                .humanReadableName(name)
+                .uniqueName(randomUuid)
+                .build();
     }
 }

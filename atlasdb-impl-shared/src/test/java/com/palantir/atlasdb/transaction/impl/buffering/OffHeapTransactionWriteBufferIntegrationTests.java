@@ -51,8 +51,7 @@ public final class OffHeapTransactionWriteBufferIntegrationTests {
         testFolder = temporaryFolder.newFolder();
         rocksDb = RocksDB.open(testFolder.getAbsolutePath());
 
-        transactionWriteBuffer = OffHeapTransactionWriteBuffer.create(
-                new RocksDbPersistentStore<>(rocksDb, OffHeapTransactionWriteBuffer.DEFAULT_SERIALIZER));
+        transactionWriteBuffer = OffHeapTransactionWriteBuffer.create(new RocksDbPersistentStore(rocksDb));
     }
 
     @After

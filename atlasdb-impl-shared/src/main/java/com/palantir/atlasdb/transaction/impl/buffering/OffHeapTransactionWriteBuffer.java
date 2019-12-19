@@ -73,16 +73,16 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
         }
     };
 
-    private final PersistentStore<Cell, byte[]> persistentStore;
-    private final ConcurrentHashMap<TableReference, StoreNamespace> tableMappings = new ConcurrentHashMap<>();
+    private final PersistentStore persistentStore;
+    private final ConcurrentHashMap<TableReference, StoreNamespace<Cell, byte[]>> tableMappings = new ConcurrentHashMap<>();
     private final AtomicLong byteCount = new AtomicLong();
     private volatile boolean hasWrites = false;
 
-    public static TransactionWriteBuffer create(PersistentStore<Cell, byte[]> persistentStore) {
+    public static TransactionWriteBuffer create(PersistentStore persistentStore) {
         return new OffHeapTransactionWriteBuffer(persistentStore);
     }
 
-    OffHeapTransactionWriteBuffer(PersistentStore<Cell, byte[]> persistentStore) {
+    OffHeapTransactionWriteBuffer(PersistentStore persistentStore) {
         this.persistentStore = persistentStore;
     }
 
@@ -93,7 +93,7 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
 
     @Override
     public void putWrites(TableReference tableRef, Map<Cell, byte[]> values) {
-        StoreNamespace tableStoreNamespace = storeNamespace(tableRef);
+        StoreNamespace<Cell, byte[]> tableStoreNamespace = storeNamespace(tableRef);
         hasWrites = !values.isEmpty() || hasWrites;
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
             byte[] val = MoreObjects.firstNonNull(e.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
@@ -167,17 +167,17 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
         sink.accept(builder.build());
     }
 
-    private SortedMap<Cell, byte[]> writesByStoreNamespace(StoreNamespace storeNamespace) {
+    private SortedMap<Cell, byte[]> writesByStoreNamespace(StoreNamespace<Cell, byte[]> storeNamespace) {
         return persistentStore.loadNamespaceEntries(storeNamespace);
     }
 
-    private Collection<Cell> getCells(StoreNamespace storeNamespace) {
+    private Collection<Cell> getCells(StoreNamespace<Cell, byte[]> storeNamespace) {
         return persistentStore.loadNamespaceKeys(storeNamespace);
     }
 
-    private StoreNamespace storeNamespace(TableReference tableRef) {
+    private StoreNamespace<Cell, byte[]> storeNamespace(TableReference tableRef) {
         return tableMappings.computeIfAbsent(
                 tableRef,
-                $ -> persistentStore.createNamespace(tableRef.getQualifiedName()));
+                $ -> persistentStore.createNamespace(tableRef.getQualifiedName(), DEFAULT_SERIALIZER));
     }
 }

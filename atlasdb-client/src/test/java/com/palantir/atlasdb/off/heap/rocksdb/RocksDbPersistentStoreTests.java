@@ -28,10 +28,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 
+import com.palantir.atlasdb.local.storage.api.ImmutableStoreNamespace;
 import com.palantir.atlasdb.local.storage.api.PersistentStore;
 import com.palantir.atlasdb.local.storage.api.PersistentStore.Serializer;
 import com.palantir.atlasdb.local.storage.api.PersistentStore.StoreNamespace;
-import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
@@ -63,20 +63,21 @@ public final class RocksDbPersistentStoreTests {
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static final String DEFAULT = "default";
-    private static final StoreNamespace NON_EXISTING_NAMESPACE = ImmutableStoreNamespace.builder()
+    private static final StoreNamespace<Long, Long> NON_EXISTING_NAMESPACE = ImmutableStoreNamespace.<Long, Long>builder()
+            .serializer(SERIALIZER)
             .humanReadableName("bla")
             .uniqueName(UUID.randomUUID())
             .build();
 
-    private PersistentStore<Long, Long> timestampMappingStore;
-    private StoreNamespace defaultNamespace;
+    private PersistentStore timestampMappingStore;
+    private StoreNamespace<Long, Long> defaultNamespace;
 
     @Before
     public void before() throws Exception {
         RocksDB rocksDb = RocksDB.open(temporaryFolder.newFolder().getAbsolutePath());
 
-        timestampMappingStore = new RocksDbPersistentStore<>(rocksDb, SERIALIZER);
-        defaultNamespace = timestampMappingStore.createNamespace(DEFAULT);
+        timestampMappingStore = new RocksDbPersistentStore(rocksDb);
+        defaultNamespace = timestampMappingStore.createNamespace(DEFAULT, SERIALIZER);
     }
 
     @After
@@ -97,7 +98,7 @@ public final class RocksDbPersistentStoreTests {
 
     @Test
     public void storeNamespaceUniqueness() {
-        StoreNamespace differentDefault = timestampMappingStore.createNamespace(DEFAULT);
+        StoreNamespace<Long, Long> differentDefault = timestampMappingStore.createNamespace(DEFAULT, SERIALIZER);
         assertThat(differentDefault).isNotEqualTo(defaultNamespace);
 
         timestampMappingStore.put(defaultNamespace, 1L, 3L);
@@ -125,7 +126,7 @@ public final class RocksDbPersistentStoreTests {
 
     @Test
     public void droppingTwoTimesFailsOnSecond() {
-        StoreNamespace testNamespace = timestampMappingStore.createNamespace("test");
+        StoreNamespace<Long, Long> testNamespace = timestampMappingStore.createNamespace("test", SERIALIZER);
 
         timestampMappingStore.dropNamespace(testNamespace);
         assertThatThrownBy(() -> timestampMappingStore.dropNamespace(testNamespace))
