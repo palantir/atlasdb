@@ -55,6 +55,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -338,7 +339,8 @@ public class KeyValueServiceMigratorsTest {
                 new NoOpCleaner(),
                 16,
                 4,
-                sweeper);
+                sweeper,
+                DefaultTransactionWriteBuffer::create);
         sweeper.initialize(txManager);
         when(mockServices.getTransactionManager()).thenReturn(txManager);
         return mockServices;

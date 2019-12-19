@@ -87,6 +87,8 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
+import com.palantir.atlasdb.transaction.impl.buffering.TransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -146,7 +148,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ExecutorService deleteExecutor,
                                    boolean validateLocksOnReads,
                                    Supplier<TransactionConfig> transactionConfig,
-                                   ConflictTracer conflictTracer) {
+                                   ConflictTracer conflictTracer,
+                                   TransactionWriteBuffer transactionWriteBuffer) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -169,7 +172,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               deleteExecutor,
               validateLocksOnReads,
               transactionConfig,
-              conflictTracer);
+              conflictTracer,
+              transactionWriteBuffer);
     }
 
     @Override
@@ -794,7 +798,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer) {
+                conflictTracer,
+                DefaultTransactionWriteBuffer.create()) {
             @Override
             protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
                     TableReference tableRef,

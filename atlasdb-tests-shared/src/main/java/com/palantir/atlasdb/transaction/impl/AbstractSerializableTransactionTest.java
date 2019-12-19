@@ -64,6 +64,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -95,7 +96,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                sweepQueue);
+                sweepQueue,
+                DefaultTransactionWriteBuffer::create);
         sweepQueue.initialize(txManager);
         return txManager;
     }
@@ -130,7 +132,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 MoreExecutors.newDirectExecutorService(),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
-                ConflictTracer.NO_OP) {
+                ConflictTracer.NO_OP,
+                DefaultTransactionWriteBuffer.create()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());

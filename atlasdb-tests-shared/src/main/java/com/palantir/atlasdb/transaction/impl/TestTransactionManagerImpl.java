@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.buffering.TransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
@@ -52,6 +53,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     private final WrapperWithTracker<Transaction> transactionWrapper;
     private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
+    private final Supplier<TransactionWriteBuffer> transactionWriteBufferFactory;
     private Optional<Long> unreadableTs = Optional.empty();
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -65,7 +67,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             MultiTableSweepQueueWriter sweepQueue,
-            ExecutorService deleteExecutor) {
+            ExecutorService deleteExecutor,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
         this(
                 metricsManager,
                 keyValueService,
@@ -79,7 +82,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
-                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP);
+                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP,
+                transactionWriteBufferFactory);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -90,7 +94,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockClient lockClient,
             LockService lockService,
             TransactionService transactionService,
-            AtlasDbConstraintCheckingMode constraintCheckingMode) {
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
         super(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
@@ -110,9 +115,11 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 MoreExecutors.newDirectExecutorService(),
                 true,
                 () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                transactionWriteBufferFactory);
         this.transactionWrapper =  WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
+        this.transactionWriteBufferFactory = transactionWriteBufferFactory;
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -129,7 +136,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<Transaction> transactionWrapper,
-            WrapperWithTracker<KeyValueService> keyValueServiceWrapper) {
+            WrapperWithTracker<KeyValueService> keyValueServiceWrapper,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
         super(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
@@ -149,9 +157,11 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 deleteExecutor,
                 true,
                 () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                transactionWriteBufferFactory);
         this.transactionWrapper = transactionWrapper;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
+        this.transactionWriteBufferFactory = transactionWriteBufferFactory;
     }
 
     @Override
@@ -196,7 +206,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         deleteExecutor,
                         validateLocksOnReads,
                         () -> TRANSACTION_CONFIG,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        transactionWriteBufferFactory.get()),
                 pathTypeTracker);
     }
 
@@ -231,7 +242,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         deleteExecutor,
                         validateLocksOnReads,
                         transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        transactionWriteBufferFactory.get()),
                 pathTypeTracker);
     }
 

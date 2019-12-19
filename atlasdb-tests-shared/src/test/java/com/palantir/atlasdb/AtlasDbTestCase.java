@@ -42,6 +42,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -110,7 +111,8 @@ public class AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                DefaultTransactionWriteBuffer::create);
     }
 
     protected KeyValueService getBaseKeyValueService() {
@@ -142,7 +144,8 @@ public class AtlasDbTestCase {
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
         txManager = new TestTransactionManagerImpl(metricsManager, keyValueService,
-                timestampService, timestampService, lockClient, lockService, transactionService, mode);
+                timestampService, timestampService, lockClient, lockService, transactionService, mode,
+                DefaultTransactionWriteBuffer::create);
     }
 
     protected void clearTablesWrittenTo() {

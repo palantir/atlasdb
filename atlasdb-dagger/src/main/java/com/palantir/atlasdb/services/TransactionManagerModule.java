@@ -36,6 +36,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -117,7 +118,8 @@ public class TransactionManagerModule {
                         new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
                 true,
                 () -> config.atlasDbRuntimeConfig().transaction(),
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                DefaultTransactionWriteBuffer::create);
     }
 
 }

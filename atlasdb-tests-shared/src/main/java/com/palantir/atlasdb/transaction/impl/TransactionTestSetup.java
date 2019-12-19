@@ -41,6 +41,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -143,7 +144,8 @@ public abstract class TransactionTestSetup {
                 keyValueService, timestampService, timestampManagementService, lockClient, lockService,
                 transactionService, conflictDetectionManager, sweepStrategyManager,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                DefaultTransactionWriteBuffer::create);
     }
 
     protected void put(Transaction txn, String rowName, String columnName, String value) {

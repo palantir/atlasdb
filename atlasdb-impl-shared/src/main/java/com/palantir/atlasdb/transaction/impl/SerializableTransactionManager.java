@@ -39,6 +39,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.buffering.TransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -57,6 +58,7 @@ import com.palantir.timestamp.TimestampService;
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     private final ConflictTracer conflictTracer;
+    private final Supplier<TransactionWriteBuffer> transactionWriteBufferFactory;
 
     public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {
         private final TransactionManager txManager;
@@ -223,7 +225,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
 
         return create(metricsManager,
                 keyValueService,
@@ -248,7 +251,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 true,
-                conflictTracer);
+                conflictTracer,
+                transactionWriteBufferFactory);
     }
 
     public static TransactionManager create(
@@ -272,7 +276,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
 
         return create(metricsManager,
                 keyValueService,
@@ -296,7 +301,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer);
+                conflictTracer,
+                transactionWriteBufferFactory);
     }
 
     public static TransactionManager create(
@@ -321,7 +327,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
         return create(
                 metricsManager,
                 keyValueService,
@@ -345,7 +352,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 false,
-                conflictTracer);
+                conflictTracer,
+                transactionWriteBufferFactory);
     }
 
     private static TransactionManager create(
@@ -371,7 +379,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             boolean shouldInstrument,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -391,7 +400,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer);
+                conflictTracer,
+                transactionWriteBufferFactory);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -422,7 +432,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            MultiTableSweepQueueWriter sweepQueue) {
+            MultiTableSweepQueueWriter sweepQueue,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -442,7 +453,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                transactionWriteBufferFactory);
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -463,7 +475,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            Supplier<TransactionWriteBuffer> transactionWriteBufferFactory) {
         super(
                 metricsManager,
                 keyValueService,
@@ -483,9 +496,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer
+                conflictTracer,
+                transactionWriteBufferFactory
         );
         this.conflictTracer = conflictTracer;
+        this.transactionWriteBufferFactory = transactionWriteBufferFactory;
     }
 
     @Override
@@ -516,7 +531,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer);
+                conflictTracer,
+                transactionWriteBufferFactory.get());
     }
 
     @VisibleForTesting

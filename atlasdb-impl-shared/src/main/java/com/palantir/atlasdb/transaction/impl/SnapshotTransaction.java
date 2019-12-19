@@ -116,7 +116,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.impl.buffering.TransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
@@ -206,10 +205,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
-    protected final TransactionWriteBuffer transactionWriteBuffer =
-            new DefaultTransactionWriteBuffer(Maps.newConcurrentMap());
+    protected final TransactionWriteBuffer transactionWriteBuffer;
     protected final TransactionConflictDetectionManager conflictDetectionManager;
-    private final AtomicLong byteCount = new AtomicLong();
 
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
 
@@ -262,7 +259,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            ConflictTracer conflictTracer) {
+            ConflictTracer conflictTracer,
+            TransactionWriteBuffer transactionWriteBuffer) {
         this.metricsManager = metricsManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
@@ -291,6 +289,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.transactionWriteBuffer = transactionWriteBuffer;
     }
 
     @Override

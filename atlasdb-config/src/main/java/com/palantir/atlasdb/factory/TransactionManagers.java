@@ -134,6 +134,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -454,7 +455,8 @@ public abstract class TransactionManagers {
                         callbacks,
                         validateLocksOnReads(),
                         transactionConfigSupplier,
-                        conflictTracer),
+                        conflictTracer,
+                        DefaultTransactionWriteBuffer::create),
                 closeables);
 
         transactionManager.registerClosingCallback(lockAndTimestampServices.close());

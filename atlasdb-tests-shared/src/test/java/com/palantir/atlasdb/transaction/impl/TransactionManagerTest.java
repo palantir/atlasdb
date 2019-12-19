@@ -40,6 +40,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -127,7 +128,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                DefaultTransactionWriteBuffer::create);
 
         // fetch an immutable timestamp once so it's cached
         when(mockTimestampService.getFreshTimestamp()).thenReturn(1L);
@@ -190,7 +192,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 MoreExecutors.newDirectExecutorService(),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
-                ConflictTracer.NO_OP);
+                ConflictTracer.NO_OP,
+                DefaultTransactionWriteBuffer::create);
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp()).thenReturn(

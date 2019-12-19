@@ -47,6 +47,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -182,7 +183,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 MoreExecutors.newDirectExecutorService(),
                 true,
                 () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP) {
+                ConflictTracer.NO_OP,
+                DefaultTransactionWriteBuffer.create()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

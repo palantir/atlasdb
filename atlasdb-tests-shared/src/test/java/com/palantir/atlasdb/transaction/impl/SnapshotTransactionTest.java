@@ -124,6 +124,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.buffering.DefaultTransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
 import com.palantir.common.base.AbortingVisitor;
@@ -325,7 +326,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                DefaultTransactionWriteBuffer::create);
     }
 
     @Test
@@ -410,7 +412,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         true,
                         () -> transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        DefaultTransactionWriteBuffer.create()),
                 pathTypeTracker);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
@@ -481,7 +484,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         true,
                         () -> transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        DefaultTransactionWriteBuffer.create()),
                 pathTypeTracker);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
@@ -513,7 +517,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                DefaultTransactionWriteBuffer::create);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -987,7 +992,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 executor,
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                DefaultTransactionWriteBuffer::create);
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
@@ -1419,7 +1425,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         MoreExecutors.newDirectExecutorService(),
                         validateLocksOnReads,
                         () -> transactionConfig,
-                        ConflictTracer.NO_OP),
+                        ConflictTracer.NO_OP,
+                        DefaultTransactionWriteBuffer.create()),
                 pathTypeTracker);
     }
 

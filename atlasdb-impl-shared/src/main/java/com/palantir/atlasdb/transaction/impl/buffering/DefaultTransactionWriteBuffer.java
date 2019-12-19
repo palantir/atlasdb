@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -45,6 +46,10 @@ public final class DefaultTransactionWriteBuffer implements TransactionWriteBuff
     private static final Logger log = LoggerFactory.getLogger(DefaultTransactionWriteBuffer.class);
     private final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable;
     private final AtomicLong byteCount = new AtomicLong();
+
+    public static TransactionWriteBuffer create() {
+        return new DefaultTransactionWriteBuffer(Maps.newConcurrentMap());
+    }
 
     public DefaultTransactionWriteBuffer(
             ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable) {
