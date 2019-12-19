@@ -20,20 +20,23 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.processors.AutoDelegate;
 
+@AutoDelegate
 public interface TransactionWriteBuffer {
     long byteCount();
     void putWrites(TableReference tableRef, Map<Cell, byte[]> values);
     void applyPostCondition(BiConsumer<TableReference, Map<Cell, byte[]>> postCondition);
     Collection<Cell> writtenCells(TableReference tableRef);
     Iterable<TableReference> tablesWrittenTo();
-    Map<TableReference, ? extends Map<Cell, byte[]>> all();
     SortedMap<Cell, byte[]> writesByTable(TableReference tableRef);
     boolean hasWrites();
     Multimap<Cell, TableReference> cellsToScrubByCell();
     Multimap<TableReference, Cell> cellsToScrubByTable();
+    void flush(Consumer<Map<TableReference, ? extends Map<Cell, byte[]>>> sink);
 }

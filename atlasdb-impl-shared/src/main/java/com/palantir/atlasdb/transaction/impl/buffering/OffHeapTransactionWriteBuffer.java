@@ -22,6 +22,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,10 +92,11 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
 
     @Override
     public void putWrites(TableReference tableRef, Map<Cell, byte[]> values) {
+        StoreNamespace tableStoreNamespace = storeNamespace(tableRef);
+        hasWrites = !values.isEmpty() || hasWrites;
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
             byte[] val = MoreObjects.firstNonNull(e.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
             Cell cell = e.getKey();
-            StoreNamespace tableStoreNamespace = storeNamespace(tableRef);
             byte[] previous = persistentStore.get(tableStoreNamespace, cell);
             persistentStore.put(tableStoreNamespace, cell, val);
             hasWrites = true;
@@ -127,14 +129,6 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
     }
 
     @Override
-    public Map<TableReference, ? extends Map<Cell, byte[]>> all() {
-        ImmutableMap.Builder<TableReference, Map<Cell, byte[]>> builder = ImmutableMap.builder();
-        tableMappings.forEach((tableReference, storeNamespace) ->
-                builder.put(tableReference, writesByStoreNamespace(storeNamespace)));
-        return builder.build();
-    }
-
-    @Override
     public SortedMap<Cell, byte[]> writesByTable(TableReference tableRef) {
         return writesByStoreNamespace(storeNamespace(tableRef));
     }
@@ -162,6 +156,14 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
         tableMappings.forEach((tableReference, storeNamespace) ->
                 tableRefToCells.putAll(tableReference, getCells(storeNamespace)));
         return tableRefToCells;
+    }
+
+    @Override
+    public void flush(Consumer<Map<TableReference, ? extends Map<Cell, byte[]>>> sink) {
+        ImmutableMap.Builder<TableReference, Map<Cell, byte[]>> builder = ImmutableMap.builder();
+        tableMappings.forEach((tableReference, storeNamespace) ->
+                builder.put(tableReference, writesByStoreNamespace(storeNamespace)));
+        sink.accept(builder.build());
     }
 
     private SortedMap<Cell, byte[]> writesByStoreNamespace(StoreNamespace storeNamespace) {

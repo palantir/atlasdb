@@ -1563,7 +1563,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // Write to the targeted sweep queue. We must do this before writing to the key value service -
                 // otherwise we may have hanging values that targeted sweep won't know about.
                 timedAndTraced("writingToSweepQueue",
-                        () -> sweepQueue.enqueue(transactionWriteBuffer.all(), getStartTimestamp()));
+                        () -> transactionWriteBuffer.flush(writes -> sweepQueue.enqueue(writes, getStartTimestamp())));
 
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
@@ -1620,7 +1620,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         new RuntimeException());
             }
         }
-        keyValueService.multiPut(transactionWriteBuffer.all(), getStartTimestamp());
+        transactionWriteBuffer.flush(writes -> keyValueService.multiPut(writes, getStartTimestamp()));
     }
 
     private void timedAndTraced(String timerName, Runnable runnable) {

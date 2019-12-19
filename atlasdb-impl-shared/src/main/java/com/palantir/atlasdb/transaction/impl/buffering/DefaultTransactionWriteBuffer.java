@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,11 +93,6 @@ public final class DefaultTransactionWriteBuffer implements TransactionWriteBuff
     }
 
     @Override
-    public Map<TableReference, ? extends Map<Cell, byte[]>> all() {
-        return writesByTable;
-    }
-
-    @Override
     public SortedMap<Cell, byte[]> writesByTable(TableReference tableRef) {
         return Collections.unmodifiableSortedMap(writesByTableWithInitialization(tableRef));
     }
@@ -128,5 +124,10 @@ public final class DefaultTransactionWriteBuffer implements TransactionWriteBuff
             tableRefToCells.putAll(table, cells);
         }
         return tableRefToCells;
+    }
+
+    @Override
+    public void flush(Consumer<Map<TableReference, ? extends Map<Cell, byte[]>>> sink) {
+        sink.accept(writesByTable);
     }
 }
