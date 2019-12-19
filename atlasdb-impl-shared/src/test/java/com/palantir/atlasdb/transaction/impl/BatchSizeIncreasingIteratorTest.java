@@ -85,4 +85,37 @@ public class BatchSizeIncreasingIteratorTest {
         assertThat(iterator.getBatch()).containsExactly(2);
         assertThat(iterator.getBatch()).isEmpty();
     }
+
+    @Test
+    public void testBatchSizeEqualToBatchProvided() {
+        List<Integer> values = ImmutableList.of(0, 1, 2);
+        BatchSizeIncreasingIterator<Integer> iterator = new BatchSizeIncreasingIterator<>(
+                new OneAtATimeBatchProvider(values),
+                1,
+                null);
+        assertThat(iterator.getBatch()).containsExactly(0);
+        assertThat(iterator.getBatch()).containsExactly(1);
+        assertThat(iterator.getBatch()).containsExactly(2);
+        assertThat(iterator.getBatch()).isEmpty();
+    }
+
+    @Test
+    public void testBatchSizeEqualToBatchProvidedWithMarkingNotDeleted() {
+        List<Integer> values = ImmutableList.of(0, 1, 2);
+        BatchSizeIncreasingIterator<Integer> iterator = new BatchSizeIncreasingIterator<>(
+                new OneAtATimeBatchProvider(values),
+                1,
+                null);
+        // N.B. Due to a batch having exactly the same size as the batch size,
+        // We have to get a batch of size zero before we get another real batch
+        assertThat(iterator.getBatch()).containsExactly(0);
+        iterator.markNumResultsNotDeleted(1);
+        assertThat(iterator.getBatch()).isEmpty();
+        assertThat(iterator.getBatch()).containsExactly(1);
+        iterator.markNumResultsNotDeleted(1);
+        assertThat(iterator.getBatch()).isEmpty();
+        assertThat(iterator.getBatch()).containsExactly(2);
+        iterator.markNumResultsNotDeleted(1);
+        assertThat(iterator.getBatch()).isEmpty();
+    }
 }
