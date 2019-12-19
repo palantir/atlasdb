@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.local.storage.api.TransactionWriteBuffer;
 
 public final class FlushingTransactionWriteBuffer implements TransactionWriteBuffer {
     private final IntSupplier flushingLimit;

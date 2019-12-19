@@ -28,10 +28,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 
+import com.palantir.atlasdb.local.storage.api.PersistentStore;
+import com.palantir.atlasdb.local.storage.api.PersistentStore.Serializer;
+import com.palantir.atlasdb.local.storage.api.PersistentStore.StoreNamespace;
 import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
-import com.palantir.atlasdb.off.heap.PersistentStore;
-import com.palantir.atlasdb.off.heap.PersistentStore.Serializer;
-import com.palantir.atlasdb.off.heap.PersistentStore.StoreNamespace;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 

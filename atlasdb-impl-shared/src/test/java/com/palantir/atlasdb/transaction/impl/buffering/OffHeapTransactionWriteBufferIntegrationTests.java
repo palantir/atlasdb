@@ -32,6 +32,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.local.storage.api.TransactionWriteBuffer;
 import com.palantir.atlasdb.off.heap.rocksdb.RocksDbPersistentStore;
 
 public final class OffHeapTransactionWriteBufferIntegrationTests {

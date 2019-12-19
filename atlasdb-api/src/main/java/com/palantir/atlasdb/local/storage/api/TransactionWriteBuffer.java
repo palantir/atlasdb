@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.buffering;
+package com.palantir.atlasdb.local.storage.api;
 
 import java.util.Collection;
 import java.util.Map;

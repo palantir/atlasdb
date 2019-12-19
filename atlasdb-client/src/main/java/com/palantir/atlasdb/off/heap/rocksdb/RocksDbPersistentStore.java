@@ -31,8 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.local.storage.api.PersistentStore;
 import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
-import com.palantir.atlasdb.off.heap.PersistentStore;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 

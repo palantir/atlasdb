@@ -39,6 +39,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.local.storage.api.TransactionWriteBuffer;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
 
