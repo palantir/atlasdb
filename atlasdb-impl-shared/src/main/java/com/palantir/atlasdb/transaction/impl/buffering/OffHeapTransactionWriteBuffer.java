@@ -74,7 +74,8 @@ public final class OffHeapTransactionWriteBuffer implements TransactionWriteBuff
     };
 
     private final PersistentStore persistentStore;
-    private final ConcurrentHashMap<TableReference, StoreNamespace<Cell, byte[]>> tableMappings = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<TableReference, StoreNamespace<Cell, byte[]>> tableMappings =
+            new ConcurrentHashMap<>();
     private final AtomicLong byteCount = new AtomicLong();
     private volatile boolean hasWrites = false;
 

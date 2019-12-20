@@ -66,8 +66,22 @@ public final class OffHeapTransactionWriteBufferIntegrationTests {
 
         assertThat(transactionWriteBuffer.writesByTable(DEFAULT_TABLE))
                 .containsExactly(Maps.immutableEntry(DEFAULT_CELL, DEFAULT_VALUE));
-        assertThat(transactionWriteBuffer.writtenCells(DEFAULT_TABLE))
-                .containsExactly(DEFAULT_CELL);
+        assertThat(transactionWriteBuffer.writtenCells(DEFAULT_TABLE)).containsExactly(DEFAULT_CELL);
         assertThat(transactionWriteBuffer.hasWrites()).isTrue();
+    }
+
+    @Test
+    public void overwritingDoesNotIncreaseWrittenBytes() {
+        byte[] overwriting_value = "test1".getBytes();
+
+        transactionWriteBuffer.putWrites(DEFAULT_TABLE, ImmutableMap.of(DEFAULT_CELL, DEFAULT_VALUE));
+        long writtenBytes = transactionWriteBuffer.byteCount();
+        transactionWriteBuffer.putWrites(DEFAULT_TABLE, ImmutableMap.of(DEFAULT_CELL, overwriting_value));
+
+        assertThat(transactionWriteBuffer.writesByTable(DEFAULT_TABLE))
+                .containsExactly(Maps.immutableEntry(DEFAULT_CELL, overwriting_value));
+        assertThat(transactionWriteBuffer.writtenCells(DEFAULT_TABLE)).containsExactly(DEFAULT_CELL);
+        assertThat(transactionWriteBuffer.hasWrites()).isTrue();
+        assertThat(transactionWriteBuffer.byteCount()).isEqualTo(writtenBytes);
     }
 }
