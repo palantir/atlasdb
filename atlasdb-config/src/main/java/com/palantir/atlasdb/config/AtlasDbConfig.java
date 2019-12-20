@@ -31,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.local.storage.spi.LocalStorageConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
@@ -49,6 +50,8 @@ public abstract class AtlasDbConfig {
     static final String UNSPECIFIED_NAMESPACE = "unspecified";
 
     public abstract KeyValueServiceConfig keyValueService();
+
+    public abstract LocalStorageConfig localStorageConfig();
 
     public abstract Optional<LeaderConfig> leader();
 
