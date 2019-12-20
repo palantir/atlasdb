@@ -51,7 +51,7 @@ public abstract class AtlasDbConfig {
 
     public abstract KeyValueServiceConfig keyValueService();
 
-    public abstract LocalStorageConfig localStorageConfig();
+    public abstract Optional<LocalStorageConfig> localStorageConfig();
 
     public abstract Optional<LeaderConfig> leader();
 
