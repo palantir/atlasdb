@@ -149,6 +149,9 @@ public class ExperimentRunningProxyTest {
         enableExperiment();
         assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
 
+        setTimeTo(Instant.ofEpochSecond(ExperimentRunningProxy.CLIENT_REFRESH_INTERVAL.getSeconds() - 1));
+        assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
+
         setTimeTo(Instant.ofEpochSecond(ExperimentRunningProxy.CLIENT_REFRESH_INTERVAL.getSeconds() + 1));
         assertThat(proxyInstance.getAsInt()).isEqualTo(OTHER_EXPERIMENTAL_RESULT);
     }
