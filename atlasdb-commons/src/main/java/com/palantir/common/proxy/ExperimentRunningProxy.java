@@ -110,10 +110,11 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
         }
     }
 
-    private synchronized void possiblyRefreshClient() {
-        if (Instant.now(clock).compareTo(lastClientRefresh.get().plus(CLIENT_REFRESH_INTERVAL)) > 0) {
+    private void possiblyRefreshClient() {
+        Instant currentLastRefresh = lastClientRefresh.get();
+        if (Instant.now(clock).compareTo(currentLastRefresh.plus(CLIENT_REFRESH_INTERVAL)) > 0 &&
+        lastClientRefresh.compareAndSet(currentLastRefresh, currentLastRefresh.plus(CLIENT_REFRESH_INTERVAL))) {
             experimentalService.set(experimentalServiceSupplier.get());
-            lastClientRefresh.set(Instant.now(clock));
         }
     }
 
