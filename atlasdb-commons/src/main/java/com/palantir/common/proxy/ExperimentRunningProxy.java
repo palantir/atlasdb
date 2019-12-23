@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +37,10 @@ import com.palantir.logsafe.SafeArg;
 public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ExperimentRunningProxy.class);
     static final Duration REFRESH_INTERVAL = Duration.ofMinutes(10);
+    static final Duration CLIENT_REFRESH_INTERVAL = Duration.ofMinutes(30);
 
-    private final T experimentalService;
+    private final AtomicReference<T> experimentalService;
+    private final Supplier<T> experimentalServiceSupplier;
     private final T fallbackService;
     private final BooleanSupplier useExperimental;
     private final BooleanSupplier enableFallback;
@@ -45,33 +48,37 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private final Runnable errorTask;
 
     private final AtomicReference<Instant> nextPermittedExperiment = new AtomicReference<>(Instant.MIN);
+    private final AtomicReference<Instant> lastClientRefresh;
 
     @VisibleForTesting
     ExperimentRunningProxy(
-            T experimentalService,
+            Supplier<T> experimentalServiceSupplier,
             T fallbackService,
             BooleanSupplier useExperimental,
             BooleanSupplier enableFallback,
             Clock clock,
             Runnable errorTask) {
-        this.experimentalService = experimentalService;
+        this.experimentalService = new AtomicReference<>(experimentalServiceSupplier.get());
+        this.experimentalServiceSupplier = experimentalServiceSupplier;
         this.fallbackService = fallbackService;
         this.useExperimental = useExperimental;
         this.enableFallback = enableFallback;
         this.clock = clock;
         this.errorTask = errorTask;
+
+        this.lastClientRefresh = new AtomicReference<>(Instant.now(clock));
     }
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(
-            T experimentalService,
+            Supplier<T> experimentalServiceSupplier,
             T fallbackService,
             BooleanSupplier useExperimental,
             BooleanSupplier enableFallback,
             Class<T> clazz,
             Runnable markErrorMetric) {
         ExperimentRunningProxy<T> service = new ExperimentRunningProxy<>(
-                experimentalService,
+                experimentalServiceSupplier,
                 fallbackService,
                 useExperimental,
                 enableFallback,
@@ -86,7 +93,10 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         boolean runExperiment = useExperimental();
-        Object target = runExperiment ? experimentalService : fallbackService;
+        if (runExperiment) {
+            possiblyRefreshClient();
+        }
+        Object target = runExperiment ? experimentalService.get() : fallbackService;
         try {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {
@@ -97,6 +107,13 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
                 log.warn("Resource is not initialized yet!");
             }
             throw e.getTargetException();
+        }
+    }
+
+    private synchronized void possiblyRefreshClient() {
+        if (Instant.now(clock).compareTo(lastClientRefresh.get().plus(CLIENT_REFRESH_INTERVAL)) > 0) {
+            experimentalService.set(experimentalServiceSupplier.get());
+            lastClientRefresh.set(Instant.now(clock));
         }
     }
 

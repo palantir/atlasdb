@@ -28,30 +28,36 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
 
 public class ExperimentRunningProxyTest {
     private static final int EXPERIMENTAL_RESULT = 123;
+    private static final int OTHER_EXPERIMENTAL_RESULT = 2123;
     private static final int FALLBACK_RESULT = 1;
     private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException("foo");
 
     private final IntSupplier experimentalIntSupplier = mock(IntSupplier.class);
+    private final IntSupplier secondExperimentalSupplier = mock(IntSupplier.class);
+    private final Supplier<IntSupplier> experimentSupplier = mock(Supplier.class);
     private final IntSupplier fallbackIntSupplier = () -> FALLBACK_RESULT;
     private final BooleanSupplier useExperimental = mock(BooleanSupplier.class);
     private final BooleanSupplier enableFallback = mock(BooleanSupplier.class);
     private final Clock clock = mock(Clock.class);
     private final AtomicLong errorCounter = new AtomicLong();
 
-    private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(experimentalIntSupplier,
-            fallbackIntSupplier, useExperimental, enableFallback, clock, errorCounter::incrementAndGet));
+    private IntSupplier proxyInstance;
 
     @Before
     public void setup() {
+        when(experimentSupplier.get()).thenReturn(experimentalIntSupplier).thenReturn(secondExperimentalSupplier);
         returnValueOnExperiment();
         enableFallback();
         setTimeTo(Instant.ofEpochSecond(0));
+        proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(experimentSupplier,
+                fallbackIntSupplier, useExperimental, enableFallback, clock, errorCounter::incrementAndGet));
     }
 
     @Test
@@ -138,6 +144,15 @@ public class ExperimentRunningProxyTest {
         assertErrors(3L);
     }
 
+    @Test
+    public void refreshesExperimentalClientAfterEnoughTimeHasPassed() {
+        enableExperiment();
+        assertThat(proxyInstance.getAsInt()).isEqualTo(EXPERIMENTAL_RESULT);
+
+        setTimeTo(Instant.ofEpochSecond(ExperimentRunningProxy.CLIENT_REFRESH_INTERVAL.getSeconds() + 1));
+        assertThat(proxyInstance.getAsInt()).isEqualTo(OTHER_EXPERIMENTAL_RESULT);
+    }
+
     private static IntSupplier intSupplierForProxy(ExperimentRunningProxy<IntSupplier> proxy) {
         return (IntSupplier) Proxy.newProxyInstance(IntSupplier.class.getClassLoader(),
                 new Class[] { IntSupplier.class },
@@ -146,6 +161,7 @@ public class ExperimentRunningProxyTest {
 
     private void returnValueOnExperiment() {
         doReturn(EXPERIMENTAL_RESULT).when(experimentalIntSupplier).getAsInt();
+        doReturn(OTHER_EXPERIMENTAL_RESULT).when(secondExperimentalSupplier).getAsInt();
     }
 
     private void throwOnExperiment() {
