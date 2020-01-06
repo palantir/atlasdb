@@ -30,7 +30,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.AfterClass;
@@ -67,10 +66,11 @@ public final class OffHeapTimeStampCacheTests {
     public void testConcurrentClears() throws BrokenBarrierException, InterruptedException {
         CyclicBarrier mockVerificationBarrier = new CyclicBarrier(3);
         CyclicBarrier cyclicBarrier = new CyclicBarrier(2);
-        when(persistentTimestampStore.createNamespace(any())).thenAnswer(invocation -> {
-            cyclicBarrier.await();
-            return randomStoreNamespace();
-        });
+        when(persistentTimestampStore.createNamespace(any()))
+                .thenAnswer(invocation -> {
+                    cyclicBarrier.await();
+                    return randomStoreNamespace();
+                });
 
         CacheDescriptor cacheDescriptor = constructCacheDescriptor(0);
 
@@ -102,11 +102,12 @@ public final class OffHeapTimeStampCacheTests {
         CyclicBarrier blockOnGet = new CyclicBarrier(2);
         CyclicBarrier blockSecondExit = new CyclicBarrier(2);
 
-        when(persistentTimestampStore.get(any(), any())).thenAnswer(invocation -> {
-            blockOnGet.await();
-            blockSecondExit.await();
-            return null;
-        });
+        when(persistentTimestampStore.get(any(), any()))
+                .thenAnswer(invocation -> {
+                    blockOnGet.await();
+                    blockSecondExit.await();
+                    return null;
+                });
 
         CacheDescriptor cacheDescriptor = constructCacheDescriptor(0);
         OffHeapTimestampCache offHeapTimestampCache = constructOffHeapTimestampCache(cacheDescriptor);
@@ -227,11 +228,12 @@ public final class OffHeapTimeStampCacheTests {
         CyclicBarrier blockOnGet = new CyclicBarrier(2);
         CyclicBarrier blockSecondExit = new CyclicBarrier(2);
 
-        when(persistentTimestampStore.get(any(), any())).thenAnswer(invocation -> {
-            blockOnGet.await();
-            blockSecondExit.await();
-            return null;
-        });
+        when(persistentTimestampStore.get(any(), any()))
+                .thenAnswer(invocation -> {
+                    blockOnGet.await();
+                    blockSecondExit.await();
+                    return null;
+                });
 
         CacheDescriptor cacheDescriptor = constructCacheDescriptor(0);
         OffHeapTimestampCache offHeapTimestampCache = constructOffHeapTimestampCache(cacheDescriptor);
@@ -266,8 +268,8 @@ public final class OffHeapTimeStampCacheTests {
                 .build();
     }
 
-    private Future<Object> submitJob(Runnable runnable, CyclicBarrier mockVerificationBarrier) {
-        return executorService.submit(() -> {
+    private void submitJob(Runnable runnable, CyclicBarrier mockVerificationBarrier) {
+        executorService.submit(() -> {
             runnable.run();
             mockVerificationBarrier.await();
             return null;
