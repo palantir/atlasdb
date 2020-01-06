@@ -38,9 +38,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.palantir.atlasdb.cache.OffHeapTimestampCache.CacheDescriptor;
-import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore.StoreNamespace;
+import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
+import com.palantir.atlasdb.offheap.PersistentTimestampStore;
+import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 
 public final class OffHeapTimeStampCacheTests {
     private static ExecutorService executorService;

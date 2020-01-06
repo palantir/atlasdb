@@ -28,8 +28,8 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
-import com.palantir.atlasdb.off.heap.rocksdb.RocksDbPersistentTimestampStore;
+import com.palantir.atlasdb.offheap.PersistentTimestampStore;
+import com.palantir.atlasdb.offheap.rocksdb.RocksDbPersistentTimestampStore;
 
 public class OffHeapTimestampCacheIntegrationTests {
     @ClassRule

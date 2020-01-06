@@ -25,8 +25,8 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore.StoreNamespace;
+import com.palantir.atlasdb.offheap.PersistentTimestampStore;
+import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 
 public final class OffHeapTimestampCache implements TimestampCache {
     private static final String TIMESTAMP_CACHE_NAMESPACE = "timestamp_cache";
