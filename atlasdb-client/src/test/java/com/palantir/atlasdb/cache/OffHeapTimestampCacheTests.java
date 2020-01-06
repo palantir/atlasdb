@@ -43,6 +43,7 @@ import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 
 public final class OffHeapTimestampCacheTests {
+    private static final int ZERO = 0;
     private static ExecutorService executorService;
 
     private PersistentTimestampStore persistentTimestampStore;
@@ -72,7 +73,7 @@ public final class OffHeapTimestampCacheTests {
                     return randomStoreNamespace();
                 });
 
-        CacheDescriptor cacheDescriptor = constructCacheDescriptor(0);
+        CacheDescriptor cacheDescriptor = constructCacheDescriptor(ZERO);
 
         OffHeapTimestampCache offHeapTimestampCache = constructOffHeapTimestampCache(cacheDescriptor);
         submitJob(offHeapTimestampCache::clear, mockVerificationBarrier);
@@ -86,7 +87,7 @@ public final class OffHeapTimestampCacheTests {
     public void testSequentialWriters() {
         when(persistentTimestampStore.get(any(), any())).thenReturn(null).thenReturn(4L);
 
-        CacheDescriptor cacheDescriptor = constructCacheDescriptor(0);
+        CacheDescriptor cacheDescriptor = constructCacheDescriptor(ZERO);
 
         OffHeapTimestampCache offHeapTimestampCache = constructOffHeapTimestampCache(cacheDescriptor);
         offHeapTimestampCache.putAlreadyCommittedTransaction(3L, 4L);
@@ -109,7 +110,7 @@ public final class OffHeapTimestampCacheTests {
                     return null;
                 });
 
-        CacheDescriptor cacheDescriptor = constructCacheDescriptor(0);
+        CacheDescriptor cacheDescriptor = constructCacheDescriptor(ZERO);
         OffHeapTimestampCache offHeapTimestampCache = constructOffHeapTimestampCache(cacheDescriptor);
 
         submitJob(
@@ -138,7 +139,7 @@ public final class OffHeapTimestampCacheTests {
                 })
                 .thenReturn(null);
 
-        CacheDescriptor cacheDescriptor = constructCacheDescriptor(0);
+        CacheDescriptor cacheDescriptor = constructCacheDescriptor(ZERO);
         OffHeapTimestampCache offHeapTimestampCache = constructOffHeapTimestampCache(cacheDescriptor);
 
         submitJob(() -> offHeapTimestampCache.putAlreadyCommittedTransaction(3L, 4L), mockVerificationBarrier);
@@ -235,7 +236,7 @@ public final class OffHeapTimestampCacheTests {
                     return null;
                 });
 
-        CacheDescriptor cacheDescriptor = constructCacheDescriptor(0);
+        CacheDescriptor cacheDescriptor = constructCacheDescriptor(ZERO);
         OffHeapTimestampCache offHeapTimestampCache = constructOffHeapTimestampCache(cacheDescriptor);
 
         submitJob(
