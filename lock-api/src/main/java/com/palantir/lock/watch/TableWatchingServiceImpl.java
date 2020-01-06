@@ -51,7 +51,7 @@ public class TableWatchingServiceImpl implements TableWatchingService {
         VersionedLockWatchState startState = tracker.removeLockWatchStateForStartTimestamp(startTimestamp);
         TimestampWithWatches response = timelock.getCommitTimestampWithWatches(startState.version());
         LockWatchStateUpdate update = response.lockWatches();
-        if (!update.success() || update.leaderId() != startState.leaderId()) {
+        if (!update.success() || !update.leaderId().equals(startState.leaderId())) {
             return TimestampWithLockInfo.invalidate(response.timestamp());
         }
 
