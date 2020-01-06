@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.cache;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -34,7 +35,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final PersistentTimestampStore persistentTimestampStore;
     private final int maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
-    private final ConcurrentHashMap<Long, Long> concurrentHashMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, Long> concurrentHashMap = new ConcurrentHashMap<>();
 
     public static TimestampCache create(PersistentTimestampStore persistentTimestampStore, int maxSize) {
         StoreNamespace storeNamespace = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
