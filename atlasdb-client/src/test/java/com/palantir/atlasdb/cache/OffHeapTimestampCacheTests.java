@@ -42,7 +42,7 @@ import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 
-public final class OffHeapTimeStampCacheTests {
+public final class OffHeapTimestampCacheTests {
     private static ExecutorService executorService;
 
     private PersistentTimestampStore persistentTimestampStore;

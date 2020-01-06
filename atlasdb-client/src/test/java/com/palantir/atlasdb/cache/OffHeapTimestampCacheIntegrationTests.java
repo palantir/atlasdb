@@ -31,7 +31,7 @@ import org.rocksdb.RocksDBException;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.rocksdb.RocksDbPersistentTimestampStore;
 
-public class OffHeapTimestampCacheIntegrationTests {
+public final class OffHeapTimestampCacheIntegrationTests {
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final int CACHE_SIZE = 2;
