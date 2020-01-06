@@ -80,9 +80,11 @@ public final class OffHeapTimestampCache implements TimestampCache {
             if (persistentTimestampStore.get(descriptor.storeNamespace(), startTimestamp) != null) {
                 return;
             }
+
             if (maxSize <= descriptor.currentSize().get()) {
                 evictAllEntries();
             }
+
             descriptor = cacheDescriptor.get();
             persistentTimestampStore.put(descriptor.storeNamespace(), startTimestamp, commitTimestamp);
             descriptor.currentSize().incrementAndGet();
