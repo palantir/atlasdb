@@ -48,26 +48,23 @@ public class ServiceNotAvailableException extends RuntimeException {
         super(message, cause);
         this.serviceHint = Optional.empty();
         this.serviceHintUrl = Optional.empty();
-
     }
 
     public ServiceNotAvailableException(String message) {
         super(message);
         this.serviceHint = Optional.empty();
         this.serviceHintUrl = Optional.empty();
-
     }
 
     public ServiceNotAvailableException(Throwable cause) {
         super(cause);
         this.serviceHint = Optional.empty();
         this.serviceHintUrl = Optional.empty();
-
     }
 
     public ServiceNotAvailableException(String message, Throwable cause, URL leaderHint) {
         super(message, cause);
-        this.serviceHint = Optional.empty();
+        this.serviceHint = Optional.of(HostAndPort.fromParts(leaderHint.getHost(), leaderHint.getPort()));
         this.serviceHintUrl = Optional.of(leaderHint);
     }
 
