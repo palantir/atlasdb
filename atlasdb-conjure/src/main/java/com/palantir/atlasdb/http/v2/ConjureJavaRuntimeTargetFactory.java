@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -25,13 +24,11 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.ImmutableInstanceAndVersion;
-import com.palantir.atlasdb.http.PollingRefreshable;
 import com.palantir.atlasdb.http.TargetFactory;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.conjure.java.ext.refresh.Refreshable;
 import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
 import com.palantir.util.CachedTransformingSupplier;
 
@@ -80,19 +77,15 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        // TODO (jkong): Thread leak for days. Though no regression over existing implementation in Feign.
-        Refreshable<ClientConfiguration> refreshableConfig = PollingRefreshable
-                .create(
-                        new CachedTransformingSupplier<>(
-                                serverListConfigSupplier, ClientOptions.DEFAULT_RETRYING::serverListToClient),
-                        Duration.ofSeconds(5L))
-                .getRefreshable();
-        T client = JaxRsClient.create(
-                type,
-                addAtlasDbRemotingAgent(parameters.userAgent()),
-                HOST_METRICS_REGISTRY,
-                refreshableConfig);
-        return decorateFailoverProxy(type, client);
+        Supplier<T> clientSupplier = new CachedTransformingSupplier<>(
+                serverListConfigSupplier,
+                serverListConfig -> JaxRsClient.create(
+                        type,
+                        addAtlasDbRemotingAgent(parameters.userAgent()),
+                        HOST_METRICS_REGISTRY,
+                        ClientOptions.DEFAULT_RETRYING.serverListToClient(serverListConfig)));
+
+        return decorateFailoverProxy(type, clientSupplier);
     }
 
     public <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
@@ -114,10 +107,10 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 HOST_METRICS_REGISTRY,
                 clientConfiguration);
-        return decorateFailoverProxy(type, client);
+        return decorateFailoverProxy(type, () -> client);
     }
 
-    private static <T> InstanceAndVersion<T> decorateFailoverProxy(Class<T> type, T client) {
+    private static <T> InstanceAndVersion<T> decorateFailoverProxy(Class<T> type, Supplier<T> client) {
         return wrapWithVersion(FastFailoverProxy.newProxyInstance(type, client));
     }
 
