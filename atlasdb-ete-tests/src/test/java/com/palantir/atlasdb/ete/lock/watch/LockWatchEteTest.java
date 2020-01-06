@@ -18,7 +18,6 @@ package com.palantir.atlasdb.ete.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.OptionalLong;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -30,7 +29,6 @@ import com.palantir.atlasdb.lock.EteLockWatchResource;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchInfo;
 import com.palantir.lock.watch.LockWatchReferences;
@@ -38,36 +36,94 @@ import com.palantir.lock.watch.TimestampWithLockInfo;
 
 public class LockWatchEteTest {
     private static final String TABLE = "lwtest.table";
+    private static final String OTHER_TABLE = "other.table";
     private static final LockWatchReferences.LockWatchReference FULL_TABLE = LockWatchReferences.entireTable(TABLE);
     private final EteLockWatchResource lockWatcher = EteSetup.createClientToSingleNode(EteLockWatchResource.class);
 
     @Test
-    public void transactionCanSeeWatchedLocks() {
+    public void transactionCanSeeWatchedLocksAsUnlocked() {
         lockWatcher.registerLockWatch(FULL_TABLE);
-        long startTs = lockWatcher.startTransaction();
-        assertThat(lockWatcher.getLockWatchInfo(startTs, getRandomRowDescriptor(TABLE)))
-                .isEqualTo(LockWatchInfo.of(LockWatchInfo.State.UNLOCKED, OptionalLong.empty()));
-        assertThat(lockWatcher.getLockWatchInfo(startTs, getRandomRowDescriptor("oth.tab")))
-                .isEqualTo(LockWatchInfo.UNKNOWN);
+        LockWatchInfoGetter getter = startTransaction();
+        assertThat(getter.getState(getRandomRowDescriptor(TABLE))).isEqualTo(LockWatchInfo.State.UNLOCKED);
+        assertThat(getter.getState(getRandomRowDescriptor(OTHER_TABLE))).isEqualTo(LockWatchInfo.State.NOT_WATCHED);
     }
 
     @Test
-    public void transactionCanSeeLocksTakenOutBeforeAndAfterRegistering() {
+    public void transactionCanSeeLocksTakenOutBeforeRegistering() {
         LockDescriptor lockedBefore = getRandomRowDescriptor(TABLE);
-        LockToken first = lockWatcher.lock(
-                LockRequest.of(ImmutableSet.of(lockedBefore), 1000));
+        LockDescriptor notLocked = getRandomRowDescriptor(TABLE);
+        lock(lockedBefore);
+        lockWatcher.registerLockWatch(FULL_TABLE);
+
+        LockWatchInfoGetter getter = startTransaction();
+        assertThat(getter.getState(lockedBefore)).isEqualTo(LockWatchInfo.State.LOCKED);
+        assertThat(getter.getState(notLocked)).isEqualTo(LockWatchInfo.State.UNLOCKED);
+    }
+
+    @Test
+    public void transactionCanSeeLocksTakenOutAfterRegistering() {
         lockWatcher.registerLockWatch(FULL_TABLE);
         LockDescriptor lockedAfter = getRandomRowDescriptor(TABLE);
-        LockToken second = lockWatcher.lock(
-                LockRequest.of(ImmutableSet.of(lockedAfter), 1000));
+        lockWatcher.lock(LockRequest.of(ImmutableSet.of(lockedAfter), 1000));
+
+        LockWatchInfoGetter getter = startTransaction();
+        assertThat(getter.getState(lockedAfter)).isEqualTo(LockWatchInfo.State.LOCKED);
+    }
+
+    @Test
+    public void transactionSeesUnlocksBeforeStartTransaction() {
+        LockDescriptor unlockBeforeRegister = getRandomRowDescriptor(TABLE);
+        LockDescriptor lockBeforeUnlockAfterRegister = getRandomRowDescriptor(TABLE);
+        LockDescriptor lockAfterUnlockAfterRegister = getRandomRowDescriptor(TABLE);
+        LockDescriptor unlockAfterStartTransaction = getRandomRowDescriptor(TABLE);
+
+        LockToken firstToken = lock(unlockBeforeRegister);
+        LockToken secondToken = lock(lockBeforeUnlockAfterRegister);
+        lockWatcher.unlock(firstToken);
+
+        lockWatcher.registerLockWatch(FULL_TABLE);
+
+        LockToken thirdToken = lock(lockAfterUnlockAfterRegister);
+        LockToken fourthToken = lock(unlockAfterStartTransaction);
+        lockWatcher.unlock(secondToken);
+        lockWatcher.unlock(thirdToken);
+
+        LockWatchInfoGetter getter = startTransaction();
+
+        lockWatcher.unlock(fourthToken);
+
+        assertThat(getter.getState(unlockBeforeRegister)).isEqualTo(LockWatchInfo.State.UNLOCKED);
+        assertThat(getter.getState(lockBeforeUnlockAfterRegister)).isEqualTo(LockWatchInfo.State.UNLOCKED);
+        assertThat(getter.getState(lockAfterUnlockAfterRegister)).isEqualTo(LockWatchInfo.State.UNLOCKED);
+        assertThat(getter.getState(unlockAfterStartTransaction)).isEqualTo(LockWatchInfo.State.LOCKED);
+    }
+
+    @Test
+    public void transactionSeesLocksTakenOutAfterStartTransaction() {
+        LockDescriptor lockedBeforeNotTouchedAfter = getRandomRowDescriptor(TABLE);
+        LockDescriptor lockedBeforeUnlockedAfter = getRandomRowDescriptor(TABLE);
+        LockDescriptor lockedBeforeRelockedAfter = getRandomRowDescriptor(TABLE);
+        LockDescriptor lockedAfter = getRandomRowDescriptor(TABLE);
+        LockDescriptor lockedAndUnlockedAfter = getRandomRowDescriptor(TABLE);
+
+        lockWatcher.registerLockWatch(FULL_TABLE);
+
+        LockToken throwAway = lock(getRandomRowDescriptor(OTHER_TABLE));
+        LockToken token1 = lock(lockedBeforeNotTouchedAfter);
+        LockToken token2 = lock(lockedBeforeUnlockedAfter);
+        LockToken token3 = lock(lockedBeforeRelockedAfter);
 
         long startTs = lockWatcher.startTransaction();
-        LockWatchInfo info1 = lockWatcher.getLockWatchInfo(startTs, lockedBefore);
-        LockWatchInfo info2 = lockWatcher.getLockWatchInfo(startTs, lockedAfter);
-        LockWatchInfo info3 = lockWatcher.getLockWatchInfo(startTs, getRandomRowDescriptor(TABLE));
-        assertThat(info1.state()).isEqualTo(LockWatchInfo.State.LOCKED);
-        assertThat(info2.state()).isEqualTo(LockWatchInfo.State.LOCKED);
-        assertThat(info3.state()).isEqualTo(LockWatchInfo.State.UNLOCKED);
+
+        lockWatcher.unlock(token2);
+        lockWatcher.unlock(token3);
+        lock(lockedBeforeRelockedAfter);
+        lock(lockedAfter);
+        LockToken token4 = lock(lockedAndUnlockedAfter);
+        lockWatcher.unlock(token4);
+
+        TimestampWithLockInfo result = lockWatcher.getCommitTimestampAndLockInfo(startTs, throwAway);
+        assertThat(result.locksSinceLastKnownState()).containsExactlyInAnyOrder(lockedBeforeRelockedAfter, lockedAfter, lockedAndUnlockedAfter);
     }
 
     @Test
@@ -76,12 +132,31 @@ public class LockWatchEteTest {
         long startTs = lockWatcher.startTransaction();
         LockDescriptor descriptor = getRandomRowDescriptor(TABLE);
         LockToken first = lockWatcher.lock(LockRequest.of(ImmutableSet.of(descriptor), 1000));
-        TimestampWithLockInfo result = lockWatcher.getCommitTimestampAndLockInfo(startTs,
-                first);
+        TimestampWithLockInfo result = lockWatcher.getCommitTimestampAndLockInfo(startTs, first);
         assertThat(result.locksSinceLastKnownState()).doesNotContain(descriptor);
+    }
+
+    private LockWatchInfoGetter startTransaction() {
+        return new LockWatchInfoGetter(lockWatcher.startTransaction());
     }
 
     private static LockDescriptor getRandomRowDescriptor(String table) {
         return AtlasRowLockDescriptor.of(table, PtBytes.toBytes(UUID.randomUUID().toString()));
+    }
+
+    private LockToken lock(LockDescriptor descriptor) {
+        return lockWatcher.lock(LockRequest.of(ImmutableSet.of(descriptor), 1000));
+    }
+
+    private class LockWatchInfoGetter {
+        private final long startTimestamp;
+
+        private LockWatchInfoGetter(long startTimestamp) {
+            this.startTimestamp = startTimestamp;
+        }
+
+        LockWatchInfo.State getState(LockDescriptor descriptor) {
+            return lockWatcher.getLockWatchInfo(startTimestamp, descriptor).state();
+        }
     }
 }

@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.lock;
 
-import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -42,13 +40,11 @@ public interface EteLockWatchResource {
 
     @POST
     @Path("unlock")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<LockToken> unlock(LockToken token);
+    void unlock(LockToken token);
 
     @POST
     @Path("register")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     void registerLockWatch(LockWatchReferences.LockWatchReference request);
 

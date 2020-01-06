@@ -16,7 +16,8 @@
 
 package com.palantir.atlasdb.lock;
 
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -35,6 +36,7 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
     private final TransactionManager transactionManager;
     private final TimelockService timelockService;
     private final TableWatchingService tableWatchingService;
+    private final Map<LockToken, LockToken> lockTokenMap = new HashMap<>();
 
     public SimpleEteLockWatchResource(TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
@@ -44,12 +46,15 @@ public class SimpleEteLockWatchResource implements EteLockWatchResource {
 
     @Override
     public LockToken lock(LockRequest request) {
-        return ((LeasedLockToken) timelockService.lock(request).getToken()).serverToken();
+        LeasedLockToken leasedLockToken = (LeasedLockToken) timelockService.lock(request).getToken();
+        lockTokenMap.put(leasedLockToken.serverToken(), leasedLockToken);
+        return leasedLockToken.serverToken();
     }
 
     @Override
-    public Set<LockToken> unlock(LockToken token) {
-        return timelockService.unlock(ImmutableSet.of(token));
+    public void unlock(LockToken token) {
+        LockToken leasedToken = lockTokenMap.remove(token);
+        timelockService.unlock(ImmutableSet.of(leasedToken));
     }
 
     @Override
