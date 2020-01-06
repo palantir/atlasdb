@@ -56,6 +56,7 @@ public class OffHeapTimestampCacheIntegrationTests {
     @Test
     public void cachedEntry() {
         offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
+
         assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isEqualTo(3L);
     }
 
@@ -76,6 +77,7 @@ public class OffHeapTimestampCacheIntegrationTests {
         offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
         offHeapTimestampCache.putAlreadyCommittedTransaction(2L, 4L);
         offHeapTimestampCache.putAlreadyCommittedTransaction(5L, 6L);
+
         assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
         assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(2L)).isNull();
         assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(5L)).isEqualTo(6L);
