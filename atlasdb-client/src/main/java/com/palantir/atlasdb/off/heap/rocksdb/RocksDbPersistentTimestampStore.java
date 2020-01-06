@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
 import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 
 public final class RocksDbPersistentTimestampStore implements PersistentTimestampStore {
@@ -44,9 +44,9 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
     @Override
     public Long get(StoreNamespace storeNamespace, Long startTs) {
-        if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
-            throw new SafeIllegalArgumentException("Store namespace does not exist");
-        }
+        Preconditions.checkArgument(
+                availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
+                "Store namespace does not exist");
 
         byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
         byte[] value = getWithExceptionHandling(availableColumnFamilies.get(storeNamespace.uniqueName()), byteKeyValue);
@@ -59,9 +59,9 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
     @Override
     public void put(StoreNamespace storeNamespace, Long startTs, Long commitTs) {
-        if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
-            throw new SafeIllegalArgumentException("Store namespace does not exist");
-        }
+        Preconditions.checkArgument(
+                availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
+                "Store namespace does not exist");
 
         byte[] key = ValueType.VAR_LONG.convertFromJava(startTs);
         byte[] value = ValueType.VAR_LONG.convertFromJava(commitTs - startTs);
@@ -84,9 +84,9 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
     @Override
     public void dropNamespace(StoreNamespace storeNamespace) {
-        if (!availableColumnFamilies.containsKey(storeNamespace.uniqueName())) {
-            throw new SafeIllegalArgumentException("Store namespace does not exist");
-        }
+        Preconditions.checkArgument(
+                availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
+                "Store namespace does not exist");
 
         dropColumnFamily(availableColumnFamilies.get(storeNamespace.uniqueName()));
         availableColumnFamilies.remove(storeNamespace.uniqueName());
