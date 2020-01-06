@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.off.heap;
+package com.palantir.atlasdb.offheap;
 
 import java.util.UUID;
 
@@ -59,8 +59,10 @@ public interface PersistentTimestampStore extends AutoCloseable {
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to
-     * name. Multiple calls with the same supplied {@code name} will generate multiple namespaces. Users of this API are
-     * required to keep uniqueness at the {@link StoreNamespace#humanReadableName()} level.
+     * {@code name}. Multiple calls with the same supplied {@code name} will generate multiple namespaces. Users of
+     * this API are required to keep uniqueness at the {@link StoreNamespace#humanReadableName()} level; otherwise,
+     * multiple {@link StoreNamespace} backed by internal data structures will be maintained for the same AtlasDB
+     * namespace, which is inefficient.
      *
      * @param name in human readable format of the namespace to be created
      * @return {@link StoreNamespace} which represents a handle to the created namespace

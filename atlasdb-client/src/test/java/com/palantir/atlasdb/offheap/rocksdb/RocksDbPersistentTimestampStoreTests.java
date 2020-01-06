@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.off.heap.rocksdb;
+package com.palantir.atlasdb.offheap.rocksdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,9 +28,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 
-import com.palantir.atlasdb.off.heap.ImmutableStoreNamespace;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore;
-import com.palantir.atlasdb.off.heap.PersistentTimestampStore.StoreNamespace;
+import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
+import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class RocksDbPersistentTimestampStoreTests {
@@ -38,13 +37,13 @@ public final class RocksDbPersistentTimestampStoreTests {
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static final String DEFAULT = "default";
-    private static final StoreNamespace NON_EXISTING_NAMESPACE = ImmutableStoreNamespace.builder()
+    private static final PersistentTimestampStore.StoreNamespace NON_EXISTING_NAMESPACE = ImmutableStoreNamespace.builder()
             .humanReadableName("bla")
             .uniqueName(UUID.randomUUID())
             .build();
 
     private PersistentTimestampStore timestampMappingStore;
-    private StoreNamespace defaultNamespace;
+    private PersistentTimestampStore.StoreNamespace defaultNamespace;
 
     @Before
     public void before() throws Exception {
@@ -72,7 +71,7 @@ public final class RocksDbPersistentTimestampStoreTests {
 
     @Test
     public void storeNamespaceUniqueness() {
-        StoreNamespace differentDefault = timestampMappingStore.createNamespace(DEFAULT);
+        PersistentTimestampStore.StoreNamespace differentDefault = timestampMappingStore.createNamespace(DEFAULT);
         assertThat(differentDefault).isNotEqualTo(defaultNamespace);
 
         timestampMappingStore.put(defaultNamespace, 1L, 3L);
@@ -81,7 +80,7 @@ public final class RocksDbPersistentTimestampStoreTests {
     }
 
     @Test
-    public void droppingNonExitingFails() {
+    public void droppingNonExistingFails() {
         assertThatThrownBy(() -> timestampMappingStore.dropNamespace(NON_EXISTING_NAMESPACE))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
@@ -100,7 +99,7 @@ public final class RocksDbPersistentTimestampStoreTests {
 
     @Test
     public void droppingTwoTimesFailsOnSecond() {
-        StoreNamespace testNamespace = timestampMappingStore.createNamespace("test");
+        PersistentTimestampStore.StoreNamespace testNamespace = timestampMappingStore.createNamespace("test");
 
         timestampMappingStore.dropNamespace(testNamespace);
         assertThatThrownBy(() -> timestampMappingStore.dropNamespace(testNamespace))
