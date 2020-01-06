@@ -20,6 +20,7 @@ import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -95,7 +96,11 @@ public class LegacyTimelockService implements TimelockService {
                     LockTokenConverter.toTokenV2(lock));
         } catch (Throwable e) {
             if (lock != null) {
-                lockService.unlock(lock);
+                try {
+                    lockService.unlock(lock);
+                } catch (Throwable unlockThrowable) {
+                    e.addSuppressed(unlockThrowable);
+                }
             }
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
@@ -103,9 +108,19 @@ public class LegacyTimelockService implements TimelockService {
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return StartIdentifiedAtlasDbTransactionResponse.of(
-                lockImmutableTimestamp(),
-                TimestampAndPartition.of(getFreshTimestamp(), 0));
+        LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
+        try {
+            return StartIdentifiedAtlasDbTransactionResponse.of(
+                    immutableTimestamp,
+                    TimestampAndPartition.of(getFreshTimestamp(), 0));
+        } catch (RuntimeException | Error throwable) {
+            try {
+                unlock(ImmutableSet.of(immutableTimestamp.getLock()));
+            } catch (Throwable unlockThrowable) {
+                throwable.addSuppressed(unlockThrowable);
+            }
+            throw throwable;
+        }
     }
 
     @Override
