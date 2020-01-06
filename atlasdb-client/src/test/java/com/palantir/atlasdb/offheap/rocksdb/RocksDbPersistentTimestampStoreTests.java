@@ -30,6 +30,7 @@ import org.rocksdb.RocksDB;
 
 import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
+import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class RocksDbPersistentTimestampStoreTests {
@@ -37,13 +38,13 @@ public final class RocksDbPersistentTimestampStoreTests {
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static final String DEFAULT = "default";
-    private static final PersistentTimestampStore.StoreNamespace NON_EXISTING_NAMESPACE = ImmutableStoreNamespace.builder()
+    private static final StoreNamespace NON_EXISTING_NAMESPACE = ImmutableStoreNamespace.builder()
             .humanReadableName("bla")
             .uniqueName(UUID.randomUUID())
             .build();
 
     private PersistentTimestampStore timestampMappingStore;
-    private PersistentTimestampStore.StoreNamespace defaultNamespace;
+    private StoreNamespace defaultNamespace;
 
     @Before
     public void before() throws Exception {
@@ -71,7 +72,7 @@ public final class RocksDbPersistentTimestampStoreTests {
 
     @Test
     public void storeNamespaceUniqueness() {
-        PersistentTimestampStore.StoreNamespace differentDefault = timestampMappingStore.createNamespace(DEFAULT);
+        StoreNamespace differentDefault = timestampMappingStore.createNamespace(DEFAULT);
         assertThat(differentDefault).isNotEqualTo(defaultNamespace);
 
         timestampMappingStore.put(defaultNamespace, 1L, 3L);
@@ -99,7 +100,7 @@ public final class RocksDbPersistentTimestampStoreTests {
 
     @Test
     public void droppingTwoTimesFailsOnSecond() {
-        PersistentTimestampStore.StoreNamespace testNamespace = timestampMappingStore.createNamespace("test");
+        StoreNamespace testNamespace = timestampMappingStore.createNamespace("test");
 
         timestampMappingStore.dropNamespace(testNamespace);
         assertThatThrownBy(() -> timestampMappingStore.dropNamespace(testNamespace))
