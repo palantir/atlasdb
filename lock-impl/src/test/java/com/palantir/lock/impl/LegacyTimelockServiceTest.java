@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.impl;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -141,15 +142,9 @@ public class LegacyTimelockServiceTest {
         Exception illegalStateException = new IllegalStateException();
         when(timestampService.getFreshTimestamp()).thenReturn(5L);
         when(lockService.lock(eq(LOCK_CLIENT.getClientId()), any())).thenReturn(LOCK_REFRESH_TOKEN);
-        when(lockService.getMinLockedInVersionId(any(LockClient.class))).thenThrow(illegalStateException);
+        when(lockService.getMinLockedInVersionId(any(String.class))).thenThrow(illegalStateException);
 
-        try {
-            timelock.lockImmutableTimestamp();
-            fail();
-        } catch (Exception e) {
-            assertEquals(e, illegalStateException);
-        }
-
+        assertThatThrownBy(timelock::lockImmutableTimestamp).hasCause(illegalStateException);
         verify(lockService).unlock(LOCK_REFRESH_TOKEN);
     }
 
@@ -161,13 +156,7 @@ public class LegacyTimelockServiceTest {
                 .thenThrow(illegalStateException);
         when(lockService.lock(eq(LOCK_CLIENT.getClientId()), any())).thenReturn(LOCK_REFRESH_TOKEN);
 
-        try {
-            timelock.startIdentifiedAtlasDbTransaction();
-            fail();
-        } catch (Exception e) {
-            assertEquals(e, illegalStateException);
-        }
-
+        assertThatThrownBy(timelock::startIdentifiedAtlasDbTransaction).isEqualTo(illegalStateException);
         verify(lockService).unlock(LOCK_REFRESH_TOKEN);
     }
 
