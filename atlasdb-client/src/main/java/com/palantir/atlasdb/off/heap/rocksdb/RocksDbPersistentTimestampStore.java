@@ -19,6 +19,9 @@ package com.palantir.atlasdb.off.heap.rocksdb;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
@@ -43,7 +46,8 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     }
 
     @Override
-    public Long get(StoreNamespace storeNamespace, Long startTs) {
+    @Nullable
+    public Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
         Preconditions.checkArgument(
                 availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
                 "Store namespace does not exist");
@@ -58,7 +62,7 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, Long startTs, Long commitTs) {
+    public void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs) {
         Preconditions.checkArgument(
                 availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
                 "Store namespace does not exist");
@@ -70,15 +74,12 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     }
 
     @Override
-    public StoreNamespace createNamespace(String name) {
-        UUID randomUuid = UUID.randomUUID();
-        ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
-                rocksDB.createColumnFamily(new ColumnFamilyDescriptor(randomUuid.toString().getBytes())));
-        availableColumnFamilies.put(randomUuid, columnFamilyHandle);
+    public StoreNamespace createNamespace(@Nonnull String name) {
+        Preconditions.checkNotNull(name, "Namespace should not have a null name");
 
         return ImmutableStoreNamespace.builder()
                 .humanReadableName(name)
-                .uniqueName(randomUuid)
+                .uniqueName(createColumnFamily())
                 .build();
     }
 
@@ -88,8 +89,7 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
                 availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
                 "Store namespace does not exist");
 
-        dropColumnFamily(availableColumnFamilies.get(storeNamespace.uniqueName()));
-        availableColumnFamilies.remove(storeNamespace.uniqueName());
+        dropColumnFamily(storeNamespace);
     }
 
     @Override
@@ -97,11 +97,20 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
         rocksDB.close();
     }
 
-    private void dropColumnFamily(ColumnFamilyHandle columnFamilyHandle) {
+    private UUID createColumnFamily() {
+        UUID randomUuid = UUID.randomUUID();
+        ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
+                rocksDB.createColumnFamily(new ColumnFamilyDescriptor(randomUuid.toString().getBytes())));
+        availableColumnFamilies.put(randomUuid, columnFamilyHandle);
+        return randomUuid;
+    }
+
+    private void dropColumnFamily(StoreNamespace storeNamespace) {
         callWithExceptionHandling(() -> {
-            rocksDB.dropColumnFamily(columnFamilyHandle);
+            rocksDB.dropColumnFamily(availableColumnFamilies.get(storeNamespace.uniqueName()));
             return null;
         });
+        availableColumnFamilies.remove(storeNamespace.uniqueName());
     }
 
     private byte[] getWithExceptionHandling(ColumnFamilyHandle columnFamilyHandle, byte[] key) {

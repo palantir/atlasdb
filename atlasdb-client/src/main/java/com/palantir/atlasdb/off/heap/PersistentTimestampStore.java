@@ -18,7 +18,12 @@ package com.palantir.atlasdb.off.heap;
 
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
+
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public interface PersistentTimestampStore extends AutoCloseable {
     @Value.Immutable
@@ -36,7 +41,8 @@ public interface PersistentTimestampStore extends AutoCloseable {
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    Long get(StoreNamespace storeNamespace, Long startTs);
+    @Nullable
+    Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) throws SafeIllegalArgumentException;
 
     /**
      * Stores the {@code commitTs} for the associated {@code startTs} while overwriting the existing value in the
@@ -48,7 +54,8 @@ public interface PersistentTimestampStore extends AutoCloseable {
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    void put(StoreNamespace storeNamespace, Long startTs, Long commitTs);
+    void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs)
+            throws SafeIllegalArgumentException;
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to
@@ -58,7 +65,7 @@ public interface PersistentTimestampStore extends AutoCloseable {
      * @param name in human readable format of the namespace to be created
      * @return {@link StoreNamespace} which represents a handle to the created namespace
      */
-    StoreNamespace createNamespace(String name);
+    StoreNamespace createNamespace(@Nonnull String name);
 
     /**
      * Drops the namespace specified by the supplied handle. Dropping of a namespace may fail if there are
@@ -68,5 +75,5 @@ public interface PersistentTimestampStore extends AutoCloseable {
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException if the supplied {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    void dropNamespace(StoreNamespace storeNamespace);
+    void dropNamespace(StoreNamespace storeNamespace) throws SafeIllegalArgumentException;
 }
