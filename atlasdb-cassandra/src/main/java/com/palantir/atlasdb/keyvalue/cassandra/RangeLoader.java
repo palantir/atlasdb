@@ -25,7 +25,6 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.SlicePredicate;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -35,7 +34,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
-import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.ClosableIterator;
@@ -46,15 +44,15 @@ public class RangeLoader {
     private final TracingQueryRunner queryRunner;
     private final MetricsManager metricsManager;
     private ConsistencyLevel consistencyLevel;
-    private KeyValueService keyValueService;
+    private TableMetaDataProvider metaDataProvider;
 
     public RangeLoader(CassandraClientPool clientPool, TracingQueryRunner queryRunner, MetricsManager metricsManager,
-            ConsistencyLevel consistencyLevel, KeyValueService keyValueService) {
+            ConsistencyLevel consistencyLevel, TableMetaDataProvider tableMetaDataProvider) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.metricsManager = metricsManager;
         this.consistencyLevel = consistencyLevel;
-        this.keyValueService = keyValueService;
+        this.metaDataProvider = tableMetaDataProvider;
     }
 
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long ts) {
@@ -77,8 +75,9 @@ public class RangeLoader {
         if (rangeRequest.getColumnNames().size() == 1) {
             predicate = getSlicePredicate(rangeRequest, startTs);
         } else {
-            TableMetadata tmd = KeyValueServices.getTableMetadataSafe(keyValueService, tableRef);
-            Set<byte[]> allColumnNames = tmd.getColumns().getAllColumnNames();
+            TableMetadata tableMetadata = metaDataProvider.getMetaDataFromRef(tableRef);
+            // todo (sudiksha) : add null check, also refactor
+            Set<byte[]> allColumnNames = tableMetadata.getColumns().getAllColumnNames();
             if (allColumnNames.size() == 1) {
                 RangeRequest newRangeRequest = RangeRequest.builder().startRowInclusive(rangeRequest.getStartInclusive())
                         .endRowExclusive(rangeRequest.getEndExclusive())

@@ -216,6 +216,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
+    private final TableMetaDataProvider tableMetaDataProvider;
     private final Optional<AsyncKeyValueService> asyncKeyValueService;
     private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
@@ -426,7 +427,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
-        this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency, this);
+        this.tableMetaDataProvider = new TableMetaDataProvider(this);
+        this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency,
+                this.tableMetaDataProvider);
         this.cellValuePutter = new CellValuePutter(
                 config,
                 clientPool,
