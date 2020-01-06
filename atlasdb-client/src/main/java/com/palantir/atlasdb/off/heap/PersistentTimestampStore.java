@@ -61,7 +61,7 @@ public interface PersistentTimestampStore extends AutoCloseable {
     StoreNamespace createNamespace(String name);
 
     /**
-     * Drops the namespace specified by the supplied handle. Dropping of a namespace may fail if called there are
+     * Drops the namespace specified by the supplied handle. Dropping of a namespace may fail if there are
      * concurrent calls on the same namespace or if the namespace has already been dropped.
      *
      * @param storeNamespace handle
