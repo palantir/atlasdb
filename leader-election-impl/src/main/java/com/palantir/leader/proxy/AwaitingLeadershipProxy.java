@@ -239,7 +239,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             NotCurrentLeaderException notCurrentLeaderException = notCurrentLeaderException(
                     "method invoked on a non-leader");
 
-            if (notCurrentLeaderException.getServiceHint().isPresent()) {
+            if (notCurrentLeaderException.getServiceHintAsUrl().isPresent()
+                    || notCurrentLeaderException.getServiceHint().isPresent()) {
                 // There's a chance that we can gain leadership while generating this exception.
                 // In this case, we should be able to get a leadership token after all
                 leadershipToken = leadershipTokenRef.get();
@@ -259,8 +260,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
-        return leaderElectionService.getRecentlyPingedLeaderHost()
-                .map(hostAndPort -> new NotCurrentLeaderException(message, cause, hostAndPort))
+        return leaderElectionService.getRecentlyPingedLeader()
+                .map(leaderUrl -> new NotCurrentLeaderException(message, cause, leaderUrl))
                 .orElseGet(() -> new NotCurrentLeaderException(message, cause));
     }
 

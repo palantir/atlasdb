@@ -15,6 +15,7 @@
  */
 package com.palantir.common.remoting;
 
+import java.net.URL;
 import java.util.Optional;
 
 import com.google.common.net.HostAndPort;
@@ -29,33 +30,52 @@ public class ServiceNotAvailableException extends RuntimeException {
     private static final long serialVersionUID = 2L;
 
     private final Optional<HostAndPort> serviceHint;
+    private final Optional<URL> serviceHintUrl;
 
     public ServiceNotAvailableException(String message, Throwable cause, HostAndPort serviceHint) {
         super(message, cause);
         this.serviceHint = Optional.of(serviceHint);
+        this.serviceHintUrl = Optional.empty();
     }
 
     public ServiceNotAvailableException(String message, HostAndPort serviceHint) {
         super(message);
         this.serviceHint = Optional.of(serviceHint);
+        this.serviceHintUrl = Optional.empty();
     }
 
     public ServiceNotAvailableException(String message, Throwable cause) {
         super(message, cause);
         this.serviceHint = Optional.empty();
+        this.serviceHintUrl = Optional.empty();
+
     }
 
     public ServiceNotAvailableException(String message) {
         super(message);
         this.serviceHint = Optional.empty();
+        this.serviceHintUrl = Optional.empty();
+
     }
 
     public ServiceNotAvailableException(Throwable cause) {
         super(cause);
         this.serviceHint = Optional.empty();
+        this.serviceHintUrl = Optional.empty();
+
+    }
+
+    public ServiceNotAvailableException(String message, Throwable cause, URL leaderHint) {
+        super(message, cause);
+        this.serviceHint = Optional.empty();
+        this.serviceHintUrl = Optional.of(leaderHint);
     }
 
     public Optional<HostAndPort> getServiceHint() {
         return serviceHint;
+    }
+
+    public Optional<URL> getServiceHintAsUrl() {
+        return serviceHintUrl;
     }
 }

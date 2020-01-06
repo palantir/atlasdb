@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.core.UriBuilder;
+
 import org.immutables.value.Value;
 
 import com.codahale.metrics.InstrumentedExecutorService;
@@ -38,7 +42,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -305,10 +308,19 @@ public final class Leaders {
                                 .shouldLimitPayload(true)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
-                .map(HostAndPort::fromString)
+                .map(url -> convertAddressToUrl(trustContext, url))
                 .map(ImmutableLeaderPingerContext::of)
                 .values()
                 .collect(Collectors.toList());
+    }
+
+    private static URL convertAddressToUrl(Optional<TrustContext> install, String addressHostAndPort) {
+        String protocolPrefix = install.isPresent() ? "https://" : "http://";
+        try {
+            return UriBuilder.fromPath(protocolPrefix + addressHostAndPort).build().toURL();
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Value.Immutable

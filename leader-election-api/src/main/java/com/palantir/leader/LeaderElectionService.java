@@ -16,9 +16,9 @@
 package com.palantir.leader;
 
 import java.io.Serializable;
+import java.net.URL;
 import java.util.Optional;
 
-import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.metrics.Timed;
 
 public interface LeaderElectionService {
@@ -86,10 +86,10 @@ public interface LeaderElectionService {
 
     /**
      * If this {@link LeaderElectionService} has successfully pinged the leader recently (up to the implementation),
-     * it returns the {@link HostAndPort} through which the leader can be contacted.
+     * it returns the {@link URL} through which the leader can be contacted.
      *
      * @return {@link Optional} containing address of suspected leader, otherwise empty if this
      * {@link LeaderElectionService} has not been able to contact the leader recently.
      */
-    Optional<HostAndPort> getRecentlyPingedLeaderHost();
+    Optional<URL> getRecentlyPingedLeader();
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.leader;
 
+import java.net.URL;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
@@ -72,7 +72,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
     private final RateLimiter leaderEligibilityLoggingRateLimiter = RateLimiter.create(1);
 
-    private final Cache<UUID, HostAndPort> leaderAddressCache;
+    private final Cache<UUID, URL> leaderAddressCache;
 
     PaxosLeaderElectionService(
             PaxosProposer proposer,
@@ -304,7 +304,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     @Override
-    public Optional<HostAndPort> getRecentlyPingedLeaderHost() {
+    public Optional<URL> getRecentlyPingedLeader() {
         return extractLeaderUuid(knowledge.getGreatestLearnedValue()).map(leaderAddressCache::getIfPresent);
     }
 
