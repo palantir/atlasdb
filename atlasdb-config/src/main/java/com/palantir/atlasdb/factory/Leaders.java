@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.factory;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
 import java.util.List;
@@ -30,8 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import javax.ws.rs.core.UriBuilder;
 
 import org.immutables.value.Value;
 
@@ -308,16 +307,15 @@ public final class Leaders {
                                 .shouldLimitPayload(true)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
-                .map(url -> convertAddressToUrl(trustContext, url))
+                .map(Leaders::convertAddressToUrl)
                 .map(ImmutableLeaderPingerContext::of)
                 .values()
                 .collect(Collectors.toList());
     }
 
-    private static URL convertAddressToUrl(Optional<TrustContext> install, String addressHostAndPort) {
-        String protocolPrefix = install.isPresent() ? "https://" : "http://";
+    private static URL convertAddressToUrl(String addressHostAndPort) {
         try {
-            return UriBuilder.fromPath(protocolPrefix + addressHostAndPort).build().toURL();
+            return URI.create(addressHostAndPort).toURL();
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
