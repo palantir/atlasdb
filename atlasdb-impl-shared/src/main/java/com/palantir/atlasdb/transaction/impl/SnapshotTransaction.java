@@ -140,6 +140,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -1600,11 +1601,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
                 timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
 
+                LockToken serverLockToken = getServerTokenIfLeased(commitLocksToken);
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
                 TimestampWithLockInfo commitTsWithWatches = timedAndTraced("getCommitTimestamp", () ->
-                        tableWatchingService.getCommitTimestampWithLockInfo(startTimestamp.get(), commitLocksToken));
+                        tableWatchingService.getCommitTimestampWithLockInfo(startTimestamp.get(), serverLockToken));
                 commitTsForScrubbing = commitTsWithWatches.timestamp();
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,
@@ -1671,6 +1673,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return com.google.common.base.Preconditions.checkNotNull(conflictDetectionManager.get(tableRef),
             "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
             tableRef);
+    }
+
+    private LockToken getServerTokenIfLeased(LockToken token) {
+        if (token instanceof LeasedLockToken) {
+            LeasedLockToken leased = (LeasedLockToken) token;
+            return leased.serverToken();
+        }
+        return token;
     }
 
     private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken,
