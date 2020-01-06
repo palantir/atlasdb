@@ -31,7 +31,6 @@ import java.util.stream.IntStream;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.net.HostAndPort;
 
 public class RedirectRetryTargeterTest {
     private static final URL URL_1 = createUrlUnchecked("https", "hostage", 42, "/request/hourai-branch");
@@ -59,7 +58,7 @@ public class RedirectRetryTargeterTest {
         RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_2, ImmutableList.of(URL_1, URL_2, URL_3));
         Map<URL, List<URL>> results = IntStream.range(0, 10000)
                 .boxed()
-                .map($ -> targeter.redirectRequest(Optional.of(hostAndPort(URL_1))).get())
+                .map($ -> targeter.redirectRequest(Optional.of(URL_1)).get())
                 .collect(Collectors.groupingBy(Function.identity()));
         assertThat(results.keySet()).containsOnly(URL_1);
     }
@@ -79,7 +78,4 @@ public class RedirectRetryTargeterTest {
         }
     }
 
-    private static HostAndPort hostAndPort(URL url) {
-        return HostAndPort.fromParts(url.getHost(), url.getPort());
-    }
 }
