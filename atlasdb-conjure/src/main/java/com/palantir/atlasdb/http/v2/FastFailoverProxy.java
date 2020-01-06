@@ -23,6 +23,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
@@ -42,21 +43,21 @@ import feign.RetryableException;
 public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
     private static final Duration TIME_LIMIT = Duration.ofSeconds(10);
 
-    private final T delegate;
+    private final Supplier<T> delegate;
     private final Clock clock;
 
-    private FastFailoverProxy(T delegate, Clock clock) {
+    private FastFailoverProxy(Supplier<T> delegate, Clock clock) {
         this.delegate = delegate;
         this.clock = clock;
     }
 
-    public static <U> U newProxyInstance(Class<U> interfaceClass, U delegate) {
+    public static <U> U newProxyInstance(Class<U> interfaceClass, Supplier<U> delegate) {
         return newProxyInstance(interfaceClass, delegate, Clock.systemUTC());
     }
 
     @VisibleForTesting
     @SuppressWarnings("unchecked") // Class guaranteed to be correct
-    static <U> U newProxyInstance(Class<U> interfaceClass, U delegate, Clock clock) {
+    static <U> U newProxyInstance(Class<U> interfaceClass, Supplier<U> delegate, Clock clock) {
         FastFailoverProxy<U> proxy = new FastFailoverProxy<>(delegate, clock);
 
         return (U) Proxy.newProxyInstance(
@@ -85,7 +86,7 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
 
     private ResultOrThrowable singleInvocation(Method method, Object[] args) {
         try {
-            return ResultOrThrowable.success(method.invoke(delegate, args));
+            return ResultOrThrowable.success(method.invoke(delegate.get(), args));
         } catch (Throwable th) {
             return ResultOrThrowable.failure(th);
         }
