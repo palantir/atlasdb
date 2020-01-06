@@ -16,12 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Set;
 import java.util.function.Supplier;
+
+import javax.xml.crypto.dsig.keyinfo.KeyValue;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.SlicePredicate;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,6 +35,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -40,13 +46,15 @@ public class RangeLoader {
     private final TracingQueryRunner queryRunner;
     private final MetricsManager metricsManager;
     private ConsistencyLevel consistencyLevel;
+    private KeyValueService keyValueService;
 
     public RangeLoader(CassandraClientPool clientPool, TracingQueryRunner queryRunner, MetricsManager metricsManager,
-            ConsistencyLevel consistencyLevel) {
+            ConsistencyLevel consistencyLevel, KeyValueService keyValueService) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.metricsManager = metricsManager;
         this.consistencyLevel = consistencyLevel;
+        this.keyValueService = keyValueService;
     }
 
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long ts) {
@@ -65,18 +73,35 @@ public class RangeLoader {
             ConsistencyLevel consistency,
             Supplier<ResultsExtractor<T>> resultsExtractor) {
         SlicePredicate predicate;
+
         if (rangeRequest.getColumnNames().size() == 1) {
-            byte[] colName = rangeRequest.getColumnNames().iterator().next();
-            predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
+            predicate = getSlicePredicate(rangeRequest, startTs);
         } else {
-            // TODO(nziebart): optimize fetching multiple columns by performing a parallel range request for
-            // each column. note that if no columns are specified, it's a special case that means all columns
-            predicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.NO_LIMIT);
+            TableMetadata tmd = KeyValueServices.getTableMetadataSafe(keyValueService, tableRef);
+            Set<byte[]> allColumnNames = tmd.getColumns().getAllColumnNames();
+            if (allColumnNames.size() == 1) {
+                RangeRequest newRangeRequest = RangeRequest.builder().startRowInclusive(rangeRequest.getStartInclusive())
+                        .endRowExclusive(rangeRequest.getEndExclusive())
+                        .retainColumns(allColumnNames)
+                        .build();
+               predicate = getSlicePredicate(newRangeRequest, startTs);
+            } else {
+                // TODO(nziebart): optimize fetching multiple columns by performing a parallel range request for
+                // each column. note that if no columns are specified, it's a special case that means all columns
+                predicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.NO_LIMIT);
+            }
         }
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);
+    }
+
+    private SlicePredicate getSlicePredicate(RangeRequest rangeRequest, long startTs) {
+        SlicePredicate predicate;
+        byte[] colName = rangeRequest.getColumnNames().iterator().next();
+        predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
+        return predicate;
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(

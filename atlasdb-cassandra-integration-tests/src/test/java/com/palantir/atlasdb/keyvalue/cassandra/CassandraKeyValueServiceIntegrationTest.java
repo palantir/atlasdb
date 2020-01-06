@@ -67,20 +67,27 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -298,6 +305,49 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
 
         assertThat(results).doesNotContainKey(CELL);
+    }
+
+    @Test
+    public void testRangeLoader() throws Exception {
+//        int numColumns = 5;
+//        TableReference tableReference = TableReference.createFromFullyQualifiedName(
+//                "test." + RandomStringUtils.randomAlphanumeric(16));
+//        List<NamedColumnDescription> columns = new ArrayList<>();
+//        for (int i = 1; i <= numColumns; ++i) {
+//            columns.add(new NamedColumnDescription(
+//                    "c" + i, "column" + i, ColumnValueDescription.forType(ValueType.BLOB)));
+//        }
+//        keyValueService.createTable(tableReference, TableMetadata.builder()
+//                .columns(new ColumnMetadataDescription(columns))
+//                .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+//                .build()
+//                .persistToBytes());
+        TableReference tableReference =
+                TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
+        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        byte[] data = PtBytes.toBytes("data");
+        byte[] moreData = PtBytes.toBytes("data2");
+
+        Cell row_1_cell = Cell.create(PtBytes.toBytes("row_1"), PtBytes.toBytes("column"));
+        Cell row_2_cell = Cell.create(PtBytes.toBytes("row_2"), PtBytes.toBytes("column"));
+
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(row_1_cell, Value.create(data, 8L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(row_1_cell, Value.create(moreData, 88L)));
+
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(row_2_cell, Value.create(data, 8L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(row_2_cell, Value.create(moreData, 88L)));
+        byte[] x = keyValueService.getMetadataForTable(tableReference);
+        TableMetadata tmd = KeyValueServices.getTableMetadataSafe(keyValueService, tableReference);
+
+        int numCols = tmd.getColumns().getAllColumnValues().size();
+
+        RangeRequest rangeRequest = RangeRequest.builder().build();
+
+        ClosableIterator<RowResult<Value>> results = keyValueService.getRange(tableReference,
+                RangeRequest.builder().build(),
+                (8L + 1));
+        assertThat(results);
+
     }
 
     @Test

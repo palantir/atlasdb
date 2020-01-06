@@ -426,7 +426,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
-        this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
+        this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency, this);
         this.cellValuePutter = new CellValuePutter(
                 config,
                 clientPool,

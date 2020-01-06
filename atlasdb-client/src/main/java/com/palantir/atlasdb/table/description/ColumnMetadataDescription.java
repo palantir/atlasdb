@@ -22,7 +22,10 @@ import javax.annotation.concurrent.Immutable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.Builder;
 import com.palantir.logsafe.Preconditions;
@@ -62,6 +65,21 @@ public class ColumnMetadataDescription {
         List<ColumnValueDescription> ret = Lists.newArrayList();
         for (NamedColumnDescription col : namedColumns) {
             ret.add(col.value);
+        }
+        return ret;
+    }
+
+    public Set<byte[]> getAllColumnNames() {
+        Set<byte[]> ret = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+
+        if (dynamicColumn != null) {
+            for (NameComponentDescription rowPart: dynamicColumn.getColumnNameDesc().getRowParts()) {
+                ret.add(rowPart.getComponentName().getBytes());
+            }
+            return ret;
+        }
+        for (NamedColumnDescription col : namedColumns) {
+            ret.add(col.getShortName().getBytes());
         }
         return ret;
     }
