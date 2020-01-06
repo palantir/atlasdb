@@ -75,8 +75,6 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
     @Override
     public StoreNamespace createNamespace(@Nonnull String name) {
-        Preconditions.checkNotNull(name, "Namespace should not have a null name");
-
         return ImmutableStoreNamespace.builder()
                 .humanReadableName(name)
                 .uniqueName(createColumnFamily())
