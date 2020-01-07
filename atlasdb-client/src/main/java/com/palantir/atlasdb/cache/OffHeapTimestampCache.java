@@ -51,7 +51,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final int maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
     private final ConcurrentMap<Long, Long> inflightRequests = new ConcurrentHashMap<>();
-    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> cellPutter;
+    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> timestampPutter;
 
     public static TimestampCache create(PersistentTimestampStore persistentTimestampStore, int maxSize) {
         StoreNamespace storeNamespace = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
@@ -71,7 +71,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         this.persistentTimestampStore = persistentTimestampStore;
         this.cacheDescriptor.set(cacheDescriptor);
         this.maxSize = maxSize;
-        this.cellPutter = Autobatchers.coalescing(new WriteBatcher(this))
+        this.timestampPutter = Autobatchers.coalescing(new WriteBatcher(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
     }
@@ -92,7 +92,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         if (inflightRequests.putIfAbsent(startTimestamp, commitTimestamp) != null) {
             return;
         }
-        Futures.getUnchecked(cellPutter.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
+        Futures.getUnchecked(timestampPutter.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
     }
 
     @Nullable
