@@ -44,6 +44,7 @@ import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 
 public final class OffHeapTimestampCacheTests {
     private static final int ZERO = 0;
+    private static final int DEFAULT_SIZE = 10;
     private static ExecutorService executorService;
 
     private PersistentTimestampStore persistentTimestampStore;
@@ -154,7 +155,7 @@ public final class OffHeapTimestampCacheTests {
 
     @Test
     public void cacheFull() {
-        CacheDescriptor cacheDescriptor = constructCacheDescriptor(10);
+        CacheDescriptor cacheDescriptor = constructCacheDescriptor(DEFAULT_SIZE);
         StoreNamespace proposal = randomStoreNamespace();
 
         when(persistentTimestampStore.createNamespace(any())).thenReturn(proposal);
@@ -174,7 +175,7 @@ public final class OffHeapTimestampCacheTests {
         CyclicBarrier creationBarrier = new CyclicBarrier(2);
         CountDownLatch swapLatch = new CountDownLatch(1);
 
-        CacheDescriptor cacheDescriptor = constructCacheDescriptor(10);
+        CacheDescriptor cacheDescriptor = constructCacheDescriptor(DEFAULT_SIZE);
         StoreNamespace firstProposal = randomStoreNamespace();
         StoreNamespace secondProposal = randomStoreNamespace();
 
@@ -214,7 +215,7 @@ public final class OffHeapTimestampCacheTests {
 
     @Test
     public void sequentialReader() {
-        CacheDescriptor cacheDescriptor = constructCacheDescriptor(10);
+        CacheDescriptor cacheDescriptor = constructCacheDescriptor(DEFAULT_SIZE);
         when(persistentTimestampStore.get(any(), any())).thenReturn(null);
 
         OffHeapTimestampCache offHeapTimestampCache = constructOffHeapTimestampCache(cacheDescriptor);
@@ -252,7 +253,7 @@ public final class OffHeapTimestampCacheTests {
     }
 
     private OffHeapTimestampCache constructOffHeapTimestampCache(CacheDescriptor cacheDescriptor) {
-        return new OffHeapTimestampCache(persistentTimestampStore, cacheDescriptor, 10);
+        return new OffHeapTimestampCache(persistentTimestampStore, cacheDescriptor, DEFAULT_SIZE);
     }
 
     private CacheDescriptor constructCacheDescriptor(int artificialCurrentSize) {
