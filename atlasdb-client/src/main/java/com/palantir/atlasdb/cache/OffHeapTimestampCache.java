@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.cache;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,6 +31,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -38,8 +39,6 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 import com.palantir.common.streams.KeyedStream;
@@ -48,10 +47,9 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class OffHeapTimestampCache implements TimestampCache {
+    private static final Logger log = LoggerFactory.getLogger(OffHeapTimestampCache.class);
     private static final String TIMESTAMP_CACHE_NAMESPACE = "timestamp_cache";
     private static final String BATCHER_PURPOSE = "off-heap-timestamp-cache";
-    private static final Logger log = LoggerFactory.getLogger(OffHeapTimestampCache.class);
-    private static final String OFF_HEAP_TIMESTAMP_CACHE = MetricRegistry.name(OffHeapTimestampCache.class);
     private static final MetricName CACHE_HIT = constructCacheMetricName("cacheHit");
     private static final MetricName CACHE_MISS = constructCacheMetricName("cacheMiss");
     private static final MetricName CACHE_NUKE = constructCacheMetricName("cacheNuke");
@@ -113,13 +111,15 @@ public final class OffHeapTimestampCache implements TimestampCache {
     @Nullable
     @Override
     public Long getCommitTimestampIfPresent(Long startTimestamp) {
-        Long value = inflightRequests.get(startTimestamp);
-        if (value != null) {
-            taggedMetricRegistry.meter(CACHE_HIT).mark();
-            return value;
-        }
+        Long value = Optional.ofNullable(inflightRequests.get(startTimestamp))
+                .orElseGet(() -> persistentTimestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp));
 
-        return persistentTimestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp);
+        if (value == null) {
+            taggedMetricRegistry.meter(CACHE_MISS).mark();
+        } else {
+            taggedMetricRegistry.meter(CACHE_HIT).mark();
+        }
+        return value;
     }
 
     private static CacheDescriptor createNamespaceAndConstructCacheProposal(
@@ -148,6 +148,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         @Override
         public Map<Map.Entry<Long, Long>, Map.Entry<Long, Long>> apply(Set<Map.Entry<Long, Long>> request) {
             if (offHeapTimestampCache.cacheDescriptor.get().currentSize().get() >= offHeapTimestampCache.maxSize) {
+                offHeapTimestampCache.taggedMetricRegistry.meter(CACHE_NUKE).mark();
                 offHeapTimestampCache.clear();
             }
             CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
