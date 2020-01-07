@@ -48,7 +48,7 @@ public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMappe
     @Override
     QosException handleConjureJavaRuntime(NotCurrentLeaderException exception) {
         return redirectRetryTargeter.flatMap(redirectTargeter ->
-                redirectTargeter.redirectRequest(exception.getServiceHintAsUrl()))
+                redirectTargeter.redirectRequest(exception.getServiceHint()))
                 .<QosException>map(QosException::retryOther)
                 .orElseGet(QosException::unavailable);
     }
