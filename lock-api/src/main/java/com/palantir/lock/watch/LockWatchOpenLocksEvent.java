@@ -38,6 +38,11 @@ public abstract class LockWatchOpenLocksEvent implements LockWatchEvent {
     public abstract Set<LockDescriptor> lockDescriptors();
 
     @Override
+    public int size() {
+        return lockDescriptors().size();
+    }
+
+    @Override
     public <T> T accept(LockWatchEvent.Visitor<T> visitor) {
         return visitor.visit(this);
     }

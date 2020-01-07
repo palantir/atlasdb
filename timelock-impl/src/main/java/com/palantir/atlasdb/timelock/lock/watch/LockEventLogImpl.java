@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -46,8 +47,10 @@ public class LockEventLogImpl implements LockEventLog {
             return LockWatchStateUpdate.failure(leaderId, slidingWindow.getVersion());
         }
         List<LockWatchEvent> events = maybeEvents.get();
-        return LockWatchStateUpdate
-                .of(leaderId, true, OptionalLong.of(fromVersion.getAsLong() + events.size()), events);
+        return LockWatchStateUpdate.of(leaderId,true, OptionalLong.of(fromVersion.getAsLong() + events.size()),
+                events.stream()
+                        .filter(event -> event != PlaceholderLockWatchEvent.INSTANCE)
+                        .collect(Collectors.toList()));
     }
 
     @Override

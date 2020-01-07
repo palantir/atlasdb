@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Optional;
@@ -82,6 +83,26 @@ public class ArrayLockEventSlidingWindowTest {
         assertContainsEventsInOrderFromTo(10, 11, numEntries - 1);
     }
 
+    @Test
+    public void oversizedEventThrows() {
+        assertThatThrownBy(() -> slidingWindow.add(eventOfSize(20))).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void variableSizeEventTest() {
+        slidingWindow.add(eventOfSize(3));
+        slidingWindow.add(eventOfSize(5));
+        slidingWindow.add(eventOfSize(4));
+        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(2);
+        assertThat(result).isPresent();
+        assertThat(result.get().size()).isEqualTo(5 + 4);
+        List<LockWatchEvent> nonPlaceholder = result.get().stream()
+                .filter(event -> event != PlaceholderLockWatchEvent.INSTANCE)
+                .collect(Collectors.toList());
+        assertThat(nonPlaceholder)
+                .containsExactly(eventOfSize(5).build(3), eventOfSize(4).build(3 + 5));
+    }
+
     private void addEvent() {
         slidingWindow.add(ArrayLockEventSlidingWindowTest::createEvent);
     }
@@ -103,13 +124,21 @@ public class ArrayLockEventSlidingWindowTest {
     }
 
     private static LockWatchEvent createEvent(long sequence) {
-        return ImmutableFakeLockWatchEvent.of(sequence);
+        return ImmutableFakeLockWatchEvent.of(sequence, 1);
+    }
+
+    private static LockWatchEvent.Builder eventOfSize(int size) {
+        return sequence -> ImmutableFakeLockWatchEvent.of(sequence, size);
+
     }
 
     @Value.Immutable
     abstract static class FakeLockWatchEvent implements LockWatchEvent {
         @Value.Parameter
         public abstract long sequence();
+
+        @Value.Parameter
+        public abstract int size();
 
         @Override
         public <T> T accept(LockWatchEvent.Visitor<T> visitor) {

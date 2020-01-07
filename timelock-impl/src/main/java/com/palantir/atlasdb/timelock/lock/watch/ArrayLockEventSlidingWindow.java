@@ -26,6 +26,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.logsafe.Preconditions;
 
 @ThreadSafe
 public class ArrayLockEventSlidingWindow {
@@ -50,8 +51,14 @@ public class ArrayLockEventSlidingWindow {
      */
     public synchronized void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
-        buffer[LongMath.mod(nextSequence, maxSize)] = event;
-        nextSequence++;
+        Preconditions.checkArgument(event.size() <= maxSize);
+        int index = LongMath.mod(nextSequence, maxSize);
+        buffer[index] = event;
+        nextSequence = nextSequence + event.size();
+        for (int i = 1; i < event.size(); i++) {
+            index = incrementAndMod(index);
+            buffer[index] = PlaceholderLockWatchEvent.INSTANCE;
+        }
     }
 
     /**
@@ -106,7 +113,11 @@ public class ArrayLockEventSlidingWindow {
 
     private Optional<List<LockWatchEvent>> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
         for (int i = 0; i < events.size(); i++) {
-            if (events.get(i).sequence() != i + version + 1) {
+            LockWatchEvent currentEvent = events.get(i);
+            if (currentEvent == PlaceholderLockWatchEvent.INSTANCE) {
+                continue;
+            }
+            if (currentEvent.sequence() != i + version + 1 ) {
                 return Optional.empty();
             }
         }

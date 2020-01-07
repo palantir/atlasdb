@@ -36,6 +36,11 @@ public abstract class LockWatchCreatedEvent implements LockWatchEvent {
     public abstract LockWatchRequest request();
 
     @Override
+    public int size() {
+        return request().references().size();
+    }
+
+    @Override
     public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
     }

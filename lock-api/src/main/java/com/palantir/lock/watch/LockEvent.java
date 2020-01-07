@@ -38,6 +38,11 @@ public abstract class LockEvent implements LockWatchEvent {
     public abstract LockToken lockToken();
 
     @Override
+    public int size() {
+        return lockDescriptors().size();
+    }
+
+    @Override
     public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
     }
