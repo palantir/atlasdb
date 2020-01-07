@@ -66,7 +66,7 @@ public final class OffHeapTimestampCacheIntegrationTests {
     }
 
     @Test
-    public void cacheNuked() {
+    public void cacheNukedWhenSizeLimitExceeded() {
         offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
         offHeapTimestampCache.putAlreadyCommittedTransaction(2L, 4L);
         offHeapTimestampCache.putAlreadyCommittedTransaction(5L, 6L);

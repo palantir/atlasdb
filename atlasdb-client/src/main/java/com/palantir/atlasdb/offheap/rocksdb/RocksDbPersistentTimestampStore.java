@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -66,9 +65,7 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     @Override
     @Nullable
     public Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
-        Preconditions.checkArgument(
-                availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
-                "Store namespace does not exist");
+        checkNamespaceExists(storeNamespace);
 
         byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
         byte[] value = getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), byteKeyValue);
@@ -78,9 +75,7 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
     @Override
     public Map<Long, Long> multiGet(StoreNamespace storeNamespace, List<Long> keys) {
-        Preconditions.checkArgument(
-                availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
-                "Store namespace does not exist");
+        checkNamespaceExists(storeNamespace);
 
         List<byte[]> byteKeys = keys.stream()
                 .map(ValueType.VAR_LONG::convertFromJava)
@@ -105,9 +100,7 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
     @Override
     public void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs) {
-        Preconditions.checkArgument(
-                availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
-                "Store namespace does not exist");
+        checkNamespaceExists(storeNamespace);
 
         byte[] key = ValueType.VAR_LONG.convertFromJava(startTs);
         byte[] value = ValueType.VAR_LONG.convertFromJava(commitTs - startTs);
@@ -116,10 +109,8 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     }
 
     @Override
-    public void multiPut(StoreNamespace storeNamespace, Set<Map.Entry<Long, Long>> toWrite) {
-        for (Map.Entry<Long, Long> entry : toWrite) {
-            put(storeNamespace, entry.getKey(), entry.getValue());
-        }
+    public void multiPut(StoreNamespace storeNamespace, Map<Long, Long> toWrite) {
+        KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
     }
 
     @Override
@@ -133,11 +124,15 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
     @Override
     public void dropNamespace(StoreNamespace storeNamespace) {
+        checkNamespaceExists(storeNamespace);
+
+        dropColumnFamily(storeNamespace);
+    }
+
+    private void checkNamespaceExists(StoreNamespace storeNamespace) {
         Preconditions.checkArgument(
                 availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
                 "Store namespace does not exist");
-
-        dropColumnFamily(storeNamespace);
     }
 
     @Override

@@ -30,6 +30,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
@@ -49,8 +50,8 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final PersistentTimestampStore persistentTimestampStore;
     private final int maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
-    private final ConcurrentMap<Long, Long> concurrentHashMap = new ConcurrentHashMap<>();
-    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> autobatcher;
+    private final ConcurrentMap<Long, Long> inflightRequests = new ConcurrentHashMap<>();
+    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> cellPutter;
 
     public static TimestampCache create(PersistentTimestampStore persistentTimestampStore, int maxSize) {
         StoreNamespace storeNamespace = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
@@ -70,14 +71,14 @@ public final class OffHeapTimestampCache implements TimestampCache {
         this.persistentTimestampStore = persistentTimestampStore;
         this.cacheDescriptor.set(cacheDescriptor);
         this.maxSize = maxSize;
-        this.autobatcher = Autobatchers.coalescing(new WriteBatcher(this))
+        this.cellPutter = Autobatchers.coalescing(new WriteBatcher(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
     }
 
     @Override
     public void clear() {
-        CacheDescriptor proposedCacheDescriptor = constructCacheProposal(persistentTimestampStore);
+        CacheDescriptor proposedCacheDescriptor = createNamespaceAndConstructCacheProposal(persistentTimestampStore);
 
         CacheDescriptor previous = cacheDescriptor.getAndUpdate(prev -> proposedCacheDescriptor);
         if (previous != null) {
@@ -88,16 +89,16 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     @Override
     public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
-        if (concurrentHashMap.putIfAbsent(startTimestamp, commitTimestamp) != null) {
+        if (inflightRequests.putIfAbsent(startTimestamp, commitTimestamp) != null) {
             return;
         }
-        Futures.getUnchecked(autobatcher.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
+        Futures.getUnchecked(cellPutter.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
     }
 
     @Nullable
     @Override
     public Long getCommitTimestampIfPresent(Long startTimestamp) {
-        Long value = concurrentHashMap.get(startTimestamp);
+        Long value = inflightRequests.get(startTimestamp);
         if (value != null) {
             return value;
         }
@@ -105,7 +106,8 @@ public final class OffHeapTimestampCache implements TimestampCache {
         return persistentTimestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp);
     }
 
-    private static CacheDescriptor constructCacheProposal(PersistentTimestampStore persistentTimestampStore) {
+    private static CacheDescriptor createNamespaceAndConstructCacheProposal(
+            PersistentTimestampStore persistentTimestampStore) {
         StoreNamespace proposal = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
         return ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
@@ -132,16 +134,17 @@ public final class OffHeapTimestampCache implements TimestampCache {
                         cacheDescriptor.storeNamespace(),
                         request.stream().map(Map.Entry::getKey).collect(Collectors.toList()));
 
-                Set<Map.Entry<Long, Long>> toWrite = Sets.difference(request, response.entrySet());
+                Map<Long, Long> toWrite = ImmutableMap.copyOf(Sets.difference(request, response.entrySet()));
                 offHeapTimestampCache.persistentTimestampStore.multiPut(
                         cacheDescriptor.storeNamespace(),
                         toWrite);
 
                 cacheDescriptor.currentSize().addAndGet(toWrite.size());
             } catch (SafeIllegalArgumentException exception) {
-                log.warn("Clear called concurrently, writing failed");
+                // happens when a store is dropped by a concurrent call to clear
+                log.warn("Clear called concurrently, writing failed", exception);
             } finally {
-                offHeapTimestampCache.concurrentHashMap.clear();
+                offHeapTimestampCache.inflightRequests.clear();
             }
             return KeyedStream.of(request.stream()).collectToMap();
         }

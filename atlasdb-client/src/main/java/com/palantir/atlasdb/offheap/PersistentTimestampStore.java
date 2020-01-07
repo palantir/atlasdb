@@ -18,7 +18,6 @@ package com.palantir.atlasdb.offheap;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -73,11 +72,11 @@ public interface PersistentTimestampStore extends AutoCloseable {
      * Stores the start to commit timestamp pairs given in {@code toWrite}, overwriting the existing values.
      *
      * @param storeNamespace of the store to which we should store the entry
-     * @param toWrite pairs of entries to write
+     * @param toWrite timestamp pairs to write
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    void multiPut(StoreNamespace storeNamespace, Set<Map.Entry<Long, Long>> toWrite);
+    void multiPut(StoreNamespace storeNamespace, Map<Long, Long> toWrite);
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to
