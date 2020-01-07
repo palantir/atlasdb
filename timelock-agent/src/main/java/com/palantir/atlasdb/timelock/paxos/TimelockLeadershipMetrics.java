@@ -16,15 +16,10 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_CLIENT;
-import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER;
-import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_PAXOS_USE_CASE;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -34,30 +29,24 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
-import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 @Value.Immutable
-public abstract class TimelockLeadershipMetrics {
-
-    public abstract TimelockPaxosMetrics metrics();
-    public abstract UUID leaderUuid();
-    public abstract PingableLeader localPingableLeader();
-    public abstract AutobatchingLeadershipObserverFactory leadershipObserverFactory();
-    abstract Client client();
+public abstract class TimelockLeadershipMetrics implements Dependencies.LeadershipMetrics {
 
     @Value.Derived
     List<SafeArg<String>> namespaceAsArgs() {
         return ImmutableList.of(
-                SafeArg.of(TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()),
-                SafeArg.of(TAG_CLIENT, client().value()));
+                SafeArg.of(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()),
+                SafeArg.of(AtlasDbMetricNames.TAG_CLIENT, proxyClient().value()));
     }
 
     @Value.Derived
@@ -71,7 +60,7 @@ public abstract class TimelockLeadershipMetrics {
 
     @Value.Derived
     LeadershipObserver leadershipObserver() {
-        return leadershipObserverFactory().create(client());
+        return leadershipObserverFactory().create(proxyClient());
     }
 
     public <T> T instrument(String name, Class<T> clazz, T instance) {
@@ -81,8 +70,8 @@ public abstract class TimelockLeadershipMetrics {
                 instance,
                 name,
                 _context -> ImmutableMap.of(
-                        TAG_CLIENT, client().value(),
-                        TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
+                        AtlasDbMetricNames.TAG_CLIENT, proxyClient().value(),
+                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
     }
 
     public static AutobatchingLeadershipObserverFactory createFactory(TimelockPaxosMetrics metrics) {
@@ -123,13 +112,13 @@ public abstract class TimelockLeadershipMetrics {
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
         return metricName ->
-                Optional.ofNullable(metricName.safeTags().get(TAG_CURRENT_SUSPECTED_LEADER))
+                Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
                         .filter(String.valueOf(currentLeader)::equals)
                         .isPresent();
     }
 
     private static Predicate<MetricName> withClientTag(Set<String> clients) {
-        return metricName -> clients.contains(metricName.safeTags().get(TAG_CLIENT));
+        return metricName -> clients.contains(metricName.safeTags().get(AtlasDbMetricNames.TAG_CLIENT));
     }
 
 }

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.io.Closeable;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import org.immutables.value.Value;
 
@@ -27,14 +26,8 @@ import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 
 @Value.Immutable
-abstract class BatchingNetworkClientFactories implements NetworkClientFactories {
-
-    abstract PaxosUseCase useCase();
-    abstract TimelockPaxosMetrics metrics();
-    abstract PaxosRemoteClients remoteClients();
-    abstract LocalPaxosComponents components();
-    abstract int quorumSize();
-    abstract ExecutorService sharedExecutor();
+abstract class BatchingNetworkClientFactories implements
+        NetworkClientFactories, Dependencies.NetworkClientFactories {
 
     @Value.Auxiliary
     @Value.Derived
@@ -78,5 +71,7 @@ abstract class BatchingNetworkClientFactories implements NetworkClientFactories 
     public Factory<PaxosLearnerNetworkClient> learner() {
         return learnerNetworkClientFactory()::paxosLearnerForClient;
     }
+
+    public abstract static class Builder implements NetworkClientFactories.Builder {}
 
 }

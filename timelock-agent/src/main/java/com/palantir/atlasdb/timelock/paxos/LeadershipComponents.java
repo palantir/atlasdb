@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
-import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -44,15 +43,12 @@ public class LeadershipComponents {
     private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = Maps.newConcurrentMap();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
-    private final TimelockPaxosMetrics metrics;
     private final Factory<LeadershipContext> leadershipContextFactory;
     private final LeaderPingHealthCheck leaderPingHealthCheck;
 
-    public LeadershipComponents(
-            TimelockPaxosMetrics metrics,
+    LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
             LeaderPingHealthCheck leaderPingHealthCheck) {
-        this.metrics = metrics;
         this.leadershipContextFactory = leadershipContextFactory;
         this.leaderPingHealthCheck = leaderPingHealthCheck;
     }
@@ -84,15 +80,10 @@ public class LeadershipComponents {
         LeadershipContext uninstrumentedLeadershipContext = leadershipContextFactory.create(client);
         closer.register(uninstrumentedLeadershipContext.closeables());
 
-        BatchingLeaderElectionService batchingLeaderElectionService =
-                new BatchingLeaderElectionService(uninstrumentedLeadershipContext.leaderElectionService());
-        closer.register(batchingLeaderElectionService);
-
-        LeaderElectionService leaderElectionService = metrics.instrument(
-                LeaderElectionService.class,
-                batchingLeaderElectionService,
+        LeaderElectionService leaderElectionService = uninstrumentedLeadershipContext.leadershipMetrics().instrument(
                 "leader-election-service",
-                client);
+                LeaderElectionService.class,
+                uninstrumentedLeadershipContext.leaderElectionService());
         closer.register(() -> shutdownLeaderElectionService(leaderElectionService));
 
         return ImmutableLeadershipContext.builder()
