@@ -138,9 +138,10 @@ public final class OffHeapTimestampCache implements TimestampCache {
                         toWrite);
 
                 cacheDescriptor.currentSize().addAndGet(toWrite.size());
-                offHeapTimestampCache.concurrentHashMap.clear();
             } catch (SafeIllegalArgumentException exception) {
                 log.warn("Clear called concurrently, writing failed");
+            } finally {
+                offHeapTimestampCache.concurrentHashMap.clear();
             }
             return KeyedStream.of(request.stream()).collectToMap();
         }
