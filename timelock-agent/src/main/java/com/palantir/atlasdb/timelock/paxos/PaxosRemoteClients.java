@@ -30,7 +30,6 @@ import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
@@ -49,52 +48,44 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<TimelockPaxosAcceptorRpcClient> nonBatchTimestampAcceptor() {
-        return createInstrumentedRemoteProxies(TimelockPaxosAcceptorRpcClient.class, "paxos-acceptor-rpc-client");
+        return createInstrumentedRemoteProxies(TimelockPaxosAcceptorRpcClient.class);
     }
 
     @Value.Derived
     public List<TimelockPaxosLearnerRpcClient> nonBatchTimestampLearner() {
-        return createInstrumentedRemoteProxies(TimelockPaxosLearnerRpcClient.class, "paxos-learner-rpc-client");
+        return createInstrumentedRemoteProxies(TimelockPaxosLearnerRpcClient.class);
     }
 
     @Value.Derived
     public List<TimelockSingleLeaderPaxosLearnerRpcClient> singleLeaderLearner() {
-        return createInstrumentedRemoteProxies(
-                TimelockSingleLeaderPaxosLearnerRpcClient.class,
-                "paxos-leader-learner-rpc-client");
+        return createInstrumentedRemoteProxies(TimelockSingleLeaderPaxosLearnerRpcClient.class);
     }
 
     @Value.Derived
     public List<TimelockSingleLeaderPaxosAcceptorRpcClient> singleLeaderAcceptor() {
-        return createInstrumentedRemoteProxies(
-                TimelockSingleLeaderPaxosAcceptorRpcClient.class,
-                "paxos-leader-acceptor-rpc-client");
+        return createInstrumentedRemoteProxies(TimelockSingleLeaderPaxosAcceptorRpcClient.class);
     }
 
     @Value.Derived
     public List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
-        return createInstrumentedRemoteProxies(
-                BatchPaxosAcceptorRpcClient.class,
-                "batch-paxos-acceptor-rpc-client");
+        return createInstrumentedRemoteProxies(BatchPaxosAcceptorRpcClient.class);
     }
 
     @Value.Derived
     public List<BatchPaxosLearnerRpcClient> batchLearner() {
-        return createInstrumentedRemoteProxies(
-                BatchPaxosLearnerRpcClient.class,
-                "batch-paxos-learner-rpc-client");
+        return createInstrumentedRemoteProxies(BatchPaxosLearnerRpcClient.class);
     }
 
     @Value.Derived
     public List<PingableLeader> nonBatchPingableLeaders() {
-        return createInstrumentedRemoteProxies(PingableLeader.class, "paxos-pingable-leader-rpc-client", false);
+        return createInstrumentedRemoteProxies(PingableLeader.class, false);
     }
 
-    private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, String name) {
-        return createInstrumentedRemoteProxies(clazz, name, true);
+    private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz) {
+        return createInstrumentedRemoteProxies(clazz, true);
     }
 
-    private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, String name, boolean shouldRetry) {
+    private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
         return context().remoteUris().stream()
                 .map(uri -> AtlasDbHttpClients.createProxy(
                         MetricsManagers.of(new MetricRegistry(), metrics()),
@@ -102,7 +93,7 @@ public abstract class PaxosRemoteClients {
                         uri,
                         clazz,
                         AuxiliaryRemotingParameters.builder()
-                                .userAgent(UserAgents.tryParse(name))
+                                .userAgent(context().userAgent())
                                 .shouldLimitPayload(false)
                                 .shouldRetry(shouldRetry)
                                 .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
@@ -111,7 +102,7 @@ public abstract class PaxosRemoteClients {
                         metrics(),
                         clazz,
                         proxy,
-                        name,
+                        MetricRegistry.name(clazz),
                         _unused -> ImmutableMap.of()))
                 .collect(Collectors.toList());
     }

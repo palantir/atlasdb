@@ -53,29 +53,38 @@ public abstract class TimelockPaxosMetrics {
         return metrics;
     }
 
-    public <T, U extends T> T instrument(Class<T> clazz, U instance, String name) {
+    public <T, U extends T> T instrument(Class<T> clazz, U instance) {
         Map<String, String> tags = ImmutableMap.of();
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, instance, name, _context -> tags);
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                metrics(),
+                clazz,
+                instance,
+                MetricRegistry.name(clazz),
+                _context -> tags);
     }
 
-    public <T, U extends T> T instrument(Class<T> clazz, U instance, String name, Client client) {
+    public <T, U extends T> T instrument(Class<T> clazz, U instance, Client client) {
         Map<String, String> tags = ImmutableMap.of(AtlasDbMetricNames.TAG_CLIENT, client.value());
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, instance, name, _context -> tags);
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                metrics(),
+                clazz,
+                instance,
+                MetricRegistry.name(clazz),
+                _context -> tags);
     }
 
-    public <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(Class<T> clazz, T local, List<T> remotes, String name) {
+    public <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(Class<T> clazz, T local, List<T> remotes) {
         return LocalAndRemotes.of(local, remotes)
-                .map(instance -> instrument(clazz, instance, name));
+                .map(instance -> instrument(clazz, instance));
     }
 
     public <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(
             Class<T> clazz,
             T local,
             List<T> remotes,
-            String name,
             Client client) {
         return LocalAndRemotes.of(local, remotes)
-                .map(instance -> instrument(clazz, instance, name, client));
+                .map(instance -> instrument(clazz, instance, client));
     }
 
     private void attachToParentMetricRegistry(TaggedMetricRegistry parent) {

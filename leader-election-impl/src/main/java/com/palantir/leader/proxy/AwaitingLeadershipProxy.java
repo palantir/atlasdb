@@ -120,6 +120,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.warn("gain leadership backoff interrupted");
+                if (isClosed) {
+                    log.info("gain leadership with retry terminated as the proxy is closed");
+                    return;
+                }
             }
         }
     }

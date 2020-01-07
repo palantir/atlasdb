@@ -19,7 +19,11 @@ package com.palantir.atlasdb.autobatch;
 import java.io.Closeable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AsyncFunction;
@@ -28,6 +32,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.palantir.logsafe.Preconditions;
 
@@ -37,6 +42,8 @@ import com.palantir.logsafe.Preconditions;
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
+
+    private static final Logger log = LoggerFactory.getLogger(DisruptorAutobatcher.class);
 
     /*
         By memoizing thread factories per loggable purpose, the thread names are numbered uniquely for multiple
@@ -81,7 +88,12 @@ public final class DisruptorAutobatcher<T, R>
     @Override
     public void close() {
         closed = true;
-        disruptor.shutdown();
+        try {
+            disruptor.shutdown(10, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            log.warn("Disruptor took more than 10 seconds to shutdown. "
+                    + "Ensure that handlers aren't uninterruptibly blocking and ensure that they are closed.", e);
+        }
     }
 
     private static final class DefaultBatchElement<T, R> implements BatchElement<T, R> {

@@ -16,27 +16,15 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.List;
+import com.palantir.paxos.LeaderPinger;
+import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 
-import org.immutables.value.Value;
-
-import com.palantir.paxos.PaxosAcceptorNetworkClient;
-import com.palantir.paxos.PaxosLearnerNetworkClient;
-
-@Value.Immutable
-@Value.Style(typeInnerBuilder = "DoNotMatch")
-public interface NetworkClientFactories {
-    Factory<PaxosAcceptorNetworkClient> acceptor();
-    Factory<PaxosLearnerNetworkClient> learner();
-    List<Closeable> closeables();
-
-    interface Factory<T> {
-        T create(Client client);
+public interface Factories {
+    interface LeaderPingerFactory {
+        LeaderPinger create(Dependencies.LeaderPinger dependencies);
     }
 
-    interface Builder {
-        Builder from(Dependencies.NetworkClientFactories dependencies);
-        NetworkClientFactories build();
+    interface LeaderPingHealthCheckFactory {
+        LeaderPingHealthCheck create(Dependencies.LeaderPingHealthCheck dependencies);
     }
 }
