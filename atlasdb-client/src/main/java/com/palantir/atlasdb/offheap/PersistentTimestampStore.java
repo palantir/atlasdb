@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.offheap;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -44,6 +47,8 @@ public interface PersistentTimestampStore extends AutoCloseable {
     @Nullable
     Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) throws SafeIllegalArgumentException;
 
+    Set<Map.Entry<Long, Long>> multiGet(StoreNamespace storeNamespace, List<Long> keys);
+
     /**
      * Stores the {@code commitTs} for the associated {@code startTs} while overwriting the existing value in the
      * specified {@code storeNamespace}.
@@ -56,6 +61,8 @@ public interface PersistentTimestampStore extends AutoCloseable {
      */
     void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs)
             throws SafeIllegalArgumentException;
+
+    void multiPut(StoreNamespace storeNamespace, Set<Map.Entry<Long, Long>> toWrite);
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to
