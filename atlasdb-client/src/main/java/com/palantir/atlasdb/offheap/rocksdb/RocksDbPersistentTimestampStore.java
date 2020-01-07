@@ -35,6 +35,8 @@ import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
@@ -89,6 +91,10 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
         List<byte[]> byteValues = multiGetValueBytes(
                 availableColumnFamilies.get(storeNamespace.uniqueName()),
                 byteKeys);
+
+        if (byteValues.isEmpty()) {
+            return ImmutableSet.of();
+        }
 
         return KeyedStream.ofEntries(
                 Streams.zip(
@@ -177,7 +183,7 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
             return rocksDB.multiGetAsList(Collections.nCopies(keys.size(), columnFamilyHandle), keys);
         } catch (RocksDBException exception) {
             log.warn("Rocks db raised an exception", exception);
-            return null;
+            return ImmutableList.of();
         }
     }
 

@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -37,10 +39,12 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class OffHeapTimestampCache implements TimestampCache {
     private static final String TIMESTAMP_CACHE_NAMESPACE = "timestamp_cache";
-    public static final String BATCHER_PURPOSE = "off-heap-timestamp-cache";
+    private static final String BATCHER_PURPOSE = "off-heap-timestamp-cache";
+    private static final Logger log = LoggerFactory.getLogger(OffHeapTimestampCache.class);
 
     private final PersistentTimestampStore persistentTimestampStore;
     private final int maxSize;
@@ -101,6 +105,14 @@ public final class OffHeapTimestampCache implements TimestampCache {
         return persistentTimestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp);
     }
 
+    private static CacheDescriptor constructCacheProposal(PersistentTimestampStore persistentTimestampStore) {
+        StoreNamespace proposal = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
+        return ImmutableCacheDescriptor.builder()
+                .currentSize(new AtomicInteger())
+                .storeNamespace(proposal)
+                .build();
+    }
+
     private static class WriteBatcher
             implements CoalescingRequestFunction<Map.Entry<Long, Long>, Map.Entry<Long, Long>> {
         OffHeapTimestampCache offHeapTimestampCache;
@@ -114,28 +126,24 @@ public final class OffHeapTimestampCache implements TimestampCache {
             if (offHeapTimestampCache.cacheDescriptor.get().currentSize().get() >= offHeapTimestampCache.maxSize) {
                 offHeapTimestampCache.clear();
             }
+            CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
+            try {
+                Set<Map.Entry<Long, Long>> response = offHeapTimestampCache.persistentTimestampStore.multiGet(
+                        cacheDescriptor.storeNamespace(),
+                        request.stream().map(Map.Entry::getKey).collect(Collectors.toList()));
 
-            Set<Map.Entry<Long, Long>> response = offHeapTimestampCache.persistentTimestampStore.multiGet(
-                    offHeapTimestampCache.cacheDescriptor.get().storeNamespace(),
-                    request.stream().map(Map.Entry::getKey).collect(Collectors.toList()));
+                Set<Map.Entry<Long, Long>> toWrite = Sets.difference(request, response);
+                offHeapTimestampCache.persistentTimestampStore.multiPut(
+                        cacheDescriptor.storeNamespace(),
+                        toWrite);
 
-            Set<Map.Entry<Long, Long>> toWrite = Sets.difference(request, response);
-            offHeapTimestampCache.persistentTimestampStore.multiPut(
-                    offHeapTimestampCache.cacheDescriptor.get().storeNamespace(),
-                    toWrite);
-
-            offHeapTimestampCache.cacheDescriptor.get().currentSize().addAndGet(toWrite.size());
-            offHeapTimestampCache.concurrentHashMap.clear();
+                cacheDescriptor.currentSize().addAndGet(toWrite.size());
+                offHeapTimestampCache.concurrentHashMap.clear();
+            } catch (SafeIllegalArgumentException exception) {
+                log.warn("Clear called concurrently, writing failed");
+            }
             return KeyedStream.of(request.stream()).collectToMap();
         }
-    }
-
-    private static CacheDescriptor constructCacheProposal(PersistentTimestampStore persistentTimestampStore) {
-        StoreNamespace proposal = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
-        return ImmutableCacheDescriptor.builder()
-                .currentSize(new AtomicInteger())
-                .storeNamespace(proposal)
-                .build();
     }
 
     @Value.Immutable
