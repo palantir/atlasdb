@@ -52,9 +52,9 @@ public interface PersistentTimestampStore extends AutoCloseable {
      *
      * @param storeNamespace handle to the namespace from which we want to retrieve the commit timestamp
      * @param keys representing start timestamps for which to retrieve commit timestamps
-     * @return a map for start to commit timestamp of null if the commit timestamp is not present in cache
+     * @return a map for start to commit timestamp
      */
-    Set<Map.Entry<Long, Long>> multiGet(StoreNamespace storeNamespace, List<Long> keys);
+    Map<Long, Long> multiGet(StoreNamespace storeNamespace, List<Long> keys);
 
     /**
      * Stores the {@code commitTs} for the associated {@code startTs} while overwriting the existing value in the

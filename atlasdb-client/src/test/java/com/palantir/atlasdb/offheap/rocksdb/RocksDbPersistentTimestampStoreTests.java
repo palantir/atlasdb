@@ -30,6 +30,7 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
@@ -126,10 +127,9 @@ public final class RocksDbPersistentTimestampStoreTests {
         timestampMappingStore.put(defaultNamespace, 3L, 4L);
 
         assertThat(timestampMappingStore.multiGet(defaultNamespace, ImmutableList.of(1L, 2L, 3L)))
-                .containsExactlyInAnyOrder(
-                        entry(1L, 2L),
-                        entry(3L, 4L),
-                        entry(2L, null)
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+                        1L, 2L,
+                        3L, 4L)
                 );
     }
 }

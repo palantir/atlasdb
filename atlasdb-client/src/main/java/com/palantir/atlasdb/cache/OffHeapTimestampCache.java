@@ -128,11 +128,11 @@ public final class OffHeapTimestampCache implements TimestampCache {
             }
             CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             try {
-                Set<Map.Entry<Long, Long>> response = offHeapTimestampCache.persistentTimestampStore.multiGet(
+                Map<Long, Long> response = offHeapTimestampCache.persistentTimestampStore.multiGet(
                         cacheDescriptor.storeNamespace(),
                         request.stream().map(Map.Entry::getKey).collect(Collectors.toList()));
 
-                Set<Map.Entry<Long, Long>> toWrite = Sets.difference(request, response);
+                Set<Map.Entry<Long, Long>> toWrite = Sets.difference(request, response.entrySet());
                 offHeapTimestampCache.persistentTimestampStore.multiPut(
                         cacheDescriptor.storeNamespace(),
                         toWrite);

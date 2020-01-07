@@ -19,6 +19,7 @@ package com.palantir.atlasdb.offheap.rocksdb;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
@@ -72,14 +73,11 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
         byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
         byte[] value = getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), byteKeyValue);
 
-        if (value == null) {
-            return null;
-        }
-        return startTs + (Long) ValueType.VAR_LONG.convertToJava(value, 0);
+        return deserializeValue(startTs, value);
     }
 
     @Override
-    public Set<Map.Entry<Long, Long>> multiGet(StoreNamespace storeNamespace, List<Long> keys) {
+    public Map<Long, Long> multiGet(StoreNamespace storeNamespace, List<Long> keys) {
         Preconditions.checkArgument(
                 availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
                 "Store namespace does not exist");
@@ -93,22 +91,16 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
                 byteKeys);
 
         if (byteValues.isEmpty()) {
-            return ImmutableSet.of();
+            return ImmutableMap.of();
         }
 
         return KeyedStream.ofEntries(
                 Streams.zip(
                         keys.stream(),
                         byteValues.stream(),
-                        (key, value) -> {
-                            if (value == null) {
-                                return Maps.immutableEntry(key, null);
-                            }
-                            return Maps.immutableEntry(
-                                    key, key + (Long) ValueType.VAR_LONG.convertToJava(value, 0));
-                        }))
-                .collectToMap()
-                .entrySet();
+                        (key, value) -> Maps.immutableEntry(key, deserializeValue(key, value))))
+                .filter(Objects::nonNull)
+                .collectToMap();
     }
 
     @Override
@@ -151,6 +143,13 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     @Override
     public void close() {
         rocksDB.close();
+    }
+
+    private Long deserializeValue(Long key, byte[] value) {
+        if (value == null) {
+            return null;
+        }
+        return key + (Long) ValueType.VAR_LONG.convertToJava(value, 0);
     }
 
     private UUID createColumnFamily() {
