@@ -55,7 +55,7 @@ public class LeaderElectionServiceFactory {
             Client paxosClient,
             TimelockPaxosMetrics metrics,
             PaxosProposer uninstrumentedPaxosProposer) {
-        return metrics.instrument(PaxosProposer.class, uninstrumentedPaxosProposer, "paxos-proposer", paxosClient);
+        return metrics.instrument(PaxosProposer.class, uninstrumentedPaxosProposer, paxosClient);
     }
 
 }

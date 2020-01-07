@@ -78,7 +78,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
         AsyncTimelockService asyncTimelockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
-                "timelock-async-timelock-service",
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
 
@@ -88,7 +87,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
         LockService lockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
-                "timelock-lock-service",
                 LockService.class,
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get));
 

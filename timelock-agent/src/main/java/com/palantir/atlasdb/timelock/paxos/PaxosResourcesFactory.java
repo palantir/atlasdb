@@ -31,6 +31,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PingableLeader;
@@ -217,7 +218,7 @@ public final class PaxosResourcesFactory {
                         learnerNetworkClient,
                         install().nodeUuid());
 
-                return metrics().instrument(PaxosProposer.class, paxosProposer, "paxos-proposer", client);
+                return metrics().instrument(PaxosProposer.class, paxosProposer, client);
             };
         }
     }
@@ -227,6 +228,9 @@ public final class PaxosResourcesFactory {
 
         @Value.Parameter
         TimeLockInstallConfiguration install();
+
+        @Value.Parameter
+        UserAgent userAgent();
 
         @Value.Derived
         default UUID nodeUuid() {

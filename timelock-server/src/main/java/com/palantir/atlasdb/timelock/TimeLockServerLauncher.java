@@ -30,6 +30,7 @@ import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -44,6 +45,10 @@ import io.dropwizard.setup.Environment;
  * Provides a way of launching an embedded TimeLock server using Dropwizard. Should only be used in tests.
  */
 public class TimeLockServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
+
+    private static final UserAgent USER_AGENT =
+            UserAgent.of(UserAgent.Agent.of("TimelockServerLauncher", "0.0.0"));
+
     public static void main(String[] args) throws Exception {
         new TimeLockServerLauncher().run(args);
     }
@@ -73,6 +78,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 metricsManager,
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
+                USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 registrar);

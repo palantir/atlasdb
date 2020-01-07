@@ -36,8 +36,7 @@ abstract class BatchingNetworkClientFactories implements
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosAcceptor.class,
                         components().batchAcceptor(),
-                        UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor()),
-                        "batch-paxos-acceptor")
+                        UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor()))
                 .all();
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
     }
@@ -49,8 +48,7 @@ abstract class BatchingNetworkClientFactories implements
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
                         components().batchLearner(),
-                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()),
-                        "batch-paxos-learner");
+                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()));
 
         return AutobatchingPaxosLearnerNetworkClientFactory.create(allBatchLearners, sharedExecutor(), quorumSize());
     }

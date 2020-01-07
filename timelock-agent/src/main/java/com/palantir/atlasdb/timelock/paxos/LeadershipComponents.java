@@ -53,7 +53,7 @@ public class LeadershipComponents {
         this.leaderPingHealthCheck = leaderPingHealthCheck;
     }
 
-    public <T> T wrapInLeadershipProxy(Client client, String name, Class<T> clazz, Supplier<T> delegateSupplier) {
+    public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
         LeadershipContext context = getOrCreateNewLeadershipContext(client);
         T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, context.leaderElectionService());
 
@@ -61,7 +61,7 @@ public class LeadershipComponents {
         Closeable closeableInstance = (Closeable) instance;
         closer.register(closeableInstance);
 
-        return context.leadershipMetrics().instrument(name, clazz, instance);
+        return context.leadershipMetrics().instrument(clazz, instance);
     }
 
     public void shutdown() {
@@ -81,7 +81,6 @@ public class LeadershipComponents {
         closer.register(uninstrumentedLeadershipContext.closeables());
 
         LeaderElectionService leaderElectionService = uninstrumentedLeadershipContext.leadershipMetrics().instrument(
-                "leader-election-service",
                 LeaderElectionService.class,
                 uninstrumentedLeadershipContext.leaderElectionService());
         closer.register(() -> shutdownLeaderElectionService(leaderElectionService));

@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimaps;
@@ -63,12 +64,12 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
         return leadershipObserverFactory().create(proxyClient());
     }
 
-    public <T> T instrument(String name, Class<T> clazz, T instance) {
+    public <T> T instrument(Class<T> clazz, T instance) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 metrics().metrics(),
                 clazz,
                 instance,
-                name,
+                MetricRegistry.name(clazz),
                 _context -> ImmutableMap.of(
                         AtlasDbMetricNames.TAG_CLIENT, proxyClient().value(),
                         AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));

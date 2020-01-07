@@ -46,7 +46,6 @@ abstract class SingleLeaderNetworkClientFactories implements
                     PaxosAcceptor.class,
                     localAcceptor,
                     remoteAcceptors,
-                    "paxos-acceptor",
                     client);
             return new SingleLeaderAcceptorNetworkClient(
                     allAcceptors.all(),
@@ -68,7 +67,6 @@ abstract class SingleLeaderNetworkClientFactories implements
                     PaxosLearner.class,
                     localLearner,
                     remoteLearners,
-                    "paxos-learner",
                     client);
             return new SingleLeaderLearnerNetworkClient(
                     allLearners.local(),
