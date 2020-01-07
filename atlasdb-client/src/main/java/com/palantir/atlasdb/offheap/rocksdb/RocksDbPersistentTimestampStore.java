@@ -82,13 +82,13 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
                 availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
                 "Store namespace does not exist");
 
-        List<byte[]> byteKeyValues = keys.stream()
+        List<byte[]> byteKeys = keys.stream()
                 .map(ValueType.VAR_LONG::convertFromJava)
                 .collect(Collectors.toList());
 
         List<byte[]> byteValues = multiGetValueBytes(
                 availableColumnFamilies.get(storeNamespace.uniqueName()),
-                byteKeyValues);
+                byteKeys);
 
         return KeyedStream.ofEntries(
                 Streams.zip(
@@ -96,7 +96,7 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
                         byteValues.stream(),
                         (key, value) -> {
                             if (value == null) {
-                                return null;
+                                return Maps.immutableEntry(key, null);
                             }
                             return Maps.immutableEntry(
                                     key, key + (Long) ValueType.VAR_LONG.convertToJava(value, 0));

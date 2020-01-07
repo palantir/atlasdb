@@ -47,6 +47,13 @@ public interface PersistentTimestampStore extends AutoCloseable {
     @Nullable
     Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) throws SafeIllegalArgumentException;
 
+    /**
+     * Gets the commit timestamps associated with the entries specified by {@code keys}.
+     *
+     * @param storeNamespace handle to the namespace from which we want to retrieve the commit timestamp
+     * @param keys representing start timestamps for which to retrieve commit timestamps
+     * @return a map for start to commit timestamp of null if the commit timestamp is not present in cache
+     */
     Set<Map.Entry<Long, Long>> multiGet(StoreNamespace storeNamespace, List<Long> keys);
 
     /**
@@ -62,6 +69,14 @@ public interface PersistentTimestampStore extends AutoCloseable {
     void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs)
             throws SafeIllegalArgumentException;
 
+    /**
+     * Stores the start to commit timestamp pairs given in {@code toWrite}, overwriting the existing values.
+     *
+     * @param storeNamespace of the store to which we should store the entry
+     * @param toWrite pairs of entries to write
+     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
+     * handle to a non existing namespace
+     */
     void multiPut(StoreNamespace storeNamespace, Set<Map.Entry<Long, Long>> toWrite);
 
     /**
