@@ -212,7 +212,6 @@ public final class Throwables {
                     return chain(rv, throwable);
                 }
             }
-            addCurrentStackIfRewrapFails(throwable);
             return throwable;
 
         } catch (Exception e) {
@@ -258,17 +257,6 @@ public final class Throwables {
                 printwriter.println((new StringBuilder()).append("\tat ").append(elements[i]).toString());
             }
 
-        }
-    }
-
-    private static void addCurrentStackIfRewrapFails(Throwable ex) {
-        if (ex != null) {
-            StackTraceElement[] thisThreadStack = new Throwable().getStackTrace();
-            StackTraceElement[] exisitingStack = ex.getStackTrace();
-            StackTraceElement[] combinedStack = new StackTraceElement[exisitingStack.length + thisThreadStack.length];
-            System.arraycopy(exisitingStack, 0, combinedStack, 0, exisitingStack.length);
-            System.arraycopy(thisThreadStack, 0, combinedStack, exisitingStack.length, thisThreadStack.length);
-            ex.setStackTrace(combinedStack);
         }
     }
 }
