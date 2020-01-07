@@ -60,7 +60,6 @@ public class TableWatchingServiceImpl implements TableWatchingService {
                 .map(event -> event.accept(visitor))
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
-
         return TimestampWithLockInfo.diff(response.timestamp(), lockedDescriptors);
     }
 }
