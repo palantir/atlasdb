@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +39,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -307,18 +306,15 @@ public final class Leaders {
                                 .shouldLimitPayload(true)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
-                .map(Leaders::convertAddressToUrl)
+                .map(Leaders::convertAddressToHostAndPort)
                 .map(ImmutableLeaderPingerContext::of)
                 .values()
                 .collect(Collectors.toList());
     }
 
-    private static URL convertAddressToUrl(String addressHostAndPort) {
-        try {
-            return URI.create(addressHostAndPort).toURL();
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
+    private static HostAndPort convertAddressToHostAndPort(String url) {
+        URI uri = URI.create(url);
+        return HostAndPort.fromParts(uri.getHost(), uri.getPort());
     }
 
     @Value.Immutable
