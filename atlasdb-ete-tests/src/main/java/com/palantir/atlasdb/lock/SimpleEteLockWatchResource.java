@@ -33,13 +33,11 @@ import com.palantir.lock.watch.TableWatchingService;
 import com.palantir.lock.watch.TimestampWithLockInfo;
 
 public class SimpleEteLockWatchResource implements EteLockWatchResource {
-    private final TransactionManager transactionManager;
     private final TimelockService timelockService;
     private final TableWatchingService tableWatchingService;
     private final Map<LockToken, LockToken> lockTokenMap = new HashMap<>();
 
     public SimpleEteLockWatchResource(TransactionManager transactionManager) {
-        this.transactionManager = transactionManager;
         this.timelockService = transactionManager.getTimelockService();
         this.tableWatchingService = transactionManager.getTableWatchingService();
     }
