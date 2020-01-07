@@ -74,7 +74,7 @@ public class SingleLeaderPinger implements LeaderPinger {
         try {
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture = multiplexingCompletionService
                     .poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
-            return getLeaderPingResult(uuid, leader, pingFuture);
+            return getLeaderPingResult(uuid, pingFuture);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(ex);
@@ -83,15 +83,15 @@ public class SingleLeaderPinger implements LeaderPinger {
 
     private static LeaderPingResult getLeaderPingResult(
             UUID uuid,
-            LeaderPingerContext<PingableLeader> remote,
             @Nullable Future<Map.Entry<LeaderPingerContext<PingableLeader>, Boolean>> pingFuture) {
         if (pingFuture == null) {
             return LeaderPingResults.pingTimedOut();
         }
 
         try {
-            if (Futures.getDone(pingFuture).getValue()) {
-                return LeaderPingResults.pingReturnedTrue(uuid, remote.url());
+            boolean isLeader = Futures.getDone(pingFuture).getValue();
+            if (isLeader) {
+                return LeaderPingResults.pingReturnedTrue(uuid, Futures.getDone(pingFuture).getKey().hostAndPort());
             } else {
                 return LeaderPingResults.pingReturnedFalse();
             }

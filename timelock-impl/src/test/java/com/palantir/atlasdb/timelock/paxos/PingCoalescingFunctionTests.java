@@ -22,8 +22,6 @@ import static org.mockito.Mockito.when;
 import static com.palantir.paxos.LeaderPingResults.pingReturnedFalse;
 import static com.palantir.paxos.LeaderPingResults.pingReturnedTrue;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,6 +31,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingPingableLeaderFactory.PingRequest;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 
@@ -46,7 +45,7 @@ public class PingCoalescingFunctionTests {
     private static final UUID LEADER_UUID_1 = UUID.randomUUID();
     private static final UUID LEADER_UUID_2 = UUID.randomUUID();
 
-    private static final URL TIMELOCK_URL = createUrl("https://localhost:8080/timelock/api");
+    private static final HostAndPort HOST_AND_PORT = HostAndPort.fromParts("localhost", 8080);
 
     @Mock private BatchPingableLeader remote;
 
@@ -62,24 +61,16 @@ public class PingCoalescingFunctionTests {
                 pingRequest(CLIENT_3, LEADER_UUID_1));
 
         PingCoalescingFunction function =
-                new PingCoalescingFunction(ImmutableLeaderPingerContext.of(remote, TIMELOCK_URL));
+                new PingCoalescingFunction(ImmutableLeaderPingerContext.of(remote, HOST_AND_PORT));
         assertThat(function.apply(requests))
-                .containsEntry(pingRequest(CLIENT_1, LEADER_UUID_1), pingReturnedTrue(LEADER_UUID_1, TIMELOCK_URL))
-                .containsEntry(pingRequest(CLIENT_3, LEADER_UUID_1), pingReturnedTrue(LEADER_UUID_1, TIMELOCK_URL))
+                .containsEntry(pingRequest(CLIENT_1, LEADER_UUID_1), pingReturnedTrue(LEADER_UUID_1, HOST_AND_PORT))
+                .containsEntry(pingRequest(CLIENT_3, LEADER_UUID_1), pingReturnedTrue(LEADER_UUID_1, HOST_AND_PORT))
                 .doesNotContainEntry(
-                        pingRequest(CLIENT_2, LEADER_UUID_2), pingReturnedTrue(LEADER_UUID_2, TIMELOCK_URL))
+                        pingRequest(CLIENT_2, LEADER_UUID_2), pingReturnedTrue(LEADER_UUID_2, HOST_AND_PORT))
                 .containsEntry(pingRequest(CLIENT_2, LEADER_UUID_2), pingReturnedFalse());
     }
 
     private static PingRequest pingRequest(Client client, UUID leaderUuid) {
         return ImmutablePingRequest.of(client, leaderUuid);
-    }
-
-    private static URL createUrl(String url) {
-        try {
-            return new URL(url);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

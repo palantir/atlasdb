@@ -18,8 +18,6 @@ package com.palantir.leader;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HostAndPort;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
@@ -43,7 +42,7 @@ public class PaxosLeaderEventsTest {
     private static final UUID LOCAL_UUID = UUID.randomUUID();
     private static final UUID REMOTE_UUID = UUID.randomUUID();
 
-    private static final URL TIMELOCK_URL = createUrl("https://localhost:8080/timelock/api");
+    private static final HostAndPort HOST_AND_PORT = HostAndPort.fromParts("localhost", 8080);
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -96,22 +95,14 @@ public class PaxosLeaderEventsTest {
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
         assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
-                .isEqualTo(LeaderPingResults.pingReturnedTrue(REMOTE_UUID, TIMELOCK_URL));
+                .isEqualTo(LeaderPingResults.pingReturnedTrue(REMOTE_UUID, HOST_AND_PORT));
     }
 
     private LeaderPinger pingerWithTimeout(Duration leaderPingResponseWait) {
         return new SingleLeaderPinger(
-                ImmutableMap.of(ImmutableLeaderPingerContext.of(pingableLeader, TIMELOCK_URL), executorService),
+                ImmutableMap.of(ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT), executorService),
                 leaderPingResponseWait,
                 LOCAL_UUID);
-    }
-
-    private static URL createUrl(String url) {
-        try {
-            return new URL(url);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
     }
 
 }

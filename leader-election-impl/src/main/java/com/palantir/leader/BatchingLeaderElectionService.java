@@ -17,11 +17,11 @@
 package com.palantir.leader;
 
 import java.io.Closeable;
-import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
+import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -71,8 +71,8 @@ public class BatchingLeaderElectionService implements LeaderElectionService, Clo
     }
 
     @Override
-    public Optional<URL> getRecentlyPingedLeader() {
-        return delegate.getRecentlyPingedLeader();
+    public Optional<HostAndPort> getRecentlyPingedLeaderHost() {
+        return delegate.getRecentlyPingedLeaderHost();
     }
 
     private void processBatch(List<BatchElement<Void, LeadershipToken>> batch) {

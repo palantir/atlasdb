@@ -16,13 +16,13 @@
 
 package com.palantir.paxos;
 
-import java.net.URL;
-
 import org.immutables.value.Value;
+
+import com.google.common.net.HostAndPort;
 
 @Value.Immutable
 @Value.Style(allParameters = true)
 public interface LeaderPingerContext<T> {
     T pinger();
-    URL url();
+    HostAndPort hostAndPort();
 }

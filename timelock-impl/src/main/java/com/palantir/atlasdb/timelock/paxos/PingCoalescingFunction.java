@@ -46,7 +46,7 @@ final class PingCoalescingFunction implements CoalescingRequestFunction<PingRequ
         if (pingResults.contains(currentRequest.client())) {
             return LeaderPingResults.pingReturnedTrue(
                     currentRequest.requestedLeaderId(),
-                    batchPingableLeader.url());
+                    batchPingableLeader.hostAndPort());
         } else {
             return LeaderPingResults.pingReturnedFalse();
         }

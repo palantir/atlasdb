@@ -23,8 +23,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
@@ -38,6 +36,7 @@ import org.mockito.Answers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
@@ -47,7 +46,7 @@ public class AutobatchingPingableLeaderFactoryTests {
 
     private static final Client CLIENT_1 = Client.of("client-1");
     private static final Client CLIENT_2 = Client.of("client-2");
-    private static final URL TIMELOCK_URL = createUrl("https://localhost:8080/timelock/api");
+    private static final HostAndPort HOST_AND_PORT = HostAndPort.fromParts("localhost", 8080);
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -58,14 +57,14 @@ public class AutobatchingPingableLeaderFactoryTests {
 
     @Test
     public void canPingLeaderMatchingUuidAndClient() {
-        LeaderPingerContext<BatchPingableLeader> rpc = batchPingableLeader(TIMELOCK_URL, CLIENT_1);
+        LeaderPingerContext<BatchPingableLeader> rpc = batchPingableLeader(HOST_AND_PORT, CLIENT_1);
         AutobatchingPingableLeaderFactory factory = factoryForPingables(rpc);
 
         LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
         LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
         assertThat(client1Pinger.pingLeaderWithUuid(rpc.pinger().uuid()))
-                .isEqualTo(LeaderPingResults.pingReturnedTrue(rpc.pinger().uuid(), TIMELOCK_URL));
+                .isEqualTo(LeaderPingResults.pingReturnedTrue(rpc.pinger().uuid(), HOST_AND_PORT));
 
         assertThat(client2Pinger.pingLeaderWithUuid(rpc.pinger().uuid()))
                 .isEqualTo(LeaderPingResults.pingReturnedFalse());
@@ -73,7 +72,7 @@ public class AutobatchingPingableLeaderFactoryTests {
 
     @Test
     public void unknownUuidReturnsFalse() {
-        LeaderPingerContext<BatchPingableLeader> rpc = batchPingableLeader(TIMELOCK_URL, CLIENT_1, CLIENT_2);
+        LeaderPingerContext<BatchPingableLeader> rpc = batchPingableLeader(HOST_AND_PORT, CLIENT_1, CLIENT_2);
         AutobatchingPingableLeaderFactory factory = factoryForPingables(rpc);
 
         LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
@@ -88,8 +87,8 @@ public class AutobatchingPingableLeaderFactoryTests {
 
     @Test
     public void twoDifferentLeaders() {
-        URL leader1 = createUrl("https://timelock-1:8080/timelock/api");
-        URL leader2 = createUrl("https://timelock-2:8080/timelock/api");
+        HostAndPort leader1 = HostAndPort.fromParts("timelock-1", 8080);
+        HostAndPort leader2 = HostAndPort.fromParts("timelock-2", 8080);
         LeaderPingerContext<BatchPingableLeader> client1Leader =
                 batchPingableLeader(leader1, CLIENT_1);
         LeaderPingerContext<BatchPingableLeader> client2Leader =
@@ -115,7 +114,7 @@ public class AutobatchingPingableLeaderFactoryTests {
         when(rpc.ping(anySet())).thenThrow(error);
 
         AutobatchingPingableLeaderFactory factory =
-                factoryForPingables(ImmutableLeaderPingerContext.of(rpc, TIMELOCK_URL));
+                factoryForPingables(ImmutableLeaderPingerContext.of(rpc, HOST_AND_PORT));
 
         assertThat(factory.leaderPingerFor(CLIENT_1).pingLeaderWithUuid(uuid))
                 .isEqualTo(LeaderPingResults.pingCallFailure(error));
@@ -135,10 +134,10 @@ public class AutobatchingPingableLeaderFactoryTests {
     }
 
     private static LeaderPingerContext<BatchPingableLeader> batchPingableLeader(
-            URL url,
+            HostAndPort hostAndPort,
             Client... clientsWhichWeAreLeaderFor) {
         FakeBatchPingableLeader fakeBatchPingableLeader = new FakeBatchPingableLeader(clientsWhichWeAreLeaderFor);
-        return ImmutableLeaderPingerContext.of(fakeBatchPingableLeader, url);
+        return ImmutableLeaderPingerContext.of(fakeBatchPingableLeader, hostAndPort);
     }
 
     private static final class FakeBatchPingableLeader implements BatchPingableLeader {
@@ -158,14 +157,6 @@ public class AutobatchingPingableLeaderFactoryTests {
         @Override
         public UUID uuid() {
             return uuid;
-        }
-    }
-
-    private static URL createUrl(String url) {
-        try {
-            return new URL(url);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
         }
     }
 }
