@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cache;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,23 +38,35 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class OffHeapTimestampCache implements TimestampCache {
     private static final String TIMESTAMP_CACHE_NAMESPACE = "timestamp_cache";
     private static final String BATCHER_PURPOSE = "off-heap-timestamp-cache";
     private static final Logger log = LoggerFactory.getLogger(OffHeapTimestampCache.class);
+    private static final String OFF_HEAP_TIMESTAMP_CACHE = MetricRegistry.name(OffHeapTimestampCache.class);
+    private static final MetricName CACHE_HIT = constructCacheMetricName("cacheHit");
+    private static final MetricName CACHE_MISS = constructCacheMetricName("cacheMiss");
+    private static final MetricName CACHE_NUKE = constructCacheMetricName("cacheNuke");
 
     private final PersistentTimestampStore persistentTimestampStore;
     private final int maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
+    private final TaggedMetricRegistry taggedMetricRegistry;
     private final ConcurrentMap<Long, Long> inflightRequests = new ConcurrentHashMap<>();
     private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> timestampPutter;
 
-    public static TimestampCache create(PersistentTimestampStore persistentTimestampStore, int maxSize) {
+    public static TimestampCache create(
+            PersistentTimestampStore persistentTimestampStore,
+            int maxSize,
+            TaggedMetricRegistry taggedMetricRegistry) {
         StoreNamespace storeNamespace = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
 
         CacheDescriptor cacheDescriptor = ImmutableCacheDescriptor.builder()
@@ -61,16 +74,18 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .storeNamespace(storeNamespace)
                 .build();
 
-        return new OffHeapTimestampCache(persistentTimestampStore, cacheDescriptor, maxSize);
+        return new OffHeapTimestampCache(persistentTimestampStore, cacheDescriptor, maxSize, taggedMetricRegistry);
     }
 
     private OffHeapTimestampCache(
             PersistentTimestampStore persistentTimestampStore,
             CacheDescriptor cacheDescriptor,
-            int maxSize) {
+            int maxSize,
+            TaggedMetricRegistry taggedMetricRegistry) {
         this.persistentTimestampStore = persistentTimestampStore;
         this.cacheDescriptor.set(cacheDescriptor);
         this.maxSize = maxSize;
+        this.taggedMetricRegistry = taggedMetricRegistry;
         this.timestampPutter = Autobatchers.coalescing(new WriteBatcher(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
@@ -100,6 +115,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     public Long getCommitTimestampIfPresent(Long startTimestamp) {
         Long value = inflightRequests.get(startTimestamp);
         if (value != null) {
+            taggedMetricRegistry.meter(CACHE_HIT).mark();
             return value;
         }
 
@@ -112,6 +128,12 @@ public final class OffHeapTimestampCache implements TimestampCache {
         return ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
                 .storeNamespace(proposal)
+                .build();
+    }
+
+    private static MetricName constructCacheMetricName(String metricSuffix) {
+        return MetricName.builder()
+                .safeName(MetricRegistry.name(OffHeapTimestampCache.class, metricSuffix))
                 .build();
     }
 
