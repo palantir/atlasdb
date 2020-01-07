@@ -47,7 +47,7 @@ import io.dropwizard.setup.Environment;
 public class TimeLockServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
 
     private static final UserAgent USER_AGENT =
-            UserAgent.of(UserAgent.Agent.of("TimelockServerLauncher", "0.0.0"));
+            UserAgent.of(UserAgent.Agent.of("TimeLockServerLauncher", "0.0.0"));
 
     public static void main(String[] args) throws Exception {
         new TimeLockServerLauncher().run(args);
