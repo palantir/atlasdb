@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
+import com.palantir.atlasdb.ete.lock.watch.LockWatchEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -35,7 +36,8 @@ import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationE
         TimestampManagementEteTest.class,
         CoordinationEteTest.class,
         MultipleSchemaVersionsCoordinationEteTest.class,
-        LockWithTimelockEteTest.class
+        LockWithTimelockEteTest.class,
+        LockWatchEteTest.class
         })
 public class CassandraTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

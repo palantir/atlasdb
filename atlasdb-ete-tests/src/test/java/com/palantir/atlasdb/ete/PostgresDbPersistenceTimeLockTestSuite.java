@@ -29,11 +29,11 @@ import com.palantir.atlasdb.ete.lock.watch.LockWatchEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        TodoEteTest.class,
+        TimestampManagementEteTest.class,
+        CoordinationEteTest.class,
+        LockWithTimelockEteTest.class,
         LockWatchEteTest.class
-//        TodoEteTest.class,
-//        TimestampManagementEteTest.class,
-//        CoordinationEteTest.class,
-//        LockWithTimelockEteTest.class
         })
 public class PostgresDbPersistenceTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

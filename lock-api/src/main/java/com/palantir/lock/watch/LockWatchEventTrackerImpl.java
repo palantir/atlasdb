@@ -78,7 +78,7 @@ public class LockWatchEventTrackerImpl implements LockWatchEventTracker {
             return currentState();
         }
 
-        if (leaderId != update.leaderId() || !lastKnownVersion.isPresent()) {
+        if (!leaderId.equals(update.leaderId()) || !lastKnownVersion.isPresent()) {
             resetAllStateAndSeedWith(update);
             return currentState();
         }
