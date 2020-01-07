@@ -28,6 +28,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
@@ -105,5 +107,27 @@ public final class RocksDbPersistentTimestampStoreTests {
         timestampMappingStore.dropNamespace(testNamespace);
         assertThatThrownBy(() -> timestampMappingStore.dropNamespace(testNamespace))
                 .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void testMultiPut() {
+        timestampMappingStore.multiPut(
+                defaultNamespace,
+                ImmutableMap.of(1L, 2L, 3L, 4L));
+
+        assertThat(timestampMappingStore.get(defaultNamespace, 1L)).isEqualTo(2L);
+        assertThat(timestampMappingStore.get(defaultNamespace, 3L)).isEqualTo(4L);
+    }
+
+    @Test
+    public void testMultiGet() {
+        timestampMappingStore.put(defaultNamespace, 1L, 2L);
+        timestampMappingStore.put(defaultNamespace, 3L, 4L);
+
+        assertThat(timestampMappingStore.multiGet(defaultNamespace, ImmutableList.of(1L, 2L, 3L)))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+                        1L, 2L,
+                        3L, 4L)
+                );
     }
 }
