@@ -18,6 +18,7 @@ package com.palantir.atlasdb.offheap.rocksdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.util.UUID;
 
@@ -28,6 +29,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
@@ -105,5 +108,28 @@ public final class RocksDbPersistentTimestampStoreTests {
         timestampMappingStore.dropNamespace(testNamespace);
         assertThatThrownBy(() -> timestampMappingStore.dropNamespace(testNamespace))
                 .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void testMultiPut() {
+        timestampMappingStore.multiPut(
+                defaultNamespace,
+                ImmutableSet.of(entry(1L, 2L), entry(3L, 4L)));
+
+        assertThat(timestampMappingStore.get(defaultNamespace, 1L)).isEqualTo(2L);
+        assertThat(timestampMappingStore.get(defaultNamespace, 3L)).isEqualTo(4L);
+    }
+
+    @Test
+    public void testMultiGet() {
+        timestampMappingStore.put(defaultNamespace, 1L, 2L);
+        timestampMappingStore.put(defaultNamespace, 3L, 4L);
+
+        assertThat(timestampMappingStore.multiGet(defaultNamespace, ImmutableList.of(1L, 2L, 3L)))
+                .containsExactlyInAnyOrder(
+                        entry(1L, 2L),
+                        entry(3L, 4L),
+                        entry(2L, null)
+                );
     }
 }
