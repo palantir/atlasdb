@@ -53,6 +53,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private static final MetricName CACHE_HIT = constructCacheMetricName("cacheHit");
     private static final MetricName CACHE_MISS = constructCacheMetricName("cacheMiss");
     private static final MetricName CACHE_NUKE = constructCacheMetricName("cacheNuke");
+    private static final MetricName CACHE_SIZE = constructCacheMetricName("cacheSize");
 
     private final PersistentTimestampStore persistentTimestampStore;
     private final int maxSize;
@@ -163,6 +164,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
                         toWrite);
 
                 cacheDescriptor.currentSize().addAndGet(toWrite.size());
+                offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_SIZE).inc(toWrite.size());
             } catch (SafeIllegalArgumentException exception) {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
