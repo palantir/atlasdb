@@ -17,7 +17,6 @@ package com.palantir.common.base;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -61,7 +60,7 @@ public class ThrowablesTest {
             NoUsefulConstructorException wrapped = Throwables.rewrap(e);
             assertSame(e, wrapped);
             int sizeAfter = e.getStackTrace().length;
-            assertTrue(sizeAfter + " should be > " + sizeBefore, sizeAfter > sizeBefore);
+            assertEquals(sizeAfter, sizeBefore);
         }
     }
 
