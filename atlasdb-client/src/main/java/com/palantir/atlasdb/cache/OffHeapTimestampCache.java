@@ -31,6 +31,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -61,7 +62,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final ConcurrentMap<Long, Long> inflightRequests = new ConcurrentHashMap<>();
     private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> timestampPutter;
-    private final ResettableCounter cacheSizeCounter;
+    private final Gauge<Integer> cacheSizeGauge;
 
     public static TimestampCache create(
             PersistentTimestampStore persistentTimestampStore,
@@ -74,23 +75,18 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .storeNamespace(storeNamespace)
                 .build();
 
-        ResettableCounter resettableCounter = new ResettableCounter();
-        taggedMetricRegistry.gauge(CACHE_SIZE, resettableCounter);
-
         return new OffHeapTimestampCache(
                 persistentTimestampStore,
                 cacheDescriptor,
                 maxSize,
-                taggedMetricRegistry,
-                resettableCounter);
+                taggedMetricRegistry);
     }
 
     private OffHeapTimestampCache(
             PersistentTimestampStore persistentTimestampStore,
             CacheDescriptor cacheDescriptor,
             int maxSize,
-            TaggedMetricRegistry taggedMetricRegistry,
-            ResettableCounter resettableCounter) {
+            TaggedMetricRegistry taggedMetricRegistry) {
         this.persistentTimestampStore = persistentTimestampStore;
         this.cacheDescriptor.set(cacheDescriptor);
         this.maxSize = maxSize;
@@ -98,7 +94,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         this.timestampPutter = Autobatchers.coalescing(new WriteBatcher(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
-        this.cacheSizeCounter = resettableCounter;
+        this.cacheSizeGauge = () -> OffHeapTimestampCache.this.cacheDescriptor.get().currentSize().intValue();
     }
 
     @Override
@@ -109,6 +105,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         if (previous != null) {
             persistentTimestampStore.dropNamespace(previous.storeNamespace());
         }
+        taggedMetricRegistry.gauge(CACHE_SIZE, cacheSizeGauge);
     }
 
 
@@ -118,6 +115,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
             return;
         }
         Futures.getUnchecked(timestampPutter.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
+        taggedMetricRegistry.gauge(CACHE_SIZE, cacheSizeGauge);
     }
 
     @Nullable
@@ -161,7 +159,6 @@ public final class OffHeapTimestampCache implements TimestampCache {
         public Map<Map.Entry<Long, Long>, Map.Entry<Long, Long>> apply(Set<Map.Entry<Long, Long>> request) {
             if (offHeapTimestampCache.cacheDescriptor.get().currentSize().get() >= offHeapTimestampCache.maxSize) {
                 offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
-                offHeapTimestampCache.cacheSizeCounter.reset();
                 offHeapTimestampCache.clear();
             }
             CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
@@ -176,7 +173,6 @@ public final class OffHeapTimestampCache implements TimestampCache {
                         toWrite);
 
                 cacheDescriptor.currentSize().addAndGet(toWrite.size());
-                offHeapTimestampCache.cacheSizeCounter.inc(toWrite.size());
             } catch (SafeIllegalArgumentException exception) {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
