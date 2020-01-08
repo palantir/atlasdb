@@ -30,6 +30,7 @@ import org.rocksdb.RocksDBException;
 
 import com.palantir.atlasdb.offheap.PersistentTimestampStore;
 import com.palantir.atlasdb.offheap.rocksdb.RocksDbPersistentTimestampStore;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public final class OffHeapTimestampCacheIntegrationTests {
     @ClassRule
@@ -45,7 +46,10 @@ public final class OffHeapTimestampCacheIntegrationTests {
 
         persistentTimestampStore = new RocksDbPersistentTimestampStore(rocksDb);
 
-        offHeapTimestampCache = OffHeapTimestampCache.create(persistentTimestampStore, CACHE_SIZE);
+        offHeapTimestampCache = OffHeapTimestampCache.create(
+                persistentTimestampStore,
+                CACHE_SIZE,
+                MetricsManagers.createForTests().getTaggedRegistry());
     }
 
     @After
