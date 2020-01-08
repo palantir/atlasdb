@@ -22,6 +22,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TestableTimelockServer {
 
@@ -55,6 +56,10 @@ public class TestableTimelockServer {
 
     NamespacedClients client(String namespace) {
         return clientsByNamespace.computeIfAbsent(namespace, key -> NamespacedClients.from(namespace, proxyFactory));
+    }
+
+    public TaggedMetricRegistry taggedMetricRegistry() {
+        return serverHolder.getTaggedMetricsRegistry();
     }
 
     private static final class SingleNodeProxyFactory implements ProxyFactory {

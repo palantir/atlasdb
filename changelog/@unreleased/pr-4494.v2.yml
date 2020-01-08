@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Metrics should now be produced with the new Timelock Partitioning code
+    path.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4494

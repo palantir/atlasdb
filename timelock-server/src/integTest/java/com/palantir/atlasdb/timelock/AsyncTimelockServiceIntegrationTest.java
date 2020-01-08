@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -30,10 +31,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.assertj.core.api.Condition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.codahale.metrics.Metric;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -64,6 +67,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -166,8 +170,20 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void immutableTimestampIsGreaterThanFreshTimestampWhenNotLocked() {
         long freshTs = namespace.getFreshTimestamp();
         long immutableTs = namespace.timelockService().getImmutableTimestamp();
-
         assertThat(immutableTs).isGreaterThan(freshTs);
+    }
+
+    @Test
+    public void taggedMetricsCanBeIteratedThrough() {
+        NamespacedClients randomNamespace = cluster.clientForRandomNamespace();
+        randomNamespace.getFreshTimestamp();
+        Map<MetricName, Metric> metrics = cluster.currentLeader().taggedMetricRegistry().getMetrics();
+        assertThat(metrics).hasKeySatisfying(new Condition<MetricName>("contains random namespace") {
+            @Override
+            public boolean matches(MetricName value) {
+                return value.safeTags().get("client").equals(randomNamespace.namespace());
+            }
+        });
     }
 
     @Test

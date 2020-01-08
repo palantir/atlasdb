@@ -34,6 +34,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
@@ -53,6 +54,8 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         new TimeLockServerLauncher().run(args);
     }
 
+    private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+
     @Override
     public void initialize(Bootstrap<CombinedTimeLockServerConfiguration> bootstrap) {
         MetricRegistry metricRegistry = SharedMetricRegistries
@@ -71,7 +74,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
 
-        MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
+        MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
 
         TimeLockAgent timeLockAgent = TimeLockAgent.create(
@@ -94,6 +97,10 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 timeLockAgent.shutdown();
             }
         });
+    }
+
+    public TaggedMetricRegistry taggedMetricRegistry() {
+        return taggedMetricRegistry;
     }
 
     @Provider

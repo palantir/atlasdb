@@ -44,10 +44,20 @@ import com.palantir.tritium.metrics.registry.MetricName;
 public abstract class TimelockLeadershipMetrics implements Dependencies.LeadershipMetrics {
 
     @Value.Derived
-    List<SafeArg<String>> namespaceAsArgs() {
+    List<SafeArg<String>> namespaceAsLoggingArgs() {
         return ImmutableList.of(
                 SafeArg.of(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()),
                 SafeArg.of(AtlasDbMetricNames.TAG_CLIENT, proxyClient().value()));
+    }
+
+    /*
+       We need to distinguish between the two since we don't have hierarchical loggers but we do have hierarchical
+       metric registries. Since the hierarchical registries are already keyed by the PaxosUseCase, it throws and then
+       metrics are never produced again. See {@link ExtraEntrySortedMap}.
+     */
+    @Value.Derived
+    List<SafeArg<String>> namespaceAsMetricArgs() {
+        return ImmutableList.of(SafeArg.of(AtlasDbMetricNames.TAG_CLIENT, proxyClient().value()));
     }
 
     @Value.Derived
@@ -56,7 +66,8 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 metrics().metrics(),
                 leaderUuid().toString(),
                 leadershipObserver(),
-                namespaceAsArgs());
+                namespaceAsLoggingArgs(),
+                namespaceAsMetricArgs());
     }
 
     @Value.Derived
