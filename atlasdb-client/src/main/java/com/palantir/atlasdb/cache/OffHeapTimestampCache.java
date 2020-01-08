@@ -61,6 +61,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final ConcurrentMap<Long, Long> inflightRequests = new ConcurrentHashMap<>();
     private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> timestampPutter;
+    private final ResettableCounter cacheSizeCounter;
 
     public static TimestampCache create(
             PersistentTimestampStore persistentTimestampStore,
@@ -73,14 +74,23 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .storeNamespace(storeNamespace)
                 .build();
 
-        return new OffHeapTimestampCache(persistentTimestampStore, cacheDescriptor, maxSize, taggedMetricRegistry);
+        ResettableCounter resettableCounter = new ResettableCounter();
+        taggedMetricRegistry.gauge(CACHE_SIZE, resettableCounter);
+
+        return new OffHeapTimestampCache(
+                persistentTimestampStore,
+                cacheDescriptor,
+                maxSize,
+                taggedMetricRegistry,
+                resettableCounter);
     }
 
     private OffHeapTimestampCache(
             PersistentTimestampStore persistentTimestampStore,
             CacheDescriptor cacheDescriptor,
             int maxSize,
-            TaggedMetricRegistry taggedMetricRegistry) {
+            TaggedMetricRegistry taggedMetricRegistry,
+            ResettableCounter resettableCounter) {
         this.persistentTimestampStore = persistentTimestampStore;
         this.cacheDescriptor.set(cacheDescriptor);
         this.maxSize = maxSize;
@@ -88,6 +98,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         this.timestampPutter = Autobatchers.coalescing(new WriteBatcher(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
+        this.cacheSizeCounter = resettableCounter;
     }
 
     @Override
@@ -149,7 +160,8 @@ public final class OffHeapTimestampCache implements TimestampCache {
         @Override
         public Map<Map.Entry<Long, Long>, Map.Entry<Long, Long>> apply(Set<Map.Entry<Long, Long>> request) {
             if (offHeapTimestampCache.cacheDescriptor.get().currentSize().get() >= offHeapTimestampCache.maxSize) {
-                offHeapTimestampCache.taggedMetricRegistry.meter(CACHE_NUKE).mark();
+                offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
+                offHeapTimestampCache.cacheSizeCounter.reset();
                 offHeapTimestampCache.clear();
             }
             CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
@@ -164,7 +176,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
                         toWrite);
 
                 cacheDescriptor.currentSize().addAndGet(toWrite.size());
-                offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_SIZE).inc(toWrite.size());
+                offHeapTimestampCache.cacheSizeCounter.inc(toWrite.size());
             } catch (SafeIllegalArgumentException exception) {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
