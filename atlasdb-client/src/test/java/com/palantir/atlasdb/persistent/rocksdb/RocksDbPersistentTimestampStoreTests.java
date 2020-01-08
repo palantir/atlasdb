@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.offheap.rocksdb;
+package com.palantir.atlasdb.persistent.rocksdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.File;
 import java.util.UUID;
 
 import org.junit.After;
@@ -30,9 +31,9 @@ import org.rocksdb.RocksDB;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
-import com.palantir.atlasdb.offheap.PersistentTimestampStore;
-import com.palantir.atlasdb.offheap.PersistentTimestampStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.ImmutableStoreNamespace;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore.StoreNamespace;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class RocksDbPersistentTimestampStoreTests {
@@ -50,9 +51,10 @@ public final class RocksDbPersistentTimestampStoreTests {
 
     @Before
     public void before() throws Exception {
-        RocksDB rocksDb = RocksDB.open(temporaryFolder.newFolder().getAbsolutePath());
+        File databaseFolder = temporaryFolder.newFolder();
+        RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
-        timestampMappingStore = new RocksDbPersistentTimestampStore(rocksDb);
+        timestampMappingStore = new RocksDbPersistentTimestampStore(rocksDb, databaseFolder);
         defaultNamespace = timestampMappingStore.createNamespace(DEFAULT);
     }
 

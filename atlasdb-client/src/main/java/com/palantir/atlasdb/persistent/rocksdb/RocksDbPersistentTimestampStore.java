@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.offheap.rocksdb;
+package com.palantir.atlasdb.persistent.rocksdb;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +40,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.offheap.ImmutableStoreNamespace;
-import com.palantir.atlasdb.offheap.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.ImmutableStoreNamespace;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -57,9 +58,11 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
 
     private final ConcurrentMap<UUID, ColumnFamilyHandle> availableColumnFamilies = new ConcurrentHashMap<>();
     private final RocksDB rocksDB;
+    private final File databaseFolder;
 
-    public RocksDbPersistentTimestampStore(RocksDB rocksDB) {
+    public RocksDbPersistentTimestampStore(RocksDB rocksDB, File databaseFolder) {
         this.rocksDB = rocksDB;
+        this.databaseFolder = databaseFolder;
     }
 
     @Override
@@ -138,6 +141,7 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     @Override
     public void close() {
         rocksDB.close();
+        databaseFolder.delete();
     }
 
     private Long deserializeValue(Long key, byte[] value) {

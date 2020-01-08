@@ -46,6 +46,7 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.OffHeapTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -95,6 +96,8 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -422,9 +425,27 @@ public abstract class TransactionManagers {
                 this::withConsolidatedGrabImmutableTsLockFlag,
                 () -> runtimeConfigSupplier.get().transaction());
 
-        TimestampCache timestampCache = config().timestampCache()
-                .orElseGet(() -> new DefaultTimestampCache(
-                        metricsManager.getRegistry(), () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
+        Optional<PersistentTimestampStore> persistentTimestampStore =
+                initializeCloseable(
+                        config().persistentStorageConfig().map(storageConfig -> {
+                            DefaultPersistentStorageFactory.sanitizeStoragePath(storageConfig.storagePath());
+                            return new DefaultPersistentStorageFactory()
+                                    .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig);
+                        }),
+                        closeables);
+
+        Supplier<TimestampCache> timestampCacheSupplier = () ->
+                persistentTimestampStore.map(store ->
+                        OffHeapTimestampCache.create(
+                                store,
+                                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                                metricsManager.getTaggedRegistry()))
+                        .orElseGet(() ->
+                                new DefaultTimestampCache(
+                                        metricsManager.getRegistry(),
+                                        () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
+
+        TimestampCache timestampCache = config().timestampCache().orElseGet(timestampCacheSupplier);
 
         ConflictTracer conflictTracer = lockDiagnosticInfoCollector()
                 .<ConflictTracer>map(Function.identity())

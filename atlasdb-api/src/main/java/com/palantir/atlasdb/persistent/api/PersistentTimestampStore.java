@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.offheap;
+package com.palantir.atlasdb.persistent.api;
 
 import java.util.List;
 import java.util.Map;
