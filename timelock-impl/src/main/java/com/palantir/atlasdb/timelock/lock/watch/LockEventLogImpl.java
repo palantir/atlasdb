@@ -34,8 +34,9 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 
 public class LockEventLogImpl implements LockEventLog {
+    final static int WINDOW_SIZE = 1000;
     private final UUID leaderId = UUID.randomUUID();
-    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(1000);
+    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(WINDOW_SIZE);
 
     @Override
     public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion) {

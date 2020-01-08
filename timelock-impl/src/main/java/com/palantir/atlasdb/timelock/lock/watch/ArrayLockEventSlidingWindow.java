@@ -51,11 +51,11 @@ public class ArrayLockEventSlidingWindow {
      */
     public synchronized void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
-        Preconditions.checkArgument(event.size() <= maxSize);
         int index = LongMath.mod(nextSequence, maxSize);
         buffer[index] = event;
         nextSequence = nextSequence + event.size();
-        for (int i = 1; i < event.size(); i++) {
+        int lastIndex = Math.min(event.size(), maxSize);
+        for (int i = 1; i < lastIndex; i++) {
             index = incrementAndMod(index);
             buffer[index] = PlaceholderLockWatchEvent.INSTANCE;
         }

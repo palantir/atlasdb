@@ -49,7 +49,8 @@ public interface LockWatchStateUpdate {
         if (!events().isEmpty()) {
             Preconditions.checkState(lastKnownVersion().isPresent(),
                     "If events are present, last known version must be present as well.");
-            Preconditions.checkState(events().get(events().size() - 1).sequence() == lastKnownVersion().getAsLong(),
+            LockWatchEvent lastEvent = events().get(events().size() - 1);
+            Preconditions.checkState(lastEvent.sequence() + lastEvent.size() - 1 == lastKnownVersion().getAsLong(),
                     "The sequence of the last event and the last known version must match");
         }
     }
