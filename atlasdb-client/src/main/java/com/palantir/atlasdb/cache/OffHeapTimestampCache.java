@@ -62,7 +62,6 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final ConcurrentMap<Long, Long> inflightRequests = new ConcurrentHashMap<>();
     private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> timestampPutter;
-    private final Gauge<Integer> cacheSizeGauge;
 
     public static TimestampCache create(
             PersistentTimestampStore persistentTimestampStore,
@@ -94,7 +93,8 @@ public final class OffHeapTimestampCache implements TimestampCache {
         this.timestampPutter = Autobatchers.coalescing(new WriteBatcher(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
-        this.cacheSizeGauge = () -> OffHeapTimestampCache.this.cacheDescriptor.get().currentSize().intValue();
+        Gauge<Integer> cacheSizeGauge = () -> OffHeapTimestampCache.this.cacheDescriptor.get().currentSize().intValue();
+        taggedMetricRegistry.gauge(CACHE_SIZE, cacheSizeGauge);
     }
 
     @Override
@@ -105,7 +105,6 @@ public final class OffHeapTimestampCache implements TimestampCache {
         if (previous != null) {
             persistentTimestampStore.dropNamespace(previous.storeNamespace());
         }
-        taggedMetricRegistry.gauge(CACHE_SIZE, cacheSizeGauge);
     }
 
 
@@ -115,7 +114,6 @@ public final class OffHeapTimestampCache implements TimestampCache {
             return;
         }
         Futures.getUnchecked(timestampPutter.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
-        taggedMetricRegistry.gauge(CACHE_SIZE, cacheSizeGauge);
     }
 
     @Nullable
