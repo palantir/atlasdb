@@ -46,6 +46,7 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.OffHeapTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -65,6 +66,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
+import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.ShouldRunBackgroundSweepSupplier;
@@ -95,6 +97,7 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -230,6 +233,11 @@ public abstract class TransactionManagers {
     abstract MetricRegistry globalMetricsRegistry();
 
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
+
+    @Value.Default
+    PersistentStorageFactory persistentStorageFactory() {
+        return new DefaultPersistentStorageFactory();
+    }
 
     /**
      * The callback Runnable will be run when the TransactionManager is successfully initialized. The
@@ -422,9 +430,19 @@ public abstract class TransactionManagers {
                 this::withConsolidatedGrabImmutableTsLockFlag,
                 () -> runtimeConfigSupplier.get().transaction());
 
-        TimestampCache timestampCache = config().timestampCache()
-                .orElseGet(() -> new DefaultTimestampCache(
-                        metricsManager.getRegistry(), () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
+        Optional<PersistentTimestampStore> persistentTimestampStore =
+                initializeCloseable(
+                        config().persistentStorageConfig().map(storageConfig -> {
+                            PersistentStorageFactories.sanitizeStoragePath(storageConfig.storagePath());
+                            return persistentStorageFactory()
+                                    .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig);
+                        }),
+                        closeables);
+
+        TimestampCache timestampCache = getTimestampCache(
+                metricsManager,
+                runtimeConfigSupplier,
+                persistentTimestampStore);
 
         ConflictTracer conflictTracer = lockDiagnosticInfoCollector()
                 .<ConflictTracer>map(Function.identity())
@@ -493,6 +511,24 @@ public abstract class TransactionManagers {
                 closeables);
 
         return transactionManager;
+    }
+
+    private TimestampCache getTimestampCache(
+            MetricsManager metricsManager,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            Optional<PersistentTimestampStore> persistentTimestampStore) {
+        Supplier<TimestampCache> timestampCacheSupplier = () ->
+                persistentTimestampStore.map(store ->
+                        OffHeapTimestampCache.create(
+                                store,
+                                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                                metricsManager.getTaggedRegistry()))
+                        .orElseGet(() ->
+                                new DefaultTimestampCache(
+                                        metricsManager.getRegistry(),
+                                        () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
+
+        return config().timestampCache().orElseGet(timestampCacheSupplier);
     }
 
     private static Callback<TransactionManager> createClearsTable() {
