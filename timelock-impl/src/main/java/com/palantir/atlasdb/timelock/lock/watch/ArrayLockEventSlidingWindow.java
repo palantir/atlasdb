@@ -60,21 +60,24 @@ public class ArrayLockEventSlidingWindow {
         int headIndex = LongMath.mod(nextSequence, maxSize);
         int tailIndex = LongMath.mod(lastVisibleSequence, maxSize);
         if (headIndex == tailIndex) {
-            currentSize = currentSize - buffer[tailIndex].size();
-            lastVisibleSequence++;
+            evictOldestEntryAtIndex(tailIndex);
         }
         buffer[headIndex] = event;
         currentSize = currentSize + event.size();
         if (currentSize > maxSize) {
             int deletingIndex = LongMath.mod(lastVisibleSequence, maxSize);
             while (currentSize > maxSize && lastVisibleSequence <= nextSequence - 1) {
-                currentSize = currentSize - buffer[deletingIndex].size();
-                buffer[deletingIndex] = PlaceholderLockWatchEvent.INSTANCE;
+                evictOldestEntryAtIndex(deletingIndex);
                 deletingIndex = incrementAndMod(deletingIndex);
-                lastVisibleSequence++;
             }
         }
         nextSequence++;
+    }
+
+    private void evictOldestEntryAtIndex(int index) {
+        currentSize = currentSize - buffer[index].size();
+        buffer[index] = PlaceholderLockWatchEvent.INSTANCE;
+        lastVisibleSequence++;
     }
 
     /**
@@ -133,8 +136,8 @@ public class ArrayLockEventSlidingWindow {
     }
 
     private Optional<List<LockWatchEvent>> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
-        for (int i = 0; i < events.size(); i++) {
-            if (events.get(i).sequence() != i + version + 1 ) {
+        for (int i = 1; i <= events.size(); i++) {
+            if (events.get(i).sequence() != version + i) {
                 return Optional.empty();
             }
         }
