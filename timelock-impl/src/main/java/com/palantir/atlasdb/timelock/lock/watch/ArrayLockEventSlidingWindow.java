@@ -136,8 +136,8 @@ public class ArrayLockEventSlidingWindow {
     }
 
     private Optional<List<LockWatchEvent>> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
-        for (int i = 1; i <= events.size(); i++) {
-            if (events.get(i).sequence() != version + i) {
+        for (int i = 0; i < events.size(); i++) {
+            if (events.get(i).sequence() != version + i + 1) {
                 return Optional.empty();
             }
         }
