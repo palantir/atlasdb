@@ -17,13 +17,7 @@
 package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.UUID;
-
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,7 +25,6 @@ import org.junit.rules.TemporaryFolder;
 import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class DefaultPersistentStorageFactoryTests {
     @Rule
