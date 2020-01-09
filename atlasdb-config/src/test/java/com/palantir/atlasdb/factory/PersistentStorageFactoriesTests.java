@@ -31,6 +31,8 @@ import org.junit.rules.TemporaryFolder;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class PersistentStorageFactoriesTests {
+    public static final String FIRST_SUBFOLDER_ROOT = "first";
+    public static final String SECOND_SUBFOLDER_ROOT = "second";
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
@@ -85,5 +87,34 @@ public final class PersistentStorageFactoriesTests {
 
         PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(1);
+    }
+
+    @Test
+    public void preventMultipleSanitizationOfTheSamePath() throws IOException {
+        testFolder.newFolder(UUID.randomUUID().toString());
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
+        assertThat(testFolder.getRoot().listFiles()).isEmpty();
+
+        testFolder.newFolder(UUID.randomUUID().toString());
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
+        assertThat(testFolder.getRoot().listFiles()).hasSize(1);
+    }
+
+    @Test
+    public void doesNotPreventSanitizationOfDifferentPaths() throws IOException {
+        File firstRoot = testFolder.newFolder(FIRST_SUBFOLDER_ROOT);
+        File secondRoot = testFolder.newFolder(SECOND_SUBFOLDER_ROOT);
+
+        testFolder.newFolder(FIRST_SUBFOLDER_ROOT, UUID.randomUUID().toString());
+        testFolder.newFolder(SECOND_SUBFOLDER_ROOT, UUID.randomUUID().toString());
+
+        assertThat(firstRoot.listFiles()).hasSize(1);
+        assertThat(secondRoot.listFiles()).hasSize(1);
+
+        PersistentStorageFactories.sanitizeStoragePath(firstRoot.getPath());
+        PersistentStorageFactories.sanitizeStoragePath(secondRoot.getPath());
+
+        assertThat(firstRoot.listFiles()).isEmpty();
+        assertThat(secondRoot.listFiles()).isEmpty();
     }
 }
