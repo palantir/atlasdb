@@ -19,7 +19,8 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import com.palantir.lock.watch.LockWatchEvent;
 
 public final class PlaceholderLockWatchEvent implements LockWatchEvent {
-    public static final LockWatchEvent INSTANCE = new PlaceholderLockWatchEvent();
+    // This is effectively a LockWatchEvent tombstone
+    static final LockWatchEvent INSTANCE = new PlaceholderLockWatchEvent();
 
     private PlaceholderLockWatchEvent() {
         // hidden
@@ -27,7 +28,7 @@ public final class PlaceholderLockWatchEvent implements LockWatchEvent {
 
     @Override
     public long sequence() {
-        return 0;
+        return -1;
     }
 
     @Override
