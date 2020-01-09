@@ -234,6 +234,11 @@ public abstract class TransactionManagers {
 
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
 
+    @Value.Default
+    PersistentStorageFactory persistentStorageFactory() {
+        return new DefaultPersistentStorageFactory();
+    }
+
     /**
      * The callback Runnable will be run when the TransactionManager is successfully initialized. The
      * TransactionManager will stay uninitialized and continue to throw for all other purposes until the callback
@@ -427,7 +432,7 @@ public abstract class TransactionManagers {
 
         Optional<PersistentTimestampStore> persistentTimestampStore =
                 initializeCloseable(
-                        config().persistentStorageConfig().map(storageConfig -> new PersistentStorageFactory()
+                        config().persistentStorageConfig().map(storageConfig -> persistentStorageFactory()
                                 .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig)),
                         closeables);
 

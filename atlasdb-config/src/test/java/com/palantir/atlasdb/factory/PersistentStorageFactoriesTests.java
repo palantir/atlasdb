@@ -28,12 +28,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
-public final class PersistentStorageFactoryTests {
+public final class PersistentStorageFactoriesTests {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
@@ -46,13 +43,13 @@ public final class PersistentStorageFactoryTests {
 
     @Test
     public void emptyFolderSanitization() {
-        PersistentStorageFactory.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
     }
 
     @Test
     public void nonExistentFolder() {
         File file  = new File(testFolderPath, "nonexistent");
-        PersistentStorageFactory.sanitizeStoragePath(file.getPath());
+        PersistentStorageFactories.sanitizeStoragePath(file.getPath());
 
         assertThat(file).isDirectory();
     }
@@ -61,7 +58,7 @@ public final class PersistentStorageFactoryTests {
     public void sanitizingFile() throws IOException {
         File file = testFolder.newFile();
 
-        assertThatThrownBy(() -> PersistentStorageFactory.sanitizeStoragePath(file.getAbsolutePath()))
+        assertThatThrownBy(() -> PersistentStorageFactories.sanitizeStoragePath(file.getAbsolutePath()))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
@@ -69,7 +66,7 @@ public final class PersistentStorageFactoryTests {
     public void removesUuidNamedFolder() throws IOException {
         testFolder.newFolder(UUID.randomUUID().toString());
 
-        PersistentStorageFactory.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).isEmpty();
     }
 
@@ -78,7 +75,7 @@ public final class PersistentStorageFactoryTests {
         testFolder.newFile(UUID.randomUUID().toString());
         testFolder.newFile("testFile");
 
-        PersistentStorageFactory.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(2);
     }
 
@@ -86,22 +83,7 @@ public final class PersistentStorageFactoryTests {
     public void doesNotRemoveNonFolder() throws IOException {
         testFolder.newFolder("testFolder");
 
-        PersistentStorageFactory.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(1);
-    }
-
-    @Test
-    public void createsPersistentStorage() throws Exception {
-        RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
-                .storagePath(testFolder.getRoot().getAbsolutePath())
-                .build();
-        PersistentTimestampStore persistentTimestampStore = new PersistentStorageFactory()
-                .constructPersistentTimestampStore(config);
-
-        assertThat(testFolder.getRoot().listFiles()).hasSize(1);
-
-        persistentTimestampStore.close();
-
-        assertThat(testFolder.getRoot().listFiles()).isEmpty();
     }
 }
