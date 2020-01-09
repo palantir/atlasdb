@@ -26,21 +26,24 @@ import javax.annotation.concurrent.ThreadSafe;
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.logsafe.Preconditions;
 
 @ThreadSafe
 public class ArrayLockEventSlidingWindow {
     private final LockWatchEvent[] buffer;
     private final int maxSize;
+
+    private int currentSize = 0;
     private volatile long nextSequence = 0;
+    private volatile long lastVisibleSequence = -1;
 
     public ArrayLockEventSlidingWindow(int maxSize) {
         this.buffer = new LockWatchEvent[maxSize];
+        buffer[maxSize - 1] = PlaceholderLockWatchEvent.INSTANCE;
         this.maxSize = maxSize;
     }
 
-    public OptionalLong getVersion() {
-        return nextSequence == 0 ? OptionalLong.empty() : OptionalLong.of(nextSequence - 1);
+    public long getVersion() {
+        return nextSequence - 1;
     }
 
     /**
@@ -51,14 +54,24 @@ public class ArrayLockEventSlidingWindow {
      */
     public synchronized void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
-        int index = LongMath.mod(nextSequence, maxSize);
-        buffer[index] = event;
-        nextSequence = nextSequence + event.size();
-        int lastIndex = Math.min(event.size(), maxSize);
-        for (int i = 1; i < lastIndex; i++) {
-            index = incrementAndMod(index);
-            buffer[index] = PlaceholderLockWatchEvent.INSTANCE;
+        int headIndex = LongMath.mod(nextSequence, maxSize);
+        int tailIndex = LongMath.mod(lastVisibleSequence, maxSize);
+        if (headIndex == tailIndex) {
+            currentSize = currentSize - buffer[tailIndex].size();
+            lastVisibleSequence++;
         }
+        buffer[headIndex] = event;
+        currentSize = currentSize + event.size();
+        if (currentSize > maxSize) {
+            int deletingIndex = LongMath.mod(lastVisibleSequence, maxSize);
+            while (currentSize > maxSize && lastVisibleSequence < nextSequence - 1) {
+                currentSize = currentSize - buffer[deletingIndex].size();
+                buffer[deletingIndex] = PlaceholderLockWatchEvent.INSTANCE;
+                deletingIndex++;
+                lastVisibleSequence++;
+            }
+        }
+        nextSequence++;
     }
 
     /**
@@ -81,14 +94,15 @@ public class ArrayLockEventSlidingWindow {
      *      this method, that is no longer the case when the method returns.
      */
     public Optional<List<LockWatchEvent>> getFromVersion(long version) {
-        long lastWrittenSequence = nextSequence - 1;
+        long firstVisibleSequence = lastVisibleSequence;
+        long lastVisibleSequence = nextSequence - 1;
 
-        if (versionInTheFuture(version, lastWrittenSequence) || versionTooOld(version, lastWrittenSequence)) {
+        if (!versionWithinBounds(version, firstVisibleSequence, lastVisibleSequence)) {
             return Optional.empty();
         }
 
         int startIndex = LongMath.mod(version + 1, maxSize);
-        int windowSize = Ints.saturatedCast(lastWrittenSequence - version);
+        int windowSize = Ints.saturatedCast(lastVisibleSequence - version);
         List<LockWatchEvent> events = new ArrayList<>(windowSize);
 
         for (int i = startIndex; events.size() < windowSize; i = incrementAndMod(i)) {
@@ -98,26 +112,18 @@ public class ArrayLockEventSlidingWindow {
         return validateConsistencyOrReturnEmpty(version, events);
     }
 
+    private static boolean versionWithinBounds(long version, long firstVisibleSequence, long lastVisibleSequence) {
+        return version >= firstVisibleSequence - 1 && version <= lastVisibleSequence;
+    }
+
     private int incrementAndMod(int num) {
         num++;
         return num >= maxSize ? num % maxSize : num;
     }
 
-    private boolean versionInTheFuture(long lastVersion, long lastWrittenSequence) {
-        return lastVersion > lastWrittenSequence;
-    }
-
-    private boolean versionTooOld(long lastVersion, long lastWrittenSequence) {
-        return lastWrittenSequence - lastVersion > maxSize;
-    }
-
     private Optional<List<LockWatchEvent>> validateConsistencyOrReturnEmpty(long version, List<LockWatchEvent> events) {
         for (int i = 0; i < events.size(); i++) {
-            LockWatchEvent currentEvent = events.get(i);
-            if (currentEvent == PlaceholderLockWatchEvent.INSTANCE) {
-                continue;
-            }
-            if (currentEvent.sequence() != i + version + 1 ) {
+            if (events.get(i).sequence() != i + version + 1 ) {
                 return Optional.empty();
             }
         }
