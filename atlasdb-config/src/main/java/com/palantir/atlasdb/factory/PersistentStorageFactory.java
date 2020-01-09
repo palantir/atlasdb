@@ -31,8 +31,8 @@ import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentTimestampStore;
 import com.palantir.logsafe.Preconditions;
 
-public final class DefaultPersistentStorageFactory {
-    private static final Logger log = LoggerFactory.getLogger(DefaultPersistentStorageFactory.class);
+public final class PersistentStorageFactory {
+    private static final Logger log = LoggerFactory.getLogger(PersistentStorageFactory.class);
     private static final Pattern UUID_PATTERN = Pattern.compile(
             "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
