@@ -40,6 +40,7 @@ public class AtlasDbConfigDeserializationTest {
 
         assertThat(config.timelock().isPresent()).isTrue();
         assertTimeLockConfigDeserializedCorrectly(config.timelock().get());
+        assertThat(config.persistentStorageConfig()).isPresent();
 
         assertThat(config.leader().isPresent()).isFalse();
     }
