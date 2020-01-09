@@ -40,17 +40,12 @@ public interface LockWatchStateUpdate {
     List<LockWatchEvent> events();
 
     @Value.Check
-    default void successHasLastKnownVersion() {
-        Preconditions.checkState(!success() || lastKnownVersion().isPresent(), "Success must have a version.");
-    }
-
-    @Value.Check
     default void lastEventSequenceMatchesLastKnownVersion() {
         if (!events().isEmpty()) {
             Preconditions.checkState(lastKnownVersion().isPresent(),
                     "If events are present, last known version must be present as well.");
             LockWatchEvent lastEvent = events().get(events().size() - 1);
-            Preconditions.checkState(lastEvent.sequence() + lastEvent.size() - 1 == lastKnownVersion().getAsLong(),
+            Preconditions.checkState(lastEvent.sequence() == lastKnownVersion().getAsLong(),
                     "The sequence of the last event and the last known version must match");
         }
     }

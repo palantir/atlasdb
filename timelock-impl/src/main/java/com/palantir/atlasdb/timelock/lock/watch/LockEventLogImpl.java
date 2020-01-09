@@ -40,18 +40,11 @@ public class LockEventLogImpl implements LockEventLog {
 
     @Override
     public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion) {
-        if (!fromVersion.isPresent()) {
-            return LockWatchStateUpdate.failure(leaderId, slidingWindow.getVersion());
+        ArrayLockEventSlidingWindow.EventsAndVersion eventsAndVersion = slidingWindow.getFromVersion(fromVersion);
+        if (!eventsAndVersion.events().isPresent()) {
+            return LockWatchStateUpdate.failure(leaderId, eventsAndVersion.lastVersion());
         }
-        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromVersion(fromVersion.getAsLong());
-        if (!maybeEvents.isPresent()) {
-            return LockWatchStateUpdate.failure(leaderId, slidingWindow.getVersion());
-        }
-        List<LockWatchEvent> events = maybeEvents.get();
-        return LockWatchStateUpdate.of(leaderId,true, OptionalLong.of(fromVersion.getAsLong() + events.size()),
-                events.stream()
-                        .filter(event -> event != PlaceholderLockWatchEvent.INSTANCE)
-                        .collect(Collectors.toList()));
+        return LockWatchStateUpdate.of(leaderId,true, eventsAndVersion.lastVersion(), eventsAndVersion.events().get());
     }
 
     @Override

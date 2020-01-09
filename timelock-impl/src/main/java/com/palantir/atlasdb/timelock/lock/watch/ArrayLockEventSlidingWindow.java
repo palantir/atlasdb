@@ -23,6 +23,8 @@ import java.util.OptionalLong;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.immutables.value.Value;
+
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -42,8 +44,9 @@ public class ArrayLockEventSlidingWindow {
         this.maxSize = maxSize;
     }
 
-    public long getVersion() {
-        return nextSequence - 1;
+    public OptionalLong getVersion() {
+        long currentNext = nextSequence;
+        return currentNext == 0 ? OptionalLong.empty() : OptionalLong.of(currentNext - 1);
     }
 
     /**
@@ -64,10 +67,10 @@ public class ArrayLockEventSlidingWindow {
         currentSize = currentSize + event.size();
         if (currentSize > maxSize) {
             int deletingIndex = LongMath.mod(lastVisibleSequence, maxSize);
-            while (currentSize > maxSize && lastVisibleSequence < nextSequence - 1) {
+            while (currentSize > maxSize && lastVisibleSequence <= nextSequence - 1) {
                 currentSize = currentSize - buffer[deletingIndex].size();
                 buffer[deletingIndex] = PlaceholderLockWatchEvent.INSTANCE;
-                deletingIndex++;
+                deletingIndex = incrementAndMod(deletingIndex);
                 lastVisibleSequence++;
             }
         }
@@ -93,12 +96,13 @@ public class ArrayLockEventSlidingWindow {
      *      the state where, even though all the necessary events were in the requested window at the start of executing
      *      this method, that is no longer the case when the method returns.
      */
-    public Optional<List<LockWatchEvent>> getFromVersion(long version) {
+    public EventsAndVersion getFromVersion(OptionalLong maybeVersion) {
+        long version = maybeVersion.orElse(-1);
         long firstVisibleSequence = lastVisibleSequence;
         long lastVisibleSequence = nextSequence - 1;
 
         if (!versionWithinBounds(version, firstVisibleSequence, lastVisibleSequence)) {
-            return Optional.empty();
+            return ImmutableEventsAndVersion.of(Optional.empty(), getVersion());
         }
 
         int startIndex = LongMath.mod(version + 1, maxSize);
@@ -109,7 +113,14 @@ public class ArrayLockEventSlidingWindow {
             events.add(buffer[i]);
         }
 
-        return validateConsistencyOrReturnEmpty(version, events);
+        Optional<List<LockWatchEvent>> maybeEvents = validateConsistencyOrReturnEmpty(version, events);
+        if (maybeEvents.isPresent()) {
+            long newestVersion = version + maybeEvents.get().size();
+            return ImmutableEventsAndVersion.of(
+                    maybeEvents,
+                    newestVersion >= 0 ? OptionalLong.of(newestVersion) : OptionalLong.empty());
+        }
+        return ImmutableEventsAndVersion.of(Optional.empty(), getVersion());
     }
 
     private static boolean versionWithinBounds(long version, long firstVisibleSequence, long lastVisibleSequence) {
@@ -128,5 +139,13 @@ public class ArrayLockEventSlidingWindow {
             }
         }
         return Optional.of(events);
+    }
+
+    @Value.Immutable
+    public interface EventsAndVersion {
+        @Value.Parameter
+        Optional<List<LockWatchEvent>> events();
+        @Value.Parameter
+        OptionalLong lastVersion();
     }
 }

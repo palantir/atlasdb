@@ -40,43 +40,40 @@ public class LockEventLogImplTest {
     private final LockEventLog log = new LockEventLogImpl();
 
     @Test
-    public void test() {
-        LockWatchEvent loggedEvent = logLocks(100);
-
+    public void getFromBeginningWithNoEvents() {
         LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.empty());
-        assertThat(updateWithNoFromVersion.success()).isFalse();
+        assertThat(updateWithNoFromVersion.success()).isTrue();
         assertThat(updateWithNoFromVersion.events()).isEmpty();
-        assertThat(updateWithNoFromVersion.lastKnownVersion()).isEqualTo(OptionalLong.of(loggedEvent.size() - 1));
+        assertThat(updateWithNoFromVersion.lastKnownVersion()).isEmpty();
     }
 
     @Test
     public void getFromBeginningSingleEvent() {
         LockWatchEvent loggedEvent = logLocks(100);
 
-        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(-1));
+        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.empty());
         assertThat(updateWithNoFromVersion.success()).isTrue();
         assertThat(updateWithNoFromVersion.events()).containsExactly(loggedEvent);
-        assertThat(updateWithNoFromVersion.lastKnownVersion()).isEqualTo(OptionalLong.of(loggedEvent.size() - 1));
+        assertThat(updateWithNoFromVersion.lastKnownVersion()).hasValue(0);
     }
 
     @Test
-    public void getFromMiddleOfSingleEvent() {
+    public void getFromTheEndOfSingleEvent() {
         LockWatchEvent loggedEvent = logLocks(100);
 
-        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(loggedEvent.size() - 10));
+        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(0));
         assertThat(updateWithNoFromVersion.success()).isTrue();
         assertThat(updateWithNoFromVersion.events()).isEmpty();
-        assertThat(updateWithNoFromVersion.lastKnownVersion()).isEqualTo(OptionalLong.of(loggedEvent.size() - 1));
+        assertThat(updateWithNoFromVersion.lastKnownVersion()).hasValue(0);
     }
 
     @Test
     public void getFromAfterSingleEvent() {
         LockWatchEvent loggedEvent = logLocks(100);
 
-        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(loggedEvent.size() + 10));
+        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(1));
         assertThat(updateWithNoFromVersion.success()).isFalse();
-        assertThat(updateWithNoFromVersion.events()).isEmpty();
-        assertThat(updateWithNoFromVersion.lastKnownVersion()).isEqualTo(OptionalLong.of(loggedEvent.size() - 1));
+        assertThat(updateWithNoFromVersion.lastKnownVersion()).hasValue(0);
     }
 
     @Test
@@ -85,61 +82,48 @@ public class LockEventLogImplTest {
         LockWatchEvent secondEvent = logLocks(100);
         LockWatchEvent thirdEvent = logLocks(300);
 
-        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(-1));
+        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.empty());
         assertThat(updateWithNoFromVersion.success()).isTrue();
         assertThat(updateWithNoFromVersion.events()).containsExactly(firstEvent, secondEvent, thirdEvent);
-        assertThat(updateWithNoFromVersion.lastKnownVersion())
-                .isEqualTo(OptionalLong.of(firstEvent.size() + secondEvent.size() + thirdEvent.size() - 1));
+        assertThat(updateWithNoFromVersion.lastKnownVersion()).hasValue(2);
     }
 
     @Test
-    public void getFromEndOfFirstEvent() {
-        LockWatchEvent firstEvent = logLocks(200);
+    public void getFromAfterFirstEvent() {
+        logLocks(200);
         LockWatchEvent secondEvent = logLocks(100);
         LockWatchEvent thirdEvent = logLocks(300);
 
-        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(firstEvent.size() - 1));
+        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(0));
         assertThat(updateWithNoFromVersion.success()).isTrue();
         assertThat(updateWithNoFromVersion.events()).containsExactly(secondEvent, thirdEvent);
-        assertThat(updateWithNoFromVersion.lastKnownVersion())
-                .isEqualTo(OptionalLong.of(firstEvent.size() + secondEvent.size() + thirdEvent.size() - 1));
+        assertThat(updateWithNoFromVersion.lastKnownVersion()).hasValue(2);
     }
 
     @Test
-    public void getFromMiddleOfFirstEvent() {
-        LockWatchEvent firstEvent = logLocks(200);
-        LockWatchEvent secondEvent = logLocks(100);
-        LockWatchEvent thirdEvent = logLocks(300);
-
-        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(firstEvent.size() - 100));
-        assertThat(updateWithNoFromVersion.success()).isTrue();
-        assertThat(updateWithNoFromVersion.events()).containsExactly(secondEvent, thirdEvent);
-        assertThat(updateWithNoFromVersion.lastKnownVersion())
-                .isEqualTo(OptionalLong.of(firstEvent.size() + secondEvent.size() + thirdEvent.size() - 1));
-    }
-
-    @Test
-    public void fillUpBuffer() {
-        LockWatchEvent firstEvent = logLocks(500);
-        LockWatchEvent secondEvent = logLocks(400);
+    public void eventsGetEvictedWhenWindowIsFull() {
+        logLocks(500);
+        logLocks(450);
         LockWatchEvent thirdEvent = logLocks(500);
         LockWatchEvent fourthEvent = logLocks(100);
-        int numDescriptors = firstEvent.size() + secondEvent.size() + thirdEvent.size() + fourthEvent.size();
 
-        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(numDescriptors - 950));
+        assertThat(log.getLogDiff(OptionalLong.empty()).success()).isFalse();
+        assertThat(log.getLogDiff(OptionalLong.of(0)).success()).isFalse();
+
+        LockWatchStateUpdate updateWithNoFromVersion = log.getLogDiff(OptionalLong.of(1));
         assertThat(updateWithNoFromVersion.success()).isTrue();
         assertThat(updateWithNoFromVersion.events()).containsExactly(thirdEvent, fourthEvent);
-        assertThat(updateWithNoFromVersion.lastKnownVersion()).isEqualTo(OptionalLong.of(numDescriptors - 1));
+        assertThat(updateWithNoFromVersion.lastKnownVersion()).hasValue(3);
     }
 
     @Test
-    public void hugeEvent() {
+    public void singleLargeEventIsLogged() {
         LockWatchEvent event = logLocks(WINDOW_SIZE * 2);
 
-        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.of(-1));
+        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.empty());
         assertThat(update.success()).isTrue();
         assertThat(update.events()).containsExactly(event);
-        assertThat(update.lastKnownVersion()).isEqualTo(OptionalLong.of(event.size() - 1));
+        assertThat(update.lastKnownVersion()).hasValue(0);
     }
 
     private LockWatchEvent logLocks(int numDescriptors) {
@@ -147,7 +131,7 @@ public class LockEventLogImplTest {
         LockToken token = generateToken();
         log.logLock(descriptors, token);
         LockWatchEvent event = LockEvent.builder(descriptors, token).build(nextSequence);
-        nextSequence = nextSequence + numDescriptors;
+        nextSequence++;
         return event;
     }
 

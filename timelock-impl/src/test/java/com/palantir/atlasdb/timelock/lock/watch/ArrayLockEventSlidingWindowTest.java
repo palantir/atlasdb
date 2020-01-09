@@ -17,10 +17,10 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -28,79 +28,123 @@ import org.immutables.value.Value;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.lock.watch.ArrayLockEventSlidingWindow.EventsAndVersion;
 import com.palantir.lock.watch.LockWatchEvent;
 
 public class ArrayLockEventSlidingWindowTest {
     private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(10);
 
     @Test
-    public void whenLastKnownVersionIsAfterCurrentReturnEmpty() {
+    public void getWithEmptyVersionReturnsEntireHistory() {
         int numEntries = 5;
         addEvents(numEntries);
-        assertThat(slidingWindow.getFromVersion(numEntries + 1)).isEmpty();
+        assertContainsEventsInOrderFromTo(OptionalLong.empty(), 0, numEntries - 1);
     }
 
     @Test
-    public void whenLastKnownVersionIsTooOldReturnEmpty() {
-        int numEntries = 15;
-        addEvents(numEntries);
-        assertThat(slidingWindow.getFromVersion(2)).isEmpty();
-    }
-
-    @Test
-    public void whenNoNewEventsReturnEmptyList() {
+    public void getAtLastVersionReturnsEmptyList() {
         int numEntries = 5;
         addEvents(numEntries);
-        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(numEntries - 1);
-        assertThat(result).contains(ImmutableList.of());
+        EventsAndVersion result = slidingWindow.getFromVersion(OptionalLong.of(numEntries - 1));
+        assertThat(result.events()).hasValue(ImmutableList.of());
+        assertThat(result.lastVersion()).hasValue(numEntries - 1);
     }
 
     @Test
-    public void returnConsecutiveRange() {
+    public void getAfterLastVersionReturnsEmpty() {
         int numEntries = 5;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(2, 3, numEntries - 1);
+        EventsAndVersion result = slidingWindow.getFromVersion(OptionalLong.of(numEntries + 1));
+        assertThat(result.events()).isEmpty();
+        assertThat(result.lastVersion()).hasValue(numEntries - 1);
     }
 
     @Test
-    public void returnWrappingRange() {
+    public void getWithVersionOutOfDateReturnsEmpty() {
         int numEntries = 15;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(8, 9, numEntries - 1);
+        EventsAndVersion result = slidingWindow.getFromVersion(OptionalLong.of(2));
+        assertThat(result.events()).isEmpty();
+        assertThat(result.lastVersion()).hasValue(numEntries - 1);
     }
 
     @Test
-    public void returnWrappingRangeOnBoundary() {
+    public void getWithNoVersionReturnsEmptyWhenTooOld() {
         int numEntries = 15;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(9, 10, numEntries - 1);
+        EventsAndVersion result = slidingWindow.getFromVersion(OptionalLong.empty());
+        assertThat(result.events()).isEmpty();
+        assertThat(result.lastVersion()).hasValue(numEntries - 1);
     }
 
     @Test
-    public void returnRangeAfterBoundary() {
+    public void getFromMiddleOfHistory() {
+        int numEntries = 5;
+        addEvents(numEntries);
+        assertContainsEventsInOrderFromTo(OptionalLong.of(2), 3, numEntries - 1);
+    }
+
+    @Test
+    public void getAcrossMaximumSizeBoundary() {
         int numEntries = 15;
         addEvents(numEntries);
-        assertContainsEventsInOrderFromTo(10, 11, numEntries - 1);
+        assertContainsEventsInOrderFromTo(OptionalLong.of(8), 9, numEntries - 1);
     }
 
     @Test
-    public void oversizedEventThrows() {
-        assertThatThrownBy(() -> slidingWindow.add(eventOfSize(20))).isInstanceOf(IllegalArgumentException.class);
+    public void getAcrossMaximumSizeBoundaryStartingAtTheEnd() {
+        int numEntries = 15;
+        addEvents(numEntries);
+        assertContainsEventsInOrderFromTo(OptionalLong.of(9), 10, numEntries - 1);
     }
 
     @Test
-    public void variableSizeEventTest() {
-        slidingWindow.add(eventOfSize(3));
-        slidingWindow.add(eventOfSize(5));
+    public void getFromVersionAfterMaximumBoundary() {
+        int numEntries = 15;
+        addEvents(numEntries);
+        assertContainsEventsInOrderFromTo(OptionalLong.of(10), 11, numEntries - 1);
+    }
+
+    @Test
+    public void singleOversizedEventFitsInTheWindow() {
+        slidingWindow.add(eventOfSize(20));
+        EventsAndVersion result = slidingWindow.getFromVersion(OptionalLong.empty());
+        assertThat(result.events()).contains(ImmutableList.of(eventOfSize(20).build(0)));
+        assertThat(result.lastVersion()).isEqualTo(OptionalLong.of(0));
+    }
+
+    @Test
+    public void oversizedEventEvictsPreviousEntries() {
+        slidingWindow.add(eventOfSize(1));
+        slidingWindow.add(eventOfSize(1));
+        slidingWindow.add(eventOfSize(20));
+        assertThat(slidingWindow.getFromVersion(OptionalLong.empty()).events()).isEmpty();
+        assertThat(slidingWindow.getFromVersion(OptionalLong.of(0)).events()).isEmpty();
+        EventsAndVersion result = slidingWindow.getFromVersion(OptionalLong.of(1));
+        assertThat(result.events()).contains(ImmutableList.of(eventOfSize(20).build(2)));
+        assertThat(result.lastVersion()).isEqualTo(OptionalLong.of(2));
+    }
+
+    @Test
+    public void oversizedEventGetsEvictedImmediately() {
+        slidingWindow.add(eventOfSize(20));
+        slidingWindow.add(eventOfSize(1));
+        assertThat(slidingWindow.getFromVersion(OptionalLong.empty()).events()).isEmpty();
+        EventsAndVersion result = slidingWindow.getFromVersion(OptionalLong.of(0));
+        assertThat(result.events()).contains(ImmutableList.of(eventOfSize(1).build(1)));
+        assertThat(result.lastVersion()).isEqualTo(OptionalLong.of(1));
+    }
+
+    @Test
+    public void windowEvictsExtraEventsAsNecessary() {
         slidingWindow.add(eventOfSize(4));
-        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(2);
-        assertThat(result).isPresent();
-        assertThat(result.get().size()).isEqualTo(5 + 4);
-        List<LockWatchEvent> nonPlaceholder = result.get().stream()
-                .filter(event -> event != PlaceholderLockWatchEvent.INSTANCE)
-                .collect(Collectors.toList());
-        assertThat(nonPlaceholder)
-                .containsExactly(eventOfSize(5).build(3), eventOfSize(4).build(3 + 5));
+        slidingWindow.add(eventOfSize(5));
+        slidingWindow.add(eventOfSize(6));
+        assertThat(slidingWindow.getFromVersion(OptionalLong.empty()).events()).isEmpty();
+        assertThat(slidingWindow.getFromVersion(OptionalLong.of(0)).events()).isEmpty();
+        EventsAndVersion result = slidingWindow.getFromVersion(OptionalLong.of(1));
+        assertThat(result.events()).contains(ImmutableList.of(eventOfSize(6).build(2)));
+        assertThat(result.lastVersion()).isEqualTo(OptionalLong.of(2));
     }
 
     private void addEvent() {
@@ -113,8 +157,8 @@ public class ArrayLockEventSlidingWindowTest {
         }
     }
 
-    private void assertContainsEventsInOrderFromTo(long version, int startInclusive, int endInclusive) {
-        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(version);
+    private void assertContainsEventsInOrderFromTo(OptionalLong version, int startInclusive, int endInclusive) {
+        Optional<List<LockWatchEvent>> result = slidingWindow.getFromVersion(version).events();
         assertThat(result).isPresent();
         assertThat(result.get()).containsExactlyElementsOf(
                 LongStream.rangeClosed(startInclusive, endInclusive)
