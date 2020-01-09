@@ -35,7 +35,7 @@ public interface PersistentStorageConfig {
 
     /**
      * Path to the directory in which we want to store the data. In case the directory does not exist we create a new
-     * one.
+     * one. If the directory pointed by this path contains other directories they might be deleted.
      *
      * @return path to the directory
      */

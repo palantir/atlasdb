@@ -26,8 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentTimestampStore;
 import com.palantir.logsafe.Preconditions;
 

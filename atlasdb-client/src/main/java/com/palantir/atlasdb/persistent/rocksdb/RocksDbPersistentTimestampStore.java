@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -146,10 +147,9 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     public void close() throws IOException {
         rocksDB.close();
 
-        Files.walk(databaseFolder.toPath())
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
+        try (Stream<Path> stream = Files.walk(databaseFolder.toPath())) {
+            stream.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+        }
     }
 
     private Long deserializeValue(Long key, byte[] value) {
