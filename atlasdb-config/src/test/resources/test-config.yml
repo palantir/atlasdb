@@ -18,6 +18,6 @@ atlasdb:
 
   persistentStorageConfig:
     type: rocksdb
-    storagePath: /tmp
+    storagePath: atlasdb/rocksdb
 
   enableSweep: true

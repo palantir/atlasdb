@@ -1,2 +1,2 @@
 type: rocksdb
-storagePath: /tmp/rocksdb
+storagePath: rocksdb/path
