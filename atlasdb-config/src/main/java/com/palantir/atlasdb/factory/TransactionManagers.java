@@ -37,6 +37,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -422,9 +423,16 @@ public abstract class TransactionManagers {
                 this::withConsolidatedGrabImmutableTsLockFlag,
                 () -> runtimeConfigSupplier.get().transaction());
 
-        TimestampCache timestampCache = config().timestampCache()
-                .orElseGet(() -> new DefaultTimestampCache(
-                        metricsManager.getRegistry(), () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
+        TimestampCache timestampCache = AtlasDbMetrics.instrumentWithTaggedMetrics(
+                metricsManager.getTaggedRegistry(),
+                TimestampCache.class,
+                config().timestampCache()
+                        .orElseGet(() ->
+                                new DefaultTimestampCache(
+                                        metricsManager.getRegistry(),
+                                        () -> runtimeConfigSupplier.get().getTimestampCacheSize())),
+                MetricRegistry.name(TimestampCache.class),
+                _unused -> ImmutableMap.of());
 
         ConflictTracer conflictTracer = lockDiagnosticInfoCollector()
                 .<ConflictTracer>map(Function.identity())
