@@ -28,6 +28,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
+import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class PersistentStorageFactoryTests {
@@ -85,5 +88,20 @@ public final class PersistentStorageFactoryTests {
 
         PersistentStorageFactory.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(1);
+    }
+
+    @Test
+    public void createsPersistentStorage() throws Exception {
+        RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
+                .storagePath(testFolder.getRoot().getAbsolutePath())
+                .build();
+        PersistentTimestampStore persistentTimestampStore = new PersistentStorageFactory()
+                .constructPersistentTimestampStore(config);
+
+        assertThat(testFolder.getRoot().listFiles()).hasSize(1);
+
+        persistentTimestampStore.close();
+
+        assertThat(testFolder.getRoot().listFiles()).isEmpty();
     }
 }

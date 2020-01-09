@@ -17,7 +17,11 @@
 package com.palantir.atlasdb.persistent.rocksdb;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -139,9 +143,13 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         rocksDB.close();
-        databaseFolder.delete();
+
+        Files.walk(databaseFolder.toPath())
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
     }
 
     private Long deserializeValue(Long key, byte[] value) {
