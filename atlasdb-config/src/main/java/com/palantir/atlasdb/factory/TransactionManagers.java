@@ -436,18 +436,10 @@ public abstract class TransactionManagers {
                                 .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig)),
                         closeables);
 
-        Supplier<TimestampCache> timestampCacheSupplier = () ->
-                persistentTimestampStore.map(store ->
-                        OffHeapTimestampCache.create(
-                                store,
-                                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                                metricsManager.getTaggedRegistry()))
-                        .orElseGet(() ->
-                                new DefaultTimestampCache(
-                                        metricsManager.getRegistry(),
-                                        () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
-
-        TimestampCache timestampCache = config().timestampCache().orElseGet(timestampCacheSupplier);
+        TimestampCache timestampCache = getTimestampCache(
+                metricsManager,
+                runtimeConfigSupplier,
+                persistentTimestampStore);
 
         ConflictTracer conflictTracer = lockDiagnosticInfoCollector()
                 .<ConflictTracer>map(Function.identity())
@@ -516,6 +508,24 @@ public abstract class TransactionManagers {
                 closeables);
 
         return transactionManager;
+    }
+
+    private TimestampCache getTimestampCache(
+            MetricsManager metricsManager,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            Optional<PersistentTimestampStore> persistentTimestampStore) {
+        Supplier<TimestampCache> timestampCacheSupplier = () ->
+                persistentTimestampStore.map(store ->
+                        OffHeapTimestampCache.create(
+                                store,
+                                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                                metricsManager.getTaggedRegistry()))
+                        .orElseGet(() ->
+                                new DefaultTimestampCache(
+                                        metricsManager.getRegistry(),
+                                        () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
+
+        return config().timestampCache().orElseGet(timestampCacheSupplier);
     }
 
     private static Callback<TransactionManager> createClearsTable() {
