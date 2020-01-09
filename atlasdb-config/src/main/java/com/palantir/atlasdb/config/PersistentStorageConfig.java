@@ -44,14 +44,14 @@ public interface PersistentStorageConfig {
 
     @Value.Check
     default void check() {
-        File storageFile = new File(storagePath());
+        Preconditions.checkState(!Paths.get(storagePath()).isAbsolute(), "Storage path must be relative");
+
+        File storageFile = new File(System.getProperty("user.dir"), storagePath());
         if (storageFile.exists()) {
             Preconditions.checkState(
                     storageFile.isDirectory(),
                     "Storage path has to point to a directory",
                     SafeArg.of("path", storagePath()));
         }
-
-        Preconditions.checkState(!Paths.get(storagePath()).isAbsolute(), "Storage path must be relative");
     }
 }

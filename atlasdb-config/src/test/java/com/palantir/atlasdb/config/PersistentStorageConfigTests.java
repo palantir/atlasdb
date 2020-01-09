@@ -21,10 +21,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 
 import org.assertj.core.api.Assertions;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.rules.TemporaryFolder;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -33,18 +36,23 @@ public final class PersistentStorageConfigTests {
     @ClassRule
     public static final TemporaryFolder TEST_FOLDER = new TemporaryFolder();
 
+    @Rule
+    public ProvideSystemProperty properties
+            = new ProvideSystemProperty("user.dir", TEST_FOLDER.getRoot().getAbsolutePath());
+
     @Test
-    public void rocksEmptyDirectory() throws IOException {
+    public void rocksEmptyDirectory() {
         ImmutableRocksDbPersistentStorageConfig.builder()
-                .storagePath(TEST_FOLDER.newFolder().getAbsolutePath())
+                .storagePath("test/path")
                 .build();
     }
 
     @Test
-    public void rocksPathToFileThrowsAnException() {
+    public void rocksPathToFileThrowsAnException() throws IOException {
+        Path filePath = TEST_FOLDER.newFile("testFile").toPath();
         Assertions.assertThatThrownBy(() ->
                 ImmutableRocksDbPersistentStorageConfig.builder()
-                        .storagePath(TEST_FOLDER.newFile().getAbsolutePath())
+                        .storagePath(TEST_FOLDER.getRoot().toPath().relativize(filePath).toString())
                         .build())
                 .isInstanceOf(SafeIllegalStateException.class);
     }
