@@ -34,7 +34,7 @@ import com.palantir.logsafe.Preconditions;
  * {@link DefaultPersistentStorageFactory#constructPersistentTimestampStore(RocksDbPersistentStorageConfig)}.
  */
 public final class DefaultPersistentStorageFactory implements PersistentStorageFactory {
-    private static final Logger log = LoggerFactory.getLogger(PersistentStorageFactories.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultPersistentStorageFactory.class);
 
     /**
      * Constructs a {@link PersistentTimestampStore} from a {@link RocksDbPersistentStorageConfig}.

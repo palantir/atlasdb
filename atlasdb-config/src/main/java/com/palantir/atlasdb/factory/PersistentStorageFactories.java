@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.factory;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.google.common.base.MoreObjects;
@@ -26,6 +28,8 @@ public final class PersistentStorageFactories {
     private static final Pattern UUID_PATTERN = Pattern.compile(
             "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
+    private static final Set<String> SANITIZED_PATHS = new HashSet<>();
+
     private PersistentStorageFactories() {}
 
     /**
@@ -34,12 +38,18 @@ public final class PersistentStorageFactories {
      *
      * @param storagePath to the proposed storage location
      */
-    public static void sanitizeStoragePath(String storagePath) {
+    public static synchronized void sanitizeStoragePath(String storagePath) {
+        if (SANITIZED_PATHS.contains(storagePath)) {
+            return;
+        }
+
         File storageDirectory = new File(storagePath);
         if (!storageDirectory.exists()) {
             Preconditions.checkState(storageDirectory.mkdir(), "Not able to create a storage directory");
+            SANITIZED_PATHS.add(storagePath);
             return;
         }
+
         Preconditions.checkArgument(storageDirectory.isDirectory(), "Storage path has to be a directory");
         for (File file : MoreObjects.firstNonNull(storageDirectory.listFiles(), new File[0])) {
             if (file.isDirectory()) {
@@ -48,5 +58,6 @@ public final class PersistentStorageFactories {
                 }
             }
         }
+        SANITIZED_PATHS.add(storagePath);
     }
 }

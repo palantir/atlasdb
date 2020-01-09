@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.config;
 
 import java.io.File;
+import java.nio.file.Paths;
 
 import org.immutables.value.Value;
 
@@ -35,7 +36,7 @@ public interface PersistentStorageConfig {
 
     /**
      * Path to the directory in which we want to store the data. In case the directory does not exist we create a new
-     * one. If the directory pointed by this path contains other directories they might be deleted.
+     * one. Anything in this folder might be deleted.
      *
      * @return path to the directory
      */
@@ -50,5 +51,7 @@ public interface PersistentStorageConfig {
                     "Storage path has to point to a directory",
                     SafeArg.of("path", storagePath()));
         }
+
+        Preconditions.checkState(!Paths.get(storagePath()).isAbsolute(), "Storage path must be relative");
     }
 }
