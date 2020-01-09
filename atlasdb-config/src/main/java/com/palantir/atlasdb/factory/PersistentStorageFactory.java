@@ -38,7 +38,7 @@ public final class PersistentStorageFactory {
 
     /**
      * For the given path does the following: 1) if it exists checks that it is a directory, 2) if it is a directory
-     * removes all subfolders whose names are string representation of a UUID.
+     * removes all sub-folders whose names are string representation of a UUID.
      *
      * @param storagePath to the proposed storage location
      */

@@ -427,11 +427,8 @@ public abstract class TransactionManagers {
 
         Optional<PersistentTimestampStore> persistentTimestampStore =
                 initializeCloseable(
-                        config().persistentStorageConfig().map(storageConfig -> {
-                            PersistentStorageFactory.sanitizeStoragePath(storageConfig.storagePath());
-                            return new PersistentStorageFactory()
-                                    .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig);
-                        }),
+                        config().persistentStorageConfig().map(storageConfig -> new PersistentStorageFactory()
+                                .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig)),
                         closeables);
 
         Supplier<TimestampCache> timestampCacheSupplier = () ->
