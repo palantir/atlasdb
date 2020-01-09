@@ -158,6 +158,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         public Map<Map.Entry<Long, Long>, Map.Entry<Long, Long>> apply(Set<Map.Entry<Long, Long>> request) {
             CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             if (cacheDescriptor.currentSize().get() >= offHeapTimestampCache.maxSize.getAsLong()) {
+                offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
                 offHeapTimestampCache.clear();
             }
             cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
