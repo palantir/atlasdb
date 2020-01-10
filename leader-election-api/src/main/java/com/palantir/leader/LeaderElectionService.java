@@ -85,9 +85,12 @@ public interface LeaderElectionService {
     boolean stepDown();
 
     /**
-     * If this {@link LeaderElectionService} has successfully pinged the leader recently (up to the implementation),
-     * it returns the {@link HostAndPort} through which the leader can be contacted.
-     *
+     * If this {@link LeaderElectionService} has last successfully pinged node that believed it was the leader recently
+     * (up to the implementation), it returns the {@link HostAndPort} through which the leader can be contacted.
+     * <p>
+     * In practice, there may be a few false positives, but assuming everything is working as intended, they should
+     * quickly resolve.
+     * <p>
      * @return {@link Optional} containing address of suspected leader, otherwise empty if this
      * {@link LeaderElectionService} has not been able to contact the leader recently.
      */
