@@ -35,16 +35,19 @@ public interface PersistentStorageConfig {
     String type();
 
     /**
-     * Path to the directory in which we want to store the data. In case the directory does not exist we create a new
-     * one. Anything in this folder might be deleted.
+     * Relative path from the current working directory to the directory in which we want to store our data.
+     * In case the directory does not exist we create a new one. Anything in this folder might be deleted.
      *
-     * @return path to the directory
+     * @return relative path to the directory
      */
     String storagePath();
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!Paths.get(storagePath()).isAbsolute(), "Storage path must be relative");
+        Preconditions.checkState(
+                !Paths.get(storagePath()).isAbsolute(),
+                "Storage path must be relative",
+                SafeArg.of("storagePath", storagePath()));
 
         File storageFile = new File(System.getProperty("user.dir"), storagePath());
         if (storageFile.exists()) {

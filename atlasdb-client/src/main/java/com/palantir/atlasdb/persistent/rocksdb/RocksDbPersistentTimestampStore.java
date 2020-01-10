@@ -147,6 +147,8 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
     public void close() throws IOException {
         rocksDB.close();
 
+        // by sorting the walked paths in the reverse lexicographical order we will first delete all sub-folders/files
+        // before the folder itself basically doing a rm -rf .
         try (Stream<Path> stream = Files.walk(databaseFolder.toPath())) {
             stream.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
         }

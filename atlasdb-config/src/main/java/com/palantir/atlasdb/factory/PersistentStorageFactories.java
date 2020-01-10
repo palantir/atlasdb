@@ -33,8 +33,9 @@ public final class PersistentStorageFactories {
     private PersistentStorageFactories() {}
 
     /**
-     * For the given path does the following: 1) if it exists checks that it is a directory, 2) if it is a directory
-     * removes all sub-folders whose names are string representation of a UUID.
+     * For the given path does the following: 1) it is sanitized only once per VM lifetime 2) if it exists checks that
+     * it is a directory, 3) if it is a directory removes all sub-folders whose names are string representation of a
+     * UUID.
      *
      * @param storagePath to the proposed storage location
      */
@@ -50,7 +51,7 @@ public final class PersistentStorageFactories {
             return;
         }
 
-        Preconditions.checkArgument(storageDirectory.isDirectory(), "Storage path has to be a directory");
+        Preconditions.checkArgument(storageDirectory.isDirectory(), "Storage path has to point to a directory");
         for (File file : MoreObjects.firstNonNull(storageDirectory.listFiles(), new File[0])) {
             if (file.isDirectory()) {
                 if (UUID_PATTERN.matcher(file.getName()).matches()) {

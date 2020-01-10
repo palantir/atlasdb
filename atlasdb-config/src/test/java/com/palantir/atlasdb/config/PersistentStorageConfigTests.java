@@ -54,7 +54,8 @@ public final class PersistentStorageConfigTests {
                 ImmutableRocksDbPersistentStorageConfig.builder()
                         .storagePath(TEST_FOLDER.getRoot().toPath().relativize(filePath).toString())
                         .build())
-                .isInstanceOf(SafeIllegalStateException.class);
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("has to point to a directory");
     }
 
     @Test

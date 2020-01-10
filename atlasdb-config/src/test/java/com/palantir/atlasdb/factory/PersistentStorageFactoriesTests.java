@@ -61,7 +61,8 @@ public final class PersistentStorageFactoriesTests {
         File file = testFolder.newFile();
 
         assertThatThrownBy(() -> PersistentStorageFactories.sanitizeStoragePath(file.getAbsolutePath()))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("has to point to a directory");
     }
 
     @Test
@@ -82,7 +83,7 @@ public final class PersistentStorageFactoriesTests {
     }
 
     @Test
-    public void doesNotRemoveNonFolder() throws IOException {
+    public void doesNotRemoveNonUuidNamedFolder() throws IOException {
         testFolder.newFolder("testFolder");
 
         PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
