@@ -141,7 +141,7 @@ public abstract class TransactionTestSetup {
         return new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
                 keyValueService, timestampService, timestampManagementService, lockClient, lockService,
-                transactionService, conflictDetectionManager, sweepStrategyManager,
+                transactionService, conflictDetectionManager, sweepStrategyManager, timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
     }

@@ -24,6 +24,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -109,6 +110,7 @@ public class AtlasDbTestCase {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
+                DefaultTimestampCache.createForTests(),
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService());
     }
