@@ -58,8 +58,6 @@ public abstract class AtlasDbConfig {
 
     public abstract Optional<ServerListConfig> timestamp();
 
-    public abstract Optional<PersistentStorageConfig> persistentStorageConfig();
-
     /**
      * A namespace refers to a String that is used to identify this AtlasDB client to the relevant timestamp, lock and
      * key value services. Currently, this only applies to external timelock services, and Cassandra KVS (where it is
