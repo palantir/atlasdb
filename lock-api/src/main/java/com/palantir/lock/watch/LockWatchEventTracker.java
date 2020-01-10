@@ -17,8 +17,14 @@
 package com.palantir.lock.watch;
 
 public interface LockWatchEventTracker {
+    /**
+     * Returns the most up to date lock watch state.
+     */
     VersionedLockWatchState currentState();
-    VersionedLockWatchState updateState(LockWatchStateUpdate update);
+    /**
+     * Attempts to update the currently tracked state.
+     */
+    void updateState(LockWatchStateUpdate update);
 
     void setLockWatchStateForStartTimestamp(long startTimestamp, VersionedLockWatchState lockWatchState);
     VersionedLockWatchState getLockWatchStateForStartTimestamp(long startTimestamp);

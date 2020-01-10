@@ -43,6 +43,14 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
         this.lastUpdate = lastUpdate;
     }
 
+    public static VersionedLockWatchState withoutLastUpdate(
+            OptionalLong version,
+            RangeSet<LockDescriptor> watchedRanges,
+            Map<LockDescriptor, LockWatchInfo> locks,
+            UUID leaderId) {
+        return new VersionedLockWatchStateImpl(version, watchedRanges, locks, leaderId, LockWatchStateUpdate.EMPTY);
+    }
+
     @Override
     public OptionalLong version() {
         return version;
