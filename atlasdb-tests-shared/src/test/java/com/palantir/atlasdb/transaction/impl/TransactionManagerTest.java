@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -166,6 +168,54 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotConflictIfImmutableTimestampLockExpiresIfNoReadsOrWrites() {
         TransactionManager txnManagerWithMocks = setupTransactionManager();
         txnManagerWithMocks.runTaskThrowOnConflict(txn -> null);
+    }
+
+    @Test
+    public void writeDoesNotPopulateTimestampCache() {
+        Transaction transaction = txMgr.runTaskWithRetry(txn -> {
+            put(txn, TEST_TABLE, "row", "column", "test");
+            return txn;
+        });
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(transaction.getTimestamp())).isNull();
+    }
+
+    @Test
+    public void readCachesWritersStartToCommitTimestamp() {
+        Transaction writer = txMgr.runTaskWithRetry(txn -> {
+            put(txn, TEST_TABLE, "row", "column", "test");
+            return txn;
+        });
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp())).isNull();
+
+        txMgr.runTaskWithRetry(txn -> {
+            get(txn, TEST_TABLE, "row", "column");
+            return txn;
+        });
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
+                .isNotNull()
+                .isEqualTo(transactionService.get(writer.getTimestamp()));
+    }
+
+    @Test
+    public void overwriteCachesPreviousWritersStartToCommitTimestamp() {
+        Transaction writer = txMgr.runTaskWithRetry(txn -> {
+            put(txn, TEST_TABLE, "row", "column", "first");
+            return txn;
+        });
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp())).isNull();
+
+        txMgr.runTaskWithRetry(txn -> {
+            put(txn, TEST_TABLE, "row", "column", "second");
+            return txn;
+        });
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
+                .isNotNull()
+                .isEqualTo(transactionService.get(writer.getTimestamp()));
     }
 
     private TransactionManager setupTransactionManager() {

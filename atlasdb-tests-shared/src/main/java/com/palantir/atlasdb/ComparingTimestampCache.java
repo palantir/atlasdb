@@ -17,7 +17,6 @@
 package com.palantir.atlasdb;
 
 import java.util.Objects;
-import java.util.function.LongSupplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -33,14 +32,16 @@ public final class ComparingTimestampCache implements TimestampCache {
     private final TimestampCache first;
     private final TimestampCache second;
 
-    public static TimestampCache comparingOffHeap(
+    public static TimestampCache comparingOffHeapForTests(
             MetricsManager metricRegistry,
-            LongSupplier cacheSize,
             PersistentTimestampStore persistentTimestampStore) {
-        TimestampCache first = new DefaultTimestampCache(metricRegistry.getRegistry(), cacheSize::getAsLong);
+        TimestampCache first = new DefaultTimestampCache(
+                metricRegistry.getRegistry(),
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+
         TimestampCache second = OffHeapTimestampCache.create(
                 persistentTimestampStore,
-                cacheSize,
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 metricRegistry.getTaggedRegistry());
 
         return new ComparingTimestampCache(first, second);
@@ -50,6 +51,7 @@ public final class ComparingTimestampCache implements TimestampCache {
         this.first = first;
         this.second = second;
     }
+
 
     @Override
     public synchronized void clear() {

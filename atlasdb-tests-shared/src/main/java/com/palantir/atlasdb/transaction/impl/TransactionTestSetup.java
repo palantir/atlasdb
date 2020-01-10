@@ -15,17 +15,23 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.rules.TemporaryFolder;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.ComparingTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -36,6 +42,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentTimestampStore;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -56,6 +64,22 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 
 public abstract class TransactionTestSetup {
+    @ClassRule
+    public static final TemporaryFolder PERSISTENT_STORAGE_FOLDER = new TemporaryFolder();
+    private static PersistentTimestampStore persistentTimestampStore;
+
+    @BeforeClass
+    public static void storageSetUp() throws IOException, RocksDBException {
+        File storageDirectory = PERSISTENT_STORAGE_FOLDER.newFolder();
+        RocksDB rocksDB = RocksDB.open(storageDirectory.getAbsolutePath());
+        persistentTimestampStore = new RocksDbPersistentTimestampStore(rocksDB, storageDirectory);
+    }
+
+    @AfterClass
+    public static void storageTearDown() throws Exception {
+        persistentTimestampStore.close();
+    }
+
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
             "ns.atlasdb_transactions_test_table");
     protected static final TableReference TEST_TABLE_THOROUGH = TableReference.createFromFullyQualifiedName(
@@ -77,9 +101,7 @@ public abstract class TransactionTestSetup {
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
 
-    protected final TimestampCache timestampCache = new DefaultTimestampCache(
-            new MetricRegistry(),
-            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+    protected TimestampCache timestampCache;
 
     protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
@@ -88,6 +110,8 @@ public abstract class TransactionTestSetup {
 
     @Before
     public void setUp() {
+        timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentTimestampStore);
+
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         lockClient = LockClient.of("test_client");
 
