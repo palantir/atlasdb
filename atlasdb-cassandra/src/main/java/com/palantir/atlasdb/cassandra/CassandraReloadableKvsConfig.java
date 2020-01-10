@@ -250,7 +250,8 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public void check() {
-
+//         The config instance passed here gets checked at the time its of construction
+//         (default implementation in the parent class). Hence, it is okay to do no operation here.
     }
 
     private <T> T chooseConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> runtimeConfig, T installConfig) {

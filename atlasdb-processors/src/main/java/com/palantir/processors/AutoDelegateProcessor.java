@@ -147,6 +147,9 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         Set<ExecutableElement> methodsToBeDelegated = typeToExtend.getMethods();
 
         for (ExecutableElement methodElement : methodsToBeDelegated) {
+
+            // methods annotated with DoNotDelegate have already been filtered out | TypeToExtend::interfaceMethodFilter
+
             if (methodElement.getModifiers().contains(Modifier.DEFAULT)
                     && methodElement.getAnnotation(DoDelegate.class) == null) {
                 throw new ProcessingException(annotatedElement, "Default methods must be annotated with "
