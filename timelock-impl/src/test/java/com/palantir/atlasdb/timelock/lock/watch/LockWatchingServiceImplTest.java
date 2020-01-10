@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -78,7 +80,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         verifyLoggedOpenLocks(1, ImmutableSet.of(ROW_DESCRIPTOR));
-        verify(log).logLockWatchCreated(request);
+        verify(log).logLockWatchCreated(request, any(UUID.class));
         verifyNoMoreInteractions(log);
     }
 
@@ -96,7 +98,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(entireTableRequest);
 
         verifyLoggedOpenLocks(2, ImmutableSet.of(ROW_DESCRIPTOR, secondRow));
-        verify(log).logLockWatchCreated(entireTableRequest);
+        verify(log).logLockWatchCreated(entireTableRequest, any(UUID.class));
     }
 
     @Test
@@ -105,11 +107,11 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         verifyLoggedOpenLocks(1, ImmutableSet.of(ROW_DESCRIPTOR));
-        verify(log).logLockWatchCreated(request);
+        verify(log).logLockWatchCreated(request, any(UUID.class));
 
         LockWatchRequest prefixRequest = prefixRequest(TABLE, ROW);
         lockWatcher.startWatching(prefixRequest);
-        verify(log).logLockWatchCreated(prefixRequest);
+        verify(log).logLockWatchCreated(prefixRequest, any(UUID.class));
     }
 
     @Test
@@ -121,7 +123,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, cellSuffixDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR));
     }
 
@@ -134,7 +136,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(rowRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(rowDescriptor));
     }
 
@@ -148,7 +150,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(prefixRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor, notPrefixDescriptor);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR, rowDescriptor));
     }
 
@@ -170,7 +172,7 @@ public class LockWatchingServiceImplTest {
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(
                 cellInRange, cellOutOfRange, rowInRange, rowInRange2, rowOutOfRange);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(cellInRange, rowInRange, rowInRange2));
     }
 
@@ -185,7 +187,7 @@ public class LockWatchingServiceImplTest {
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet
                 .of(CELL_DESCRIPTOR, cellOutOfRange, rowInRange, rowOutOfRange);
-        lockWatcher.registerLock(locks);
+        lockWatcher.registerLock(locks, TOKEN);
         verifyLoggedLocks(1, ImmutableSet.of(CELL_DESCRIPTOR, rowInRange));
     }
 
@@ -213,14 +215,14 @@ public class LockWatchingServiceImplTest {
     @SuppressWarnings("unchecked")
     private void verifyLoggedOpenLocks(int invocations, Set<LockDescriptor> locks) {
         ArgumentCaptor<Set<LockDescriptor>> captor = ArgumentCaptor.forClass(Set.class);
-        verify(log, times(invocations)).logOpenLocks(captor.capture());
+        verify(log, times(invocations)).logOpenLocks(captor.capture(), any(UUID.class));
         assertThat(captor.getValue()).containsExactlyInAnyOrderElementsOf(locks);
     }
 
     @SuppressWarnings("unchecked")
     private void verifyLoggedLocks(int invocations, Set<LockDescriptor> locks) {
         ArgumentCaptor<Set<LockDescriptor>> captor = ArgumentCaptor.forClass(Set.class);
-        verify(log, times(invocations)).logLock(captor.capture());
+        verify(log, times(invocations)).logLock(captor.capture(), eq(TOKEN));
         assertThat(captor.getValue()).containsExactlyInAnyOrderElementsOf(locks);
     }
 

@@ -216,8 +216,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public void registerLock(Set<LockDescriptor> locksTakenOut) {
-        lockService.getLockWatchingService().registerLock(locksTakenOut);
+    public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
+        lockService.getLockWatchingService().registerLock(locksTakenOut, token);
     }
 
     @Override

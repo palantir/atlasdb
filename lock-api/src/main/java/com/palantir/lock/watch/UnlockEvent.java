@@ -20,15 +20,28 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@JsonSerialize(as = ImmutableUnlockEvent.class)
+@JsonDeserialize(as = ImmutableUnlockEvent.class)
+@JsonTypeName(UnlockEvent.TYPE)
 public abstract class UnlockEvent implements LockWatchEvent {
+    static final String TYPE = "unlock";
+
     public abstract Set<LockDescriptor> lockDescriptors();
 
     @Override
-    public <T> T accept(LockWatchEventVisitor<T> visitor) {
+    public int size() {
+        return lockDescriptors().size();
+    }
+
+    @Override
+    public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
     }
 
