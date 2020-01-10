@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: break
+break:
   description: |-
     Fail on generating an AutoDelegate implementation if there are any default methods that have not been annotated with either @DoNotDelegate or @DoDelegate.
 
