@@ -29,15 +29,18 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
     private final RangeSet<LockDescriptor> watchedRanges;
     private final Map<LockDescriptor, LockWatchInfo> locks;
     private final UUID leaderId;
+    private final LockWatchStateUpdate lastUpdate;
 
     public VersionedLockWatchStateImpl(OptionalLong version,
             RangeSet<LockDescriptor> watchedRanges,
             Map<LockDescriptor, LockWatchInfo> locks,
-            UUID leaderId) {
+            UUID leaderId,
+            LockWatchStateUpdate lastUpdate) {
         this.version = version;
         this.watchedRanges = watchedRanges;
         this.locks = locks;
         this.leaderId = leaderId;
+        this.lastUpdate = lastUpdate;
     }
 
     @Override
@@ -61,5 +64,10 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
             return LockWatchInfo.of(LockWatchInfo.State.UNLOCKED, OptionalLong.empty());
         }
         return LockWatchInfo.UNKNOWN;
+    }
+
+    @Override
+    public LockWatchStateUpdate lastUpdate() {
+        return lastUpdate;
     }
 }

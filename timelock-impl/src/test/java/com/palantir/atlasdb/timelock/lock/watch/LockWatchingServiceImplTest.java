@@ -80,7 +80,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         verifyLoggedOpenLocks(1, ImmutableSet.of(ROW_DESCRIPTOR));
-        verify(log).logLockWatchCreated(request, any(UUID.class));
+        verify(log).logLockWatchCreated(eq(request), any(UUID.class));
         verifyNoMoreInteractions(log);
     }
 
@@ -98,7 +98,7 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(entireTableRequest);
 
         verifyLoggedOpenLocks(2, ImmutableSet.of(ROW_DESCRIPTOR, secondRow));
-        verify(log).logLockWatchCreated(entireTableRequest, any(UUID.class));
+        verify(log).logLockWatchCreated(eq(entireTableRequest), any(UUID.class));
     }
 
     @Test
@@ -107,11 +107,11 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         verifyLoggedOpenLocks(1, ImmutableSet.of(ROW_DESCRIPTOR));
-        verify(log).logLockWatchCreated(request, any(UUID.class));
+        verify(log).logLockWatchCreated(eq(request), any(UUID.class));
 
         LockWatchRequest prefixRequest = prefixRequest(TABLE, ROW);
         lockWatcher.startWatching(prefixRequest);
-        verify(log).logLockWatchCreated(prefixRequest, any(UUID.class));
+        verify(log).logLockWatchCreated(eq(prefixRequest), any(UUID.class));
     }
 
     @Test

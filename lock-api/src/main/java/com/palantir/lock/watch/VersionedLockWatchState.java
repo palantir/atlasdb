@@ -23,23 +23,6 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.LockDescriptor;
 
 public interface VersionedLockWatchState {
-    VersionedLockWatchState NONE = new VersionedLockWatchState() {
-        @Override
-        public OptionalLong version() {
-            return OptionalLong.empty();
-        }
-
-        @Override
-        public UUID leaderId() {
-            return UUID.randomUUID();
-        }
-
-        @Override
-        public LockWatchInfo lockWatchState(LockDescriptor lockDescriptor) {
-            return ImmutableLockWatchInfo.of(LockWatchInfo.State.NOT_WATCHED, OptionalLong.empty());
-        }
-    };
-
     /**
      * The last known log version that was used to build this lock watch state.
      */
@@ -53,4 +36,8 @@ public interface VersionedLockWatchState {
      */
     @Idempotent
     LockWatchInfo lockWatchState(LockDescriptor lockDescriptor);
+    /**
+     * Returns the last update that was used to create this state.
+     */
+    LockWatchStateUpdate lastUpdate();
 }
