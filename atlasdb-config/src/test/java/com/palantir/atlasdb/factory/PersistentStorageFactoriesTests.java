@@ -49,7 +49,7 @@ public final class PersistentStorageFactoriesTests {
     }
 
     @Test
-    public void nonExistentFolder() {
+    public void createsFolderIfNotExists() {
         File file  = new File(testFolderPath, "nonexistent");
         PersistentStorageFactories.sanitizeStoragePath(file.getPath());
 

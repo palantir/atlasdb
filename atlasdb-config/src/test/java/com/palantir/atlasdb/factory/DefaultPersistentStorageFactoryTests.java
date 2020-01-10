@@ -18,8 +18,12 @@ package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
+
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
@@ -27,28 +31,34 @@ import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 
 public final class DefaultPersistentStorageFactoryTests {
+    @ClassRule
+    public static final TemporaryFolder TEST_FOLDER = new TemporaryFolder();
+
     @Rule
-    public TemporaryFolder testFolder = new TemporaryFolder();
+    public ProvideSystemProperty properties
+            = new ProvideSystemProperty("user.dir", TEST_FOLDER.getRoot().getAbsolutePath());
 
     @Test
     public void createsPersistentStorage() throws Exception {
+        File folder = TEST_FOLDER.newFolder();
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
-                .storagePath(testFolder.getRoot().getAbsolutePath())
+                .storagePath(TEST_FOLDER.getRoot().toPath().relativize(folder.toPath()).toString())
                 .build();
         PersistentTimestampStore persistentTimestampStore = new DefaultPersistentStorageFactory()
                 .constructPersistentTimestampStore(config);
 
-        assertThat(testFolder.getRoot().listFiles()).hasSize(1);
+        assertThat(folder.listFiles()).hasSize(1);
 
         persistentTimestampStore.close();
 
-        assertThat(testFolder.getRoot().listFiles()).isEmpty();
+        assertThat(folder.listFiles()).isEmpty();
     }
 
     @Test
     public void createsMultiplePersistentStores() throws Exception {
+        File folder = TEST_FOLDER.newFolder();
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
-                .storagePath(testFolder.getRoot().getAbsolutePath())
+                .storagePath(TEST_FOLDER.getRoot().toPath().relativize(folder.toPath()).toString())
                 .build();
         PersistentStorageFactory factory = new DefaultPersistentStorageFactory();
 
@@ -57,11 +67,11 @@ public final class DefaultPersistentStorageFactoryTests {
 
         assertThat(firstStore).isNotEqualTo(secondStore);
 
-        assertThat(testFolder.getRoot().listFiles()).hasSize(2);
+        assertThat(folder.listFiles()).hasSize(2);
 
         firstStore.close();
         secondStore.close();
 
-        assertThat(testFolder.getRoot().listFiles()).isEmpty();
+        assertThat(folder.listFiles()).isEmpty();
     }
 }

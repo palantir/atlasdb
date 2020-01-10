@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentTimestampStore;
-import com.palantir.logsafe.Preconditions;
 
 /**
  * Constructs a new {@link PersistentTimestampStore} with new persistent storage connection on each call of
@@ -44,7 +43,6 @@ public final class DefaultPersistentStorageFactory implements PersistentStorageF
      */
     public PersistentTimestampStore constructPersistentTimestampStore(RocksDbPersistentStorageConfig config) {
         File databaseFolder = new File(config.storagePath(), UUID.randomUUID().toString());
-        Preconditions.checkState(databaseFolder.mkdir(), "RocksDb directory created");
         RocksDB rocksDb = openRocksConnection(databaseFolder);
         return new RocksDbPersistentTimestampStore(rocksDb, databaseFolder);
     }
