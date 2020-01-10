@@ -17,13 +17,13 @@
 package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 
-import org.assertj.core.api.Assertions;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,7 +50,7 @@ public final class PersistentStorageConfigTests {
     @Test
     public void rocksPathToFileThrowsAnException() throws IOException {
         Path filePath = TEST_FOLDER.newFile("testFile").toPath();
-        Assertions.assertThatThrownBy(() ->
+        assertThatThrownBy(() ->
                 ImmutableRocksDbPersistentStorageConfig.builder()
                         .storagePath(TEST_FOLDER.getRoot().toPath().relativize(filePath).toString())
                         .build())
