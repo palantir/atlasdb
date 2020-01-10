@@ -1,0 +1,29 @@
+type: improvement
+improvement:
+  description: |-
+    Explicit do delegate annotation
+
+    [Reference Issue](https://github.com/palantir/atlasdb/issues/4411)
+
+    **Goals**:
+    - Fail on generating an AutoDelegate implementation if there are any default methods that have not been annotated with either @DoNotDelegate or @DoDelegate
+    - Do not autoDelegate CassandraKeyValueServiceConfig
+
+    **Implementation Description (bullets)**:
+    - Validation check is added (validateMethodsToBeAutoDelegated) in the AutoDelegateProcessor.
+    - It enforces decision on whether a default method should be autoDelegated or not.
+    - In case where a default method is not explicitly annotated, autoDelegation for the interface fails.
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+    Work in progress.
+
+    **Where should we start reviewing?**:
+    AutoDelegateProcessor
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/4462
