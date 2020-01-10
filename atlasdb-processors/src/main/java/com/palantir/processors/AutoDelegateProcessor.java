@@ -148,10 +148,9 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
         for (ExecutableElement methodElement : methodsToBeDelegated) {
             if (methodElement.getModifiers().contains(Modifier.DEFAULT)
-                && methodElement.getAnnotation(DoDelegate.class) == null
-            ) {
-                throw new ProcessingException(annotatedElement, "Default methods must be annotated with " +
-                        "either @DoNotDelegate or @DoDelegate");
+                    && methodElement.getAnnotation(DoDelegate.class) == null) {
+                throw new ProcessingException(annotatedElement, "Default methods must be annotated with "
+                        + "either @DoNotDelegate or @DoDelegate");
             }
         }
     }
