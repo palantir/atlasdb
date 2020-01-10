@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.paxos;
+package com.palantir.paxos;
 
-import java.io.Closeable;
-import java.util.UUID;
+import org.immutables.value.Value;
 
-import com.palantir.paxos.LeaderPingResult;
-import com.palantir.paxos.LeaderPingerContext;
+import com.google.common.net.HostAndPort;
 
-interface ClientAwarePingableLeader extends Closeable {
-    LeaderPingResult ping(UUID requestedUuid, Client client);
-    LeaderPingerContext<BatchPingableLeader> underlyingRpcClient();
+@Value.Immutable
+@Value.Style(allParameters = true)
+public interface LeaderPingerContext<T> {
+    T pinger();
+    HostAndPort hostAndPort();
 }

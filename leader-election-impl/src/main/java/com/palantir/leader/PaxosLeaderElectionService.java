@@ -15,6 +15,7 @@
  */
 package com.palantir.leader;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,7 +25,10 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
@@ -60,13 +64,15 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     private final LeaderPinger leaderPinger;
     private final PaxosLearnerNetworkClient learnerClient;
 
-    private final long updatePollingRateInMs;
-    private final long randomWaitBeforeProposingLeadership;
+    private final Duration updatePollingRate;
+    private final Duration randomWaitBeforeProposingLeadership;
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
     private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
     private final RateLimiter leaderEligibilityLoggingRateLimiter = RateLimiter.create(1);
+
+    private final Cache<UUID, HostAndPort> leaderAddressCache;
 
     PaxosLeaderElectionService(
             PaxosProposer proposer,
@@ -74,18 +80,22 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             LeaderPinger leaderPinger,
             PaxosAcceptorNetworkClient acceptorClient,
             PaxosLearnerNetworkClient learnerClient,
-            long updatePollingWaitInMs,
-            long randomWaitBeforeProposingLeadership,
+            Duration updatePollingWait,
+            Duration randomWaitBeforeProposingLeadership,
+            Duration leaderAddressCacheTtl,
             PaxosLeaderElectionEventRecorder eventRecorder) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.leaderPinger = leaderPinger;
         this.learnerClient = learnerClient;
-        this.updatePollingRateInMs = updatePollingWaitInMs;
+        this.updatePollingRate = updatePollingWait;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.eventRecorder = eventRecorder;
         this.latestRoundVerifier =
                 new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
+        this.leaderAddressCache = Caffeine.newBuilder()
+                .expireAfterWrite(leaderAddressCacheTtl)
+                .build();
     }
 
     @Override
@@ -126,7 +136,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         }
 
         if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {
-            Thread.sleep(updatePollingRateInMs);
+            Thread.sleep(updatePollingRate.toMillis());
             return;
         }
 
@@ -135,7 +145,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             return;
         }
 
-        long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
+        long backoffTime = (long) (randomWaitBeforeProposingLeadership.toMillis() * Math.random());
         log.debug("Waiting for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
         Thread.sleep(backoffTime);
 
@@ -155,12 +165,21 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private LeaderPingResult pingLeader(Optional<PaxosValue> maybeGreatestLearnedValue) {
-        Optional<LeaderPingResult> maybeLeaderPingResult = maybeGreatestLearnedValue
-                .map(PaxosValue::getLeaderUUID)
-                .map(UUID::fromString)
+        Optional<LeaderPingResult> maybeLeaderPingResult = extractLeaderUuid(maybeGreatestLearnedValue)
                 .map(leaderPinger::pingLeaderWithUuid);
         maybeLeaderPingResult.ifPresent(leaderPingResult -> leaderPingResult.recordEvent(eventRecorder));
+        maybeLeaderPingResult.ifPresent(leaderPingResult -> LeaderPingResults.caseOf(leaderPingResult)
+                .pingReturnedTrue((key, value) -> {
+                    leaderAddressCache.put(key, value);
+                    return null;
+                }).otherwise_(null));
         return maybeLeaderPingResult.orElseGet(LeaderPingResults::pingReturnedFalse);
+    }
+
+    private static Optional<UUID> extractLeaderUuid(Optional<PaxosValue> maybeGreatestLearnedValue) {
+        return maybeGreatestLearnedValue
+                .map(PaxosValue::getLeaderUUID)
+                .map(UUID::fromString);
     }
 
     private void proposeLeadershipAfter(Optional<PaxosValue> value) {
@@ -282,6 +301,11 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             }
         }
         return false;
+    }
+
+    @Override
+    public Optional<HostAndPort> getRecentlyPingedLeaderHost() {
+        return extractLeaderUuid(knowledge.getGreatestLearnedValue()).map(leaderAddressCache::getIfPresent);
     }
 
     private static long getNextSequenceNumber(Optional<PaxosValue> paxosValue) {

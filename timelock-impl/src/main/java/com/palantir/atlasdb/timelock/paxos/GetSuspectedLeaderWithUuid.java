@@ -33,6 +33,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Maps;
@@ -43,6 +45,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponsesWithRemote;
 
@@ -58,17 +61,22 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
 
     private static final Logger log = LoggerFactory.getLogger(GetSuspectedLeaderWithUuid.class);
 
-    private final Map<ClientAwarePingableLeader, ExecutorService> executors;
+    private final Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors;
+    private final BiMap<LeaderPingerContext<BatchPingableLeader>, ClientAwarePingableLeader> clientAwareLeaders;
     private final UUID localUuid;
     private final Duration leaderPingResponseWait;
 
-    private final Map<UUID, ClientAwarePingableLeader> cache = Maps.newHashMap();
+    private final Map<UUID, LeaderPingerContext<BatchPingableLeader>> cache = Maps.newHashMap();
 
     GetSuspectedLeaderWithUuid(
-            Map<ClientAwarePingableLeader, ExecutorService> executors,
+            Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
+            Set<ClientAwarePingableLeader> clientAwarePingableLeaders,
             UUID localUuid,
             Duration leaderPingResponseWait) {
         this.executors = executors;
+        this.clientAwareLeaders = KeyedStream.of(clientAwarePingableLeaders)
+                .mapKeys(ClientAwarePingableLeader::underlyingRpcClient)
+                .collectTo(HashBiMap::create);
         this.localUuid = localUuid;
         this.leaderPingResponseWait = leaderPingResponseWait;
     }
@@ -82,7 +90,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
                 .filterKeys(cache::containsKey)
                 .map(cache::get)
                 .forEach((cachedUuid, pingable) ->
-                        completeRequest(uuidsToRequests.get(cachedUuid), Optional.of(pingable)));
+                        completeRequest(uuidsToRequests.get(cachedUuid), Optional.of(clientAwareLeaders.get(pingable))));
 
         Set<UUID> uncachedUuids = uuidsToRequests.keySet().stream()
                 .filter(uuid -> !cache.containsKey(uuid))
@@ -92,22 +100,22 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
             return;
         }
 
-        PaxosResponsesWithRemote<ClientAwarePingableLeader, PaxosContainer<UUID>> results =
+        PaxosResponsesWithRemote<LeaderPingerContext<BatchPingableLeader>, PaxosContainer<UUID>> results =
                 PaxosQuorumChecker.collectUntil(
                 ImmutableList.copyOf(executors.keySet()),
-                pingable -> PaxosContainer.of(pingable.uuid()),
+                pingable -> PaxosContainer.of(pingable.pinger().uuid()),
                 executors,
                 leaderPingResponseWait,
                 state -> state.responses().values().stream().map(PaxosContainer::get).collect(toSet())
                         .containsAll(uncachedUuids));
 
-        for (Map.Entry<ClientAwarePingableLeader, PaxosContainer<UUID>> resultEntries : results.responses().entrySet()) {
-            ClientAwarePingableLeader pingable = resultEntries.getKey();
+        for (Map.Entry<LeaderPingerContext<BatchPingableLeader>, PaxosContainer<UUID>> resultEntries : results.responses().entrySet()) {
+            LeaderPingerContext<BatchPingableLeader> pingable = resultEntries.getKey();
             UUID uuid = resultEntries.getValue().get();
 
-            ClientAwarePingableLeader oldCachedEntry = cache.putIfAbsent(uuid, pingable);
+            LeaderPingerContext<BatchPingableLeader> oldCachedEntry = cache.putIfAbsent(uuid, pingable);
             throwIfInvalidSetup(oldCachedEntry, pingable, uuid);
-            completeRequest(uuidsToRequests.get(uuid), Optional.of(pingable));
+            completeRequest(uuidsToRequests.get(uuid), Optional.of(clientAwareLeaders.get(pingable)));
         }
 
         Set<UUID> missingUuids = Sets.difference(
@@ -124,8 +132,8 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
     }
 
     private void throwIfInvalidSetup(
-            ClientAwarePingableLeader cachedService,
-            ClientAwarePingableLeader pingedService,
+            LeaderPingerContext<BatchPingableLeader> cachedService,
+            LeaderPingerContext<BatchPingableLeader> pingedService,
             UUID pingedServiceUuid) {
         if (cachedService == null) {
             return;
