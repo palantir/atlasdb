@@ -71,8 +71,8 @@ public abstract class TransactionTestSetup {
     @BeforeClass
     public static void storageSetUp() throws IOException, RocksDBException {
         File storageDirectory = PERSISTENT_STORAGE_FOLDER.newFolder();
-        RocksDB rocksDB = RocksDB.open(storageDirectory.getAbsolutePath());
-        persistentTimestampStore = new RocksDbPersistentTimestampStore(rocksDB, storageDirectory);
+        RocksDB rocksDb = RocksDB.open(storageDirectory.getAbsolutePath());
+        persistentTimestampStore = new RocksDbPersistentTimestampStore(rocksDb, storageDirectory);
     }
 
     @AfterClass
