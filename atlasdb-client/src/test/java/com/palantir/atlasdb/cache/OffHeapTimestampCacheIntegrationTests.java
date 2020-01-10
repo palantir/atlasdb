@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.junit.After;
@@ -28,8 +29,8 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import com.palantir.atlasdb.offheap.PersistentTimestampStore;
-import com.palantir.atlasdb.offheap.rocksdb.RocksDbPersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentTimestampStore;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public final class OffHeapTimestampCacheIntegrationTests {
@@ -42,13 +43,14 @@ public final class OffHeapTimestampCacheIntegrationTests {
 
     @Before
     public void before() throws RocksDBException, IOException {
-        RocksDB rocksDb = RocksDB.open(TEMPORARY_FOLDER.newFolder().getAbsolutePath());
+        File databaseFolder = TEMPORARY_FOLDER.newFolder();
+        RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
-        persistentTimestampStore = new RocksDbPersistentTimestampStore(rocksDb);
+        persistentTimestampStore = new RocksDbPersistentTimestampStore(rocksDb, databaseFolder);
 
         offHeapTimestampCache = OffHeapTimestampCache.create(
                 persistentTimestampStore,
-                CACHE_SIZE,
+                () -> CACHE_SIZE,
                 MetricsManagers.createForTests().getTaggedRegistry());
     }
 
