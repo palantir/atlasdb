@@ -17,9 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -28,12 +26,10 @@ import org.immutables.value.Value;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.logsafe.SafeArg;
@@ -50,24 +46,13 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 SafeArg.of(AtlasDbMetricNames.TAG_CLIENT, proxyClient().value()));
     }
 
-    /*
-       We need to distinguish between the two since we don't have hierarchical loggers but we do have hierarchical
-       metric registries. Since the hierarchical registries are already keyed by the PaxosUseCase, it throws and then
-       metrics are never produced again. See {@link ExtraEntrySortedMap}.
-     */
-    @Value.Derived
-    List<SafeArg<String>> namespaceAsMetricArgs() {
-        return ImmutableList.of(SafeArg.of(AtlasDbMetricNames.TAG_CLIENT, proxyClient().value()));
-    }
-
     @Value.Derived
     public PaxosLeadershipEventRecorder eventRecorder() {
         return PaxosLeadershipEventRecorder.create(
-                metrics().metrics(),
+                metrics().clientScopedMetrics().metricRegistryForClient(proxyClient()), // metrics for client etc.
                 leaderUuid().toString(),
                 leadershipObserver(),
-                namespaceAsLoggingArgs(),
-                namespaceAsMetricArgs());
+                namespaceAsLoggingArgs());
     }
 
     @Value.Derived
@@ -77,12 +62,11 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
 
     public <T> T instrument(Class<T> clazz, T instance) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metrics().metrics(),
+                metrics().clientScopedMetrics().metricRegistryForClient(proxyClient()),
                 clazz,
                 instance,
                 MetricRegistry.name(clazz),
                 _context -> ImmutableMap.of(
-                        AtlasDbMetricNames.TAG_CLIENT, proxyClient().value(),
                         AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
     }
 
@@ -112,14 +96,11 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
 
     private static Consumer<SetMultimap<LeadershipEvent, Client>> deregisterMetricsForPartitionedLeader(
             TimelockPaxosMetrics metrics) {
-        return eventsToDeregister -> {
-            Map<LeadershipEvent, Set<String>> eventsToClients = Multimaps.asMap(KeyedStream.stream(eventsToDeregister)
-                    .map(Client::value)
-                    .collectToSetMultimap());
-            eventsToClients.forEach((event, clients) -> metrics.asMetricsManager().deregisterTaggedMetrics(
-                    withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader())
-                            .and(withClientTag(clients))));
-        };
+        return eventsToDeregister ->
+                eventsToDeregister.forEach((event, client) -> {
+                    metrics.clientScopedMetrics().deregisterMetric(client,
+                            withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader()));
+                });
     }
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
@@ -127,10 +108,6 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
                         .filter(String.valueOf(currentLeader)::equals)
                         .isPresent();
-    }
-
-    private static Predicate<MetricName> withClientTag(Set<String> clients) {
-        return metricName -> clients.contains(metricName.safeTags().get(AtlasDbMetricNames.TAG_CLIENT));
     }
 
 }

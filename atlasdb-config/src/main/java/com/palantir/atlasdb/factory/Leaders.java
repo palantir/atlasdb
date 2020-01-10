@@ -130,7 +130,6 @@ public final class Leaders {
                 metricsManager.getTaggedRegistry(),
                 leaderUuid.toString(),
                 leadershipObserver,
-                ImmutableList.of(),
                 ImmutableList.of());
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(),
