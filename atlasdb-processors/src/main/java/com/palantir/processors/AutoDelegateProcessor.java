@@ -110,11 +110,12 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 TypeElement typeElement = validateAnnotatedElement(annotatedElement);
                 TypeToExtend typeToExtend = createTypeToExtend(typeElement);
 
-                validateMethodsToBeAutoDelegated(typeElement, typeToExtend);
-
                 if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
                     continue;
                 }
+
+                validateMethodsToBeAutoDelegated(typeElement, typeToExtend);
+
                 generatedTypes.add(typeToExtend.getCanonicalName());
 
                 generateCode(typeToExtend);
