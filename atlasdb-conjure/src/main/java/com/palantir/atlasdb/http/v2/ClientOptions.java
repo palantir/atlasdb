@@ -94,6 +94,7 @@ public abstract class ClientOptions {
                 .failedUrlCooldown(failedUrlCooldown())
                 .enableGcmCipherSuites(true)
                 .fallbackToCommonNameVerification(true)
+                .clientQoS(clientQoS())
                 .build();
     }
 

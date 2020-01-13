@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.time.Duration;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
@@ -48,6 +49,7 @@ public class LeaderElectionServiceFactory {
                         dependencies.paxosClient(),
                         dependencies.metrics(),
                         uninstrumentedPaxosProposer))
+                .leaderAddressCacheTtl(Duration.ofSeconds(1))
                 .build());
     }
 

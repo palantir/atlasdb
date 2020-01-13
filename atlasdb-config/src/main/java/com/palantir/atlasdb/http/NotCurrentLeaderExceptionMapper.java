@@ -28,8 +28,6 @@ import com.palantir.leader.NotCurrentLeaderException;
  * is no need to wait before retrying as there is no indication that clients should do so.
  *
  * This is a 503 response in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
- *
- * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMapper<NotCurrentLeaderException> {
     private final Optional<RedirectRetryTargeter> redirectRetryTargeter;
@@ -49,7 +47,8 @@ public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMappe
 
     @Override
     QosException handleConjureJavaRuntime(NotCurrentLeaderException exception) {
-        return redirectRetryTargeter.flatMap(RedirectRetryTargeter::redirectRequest)
+        return redirectRetryTargeter.flatMap(redirectTargeter ->
+                redirectTargeter.redirectRequest(exception.getServiceHint()))
                 .<QosException>map(QosException::retryOther)
                 .orElseGet(QosException::unavailable);
     }

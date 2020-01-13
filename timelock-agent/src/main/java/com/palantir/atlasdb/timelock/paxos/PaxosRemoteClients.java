@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,12 +26,16 @@ import org.immutables.value.Value;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.ImmutableLeaderPingerContext;
+import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
@@ -78,15 +83,25 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<PingableLeader> nonBatchPingableLeaders() {
-        return createInstrumentedRemoteProxies(PingableLeader.class, false);
+        return nonBatchPingableLeadersWithContext().stream()
+                .map(LeaderPingerContext::pinger)
+                .collect(Collectors.toList());
+    }
+
+    @Value.Derived
+    public List<LeaderPingerContext<PingableLeader>> nonBatchPingableLeadersWithContext() {
+        return createInstrumentedRemoteProxies(PingableLeader.class, false).entries()
+                .<LeaderPingerContext<PingableLeader>>map(entry ->
+                        ImmutableLeaderPingerContext.of(entry.getValue(), entry.getKey()))
+                .collect(Collectors.toList());
     }
 
     private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz) {
-        return createInstrumentedRemoteProxies(clazz, true);
+        return createInstrumentedRemoteProxies(clazz, true).values().collect(Collectors.toList());
     }
 
-    private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
-        return context().remoteUris().stream()
+    private <T> KeyedStream<HostAndPort, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
+        return KeyedStream.of(context().remoteUris())
                 .map(uri -> AtlasDbHttpClients.createProxy(
                         MetricsManagers.of(new MetricRegistry(), metrics()),
                         context().trustContext(),
@@ -104,7 +119,12 @@ public abstract class PaxosRemoteClients {
                         proxy,
                         MetricRegistry.name(clazz),
                         _unused -> ImmutableMap.of()))
-                .collect(Collectors.toList());
+                .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort);
+    }
+
+    private static HostAndPort convertAddressToHostAndPort(String url) {
+        URI uri = URI.create(url);
+        return HostAndPort.fromParts(uri.getHost(), uri.getPort());
     }
 
     @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE

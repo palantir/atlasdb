@@ -31,6 +31,9 @@ import com.palantir.lock.LockDescriptor;
 @JsonSerialize(as = ImmutableLockWatchOpenLocksEvent.class)
 @JsonDeserialize(as = ImmutableLockWatchOpenLocksEvent.class)
 @JsonTypeName(LockWatchOpenLocksEvent.TYPE)
+/**
+ * LockWatchOpenLocksEvent is a special event capturing the state of all lock descriptors when registering a lock watch.
+ */
 public abstract class LockWatchOpenLocksEvent implements LockWatchEvent {
     static final String TYPE = "openLocks";
 
