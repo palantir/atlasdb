@@ -1,0 +1,28 @@
+type: improvement
+improvement:
+  description: |-
+    Faster coalescing supplier
+
+    This is a moderate improvement on the present coalescing supplier.
+    Won't describe present state of the world, but the new implementation
+    hopefully describes the algorithm better.
+
+    For each round, either we are the first to arrive (execute and return)
+    or we are not.
+
+    In the case we are not, we await the current round ending and then
+    perform the check again. If not this time, we wait for the executor to
+    finish and return their result.
+
+    The improvement is modest - with 16 threads looping and a task that takes
+    2ms (the benchmark) we see throughput of 6886 +- 73 operations per
+    second. With this change, we see a result of 7232 +- 89 operations per
+    second.
+
+    While the change is minimal, the result is closer to optimal;
+    16 / 0.002 = 8000 as perfect (which we can never really achieve in such
+    a benchmark).
+
+    And in any case, I think the code reads more clear.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4508
