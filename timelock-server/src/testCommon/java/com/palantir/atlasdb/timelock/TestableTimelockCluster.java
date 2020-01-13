@@ -17,9 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +31,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.awaitility.Awaitility;
-import org.immutables.value.Value;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -47,6 +44,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.atlasdb.timelock.util.TestProxies;
@@ -54,13 +52,11 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.InProgressResponseState;
 import com.palantir.paxos.PaxosQuorumChecker;
 
-import io.dropwizard.testing.ResourceHelpers;
-
 public class TestableTimelockCluster implements TestRule {
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private final String clusterName;
+    private final String name;
     private final List<TemporaryConfigurationHolder> configs;
     private final Set<TestableTimelockServer> servers;
     private final Multimap<TestableTimelockServer, TestableTimelockServer> serverToOtherServers;
@@ -69,40 +65,33 @@ public class TestableTimelockCluster implements TestRule {
 
     private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
 
-    public TestableTimelockCluster(String baseUri, String... configFileTemplates) {
-        this(ClusterName.random(), baseUri, configFileTemplates);
+    public TestableTimelockCluster(String configFileTemplate, TemplateVariables... variables) {
+        this(name(), configFileTemplate, variables);
     }
 
-    public TestableTimelockCluster(ClusterName clusterName, String baseUri, String... configFileTemplates) {
-        this.clusterName = clusterName.get();
-        this.configs = Arrays.stream(configFileTemplates)
-                .map(this::getConfigHolder)
+    public TestableTimelockCluster(String name, String configFileTemplate, TemplateVariables... variables) {
+        this(name, configFileTemplate, ImmutableList.copyOf(variables));
+    }
+
+    public TestableTimelockCluster(String name, String configFileTemplate, Iterable<TemplateVariables> variables) {
+        this.name = name;
+        this.configs = Streams.stream(variables)
+                .map(variable -> getConfigHolder(configFileTemplate, variable))
                 .collect(Collectors.toList());
         this.servers = configs.stream()
                 .map(TestableTimelockCluster::getServerHolder)
-                .map(holder -> new TestableTimelockServer(baseUri, holder))
+                .map(holder -> new TestableTimelockServer("https://localhost", holder))
                 .collect(Collectors.toSet());
         this.serverToOtherServers = KeyedStream.of(servers)
                 .map(server -> ImmutableSet.of(server))
                 .map(server -> Sets.difference(servers, server))
                 .flatMap(Collection::stream)
                 .collectToSetMultimap();
-        this.proxyFactory = new FailoverProxyFactory(new TestProxies(baseUri, ImmutableList.copyOf(servers)));
+        this.proxyFactory = new FailoverProxyFactory(new TestProxies("https://localhost", ImmutableList.copyOf(servers)));
     }
 
-    @Value.Immutable
-    public abstract static class ClusterName {
-        @Value.Parameter
-        public abstract String get();
-
-        @Override
-        public String toString() {
-            return get();
-        }
-
-        static ClusterName random() {
-            return ImmutableClusterName.of(Hashing.murmur3_32().hashLong(new Random().nextLong()).toString());
-        }
+    private static String name() {
+        return Hashing.murmur3_32().hashLong(new Random().nextLong()).toString();
     }
 
     void waitUntilLeaderIsElected(List<String> namespaces) {
@@ -115,7 +104,7 @@ public class TestableTimelockCluster implements TestRule {
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        namespaces.forEach(name -> client(name).getFreshTimestamp());
+                        namespaces.forEach(namespace -> client(namespace).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -241,9 +230,8 @@ public class TestableTimelockCluster implements TestRule {
         return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation);
     }
 
-    private TemporaryConfigurationHolder getConfigHolder(String configFileName) {
-        File configTemplate = new File(ResourceHelpers.resourceFilePath(configFileName));
-        return new TemporaryConfigurationHolder(temporaryFolder, configTemplate);
+    private TemporaryConfigurationHolder getConfigHolder(String templateName, TemplateVariables variables) {
+        return new TemporaryConfigurationHolder(temporaryFolder, templateName, variables);
     }
 
     @Override
@@ -253,6 +241,6 @@ public class TestableTimelockCluster implements TestRule {
 
     @Override
     public String toString() {
-        return clusterName;
+        return name;
     }
 }

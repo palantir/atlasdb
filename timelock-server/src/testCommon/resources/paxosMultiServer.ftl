@@ -1,6 +1,6 @@
 install:
   paxos:
-    data-directory: "<TEMP_DATA_DIR>"
+    data-directory: "${dataDirectory}"
     is-new-service: false
   cluster:
     cluster:
@@ -11,19 +11,32 @@ install:
         keyStorePassword: "keystore"
         keyStoreType: "JKS"
       uris:
-      - "localhost:9061"
-      - "localhost:9060"
-      - "localhost:9062"
-    local-server: "localhost:9060"
+<#list serverPorts as serverPort>
+      - "localhost:${serverPort?c}"
+</#list>
+    local-server: "localhost:${localServerPort?c}"
   timestampBoundPersistence:
 
 runtime:
   paxos:
+    leader-ping-response-wait-in-ms: 1000
+    timestamp-paxos:
+      use-batch-paxos: ${clientPaxos.useBatchPaxos?c}
+
+logging:
+  appenders:
+    - type: console
+      logFormat: "server-${localServerPort?c} %-5p [%d{ISO8601,UTC}] %c: %m%n%rEx"
 
 server:
+  requestLog:
+    appenders:
+      - type: console
+        logFormat: 'server-${localServerPort?c}       [%t{ISO8601,UTC}] %s %localPort %r %b "%i{User-Agent}" %D'
+
   applicationConnectors:
   - type: h2
-    port: 9060
+    port: ${localServerPort?c}
     keyStorePath: var/security/keyStore.jks
     keyStorePassword: keystore
     trustStorePath: var/security/trustStore.jks
@@ -44,6 +57,4 @@ server:
       - TLS_RSA_WITH_AES_256_CBC_SHA
       - TLS_RSA_WITH_AES_128_CBC_SHA
       - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
-  adminConnectors:
-    - type: http
-      port: 7060
+  adminConnectors: []

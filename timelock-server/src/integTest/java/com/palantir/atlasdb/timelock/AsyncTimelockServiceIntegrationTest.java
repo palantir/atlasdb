@@ -182,7 +182,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(metrics).hasKeySatisfying(new Condition<MetricName>("contains random namespace") {
             @Override
             public boolean matches(MetricName value) {
-                return value.safeTags().get("client").equals(randomNamespace.namespace());
+                return randomNamespace.namespace().equals(value.safeTags().get("client"));
             }
         });
     }
