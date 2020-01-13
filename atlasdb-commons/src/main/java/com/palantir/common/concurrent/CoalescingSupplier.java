@@ -43,8 +43,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
             present.execute();
             return present.getResult();
         }
-        awaitDone(present.future);
-        Round next = present.next;
+        Round next = present.awaitDone();
         if (next.isFirstToArrive()) {
             next.execute();
         }
@@ -58,6 +57,15 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
         boolean isFirstToArrive() {
             return !hasStarted.get() && hasStarted.compareAndSet(false, true);
+        }
+
+        Round awaitDone() {
+            try {
+                future.join();
+            } catch (CompletionException e) {
+                // ignore
+            }
+            return next;
         }
 
         void execute() {
@@ -76,14 +84,6 @@ public class CoalescingSupplier<T> implements Supplier<T> {
             } catch (CompletionException e) {
                 throw Throwables.propagate(e.getCause());
             }
-        }
-    }
-
-    private static void awaitDone(CompletableFuture<?> future) {
-        try {
-            future.join();
-        } catch (CompletionException e) {
-            // ignore
         }
     }
 }
