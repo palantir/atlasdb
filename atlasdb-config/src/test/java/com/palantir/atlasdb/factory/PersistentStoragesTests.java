@@ -30,7 +30,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
-public final class PersistentStorageFactoriesTests {
+public final class PersistentStoragesTests {
     public static final String FIRST_SUBFOLDER_ROOT = "first";
     public static final String SECOND_SUBFOLDER_ROOT = "second";
     @Rule
@@ -44,14 +44,14 @@ public final class PersistentStorageFactoriesTests {
     }
 
     @Test
-    public void emptyFolderSanitization() {
-        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
+    public void emptyFolderSanitization() throws IOException {
+        PersistentStorages.sanitizeStoragePath(testFolderPath);
     }
 
     @Test
-    public void createsFolderIfNotExists() {
+    public void createsFolderIfNotExists() throws IOException {
         File file  = new File(testFolderPath, "nonexistent");
-        PersistentStorageFactories.sanitizeStoragePath(file.getPath());
+        PersistentStorages.sanitizeStoragePath(file.getPath());
 
         assertThat(file).isDirectory();
     }
@@ -60,16 +60,17 @@ public final class PersistentStorageFactoriesTests {
     public void sanitizingFile() throws IOException {
         File file = testFolder.newFile();
 
-        assertThatThrownBy(() -> PersistentStorageFactories.sanitizeStoragePath(file.getAbsolutePath()))
+        assertThatThrownBy(() -> PersistentStorages.sanitizeStoragePath(file.getAbsolutePath()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("has to point to a directory");
     }
 
     @Test
     public void removesUuidNamedFolder() throws IOException {
-        testFolder.newFolder(UUID.randomUUID().toString());
+        File folderToSanitize = testFolder.newFolder(UUID.randomUUID().toString());
+        new File(folderToSanitize, "subfile").createNewFile();
 
-        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
+        PersistentStorages.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).isEmpty();
     }
 
@@ -78,7 +79,7 @@ public final class PersistentStorageFactoriesTests {
         testFolder.newFile(UUID.randomUUID().toString());
         testFolder.newFile("testFile");
 
-        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
+        PersistentStorages.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(2);
     }
 
@@ -86,18 +87,18 @@ public final class PersistentStorageFactoriesTests {
     public void doesNotRemoveNonUuidNamedFolder() throws IOException {
         testFolder.newFolder("testFolder");
 
-        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
+        PersistentStorages.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(1);
     }
 
     @Test
     public void preventMultipleSanitizationOfTheSamePath() throws IOException {
         testFolder.newFolder(UUID.randomUUID().toString());
-        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
+        PersistentStorages.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).isEmpty();
 
         testFolder.newFolder(UUID.randomUUID().toString());
-        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
+        PersistentStorages.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(1);
     }
 
@@ -112,8 +113,8 @@ public final class PersistentStorageFactoriesTests {
         assertThat(firstRoot.listFiles()).hasSize(1);
         assertThat(secondRoot.listFiles()).hasSize(1);
 
-        PersistentStorageFactories.sanitizeStoragePath(firstRoot.getPath());
-        PersistentStorageFactories.sanitizeStoragePath(secondRoot.getPath());
+        PersistentStorages.sanitizeStoragePath(firstRoot.getPath());
+        PersistentStorages.sanitizeStoragePath(secondRoot.getPath());
 
         assertThat(firstRoot.listFiles()).isEmpty();
         assertThat(secondRoot.listFiles()).isEmpty();

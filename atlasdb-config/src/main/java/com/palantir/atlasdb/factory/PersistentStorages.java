@@ -17,21 +17,43 @@
 package com.palantir.atlasdb.factory;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.base.MoreObjects;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
-public final class PersistentStorageFactories {
+public final class PersistentStorages {
     private static final Pattern UUID_PATTERN = Pattern.compile(
             "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     private static final Set<String> SANITIZED_PATHS = new HashSet<>();
 
-    private PersistentStorageFactories() {}
+    private PersistentStorages() {}
+
+    /**
+     * Given the {@code absolutePath} deletes all sub-folders, sub-files and the folder pointed by it.
+     *
+     * @param absolutePath which we want to delete
+     * @throws IOException if there is an underlying exception
+     */
+    public static void deletePath(Path absolutePath) throws IOException {
+        try (Stream<Path> stream = Files.walk(absolutePath)) {
+            List<Path> sortedPaths = stream.sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+            for (Path filePath : sortedPaths) {
+                Files.delete(filePath);
+            }
+        }
+    }
 
     /**
      * For the given path does the following: 1) it is sanitized only once per VM lifetime 2) if it exists checks that
@@ -47,20 +69,25 @@ public final class PersistentStorageFactories {
 
         File storageDirectory = new File(storagePath);
         if (!storageDirectory.exists()) {
-            Preconditions.checkState(storageDirectory.mkdir(),
+            Preconditions.checkState(
+                    storageDirectory.mkdir(),
                     "Not able to create a storage directory",
                     SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
             SANITIZED_PATHS.add(storagePath);
             return;
         }
 
-        Preconditions.checkArgument(storageDirectory.isDirectory(),
+        Preconditions.checkArgument(
+                storageDirectory.isDirectory(),
                 "Storage path has to point to a directory",
                 SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
+
         for (File file : MoreObjects.firstNonNull(storageDirectory.listFiles(), new File[0])) {
-            if (file.isDirectory()) {
-                if (UUID_PATTERN.matcher(file.getName()).matches()) {
-                    file.delete();
+            if (file.isDirectory() && (UUID_PATTERN.matcher(file.getName()).matches())) {
+                try {
+                    deletePath(file.toPath());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
