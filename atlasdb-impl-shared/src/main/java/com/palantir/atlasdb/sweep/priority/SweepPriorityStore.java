@@ -21,6 +21,7 @@ import java.util.List;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 
 @AutoDelegate
 public interface SweepPriorityStore {
@@ -29,6 +30,7 @@ public interface SweepPriorityStore {
     List<SweepPriority> loadNewPriorities(Transaction tx);
     List<SweepPriority> loadOldPriorities(Transaction tx, long sweepTimestamp);
 
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }

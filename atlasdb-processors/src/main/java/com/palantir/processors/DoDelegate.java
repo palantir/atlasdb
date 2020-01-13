@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.processors;
 
-import java.util.List;
-import java.util.Set;
-
-@AutoDelegate
-public interface GenericsTester<A, B extends List<C>, C> {
-    A processItems(A first, B second, C third);
-
-    List<B> getListOfLists(A comparison);
-
-    @DoDelegate
-    default Set<C> hello() {
-        throw new UnsupportedOperationException("This class doesn't know how to say hello.");
-    }
-
-    static <A, D> D hidingParameter(A argument) {
-        return null;
-    }
+public @interface DoDelegate {
 }
