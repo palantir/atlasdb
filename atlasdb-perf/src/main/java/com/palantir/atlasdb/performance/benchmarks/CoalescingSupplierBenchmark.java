@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -42,11 +43,12 @@ public class CoalescingSupplierBenchmark {
     });
 
     @Benchmark
-    @Threads(16)
+    @Threads(160)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS, iterations = 4)
     @Measurement(time = 1, timeUnit = TimeUnit.SECONDS, iterations = 10)
     @Fork(1)
-    public String benchmark() {
+    public String benchmark() throws InterruptedException {
+        Thread.sleep(ThreadLocalRandom.current().nextInt(10));
         return supplier.get();
     }
 }

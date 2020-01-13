@@ -29,7 +29,7 @@ import com.google.common.base.Throwables;
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
     private final Supplier<T> delegate;
-    private volatile Round nextResult = new Round();
+    private volatile Round round = new Round();
 
     public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
@@ -37,7 +37,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     @Override
     public T get() {
-        Round present = nextResult;
+        Round present = round;
         if (present.isFirstToArrive()) {
             present.execute();
             return present.getResult();
@@ -68,13 +68,13 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         }
 
         void execute() {
+            next = new Round();
             try {
                 future.complete(delegate.get());
             } catch (Throwable t) {
                 future.completeExceptionally(t);
             }
-            next = new Round();
-            nextResult = next;
+            round = next;
         }
 
         T getResult() {
