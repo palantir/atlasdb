@@ -17,6 +17,7 @@ package com.palantir.common.concurrent;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.Supplier;
 
@@ -29,7 +30,7 @@ import com.google.common.base.Throwables;
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
     private final Supplier<T> delegate;
-    private volatile Round<T> nextResult = new Round<>(this);
+    private volatile Round nextResult = new Round();
 
     public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
@@ -37,50 +38,33 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     @Override
     public T get() {
-        Round<T> present = nextResult;
+        Round present = nextResult;
         if (present.isFirstToArrive()) {
             present.execute();
             return present.getResult();
         }
         awaitDone(present.future);
-        Round<T> next = present.next;
+        Round next = present.next;
         if (next.isFirstToArrive()) {
             next.execute();
         }
         return next.getResult();
     }
 
-    private void awaitDone(CompletableFuture<?> future) {
-        try {
-            future.join();
-        } catch (CompletionException e) {
-            // ignore
-        }
-    }
-
-    private static final class Round<T> {
-        private static final int TRUE = 1;
-        private static final int FALSE = 0;
-        private static final AtomicIntegerFieldUpdater<Round> hasStartedUpdater =
-                AtomicIntegerFieldUpdater.newUpdater(Round.class, "hasStarted");
-        private volatile int hasStarted = FALSE;
-        private final CoalescingSupplier<T> supplier;
+    private final class Round {
+        private final AtomicBoolean hasStarted = new AtomicBoolean(false);
         private final CompletableFuture<T> future = new CompletableFuture<>();
-        private volatile Round<T> next;
-
-        private Round(CoalescingSupplier<T> supplier) {
-            this.supplier = supplier;
-        }
+        private volatile Round next;
 
         boolean isFirstToArrive() {
-            return hasStarted == FALSE && hasStartedUpdater.compareAndSet(this, FALSE, TRUE);
+            return !hasStarted.get() && hasStarted.compareAndSet(false, true);
         }
 
         void execute() {
-            next = new Round<>(supplier);
-            supplier.nextResult = next;
+            next = new Round();
+            nextResult = next;
             try {
-                future.complete(supplier.delegate.get());
+                future.complete(delegate.get());
             } catch (Throwable t) {
                 future.completeExceptionally(t);
             }
@@ -92,6 +76,14 @@ public class CoalescingSupplier<T> implements Supplier<T> {
             } catch (CompletionException e) {
                 throw Throwables.propagate(e.getCause());
             }
+        }
+    }
+
+    private static void awaitDone(CompletableFuture<?> future) {
+        try {
+            future.join();
+        } catch (CompletionException e) {
+            // ignore
         }
     }
 }
