@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.MoreObjects;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 public final class PersistentStorageFactories {
     private static final Pattern UUID_PATTERN = Pattern.compile(
@@ -46,12 +47,16 @@ public final class PersistentStorageFactories {
 
         File storageDirectory = new File(storagePath);
         if (!storageDirectory.exists()) {
-            Preconditions.checkState(storageDirectory.mkdir(), "Not able to create a storage directory");
+            Preconditions.checkState(storageDirectory.mkdir(),
+                    "Not able to create a storage directory",
+                    SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
             SANITIZED_PATHS.add(storagePath);
             return;
         }
 
-        Preconditions.checkArgument(storageDirectory.isDirectory(), "Storage path has to point to a directory");
+        Preconditions.checkArgument(storageDirectory.isDirectory(),
+                "Storage path has to point to a directory",
+                SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
         for (File file : MoreObjects.firstNonNull(storageDirectory.listFiles(), new File[0])) {
             if (file.isDirectory()) {
                 if (UUID_PATTERN.matcher(file.getName()).matches()) {
