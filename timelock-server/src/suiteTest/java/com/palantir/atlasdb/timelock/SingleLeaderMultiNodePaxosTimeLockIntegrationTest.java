@@ -54,30 +54,32 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @Test
     public void clientsCreatedDynamicallyOnNonLeadersAreFunctionalAfterFailover() {
-        cluster.nonLeaders().forEach(server ->
-                assertThatThrownBy(() -> server.client(namespace.namespace()).getFreshTimestamp())
+        cluster.nonLeaders(namespace.namespace()).forEach((clientName, server) ->
+                assertThatThrownBy(() -> server.client(clientName).getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound));
 
-        cluster.failoverToNewLeader();
+        cluster.failoverToNewLeader(namespace.namespace());
 
         namespace.getFreshTimestamp();
     }
 
     @Test
     public void clientsCreatedDynamicallyOnLeaderAreFunctionalImmediately() {
-        assertThatCode(() -> cluster.currentLeader().client(namespace.namespace()).getFreshTimestamp())
+        assertThatCode(() -> cluster.currentLeaderFor(namespace.namespace())
+                .client(namespace.namespace())
+                .getFreshTimestamp())
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void noConflictIfLeaderAndNonLeadersSeparatelyInitializeClient() {
-        cluster.nonLeaders().forEach(server ->
-                assertThatThrownBy(() -> server.client(namespace.namespace()).getFreshTimestamp())
+        cluster.nonLeaders(namespace.namespace()).forEach((clientName, server) ->
+                assertThatThrownBy(() -> server.client(clientName).getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound));
 
         long ts1 = namespace.getFreshTimestamp();
 
-        cluster.failoverToNewLeader();
+        cluster.failoverToNewLeader(namespace.namespace());
 
         long ts2 = namespace.getFreshTimestamp();
         assertThat(ts1).isLessThan(ts2);
