@@ -49,7 +49,7 @@ public interface PersistentStorageConfig {
                 "Storage path must be relative",
                 SafeArg.of("storagePath", storagePath()));
 
-        File storageFile = new File(System.getProperty("user.dir"), storagePath());
+        File storageFile = new File(storagePath());
         if (storageFile.exists()) {
             Preconditions.checkState(
                     storageFile.isDirectory(),
