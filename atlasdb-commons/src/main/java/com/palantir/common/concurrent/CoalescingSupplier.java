@@ -69,12 +69,12 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
         void execute() {
             next = new Round();
-            nextResult = next;
             try {
                 future.complete(delegate.get());
             } catch (Throwable t) {
                 future.completeExceptionally(t);
             }
+            nextResult = next;
         }
 
         T getResult() {

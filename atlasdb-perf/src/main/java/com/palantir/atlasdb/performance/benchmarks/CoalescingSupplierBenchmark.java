@@ -30,7 +30,7 @@ import org.openjdk.jmh.annotations.Warmup;
 import com.palantir.common.concurrent.CoalescingSupplier;
 
 @State(Scope.Benchmark)
-public class CoalescingSupplierTests {
+public class CoalescingSupplierBenchmark {
     private final Supplier<String> supplier = new CoalescingSupplier<>(() -> {
         try {
             Thread.sleep(2);
