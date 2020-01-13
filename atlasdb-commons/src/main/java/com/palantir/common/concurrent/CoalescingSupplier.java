@@ -17,8 +17,7 @@ package com.palantir.common.concurrent;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
@@ -29,10 +28,8 @@ import com.google.common.base.Throwables;
  * requested; requests will not receive results for computations that started prior to the request.
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
-
     private final Supplier<T> delegate;
-    private volatile CompletableFuture<T> nextResult = new CompletableFuture<T>();
-    private final Lock fairLock = new ReentrantLock(true);
+    private volatile Round<T> nextResult = new Round<>(this);
 
     public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
@@ -40,41 +37,61 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     @Override
     public T get() {
-        CompletableFuture<T> future = nextResult;
-
-        completeOrWaitForCompletion(future);
-
-        return getResult(future);
+        Round<T> present = nextResult;
+        if (present.isFirstToArrive()) {
+            present.execute();
+            return present.getResult();
+        }
+        awaitDone(present.future);
+        Round<T> next = present.next;
+        if (next.isFirstToArrive()) {
+            next.execute();
+        }
+        return next.getResult();
     }
 
-    private void completeOrWaitForCompletion(CompletableFuture<T> future) {
-        fairLock.lock();
+    private void awaitDone(CompletableFuture<?> future) {
         try {
-            resetAndCompleteIfNotCompleted(future);
-        } finally {
-            fairLock.unlock();
+            future.join();
+        } catch (CompletionException e) {
+            // ignore
         }
     }
 
-    private void resetAndCompleteIfNotCompleted(CompletableFuture<T> future) {
-        if (future.isDone()) {
-            return;
+    private static final class Round<T> {
+        private static final int TRUE = 1;
+        private static final int FALSE = 0;
+        private static final AtomicIntegerFieldUpdater<Round> hasStartedUpdater =
+                AtomicIntegerFieldUpdater.newUpdater(Round.class, "hasStarted");
+        private volatile int hasStarted = FALSE;
+        private final CoalescingSupplier<T> supplier;
+        private final CompletableFuture<T> future = new CompletableFuture<>();
+        private volatile Round<T> next;
+
+        private Round(CoalescingSupplier<T> supplier) {
+            this.supplier = supplier;
         }
 
-        nextResult = new CompletableFuture<T>();
-        try {
-            future.complete(delegate.get());
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
+        boolean isFirstToArrive() {
+            return hasStarted == FALSE && hasStartedUpdater.compareAndSet(this, FALSE, TRUE);
+        }
+
+        void execute() {
+            next = new Round<>(supplier);
+            supplier.nextResult = next;
+            try {
+                future.complete(supplier.delegate.get());
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
+        }
+
+        T getResult() {
+            try {
+                return future.join();
+            } catch (CompletionException e) {
+                throw Throwables.propagate(e.getCause());
+            }
         }
     }
-
-    private T getResult(CompletableFuture<T> future) {
-        try {
-            return future.getNow(null);
-        } catch (CompletionException ex) {
-            throw Throwables.propagate(ex.getCause());
-        }
-    }
-
 }
