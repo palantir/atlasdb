@@ -218,6 +218,26 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 .isEqualTo(transactionService.get(writer.getTimestamp()));
     }
 
+    @Test
+    public void abortedReadTransactionStillCachesWritersCommitTimestamp() {
+        Transaction writer = txMgr.runTaskWithRetry(txn -> {
+            put(txn, TEST_TABLE, "row", "column", "test");
+            return txn;
+        });
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp())).isNull();
+
+        assertThatThrownBy(() -> txMgr.runTaskWithRetry(txn -> {
+            get(txn, TEST_TABLE, "row", "column");
+            throw new RuntimeException("abort");
+        })).isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("abort");
+
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
+                .isNotNull()
+                .isEqualTo(transactionService.get(writer.getTimestamp()));
+    }
+
     private TransactionManager setupTransactionManager() {
         TimelockService timelock = mock(TimelockService.class);
         TimestampManagementService timeManagement = mock(TimestampManagementService.class);
