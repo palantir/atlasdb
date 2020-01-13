@@ -24,21 +24,18 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 
-import org.junit.ClassRule;
+import org.assertj.core.util.Files;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.rules.TemporaryFolder;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class PersistentStorageConfigTests {
-    @ClassRule
-    public static final TemporaryFolder TEST_FOLDER = new TemporaryFolder();
+    private static final File CURRENT_WORKING_DIR = Files.currentFolder();
 
     @Rule
-    public ProvideSystemProperty properties
-            = new ProvideSystemProperty("user.dir", TEST_FOLDER.getRoot().getAbsolutePath());
+    public TemporaryFolder testFolder = new TemporaryFolder(CURRENT_WORKING_DIR);
 
     @Test
     public void rocksEmptyDirectory() {
@@ -49,10 +46,10 @@ public final class PersistentStorageConfigTests {
 
     @Test
     public void rocksPathToFileThrowsAnException() throws IOException {
-        Path filePath = TEST_FOLDER.newFile("testFile").toPath();
+        Path filePath = testFolder.newFile("testFile").toPath();
         assertThatThrownBy(() ->
                 ImmutableRocksDbPersistentStorageConfig.builder()
-                        .storagePath(TEST_FOLDER.getRoot().toPath().relativize(filePath).toString())
+                        .storagePath(CURRENT_WORKING_DIR.toPath().relativize(filePath).toString())
                         .build())
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("has to point to a directory");
