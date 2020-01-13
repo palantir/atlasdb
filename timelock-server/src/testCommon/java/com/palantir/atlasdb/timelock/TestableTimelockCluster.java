@@ -30,8 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.awaitility.Awaitility;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
@@ -66,9 +64,6 @@ public class TestableTimelockCluster implements TestRule {
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
-
-    @Nullable
-    private TestableTimelockServer lastLeader;
 
     public TestableTimelockCluster(String configFileTemplate, TemplateVariables... variables) {
         this(name(), configFileTemplate, variables);
@@ -109,7 +104,7 @@ public class TestableTimelockCluster implements TestRule {
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        namespaces.forEach(name -> client(name).getFreshTimestamp());
+                        namespaces.forEach(namespace -> client(namespace).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
