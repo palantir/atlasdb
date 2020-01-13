@@ -16,16 +16,16 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Group;
+import org.openjdk.jmh.annotations.GroupThreads;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.palantir.common.concurrent.CoalescingSupplier;
@@ -43,12 +43,23 @@ public class CoalescingSupplierBenchmark {
     });
 
     @Benchmark
-    @Threads(160)
+    @Group("parallel")
+    @GroupThreads(16)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS, iterations = 4)
     @Measurement(time = 1, timeUnit = TimeUnit.SECONDS, iterations = 10)
     @Fork(1)
     public String benchmark() throws InterruptedException {
-        Thread.sleep(ThreadLocalRandom.current().nextInt(10));
         return supplier.get();
     }
+
+    @Benchmark
+    @Group("parallel")
+    @GroupThreads(6)
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS, iterations = 4)
+    @Measurement(time = 1, timeUnit = TimeUnit.SECONDS, iterations = 10)
+    @Fork(1)
+    public int useCpu() {
+        return 58 * 102;
+    }
+
 }
