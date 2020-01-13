@@ -50,8 +50,9 @@ public final class OffHeapTimestampCacheIntegrationTests {
 
         offHeapTimestampCache = OffHeapTimestampCache.create(
                 persistentTimestampStore,
-                () -> CACHE_SIZE,
-                MetricsManagers.createForTests().getTaggedRegistry());
+                MetricsManagers.createForTests().getTaggedRegistry(),
+                () -> CACHE_SIZE
+        );
     }
 
     @After

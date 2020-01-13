@@ -66,8 +66,8 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     public static TimestampCache create(
             PersistentTimestampStore persistentTimestampStore,
-            LongSupplier maxSize,
-            TaggedMetricRegistry taggedMetricRegistry) {
+            TaggedMetricRegistry taggedMetricRegistry,
+            LongSupplier maxSize) {
         StoreNamespace storeNamespace = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
 
         CacheDescriptor cacheDescriptor = ImmutableCacheDescriptor.builder()

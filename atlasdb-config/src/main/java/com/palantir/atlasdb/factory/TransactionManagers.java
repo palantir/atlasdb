@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -517,16 +518,11 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Optional<PersistentTimestampStore> persistentTimestampStore) {
+        LongSupplier cacheSize = () -> runtimeConfigSupplier.get().getTimestampCacheSize();
         Supplier<TimestampCache> timestampCacheSupplier = () ->
                 persistentTimestampStore.map(store ->
-                        OffHeapTimestampCache.create(
-                                store,
-                                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                                metricsManager.getTaggedRegistry()))
-                        .orElseGet(() ->
-                                new DefaultTimestampCache(
-                                        metricsManager.getRegistry(),
-                                        () -> runtimeConfigSupplier.get().getTimestampCacheSize()));
+                        OffHeapTimestampCache.create(store, metricsManager.getTaggedRegistry(), cacheSize))
+                        .orElseGet(() -> new DefaultTimestampCache(metricsManager.getRegistry(), cacheSize));
 
         return config().timestampCache().orElseGet(timestampCacheSupplier);
     }
