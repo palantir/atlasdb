@@ -40,16 +40,12 @@ public interface LockWatchStateUpdate {
     List<LockWatchEvent> events();
 
     @Value.Check
-    default void successHasLastKnownVersion() {
-        Preconditions.checkState(!success() || lastKnownVersion().isPresent(), "Success must have a version.");
-    }
-
-    @Value.Check
     default void lastEventSequenceMatchesLastKnownVersion() {
         if (!events().isEmpty()) {
             Preconditions.checkState(lastKnownVersion().isPresent(),
                     "If events are present, last known version must be present as well.");
-            Preconditions.checkState(events().get(events().size() - 1).sequence() == lastKnownVersion().getAsLong(),
+            LockWatchEvent lastEvent = events().get(events().size() - 1);
+            Preconditions.checkState(lastEvent.sequence() == lastKnownVersion().getAsLong(),
                     "The sequence of the last event and the last known version must match");
         }
     }
@@ -63,7 +59,11 @@ public interface LockWatchStateUpdate {
                 .build();
     }
 
-    static LockWatchStateUpdate failure(UUID uuid, OptionalLong version) {
-        return of(uuid, false, version, ImmutableList.of());
+    static LockWatchStateUpdate failure(UUID uuid, OptionalLong lastKnownVersion) {
+        return of(uuid, false, lastKnownVersion, ImmutableList.of());
+    }
+
+    static LockWatchStateUpdate update(UUID uuid, long lastKnownVersion, List<LockWatchEvent> events) {
+        return of(uuid, true, OptionalLong.of(lastKnownVersion), events);
     }
 }

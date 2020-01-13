@@ -20,6 +20,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
@@ -27,6 +28,6 @@ public interface LockWatchingService {
     void startWatching(LockWatchRequest locksToWatch);
     LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion);
 
-    void registerLock(Set<LockDescriptor> locksTakenOut);
+    void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token);
     void registerUnlock(Set<LockDescriptor> locksUnlocked);
 }

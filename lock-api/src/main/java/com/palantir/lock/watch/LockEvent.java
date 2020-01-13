@@ -20,21 +20,37 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@JsonSerialize(as = ImmutableLockEvent.class)
+@JsonDeserialize(as = ImmutableLockEvent.class)
+@JsonTypeName(LockEvent.TYPE)
 public abstract class LockEvent implements LockWatchEvent {
+    static final String TYPE = "lock";
+
     public abstract Set<LockDescriptor> lockDescriptors();
+    public abstract LockToken lockToken();
 
     @Override
-    public <T> T accept(LockWatchEventVisitor<T> visitor) {
+    public int size() {
+        return lockDescriptors().size();
+    }
+
+    @Override
+    public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
     }
 
-    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors) {
+    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, LockToken lockToken) {
         ImmutableLockEvent.Builder builder = ImmutableLockEvent.builder()
-                .lockDescriptors(lockDescriptors);
+                .lockDescriptors(lockDescriptors)
+                .lockToken(lockToken);
         return seq -> builder.sequence(seq).build();
     }
 }

@@ -194,7 +194,7 @@ public class HeldLocksCollectionTest {
         AsyncResult<Leased<LockToken>> asyncResult =
                 heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
-        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR));
+        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
 
         Lease lease = asyncResult.get().lease();
 
@@ -212,7 +212,7 @@ public class HeldLocksCollectionTest {
         AsyncResult<Leased<LockToken>> asyncResult =
                 heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
-        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR));
+        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
 
         heldLocksCollection.unlock(ImmutableSet.of(LockToken.of(REQUEST_ID)));
         verify(lockWatcher).registerUnlock(ImmutableSet.of(LOCK_DESCRIPTOR));

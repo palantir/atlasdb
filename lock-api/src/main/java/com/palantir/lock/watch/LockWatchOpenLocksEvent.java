@@ -17,24 +17,43 @@
 package com.palantir.lock.watch;
 
 import java.util.Set;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@JsonSerialize(as = ImmutableLockWatchOpenLocksEvent.class)
+@JsonDeserialize(as = ImmutableLockWatchOpenLocksEvent.class)
+@JsonTypeName(LockWatchOpenLocksEvent.TYPE)
+/**
+ * LockWatchOpenLocksEvent is a special event capturing the state of all lock descriptors when registering a lock watch.
+ */
 public abstract class LockWatchOpenLocksEvent implements LockWatchEvent {
+    static final String TYPE = "openLocks";
+
+    public abstract UUID lockWatchId();
     public abstract Set<LockDescriptor> lockDescriptors();
 
     @Override
-    public <T> T accept(LockWatchEventVisitor<T> visitor) {
+    public int size() {
+        return lockDescriptors().size();
+    }
+
+    @Override
+    public <T> T accept(LockWatchEvent.Visitor<T> visitor) {
         return visitor.visit(this);
     }
 
-    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors) {
+    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, UUID lockWatchId) {
         ImmutableLockWatchOpenLocksEvent.Builder builder = ImmutableLockWatchOpenLocksEvent.builder()
-                .lockDescriptors(lockDescriptors);
+                .lockDescriptors(lockDescriptors)
+                .lockWatchId(lockWatchId);
         return seq -> builder.sequence(seq).build();
     }
 }
