@@ -90,7 +90,7 @@ public final class PaxosResourcesFactory {
 
         Factories.LeaderPingerFactory leaderPingerFactory = dependencies -> new SingleLeaderPinger(
                 Maps.toMap(
-                        dependencies.remoteClients().nonBatchPingableLeaders(),
+                        dependencies.remoteClients().nonBatchPingableLeadersWithContext(),
                         _pingableLeader -> dependencies.sharedExecutor()),
                 dependencies.leaderPingResponseWait(),
                 dependencies.leaderUuid());

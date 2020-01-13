@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -49,6 +51,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.BatchingLeaderElectionService;
@@ -59,7 +62,9 @@ import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPinger;
+import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -173,7 +178,7 @@ public final class Leaders {
                 config.quorumSize(),
                 createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"));
 
-        List<PingableLeader> otherLeaders = generatePingables(
+        List<LeaderPingerContext<PingableLeader>> otherLeaders = generatePingables(
                 metricsManager,
                 remotePaxosServerSpec.remoteLeaderUris(),
                 remotingClientConfig,
@@ -196,6 +201,7 @@ public final class Leaders {
                 .learnerClient(learnerNetworkClient)
                 .decorateProposer(proposer ->
                         AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(), PaxosProposer.class, proposer))
+                .leaderAddressCacheTtl(config.leaderAddressCacheTtl())
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrumentTimed(
@@ -206,12 +212,15 @@ public final class Leaders {
                 PingableLeader.class,
                 new LocalPingableLeader(ourLearner, leaderUuid));
 
+        List<PingableLeader> remotePingableLeaders = otherLeaders.stream()
+                .map(LeaderPingerContext::pinger)
+                .collect(Collectors.toList());
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .localPingableLeader(pingableLeader)
-                .remotePingableLeaders(otherLeaders)
+                .remotePingableLeaders(remotePingableLeaders)
                 .build();
     }
 
@@ -278,14 +287,14 @@ public final class Leaders {
                 ImmutableList.of(localObject)));
     }
 
-    public static List<PingableLeader> generatePingables(
+    public static List<LeaderPingerContext<PingableLeader>> generatePingables(
             MetricsManager metricsManager,
             Collection<String> remoteEndpoints,
             Supplier<RemotingClientConfig> remotingClientConfig,
             Optional<TrustContext> trustContext,
             UserAgent userAgent) {
-        return remoteEndpoints.stream()
-                .map(endpoint -> AtlasDbHttpClients.createProxy(
+        return KeyedStream.of(remoteEndpoints)
+                .mapKeys(endpoint -> AtlasDbHttpClients.createProxy(
                         metricsManager,
                         trustContext,
                         endpoint,
@@ -297,7 +306,15 @@ public final class Leaders {
                                 .shouldLimitPayload(true)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
+                .map(Leaders::convertAddressToHostAndPort)
+                .map(ImmutableLeaderPingerContext::of)
+                .values()
                 .collect(Collectors.toList());
+    }
+
+    private static HostAndPort convertAddressToHostAndPort(String url) {
+        URI uri = URI.create(url);
+        return HostAndPort.fromParts(uri.getHost(), uri.getPort());
     }
 
     @Value.Immutable

@@ -53,6 +53,7 @@ junit:junit = 4.12
 net.bytebuddy:byte-buddy = 1.10.2
 net.java.dev.jna:jna = 5.1.0
 net.jcip:jcip-annotations = 1.0
+com.github.stephenc.jcip:jcip-annotations = 1.0-1
 net.jpountz.lz4:lz4 = 1.3.0
 one.util:streamex = 0.7.2
 org.apache.commons:commons-lang3 = 3.9

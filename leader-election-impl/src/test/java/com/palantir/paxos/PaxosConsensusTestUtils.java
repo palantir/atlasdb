@@ -91,6 +91,7 @@ public final class PaxosConsensusTestUtils {
                     .leaderUuid(leaderUuid)
                     .pingRate(Duration.ZERO)
                     .randomWaitBeforeProposingLeadership(Duration.ZERO)
+                    .leaderAddressCacheTtl(Duration.ZERO)
                     .knowledge(ourLearner)
                     .acceptorClient(acceptorNetworkClient)
                     .learnerClient(learnerNetworkClient)
