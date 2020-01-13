@@ -42,6 +42,11 @@ public abstract class TimelockPaxosMetrics {
     }
 
     @Value.Derived
+    ClientScopedMetrics clientScopedMetrics() {
+        return new ClientScopedMetrics(metrics());
+    }
+
+    @Value.Derived
     MetricsManager asMetricsManager() {
         // we don't use the normal metric registry so we don't care about this
         return MetricsManagers.of(new MetricRegistry(), metrics());
@@ -64,9 +69,9 @@ public abstract class TimelockPaxosMetrics {
     }
 
     public <T, U extends T> T instrument(Class<T> clazz, U instance, Client client) {
-        Map<String, String> tags = ImmutableMap.of(AtlasDbMetricNames.TAG_CLIENT, client.value());
+        Map<String, String> tags = ImmutableMap.of();
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metrics(),
+                clientScopedMetrics().metricRegistryForClient(client),
                 clazz,
                 instance,
                 MetricRegistry.name(clazz),
@@ -74,8 +79,7 @@ public abstract class TimelockPaxosMetrics {
     }
 
     public <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(Class<T> clazz, T local, List<T> remotes) {
-        return LocalAndRemotes.of(local, remotes)
-                .map(instance -> instrument(clazz, instance));
+        return LocalAndRemotes.of(local, remotes).map(instance -> instrument(clazz, instance));
     }
 
     public <T> LocalAndRemotes<T> instrumentLocalAndRemotesFor(
