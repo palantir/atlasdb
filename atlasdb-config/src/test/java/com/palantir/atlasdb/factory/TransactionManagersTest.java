@@ -24,9 +24,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -92,6 +94,7 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
+import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -792,6 +795,40 @@ public class TransactionManagersTest {
 
         assertThat(persistentTimestampStore)
                 .isEmpty();
+    }
+
+    @Test
+    public void persistentTimestampStoreNotConstructedEvenIfConfiguredIfExplicitlyProvided() throws IOException {
+        PersistentStorageFactory persistentStorageFactory = mock(PersistentStorageFactory.class);
+
+        MetricRegistry metricRegistry = metricsManager.getRegistry();
+        TimestampCache expectedTimestampCache = new DefaultTimestampCache(metricRegistry, () -> 10000L);
+        File storageFolder = temporaryFolder.newFolder();
+        String storagePath = Files.currentFolder().toPath()
+                .relativize(storageFolder.toPath())
+                .toString();
+
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
+                .timestampCache(expectedTimestampCache)
+                .persistentStorage(
+                        ImmutableRocksDbPersistentStorageConfig.builder()
+                                .storagePath(storagePath)
+                                .build())
+                .build();
+
+        Optional<PersistentTimestampStore> persistentTimestampStore =
+                TransactionManagers.constructPersistentTimestampStoreIfConfigured(
+                        installConfig,
+                        persistentStorageFactory,
+                        new LinkedList<>());
+
+        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentTimestampStore);
+
+        assertThat(timestampCache).isInstanceOf(DefaultTimestampCache.class);
+        verify(persistentStorageFactory, never())
+                .constructPersistentTimestampStore(any(RocksDbPersistentStorageConfig.class));
     }
 
     private TimestampCache constructTimestampCache(
