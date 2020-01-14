@@ -55,6 +55,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         private volatile Round next;
 
         boolean isFirstToArrive() {
+            // adding the get benchmarks as faster, expected because compareAndSet forces an exclusive cache line
             return !hasStarted.get() && hasStarted.compareAndSet(false, true);
         }
 
