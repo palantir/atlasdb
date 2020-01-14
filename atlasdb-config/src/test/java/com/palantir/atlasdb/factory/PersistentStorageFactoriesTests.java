@@ -67,7 +67,8 @@ public final class PersistentStorageFactoriesTests {
 
     @Test
     public void removesUuidNamedFolder() throws IOException {
-        testFolder.newFolder(UUID.randomUUID().toString());
+        File folderToSanitize = testFolder.newFolder(UUID.randomUUID().toString());
+        new File(folderToSanitize, "subfile").createNewFile();
 
         PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).isEmpty();

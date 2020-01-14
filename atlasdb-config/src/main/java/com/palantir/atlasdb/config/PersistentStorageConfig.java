@@ -28,9 +28,7 @@ import com.palantir.logsafe.SafeArg;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(
-                value = ImmutableRocksDbPersistentStorageConfig.class,
-                name = RocksDbPersistentStorageConfig.TYPE)})
+        @JsonSubTypes.Type(value = RocksDbPersistentStorageConfig.class, name = RocksDbPersistentStorageConfig.TYPE)})
 public interface PersistentStorageConfig {
     String type();
 
