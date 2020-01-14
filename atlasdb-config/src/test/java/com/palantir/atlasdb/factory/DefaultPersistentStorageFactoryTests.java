@@ -19,7 +19,6 @@ package com.palantir.atlasdb.factory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
 
 import org.assertj.core.util.Files;
@@ -37,17 +36,19 @@ import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 public final class DefaultPersistentStorageFactoryTests {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder(Files.currentFolder());
-    private Path testPath;
+
+    private String storagePath;
 
     @Before
     public void setUp() {
-        testPath = testFolder.getRoot().toPath();
+        storagePath = Files.currentFolder()
+                .toPath()
+                .relativize(testFolder.getRoot().toPath())
+                .toString();
     }
 
     @Test
     public void createsPersistentStorage() throws Exception {
-        String storagePath = Files.currentFolder().toPath().relativize(testPath).toString();
-
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
@@ -63,8 +64,6 @@ public final class DefaultPersistentStorageFactoryTests {
 
     @Test
     public void createsMultiplePersistentStores() throws Exception {
-        String storagePath = Files.currentFolder().toPath().relativize(testPath).toString();
-
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
