@@ -39,9 +39,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +55,7 @@ import java.util.function.Supplier;
 
 import javax.ws.rs.core.Response;
 
+import org.assertj.core.util.Files;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -74,6 +77,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.OffHeapTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -81,6 +87,7 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
+import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
@@ -93,6 +100,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -198,7 +206,7 @@ public class TransactionManagersTest {
     private Consumer<Runnable> originalAsyncMethod;
 
     @ClassRule
-    public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public static final TemporaryFolder temporaryFolder = new TemporaryFolder(Files.currentFolder());
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
@@ -712,6 +720,73 @@ public class TransactionManagersTest {
     public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(false));
+    }
+
+    @Test
+    public void providedTimestampCacheOverridesAnyOtherConfig() {
+        MetricRegistry metricRegistry = metricsManager.getRegistry();
+        TimestampCache expectedTimestampCache = new DefaultTimestampCache(metricRegistry, () -> 10000L);
+
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
+                .timestampCache(expectedTimestampCache)
+                .build();
+
+        TimestampCache timestampCache = TransactionManagers.getTimestampCache(
+                installConfig,
+                metricsManager,
+                () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
+                Optional.empty());
+
+        assertThat(timestampCache).isEqualTo(expectedTimestampCache);
+    }
+
+    @Test
+    public void usingInMemoryTimestampCache() {
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
+                .build();
+
+        TimestampCache timestampCache = TransactionManagers.getTimestampCache(
+                installConfig,
+                metricsManager,
+                () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
+                Optional.empty());
+
+        assertThat(timestampCache).isInstanceOf(DefaultTimestampCache.class);
+    }
+
+    @Test
+    public void usingPersistentStorage() throws IOException {
+        File storageFolder = temporaryFolder.newFolder();
+        String storagePath = Files.currentFolder().toPath()
+                .relativize(storageFolder.toPath())
+                .toString();
+
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
+                .persistentStorage(
+                        ImmutableRocksDbPersistentStorageConfig.builder()
+                                .storagePath(storagePath)
+                                .build())
+                .build();
+
+        Optional<PersistentTimestampStore> persistentTimestampStore =
+                TransactionManagers.constructPersistentTimestampStore(
+                        installConfig,
+                        new DefaultPersistentStorageFactory(),
+                        new LinkedList<>());
+
+        TimestampCache timestampCache = TransactionManagers.getTimestampCache(
+                installConfig,
+                metricsManager,
+                () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
+                persistentTimestampStore);
+
+        assertThat(timestampCache).isInstanceOf(OffHeapTimestampCache.class);
     }
 
     private KeyValueService initializeKeyValueServiceWithSweepSettings(

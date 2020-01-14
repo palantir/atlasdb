@@ -432,15 +432,10 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier.get().transaction());
 
         Optional<PersistentTimestampStore> persistentTimestampStore =
-                initializeCloseable(
-                        config().persistentStorage().map(storageConfig -> {
-                            PersistentStorages.sanitizeStoragePath(storageConfig.storagePath());
-                            return persistentStorageFactory()
-                                    .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig);
-                        }),
-                        closeables);
+                constructPersistentTimestampStore(config(), persistentStorageFactory(), closeables);
 
         TimestampCache timestampCache = getTimestampCache(
+                config(),
                 metricsManager,
                 runtimeConfigSupplier,
                 persistentTimestampStore);
@@ -514,7 +509,23 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    private TimestampCache getTimestampCache(
+    @VisibleForTesting
+    static Optional<PersistentTimestampStore> constructPersistentTimestampStore(
+            AtlasDbConfig config,
+            PersistentStorageFactory persistentStorageFactory,
+            @Output List<AutoCloseable> closeables) {
+        return initializeCloseable(
+                config.persistentStorage().map(storageConfig -> {
+                    PersistentStorages.sanitizeStoragePath(storageConfig.storagePath());
+                    return persistentStorageFactory
+                            .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig);
+                }),
+                closeables);
+    }
+
+    @VisibleForTesting
+    static TimestampCache getTimestampCache(
+            AtlasDbConfig atlasDbConfig,
             MetricsManager metricsManager,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Optional<PersistentTimestampStore> persistentTimestampStore) {
@@ -524,7 +535,7 @@ public abstract class TransactionManagers {
                         OffHeapTimestampCache.create(store, metricsManager.getTaggedRegistry(), cacheSize))
                         .orElseGet(() -> new DefaultTimestampCache(metricsManager.getRegistry(), cacheSize));
 
-        return config().timestampCache().orElseGet(timestampCacheSupplier);
+        return atlasDbConfig.timestampCache().orElseGet(timestampCacheSupplier);
     }
 
     private static Callback<TransactionManager> createClearsTable() {

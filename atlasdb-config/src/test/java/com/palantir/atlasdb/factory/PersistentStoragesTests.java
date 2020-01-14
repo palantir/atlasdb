@@ -44,12 +44,12 @@ public final class PersistentStoragesTests {
     }
 
     @Test
-    public void emptyFolderSanitization() throws IOException {
+    public void emptyFolderSanitization() {
         PersistentStorages.sanitizeStoragePath(testFolderPath);
     }
 
     @Test
-    public void createsFolderIfNotExists() throws IOException {
+    public void createsFolderIfNotExists() {
         File file  = new File(testFolderPath, "nonexistent");
         PersistentStorages.sanitizeStoragePath(file.getPath());
 
