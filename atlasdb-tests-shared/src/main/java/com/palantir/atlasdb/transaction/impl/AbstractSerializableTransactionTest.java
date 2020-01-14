@@ -44,6 +44,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -128,7 +129,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 getSweepQueueWriterInitialized(),
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> ImmutableTransactionConfig.builder().build()) {
+                () -> ImmutableTransactionConfig.builder().build(),
+                ConflictTracer.NO_OP) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());

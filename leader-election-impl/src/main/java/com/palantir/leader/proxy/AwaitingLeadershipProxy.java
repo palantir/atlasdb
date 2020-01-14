@@ -120,6 +120,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.warn("gain leadership backoff interrupted");
+                if (isClosed) {
+                    log.info("gain leadership with retry terminated as the proxy is closed");
+                    return;
+                }
             }
         }
     }
@@ -254,11 +258,13 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         return leadershipTokenRef.get() == leadershipToken;
     }
 
-    private static NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
-        return new NotCurrentLeaderException(message, cause);
+    private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
+        return leaderElectionService.getRecentlyPingedLeaderHost()
+                .map(hostAndPort -> new NotCurrentLeaderException(message, cause, hostAndPort))
+                .orElseGet(() -> new NotCurrentLeaderException(message, cause));
     }
 
-    private static NotCurrentLeaderException notCurrentLeaderException(String message) {
+    private NotCurrentLeaderException notCurrentLeaderException(String message) {
         return notCurrentLeaderException(message, null /* cause */);
     }
 

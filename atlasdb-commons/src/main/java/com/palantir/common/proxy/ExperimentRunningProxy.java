@@ -22,13 +22,16 @@ import java.lang.reflect.Proxy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
@@ -36,10 +39,12 @@ import com.palantir.logsafe.SafeArg;
 public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ExperimentRunningProxy.class);
     static final Duration REFRESH_INTERVAL = Duration.ofMinutes(10);
+    static final Duration CLIENT_REFRESH_INTERVAL = Duration.ofMinutes(30);
 
-    private final T experimentalService;
+    private final Supplier<T> refreshingExperimentalServiceSupplier;
     private final T fallbackService;
     private final BooleanSupplier useExperimental;
+    private final BooleanSupplier enableFallback;
     private final Clock clock;
     private final Runnable errorTask;
 
@@ -47,22 +52,36 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
 
     @VisibleForTesting
     ExperimentRunningProxy(
-            T experimentalService,
+            Supplier<T> experimentalServiceSupplier,
             T fallbackService,
             BooleanSupplier useExperimental,
+            BooleanSupplier enableFallback,
             Clock clock,
             Runnable errorTask) {
-        this.experimentalService = experimentalService;
+        this.refreshingExperimentalServiceSupplier = Suppliers.memoizeWithExpiration(
+                experimentalServiceSupplier::get, CLIENT_REFRESH_INTERVAL.toMinutes(), TimeUnit.MINUTES);
         this.fallbackService = fallbackService;
         this.useExperimental = useExperimental;
+        this.enableFallback = enableFallback;
         this.clock = clock;
         this.errorTask = errorTask;
     }
 
-    public static <T> T newProxyInstance(T experimentalService, T fallbackService, BooleanSupplier useExperimental,
-            Class<T> clazz, Runnable markErrorMetric) {
+    @SuppressWarnings("unchecked")
+    public static <T> T newProxyInstance(
+            Supplier<T> experimentalServiceSupplier,
+            T fallbackService,
+            BooleanSupplier useExperimental,
+            BooleanSupplier enableFallback,
+            Class<T> clazz,
+            Runnable markErrorMetric) {
         ExperimentRunningProxy<T> service = new ExperimentRunningProxy<>(
-                experimentalService, fallbackService, useExperimental, Clock.systemUTC(), markErrorMetric);
+                experimentalServiceSupplier,
+                fallbackService,
+                useExperimental,
+                enableFallback,
+                Clock.systemUTC(),
+                markErrorMetric);
         return (T) Proxy.newProxyInstance(
                 clazz.getClassLoader(),
                 new Class[] { clazz },
@@ -72,7 +91,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         boolean runExperiment = useExperimental();
-        Object target = runExperiment ? experimentalService : fallbackService;
+        Object target = runExperiment ? refreshingExperimentalServiceSupplier.get() : fallbackService;
         try {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {
@@ -87,14 +106,29 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     }
 
     private boolean useExperimental() {
-        return useExperimental.getAsBoolean() && Instant.now(clock).compareTo(nextPermittedExperiment.get()) > 0;
+        if (!useExperimental.getAsBoolean()) {
+            return false;
+        }
+
+        if (!enableFallback.getAsBoolean()) {
+            return true;
+        }
+
+        return sufficientTimeSinceFailure();
+    }
+
+    private boolean sufficientTimeSinceFailure() {
+        return Instant.now(clock).compareTo(nextPermittedExperiment.get()) > 0;
     }
 
     private void markExperimentFailure(Exception exception) {
-        nextPermittedExperiment.accumulateAndGet(Instant.now(clock).plus(REFRESH_INTERVAL),
-                (existing, current) -> existing.compareTo(current) > 0 ? existing : current);
+        if (enableFallback.getAsBoolean()) {
+            nextPermittedExperiment.accumulateAndGet(Instant.now(clock).plus(REFRESH_INTERVAL),
+                    (existing, current) -> existing.compareTo(current) > 0 ? existing : current);
+            log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use the "
+                    + "experimental service again after a timeout.",
+                    SafeArg.of("timeout", REFRESH_INTERVAL), exception);
+        }
         errorTask.run();
-        log.info("Experiment failed; we will revert to the fallback service. We will allow attempting to use the"
-                + " experimental service again after a timeout.", SafeArg.of("timeout", REFRESH_INTERVAL), exception);
     }
 }

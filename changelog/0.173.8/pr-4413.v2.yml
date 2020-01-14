@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Non-live reloading proxies created via `AtlasDbHttpClients` now correctly
+    perform fast failover. Previously, they would throw relatively quickly when encountering
+    308s, which may occur when TimeLock Server (or services running embedded leader
+    blocks) have a leader election.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4413

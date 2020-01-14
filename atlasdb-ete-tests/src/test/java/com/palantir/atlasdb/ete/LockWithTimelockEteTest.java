@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -27,7 +26,7 @@ public class LockWithTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
 
     @Test
-    public void smallV1LockSucceeds() throws InterruptedException {
+    public void smallV1LockSucceeds() {
         assertThat(lockResource.lockUsingLegacyLockApi(1, 100)).isTrue();
     }
 
@@ -37,7 +36,7 @@ public class LockWithTimelockEteTest {
     }
 
     @Test
-    public void largeV1LockSucceeds() throws InterruptedException {
+    public void largeV1LockSucceeds() {
         assertThat(lockResource.lockUsingLegacyLockApi(50, 100_000)).isTrue();
 
     }
@@ -45,19 +44,5 @@ public class LockWithTimelockEteTest {
     @Test
     public void largeV2LockSucceeds() {
         assertThat(lockResource.lockUsingTimelockApi(50, 100_000)).isTrue();
-    }
-
-    @Test
-    public void hugeV1LockThrowsOnClientSide() throws InterruptedException {
-        assertThatThrownBy(() -> lockResource.lockUsingLegacyLockApi(100, 500_000))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("INVALID_ARGUMENT");
-    }
-
-    @Test
-    public void hugeV2ThrowsOnClientSide() {
-        assertThatThrownBy(() -> lockResource.lockUsingTimelockApi(100, 500_000))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("INVALID_ARGUMENT");
     }
 }

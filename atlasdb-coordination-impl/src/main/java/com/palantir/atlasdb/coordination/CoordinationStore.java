@@ -21,6 +21,7 @@ import java.util.function.Function;
 
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 
 /**
  * A {@link CoordinationStore} stores data that a {@link CoordinationService} may use.
@@ -32,6 +33,8 @@ public interface CoordinationStore<T> {
      *
      * @return true iff the coordination store is ready to service requests
      */
+
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }

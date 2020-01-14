@@ -44,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitables;
 
 @RunWith(Parameterized.class)
@@ -156,6 +157,7 @@ public class ScrubberTest {
                 () -> 100, //  batch size
                 1, // thread count
                 1, // read thread count
-                ImmutableList.of()); // followers
+                ImmutableList.of(), // followers
+                MetricsManagers.createForTests());
     }
 }

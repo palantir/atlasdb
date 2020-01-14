@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Bring back CassandraClient instrumentation.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4348

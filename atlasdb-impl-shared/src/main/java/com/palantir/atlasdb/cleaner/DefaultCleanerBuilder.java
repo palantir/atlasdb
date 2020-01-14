@@ -28,6 +28,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
@@ -42,6 +43,7 @@ public class DefaultCleanerBuilder {
     private final TimelockService timelockService;
     private final List<Follower> followerList;
     private final TransactionService transactionService;
+    private final MetricsManager metricsManager;
 
     private long transactionReadTimeout = AtlasDbConstants.DEFAULT_TRANSACTION_READ_TIMEOUT;
     private long punchIntervalMillis = AtlasDbConstants.DEFAULT_PUNCH_INTERVAL_MILLIS;
@@ -57,19 +59,22 @@ public class DefaultCleanerBuilder {
             TimestampService timestampService,
             LockClient lockClient,
             List<? extends Follower> followerList,
-            TransactionService transactionService) {
+            TransactionService transactionService,
+            MetricsManager metricsManager) {
         this(keyValueService, new LegacyTimelockService(timestampService, lockService, lockClient), followerList,
-                transactionService);
+                transactionService, metricsManager);
     }
 
     public DefaultCleanerBuilder(KeyValueService keyValueService,
             TimelockService timelockService,
             List<? extends Follower> followerList,
-            TransactionService transactionService) {
+            TransactionService transactionService,
+            MetricsManager metricsManager) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.followerList = ImmutableList.copyOf(followerList);
         this.transactionService = transactionService;
+        this.metricsManager = metricsManager;
     }
 
     public DefaultCleanerBuilder setTransactionReadTimeout(long transactionReadTimeout) {
@@ -140,7 +145,8 @@ public class DefaultCleanerBuilder {
                 Suppliers.ofInstance(backgroundScrubBatchSize),
                 backgroundScrubThreads,
                 backgroundScrubReadThreads,
-                followerList);
+                followerList,
+                metricsManager);
     }
 
     public Cleaner buildCleaner() {

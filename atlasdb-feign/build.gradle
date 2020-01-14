@@ -23,6 +23,7 @@ configurations {
 }
 
 dependencies {
+  explicitShadow project(':atlasdb-remoting-api')
   explicitShadow project(':lock-api')
   explicitShadow group: 'com.squareup.okhttp3', name: 'okhttp'
   explicitShadow group: 'com.palantir.conjure.java.api', name: 'service-config'
@@ -50,7 +51,9 @@ dependencies {
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
+  testCompile(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'org.hamcrest'
+  }
   testCompile group: 'com.github.tomakehurst', name: 'wiremock'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'

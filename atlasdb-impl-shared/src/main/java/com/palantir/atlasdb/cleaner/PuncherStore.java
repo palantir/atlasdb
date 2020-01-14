@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cleaner;
 
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 
 /**
  * This is the underlying store used by the puncher for keeping track in a persistent way of the
@@ -32,6 +33,7 @@ public interface PuncherStore {
 
      * @return true if and only if the PuncherStore has been initialized
      */
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }

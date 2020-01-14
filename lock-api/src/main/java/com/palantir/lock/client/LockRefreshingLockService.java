@@ -37,6 +37,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimplifyingLockService;
+import com.palantir.logsafe.Preconditions;
 
 public final class LockRefreshingLockService extends SimplifyingLockService {
     public static final int REFRESH_BATCH_SIZE = 500_000;
@@ -79,6 +80,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     @Override
     public LockService delegate() {
+        Preconditions.checkState(!isClosed, "LockRefreshingLockService is closed");
         return delegate;
     }
 
@@ -171,8 +173,10 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     @Override
     public void close() {
-        super.close();
-        dispose();
+        if (!isClosed) {
+            super.close();
+            dispose();
+        }
     }
 
     // visible for debugging clients at runtime

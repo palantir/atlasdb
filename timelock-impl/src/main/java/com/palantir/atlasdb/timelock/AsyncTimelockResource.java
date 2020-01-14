@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -27,6 +30,7 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.atlasdb.debug.LockDiagnosticInfo;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
@@ -43,9 +47,12 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
@@ -71,6 +78,12 @@ public class AsyncTimelockResource {
     @Path("fresh-timestamps")
     public TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested) {
         return timelock.getFreshTimestamps(numTimestampsRequested);
+    }
+
+    @POST
+    @Path("commit-timestamp")
+    public TimestampWithWatches getCommitTimestampWithWatches(@Safe @QueryParam("lastKnown") OptionalLong lastVersion) {
+        return timelock.getCommitTimestampWithWatches(lastVersion);
     }
 
     @POST
@@ -111,7 +124,13 @@ public class AsyncTimelockResource {
     public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
         return timelock.startTransactions(request);
     }
-    
+
+    @POST
+    @Path("start-atlasdb-transaction-v5")
+    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
+        return timelock.startTransactionsWithWatches(request);
+    }
+
     @POST
     @Path("immutable-timestamp")
     public long getImmutableTimestamp() {
@@ -133,7 +152,7 @@ public class AsyncTimelockResource {
             }
         });
     }
-    
+
     @POST
     @Path("lock-v2")
     public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
@@ -194,5 +213,16 @@ public class AsyncTimelockResource {
     @Path("current-time-millis")
     public long currentTimeMillis() {
         return timelock.currentTimeMillis();
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     * @deprecated Remove this once PDS-95791 is resolved.
+     */
+    @Deprecated
+    @POST
+    @Path("do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
+    public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(Set<UUID> requestIds) {
+        return lockLog.getAndLogLockDiagnosticInfo(requestIds);
     }
 }

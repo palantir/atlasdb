@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    Postgres JDBC driver was updated from 42.2.1 to 42.2.8
+    (relevant: minor perf and upsert fixes)
+  links:
+  - https://github.com/palantir/atlasdb/pull/4371

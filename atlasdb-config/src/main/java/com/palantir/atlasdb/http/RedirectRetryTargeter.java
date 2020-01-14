@@ -18,29 +18,55 @@ package com.palantir.atlasdb.http;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.net.HostAndPort;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class RedirectRetryTargeter {
-    private final URL nextServerBaseUrl;
+    private final List<URL> otherServers;
+    private final BiMap<HostAndPort, URL> urlsToHostAndPort;
 
-    private RedirectRetryTargeter(URL nextServerBaseUrl) {
-        this.nextServerBaseUrl = nextServerBaseUrl;
+    private RedirectRetryTargeter(List<URL> otherServers) {
+        this.otherServers = otherServers;
+        this.urlsToHostAndPort = KeyedStream.of(otherServers)
+                .mapKeys(url -> HostAndPort.fromParts(url.getHost(), url.getPort()))
+                .collectTo(HashBiMap::create);
     }
 
     public static RedirectRetryTargeter create(URL localServer, List<URL> clusterUrls) {
-        int localServerIndex = clusterUrls.indexOf(localServer);
-        Preconditions.checkArgument(localServerIndex != -1,
+        Preconditions.checkArgument(clusterUrls.contains(localServer),
                 "Local server not found in the list of cluster URLs.",
                 SafeArg.of("localServer", localServer),
                 SafeArg.of("clusterUrls", clusterUrls));
 
-        int nextServerIndex = (localServerIndex + 1) % clusterUrls.size();
-        return new RedirectRetryTargeter(clusterUrls.get(nextServerIndex));
+        if (clusterUrls.size() == 1) {
+            return new RedirectRetryTargeter(ImmutableList.of());
+        }
+        List<URL> otherServers = clusterUrls.stream()
+                .filter(url -> !Objects.equals(localServer, url))
+                .collect(Collectors.toList());
+
+        return new RedirectRetryTargeter(otherServers);
     }
 
-    URL redirectRequest() {
-        return nextServerBaseUrl;
+    Optional<URL> redirectRequest(Optional<HostAndPort> leaderHint) {
+        if (otherServers.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (leaderHint.isPresent()) {
+            HostAndPort leader = leaderHint.get();
+            return Optional.ofNullable(urlsToHostAndPort.get(leader));
+        }
+        return Optional.of(otherServers.get(ThreadLocalRandom.current().nextInt(otherServers.size())));
     }
 }

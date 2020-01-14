@@ -1,0 +1,8 @@
+type: break
+break:
+  description: '`AtlasDbHttpClients#createProxy` now expects a `MetricsManager` rather
+    than a plain `MetricsRegistry`. This is to enable deployment of experiments for
+    these clients, which are used e.g. internally within timelock or for service nodes
+    performing leader election.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4366

@@ -1,0 +1,13 @@
+type: improvement
+improvement:
+  description: |-
+    PTExecutors does not propagate state to recurring tasks
+
+    Previously both tracing and ExecutorInheritableThreadLocal state
+    were retained by recurring tasks, which lead to background activity
+    referencing state from when a task is first scheduled. There are
+    several places where we lazily start scheduled background tasks,
+    this inadvertently attributes background work to the first user
+    to exercise the codepath.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4436

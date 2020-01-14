@@ -33,6 +33,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.ImmutablePaxosLong;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -232,7 +233,10 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         while (true) {
             try {
                 proposer.propose(newSeq, PtBytes.toBytes(limit));
-                PaxosValue value = knowledge.getLearnedValue(newSeq);
+                PaxosValue value = knowledge.getLearnedValue(newSeq)
+                        .orElseThrow(() -> new SafeIllegalStateException("Timestamp bound store: Paxos proposal"
+                                + " returned without learning a value. This is unexpected and would suggest a bug in"
+                                + " AtlasDB code. Please contact support."));
                 checkAgreedBoundIsOurs(limit, newSeq, value);
                 long newLimit = PtBytes.toLong(value.getData());
                 agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);

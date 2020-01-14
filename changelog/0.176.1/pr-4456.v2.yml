@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: reduce sweep queue logspam for short-lived, write-heavy tables
+  links:
+  - https://github.com/palantir/atlasdb/pull/4456

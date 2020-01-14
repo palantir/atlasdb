@@ -15,20 +15,24 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
+import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 
@@ -38,38 +42,50 @@ import com.palantir.paxos.PaxosLearner;
  * However it should still be pingable and should be able to participate in Paxos as well.
  */
 public class IsolatedPaxosTimeLockServerIntegrationTest {
-    private static final String CLIENT = "isolated";
+
+    private static final TemplateVariables SINGLE_NODE = ImmutableTemplateVariables.builder()
+            .localServerPort(9060)
+            .clientPaxos(TimestampPaxos.builder().isUseBatchPaxos(false).build())
+            .build();
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "https://localhost",
-            "paxosThreeServers.yml");
+            "paxosStaticThreeServers.ftl", SINGLE_NODE);
 
-    private static final TestableTimelockServer SERVER = CLUSTER.servers().get(0);
+    private static final TestableTimelockServer SERVER = Iterables.getOnlyElement(CLUSTER.servers());
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
+    private NamespacedClients namespace;
+
+    @Before
+    public void setUp() {
+        namespace = CLUSTER.clientForRandomNamespace();
+    }
+
     @Test
     public void cannotIssueTimestampsWithoutQuorum() {
-        assertThatThrownBy(() -> SERVER.getFreshTimestamp())
+        assertThatThrownBy(() -> CLUSTER.clientForRandomNamespace().getFreshTimestamp())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotIssueLocksWithoutQuorum() {
-        assertThatThrownBy(() -> SERVER.lockService().currentTimeMillis())
+        assertThatThrownBy(() -> CLUSTER.clientForRandomNamespace().timelockService().currentTimeMillis())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void cannotPerformTimestampManagementWithoutQuorum() {
-        assertThatThrownBy(() -> SERVER.timestampManagementService().fastForwardTimestamp(1000L))
+        assertThatThrownBy(
+                () -> CLUSTER.clientForRandomNamespace().timestampManagementService().fastForwardTimestamp(1000L))
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
     public void canPingWithoutQuorum() {
-        SERVER.leaderPing(); // should succeed
+        assertThatCode(() -> SERVER.pinger().ping(namespace.namespace()))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -84,17 +100,17 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
         learner.getGreatestLearnedValue();
     }
 
-    private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
+    private <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 String.format("https://localhost:%d/%s/%s/%s",
                         SERVER.serverHolder().getTimelockPort(),
                         PaxosTimeLockConstants.INTERNAL_NAMESPACE,
                         PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
-                        CLIENT),
+                        namespace.namespace()),
                 clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS);
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
 }

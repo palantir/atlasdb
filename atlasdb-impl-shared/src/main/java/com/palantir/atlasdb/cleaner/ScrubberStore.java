@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 
 /**
  * This is the underlying store used by the scrubber for keeping track in a persistent way of the
@@ -32,6 +33,7 @@ import com.palantir.processors.AutoDelegate;
  */
 @AutoDelegate
 public interface ScrubberStore {
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }

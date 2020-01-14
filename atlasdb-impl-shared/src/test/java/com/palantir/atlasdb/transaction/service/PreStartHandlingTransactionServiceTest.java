@@ -101,7 +101,7 @@ public class PreStartHandlingTransactionServiceTest {
     @Test
     public void passesThroughOnlyValidTimestampsToDelegateWhenGettingMultiple() {
         Map<Long, Long> result = preStartHandlingService.get(ONE_VALID_ONE_INVALID_TIMESTAMP);
-        assertThat(result).containsExactly(
+        assertThat(result).containsOnly(
                 Maps.immutableEntry(START_TIMESTAMP, COMMIT_TIMESTAMP),
                 Maps.immutableEntry(ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
         verify(delegate).get(eq(ImmutableList.of(START_TIMESTAMP)));
@@ -110,7 +110,7 @@ public class PreStartHandlingTransactionServiceTest {
     @Test
     public void doesNotInvokeDelegateIfNoValidTimestamps() {
         Map<Long, Long> result = preStartHandlingService.get(TWO_INVALID_TIMESTAMPS);
-        assertThat(result).containsExactly(
+        assertThat(result).containsOnly(
                 Maps.immutableEntry(ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP),
                 Maps.immutableEntry(NEGATIVE_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
     }

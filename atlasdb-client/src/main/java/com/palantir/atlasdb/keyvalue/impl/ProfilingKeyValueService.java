@@ -440,7 +440,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                                 LoggingArgs.startTimeMillis(startTime),
                                 LoggingArgs.tableRef(tableRef),
                                 LoggingArgs.rowCount(Iterables.size(rows)),
-                                LoggingArgs.batchColumnRangeSelection(tableRef, batchColumnRangeSelection),
+                                LoggingArgs.batchColumnRangeSelection(batchColumnRangeSelection),
                                 LoggingArgs.durationMillis(stopwatch)));
     }
 
@@ -459,7 +459,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.startTimeMillis(startTime),
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.rowCount(Iterables.size(rows)),
-                        LoggingArgs.columnRangeSelection(tableRef, columnRangeSelection),
+                        LoggingArgs.columnRangeSelection(columnRangeSelection),
                         LoggingArgs.batchHint(cellBatchHint),
                         LoggingArgs.durationMillis(stopwatch)));
     }

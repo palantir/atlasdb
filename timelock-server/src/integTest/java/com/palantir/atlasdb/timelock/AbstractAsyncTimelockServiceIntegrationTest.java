@@ -18,13 +18,18 @@ package com.palantir.atlasdb.timelock;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 
+import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
+
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
-    protected static final String LOCALHOST = "https://localhost";
+    public static final TemplateVariables DEFAULT_SINGLE_SERVER = ImmutableTemplateVariables.builder()
+            .localServerPort(9050)
+            .addServerPorts()
+            .clientPaxos(TimestampPaxos.builder().isUseBatchPaxos(true).build())
+            .build();
 
-    protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC = new TestableTimelockCluster(
-            LOCALHOST,
-            "paxosSingleServer.yml");
+    protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC =
+            new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
 
     @ClassRule
     public static final RuleChain ASYNC_RULE_CHAIN = CLUSTER_WITH_ASYNC.getRuleChain();

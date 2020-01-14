@@ -28,7 +28,6 @@ import com.datastax.driver.core.schemabuilder.TableOptions.CompressionOptions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
@@ -81,7 +80,7 @@ class CassandraTableCreator {
                 .addColumn(VALUE, DataType.blob())
                 .withOptions()
                 .bloomFilterFPChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
-                .caching(SchemaBuilder.Caching.KEYS_ONLY)
+                .caching(SchemaBuilder.KeyCaching.ALL, SchemaBuilder.noRows())
                 .compactionOptions(getCompaction(appendHeavyReadLight))
                 .compactStorage()
                 .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
@@ -89,7 +88,6 @@ class CassandraTableCreator {
                 .gcGraceSeconds(config.gcGraceSeconds())
                 .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
                 .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
-                .populateIOCacheOnFlush(tableMetadata.getCachePriority() == CachePriority.HOTTEST)
                 .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
                 .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
                 .clusteringOrder(TIMESTAMP, SchemaBuilder.Direction.ASC)

@@ -42,6 +42,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -134,17 +135,19 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
             return ImmutableMap.of();
         }
 
-        Map<Long, StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams,
-                Functions.constant(getEmptyMetadata()));
+        Map<Long, StreamMetadata> idsToEmptyMetadata = KeyedStream.stream(streams)
+                .map($ -> getEmptyMetadata())
+                .collectToMap();
         putMetadataAndHashIndexTask(tx, idsToEmptyMetadata);
 
-        Map<Long, StreamMetadata> idsToMetadata = Maps.transformEntries(streams,
-                (id, stream) -> storeBlocksAndGetFinalMetadata(tx, id, stream));
+        Map<Long, StreamMetadata> idsToMetadata = KeyedStream.stream(streams)
+                .map((id, stream) -> storeBlocksAndGetFinalMetadata(tx, id, stream))
+                .collectToMap();
         putMetadataAndHashIndexTask(tx, idsToMetadata);
 
-        Map<Long, Sha256Hash> hashes = Maps.transformValues(idsToMetadata,
-                metadata -> new Sha256Hash(metadata.getHash().toByteArray()));
-        return hashes;
+        return KeyedStream.stream(idsToMetadata)
+                .map(metadata -> new Sha256Hash(metadata.getHash().toByteArray()))
+                .collectToMap();
     }
 
     // This method is overridden in generated code. Changes to this method may have unintended consequences.

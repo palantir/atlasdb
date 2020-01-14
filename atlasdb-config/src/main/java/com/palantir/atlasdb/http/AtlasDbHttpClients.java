@@ -21,36 +21,33 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.http.VersionSelectingClients.VersionSelectingConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class AtlasDbHttpClients {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbHttpClients.class);
 
-    public static final TargetFactory LEGACY_FEIGN_TARGET_FACTORY = AtlasDbFeignTargetFactory.DEFAULT;
-    private static final TargetFactory TESTING_TARGET_FACTORY = AtlasDbFeignTargetFactory.FAST_FAIL_FOR_TESTING;
-
     private AtlasDbHttpClients() {
         // Utility class
     }
 
     public static <T> T createProxy(
-            MetricRegistry metricRegistry,
+            MetricsManager metricsManager,
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
+        return createExperimentallyWithFallback(
+                metricsManager,
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters),
+                () -> AtlasDbFeignTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters),
                 type,
-                LEGACY_FEIGN_TARGET_FACTORY.createProxy(trustContext, uri, type, parameters).instance(),
-                MetricRegistry.name(type));
+                parameters);
     }
 
     /**
@@ -61,15 +58,17 @@ public final class AtlasDbHttpClients {
      * Failover will continue to cycle through the supplied endpoint list indefinitely.
      */
     public static <T> T createProxyWithFailover(
-            MetricRegistry metricRegistry,
+            MetricsManager metricsManager,
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
+        return createExperimentallyWithFallback(
+                metricsManager,
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithFailover(
+                        serverListConfig, type, parameters),
+                () -> AtlasDbFeignTargetFactory.DEFAULT.createProxyWithFailover(serverListConfig, type, parameters),
                 type,
-                LEGACY_FEIGN_TARGET_FACTORY.createProxyWithFailover(serverListConfig, type, parameters).instance(),
-                MetricRegistry.name(type));
+                parameters);
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
@@ -83,7 +82,7 @@ public final class AtlasDbHttpClients {
                         serverListConfigSupplier,
                         type,
                         clientParameters),
-                () -> LEGACY_FEIGN_TARGET_FACTORY.createLiveReloadingProxyWithFailover(
+                () -> AtlasDbFeignTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),
@@ -99,11 +98,11 @@ public final class AtlasDbHttpClients {
             AuxiliaryRemotingParameters clientParameters) {
         TargetFactory.InstanceAndVersion<T> fallbackProxy = fallbackProxySupplier.get();
         try {
-            return VersionSelectingClients.createVersionSelectingClient(
+            return VersionSelectingClients.createVersionSelectingClientWithRefreshingNewClient(
                     metricsManager,
-                    experimentalProxySupplier.get(),
+                    experimentalProxySupplier,
                     fallbackProxy,
-                    () -> clientParameters.remotingClientConfig().get().maximumConjureRemotingProbability(),
+                    VersionSelectingConfig.fromRemotingConfigSupplier(clientParameters.remotingClientConfig()),
                     type);
         } catch (Exception e) {
             log.warn("Error occurred in creating an experimental proxy. Possible causes include"
@@ -115,17 +114,14 @@ public final class AtlasDbHttpClients {
 
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
-            MetricRegistry metricRegistry,
+            MetricsManager metricsManager,
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                type,
-                TESTING_TARGET_FACTORY.createProxyWithFailover(
-                        serverListConfig,
-                        type,
-                        parameters).instance(),
-                MetricRegistry.name(type, "atlasdb-testing"));
+        TargetFactory.InstanceAndVersion<T> instanceAndVersion =
+                ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithQuickFailoverForTesting(
+                        serverListConfig, type, parameters);
+        return VersionSelectingClients.instrumentWithClientVersionTag(
+                metricsManager.getTaggedRegistry(), instanceAndVersion, type);
     }
 }

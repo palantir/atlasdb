@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: 'If legacy sweep is not explicitly enabled, it will now be disabled
+    as long as targeted sweep queue writes are enabled. Previously, legacy sweep would
+    be disabled only if targeted sweep was also enabled. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/4394

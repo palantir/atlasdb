@@ -17,16 +17,17 @@ package com.palantir.atlasdb.timelock.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.conjure.java.api.errors.QosException;
+
+import feign.RetryableException;
+
 public final class ExceptionMatchers {
 
     private ExceptionMatchers() { }
 
     public static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
         assertThat(throwable)
-                .hasMessageContaining("method invoked on a non-leader");
-
-        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
-        assertThat(throwable.getClass().getName())
-                .contains("RetryableException");
+                .hasRootCauseInstanceOf(QosException.RetryOther.class)
+                .isInstanceOf(RetryableException.class);
     }
 }

@@ -46,7 +46,7 @@ class LeadershipEvents {
     private final Meter leaderPingReturnedFalse;
     private final Object[] contextArgs;
 
-    LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<Object>> contextArgs) {
+    LeadershipEvents(TaggedMetricRegistry metrics, List<SafeArg<String>> safeLoggingArgs) {
         gainedLeadership = metrics.meter(withName("leadership.gained"));
         lostLeadership = metrics.meter(withName("leadership.lost"));
         noQuorum = metrics.meter(withName("leadership.no-quorum"));
@@ -55,7 +55,7 @@ class LeadershipEvents {
         leaderPingFailure = metrics.meter(withName("leadership.ping-leader.failure"));
         leaderPingTimeout = metrics.meter(withName("leadership.ping-leader.timeout"));
         leaderPingReturnedFalse = metrics.meter(withName("leadership.ping-leader.returned-false"));
-        this.contextArgs = contextArgs.toArray(new Object[0]);
+        this.contextArgs = safeLoggingArgs.toArray(new Object[0]);
     }
 
     void proposedLeadershipFor(long round) {
@@ -115,4 +115,5 @@ class LeadershipEvents {
     private static MetricName withName(String name) {
         return MetricName.builder().safeName(name).build();
     }
+
 }

@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -29,13 +28,14 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public class TestProxies {
 
-    public static final SslConfiguration SSL_CONFIGURATION
+    private static final SslConfiguration SSL_CONFIGURATION
             = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
     public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
@@ -50,59 +50,32 @@ public class TestProxies {
                 .collect(Collectors.toList());
     }
 
-    public <T> T singleNodeForClient(String client, TimeLockServerHolder server, Class<T> serviceInterface) {
-        return singleNode(serviceInterface, getServerUriForClient(client, server));
-    }
-
     public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface) {
-        return singleNode(serviceInterface, getServerUri(server));
-    }
-
-    public <T> T singleNode(Class<T> serviceInterface, String uri) {
+        String uri = getServerUri(server);
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
+                MetricsManagers.createForTests(),
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS));
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING));
     }
 
-    public <T> T failoverForClient(String client, Class<T> serviceInterface) {
-        return failover(serviceInterface, getServerUrisForClient(client));
-    }
-
-    public <T> T failover(Class<T> serviceInterface, List<String> uris) {
-        List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
-        return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
-                new MetricRegistry(),
-                ImmutableServerListConfig.builder().addAllServers(uris).sslConfiguration(SSL_CONFIGURATION).build(),
-                serviceInterface,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS));
-    }
-
-    public List<String> getServerUris() {
-        return servers.stream()
+    public <T> T failover(Class<T> serviceInterface) {
+        List<String> uris = servers.stream()
                 .map(this::getServerUri)
                 .collect(Collectors.toList());
-    }
 
-    public List<String> getServerUrisForClient(String client) {
-        return getServerUris().stream()
-                .map(uri -> uri + "/" + client)
-                .collect(Collectors.toList());
+        List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
+        return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
+                MetricsManagers.createForTests(),
+                ImmutableServerListConfig.builder().addAllServers(uris).sslConfiguration(SSL_CONFIGURATION).build(),
+                serviceInterface,
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING));
     }
 
     private String getServerUri(TimeLockServerHolder server) {
         return baseUri + ":" + server.getTimelockPort();
-    }
-
-    private String getServerUriForClient(String client, TimeLockServerHolder server) {
-        return getServerUriForClient(client, getServerUri(server));
-    }
-
-    private String getServerUriForClient(String client, String uri) {
-        return uri + "/" + client;
     }
 
 }

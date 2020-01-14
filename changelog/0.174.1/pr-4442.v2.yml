@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Prevent startup errors with configs which do not manage to discover
+    any CQL contact points.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4442

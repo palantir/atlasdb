@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: |
+    Fix deadlock in static class initialization
+  links:
+  - https://github.com/palantir/atlasdb/pull/4374

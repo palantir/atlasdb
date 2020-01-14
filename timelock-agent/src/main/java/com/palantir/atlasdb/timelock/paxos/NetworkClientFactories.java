@@ -25,6 +25,7 @@ import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 
 @Value.Immutable
+@Value.Style(typeInnerBuilder = "DoNotMatch")
 public interface NetworkClientFactories {
     Factory<PaxosAcceptorNetworkClient> acceptor();
     Factory<PaxosLearnerNetworkClient> learner();
@@ -34,4 +35,8 @@ public interface NetworkClientFactories {
         T create(Client client);
     }
 
+    interface Builder {
+        Builder from(Dependencies.NetworkClientFactories dependencies);
+        NetworkClientFactories build();
+    }
 }

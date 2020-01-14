@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpTableWatchingService;
+import com.palantir.atlasdb.keyvalue.api.watch.TableWatchingService;
+import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.HeldLocksToken;
@@ -26,6 +29,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -45,6 +49,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @return true if and only if the TransactionManager has been fully initialized
      */
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }
@@ -77,6 +82,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E;
 
     /**
@@ -105,6 +111,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws TransactionConflictException if a write-write conflict occurs
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException;
 
@@ -119,6 +126,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
 
     /**
@@ -135,6 +143,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
@@ -148,6 +157,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @DoNotDelegate
     @Deprecated
+    @Timed
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
             com.google.common.base.Supplier<LockRequest> guavaSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException {
@@ -167,6 +177,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
@@ -181,6 +192,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @DoNotDelegate
     @Deprecated
+    @Timed
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             com.google.common.base.Supplier<LockRequest> guavaSupplier,
@@ -200,6 +212,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
             Iterable<HeldLocksToken> lockTokens,
             LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
@@ -218,6 +231,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
@@ -230,6 +244,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @DoNotDelegate
     @Deprecated
+    @Timed
     default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             com.google.common.base.Supplier<C> guavaSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
         Supplier<C> javaSupplier = guavaSupplier::get;
@@ -249,6 +264,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task)
             throws E, TransactionFailedRetriableException;
@@ -267,6 +283,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
@@ -301,6 +318,12 @@ public interface TransactionManager extends AutoCloseable {
      * @return the timelock service for this transaction manager
      */
     TimelockService getTimelockService();
+
+    // todo(gmaretic): implement
+    @DoNotDelegate
+    default TableWatchingService getTableWatchingService() {
+        return NoOpTableWatchingService.INSTANCE;
+    }
 
     /**
      * Returns the timestamp service used by this transaction manager.
@@ -379,6 +402,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
+    @Timed
     long getUnreadableTimestamp();
 
     /**
@@ -407,6 +431,7 @@ public interface TransactionManager extends AutoCloseable {
      * @return the transaction and associated immutable timestamp lock for the task
      */
     @Deprecated
+    @Timed
     TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
 
     /**
@@ -419,6 +444,7 @@ public interface TransactionManager extends AutoCloseable {
      * @return value returned by the task
      */
     @Deprecated
+    @Timed
     <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
             TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException;

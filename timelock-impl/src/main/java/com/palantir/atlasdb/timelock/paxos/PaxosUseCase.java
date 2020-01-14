@@ -16,35 +16,52 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE;
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE;
+
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public enum PaxosUseCase {
-    LEADER_FOR_ALL_CLIENTS(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE) {
+
+    // <data-directory>/<client="leaderPaxos">/{acceptor/learner}
+    LEADER_FOR_ALL_CLIENTS(LEADER_PAXOS_NAMESPACE, Paths.get("")) {
         @Override
-        public Path logDirectoryRelativeToDataDirectory(Path dataDirectory) {
-            throw new UnsupportedOperationException();
+        public Client resolveClient(Client client) {
+            return PSEUDO_LEADERSHIP_CLIENT;
         }
     },
-    LEADER_FOR_EACH_CLIENT(PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE) {
+
+    // <data-directory>/leaderPaxos/multiLeaderPaxos/<client>/{acceptor/learner}
+    LEADER_FOR_EACH_CLIENT(
+            MULTI_LEADER_PAXOS_NAMESPACE,
+            Paths.get(LEADER_PAXOS_NAMESPACE, MULTI_LEADER_PAXOS_NAMESPACE)) {
         @Override
-        public Path logDirectoryRelativeToDataDirectory(Path dataDirectory) {
-            throw new UnsupportedOperationException();
+        public Client resolveClient(Client client) {
+            return client;
         }
     },
-    TIMESTAMP(PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE) {
+
+    // <data-directory>/<client>/{acceptor/learner}
+    TIMESTAMP(CLIENT_PAXOS_NAMESPACE, Paths.get("")) {
         @Override
-        public Path logDirectoryRelativeToDataDirectory(Path dataDirectory) {
-            return dataDirectory;
+        public Client resolveClient(Client client) {
+            throw new SafeIllegalArgumentException("timestamp paxos should not be resolving clients");
         }
     };
 
-    PaxosUseCase(String useCasePath) {
+    PaxosUseCase(String useCasePath, Path relativeLogDirectory) {
         this.useCasePath = useCasePath;
+        this.relativeLogDirectory = relativeLogDirectory;
     }
 
+    static final Client PSEUDO_LEADERSHIP_CLIENT = Client.of(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
+
     private final String useCasePath;
+    private final Path relativeLogDirectory;
 
     /*
         Although this has no compile time usages, this is used for serialisation/deserialisation via Jersey
@@ -52,11 +69,11 @@ public enum PaxosUseCase {
      */
     public static PaxosUseCase fromString(String string) {
         switch(string) {
-            case PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE:
+            case LEADER_PAXOS_NAMESPACE:
                 return LEADER_FOR_ALL_CLIENTS;
-            case PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE:
+            case MULTI_LEADER_PAXOS_NAMESPACE:
                 return LEADER_FOR_EACH_CLIENT;
-            case PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE:
+            case CLIENT_PAXOS_NAMESPACE:
                 return TIMESTAMP;
             default:
                 throw new SafeIllegalArgumentException("unrecognized use case");
@@ -68,5 +85,9 @@ public enum PaxosUseCase {
         return useCasePath;
     }
 
-    public abstract Path logDirectoryRelativeToDataDirectory(Path dataDirectory);
+    public Path logDirectoryRelativeToDataDirectory(Path dataDirectory) {
+        return dataDirectory.resolve(relativeLogDirectory);
+    }
+
+    public abstract Client resolveClient(Client client);
 }

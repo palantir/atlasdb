@@ -18,6 +18,9 @@ package com.palantir.leader;
 import java.io.Serializable;
 import java.util.Optional;
 
+import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.metrics.Timed;
+
 public interface LeaderElectionService {
     interface LeadershipToken extends Serializable {
         boolean sameAs(LeadershipToken token);
@@ -47,7 +50,8 @@ public interface LeaderElectionService {
     void markNotEligibleForLeadership();
 
     /**
-     * This method will block until this node becomes the leader and is supported by a quorum of nodes.
+     * This method will block until this node becomes the leader and is supported by a quorum of nodes. If for any
+     * reason leadership cannot be obtained, this will throw a {@link InterruptedException}.
      *
      * @return a leadership token to be used with {@link #isStillLeading}
      */
@@ -58,6 +62,7 @@ public interface LeaderElectionService {
      * calls to ensure that the token is valid at the time of invocation, but will return immediately if
      * this node is not the last known leader.
      */
+    @Timed
     Optional<LeadershipToken> getCurrentTokenIfLeading();
 
     /**
@@ -68,6 +73,7 @@ public interface LeaderElectionService {
      * @param token leadership token
      * @return LEADING if the token is still the leader
      */
+    @Timed
     StillLeadingStatus isStillLeading(LeadershipToken token);
 
     /**
@@ -77,4 +83,16 @@ public interface LeaderElectionService {
      * @return true if and only if this node was able to cause itself to lose leadership
      */
     boolean stepDown();
+
+    /**
+     * If this {@link LeaderElectionService} has last successfully pinged node that believed it was the leader recently
+     * (up to the implementation), it returns the {@link HostAndPort} through which the leader can be contacted.
+     * <p>
+     * In practice, there may be a few false positives, but assuming everything is working as intended, they should
+     * quickly resolve.
+     * <p>
+     * @return {@link Optional} containing address of suspected leader, otherwise empty if this
+     * {@link LeaderElectionService} has not been able to contact the leader recently.
+     */
+    Optional<HostAndPort> getRecentlyPingedLeaderHost();
 }

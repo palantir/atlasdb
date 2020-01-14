@@ -42,9 +42,11 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValueLoader;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableMetadataCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeHelpers;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
 import com.palantir.common.base.ClosableIterator;
@@ -132,23 +134,30 @@ public class OracleGetRange implements DbKvsGetRange {
     private final OverflowValueLoader overflowValueLoader;
     private final OracleTableNameGetter tableNameGetter;
     private final TableValueStyleCache valueStyleCache;
+    private final TableMetadataCache tableMetadataCache;
     private final OracleDdlConfig config;
 
     public OracleGetRange(SqlConnectionSupplier connectionPool,
                           OverflowValueLoader overflowValueLoader,
                           OracleTableNameGetter tableNameGetter,
                           TableValueStyleCache valueStyleCache,
+                          TableMetadataCache tableMetadataCache,
                           OracleDdlConfig config) {
         this.connectionPool = connectionPool;
         this.overflowValueLoader = overflowValueLoader;
         this.tableNameGetter = tableNameGetter;
         this.valueStyleCache = valueStyleCache;
+        this.tableMetadataCache = tableMetadataCache;
         this.config = config;
     }
 
     @Override
     public Iterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         boolean haveOverflow = checkIfTableHasOverflowUsingNewConnection(tableRef);
+        int maxRowsPerPage = RangeHelpers.getMaxRowsPerPage(rangeRequest);
+        int maxCellsPerPage = DbKvsGetRanges.getMaxCellsPerPage(
+                tableRef, rangeRequest, maxRowsPerPage, connectionPool, tableMetadataCache);
+
         return Iterators.concat(new PageIterator(
                 rangeRequest.getStartInclusive(),
                 rangeRequest.getEndExclusive(),
@@ -156,7 +165,8 @@ public class OracleGetRange implements DbKvsGetRange {
                 rangeRequest.isReverse(),
                 tableRef,
                 haveOverflow,
-                RangeHelpers.getMaxRowsPerPage(rangeRequest),
+                maxRowsPerPage,
+                maxCellsPerPage,
                 timestamp));
     }
 
@@ -169,17 +179,19 @@ public class OracleGetRange implements DbKvsGetRange {
     private class PageIterator extends AbstractIterator<Iterator<RowResult<Value>>> {
         private byte[] startInclusive;
         private boolean endOfResults = false;
-
         private final byte[] endExclusive;
         private final Set<byte[]> columnSelection;
         private final boolean reverse;
         private final TableReference tableRef;
         private final boolean haveOverflowValues;
         private final int maxRowsPerPage;
+        private final int maxCellsPerPage;
         private final long timestamp;
 
-        PageIterator(byte[] startInclusive, byte[] endExclusive, Set<byte[]> columnSelection, boolean reverse,
-                TableReference tableRef, boolean haveOverflowValues, int maxRowsPerPage, long timestamp) {
+        PageIterator(
+                byte[] startInclusive, byte[] endExclusive, Set<byte[]> columnSelection,
+                boolean reverse, TableReference tableRef, boolean haveOverflowValues,
+                int maxRowsPerPage, int maxCellsPerPage, long timestamp) {
             this.startInclusive = startInclusive;
             this.endExclusive = endExclusive;
             this.columnSelection = columnSelection;
@@ -187,6 +199,7 @@ public class OracleGetRange implements DbKvsGetRange {
             this.tableRef = tableRef;
             this.haveOverflowValues = haveOverflowValues;
             this.maxRowsPerPage = maxRowsPerPage;
+            this.maxCellsPerPage = maxCellsPerPage;
             this.timestamp = timestamp;
         }
 
@@ -236,7 +249,7 @@ public class OracleGetRange implements DbKvsGetRange {
         private ClosableIterator<AgnosticLightResultRow> selectNextPage(ConnectionSupplier conns) {
             FullQuery query = getRangeQuery(conns);
             AgnosticLightResultSet resultSet = conns.get().selectLightResultSetUnregisteredQueryWithFetchSize(
-                    query.getQuery(), maxRowsPerPage, query.getArgs());
+                    query.getQuery(), maxCellsPerPage, query.getArgs());
             return ClosableIterators.wrap(resultSet.iterator(), resultSet);
         }
 

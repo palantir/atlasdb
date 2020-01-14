@@ -53,7 +53,7 @@ public final class CoordinationServices {
                 createCoordinationStore(keyValueService, timestampSupplier, initializeAsync));
 
         @SuppressWarnings("unchecked") // The service has the same type as the version-hiding service.
-        CoordinationService<InternalSchemaMetadata> instrumentedService = AtlasDbMetrics.instrument(
+        CoordinationService<InternalSchemaMetadata> instrumentedService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
                 CoordinationService.class,
                 wrapHidingVersionSerialization(versionedService));

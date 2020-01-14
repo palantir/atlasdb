@@ -135,7 +135,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
             // Create the truststore
             File clientTrustore = new File(getTruststorePath().get());
             props.setProperty("javax.net.ssl.trustStore", clientTrustore.getAbsolutePath());
-            props.setProperty("javax.net.ssl.trustStorePassword", "ptclient");
+            props.setProperty("javax.net.ssl.trustStorePassword", getTruststorePassword().get());
 
             // Enable server domain matching
             if (getMatchServerDn()) {

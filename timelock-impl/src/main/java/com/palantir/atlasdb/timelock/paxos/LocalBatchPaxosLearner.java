@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.SetMultimap;
@@ -27,9 +27,9 @@ import com.palantir.paxos.PaxosValue;
 
 public class LocalBatchPaxosLearner implements BatchPaxosLearner {
 
-    private final PaxosComponents paxosComponents;
+    private final LocalPaxosComponents paxosComponents;
 
-    public LocalBatchPaxosLearner(PaxosComponents paxosComponents) {
+    public LocalBatchPaxosLearner(LocalPaxosComponents paxosComponents) {
         this.paxosComponents = paxosComponents;
     }
 
@@ -45,7 +45,8 @@ public class LocalBatchPaxosLearner implements BatchPaxosLearner {
                 .mapKeys(WithSeq::value)
                 .map(WithSeq::seq)
                 .map((client, seq) -> paxosComponents.learner(client).getLearnedValue(seq))
-                .filter(Objects::nonNull)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collectToSetMultimap();
     }
 

@@ -1,0 +1,11 @@
+type: improvement
+improvement:
+  description: |-
+    Fail loudly when a closed LockRefreshingLockService is used
+
+    Previously a LockRefreshingLockService could be closed, but
+    still used despite no longer refreshing locks. It's better to
+    fail quickly and deterministically when the service is in an
+    unexpected state.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4358

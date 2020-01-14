@@ -127,14 +127,13 @@ public final class AtlasDbConstants {
     public static final boolean DEFAULT_BACKGROUND_SCRUB_AGGRESSIVELY = true;
     public static final int DEFAULT_BACKGROUND_SCRUB_THREADS = 8;
     public static final int DEFAULT_BACKGROUND_SCRUB_READ_THREADS = 8;
-    public static final long DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS = 3600000L;
+    public static final long DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS = 5 * 60 * 1000; // 5 minutes
     public static final int DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE = 2000;
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
     public static final char OLD_SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
     public static final boolean DEFAULT_INITIALIZE_ASYNC = AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC;
 
-    public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
     public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 128;

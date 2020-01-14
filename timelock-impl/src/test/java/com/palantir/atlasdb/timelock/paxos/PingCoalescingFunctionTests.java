@@ -19,7 +19,11 @@ package com.palantir.atlasdb.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.paxos.LeaderPingResults.pingReturnedFalse;
+import static com.palantir.paxos.LeaderPingResults.pingReturnedTrue;
+
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +31,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.timelock.paxos.AutobatchingPingableLeaderFactory.PingRequest;
+import com.palantir.paxos.ImmutableLeaderPingerContext;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PingCoalescingFunctionTests {
@@ -34,6 +41,11 @@ public class PingCoalescingFunctionTests {
     private static final Client CLIENT_1 = Client.of("client1");
     private static final Client CLIENT_2 = Client.of("client2");
     private static final Client CLIENT_3 = Client.of("client3");
+
+    private static final UUID LEADER_UUID_1 = UUID.randomUUID();
+    private static final UUID LEADER_UUID_2 = UUID.randomUUID();
+
+    private static final HostAndPort HOST_AND_PORT = HostAndPort.fromParts("localhost", 8080);
 
     @Mock private BatchPingableLeader remote;
 
@@ -43,11 +55,22 @@ public class PingCoalescingFunctionTests {
         when(remote.ping(clients))
                 .thenReturn(ImmutableSet.of(CLIENT_1, CLIENT_3));
 
-        PingCoalescingFunction function = new PingCoalescingFunction(remote);
-        assertThat(function.apply(clients))
-                .containsEntry(CLIENT_1, true)
-                .containsEntry(CLIENT_3, true)
-                .doesNotContainEntry(CLIENT_2, true)
-                .containsEntry(CLIENT_2, false);
+        Set<PingRequest> requests = ImmutableSet.of(
+                pingRequest(CLIENT_1, LEADER_UUID_1),
+                pingRequest(CLIENT_2, LEADER_UUID_2),
+                pingRequest(CLIENT_3, LEADER_UUID_1));
+
+        PingCoalescingFunction function =
+                new PingCoalescingFunction(ImmutableLeaderPingerContext.of(remote, HOST_AND_PORT));
+        assertThat(function.apply(requests))
+                .containsEntry(pingRequest(CLIENT_1, LEADER_UUID_1), pingReturnedTrue(LEADER_UUID_1, HOST_AND_PORT))
+                .containsEntry(pingRequest(CLIENT_3, LEADER_UUID_1), pingReturnedTrue(LEADER_UUID_1, HOST_AND_PORT))
+                .doesNotContainEntry(
+                        pingRequest(CLIENT_2, LEADER_UUID_2), pingReturnedTrue(LEADER_UUID_2, HOST_AND_PORT))
+                .containsEntry(pingRequest(CLIENT_2, LEADER_UUID_2), pingReturnedFalse());
+    }
+
+    private static PingRequest pingRequest(Client client, UUID leaderUuid) {
+        return ImmutablePingRequest.of(client, leaderUuid);
     }
 }

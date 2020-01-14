@@ -77,13 +77,16 @@ dependencies {
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
   compile group: 'com.palantir.common', name: 'streams'
   compile group: 'com.github.rholder', name: 'guava-retrying'
+  compile group: 'org.rocksdb', name: 'rocksdbjni'
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
+  testCompile(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'org.hamcrest'
+  }
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'

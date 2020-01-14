@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,17 +39,21 @@ public class ExperimentRunningProxyTest {
     private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException("foo");
 
     private final IntSupplier experimentalIntSupplier = mock(IntSupplier.class);
+    private final Supplier<IntSupplier> experimentSupplier = mock(Supplier.class);
     private final IntSupplier fallbackIntSupplier = () -> FALLBACK_RESULT;
     private final BooleanSupplier useExperimental = mock(BooleanSupplier.class);
+    private final BooleanSupplier enableFallback = mock(BooleanSupplier.class);
     private final Clock clock = mock(Clock.class);
     private final AtomicLong errorCounter = new AtomicLong();
 
-    private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(experimentalIntSupplier,
-            fallbackIntSupplier, useExperimental, clock, errorCounter::incrementAndGet));
+    private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(experimentSupplier,
+            fallbackIntSupplier, useExperimental, enableFallback, clock, errorCounter::incrementAndGet));
 
     @Before
     public void setup() {
+        when(experimentSupplier.get()).thenReturn(experimentalIntSupplier);
         returnValueOnExperiment();
+        enableFallback();
         setTimeTo(Instant.ofEpochSecond(0));
     }
 
@@ -74,6 +79,17 @@ public class ExperimentRunningProxyTest {
         assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
         assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
         assertErrors(1L);
+    }
+
+    @Test
+    public void doesNotFallBackWhenFallBackDisabled() {
+        enableExperiment();
+        disableFallback();
+        throwOnExperiment();
+
+        assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
+        assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
+        assertErrors(2L);
     }
 
     @Test
@@ -108,6 +124,23 @@ public class ExperimentRunningProxyTest {
         assertErrors(0L);
     }
 
+    @Test
+    public void canLiveReloadUsingFallBack() {
+        enableExperiment();
+        disableFallback();
+        throwOnExperiment();
+
+        assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
+
+        enableFallback();
+        assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
+        assertThat(proxyInstance.getAsInt()).isEqualTo(FALLBACK_RESULT);
+
+        disableFallback();
+        assertThatThrownBy(proxyInstance::getAsInt).isEqualTo(RUNTIME_EXCEPTION);
+        assertErrors(3L);
+    }
+
     private static IntSupplier intSupplierForProxy(ExperimentRunningProxy<IntSupplier> proxy) {
         return (IntSupplier) Proxy.newProxyInstance(IntSupplier.class.getClassLoader(),
                 new Class[] { IntSupplier.class },
@@ -132,6 +165,14 @@ public class ExperimentRunningProxyTest {
 
     private void disableExperiment() {
         when(useExperimental.getAsBoolean()).thenReturn(false);
+    }
+
+    private void enableFallback() {
+        when(enableFallback.getAsBoolean()).thenReturn(true);
+    }
+
+    private void disableFallback() {
+        when(enableFallback.getAsBoolean()).thenReturn(false);
     }
 
     private void assertErrors(long number) {

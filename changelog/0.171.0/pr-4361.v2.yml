@@ -1,0 +1,9 @@
+type: break
+break:
+  description: The `PaxosLearner` interface now returns `Optional<PaxosValue>` instead
+    of a nullable `PaxosValue` for the `getLearnedValue(seq)` and `getGreatestLearnedValue()`
+    methods. The wire format remains unchanged (so, for example, rolling upgrades
+    of TimeLock, or servers in an embedded leader configuration, are safe). Users
+    who require the old behaviour can use `Optional.orElse(null)`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4361

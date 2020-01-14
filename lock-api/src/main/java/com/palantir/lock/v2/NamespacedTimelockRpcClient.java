@@ -16,9 +16,11 @@
 
 package com.palantir.lock.v2;
 
+import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.TimestampRange;
 
 /**
@@ -42,6 +44,10 @@ public class NamespacedTimelockRpcClient {
         return timelockRpcClient.getFreshTimestamps(namespace, numTimestampsRequested);
     }
 
+    public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastVersion) {
+        return timelockRpcClient.getCommitTimestampWithWatches(namespace, lastVersion);
+    }
+
     public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
         return timelockRpcClient.lockImmutableTimestamp(namespace, request);
     }
@@ -53,6 +59,10 @@ public class NamespacedTimelockRpcClient {
 
     public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
         return timelockRpcClient.startTransactions(namespace, request);
+    }
+
+    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
+        return timelockRpcClient.startTransactionsWithWatches(namespace, request);
     }
 
     public long getImmutableTimestamp() {

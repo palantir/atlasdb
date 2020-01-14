@@ -30,9 +30,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 
 final class ColumnFamilyDefinitions {
@@ -62,24 +60,6 @@ final class ColumnFamilyDefinitions {
         if (appendHeavyAndReadLight) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
             cf.setCompaction_strategy_optionsIsSet(false);
-        }
-
-        TableMetadataPersistence.CachePriority cachePriority = tableMetadata.map(TableMetadata::getCachePriority)
-                .orElse(TableMetadataPersistence.CachePriority.WARM);
-        switch (cachePriority) {
-            case COLDEST:
-                break;
-            case COLD:
-                break;
-            case WARM:
-                break;
-            case HOT:
-                break;
-            case HOTTEST:
-                cf.setPopulate_io_cache_on_flushIsSet(true);
-                break;
-            default:
-                throw new PalantirRuntimeException("Unknown cache priority: " + cachePriority);
         }
 
         cf.setGc_grace_seconds(gcGraceSeconds);
@@ -196,13 +176,6 @@ final class ColumnFamilyDefinitions {
                         clusterSide.compaction_strategy);
                 return false;
             }
-        }
-        if (clientSide.isSetPopulate_io_cache_on_flush() != clusterSide.isSetPopulate_io_cache_on_flush()) {
-            logMismatch("populate_io_cache_on_flush",
-                    tableName,
-                    clientSide.isSetPopulate_io_cache_on_flush(),
-                    clusterSide.isSetPopulate_io_cache_on_flush());
-            return false;
         }
         if (clientSide.min_index_interval != clusterSide.min_index_interval) {
             logMismatch("min index interval",

@@ -17,11 +17,9 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
@@ -32,17 +30,14 @@ import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapter;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapter;
 
 @Value.Immutable
-abstract class SingleLeaderNetworkClientFactories {
+abstract class SingleLeaderNetworkClientFactories implements
+        NetworkClientFactories, Dependencies.NetworkClientFactories {
 
-    abstract PaxosUseCase useCase();
-    abstract TimelockPaxosMetrics metrics();
-    abstract PaxosRemoteClients remoteClients();
-    abstract PaxosComponents components();
-    abstract int quorumSize();
-    abstract ExecutorService sharedExecutor();
-
-    NetworkClientFactories factories() {
-        Factory<PaxosAcceptorNetworkClient> acceptorClientFactory = client -> {
+    @Value.Auxiliary
+    @Value.Derived
+    @Override
+    public Factory<PaxosAcceptorNetworkClient> acceptor() {
+        return client -> {
             List<PaxosAcceptor> remoteAcceptors = TimelockPaxosAcceptorAdapter
                     .wrap(useCase(), remoteClients())
                     .apply(client);
@@ -51,15 +46,19 @@ abstract class SingleLeaderNetworkClientFactories {
                     PaxosAcceptor.class,
                     localAcceptor,
                     remoteAcceptors,
-                    "paxos-acceptor",
                     client);
             return new SingleLeaderAcceptorNetworkClient(
                     allAcceptors.all(),
                     quorumSize(),
                     allAcceptors.withSharedExecutor(sharedExecutor()));
         };
+    }
 
-        Factory<PaxosLearnerNetworkClient> learnerClientFactory = client -> {
+    @Value.Auxiliary
+    @Value.Derived
+    @Override
+    public Factory<PaxosLearnerNetworkClient> learner() {
+        return client -> {
             List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapter
                     .wrap(useCase(), remoteClients())
                     .apply(client);
@@ -68,7 +67,6 @@ abstract class SingleLeaderNetworkClientFactories {
                     PaxosLearner.class,
                     localLearner,
                     remoteLearners,
-                    "paxos-learner",
                     client);
             return new SingleLeaderLearnerNetworkClient(
                     allLearners.local(),
@@ -76,11 +74,8 @@ abstract class SingleLeaderNetworkClientFactories {
                     quorumSize(),
                     allLearners.withSharedExecutor(sharedExecutor()));
         };
-
-        return ImmutableNetworkClientFactories.builder()
-                .acceptor(acceptorClientFactory)
-                .learner(learnerClientFactory)
-                .build();
     }
+
+    public abstract static class Builder implements NetworkClientFactories.Builder {}
 
 }

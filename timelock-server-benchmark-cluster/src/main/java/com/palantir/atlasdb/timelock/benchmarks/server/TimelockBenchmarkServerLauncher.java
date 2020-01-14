@@ -20,6 +20,7 @@ import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
@@ -28,6 +29,9 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
 public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
+
+    private static final UserAgent USER_AGENT =
+            UserAgent.of(UserAgent.Agent.of("TimelockServerBenchmarkCluster", "0.0.0"));
 
     public static void main(String[] args) throws Exception {
         new TimelockBenchmarkServerLauncher().run(args);
@@ -48,6 +52,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
                 MetricsManagers.of(environment.metrics(), SharedTaggedMetricRegistries.getSingleton()),
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
+                USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 environment.jersey()::register);

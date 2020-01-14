@@ -63,6 +63,11 @@ public final class AtlasDbMetricNames {
     public static final String SWEEP_OUTCOME = "outcome";
     public static final String TAG_OUTCOME = "status";
 
+    public static final String ENQUEUED_CELLS = "enqueuedCells";
+    public static final String DELETED_CELLS = "deletedCells";
+    public static final String SCRUBBED_CELLS = "scrubbedCells";
+    public static final String SCRUB_RETRIES = "retriedBatches";
+
     public static final String TAG_CURRENT_SUSPECTED_LEADER = "isCurrentSuspectedLeader";
     public static final String TAG_CLIENT = "client";
     public static final String TAG_PAXOS_USE_CASE = "paxosUseCase";

@@ -15,97 +15,74 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.IOException;
-import java.net.URL;
+import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockService;
-import com.palantir.lock.client.RemoteTimelockServiceAdapter;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.NamespacedTimelockRpcClient;
-import com.palantir.lock.v2.TimelockRpcClient;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TestableTimelockServer {
 
     private final TimeLockServerHolder serverHolder;
-    private final String defaultClient;
     private final TestProxies proxies;
+    private final ProxyFactory proxyFactory;
 
-    public TestableTimelockServer(String baseUri, String defaultClient, TimeLockServerHolder serverHolder) {
-        this.defaultClient = defaultClient;
+    private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
+
+    TestableTimelockServer(String baseUri, TimeLockServerHolder serverHolder) {
         this.serverHolder = serverHolder;
         this.proxies = new TestProxies(baseUri, ImmutableList.of());
+        this.proxyFactory = new SingleNodeProxyFactory(proxies, serverHolder);
     }
 
     public TimeLockServerHolder serverHolder() {
         return serverHolder;
     }
 
-    public boolean leaderPing() {
-        return pingableLeader().ping();
-    }
-
-    public long getFreshTimestamp() {
-        return timestampService().getFreshTimestamp();
-    }
-
-    public LockRefreshToken remoteLock(String client, com.palantir.lock.LockRequest lockRequest)
-            throws InterruptedException {
-        return lockService().lock(client, lockRequest);
-    }
-
-    public LockResponse lock(LockRequest lockRequest) {
-        return timelockService().lock(lockRequest);
-    }
-
-    public void kill() {
+    void kill() {
         serverHolder.kill();
     }
 
-    public void start() {
+    void start() {
         serverHolder.start();
     }
 
-    public PingableLeader pingableLeader() {
-        return proxies.singleNode(serverHolder, PingableLeader.class);
+    TestableLeaderPinger pinger() {
+        PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class);
+        return namespaces -> {
+            if (pingableLeader.ping()) {
+                return ImmutableSet.copyOf(namespaces);
+            } else {
+                return ImmutableSet.of();
+            }
+        };
     }
 
-    public TimestampService timestampService() {
-        return proxies.singleNodeForClient(defaultClient, serverHolder, TimestampService.class);
+    NamespacedClients client(String namespace) {
+        return clientsByNamespace.computeIfAbsent(namespace, key -> NamespacedClients.from(namespace, proxyFactory));
     }
 
-    public TimestampManagementService timestampManagementService() {
-        return proxies.singleNodeForClient(defaultClient, serverHolder, TimestampManagementService.class);
+    public TaggedMetricRegistry taggedMetricRegistry() {
+        return serverHolder.getTaggedMetricsRegistry();
     }
 
-    public LockService lockService() {
-        return proxies.singleNodeForClient(defaultClient, serverHolder, LockService.class);
-    }
+    private static final class SingleNodeProxyFactory implements ProxyFactory {
 
-    public TimelockService timelockService() {
-        return timelockServiceForClient(defaultClient);
-    }
+        private final TestProxies proxies;
+        private final TimeLockServerHolder serverHolder;
 
-    public TimelockService timelockServiceForClient(String client) {
-        return RemoteTimelockServiceAdapter.create(
-                new NamespacedTimelockRpcClient(proxies.singleNode(serverHolder, TimelockRpcClient.class), client));
-    }
+        private SingleNodeProxyFactory(TestProxies proxies, TimeLockServerHolder serverHolder) {
+            this.proxies = proxies;
+            this.serverHolder = serverHolder;
+        }
 
-    public MetricsOutput getMetricsOutput() {
-        try {
-            return new MetricsOutput(
-                    new ObjectMapper().readTree(
-                            new URL("http", "localhost", serverHolder.getAdminPort(), "/metrics")));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        @Override
+        public <T> T createProxy(Class<T> clazz) {
+            return proxies.singleNode(serverHolder, clazz);
         }
     }
 

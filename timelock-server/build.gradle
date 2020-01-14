@@ -63,7 +63,7 @@ dependencies {
     }
     testCompile project(":flake-rule")
     testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+    testCompile(group: 'org.jmock', name: 'jmock') {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
@@ -79,7 +79,11 @@ dependencies {
     testCommonImplementation (project(":atlasdb-tests-shared")) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
+    testCommonImplementation group: 'org.freemarker', name: 'freemarker'
 
     testCommonApi group: 'io.dropwizard', name: 'dropwizard-testing'
     testCommonApi group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
+
+    // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+    integTestImplementation project(":examples:profile-client")
 }

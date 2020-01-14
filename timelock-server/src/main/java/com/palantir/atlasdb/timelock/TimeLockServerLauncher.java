@@ -30,12 +30,15 @@ import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
+import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
@@ -43,9 +46,15 @@ import io.dropwizard.setup.Environment;
  * Provides a way of launching an embedded TimeLock server using Dropwizard. Should only be used in tests.
  */
 public class TimeLockServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
+
+    private static final UserAgent USER_AGENT =
+            UserAgent.of(UserAgent.Agent.of("TimeLockServerLauncher", "0.0.0"));
+
     public static void main(String[] args) throws Exception {
         new TimeLockServerLauncher().run(args);
     }
+
+    private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
 
     @Override
     public void initialize(Bootstrap<CombinedTimeLockServerConfiguration> bootstrap) {
@@ -65,16 +74,33 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
 
-        MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
+        MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
 
-        TimeLockAgent.create(
+        TimeLockAgent timeLockAgent = TimeLockAgent.create(
                 metricsManager,
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
+                USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 registrar);
+
+        environment.lifecycle().manage(new Managed() {
+            @Override
+            public void start() {
+
+            }
+
+            @Override
+            public void stop() {
+                timeLockAgent.shutdown();
+            }
+        });
+    }
+
+    public TaggedMetricRegistry taggedMetricRegistry() {
+        return taggedMetricRegistry;
     }
 
     @Provider

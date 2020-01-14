@@ -29,6 +29,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
+import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -46,6 +49,8 @@ public class AsyncLockService implements Closeable {
     private final TargetedSweepLockDecorator decorator;
     private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
+    private final LockLog lockLog;
+    private final LockWatchingService lockWatchingService;
 
     /**
      * Creates a new asynchronous lock service, using a standard {@link LeaderClock}.
@@ -67,15 +72,22 @@ public class AsyncLockService implements Closeable {
         LeaderClock clock = LeaderClock.create();
         TargetedSweepLockDecorator targetedSweepLockDecorator =
                 TargetedSweepLockDecorator.create(targetedSweepRateLimitConfig, timeoutExecutor);
+
+        HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
+        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(new LockEventLogImpl(), heldLocks);
+        LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
+
         return new AsyncLockService(
                 new LockCollection(targetedSweepLockDecorator),
                 targetedSweepLockDecorator,
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(lockLog, timeoutExecutor, clock),
-                HeldLocksCollection.create(clock),
+                lockAcquirer,
+                heldLocks,
                 new AwaitedLocksCollection(),
+                lockWatchingService,
                 reaperExecutor,
-                clock);
+                clock,
+                lockLog);
     }
 
     @VisibleForTesting
@@ -86,16 +98,21 @@ public class AsyncLockService implements Closeable {
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
+            LockWatchingService lockWatchingService,
             ScheduledExecutorService reaperExecutor,
-            LeaderClock leaderClock) {
+            LeaderClock leaderClock,
+            // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+            LockLog lockLog) {
         this.locks = locks;
         this.decorator = decorator;
         this.immutableTsTracker = immutableTimestampTracker;
-        this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
         this.leaderClock = leaderClock;
+        this.lockLog = lockLog;
+        this.lockWatchingService = lockWatchingService;
+        this.lockAcquirer = acquirer;
 
         scheduleExpiredLockReaper();
     }
@@ -117,9 +134,12 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Leased<LockToken>> lockImmutableTimestamp(UUID requestId, long timestamp) {
-        return heldLocks.getExistingOrAcquire(
+        AsyncResult<Leased<LockToken>> immutableTimestampLockResult = heldLocks.getExistingOrAcquire(
                 requestId,
                 () -> acquireImmutableTimestampLock(requestId, timestamp));
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+        lockLog.registerLockImmutableTimestampRequest(requestId, timestamp, immutableTimestampLockResult);
+        return immutableTimestampLockResult;
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
@@ -172,6 +192,10 @@ public class AsyncLockService implements Closeable {
 
     public LeaderTime leaderTime() {
         return leaderClock.time();
+    }
+
+    public LockWatchingService getLockWatchingService() {
+        return lockWatchingService;
     }
 
     /**

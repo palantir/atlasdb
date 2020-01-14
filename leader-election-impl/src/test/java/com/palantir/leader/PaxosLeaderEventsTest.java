@@ -16,9 +16,6 @@
 package com.palantir.leader;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -33,6 +30,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HostAndPort;
+import com.palantir.paxos.ImmutableLeaderPingerContext;
+import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.SingleLeaderPinger;
 
@@ -42,10 +42,11 @@ public class PaxosLeaderEventsTest {
     private static final UUID LOCAL_UUID = UUID.randomUUID();
     private static final UUID REMOTE_UUID = UUID.randomUUID();
 
+    private static final HostAndPort HOST_AND_PORT = HostAndPort.fromParts("localhost", 8080);
+
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Mock private PingableLeader pingableLeader;
-    @Mock private PaxosLeadershipEventRecorder recorder;
 
     @After
     public void after() {
@@ -59,10 +60,8 @@ public class PaxosLeaderEventsTest {
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(10));
-        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isFalse();
-
-        verify(recorder).recordLeaderPingFailure(error);
-        verifyNoMoreInteractions(recorder);
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
+                .isEqualTo(LeaderPingResults.pingCallFailure(error));
     }
 
     @Test
@@ -75,10 +74,8 @@ public class PaxosLeaderEventsTest {
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofMillis(100));
-        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isFalse();
-
-        verify(recorder).recordLeaderPingTimeout();
-        verifyNoMoreInteractions(recorder);
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
+                .isEqualTo(LeaderPingResults.pingTimedOut());
     }
 
     @Test
@@ -87,10 +84,8 @@ public class PaxosLeaderEventsTest {
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
-        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isFalse();
-
-        verify(recorder).recordLeaderPingReturnedFalse();
-        verifyNoMoreInteractions(recorder);
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
+                .isEqualTo(LeaderPingResults.pingReturnedFalse());
     }
 
     @Test
@@ -99,16 +94,14 @@ public class PaxosLeaderEventsTest {
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
-        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID)).isTrue();
-
-        verifyZeroInteractions(recorder);
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
+                .isEqualTo(LeaderPingResults.pingReturnedTrue(REMOTE_UUID, HOST_AND_PORT));
     }
 
     private LeaderPinger pingerWithTimeout(Duration leaderPingResponseWait) {
         return new SingleLeaderPinger(
-                ImmutableMap.of(pingableLeader, executorService),
+                ImmutableMap.of(ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT), executorService),
                 leaderPingResponseWait,
-                recorder,
                 LOCAL_UUID);
     }
 

@@ -59,7 +59,6 @@ public class AtlasDbTestCase {
     protected LockService lockService;
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
-    protected StatsTrackingKeyValueService keyValueServiceWithStats;
     protected TrackingKeyValueService keyValueService;
     protected InMemoryTimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
@@ -76,10 +75,8 @@ public class AtlasDbTestCase {
         lockClient = LockClient.of("fake lock client");
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         timestampService = new InMemoryTimestampService();
-        KeyValueService kvs = getBaseKeyValueService();
-        keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
-        keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
-        TransactionTables.createTables(kvs);
+        keyValueService = trackingKeyValueService(getBaseKeyValueService());
+        TransactionTables.createTables(keyValueService);
         transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -92,7 +89,17 @@ public class AtlasDbTestCase {
     }
 
     private void setUpTransactionManagers() {
-        serializableTxManager = wrapTestTransactionManager(new TestTransactionManagerImpl(
+        serializableTxManager = constructTestTransactionManager();
+
+        txManager = new CachingTestTransactionManager(serializableTxManager);
+    }
+
+    private TrackingKeyValueService trackingKeyValueService(KeyValueService originalKeyValueService) {
+        return spy(new TrackingKeyValueService(new StatsTrackingKeyValueService(originalKeyValueService)));
+    }
+
+    protected TestTransactionManager constructTestTransactionManager() {
+        return new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
                 timestampService,
@@ -103,13 +110,7 @@ public class AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService()));
-
-        txManager = new CachingTestTransactionManager(serializableTxManager);
-    }
-
-    protected TestTransactionManager wrapTestTransactionManager(TestTransactionManager testTransactionManager) {
-        return testTransactionManager;
+                MoreExecutors.newDirectExecutorService());
     }
 
     protected KeyValueService getBaseKeyValueService() {
