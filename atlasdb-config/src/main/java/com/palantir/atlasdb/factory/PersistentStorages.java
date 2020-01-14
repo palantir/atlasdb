@@ -40,20 +40,6 @@ public final class PersistentStorages {
 
     private PersistentStorages() {}
 
-    /**
-     * Given the {@code absolutePath} deletes all sub-folders, sub-files and the folder pointed by it.
-     *
-     * @param absolutePath which we want to delete
-     * @throws IOException if there is an underlying exception
-     */
-    public static void deletePath(Path absolutePath) throws IOException {
-        try (Stream<Path> stream = Files.walk(absolutePath)) {
-            List<Path> sortedPaths = stream.sorted(Comparator.reverseOrder()).collect(Collectors.toList());
-            for (Path filePath : sortedPaths) {
-                Files.delete(filePath);
-            }
-        }
-    }
 
     /**
      * For the given path does the following: 1) it is sanitized only once per VM lifetime 2) if it exists checks that
@@ -92,5 +78,19 @@ public final class PersistentStorages {
             }
         }
         SANITIZED_PATHS.add(storagePath);
+    }
+
+    private static void deletePath(Path absolutePath) throws IOException {
+        Preconditions.checkArgument(
+                absolutePath.isAbsolute(),
+                "Deletion path needs to be absolute",
+                SafeArg.of("path", absolutePath.toString()));
+
+        try (Stream<Path> stream = Files.walk(absolutePath)) {
+            List<Path> sortedPaths = stream.sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+            for (Path filePath : sortedPaths) {
+                Files.delete(filePath);
+            }
+        }
     }
 }

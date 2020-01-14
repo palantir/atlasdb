@@ -172,12 +172,12 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Test
     public void writeDoesNotPopulateTimestampCache() {
-        Transaction transaction = txMgr.runTaskWithRetry(txn -> {
+        Long writerStartTimestamp = txMgr.runTaskWithRetry(txn -> {
             put(txn, TEST_TABLE, "row", "column", "test");
-            return txn;
+            return txn.getTimestamp();
         });
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(transaction.getTimestamp())).isNull();
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp)).isNull();
     }
 
     @Test
@@ -189,43 +189,38 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
         assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp())).isNull();
 
-        txMgr.runTaskWithRetry(txn -> {
-            get(txn, TEST_TABLE, "row", "column");
-            return txn;
-        });
+        txMgr.runTaskWithRetry(txn -> get(txn, TEST_TABLE, "row", "column"));
 
         assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
-                .isNotNull()
                 .isEqualTo(transactionService.get(writer.getTimestamp()));
     }
 
     @Test
     public void overwriteCachesPreviousWritersStartToCommitTimestamp() {
-        Transaction writer = txMgr.runTaskWithRetry(txn -> {
+        Long writerStartTimestamp = txMgr.runTaskWithRetry(txn -> {
             put(txn, TEST_TABLE, "row", "column", "first");
-            return txn;
+            return txn.getTimestamp();
         });
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp())).isNull();
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp)).isNull();
 
         txMgr.runTaskWithRetry(txn -> {
             put(txn, TEST_TABLE, "row", "column", "second");
-            return txn;
+            return null;
         });
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
-                .isNotNull()
-                .isEqualTo(transactionService.get(writer.getTimestamp()));
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
+                .isEqualTo(transactionService.get(writerStartTimestamp));
     }
 
     @Test
-    public void abortedReadTransactionStillCachesWritersCommitTimestamp() {
-        Transaction writer = txMgr.runTaskWithRetry(txn -> {
+    public void readThanAbortStillCachesWritersCommitTimestamp() {
+        Long writerStartTimestamp = txMgr.runTaskWithRetry(txn -> {
             put(txn, TEST_TABLE, "row", "column", "test");
-            return txn;
+            return txn.getTimestamp();
         });
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp())).isNull();
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp)).isNull();
 
         assertThatThrownBy(() -> txMgr.runTaskWithRetry(txn -> {
             get(txn, TEST_TABLE, "row", "column");
@@ -233,9 +228,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
         })).isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("abort");
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
-                .isNotNull()
-                .isEqualTo(transactionService.get(writer.getTimestamp()));
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
+                .isEqualTo(transactionService.get(writerStartTimestamp));
     }
 
     private TransactionManager setupTransactionManager() {

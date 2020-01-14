@@ -27,6 +27,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 public final class ComparingTimestampCache implements TimestampCache {
     private final TimestampCache first;
@@ -42,8 +43,7 @@ public final class ComparingTimestampCache implements TimestampCache {
         TimestampCache second = OffHeapTimestampCache.create(
                 persistentTimestampStore,
                 metricRegistry.getTaggedRegistry(),
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE
-        );
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
         return new ComparingTimestampCache(first, second);
     }
@@ -77,8 +77,11 @@ public final class ComparingTimestampCache implements TimestampCache {
                     .findFirst()
                     .orElse(null);
         }
-        Preconditions.checkState(firstCommitTimestamp.equals(secondCommitTimestamp),
-                "There is a bug in cache implementation");
+        Preconditions.checkState(
+                firstCommitTimestamp.equals(secondCommitTimestamp),
+                "There is a bug in cache implementation",
+                SafeArg.of("firstCommitTimestamp", firstCommitTimestamp),
+                SafeArg.of("secondCommitTimestamp", secondCommitTimestamp));
         return firstCommitTimestamp;
     }
 }
