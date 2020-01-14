@@ -103,7 +103,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -727,6 +726,7 @@ public class TransactionManagersTest {
 
     @Test
     public void providedTimestampCacheOverridesAnyOtherConfig() {
+        PersistentStorageFactory persistentStorageFactory = mock(PersistentStorageFactory.class);
         MetricRegistry metricRegistry = metricsManager.getRegistry();
         TimestampCache expectedTimestampCache = new DefaultTimestampCache(metricRegistry, () -> 10000L);
 
@@ -736,21 +736,26 @@ public class TransactionManagersTest {
                 .timestampCache(expectedTimestampCache)
                 .build();
 
-        TimestampCache timestampCache = constructTimestampCache(installConfig, Optional.empty());
+        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentStorageFactory);
 
         assertThat(timestampCache).isSameAs(expectedTimestampCache);
+        verify(persistentStorageFactory, never())
+                .constructPersistentTimestampStore(any(RocksDbPersistentStorageConfig.class));
     }
 
     @Test
     public void usingInMemoryTimestampCache() {
+        PersistentStorageFactory persistentStorageFactory = mock(PersistentStorageFactory.class);
         AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
 
-        TimestampCache timestampCache = constructTimestampCache(installConfig, Optional.empty());
+        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentStorageFactory);
 
         assertThat(timestampCache).isInstanceOf(DefaultTimestampCache.class);
+        verify(persistentStorageFactory, never())
+                .constructPersistentTimestampStore(any(RocksDbPersistentStorageConfig.class));
     }
 
     @Test
@@ -769,36 +774,33 @@ public class TransactionManagersTest {
                                 .build())
                 .build();
 
-        Optional<PersistentTimestampStore> persistentTimestampStore =
-                TransactionManagers.constructPersistentTimestampStoreIfConfigured(
-                        installConfig,
-                        new DefaultPersistentStorageFactory(),
-                        new LinkedList<>());
-
-        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentTimestampStore);
+        TimestampCache timestampCache = constructTimestampCache(installConfig, new DefaultPersistentStorageFactory());
 
         assertThat(timestampCache).isInstanceOf(OffHeapTimestampCache.class);
     }
 
     @Test
     public void persistentTimestampStoreNotConstructed() {
+        PersistentStorageFactory persistentStorageFactory = mock(PersistentStorageFactory.class);
+
         AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
 
-        Optional<PersistentTimestampStore> persistentTimestampStore =
-                TransactionManagers.constructPersistentTimestampStoreIfConfigured(
-                        installConfig,
-                        new DefaultPersistentStorageFactory(),
-                        new LinkedList<>());
+        TransactionManagers.configureTimestampCache(
+                installConfig,
+                metricsManager,
+                persistentStorageFactory,
+                () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
+                new LinkedList<>());
 
-        assertThat(persistentTimestampStore)
-                .isEmpty();
+        verify(persistentStorageFactory, never())
+                .constructPersistentTimestampStore(any(RocksDbPersistentStorageConfig.class));
     }
 
     @Test
-    public void persistentTimestampStoreNotConstructedEvenIfConfiguredIfExplicitlyProvided() throws IOException {
+    public void persistentTimestampStoreNotConstructedEvenIfConfiguredWhenCacheProvided() throws IOException {
         PersistentStorageFactory persistentStorageFactory = mock(PersistentStorageFactory.class);
 
         MetricRegistry metricRegistry = metricsManager.getRegistry();
@@ -818,13 +820,7 @@ public class TransactionManagersTest {
                                 .build())
                 .build();
 
-        Optional<PersistentTimestampStore> persistentTimestampStore =
-                TransactionManagers.constructPersistentTimestampStoreIfConfigured(
-                        installConfig,
-                        persistentStorageFactory,
-                        new LinkedList<>());
-
-        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentTimestampStore);
+        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentStorageFactory);
 
         assertThat(timestampCache).isInstanceOf(DefaultTimestampCache.class);
         verify(persistentStorageFactory, never())
@@ -833,12 +829,13 @@ public class TransactionManagersTest {
 
     private TimestampCache constructTimestampCache(
             AtlasDbConfig installConfig,
-            Optional<PersistentTimestampStore> persistentTimestampStore) {
-        return TransactionManagers.getTimestampCache(
+            PersistentStorageFactory persistentStorageFactory) {
+        return TransactionManagers.configureTimestampCache(
                 installConfig,
                 metricsManager,
+                persistentStorageFactory,
                 () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
-                persistentTimestampStore);
+                new LinkedList<>());
     }
 
     private KeyValueService initializeKeyValueServiceWithSweepSettings(
