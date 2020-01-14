@@ -42,6 +42,7 @@ public final class DefaultPersistentStorageFactory implements PersistentStorageF
      * @return RockDB implementation of {@link PersistentTimestampStore}
      */
     public PersistentTimestampStore constructPersistentTimestampStore(RocksDbPersistentStorageConfig config) {
+        PersistentStorageFactories.sanitizeStoragePath(config.storagePath());
         File databaseFolder = new File(config.storagePath(), UUID.randomUUID().toString());
         RocksDB rocksDb = openRocksConnection(databaseFolder);
         return new RocksDbPersistentTimestampStore(rocksDb, databaseFolder);

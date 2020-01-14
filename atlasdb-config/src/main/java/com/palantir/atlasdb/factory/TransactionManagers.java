@@ -515,11 +515,8 @@ public abstract class TransactionManagers {
             PersistentStorageFactory persistentStorageFactory,
             @Output List<AutoCloseable> closeables) {
         return initializeCloseable(
-                config.persistentStorage().map(storageConfig -> {
-                    PersistentStorageFactories.sanitizeStoragePath(storageConfig.storagePath());
-                    return persistentStorageFactory
-                            .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig);
-                }),
+                config.persistentStorage().map(storageConfig -> persistentStorageFactory
+                        .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig)),
                 closeables);
     }
 
