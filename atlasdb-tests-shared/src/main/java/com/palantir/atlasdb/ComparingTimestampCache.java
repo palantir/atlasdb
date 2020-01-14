@@ -80,6 +80,7 @@ public final class ComparingTimestampCache implements TimestampCache {
         Preconditions.checkState(
                 firstCommitTimestamp.equals(secondCommitTimestamp),
                 "There is a bug in cache implementation",
+                SafeArg.of("startTimestamp", startTimestamp),
                 SafeArg.of("firstCommitTimestamp", firstCommitTimestamp),
                 SafeArg.of("secondCommitTimestamp", secondCommitTimestamp));
         return firstCommitTimestamp;
