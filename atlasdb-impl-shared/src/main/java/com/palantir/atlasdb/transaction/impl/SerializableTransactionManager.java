@@ -58,7 +58,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
-    public static final Logger log = LoggerFactory.getLogger(SerializableTransactionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(SerializableTransactionManager.class);
 
     private final ConflictTracer conflictTracer;
 

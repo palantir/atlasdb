@@ -45,7 +45,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
-    public static final Logger log = LoggerFactory.getLogger(ReadOnlyTransactionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(ReadOnlyTransactionManager.class);
 
     private final MetricsManager metricsManager;
     private final KeyValueService keyValueService;
