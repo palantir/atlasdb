@@ -432,7 +432,7 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier.get().transaction());
 
         Optional<PersistentTimestampStore> persistentTimestampStore =
-                constructPersistentTimestampStore(config(), persistentStorageFactory(), closeables);
+                constructPersistentTimestampStoreIfConfigured(config(), persistentStorageFactory(), closeables);
 
         TimestampCache timestampCache = getTimestampCache(
                 config(),
@@ -510,13 +510,19 @@ public abstract class TransactionManagers {
     }
 
     @VisibleForTesting
-    static Optional<PersistentTimestampStore> constructPersistentTimestampStore(
+    static Optional<PersistentTimestampStore> constructPersistentTimestampStoreIfConfigured(
             AtlasDbConfig config,
             PersistentStorageFactory persistentStorageFactory,
             @Output List<AutoCloseable> closeables) {
         return initializeCloseable(
-                config.persistentStorage().map(storageConfig -> persistentStorageFactory
-                        .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig)),
+                config.persistentStorage().map(storageConfig -> {
+                    Preconditions.checkState(
+                            storageConfig instanceof RocksDbPersistentStorageConfig,
+                            "Storage config is not RocksDbPersistentStorageConfig.",
+                            SafeArg.of("configClass", storageConfig.getClass()));
+                    return persistentStorageFactory
+                            .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig);
+                }),
                 closeables);
     }
 

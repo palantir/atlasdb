@@ -767,7 +767,7 @@ public class TransactionManagersTest {
                 .build();
 
         Optional<PersistentTimestampStore> persistentTimestampStore =
-                TransactionManagers.constructPersistentTimestampStore(
+                TransactionManagers.constructPersistentTimestampStoreIfConfigured(
                         installConfig,
                         new DefaultPersistentStorageFactory(),
                         new LinkedList<>());
@@ -785,7 +785,7 @@ public class TransactionManagersTest {
                 .build();
 
         Optional<PersistentTimestampStore> persistentTimestampStore =
-                TransactionManagers.constructPersistentTimestampStore(
+                TransactionManagers.constructPersistentTimestampStoreIfConfigured(
                         installConfig,
                         new DefaultPersistentStorageFactory(),
                         new LinkedList<>());
