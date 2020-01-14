@@ -71,7 +71,7 @@ public final class PersistentStorageFactories {
         for (File file : MoreObjects.firstNonNull(storageDirectory.listFiles(), new File[0])) {
             if (file.isDirectory() && (UUID_PATTERN.matcher(file.getName()).matches())) {
                 try {
-                    deletePath(file.toPath());
+                    deletePath(file.toPath().toAbsolutePath());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
