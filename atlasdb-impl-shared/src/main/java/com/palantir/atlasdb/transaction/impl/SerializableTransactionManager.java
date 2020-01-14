@@ -22,6 +22,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
@@ -55,6 +58,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
+    private static final Logger log = LoggerFactory.getLogger(SerializableTransactionManager.class);
 
     private final ConflictTracer conflictTracer;
 
