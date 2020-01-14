@@ -30,7 +30,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
-public final class PersistentStoragesTests {
+public final class PersistentStorageFactoriesTests {
     public static final String FIRST_SUBFOLDER_ROOT = "first";
     public static final String SECOND_SUBFOLDER_ROOT = "second";
     @Rule
@@ -45,13 +45,13 @@ public final class PersistentStoragesTests {
 
     @Test
     public void emptyFolderSanitization() {
-        PersistentStorages.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
     }
 
     @Test
     public void createsFolderIfNotExists() {
         File file  = new File(testFolderPath, "nonexistent");
-        PersistentStorages.sanitizeStoragePath(file.getPath());
+        PersistentStorageFactories.sanitizeStoragePath(file.getPath());
 
         assertThat(file).isDirectory();
     }
@@ -60,7 +60,7 @@ public final class PersistentStoragesTests {
     public void sanitizingFile() throws IOException {
         File file = testFolder.newFile();
 
-        assertThatThrownBy(() -> PersistentStorages.sanitizeStoragePath(file.getAbsolutePath()))
+        assertThatThrownBy(() -> PersistentStorageFactories.sanitizeStoragePath(file.getAbsolutePath()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("has to point to a directory");
     }
@@ -70,7 +70,7 @@ public final class PersistentStoragesTests {
         File folderToSanitize = testFolder.newFolder(UUID.randomUUID().toString());
         new File(folderToSanitize, "subfile").createNewFile();
 
-        PersistentStorages.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).isEmpty();
     }
 
@@ -79,7 +79,7 @@ public final class PersistentStoragesTests {
         testFolder.newFile(UUID.randomUUID().toString());
         testFolder.newFile("testFile");
 
-        PersistentStorages.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(2);
     }
 
@@ -87,18 +87,18 @@ public final class PersistentStoragesTests {
     public void doesNotRemoveNonUuidNamedFolder() throws IOException {
         testFolder.newFolder("testFolder");
 
-        PersistentStorages.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(1);
     }
 
     @Test
     public void preventMultipleSanitizationOfTheSamePath() throws IOException {
         testFolder.newFolder(UUID.randomUUID().toString());
-        PersistentStorages.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).isEmpty();
 
         testFolder.newFolder(UUID.randomUUID().toString());
-        PersistentStorages.sanitizeStoragePath(testFolderPath);
+        PersistentStorageFactories.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(1);
     }
 
@@ -113,8 +113,8 @@ public final class PersistentStoragesTests {
         assertThat(firstRoot.listFiles()).hasSize(1);
         assertThat(secondRoot.listFiles()).hasSize(1);
 
-        PersistentStorages.sanitizeStoragePath(firstRoot.getPath());
-        PersistentStorages.sanitizeStoragePath(secondRoot.getPath());
+        PersistentStorageFactories.sanitizeStoragePath(firstRoot.getPath());
+        PersistentStorageFactories.sanitizeStoragePath(secondRoot.getPath());
 
         assertThat(firstRoot.listFiles()).isEmpty();
         assertThat(secondRoot.listFiles()).isEmpty();
