@@ -98,7 +98,7 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -431,14 +431,14 @@ public abstract class TransactionManagers {
                 this::withConsolidatedGrabImmutableTsLockFlag,
                 () -> runtimeConfigSupplier.get().transaction());
 
-        Optional<PersistentTimestampStore> persistentTimestampStore =
-                constructPersistentTimestampStoreIfConfigured(config(), persistentStorageFactory(), closeables);
+        Optional<PersistentStore> persistentStore =
+                constructPersistentStoreIfConfigured(config(), persistentStorageFactory(), closeables);
 
         TimestampCache timestampCache = instrumentedTimestampCache(
                 config(),
                 metricsManager,
                 runtimeConfigSupplier,
-                persistentTimestampStore);
+                persistentStore);
 
         ConflictTracer conflictTracer = lockDiagnosticInfoCollector()
                 .<ConflictTracer>map(Function.identity())
@@ -510,7 +510,7 @@ public abstract class TransactionManagers {
     }
 
     @VisibleForTesting
-    static Optional<PersistentTimestampStore> constructPersistentTimestampStoreIfConfigured(
+    static Optional<PersistentStore> constructPersistentStoreIfConfigured(
             AtlasDbConfig config,
             PersistentStorageFactory persistentStorageFactory,
             @Output List<AutoCloseable> closeables) {
@@ -521,7 +521,7 @@ public abstract class TransactionManagers {
                             "Storage config is not RocksDbPersistentStorageConfig.",
                             SafeArg.of("configClass", storageConfig.getClass()));
                     return persistentStorageFactory
-                            .constructPersistentTimestampStore((RocksDbPersistentStorageConfig) storageConfig);
+                            .constructPersistentStore((RocksDbPersistentStorageConfig) storageConfig);
                 }),
                 closeables);
     }
@@ -531,7 +531,7 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             MetricsManager metricsManager,
             Supplier<AtlasDbRuntimeConfig> runtimeConfig,
-            Optional<PersistentTimestampStore> timestampStore) {
+            Optional<PersistentStore> timestampStore) {
         LongSupplier cacheSize = () -> runtimeConfig.get().getTimestampCacheSize();
         Supplier<TimestampCache> timestampCacheSupplier = () ->
                 timestampStore.map(store ->
@@ -545,7 +545,7 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             MetricsManager metricsManager,
             Supplier<AtlasDbRuntimeConfig> runtimeConfig,
-            Optional<PersistentTimestampStore> timestampStore) {
+            Optional<PersistentStore> timestampStore) {
         TimestampCache timestampCache = timestampCache(config, metricsManager, runtimeConfig, timestampStore);
 
         return AtlasDbMetrics.instrumentTimed(
