@@ -797,7 +797,7 @@ public class TransactionManagersTest {
     private TimestampCache constructTimestampCache(
             AtlasDbConfig installConfig,
             Optional<PersistentTimestampStore> persistentTimestampStore) {
-        return TransactionManagers.getTimestampCache(
+        return TransactionManagers.timestampCache(
                 installConfig,
                 metricsManager,
                 () -> ImmutableAtlasDbRuntimeConfig.builder().build(),

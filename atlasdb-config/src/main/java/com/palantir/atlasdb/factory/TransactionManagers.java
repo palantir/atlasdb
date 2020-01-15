@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -38,6 +39,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -434,7 +436,7 @@ public abstract class TransactionManagers {
         Optional<PersistentTimestampStore> persistentTimestampStore =
                 constructPersistentTimestampStoreIfConfigured(config(), persistentStorageFactory(), closeables);
 
-        TimestampCache timestampCache = getTimestampCache(
+        TimestampCache timestampCache = instrumentedTimestampCache(
                 config(),
                 metricsManager,
                 runtimeConfigSupplier,
@@ -527,18 +529,34 @@ public abstract class TransactionManagers {
     }
 
     @VisibleForTesting
-    static TimestampCache getTimestampCache(
-            AtlasDbConfig atlasDbConfig,
+    static TimestampCache timestampCache(
+            AtlasDbConfig config,
             MetricsManager metricsManager,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            Optional<PersistentTimestampStore> persistentTimestampStore) {
-        LongSupplier cacheSize = () -> runtimeConfigSupplier.get().getTimestampCacheSize();
+            Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            Optional<PersistentTimestampStore> timestampStore) {
+        LongSupplier cacheSize = () -> runtimeConfig.get().getTimestampCacheSize();
         Supplier<TimestampCache> timestampCacheSupplier = () ->
-                persistentTimestampStore.map(store ->
+                timestampStore.map(store ->
                         OffHeapTimestampCache.create(store, metricsManager.getTaggedRegistry(), cacheSize))
                         .orElseGet(() -> new DefaultTimestampCache(metricsManager.getRegistry(), cacheSize));
 
-        return atlasDbConfig.timestampCache().orElseGet(timestampCacheSupplier);
+        return config.timestampCache().orElseGet(timestampCacheSupplier);
+    }
+
+    private static TimestampCache instrumentedTimestampCache(
+            AtlasDbConfig config,
+            MetricsManager metricsManager,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            Optional<PersistentTimestampStore> timestampStore) {
+        TimestampCache timestampCache = timestampCache(config, metricsManager, runtimeConfig, timestampStore);
+
+        Map<String, String> tags = ImmutableMap.of();
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                metricsManager.getTaggedRegistry(),
+                TimestampCache.class,
+                timestampCache,
+                MetricRegistry.name(timestampCache.getClass()),
+                _context -> tags);
     }
 
     private static Callback<TransactionManager> createClearsTable() {
