@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix a potential flake in CassandraTimestampsEteTest.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4513
