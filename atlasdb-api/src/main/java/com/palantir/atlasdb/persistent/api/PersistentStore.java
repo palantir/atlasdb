@@ -40,8 +40,7 @@ public interface PersistentStore extends AutoCloseable {
      * @param storeNamespace handle to the namespace from which we want to retrieve the value
      * @param key            entry key for which we want to retrieve the value
      * @return the associated value or null if the entry is missing
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a handle to a
-     *                                                                      non existing namespace
+     * @throws SafeIllegalArgumentException when {@code storeNamespace} is a handle to a non existing namespace
      */
     @Nullable
     byte[] get(StoreNamespace storeNamespace, @Nonnull byte[] key) throws SafeIllegalArgumentException;
@@ -62,8 +61,7 @@ public interface PersistentStore extends AutoCloseable {
      * @param storeNamespace of the store to which we should store the entry
      * @param key            entry key
      * @param value          entry value
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a handle to a
-     *                                                                      non existing namespace
+     * @throws SafeIllegalArgumentException when {@code storeNamespace} is a handle to a non existing namespace
      */
     void put(StoreNamespace storeNamespace, @Nonnull byte[] key, @Nonnull byte[] value)
             throws SafeIllegalArgumentException;
@@ -73,8 +71,7 @@ public interface PersistentStore extends AutoCloseable {
      *
      * @param storeNamespace of the store to which we should store the entry
      * @param toWrite        entry pairs to write
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a handle to a
-     *                                                                      non existing namespace
+     * @throws SafeIllegalArgumentException when {@code storeNamespace} is a handle to a non existing namespace
      */
     void multiPut(StoreNamespace storeNamespace, Map<byte[], byte[]> toWrite);
 
@@ -95,8 +92,7 @@ public interface PersistentStore extends AutoCloseable {
      * calls on the same namespace or if the namespace has already been dropped.
      *
      * @param storeNamespace handle
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException if the supplied {@code storeNamespace} is a
-     *                                                                      handle to a non existing namespace
+     * @throws SafeIllegalArgumentException if the {@code storeNamespace} does not exist
      */
     void dropNamespace(StoreNamespace storeNamespace) throws SafeIllegalArgumentException;
 }
