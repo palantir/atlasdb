@@ -25,27 +25,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
 
 /**
- * Constructs a new {@link PersistentStore} with new persistent storage connection on each call of
+ * Constructs a new {@link PhysicalPersistentStore} with new persistent storage connection on each call of
  * {@link DefaultPersistentStorageFactory#constructPersistentStore(RocksDbPersistentStorageConfig)}.
  */
 public final class DefaultPersistentStorageFactory implements PersistentStorageFactory {
     private static final Logger log = LoggerFactory.getLogger(DefaultPersistentStorageFactory.class);
 
     /**
-     * Constructs a {@link PersistentStore} from a {@link RocksDbPersistentStorageConfig}.
+     * Constructs a {@link PhysicalPersistentStore} from a {@link RocksDbPersistentStorageConfig}.
      *
      * @param config of the requested RocksDB persistent storage
-     * @return RockDB implementation of {@link PersistentStore}
+     * @return RockDB implementation of {@link PhysicalPersistentStore}
      */
-    public PersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
+    public PhysicalPersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
         PersistentStorageFactories.sanitizeStoragePath(config.storagePath());
         File databaseFolder = new File(config.storagePath(), UUID.randomUUID().toString());
         RocksDB rocksDb = openRocksConnection(databaseFolder);
-        return new RocksDbPersistentStore(rocksDb, databaseFolder);
+        return new RocksDbPhysicalPersistentStore(rocksDb, databaseFolder);
     }
 
     private static RocksDB openRocksConnection(File databaseFolder) {

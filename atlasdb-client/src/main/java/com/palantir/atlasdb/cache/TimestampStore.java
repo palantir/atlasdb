@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cache;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -26,8 +27,8 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.persistent.api.LogicalPersistentStore;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.atlasdb.persistent.api.PersistentStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.streams.KeyedStream;
 
@@ -35,19 +36,18 @@ import com.palantir.common.streams.KeyedStream;
  * Stores timestamps using delta encoding for commit timestamp.
  */
 public class TimestampStore implements LogicalPersistentStore<Long, Long> {
-    private final PersistentStore persistentStore;
+    private final PhysicalPersistentStore physicalPersistentStore;
 
-    public TimestampStore(PersistentStore persistentStore) {
-        this.persistentStore = persistentStore;
+    public TimestampStore(PhysicalPersistentStore physicalPersistentStore) {
+        this.physicalPersistentStore = physicalPersistentStore;
     }
 
     @Nullable
     @Override
-    public Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
+    public Optional<Long> get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
         byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
-        byte[] value = persistentStore.get(storeNamespace, byteKeyValue);
-
-        return deserializeValue(startTs, value);
+        return physicalPersistentStore.get(storeNamespace, byteKeyValue)
+                .map(value -> deserializeValue(startTs, value));
     }
 
     @Override
@@ -57,7 +57,7 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
                 .map(ValueType.VAR_LONG::convertFromJava)
                 .collect(Collectors.toList());
 
-        Map<byte[], byte[]> byteValues = persistentStore.multiGet(storeNamespace, byteKeys);
+        Map<byte[], byte[]> byteValues = physicalPersistentStore.multiGet(storeNamespace, byteKeys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -73,7 +73,7 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
         byte[] key = ValueType.VAR_LONG.convertFromJava(startTs);
         byte[] value = ValueType.VAR_LONG.convertFromJava(commitTs - startTs);
 
-        persistentStore.put(storeNamespace, key, value);
+        physicalPersistentStore.put(storeNamespace, key, value);
     }
 
     @Override
@@ -83,12 +83,12 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
 
     @Override
     public StoreNamespace createNamespace(@Nonnull String name) {
-        return persistentStore.createNamespace(name);
+        return physicalPersistentStore.createNamespace(name);
     }
 
     @Override
     public void dropNamespace(StoreNamespace storeNamespace) {
-        persistentStore.dropNamespace(storeNamespace);
+        physicalPersistentStore.dropNamespace(storeNamespace);
     }
 
     private static Map.Entry<Long, Long> deserializeEntry(byte[] key, byte[] value) {

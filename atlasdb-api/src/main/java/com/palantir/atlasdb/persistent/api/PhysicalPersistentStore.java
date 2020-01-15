@@ -18,16 +18,16 @@ package com.palantir.atlasdb.persistent.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
-public interface PersistentStore extends AutoCloseable {
+public interface PhysicalPersistentStore extends AutoCloseable {
     @Value.Immutable
     interface StoreNamespace {
         String humanReadableName();
@@ -39,11 +39,10 @@ public interface PersistentStore extends AutoCloseable {
      *
      * @param storeNamespace handle to the namespace from which we want to retrieve the value
      * @param key            entry key for which we want to retrieve the value
-     * @return the associated value or null if the entry is missing
+     * @return the {@link Optional} containing the value or empty if there is no associated value
      * @throws SafeIllegalArgumentException when {@code storeNamespace} is a handle to a non existing namespace
      */
-    @Nullable
-    byte[] get(StoreNamespace storeNamespace, @Nonnull byte[] key) throws SafeIllegalArgumentException;
+    Optional<byte[]> get(StoreNamespace storeNamespace, @Nonnull byte[] key) throws SafeIllegalArgumentException;
 
     /**
      * Gets the values associated with the entries specified by {@code keys}.

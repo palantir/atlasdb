@@ -42,8 +42,8 @@ import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.persistent.api.LogicalPersistentStore;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.atlasdb.persistent.api.PersistentStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -66,10 +66,10 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> timestampPutter;
 
     public static TimestampCache create(
-            PersistentStore persistentStore,
+            PhysicalPersistentStore physicalPersistentStore,
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
-        TimestampStore timestampStore = new TimestampStore(persistentStore);
+        TimestampStore timestampStore = new TimestampStore(physicalPersistentStore);
         StoreNamespace storeNamespace = timestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
 
         CacheDescriptor cacheDescriptor = ImmutableCacheDescriptor.builder()
@@ -122,15 +122,23 @@ public final class OffHeapTimestampCache implements TimestampCache {
     @Nullable
     @Override
     public Long getCommitTimestampIfPresent(Long startTimestamp) {
-        Long value = Optional.ofNullable(inflightRequests.get(startTimestamp))
-                .orElseGet(() -> timestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp));
+        Optional<Long> value = getCommitTimestamp(startTimestamp);
 
-        if (value == null) {
-            taggedMetricRegistry.meter(CACHE_MISS).mark();
-        } else {
+        if (value.isPresent()) {
             taggedMetricRegistry.meter(CACHE_HIT).mark();
+        } else {
+            taggedMetricRegistry.meter(CACHE_MISS).mark();
         }
-        return value;
+        return value.orElse(null);
+    }
+
+    private Optional<Long> getCommitTimestamp(Long startTimestamp) {
+        Long inFlight = inflightRequests.get(startTimestamp);
+        if (inFlight != null) {
+            return Optional.of(inFlight);
+        }
+
+        return timestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp);
     }
 
     private static CacheDescriptor createNamespaceAndConstructCacheProposal(

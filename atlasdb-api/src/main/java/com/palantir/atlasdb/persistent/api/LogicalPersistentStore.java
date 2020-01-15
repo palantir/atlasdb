@@ -18,11 +18,11 @@ package com.palantir.atlasdb.persistent.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
-import com.palantir.atlasdb.persistent.api.PersistentStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 
 public interface LogicalPersistentStore<K, V> {
     /**
@@ -32,8 +32,7 @@ public interface LogicalPersistentStore<K, V> {
      * @param key            of the cache entry
      * @return value associated or null if the entry is missing
      */
-    @Nullable
-    V get(StoreNamespace storeNamespace, @Nonnull K key);
+    Optional<V> get(StoreNamespace storeNamespace, @Nonnull K key);
 
     /**
      * Retreives values for all supplied {@code keys}.

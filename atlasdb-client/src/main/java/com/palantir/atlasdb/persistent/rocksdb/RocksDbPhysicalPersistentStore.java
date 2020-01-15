@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -32,7 +33,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -46,35 +46,34 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.persistent.api.ImmutableStoreNamespace;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 
 /**
- * Implementation of the {@link PersistentStore} using RocksDB as the underlying persistent storage. Created
+ * Implementation of the {@link PhysicalPersistentStore} using RocksDB as the underlying persistent storage. Created
  * {@link StoreNamespace}s are backed by RocksDB ColumnFamilies such that calling
- * {@link RocksDbPersistentStore#createNamespace(String)} with the same name will construct a new
+ * {@link RocksDbPhysicalPersistentStore#createNamespace(String)} with the same name will construct a new
  * {@link ColumnFamilyHandle} for each call.
  */
-public final class RocksDbPersistentStore implements PersistentStore {
-    private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);
+public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentStore {
+    private static final Logger log = LoggerFactory.getLogger(RocksDbPhysicalPersistentStore.class);
 
     private final ConcurrentMap<UUID, ColumnFamilyHandle> availableColumnFamilies = new ConcurrentHashMap<>();
     private final RocksDB rocksDB;
     private final File databaseFolder;
 
-    public RocksDbPersistentStore(RocksDB rocksDB, File databaseFolder) {
+    public RocksDbPhysicalPersistentStore(RocksDB rocksDB, File databaseFolder) {
         this.rocksDB = rocksDB;
         this.databaseFolder = databaseFolder;
     }
 
     @Override
-    @Nullable
-    public byte[] get(StoreNamespace storeNamespace, @Nonnull byte[] key) {
+    public Optional<byte[]> get(StoreNamespace storeNamespace, @Nonnull byte[] key) {
         checkNamespaceExists(storeNamespace);
 
-        return getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), key);
+        return Optional.ofNullable(getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), key));
     }
 
     @Override
