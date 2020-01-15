@@ -35,17 +35,17 @@ import com.palantir.common.streams.KeyedStream;
  * Stores timestamps using delta encoding for commit timestamp.
  */
 public class TimestampStore implements LogicalPersistentStore<Long, Long> {
-    private final PersistentStore physicalPersistentStore;
+    private final PersistentStore persistentStore;
 
     public TimestampStore(PersistentStore persistentStore) {
-        this.physicalPersistentStore = persistentStore;
+        this.persistentStore = persistentStore;
     }
 
     @Nullable
     @Override
     public Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
         byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
-        byte[] value = physicalPersistentStore.get(storeNamespace, byteKeyValue);
+        byte[] value = persistentStore.get(storeNamespace, byteKeyValue);
 
         return deserializeValue(startTs, value);
     }
@@ -57,7 +57,7 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
                 .map(ValueType.VAR_LONG::convertFromJava)
                 .collect(Collectors.toList());
 
-        Map<byte[], byte[]> byteValues = physicalPersistentStore.multiGet(storeNamespace, byteKeys);
+        Map<byte[], byte[]> byteValues = persistentStore.multiGet(storeNamespace, byteKeys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -73,7 +73,7 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
         byte[] key = ValueType.VAR_LONG.convertFromJava(startTs);
         byte[] value = ValueType.VAR_LONG.convertFromJava(commitTs - startTs);
 
-        physicalPersistentStore.put(storeNamespace, key, value);
+        persistentStore.put(storeNamespace, key, value);
     }
 
     @Override
@@ -83,12 +83,12 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
 
     @Override
     public StoreNamespace createNamespace(@Nonnull String name) {
-        return physicalPersistentStore.createNamespace(name);
+        return persistentStore.createNamespace(name);
     }
 
     @Override
     public void dropNamespace(StoreNamespace storeNamespace) {
-        physicalPersistentStore.dropNamespace(storeNamespace);
+        persistentStore.dropNamespace(storeNamespace);
     }
 
     private static Map.Entry<Long, Long> deserializeEntry(byte[] key, byte[] value) {
