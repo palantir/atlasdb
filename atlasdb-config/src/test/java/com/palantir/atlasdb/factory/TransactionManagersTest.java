@@ -100,7 +100,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -766,7 +766,7 @@ public class TransactionManagersTest {
                                 .build())
                 .build();
 
-        Optional<PersistentTimestampStore> persistentTimestampStore =
+        Optional<PersistentStore> persistentTimestampStore =
                 TransactionManagers.constructPersistentTimestampStoreIfConfigured(
                         installConfig,
                         new DefaultPersistentStorageFactory(),
@@ -784,7 +784,7 @@ public class TransactionManagersTest {
                 .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
 
-        Optional<PersistentTimestampStore> persistentTimestampStore =
+        Optional<PersistentStore> persistentTimestampStore =
                 TransactionManagers.constructPersistentTimestampStoreIfConfigured(
                         installConfig,
                         new DefaultPersistentStorageFactory(),
@@ -796,7 +796,7 @@ public class TransactionManagersTest {
 
     private TimestampCache constructTimestampCache(
             AtlasDbConfig installConfig,
-            Optional<PersistentTimestampStore> persistentTimestampStore) {
+            Optional<PersistentStore> persistentTimestampStore) {
         return TransactionManagers.timestampCache(
                 installConfig,
                 metricsManager,

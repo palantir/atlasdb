@@ -31,7 +31,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 
 public final class DefaultPersistentStorageFactoryTests {
     @Rule
@@ -52,12 +52,12 @@ public final class DefaultPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PersistentTimestampStore persistentTimestampStore = new DefaultPersistentStorageFactory()
+        PersistentStore persistentStore = new DefaultPersistentStorageFactory()
                 .constructPersistentTimestampStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
 
-        persistentTimestampStore.close();
+        persistentStore.close();
 
         assertThat(testFolderContent()).isEmpty();
     }
@@ -69,8 +69,8 @@ public final class DefaultPersistentStorageFactoryTests {
                 .build();
         PersistentStorageFactory factory = new DefaultPersistentStorageFactory();
 
-        PersistentTimestampStore firstStore = factory.constructPersistentTimestampStore(config);
-        PersistentTimestampStore secondStore = factory.constructPersistentTimestampStore(config);
+        PersistentStore firstStore = factory.constructPersistentTimestampStore(config);
+        PersistentStore secondStore = factory.constructPersistentTimestampStore(config);
 
         assertThat(firstStore).isNotEqualTo(secondStore);
 

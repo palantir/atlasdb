@@ -41,8 +41,8 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore.StoreNamespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -57,7 +57,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private static final MetricName CACHE_NUKE = constructCacheMetricName("cacheNuke");
     private static final MetricName CACHE_SIZE = constructCacheMetricName("cacheSize");
 
-    private final PersistentTimestampStore persistentTimestampStore;
+    private final TimestampStore timestampStore;
     private final LongSupplier maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
     private final TaggedMetricRegistry taggedMetricRegistry;
@@ -65,10 +65,10 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> timestampPutter;
 
     public static TimestampCache create(
-            PersistentTimestampStore persistentTimestampStore,
+            PersistentStore persistentStore,
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
-        StoreNamespace storeNamespace = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
+        StoreNamespace storeNamespace = persistentStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
 
         CacheDescriptor cacheDescriptor = ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
@@ -76,18 +76,18 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .build();
 
         return new OffHeapTimestampCache(
-                persistentTimestampStore,
+                new TimestampStore(persistentStore),
                 cacheDescriptor,
                 maxSize,
                 taggedMetricRegistry);
     }
 
     private OffHeapTimestampCache(
-            PersistentTimestampStore persistentTimestampStore,
+            TimestampStore timestampStore,
             CacheDescriptor cacheDescriptor,
             LongSupplier maxSize,
             TaggedMetricRegistry taggedMetricRegistry) {
-        this.persistentTimestampStore = persistentTimestampStore;
+        this.timestampStore = timestampStore;
         this.cacheDescriptor.set(cacheDescriptor);
         this.maxSize = maxSize;
         this.taggedMetricRegistry = taggedMetricRegistry;
@@ -100,11 +100,11 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     @Override
     public void clear() {
-        CacheDescriptor proposedCacheDescriptor = createNamespaceAndConstructCacheProposal(persistentTimestampStore);
+        CacheDescriptor proposedCacheDescriptor = createNamespaceAndConstructCacheProposal(timestampStore);
 
         CacheDescriptor previous = cacheDescriptor.getAndUpdate(prev -> proposedCacheDescriptor);
         if (previous != null) {
-            persistentTimestampStore.dropNamespace(previous.storeNamespace());
+            timestampStore.dropNamespace(previous.storeNamespace());
         }
     }
 
@@ -121,7 +121,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     @Override
     public Long getCommitTimestampIfPresent(Long startTimestamp) {
         Long value = Optional.ofNullable(inflightRequests.get(startTimestamp))
-                .orElseGet(() -> persistentTimestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp));
+                .orElseGet(() -> timestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp));
 
         if (value == null) {
             taggedMetricRegistry.meter(CACHE_MISS).mark();
@@ -131,9 +131,8 @@ public final class OffHeapTimestampCache implements TimestampCache {
         return value;
     }
 
-    private static CacheDescriptor createNamespaceAndConstructCacheProposal(
-            PersistentTimestampStore persistentTimestampStore) {
-        StoreNamespace proposal = persistentTimestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
+    private static CacheDescriptor createNamespaceAndConstructCacheProposal(TimestampStore timestampStore) {
+        StoreNamespace proposal = timestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
         return ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
                 .storeNamespace(proposal)
@@ -163,12 +162,12 @@ public final class OffHeapTimestampCache implements TimestampCache {
             }
             cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             try {
-                Map<Long, Long> response = offHeapTimestampCache.persistentTimestampStore.multiGet(
+                Map<Long, Long> response = offHeapTimestampCache.timestampStore.multiGet(
                         cacheDescriptor.storeNamespace(),
                         request.stream().map(Map.Entry::getKey).collect(Collectors.toList()));
 
                 Map<Long, Long> toWrite = ImmutableMap.copyOf(Sets.difference(request, response.entrySet()));
-                offHeapTimestampCache.persistentTimestampStore.multiPut(
+                offHeapTimestampCache.timestampStore.multiPut(
                         cacheDescriptor.storeNamespace(),
                         toWrite);
 

@@ -32,11 +32,11 @@ import org.rocksdb.RocksDB;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.persistent.api.ImmutableStoreNamespace;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore.StoreNamespace;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
-public final class RocksDbPersistentTimestampStoreTests {
+public final class RocksDbPersistentStoreTests {
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -45,8 +45,12 @@ public final class RocksDbPersistentTimestampStoreTests {
             .humanReadableName("bla")
             .uniqueName(UUID.randomUUID())
             .build();
+    private static final byte[] KEY = "key".getBytes();
+    private static final byte[] VALUE = "value".getBytes();
+    private static final byte[] KEY2 = "key2".getBytes();
+    private static final byte[] VALUE2 = "value2".getBytes();
 
-    private PersistentTimestampStore timestampMappingStore;
+    private PersistentStore timestampMappingStore;
     private StoreNamespace defaultNamespace;
 
     @Before
@@ -54,7 +58,7 @@ public final class RocksDbPersistentTimestampStoreTests {
         File databaseFolder = temporaryFolder.newFolder();
         RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
-        timestampMappingStore = new RocksDbPersistentTimestampStore(rocksDb, databaseFolder);
+        timestampMappingStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
         defaultNamespace = timestampMappingStore.createNamespace(DEFAULT);
     }
 
@@ -65,13 +69,13 @@ public final class RocksDbPersistentTimestampStoreTests {
 
     @Test
     public void entryMissing() {
-        assertThat(timestampMappingStore.get(defaultNamespace, 1L)).isNull();
+        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).isNull();
     }
 
     @Test
     public void correctlyStored() {
-        timestampMappingStore.put(defaultNamespace, 1L, 3L);
-        assertThat(timestampMappingStore.get(defaultNamespace, 1L)).isEqualTo(3L);
+        timestampMappingStore.put(defaultNamespace, KEY, VALUE);
+        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).isEqualTo(VALUE);
     }
 
     @Test
@@ -79,8 +83,8 @@ public final class RocksDbPersistentTimestampStoreTests {
         StoreNamespace differentDefault = timestampMappingStore.createNamespace(DEFAULT);
         assertThat(differentDefault).isNotEqualTo(defaultNamespace);
 
-        timestampMappingStore.put(defaultNamespace, 1L, 3L);
-        assertThat(timestampMappingStore.get(differentDefault, 1L)).isNull();
+        timestampMappingStore.put(defaultNamespace, KEY, VALUE);
+        assertThat(timestampMappingStore.get(differentDefault, KEY)).isNull();
         timestampMappingStore.dropNamespace(differentDefault);
     }
 
@@ -92,13 +96,13 @@ public final class RocksDbPersistentTimestampStoreTests {
 
     @Test
     public void getOnNonExistingFails() {
-        assertThatThrownBy(() -> timestampMappingStore.get(NON_EXISTING_NAMESPACE, 1L))
+        assertThatThrownBy(() -> timestampMappingStore.get(NON_EXISTING_NAMESPACE, KEY))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
     public void putOnNonExistingFails() {
-        assertThatThrownBy(() -> timestampMappingStore.put(NON_EXISTING_NAMESPACE, 1L, 2L))
+        assertThatThrownBy(() -> timestampMappingStore.put(NON_EXISTING_NAMESPACE, KEY, VALUE))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
@@ -115,21 +119,21 @@ public final class RocksDbPersistentTimestampStoreTests {
     public void testMultiPut() {
         timestampMappingStore.multiPut(
                 defaultNamespace,
-                ImmutableMap.of(1L, 2L, 3L, 4L));
+                ImmutableMap.of(KEY, VALUE, KEY2, VALUE2));
 
-        assertThat(timestampMappingStore.get(defaultNamespace, 1L)).isEqualTo(2L);
-        assertThat(timestampMappingStore.get(defaultNamespace, 3L)).isEqualTo(4L);
+        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).isEqualTo(VALUE);
+        assertThat(timestampMappingStore.get(defaultNamespace, KEY2)).isEqualTo(VALUE2);
     }
 
     @Test
     public void testMultiGet() {
-        timestampMappingStore.put(defaultNamespace, 1L, 2L);
-        timestampMappingStore.put(defaultNamespace, 3L, 4L);
+        timestampMappingStore.put(defaultNamespace, KEY, VALUE);
+        timestampMappingStore.put(defaultNamespace, KEY2, VALUE2);
 
-        assertThat(timestampMappingStore.multiGet(defaultNamespace, ImmutableList.of(1L, 2L, 3L)))
+        assertThat(timestampMappingStore.multiGet(defaultNamespace, ImmutableList.of(KEY, KEY2, "random".getBytes())))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
-                        1L, 2L,
-                        3L, 4L)
+                        KEY, VALUE,
+                        KEY2, VALUE2)
                 );
     }
 }

@@ -27,7 +27,7 @@ import org.immutables.value.Value;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
-public interface PersistentTimestampStore extends AutoCloseable {
+public interface PersistentStore extends AutoCloseable {
     @Value.Immutable
     interface StoreNamespace {
         String humanReadableName();
@@ -35,48 +35,48 @@ public interface PersistentTimestampStore extends AutoCloseable {
     }
 
     /**
-     * Gets the commit timestamp associated with the entry specified by {@code startTs}.
+     * Gets the value associated with the entry specified by {@code key}.
      *
-     * @param storeNamespace handle to the namespace from which we want to retrieve the commit timestamp
-     * @param startTs        entry key for which we want to retrieve commit timestamp
-     * @return the associated timestamp or null if the entry is missing
+     * @param storeNamespace handle to the namespace from which we want to retrieve the value
+     * @param key        entry key for which we want to retrieve the value
+     * @return the associated value or null if the entry is missing
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
     @Nullable
-    Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) throws SafeIllegalArgumentException;
+    byte[] get(StoreNamespace storeNamespace, @Nonnull byte[] key) throws SafeIllegalArgumentException;
 
     /**
-     * Gets the commit timestamps associated with the entries specified by {@code keys}.
+     * Gets the values associated with the entries specified by {@code keys}.
      *
-     * @param storeNamespace handle to the namespace from which we want to retrieve the commit timestamp
-     * @param keys representing start timestamps for which to retrieve commit timestamps
-     * @return a map for start to commit timestamp
+     * @param storeNamespace handle to the namespace from which we want to retrieve the values
+     * @param keys representing keys for which we want to retrieve the values
+     * @return a map from keys to values
      */
-    Map<Long, Long> multiGet(StoreNamespace storeNamespace, List<Long> keys);
+    Map<byte[], byte[]> multiGet(StoreNamespace storeNamespace, List<byte[]> keys);
 
     /**
-     * Stores the {@code commitTs} for the associated {@code startTs} while overwriting the existing value in the
+     * Stores the {@code value} for the associated {@code key} while overwriting the existing value in the
      * specified {@code storeNamespace}.
      *
      * @param storeNamespace of the store to which we should store the entry
-     * @param startTs        entry key
-     * @param commitTs       entry value
+     * @param key        entry key
+     * @param value       entry value
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs)
+    void put(StoreNamespace storeNamespace, @Nonnull byte[] key, @Nonnull byte[] value)
             throws SafeIllegalArgumentException;
 
     /**
-     * Stores the start to commit timestamp pairs given in {@code toWrite}, overwriting the existing values.
+     * Stores the entry pairs given in {@code toWrite}, overwriting the existing values.
      *
      * @param storeNamespace of the store to which we should store the entry
-     * @param toWrite timestamp pairs to write
+     * @param toWrite entry pairs to write
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
      * handle to a non existing namespace
      */
-    void multiPut(StoreNamespace storeNamespace, Map<Long, Long> toWrite);
+    void multiPut(StoreNamespace storeNamespace, Map<byte[], byte[]> toWrite);
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to
