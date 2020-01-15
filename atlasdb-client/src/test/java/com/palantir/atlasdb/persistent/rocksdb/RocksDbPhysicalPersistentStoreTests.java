@@ -69,13 +69,13 @@ public final class RocksDbPhysicalPersistentStoreTests {
 
     @Test
     public void entryMissing() {
-        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).isNull();
+        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).isEmpty();
     }
 
     @Test
     public void correctlyStored() {
         timestampMappingStore.put(defaultNamespace, KEY, VALUE);
-        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).isEqualTo(VALUE);
+        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).hasValue(VALUE);
     }
 
     @Test
@@ -84,7 +84,7 @@ public final class RocksDbPhysicalPersistentStoreTests {
         assertThat(differentDefault).isNotEqualTo(defaultNamespace);
 
         timestampMappingStore.put(defaultNamespace, KEY, VALUE);
-        assertThat(timestampMappingStore.get(differentDefault, KEY)).isNull();
+        assertThat(timestampMappingStore.get(differentDefault, KEY)).isEmpty();
         timestampMappingStore.dropNamespace(differentDefault);
     }
 
@@ -121,8 +121,8 @@ public final class RocksDbPhysicalPersistentStoreTests {
                 defaultNamespace,
                 ImmutableMap.of(KEY, VALUE, KEY2, VALUE2));
 
-        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).isEqualTo(VALUE);
-        assertThat(timestampMappingStore.get(defaultNamespace, KEY2)).isEqualTo(VALUE2);
+        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).hasValue(VALUE);
+        assertThat(timestampMappingStore.get(defaultNamespace, KEY2)).hasValue(VALUE2);
     }
 
     @Test

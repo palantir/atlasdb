@@ -62,14 +62,14 @@ public final class RocksDbTimestampStoreTests {
 
     @Test
     public void emptyResult() {
-        assertThat(timestampStore.get(defaultNamespace, 1L)).isNull();
+        assertThat(timestampStore.get(defaultNamespace, 1L)).isEmpty();
     }
 
     @Test
     public void valueIsCorrectlyStored() {
         timestampStore.put(defaultNamespace, 1L, 2L);
 
-        assertThat(timestampStore.get(defaultNamespace, 1L)).isEqualTo(2L);
+        assertThat(timestampStore.get(defaultNamespace, 1L)).hasValue(2L);
     }
 
     @Test
@@ -84,8 +84,8 @@ public final class RocksDbTimestampStoreTests {
     public void multiPutCorrectlyStores() {
         timestampStore.multiPut(defaultNamespace, ImmutableMap.of(1L, 2L, 3L, 4L));
 
-        assertThat(timestampStore.get(defaultNamespace, 1L)).isEqualTo(2L);
-        assertThat(timestampStore.get(defaultNamespace, 3L)).isEqualTo(4L);
-        assertThat(timestampStore.get(defaultNamespace, 5L)).isNull();
+        assertThat(timestampStore.get(defaultNamespace, 1L)).hasValue(2L);
+        assertThat(timestampStore.get(defaultNamespace, 3L)).hasValue(4L);
+        assertThat(timestampStore.get(defaultNamespace, 5L)).isEmpty();
     }
 }
