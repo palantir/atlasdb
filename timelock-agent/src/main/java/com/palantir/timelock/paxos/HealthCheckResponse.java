@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.paxos;
+package com.palantir.timelock.paxos;
 
-import java.util.List;
+import com.palantir.paxos.PaxosResponse;
 
-import com.palantir.paxos.LeaderPinger;
-import com.palantir.timelock.paxos.HealthCheckPinger;
+public final class HealthCheckResponse implements PaxosResponse {
 
-public interface Factories {
-    interface LeaderPingerFactory {
-        LeaderPinger create(Dependencies.LeaderPinger dependencies);
+    private final boolean isLeader;
+
+    public HealthCheckResponse(boolean isLeader) {
+        this.isLeader = isLeader;
     }
 
-    interface LeaderPingHealthCheckFactory {
-        List<HealthCheckPinger> create(Dependencies.HealthCheckPinger dependencies);
+    @Override
+    public boolean isSuccessful() {
+        return true;
+    }
+
+    public boolean isLeader() {
+        return isLeader;
     }
 }

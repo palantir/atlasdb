@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.paxos;
+package com.palantir.timelock.paxos;
 
-import java.util.List;
+import org.immutables.value.Value;
 
-import com.palantir.paxos.LeaderPinger;
-import com.palantir.timelock.paxos.HealthCheckPinger;
+import com.google.common.collect.SetMultimap;
+import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.timelock.TimeLockStatus;
 
-public interface Factories {
-    interface LeaderPingerFactory {
-        LeaderPinger create(Dependencies.LeaderPinger dependencies);
-    }
-
-    interface LeaderPingHealthCheckFactory {
-        List<HealthCheckPinger> create(Dependencies.HealthCheckPinger dependencies);
-    }
+@Value.Immutable
+public interface HealthCheckDigest {
+    @Value.Parameter
+    SetMultimap<TimeLockStatus, Client> statusesToClient();
 }

@@ -34,7 +34,9 @@ import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
+import com.palantir.timelock.paxos.NamespaceTracker;
 
 public class LeadershipComponents {
 
@@ -44,13 +46,13 @@ public class LeadershipComponents {
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
     private final Factory<LeadershipContext> leadershipContextFactory;
-    private final LeaderPingHealthCheck leaderPingHealthCheck;
+    private final List<HealthCheckPinger> healthCheckPingers;
 
     LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
-            LeaderPingHealthCheck leaderPingHealthCheck) {
+            List<HealthCheckPinger> healthCheckPingers) {
         this.leadershipContextFactory = leadershipContextFactory;
-        this.leaderPingHealthCheck = leaderPingHealthCheck;
+        this.healthCheckPingers = healthCheckPingers;
     }
 
     public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
@@ -68,8 +70,8 @@ public class LeadershipComponents {
         closer.shutdown();
     }
 
-    public LeaderPingHealthCheck healthCheck() {
-        return leaderPingHealthCheck;
+    public LeaderPingHealthCheck healthCheck(NamespaceTracker namespaceTracker) {
+        return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers);
     }
 
     private LeadershipContext getOrCreateNewLeadershipContext(Client client) {
