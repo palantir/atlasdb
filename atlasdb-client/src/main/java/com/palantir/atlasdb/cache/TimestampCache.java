@@ -18,10 +18,13 @@ package com.palantir.atlasdb.cache;
 
 import javax.annotation.Nullable;
 
+import com.palantir.atlasdb.metrics.Timed;
+
 public interface TimestampCache {
     /**
      * Clear all values from the cache.
      */
+    @Timed
     void clear();
     /**
      * Be very careful to only insert timestamps here that are already present in the backing store,
@@ -30,6 +33,7 @@ public interface TimestampCache {
      * @param startTimestamp transaction start timestamp
      * @param commitTimestamp transaction commit timestamp
      */
+    @Timed
     void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp);
     /**
      * Returns null if not present.
@@ -38,5 +42,6 @@ public interface TimestampCache {
      * @return commit timestamp for the specified transaction start timestamp if present in cache, otherwise null
      */
     @Nullable
+    @Timed
     Long getCommitTimestampIfPresent(Long startTimestamp);
 }

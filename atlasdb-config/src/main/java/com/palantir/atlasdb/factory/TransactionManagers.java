@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -39,7 +38,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -550,13 +548,11 @@ public abstract class TransactionManagers {
             Optional<PersistentTimestampStore> timestampStore) {
         TimestampCache timestampCache = timestampCache(config, metricsManager, runtimeConfig, timestampStore);
 
-        Map<String, String> tags = ImmutableMap.of();
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metricsManager.getTaggedRegistry(),
+        return AtlasDbMetrics.instrumentTimed(
+                metricsManager.getRegistry(),
                 TimestampCache.class,
                 timestampCache,
-                MetricRegistry.name(timestampCache.getClass()),
-                _context -> tags);
+                MetricRegistry.name(timestampCache.getClass()));
     }
 
     private static Callback<TransactionManager> createClearsTable() {
