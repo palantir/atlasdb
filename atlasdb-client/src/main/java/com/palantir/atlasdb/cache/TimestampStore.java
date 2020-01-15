@@ -25,33 +25,39 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.persistent.api.LogicalPersistentStore;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.persistent.api.PersistentStore.StoreNamespace;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.streams.KeyedStream;
 
-class TimestampStore {
-    private final PersistentStore persistentStore;
+/**
+ * Stores timestamps using delta encoding for commit timestamp.
+ */
+public class TimestampStore implements LogicalPersistentStore<Long, Long> {
+    private final PersistentStore physicalPersistentStore;
 
     public TimestampStore(PersistentStore persistentStore) {
-        this.persistentStore = persistentStore;
+        this.physicalPersistentStore = persistentStore;
     }
 
     @Nullable
+    @Override
     public Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
         byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
-        byte[] value = persistentStore.get(storeNamespace, byteKeyValue);
+        byte[] value = physicalPersistentStore.get(storeNamespace, byteKeyValue);
 
         return deserializeValue(startTs, value);
     }
 
+    @Override
     public Map<Long, Long> multiGet(StoreNamespace storeNamespace, List<Long> keys) {
 
         List<byte[]> byteKeys = keys.stream()
                 .map(ValueType.VAR_LONG::convertFromJava)
                 .collect(Collectors.toList());
 
-        Map<byte[], byte[]> byteValues = persistentStore.multiGet(storeNamespace, byteKeys);
+        Map<byte[], byte[]> byteValues = physicalPersistentStore.multiGet(storeNamespace, byteKeys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -62,24 +68,27 @@ class TimestampStore {
                 .collectToMap();
     }
 
+    @Override
     public void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs) {
         byte[] key = ValueType.VAR_LONG.convertFromJava(startTs);
         byte[] value = ValueType.VAR_LONG.convertFromJava(commitTs - startTs);
 
-        persistentStore.put(storeNamespace, key, value);
+        physicalPersistentStore.put(storeNamespace, key, value);
     }
 
+    @Override
     public void multiPut(StoreNamespace storeNamespace, Map<Long, Long> toWrite) {
         KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
     }
 
+    @Override
     public StoreNamespace createNamespace(@Nonnull String name) {
-        return persistentStore.createNamespace(name);
+        return physicalPersistentStore.createNamespace(name);
     }
 
-
+    @Override
     public void dropNamespace(StoreNamespace storeNamespace) {
-        persistentStore.dropNamespace(storeNamespace);
+        physicalPersistentStore.dropNamespace(storeNamespace);
     }
 
     private static Map.Entry<Long, Long> deserializeEntry(byte[] key, byte[] value) {

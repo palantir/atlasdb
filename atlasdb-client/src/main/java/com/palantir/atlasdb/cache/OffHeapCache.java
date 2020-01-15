@@ -18,26 +18,26 @@ package com.palantir.atlasdb.cache;
 
 import javax.annotation.Nullable;
 
-public final class OffHeapTimestampCache implements TimestampCache {
-    private final OffHeapCache<Long, Long> offHeapCache;
+public interface OffHeapCache<K, V> {
+    /**
+     * Deletes all entries from the cache.
+     */
+    void clear();
 
-    public OffHeapTimestampCache(OffHeapCache<Long, Long> offHeapCache) {
-        this.offHeapCache = offHeapCache;
-    }
+    /**
+     * Caches entry pair.
+     *
+     * @param key of the cached entry
+     * @param value associated with a given key
+     */
+    void put(K key, V value);
 
-    @Override
-    public void clear() {
-        offHeapCache.clear();
-    }
-
-    @Override
-    public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
-        offHeapCache.put(startTimestamp, commitTimestamp);
-    }
-
+    /**
+     * Retrieves the value fot yhe given {@code key}.
+     *
+     * @param key for which we want to get a value
+     * @return the value associated or null
+     */
     @Nullable
-    @Override
-    public Long getCommitTimestampIfPresent(Long startTimestamp) {
-        return offHeapCache.get(startTimestamp);
-    }
+    V get(K key);
 }
