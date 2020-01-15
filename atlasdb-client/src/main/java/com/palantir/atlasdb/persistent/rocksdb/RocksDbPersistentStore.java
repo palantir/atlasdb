@@ -52,10 +52,10 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 
 /**
- * Implementation of the {@link PersistentStore} using RocksDB as the underlying persistent storage. Commit
- * timestamp associated with the start timestamp is encoded using delta encoding. Created {@link StoreNamespace}s are
- * backed by RocksDB ColumnFamilies such that calling {@link RocksDbPersistentStore#createNamespace(String)}
- * with the same name will construct a new {@link ColumnFamilyHandle} for each call.
+ * Implementation of the {@link PersistentStore} using RocksDB as the underlying persistent storage. Created
+ * {@link StoreNamespace}s are backed by RocksDB ColumnFamilies such that calling
+ * {@link RocksDbPersistentStore#createNamespace(String)} with the same name will construct a new
+ * {@link ColumnFamilyHandle} for each call.
  */
 public final class RocksDbPersistentStore implements PersistentStore {
     private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);

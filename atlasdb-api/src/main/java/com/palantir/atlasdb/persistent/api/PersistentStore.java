@@ -38,10 +38,10 @@ public interface PersistentStore extends AutoCloseable {
      * Gets the value associated with the entry specified by {@code key}.
      *
      * @param storeNamespace handle to the namespace from which we want to retrieve the value
-     * @param key        entry key for which we want to retrieve the value
+     * @param key            entry key for which we want to retrieve the value
      * @return the associated value or null if the entry is missing
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
-     * handle to a non existing namespace
+     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a handle to a
+     *                                                                      non existing namespace
      */
     @Nullable
     byte[] get(StoreNamespace storeNamespace, @Nonnull byte[] key) throws SafeIllegalArgumentException;
@@ -50,20 +50,20 @@ public interface PersistentStore extends AutoCloseable {
      * Gets the values associated with the entries specified by {@code keys}.
      *
      * @param storeNamespace handle to the namespace from which we want to retrieve the values
-     * @param keys representing keys for which we want to retrieve the values
+     * @param keys           representing keys for which we want to retrieve the values
      * @return a map from keys to values
      */
     Map<byte[], byte[]> multiGet(StoreNamespace storeNamespace, List<byte[]> keys);
 
     /**
-     * Stores the {@code value} for the associated {@code key} while overwriting the existing value in the
-     * specified {@code storeNamespace}.
+     * Stores the {@code value} for the associated {@code key} while overwriting the existing value in the specified
+     * {@code storeNamespace}.
      *
      * @param storeNamespace of the store to which we should store the entry
-     * @param key        entry key
-     * @param value       entry value
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
-     * handle to a non existing namespace
+     * @param key            entry key
+     * @param value          entry value
+     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a handle to a
+     *                                                                      non existing namespace
      */
     void put(StoreNamespace storeNamespace, @Nonnull byte[] key, @Nonnull byte[] value)
             throws SafeIllegalArgumentException;
@@ -72,18 +72,18 @@ public interface PersistentStore extends AutoCloseable {
      * Stores the entry pairs given in {@code toWrite}, overwriting the existing values.
      *
      * @param storeNamespace of the store to which we should store the entry
-     * @param toWrite entry pairs to write
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a
-     * handle to a non existing namespace
+     * @param toWrite        entry pairs to write
+     * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException when {@code storeNamespace} is a handle to a
+     *                                                                      non existing namespace
      */
     void multiPut(StoreNamespace storeNamespace, Map<byte[], byte[]> toWrite);
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to
-     * {@code name}. Multiple calls with the same supplied {@code name} will generate multiple namespaces. Users of
-     * this API are required to keep uniqueness at the {@link StoreNamespace#humanReadableName()} level; otherwise,
-     * multiple {@link StoreNamespace} backed by internal data structures will be maintained for the same AtlasDB
-     * namespace, which is inefficient.
+     * {@code name}. Multiple calls with the same supplied {@code name} will generate multiple namespaces. Users of this
+     * API are required to keep uniqueness at the {@link StoreNamespace#humanReadableName()} level; otherwise, multiple
+     * {@link StoreNamespace} backed by internal data structures will be maintained for the same AtlasDB namespace,
+     * which is inefficient.
      *
      * @param name in human readable format of the namespace to be created
      * @return {@link StoreNamespace} which represents a handle to the created namespace
@@ -91,12 +91,12 @@ public interface PersistentStore extends AutoCloseable {
     StoreNamespace createNamespace(@Nonnull String name);
 
     /**
-     * Drops the namespace specified by the supplied handle. Dropping of a namespace may fail if there are
-     * concurrent calls on the same namespace or if the namespace has already been dropped.
+     * Drops the namespace specified by the supplied handle. Dropping of a namespace may fail if there are concurrent
+     * calls on the same namespace or if the namespace has already been dropped.
      *
      * @param storeNamespace handle
      * @throws com.palantir.logsafe.exceptions.SafeIllegalArgumentException if the supplied {@code storeNamespace} is a
-     * handle to a non existing namespace
+     *                                                                      handle to a non existing namespace
      */
     void dropNamespace(StoreNamespace storeNamespace) throws SafeIllegalArgumentException;
 }
