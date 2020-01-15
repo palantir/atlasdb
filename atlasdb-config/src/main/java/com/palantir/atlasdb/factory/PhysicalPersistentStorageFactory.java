@@ -20,7 +20,7 @@ import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
 
-public interface PersistentStorageFactory {
+public interface PhysicalPersistentStorageFactory {
     /**
      * Constructs a {@link RocksDbPhysicalPersistentStore} using the supplied configuration.
      *

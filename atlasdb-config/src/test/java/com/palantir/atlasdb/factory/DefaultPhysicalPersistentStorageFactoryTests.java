@@ -33,7 +33,7 @@ import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 
-public final class DefaultPersistentStorageFactoryTests {
+public final class DefaultPhysicalPersistentStorageFactoryTests {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder(Files.currentFolder());
 
@@ -52,7 +52,7 @@ public final class DefaultPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PhysicalPersistentStore physicalPersistentStore = new DefaultPersistentStorageFactory()
+        PhysicalPersistentStore physicalPersistentStore = new DefaultPhysicalPersistentStorageFactory()
                 .constructPersistentStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
@@ -67,7 +67,7 @@ public final class DefaultPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PersistentStorageFactory factory = new DefaultPersistentStorageFactory();
+        PhysicalPersistentStorageFactory factory = new DefaultPhysicalPersistentStorageFactory();
 
         PhysicalPersistentStore firstStore = factory.constructPersistentStore(config);
         PhysicalPersistentStore secondStore = factory.constructPersistentStore(config);

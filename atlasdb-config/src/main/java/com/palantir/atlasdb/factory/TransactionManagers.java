@@ -236,8 +236,8 @@ public abstract class TransactionManagers {
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
 
     @Value.Default
-    PersistentStorageFactory persistentStorageFactory() {
-        return new DefaultPersistentStorageFactory();
+    PhysicalPersistentStorageFactory persistentStorageFactory() {
+        return new DefaultPhysicalPersistentStorageFactory();
     }
 
     /**
@@ -512,7 +512,7 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static Optional<PhysicalPersistentStore> constructPersistentStoreIfConfigured(
             AtlasDbConfig config,
-            PersistentStorageFactory persistentStorageFactory,
+            PhysicalPersistentStorageFactory physicalPersistentStorageFactory,
             @Output List<AutoCloseable> closeables) {
         return initializeCloseable(
                 config.persistentStorage().map(storageConfig -> {
@@ -520,7 +520,7 @@ public abstract class TransactionManagers {
                             storageConfig instanceof RocksDbPersistentStorageConfig,
                             "Storage config is not RocksDbPersistentStorageConfig.",
                             SafeArg.of("configClass", storageConfig.getClass()));
-                    return persistentStorageFactory
+                    return physicalPersistentStorageFactory
                             .constructPersistentStore((RocksDbPersistentStorageConfig) storageConfig);
                 }),
                 closeables);

@@ -30,10 +30,10 @@ import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
 
 /**
  * Constructs a new {@link PhysicalPersistentStore} with new persistent storage connection on each call of
- * {@link DefaultPersistentStorageFactory#constructPersistentStore(RocksDbPersistentStorageConfig)}.
+ * {@link DefaultPhysicalPersistentStorageFactory#constructPersistentStore(RocksDbPersistentStorageConfig)}.
  */
-public final class DefaultPersistentStorageFactory implements PersistentStorageFactory {
-    private static final Logger log = LoggerFactory.getLogger(DefaultPersistentStorageFactory.class);
+public final class DefaultPhysicalPersistentStorageFactory implements PhysicalPersistentStorageFactory {
+    private static final Logger log = LoggerFactory.getLogger(DefaultPhysicalPersistentStorageFactory.class);
 
     /**
      * Constructs a {@link PhysicalPersistentStore} from a {@link RocksDbPersistentStorageConfig}.
