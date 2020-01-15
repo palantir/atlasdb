@@ -29,7 +29,7 @@ public interface LogicalPersistentStore<K, V> {
      * Retrieve the value associated with the given {@code key}.
      *
      * @param storeNamespace from which to retrieve the value
-     * @param key of the cache entry
+     * @param key            of the cache entry
      * @return value associated or null if the entry is missing
      */
     @Nullable
@@ -39,7 +39,7 @@ public interface LogicalPersistentStore<K, V> {
      * Retreives values for all supplied {@code keys}.
      *
      * @param storeNamespace from which to retrieve the values
-     * @param keys for which entries we are interested in
+     * @param keys           for which entries we are interested in
      * @return map of key, value pairs containing only entries which are stored
      */
     Map<K, V> multiGet(StoreNamespace storeNamespace, List<K> keys);
@@ -48,16 +48,16 @@ public interface LogicalPersistentStore<K, V> {
      * Stores the given entry pair.
      *
      * @param storeNamespace where to store the entry
-     * @param key of the entry
-     * @param value of the entry
+     * @param key            of the entry
+     * @param value          of the entry
      */
     void put(StoreNamespace storeNamespace, @Nonnull K key, @Nonnull V value);
 
     /**
-     * Stores all entry pairs specified in {@code toWrite}
+     * Stores all entry pairs specified in {@code toWrite}.
      *
      * @param storeNamespace where to store the entries
-     * @param toWrite entry pairs to store
+     * @param toWrite        entry pairs to store
      */
     void multiPut(StoreNamespace storeNamespace, Map<K, V> toWrite);
 
