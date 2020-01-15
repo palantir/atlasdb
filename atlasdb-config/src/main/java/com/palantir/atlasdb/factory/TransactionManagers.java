@@ -434,7 +434,7 @@ public abstract class TransactionManagers {
         Optional<PersistentTimestampStore> persistentTimestampStore =
                 constructPersistentTimestampStoreIfConfigured(config(), persistentStorageFactory(), closeables);
 
-        TimestampCache timestampCache = getTimestampCache(
+        TimestampCache timestampCache = instrumentedTimestampCache(
                 config(),
                 metricsManager,
                 runtimeConfigSupplier,
@@ -527,18 +527,32 @@ public abstract class TransactionManagers {
     }
 
     @VisibleForTesting
-    static TimestampCache getTimestampCache(
-            AtlasDbConfig atlasDbConfig,
+    static TimestampCache timestampCache(
+            AtlasDbConfig config,
             MetricsManager metricsManager,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            Optional<PersistentTimestampStore> persistentTimestampStore) {
-        LongSupplier cacheSize = () -> runtimeConfigSupplier.get().getTimestampCacheSize();
+            Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            Optional<PersistentTimestampStore> timestampStore) {
+        LongSupplier cacheSize = () -> runtimeConfig.get().getTimestampCacheSize();
         Supplier<TimestampCache> timestampCacheSupplier = () ->
-                persistentTimestampStore.map(store ->
+                timestampStore.map(store ->
                         OffHeapTimestampCache.create(store, metricsManager.getTaggedRegistry(), cacheSize))
                         .orElseGet(() -> new DefaultTimestampCache(metricsManager.getRegistry(), cacheSize));
 
-        return atlasDbConfig.timestampCache().orElseGet(timestampCacheSupplier);
+        return config.timestampCache().orElseGet(timestampCacheSupplier);
+    }
+
+    private static TimestampCache instrumentedTimestampCache(
+            AtlasDbConfig config,
+            MetricsManager metricsManager,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfig,
+            Optional<PersistentTimestampStore> timestampStore) {
+        TimestampCache timestampCache = timestampCache(config, metricsManager, runtimeConfig, timestampStore);
+
+        return AtlasDbMetrics.instrumentTimed(
+                metricsManager.getRegistry(),
+                TimestampCache.class,
+                timestampCache,
+                MetricRegistry.name(timestampCache.getClass()));
     }
 
     private static Callback<TransactionManager> createClearsTable() {
