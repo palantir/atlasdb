@@ -18,8 +18,6 @@ package com.palantir.atlasdb.factory;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import org.immutables.value.Value;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
