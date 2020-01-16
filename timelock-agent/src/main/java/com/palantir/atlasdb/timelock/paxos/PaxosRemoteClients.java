@@ -53,33 +53,32 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<TimelockPaxosAcceptorRpcClient> nonBatchTimestampAcceptor() {
-        return createInstrumentedRemoteProxyList(TimelockPaxosAcceptorRpcClient.class, true);
+        return createInstrumentedRemoteProxies(TimelockPaxosAcceptorRpcClient.class);
     }
 
     @Value.Derived
     public List<TimelockPaxosLearnerRpcClient> nonBatchTimestampLearner() {
-        return createInstrumentedRemoteProxyList(TimelockPaxosLearnerRpcClient.class, true);
-    }
-
-    @Value.Derived
-    public List<TimelockSingleLeaderPaxosAcceptorRpcClient> singleLeaderAcceptor() {
-        // Retries should be performed at a higher level, in AwaitingLeadershipProxy.
-        return createInstrumentedRemoteProxyList(TimelockSingleLeaderPaxosAcceptorRpcClient.class, false);
+        return createInstrumentedRemoteProxies(TimelockPaxosLearnerRpcClient.class);
     }
 
     @Value.Derived
     public List<TimelockSingleLeaderPaxosLearnerRpcClient> singleLeaderLearner() {
-        return createInstrumentedRemoteProxyList(TimelockSingleLeaderPaxosLearnerRpcClient.class, true);
+        return createInstrumentedRemoteProxies(TimelockSingleLeaderPaxosLearnerRpcClient.class);
+    }
+
+    @Value.Derived
+    public List<TimelockSingleLeaderPaxosAcceptorRpcClient> singleLeaderAcceptor() {
+        return createInstrumentedRemoteProxies(TimelockSingleLeaderPaxosAcceptorRpcClient.class);
     }
 
     @Value.Derived
     public List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
-        return createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, true);
+        return createInstrumentedRemoteProxies(BatchPaxosAcceptorRpcClient.class);
     }
 
     @Value.Derived
     public List<BatchPaxosLearnerRpcClient> batchLearner() {
-        return createInstrumentedRemoteProxyList(BatchPaxosLearnerRpcClient.class, true);
+        return createInstrumentedRemoteProxies(BatchPaxosLearnerRpcClient.class);
     }
 
     @Value.Derived
@@ -97,8 +96,8 @@ public abstract class PaxosRemoteClients {
                 .collect(Collectors.toList());
     }
 
-    private <T> List<T> createInstrumentedRemoteProxyList(Class<T> clazz, boolean shouldRetry) {
-        return createInstrumentedRemoteProxies(clazz, shouldRetry).values().collect(Collectors.toList());
+    private <T> List<T> createInstrumentedRemoteProxies(Class<T> clazz) {
+        return createInstrumentedRemoteProxies(clazz, true).values().collect(Collectors.toList());
     }
 
     private <T> KeyedStream<HostAndPort, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
