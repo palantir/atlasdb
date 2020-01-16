@@ -38,7 +38,7 @@ public abstract class ClientOptions {
     private static final Duration CONNECT_TIMEOUT = Duration.ofMillis(500);
 
     @VisibleForTesting
-    static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofSeconds(1);
+    static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
     static final Duration BLOCKING_READ_TIMEOUT = Duration.ofSeconds(65);
 
     private static final Duration STANDARD_BACKOFF_SLOT_SIZE = Duration.ofMillis(10);
