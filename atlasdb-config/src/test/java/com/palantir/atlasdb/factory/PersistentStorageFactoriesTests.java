@@ -121,13 +121,13 @@ public final class PersistentStorageFactoriesTests {
     }
 
     @Test
-    public void doesNotDeleteMoreThanTwoUuidNamedSubFolders() throws IOException {
+    public void doesNotDeleteIfFolderHasMoreThanTwoSubFolders() throws IOException {
         testFolder.newFolder(UUID.randomUUID().toString());
         testFolder.newFolder(UUID.randomUUID().toString());
         testFolder.newFolder(UUID.randomUUID().toString());
 
         PersistentStorageFactories.sanitizeStoragePath(testFolder.getRoot().toString());
 
-        assertThat(testFolder.getRoot().listFiles()).hasSize(1);
+        assertThat(testFolder.getRoot().listFiles()).hasSize(3);
     }
 }
