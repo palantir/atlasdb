@@ -1039,7 +1039,9 @@ public abstract class TransactionManagers {
                 LockService.class,
                 RemoteLockServiceAdapter.create(creator.createService(LockRpcClient.class), timelockNamespace));
 
-        TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
+        TimelockRpcClient timelockClient = new BlockingSensitiveTimelockRpcClient(
+                creator.createService(TimelockRpcClient.class),
+                creator.createServiceWithoutBlockingOperations(TimelockRpcClient.class));
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         TimelockRpcClient withDiagnosticsTimelockClient = lockDiagnosticCollector
@@ -1052,7 +1054,7 @@ public abstract class TransactionManagers {
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
                 = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
-                creator.createService(TimestampManagementRpcClient.class), timelockNamespace);
+                creator.createServiceWithoutBlockingOperations(TimestampManagementRpcClient.class), timelockNamespace);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
