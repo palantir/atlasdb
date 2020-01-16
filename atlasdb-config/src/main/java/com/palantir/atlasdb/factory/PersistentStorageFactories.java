@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
@@ -93,12 +94,15 @@ public final class PersistentStorageFactories {
 
     private static List<File> limitFoldersToDelete(List<File> folders) {
         if (folders.size() > DEFAULT_DELETION_LIMIT) {
-            log.warn(
-                    "You are trying to delete more that two UUID named folders during persistent storage start-up. "
-                            + "Only two will be deleted.",
-                    SafeArg.of("number", folders.size()));
+            log.error(
+                    "There are more folders to delete than it is safe! "
+                            + "Persistent storage probably points to the wrong directory. "
+                            + "Nothing is deleted",
+                    SafeArg.of("safetyLimit", DEFAULT_DELETION_LIMIT),
+                    SafeArg.of("numberOfFolders", folders.size()));
+            return ImmutableList.of();
         }
-        return folders.stream().limit(DEFAULT_DELETION_LIMIT).collect(Collectors.toList());
+        return folders;
     }
 
     private static void deleteDirectories(List<File> directoryContentToDelete) {
