@@ -42,6 +42,7 @@ public final class PersistentStorageFactories {
             "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     private static final Set<String> SANITIZED_PATHS = new HashSet<>();
+    private static final int DEFAULT_DELETION_LIMIT = 2;
 
     private PersistentStorageFactories() {}
 
@@ -91,13 +92,13 @@ public final class PersistentStorageFactories {
     }
 
     private static List<File> limitFoldersToDelete(List<File> folders) {
-        if (folders.size() > 2) {
+        if (folders.size() > DEFAULT_DELETION_LIMIT) {
             log.warn(
                     "You are trying to delete more that two UUID named folders during persistent storage start-up. "
                             + "Only two will be deleted.",
                     SafeArg.of("number", folders.size()));
         }
-        return folders.stream().limit(2).collect(Collectors.toList());
+        return folders.stream().limit(DEFAULT_DELETION_LIMIT).collect(Collectors.toList());
     }
 
     private static void deleteDirectories(List<File> directoryContentToDelete) {
