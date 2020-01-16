@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Remove PollingRefreshable from the codebase to address thread leaks..
+  links:
+  - https://github.com/palantir/atlasdb/pull/4514
