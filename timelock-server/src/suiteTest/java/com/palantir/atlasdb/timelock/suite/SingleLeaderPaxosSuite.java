@@ -36,7 +36,7 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 @Suite.SuiteClasses({
         MultiNodePaxosTimeLockServerIntegrationTest.class,
         SingleLeaderMultiNodePaxosTimeLockIntegrationTest.class
-})
+        })
 public class SingleLeaderPaxosSuite {
 
     public static final TestableTimelockCluster NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
