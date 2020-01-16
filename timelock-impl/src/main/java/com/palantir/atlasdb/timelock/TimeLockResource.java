@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -29,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
@@ -102,6 +105,10 @@ public class TimeLockResource {
 
     public int getMaxNumberOfClients() {
         return maxNumberOfClients.get();
+    }
+
+    public Set<Client> getActiveClients() {
+        return servicesByNamespace.keySet().stream().map(Client::of).collect(Collectors.toSet());
     }
 
     private TimeLockServices createNewClient(String namespace) {

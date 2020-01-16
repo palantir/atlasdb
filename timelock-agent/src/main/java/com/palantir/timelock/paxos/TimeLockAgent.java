@@ -17,6 +17,7 @@ package com.palantir.timelock.paxos;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -45,7 +46,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
-import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -158,11 +158,11 @@ public class TimeLockAgent {
         registerExceptionMappers();
 
         // Finally, register the health check, and endpoints associated with the clients.
-        healthCheck = paxosResources.leadershipComponents().healthCheck();
         resource = TimeLockResource.create(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
+        healthCheck = paxosResources.leadershipComponents().healthCheck(resource::getActiveClients);
         LockWatchTestingService.create(
                 Suppliers.compose(TimeLockRuntimeConfiguration::lockWatchTestConfig, runtime::get),
                 resource::getLockWatchingResource);
@@ -170,12 +170,12 @@ public class TimeLockAgent {
     }
 
     @SuppressWarnings("unused") // used by external health checks
-    public TimeLockStatus getStatus() {
+    public Optional<HealthCheckDigest> getStatus() {
         if (getNumberOfActiveClients() == 0) {
-            return TimeLockStatus.PENDING_ELECTION;
+            return Optional.empty();
         }
 
-        return healthCheck.getStatus();
+        return Optional.of(healthCheck.getStatus());
     }
 
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.paxos;
+package com.palantir.timelock.paxos;
 
-import java.util.List;
+import java.util.Set;
 
-import com.palantir.paxos.LeaderPinger;
-import com.palantir.timelock.paxos.HealthCheckPinger;
+import com.palantir.atlasdb.timelock.paxos.Client;
 
-public interface Factories {
-    interface LeaderPingerFactory {
-        LeaderPinger create(Dependencies.LeaderPinger dependencies);
-    }
-
-    interface LeaderPingHealthCheckFactory {
-        List<HealthCheckPinger> create(Dependencies.HealthCheckPinger dependencies);
-    }
+public interface NamespaceTracker {
+    Set<Client> trackedNamespaces();
 }
