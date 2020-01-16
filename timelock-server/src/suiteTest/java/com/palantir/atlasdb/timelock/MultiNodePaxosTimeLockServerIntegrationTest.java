@@ -100,8 +100,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void leaderLosesLeadershipIfQuorumIsNotAlive() {
         NamespacedClients leader = cluster.currentLeaderFor(client.namespace())
                 .client(client.namespace());
-        leader.getFreshTimestamp();
-        System.out.println("BEGINIEGNAIOWNGIOENFIP0 A4JEF9WNF04329JU M2X-JV24890FH23094F 290-FJ2");
         cluster.nonLeaders(client.namespace()).forEach((unused, server) -> server.kill());
 
         assertThatThrownBy(leader::getFreshTimestamp)

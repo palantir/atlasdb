@@ -16,7 +16,6 @@
 package com.palantir.paxos;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
