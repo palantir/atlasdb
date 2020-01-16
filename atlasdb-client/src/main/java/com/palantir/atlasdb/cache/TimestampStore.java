@@ -22,13 +22,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.persistent.api.LogicalPersistentStore;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.streams.KeyedStream;
 
@@ -37,30 +34,28 @@ import okio.ByteString;
 /**
  * Stores timestamps using delta encoding for commit timestamp.
  */
-public class TimestampStore implements LogicalPersistentStore<Long, Long> {
-    private final PhysicalPersistentStore physicalPersistentStore;
+public final class TimestampStore implements PersistentStore<Long, Long> {
+    private final PersistentStore<ByteString, ByteString> physicalPersistentStore;
 
-    public TimestampStore(PhysicalPersistentStore physicalPersistentStore) {
-        this.physicalPersistentStore = physicalPersistentStore;
+    public TimestampStore(PersistentStore<ByteString, ByteString> persistentStore) {
+        this.physicalPersistentStore = persistentStore;
     }
 
-    @Nullable
     @Override
-    public Optional<Long> get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
+    public Optional<Long> get(StoreHandle storeHandle, @Nonnull Long startTs) {
         ByteString byteKeyValue = toByteString(startTs);
-        return physicalPersistentStore.get(storeNamespace, byteKeyValue)
+        return physicalPersistentStore.get(storeHandle, byteKeyValue)
                 .map(value -> deserializeValue(startTs, value));
     }
 
     @Override
-    public Map<Long, Long> get(StoreNamespace storeNamespace, List<Long> keys) {
-
+    public Map<Long, Long> get(StoreHandle storeHandle, List<Long> keys) {
         List<ByteString> byteKeys = keys.stream()
                 .map(ValueType.VAR_LONG::convertFromJava)
                 .map(ByteString::of)
                 .collect(Collectors.toList());
 
-        Map<ByteString, ByteString> byteValues = physicalPersistentStore.get(storeNamespace, byteKeys);
+        Map<ByteString, ByteString> byteValues = physicalPersistentStore.get(storeHandle, byteKeys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -72,26 +67,26 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs) {
+    public void put(StoreHandle storeHandle, @Nonnull Long startTs, @Nonnull Long commitTs) {
         ByteString key = toByteString(startTs);
         ByteString value = toByteString(commitTs - startTs);
 
-        physicalPersistentStore.put(storeNamespace, key, value);
+        physicalPersistentStore.put(storeHandle, key, value);
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, Map<Long, Long> toWrite) {
-        KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
+    public void put(StoreHandle storeHandle, Map<Long, Long> toWrite) {
+        KeyedStream.stream(toWrite).forEach((key, value) -> put(storeHandle, key, value));
     }
 
     @Override
-    public StoreNamespace createNamespace(@Nonnull String name) {
-        return physicalPersistentStore.createNamespace(name);
+    public StoreHandle createStoreHandle() {
+        return physicalPersistentStore.createStoreHandle();
     }
 
     @Override
-    public void dropNamespace(StoreNamespace storeNamespace) {
-        physicalPersistentStore.dropNamespace(storeNamespace);
+    public void dropStoreHandle(StoreHandle storeHandle) {
+        physicalPersistentStore.dropStoreHandle(storeHandle);
     }
 
     private static Map.Entry<Long, Long> deserializeEntry(ByteString key, ByteString value) {
@@ -108,5 +103,10 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
 
     private static ByteString toByteString(@Nonnull Long startTs) {
         return ByteString.of(ValueType.VAR_LONG.convertFromJava(startTs));
+    }
+
+    @Override
+    public void close() throws Exception {
+        physicalPersistentStore.close();
     }
 }

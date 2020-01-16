@@ -14,18 +14,30 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.factory;
+package com.palantir.atlasdb.cache;
 
-import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
+import java.util.Optional;
 
-public interface PhysicalPersistentStorageFactory {
+public interface OffHeapCache<K, V> {
     /**
-     * Constructs a {@link RocksDbPhysicalPersistentStore} using the supplied configuration.
+     * Retrieves the value for the given {@code key}.
      *
-     * @param config to use to configure the store
-     * @return store to be used
+     * @param key for which we want to get a value
+     * @return optional containing the associated value or empty if the entry is not available
      */
-    PhysicalPersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config);
+    Optional<V> get(K key);
+
+    /**
+     * Caches entry pair.
+     *
+     * @param key   of the cached entry
+     * @param value associated with a given key
+     */
+    void put(K key, V value);
+
+    /**
+     * Deletes all entries from the cache.
+     */
+    void clear();
+
 }

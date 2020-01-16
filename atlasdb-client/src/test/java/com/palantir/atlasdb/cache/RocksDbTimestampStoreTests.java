@@ -31,8 +31,8 @@ import org.rocksdb.RocksDBException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore.StoreHandle;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 
 public final class RocksDbTimestampStoreTests {
     @ClassRule
@@ -40,18 +40,18 @@ public final class RocksDbTimestampStoreTests {
     private static final String DEFAULT_NAMESPACE_NAME = "default";
 
     private TimestampStore timestampStore;
-    private RocksDbPhysicalPersistentStore persistentStore;
-    private StoreNamespace defaultNamespace;
+    private RocksDbPersistentStore persistentStore;
+    private StoreHandle defaultNamespace;
 
     @Before
     public void before() throws RocksDBException, IOException {
         File databaseFolder = TEMPORARY_FOLDER.newFolder();
         RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
-        persistentStore = new RocksDbPhysicalPersistentStore(rocksDb, databaseFolder);
+        persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
         timestampStore = new TimestampStore(persistentStore);
 
-        defaultNamespace = persistentStore.createNamespace(DEFAULT_NAMESPACE_NAME);
+        defaultNamespace = persistentStore.createStoreHandle();
     }
 
     @After
