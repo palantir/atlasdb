@@ -16,6 +16,7 @@
 package com.palantir.paxos;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -161,6 +163,8 @@ public final class PaxosQuorumChecker {
             ExecutorService executorService) {
         return remotes.stream().collect(Collectors.toMap(remote -> remote, unused -> executorService));
     }
+
+    static AtomicLong l = new AtomicLong();
 
     /**
      * Collects a list of responses from remote services.
