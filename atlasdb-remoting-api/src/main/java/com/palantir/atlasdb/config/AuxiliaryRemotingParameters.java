@@ -37,6 +37,17 @@ public interface AuxiliaryRemotingParameters {
      */
     boolean shouldRetry();
 
+    /**
+     * Whether this client should support operations that block on the server side.
+     * In practice, this means that read and idle connection timeouts may be longer.
+     *
+     * This is set to true by default, to support legacy behaviour.
+     */
+    @Value.Default
+    default boolean shouldSupportBlockingOperations() {
+        return true;
+    }
+
     @Value.Default
     default Supplier<RemotingClientConfig> remotingClientConfig() {
         return () -> RemotingClientConfigs.ALWAYS_USE_CONJURE;

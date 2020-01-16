@@ -21,6 +21,7 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.ImmutableInstanceAndVersion;
@@ -48,9 +49,7 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        ClientOptions relevantOptions = parameters.shouldRetry()
-                ? ClientOptions.DEFAULT_RETRYING
-                : ClientOptions.DEFAULT_NO_RETRYING;
+        ClientOptions relevantOptions = ClientOptions.fromRemotingParameters(parameters);
         ClientConfiguration clientConfiguration = relevantOptions.create(
                 ImmutableList.of(uri),
                 Optional.empty(),
@@ -69,7 +68,8 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         // It doesn't make sense to create a proxy with the capacity to failover that doesn't retry.
-        return createFailoverProxy(serverListConfig, type, parameters, ClientOptions.DEFAULT_RETRYING);
+        ClientOptions clientOptions = getClientOptionsForFailoverProxy(parameters);
+        return createFailoverProxy(serverListConfig, type, parameters, clientOptions);
     }
 
     @Override
@@ -77,13 +77,14 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
+        ClientOptions options = getClientOptionsForFailoverProxy(parameters);
         Supplier<T> clientSupplier = new CachedTransformingSupplier<>(
                 serverListConfigSupplier,
                 serverListConfig -> JaxRsClient.create(
                         type,
                         addAtlasDbRemotingAgent(parameters.userAgent()),
                         HOST_METRICS_REGISTRY,
-                        ClientOptions.DEFAULT_RETRYING.serverListToClient(serverListConfig)));
+                        options.serverListToClient(serverListConfig)));
 
         return decorateFailoverProxy(type, clientSupplier);
     }
@@ -120,5 +121,10 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
 
     private static <T> InstanceAndVersion<T> wrapWithVersion(T instance) {
         return ImmutableInstanceAndVersion.of(instance, CLIENT_VERSION_STRING);
+    }
+
+    private static ClientOptions getClientOptionsForFailoverProxy(AuxiliaryRemotingParameters parameters) {
+        return ClientOptions.fromRemotingParameters(
+                ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldRetry(true));
     }
 }
