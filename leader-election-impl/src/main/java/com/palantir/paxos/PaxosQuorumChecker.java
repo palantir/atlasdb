@@ -163,8 +163,6 @@ public final class PaxosQuorumChecker {
         return remotes.stream().collect(Collectors.toMap(remote -> remote, unused -> executorService));
     }
 
-    static AtomicLong l = new AtomicLong();
-
     /**
      * Collects a list of responses from remote services.
      * This method may short-circuit depending on the {@code shouldSkipNextRequest} predicate parameter and cancels
