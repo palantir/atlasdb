@@ -33,7 +33,7 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 
 @RunWith(ParameterizedSuite.class)
 @Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)
-public class MultiLeaderPaxosSuite {
+public final class MultiLeaderPaxosSuite {
 
     public static final TestableTimelockCluster MULTI_LEADER_PAXOS = new TestableTimelockCluster(
             "batched paxos multi leader",

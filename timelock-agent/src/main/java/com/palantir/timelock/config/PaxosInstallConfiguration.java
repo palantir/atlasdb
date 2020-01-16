@@ -59,7 +59,8 @@ public interface PaxosInstallConfiguration {
 
     @Value.Check
     default void checkLeaderModeIsNotInAutoMigrationMode() {
-        Preconditions.checkState(leaderMode() != PaxosLeaderMode.AUTO_MIGRATION_MODE,
+        Preconditions.checkState(
+                leaderMode() != PaxosLeaderMode.AUTO_MIGRATION_MODE,
                 "Auto migration mode is not supported just yet");
     }
 

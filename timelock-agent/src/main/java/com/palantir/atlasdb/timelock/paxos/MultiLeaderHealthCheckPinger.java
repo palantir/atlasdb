@@ -23,7 +23,7 @@ import com.google.common.collect.Maps;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.HealthCheckResponse;
 
-public class MultiLeaderHealthCheckPinger implements HealthCheckPinger {
+public final class MultiLeaderHealthCheckPinger implements HealthCheckPinger {
 
     private final BatchPingableLeader batchPingableLeader;
 
