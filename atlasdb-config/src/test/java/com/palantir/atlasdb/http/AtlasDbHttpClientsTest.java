@@ -28,6 +28,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -79,6 +80,7 @@ public class AtlasDbHttpClientsTest {
     private static final MappingBuilder POST_MAPPING = post(urlEqualTo(POST_ENDPOINT));
     private static final int TEST_NUMBER_1 = 12;
     private static final int TEST_NUMBER_2 = 123;
+    private static final Duration SLEEP_TIME = Duration.ofSeconds(6L);
 
     private static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
     private static final UserAgent.Agent ATLASDB_CLIENT_V2_AGENT = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, "2.0");
@@ -236,8 +238,7 @@ public class AtlasDbHttpClientsTest {
         assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
 
         servers.add(getUriForPort(availablePort1));
-        Uninterruptibles.sleepUninterruptibly(
-                PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME.getSeconds(), TimeUnit.SECONDS);
 
         int response = client.getTestNumber();
         assertThat(response, equalTo(TEST_NUMBER_1));
@@ -263,8 +264,7 @@ public class AtlasDbHttpClientsTest {
                 .addServers(getUriForPort(availablePort2))
                 .sslConfiguration(SSL_CONFIG)
                 .build());
-        Uninterruptibles.sleepUninterruptibly(
-                PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME.getSeconds(), TimeUnit.SECONDS);
         assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_2));
     }
 
