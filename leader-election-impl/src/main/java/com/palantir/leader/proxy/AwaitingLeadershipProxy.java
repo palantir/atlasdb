@@ -198,7 +198,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Object delegate = delegateRef.get();
         StillLeadingStatus leading = null;
 
-        // Wait for at most 6.7 seconds in case of a momentary network partition
+        // Wait for at most 6.3 seconds in case of a momentary network partition
         for (int i = 0; i < MAX_NO_QUORUM_RETRIES; i++) {
             // TODO(nziebart): check if leadershipTokenRef has been nulled out between iterations?
             leading = leaderElectionService.isStillLeading(leadershipToken);
@@ -206,7 +206,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 break;
             }
             if (i != MAX_NO_QUORUM_RETRIES - 1) {
-                Uninterruptibles.sleepUninterruptibly(670, TimeUnit.MILLISECONDS);
+                Uninterruptibles.sleepUninterruptibly(700, TimeUnit.MILLISECONDS);
             }
         }
 
