@@ -41,7 +41,6 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.atlasdb.persistent.api.LogicalPersistentStore;
 import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 import com.palantir.common.streams.KeyedStream;
@@ -141,9 +140,8 @@ public final class OffHeapTimestampCache implements TimestampCache {
         return timestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp);
     }
 
-    private static CacheDescriptor createNamespaceAndConstructCacheProposal(
-            LogicalPersistentStore<?, ?> persistentStore) {
-        StoreNamespace proposal = persistentStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
+    private static CacheDescriptor createNamespaceAndConstructCacheProposal(TimestampStore timestampStore) {
+        StoreNamespace proposal = timestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
         return ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
                 .storeNamespace(proposal)
