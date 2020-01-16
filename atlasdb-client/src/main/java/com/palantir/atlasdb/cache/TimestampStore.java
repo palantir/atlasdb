@@ -32,6 +32,8 @@ import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespac
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.streams.KeyedStream;
 
+import okio.ByteString;
+
 /**
  * Stores timestamps using delta encoding for commit timestamp.
  */
@@ -45,7 +47,7 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
     @Nullable
     @Override
     public Optional<Long> get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
-        byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
+        ByteString byteKeyValue = toByteString(startTs);
         return physicalPersistentStore.get(storeNamespace, byteKeyValue)
                 .map(value -> deserializeValue(startTs, value));
     }
@@ -53,11 +55,12 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
     @Override
     public Map<Long, Long> get(StoreNamespace storeNamespace, List<Long> keys) {
 
-        List<byte[]> byteKeys = keys.stream()
+        List<ByteString> byteKeys = keys.stream()
                 .map(ValueType.VAR_LONG::convertFromJava)
+                .map(ByteString::of)
                 .collect(Collectors.toList());
 
-        Map<byte[], byte[]> byteValues = physicalPersistentStore.get(storeNamespace, byteKeys);
+        Map<ByteString, ByteString> byteValues = physicalPersistentStore.get(storeNamespace, byteKeys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -70,8 +73,8 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
 
     @Override
     public void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs) {
-        byte[] key = ValueType.VAR_LONG.convertFromJava(startTs);
-        byte[] value = ValueType.VAR_LONG.convertFromJava(commitTs - startTs);
+        ByteString key = toByteString(startTs);
+        ByteString value = toByteString(commitTs - startTs);
 
         physicalPersistentStore.put(storeNamespace, key, value);
     }
@@ -91,15 +94,19 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
         physicalPersistentStore.dropNamespace(storeNamespace);
     }
 
-    private static Map.Entry<Long, Long> deserializeEntry(byte[] key, byte[] value) {
-        Long deserializedKey = (Long) ValueType.VAR_LONG.convertToJava(key, 0);
+    private static Map.Entry<Long, Long> deserializeEntry(ByteString key, ByteString value) {
+        Long deserializedKey = (Long) ValueType.VAR_LONG.convertToJava(key.toByteArray(), 0);
         return Maps.immutableEntry(deserializedKey, deserializeValue(deserializedKey, value));
     }
 
-    private static Long deserializeValue(Long key, byte[] value) {
+    private static Long deserializeValue(Long key, ByteString value) {
         if (value == null) {
             return null;
         }
-        return key + (Long) ValueType.VAR_LONG.convertToJava(value, 0);
+        return key + (Long) ValueType.VAR_LONG.convertToJava(value.toByteArray(), 0);
+    }
+
+    private static ByteString toByteString(@Nonnull Long startTs) {
+        return ByteString.of(ValueType.VAR_LONG.convertFromJava(startTs));
     }
 }

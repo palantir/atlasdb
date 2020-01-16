@@ -36,6 +36,8 @@ import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
+import okio.ByteString;
+
 public final class RocksDbPhysicalPersistentStoreTests {
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -45,10 +47,10 @@ public final class RocksDbPhysicalPersistentStoreTests {
             .humanReadableName("bla")
             .uniqueName(UUID.randomUUID())
             .build();
-    private static final byte[] KEY = "key".getBytes();
-    private static final byte[] VALUE = "value".getBytes();
-    private static final byte[] KEY2 = "key2".getBytes();
-    private static final byte[] VALUE2 = "value2".getBytes();
+    private static final ByteString KEY = ByteString.encodeUtf8("key");
+    private static final ByteString VALUE = ByteString.encodeUtf8("value");
+    private static final ByteString KEY2 = ByteString.encodeUtf8("key2");
+    private static final ByteString VALUE2 = ByteString.encodeUtf8("value2");
 
     private PhysicalPersistentStore timestampMappingStore;
     private StoreNamespace defaultNamespace;
@@ -130,7 +132,8 @@ public final class RocksDbPhysicalPersistentStoreTests {
         timestampMappingStore.put(defaultNamespace, KEY, VALUE);
         timestampMappingStore.put(defaultNamespace, KEY2, VALUE2);
 
-        assertThat(timestampMappingStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, "random".getBytes())))
+        assertThat(
+                timestampMappingStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, ByteString.encodeUtf8("bla"))))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         KEY, VALUE,
                         KEY2, VALUE2)

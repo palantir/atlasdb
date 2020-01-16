@@ -27,6 +27,8 @@ import org.immutables.value.Value;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
+import okio.ByteString;
+
 public interface PhysicalPersistentStore extends AutoCloseable {
     @Value.Immutable
     interface StoreNamespace {
@@ -42,7 +44,7 @@ public interface PhysicalPersistentStore extends AutoCloseable {
      * @return the {@link Optional} containing the value or empty if there is no associated value
      * @throws SafeIllegalArgumentException when {@code storeNamespace} is a handle to a non existing namespace
      */
-    Optional<byte[]> get(StoreNamespace storeNamespace, @Nonnull byte[] key);
+    Optional<ByteString> get(StoreNamespace storeNamespace, @Nonnull ByteString key);
 
     /**
      * Gets the values associated with the entries specified by {@code keys}.
@@ -51,7 +53,7 @@ public interface PhysicalPersistentStore extends AutoCloseable {
      * @param keys           representing keys for which we want to retrieve the values
      * @return a map from keys to values
      */
-    Map<byte[], byte[]> get(StoreNamespace storeNamespace, List<byte[]> keys);
+    Map<ByteString, ByteString> get(StoreNamespace storeNamespace, List<ByteString> keys);
 
     /**
      * Stores the {@code value} for the associated {@code key} while overwriting the existing value in the specified
@@ -62,7 +64,7 @@ public interface PhysicalPersistentStore extends AutoCloseable {
      * @param value          entry value
      * @throws SafeIllegalArgumentException when {@code storeNamespace} is a handle to a non existing namespace
      */
-    void put(StoreNamespace storeNamespace, @Nonnull byte[] key, @Nonnull byte[] value);
+    void put(StoreNamespace storeNamespace, @Nonnull ByteString key, @Nonnull ByteString value);
 
     /**
      * Stores the entry pairs given in {@code toWrite}, overwriting the existing values.
@@ -71,7 +73,7 @@ public interface PhysicalPersistentStore extends AutoCloseable {
      * @param toWrite        entry pairs to write
      * @throws SafeIllegalArgumentException when {@code storeNamespace} is a handle to a non existing namespace
      */
-    void put(StoreNamespace storeNamespace, Map<byte[], byte[]> toWrite);
+    void put(StoreNamespace storeNamespace, Map<ByteString, ByteString> toWrite);
 
     /**
      * Creates a handle of type {@link StoreNamespace} with a {@link StoreNamespace#humanReadableName()} equals to

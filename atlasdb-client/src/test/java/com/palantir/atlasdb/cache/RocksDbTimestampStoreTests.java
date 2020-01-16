@@ -31,7 +31,6 @@ import org.rocksdb.RocksDBException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
 
@@ -75,9 +74,13 @@ public final class RocksDbTimestampStoreTests {
     @Test
     public void multiGetFilters() {
         timestampStore.put(defaultNamespace, 1L, 2L);
+        timestampStore.put(defaultNamespace, 2L, 3L);
 
-        assertThat(timestampStore.get(defaultNamespace, ImmutableList.of(1L, 3L)))
-                .containsExactly(Maps.immutableEntry(1L, 2L));
+        assertThat(timestampStore.get(defaultNamespace, ImmutableList.of(1L, 2L, 3L)))
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(
+                                1L, 2L,
+                                2L, 3L));
     }
 
     @Test

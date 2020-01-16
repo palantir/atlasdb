@@ -51,6 +51,8 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 
+import okio.ByteString;
+
 /**
  * Implementation of the {@link PhysicalPersistentStore} using RocksDB as the underlying persistent storage. Created
  * {@link StoreNamespace}s are backed by RocksDB ColumnFamilies such that calling
@@ -70,17 +72,17 @@ public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentS
     }
 
     @Override
-    public Optional<byte[]> get(StoreNamespace storeNamespace, @Nonnull byte[] key) {
+    public Optional<ByteString> get(StoreNamespace storeNamespace, @Nonnull ByteString key) {
         checkNamespaceExists(storeNamespace);
 
-        return Optional.ofNullable(getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), key));
+        return getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), key);
     }
 
     @Override
-    public Map<byte[], byte[]> get(StoreNamespace storeNamespace, List<byte[]> keys) {
+    public Map<ByteString, ByteString> get(StoreNamespace storeNamespace, List<ByteString> keys) {
         checkNamespaceExists(storeNamespace);
 
-        List<byte[]> byteValues = multiGetValueBytes(
+        List<ByteString> byteValues = multiGetValueByteStrings(
                 availableColumnFamilies.get(storeNamespace.uniqueName()),
                 keys);
 
@@ -98,13 +100,13 @@ public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentS
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, @Nonnull byte[] key, @Nonnull byte[] value) {
+    public void put(StoreNamespace storeNamespace, @Nonnull ByteString key, @Nonnull ByteString value) {
         checkNamespaceExists(storeNamespace);
         putEntry(availableColumnFamilies.get(storeNamespace.uniqueName()), key, value);
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, Map<byte[], byte[]> toWrite) {
+    public void put(StoreNamespace storeNamespace, Map<ByteString, ByteString> toWrite) {
         KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
     }
 
@@ -161,13 +163,20 @@ public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentS
         availableColumnFamilies.remove(storeNamespace.uniqueName());
     }
 
-    private byte[] getValueBytes(ColumnFamilyHandle columnFamilyHandle, byte[] key) {
+    private Optional<ByteString> getValueBytes(ColumnFamilyHandle columnFamilyHandle, ByteString key) {
         try {
-            return rocksDB.get(columnFamilyHandle, key);
+            return Optional.ofNullable(rocksDB.get(columnFamilyHandle, key.toByteArray())).map(ByteString::of);
         } catch (RocksDBException exception) {
             log.warn("Rocks db raised an exception", exception);
             return null;
         }
+    }
+
+    private List<ByteString> multiGetValueByteStrings(ColumnFamilyHandle columnFamilyHandle, List<ByteString> keys) {
+        List<byte[]> values = multiGetValueBytes(
+                columnFamilyHandle,
+                keys.stream().map(ByteString::toByteArray).collect(Collectors.toList()));
+        return values.stream().filter(Objects::nonNull).map(ByteString::of).collect(Collectors.toList());
     }
 
     private List<byte[]> multiGetValueBytes(ColumnFamilyHandle columnFamilyHandle, List<byte[]> keys) {
@@ -179,9 +188,9 @@ public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentS
         }
     }
 
-    private void putEntry(ColumnFamilyHandle columnFamilyHandle, byte[] key, byte[] value) {
+    private void putEntry(ColumnFamilyHandle columnFamilyHandle, ByteString key, ByteString value) {
         try {
-            rocksDB.put(columnFamilyHandle, key, value);
+            rocksDB.put(columnFamilyHandle, key.toByteArray(), value.toByteArray());
         } catch (RocksDBException exception) {
             log.warn("Rocks db raised an exception", exception);
         }
