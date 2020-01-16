@@ -35,7 +35,7 @@ public interface LogicalPersistentStore<K, V> {
     Optional<V> get(StoreNamespace storeNamespace, @Nonnull K key);
 
     /**
-     * Retreives values for all supplied {@code keys}.
+     * Retrieves values for all supplied {@code keys}.
      *
      * @param storeNamespace from which to retrieve the values
      * @param keys           for which entries we are interested in
@@ -70,7 +70,7 @@ public interface LogicalPersistentStore<K, V> {
     StoreNamespace createNamespace(@Nonnull String name);
 
     /**
-     * Drops the namespace.
+     * Given the namespace handle represented by {@code storeNamespace} drops the internal structures.
      *
      * @param storeNamespace which should be dropped
      */
