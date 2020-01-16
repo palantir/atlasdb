@@ -31,9 +31,9 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 
-public final class DefaultPersistentStorageFactoryTests {
+public final class DefaultPhysicalPersistentStorageFactoryTests {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder(Files.currentFolder());
 
@@ -52,12 +52,12 @@ public final class DefaultPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PersistentTimestampStore persistentTimestampStore = new DefaultPersistentStorageFactory()
-                .constructPersistentTimestampStore(config);
+        PhysicalPersistentStore physicalPersistentStore = new DefaultPhysicalPersistentStorageFactory()
+                .constructPersistentStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
 
-        persistentTimestampStore.close();
+        physicalPersistentStore.close();
 
         assertThat(testFolderContent()).isEmpty();
     }
@@ -67,10 +67,10 @@ public final class DefaultPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PersistentStorageFactory factory = new DefaultPersistentStorageFactory();
+        PhysicalPersistentStorageFactory factory = new DefaultPhysicalPersistentStorageFactory();
 
-        PersistentTimestampStore firstStore = factory.constructPersistentTimestampStore(config);
-        PersistentTimestampStore secondStore = factory.constructPersistentTimestampStore(config);
+        PhysicalPersistentStore firstStore = factory.constructPersistentStore(config);
+        PhysicalPersistentStore secondStore = factory.constructPersistentStore(config);
 
         assertThat(firstStore).isNotEqualTo(secondStore);
 

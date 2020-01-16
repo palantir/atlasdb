@@ -25,27 +25,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
 
 /**
- * Constructs a new {@link PersistentTimestampStore} with new persistent storage connection on each call of
- * {@link DefaultPersistentStorageFactory#constructPersistentTimestampStore(RocksDbPersistentStorageConfig)}.
+ * Constructs a new {@link PhysicalPersistentStore} with new persistent storage connection on each call of
+ * {@link DefaultPhysicalPersistentStorageFactory#constructPersistentStore(RocksDbPersistentStorageConfig)}.
  */
-public final class DefaultPersistentStorageFactory implements PersistentStorageFactory {
-    private static final Logger log = LoggerFactory.getLogger(DefaultPersistentStorageFactory.class);
+public final class DefaultPhysicalPersistentStorageFactory implements PhysicalPersistentStorageFactory {
+    private static final Logger log = LoggerFactory.getLogger(DefaultPhysicalPersistentStorageFactory.class);
 
     /**
-     * Constructs a {@link PersistentTimestampStore} from a {@link RocksDbPersistentStorageConfig}.
+     * Constructs a {@link PhysicalPersistentStore} from a {@link RocksDbPersistentStorageConfig}.
      *
      * @param config of the requested RocksDB persistent storage
-     * @return RockDB implementation of {@link PersistentTimestampStore}
+     * @return RockDB implementation of {@link PhysicalPersistentStore}
      */
-    public PersistentTimestampStore constructPersistentTimestampStore(RocksDbPersistentStorageConfig config) {
+    public PhysicalPersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
         PersistentStorageFactories.sanitizeStoragePath(config.storagePath());
         File databaseFolder = new File(config.storagePath(), UUID.randomUUID().toString());
         RocksDB rocksDb = openRocksConnection(databaseFolder);
-        return new RocksDbPersistentTimestampStore(rocksDb, databaseFolder);
+        return new RocksDbPhysicalPersistentStore(rocksDb, databaseFolder);
     }
 
     private static RocksDB openRocksConnection(File databaseFolder) {

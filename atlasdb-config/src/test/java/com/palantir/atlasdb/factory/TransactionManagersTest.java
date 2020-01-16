@@ -100,7 +100,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -766,42 +766,42 @@ public class TransactionManagersTest {
                                 .build())
                 .build();
 
-        Optional<PersistentTimestampStore> persistentTimestampStore =
-                TransactionManagers.constructPersistentTimestampStoreIfConfigured(
+        Optional<PhysicalPersistentStore> persistentStore =
+                TransactionManagers.constructPersistentStoreIfConfigured(
                         installConfig,
-                        new DefaultPersistentStorageFactory(),
+                        new DefaultPhysicalPersistentStorageFactory(),
                         new LinkedList<>());
 
-        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentTimestampStore);
+        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentStore);
 
         assertThat(timestampCache).isInstanceOf(OffHeapTimestampCache.class);
     }
 
     @Test
-    public void persistentTimestampStoreNotConstructed() {
+    public void persistentStoreNotConstructed() {
         AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
 
-        Optional<PersistentTimestampStore> persistentTimestampStore =
-                TransactionManagers.constructPersistentTimestampStoreIfConfigured(
+        Optional<PhysicalPersistentStore> persistentStore =
+                TransactionManagers.constructPersistentStoreIfConfigured(
                         installConfig,
-                        new DefaultPersistentStorageFactory(),
+                        new DefaultPhysicalPersistentStorageFactory(),
                         new LinkedList<>());
 
-        assertThat(persistentTimestampStore)
+        assertThat(persistentStore)
                 .isEmpty();
     }
 
     private TimestampCache constructTimestampCache(
             AtlasDbConfig installConfig,
-            Optional<PersistentTimestampStore> persistentTimestampStore) {
+            Optional<PhysicalPersistentStore> persistentStore) {
         return TransactionManagers.timestampCache(
                 installConfig,
                 metricsManager,
                 () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
-                persistentTimestampStore);
+                persistentStore);
     }
 
     private KeyValueService initializeKeyValueServiceWithSweepSettings(

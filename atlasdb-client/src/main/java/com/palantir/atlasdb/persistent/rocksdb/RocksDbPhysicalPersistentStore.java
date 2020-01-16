@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -32,7 +33,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -46,52 +46,45 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.persistent.api.ImmutableStoreNamespace;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
-import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 
+import okio.ByteString;
+
 /**
- * Implementation of the {@link PersistentTimestampStore} using RocksDB as the underlying persistent storage. Commit
- * timestamp associated with the start timestamp is encoded using delta encoding. Created {@link StoreNamespace}s are
- * backed by RocksDB ColumnFamilies such that calling {@link RocksDbPersistentTimestampStore#createNamespace(String)}
- * with the same name will construct a new {@link ColumnFamilyHandle} for each call.
+ * Implementation of the {@link PhysicalPersistentStore} using RocksDB as the underlying persistent storage. Created
+ * {@link StoreNamespace}s are backed by RocksDB ColumnFamilies such that calling
+ * {@link RocksDbPhysicalPersistentStore#createNamespace(String)} with the same name will construct a new
+ * {@link ColumnFamilyHandle} for each call.
  */
-public final class RocksDbPersistentTimestampStore implements PersistentTimestampStore {
-    private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentTimestampStore.class);
+public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentStore {
+    private static final Logger log = LoggerFactory.getLogger(RocksDbPhysicalPersistentStore.class);
 
     private final ConcurrentMap<UUID, ColumnFamilyHandle> availableColumnFamilies = new ConcurrentHashMap<>();
     private final RocksDB rocksDB;
     private final File databaseFolder;
 
-    public RocksDbPersistentTimestampStore(RocksDB rocksDB, File databaseFolder) {
+    public RocksDbPhysicalPersistentStore(RocksDB rocksDB, File databaseFolder) {
         this.rocksDB = rocksDB;
         this.databaseFolder = databaseFolder;
     }
 
     @Override
-    @Nullable
-    public Long get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
+    public Optional<ByteString> get(StoreNamespace storeNamespace, @Nonnull ByteString key) {
         checkNamespaceExists(storeNamespace);
 
-        byte[] byteKeyValue = ValueType.VAR_LONG.convertFromJava(startTs);
-        byte[] value = getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), byteKeyValue);
-
-        return deserializeValue(startTs, value);
+        return getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), key);
     }
 
     @Override
-    public Map<Long, Long> multiGet(StoreNamespace storeNamespace, List<Long> keys) {
+    public Map<ByteString, ByteString> get(StoreNamespace storeNamespace, List<ByteString> keys) {
         checkNamespaceExists(storeNamespace);
 
-        List<byte[]> byteKeys = keys.stream()
-                .map(ValueType.VAR_LONG::convertFromJava)
-                .collect(Collectors.toList());
-
-        List<byte[]> byteValues = multiGetValueBytes(
+        List<ByteString> byteValues = multiGetValueByteStrings(
                 availableColumnFamilies.get(storeNamespace.uniqueName()),
-                byteKeys);
+                keys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -101,23 +94,19 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
                 Streams.zip(
                         keys.stream(),
                         byteValues.stream(),
-                        (key, value) -> Maps.immutableEntry(key, deserializeValue(key, value))))
+                        Maps::immutableEntry))
                 .filter(Objects::nonNull)
                 .collectToMap();
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs) {
+    public void put(StoreNamespace storeNamespace, @Nonnull ByteString key, @Nonnull ByteString value) {
         checkNamespaceExists(storeNamespace);
-
-        byte[] key = ValueType.VAR_LONG.convertFromJava(startTs);
-        byte[] value = ValueType.VAR_LONG.convertFromJava(commitTs - startTs);
-
         putEntry(availableColumnFamilies.get(storeNamespace.uniqueName()), key, value);
     }
 
     @Override
-    public void multiPut(StoreNamespace storeNamespace, Map<Long, Long> toWrite) {
+    public void put(StoreNamespace storeNamespace, Map<ByteString, ByteString> toWrite) {
         KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
     }
 
@@ -158,13 +147,6 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
         }
     }
 
-    private Long deserializeValue(Long key, byte[] value) {
-        if (value == null) {
-            return null;
-        }
-        return key + (Long) ValueType.VAR_LONG.convertToJava(value, 0);
-    }
-
     private UUID createColumnFamily() {
         UUID randomUuid = UUID.randomUUID();
         ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
@@ -181,13 +163,20 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
         availableColumnFamilies.remove(storeNamespace.uniqueName());
     }
 
-    private byte[] getValueBytes(ColumnFamilyHandle columnFamilyHandle, byte[] key) {
+    private Optional<ByteString> getValueBytes(ColumnFamilyHandle columnFamilyHandle, ByteString key) {
         try {
-            return rocksDB.get(columnFamilyHandle, key);
+            return Optional.ofNullable(rocksDB.get(columnFamilyHandle, key.toByteArray())).map(ByteString::of);
         } catch (RocksDBException exception) {
             log.warn("Rocks db raised an exception", exception);
             return null;
         }
+    }
+
+    private List<ByteString> multiGetValueByteStrings(ColumnFamilyHandle columnFamilyHandle, List<ByteString> keys) {
+        List<byte[]> values = multiGetValueBytes(
+                columnFamilyHandle,
+                keys.stream().map(ByteString::toByteArray).collect(Collectors.toList()));
+        return values.stream().filter(Objects::nonNull).map(ByteString::of).collect(Collectors.toList());
     }
 
     private List<byte[]> multiGetValueBytes(ColumnFamilyHandle columnFamilyHandle, List<byte[]> keys) {
@@ -199,9 +188,9 @@ public final class RocksDbPersistentTimestampStore implements PersistentTimestam
         }
     }
 
-    private void putEntry(ColumnFamilyHandle columnFamilyHandle, byte[] key, byte[] value) {
+    private void putEntry(ColumnFamilyHandle columnFamilyHandle, ByteString key, ByteString value) {
         try {
-            rocksDB.put(columnFamilyHandle, key, value);
+            rocksDB.put(columnFamilyHandle, key.toByteArray(), value.toByteArray());
         } catch (RocksDBException exception) {
             log.warn("Rocks db raised an exception", exception);
         }
