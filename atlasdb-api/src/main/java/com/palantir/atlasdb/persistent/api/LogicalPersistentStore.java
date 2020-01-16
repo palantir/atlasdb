@@ -41,7 +41,7 @@ public interface LogicalPersistentStore<K, V> {
      * @param keys           for which entries we are interested in
      * @return map of key, value pairs containing only entries which are stored
      */
-    Map<K, V> multiGet(StoreNamespace storeNamespace, List<K> keys);
+    Map<K, V> get(StoreNamespace storeNamespace, List<K> keys);
 
     /**
      * Stores the given entry pair.
@@ -58,7 +58,7 @@ public interface LogicalPersistentStore<K, V> {
      * @param storeNamespace where to store the entries
      * @param toWrite        entry pairs to store
      */
-    void multiPut(StoreNamespace storeNamespace, Map<K, V> toWrite);
+    void put(StoreNamespace storeNamespace, Map<K, V> toWrite);
 
     /**
      * Creates a {@link StoreNamespace} with the given name. Multiple calls with the same {@code name} will return

@@ -117,7 +117,7 @@ public final class RocksDbPhysicalPersistentStoreTests {
 
     @Test
     public void testMultiPut() {
-        timestampMappingStore.multiPut(
+        timestampMappingStore.put(
                 defaultNamespace,
                 ImmutableMap.of(KEY, VALUE, KEY2, VALUE2));
 
@@ -130,7 +130,7 @@ public final class RocksDbPhysicalPersistentStoreTests {
         timestampMappingStore.put(defaultNamespace, KEY, VALUE);
         timestampMappingStore.put(defaultNamespace, KEY2, VALUE2);
 
-        assertThat(timestampMappingStore.multiGet(defaultNamespace, ImmutableList.of(KEY, KEY2, "random".getBytes())))
+        assertThat(timestampMappingStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, "random".getBytes())))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         KEY, VALUE,
                         KEY2, VALUE2)

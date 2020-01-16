@@ -51,13 +51,13 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
     }
 
     @Override
-    public Map<Long, Long> multiGet(StoreNamespace storeNamespace, List<Long> keys) {
+    public Map<Long, Long> get(StoreNamespace storeNamespace, List<Long> keys) {
 
         List<byte[]> byteKeys = keys.stream()
                 .map(ValueType.VAR_LONG::convertFromJava)
                 .collect(Collectors.toList());
 
-        Map<byte[], byte[]> byteValues = physicalPersistentStore.multiGet(storeNamespace, byteKeys);
+        Map<byte[], byte[]> byteValues = physicalPersistentStore.get(storeNamespace, byteKeys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -77,7 +77,7 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
     }
 
     @Override
-    public void multiPut(StoreNamespace storeNamespace, Map<Long, Long> toWrite) {
+    public void put(StoreNamespace storeNamespace, Map<Long, Long> toWrite) {
         KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
     }
 

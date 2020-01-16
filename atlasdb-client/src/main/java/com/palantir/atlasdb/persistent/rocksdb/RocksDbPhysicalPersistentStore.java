@@ -77,7 +77,7 @@ public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentS
     }
 
     @Override
-    public Map<byte[], byte[]> multiGet(StoreNamespace storeNamespace, List<byte[]> keys) {
+    public Map<byte[], byte[]> get(StoreNamespace storeNamespace, List<byte[]> keys) {
         checkNamespaceExists(storeNamespace);
 
         List<byte[]> byteValues = multiGetValueBytes(
@@ -104,7 +104,7 @@ public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentS
     }
 
     @Override
-    public void multiPut(StoreNamespace storeNamespace, Map<byte[], byte[]> toWrite) {
+    public void put(StoreNamespace storeNamespace, Map<byte[], byte[]> toWrite) {
         KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
     }
 

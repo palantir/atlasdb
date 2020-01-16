@@ -76,13 +76,13 @@ public final class RocksDbTimestampStoreTests {
     public void multiGetFilters() {
         timestampStore.put(defaultNamespace, 1L, 2L);
 
-        assertThat(timestampStore.multiGet(defaultNamespace, ImmutableList.of(1L, 3L)))
+        assertThat(timestampStore.get(defaultNamespace, ImmutableList.of(1L, 3L)))
                 .containsExactly(Maps.immutableEntry(1L, 2L));
     }
 
     @Test
     public void multiPutCorrectlyStores() {
-        timestampStore.multiPut(defaultNamespace, ImmutableMap.of(1L, 2L, 3L, 4L));
+        timestampStore.put(defaultNamespace, ImmutableMap.of(1L, 2L, 3L, 4L));
 
         assertThat(timestampStore.get(defaultNamespace, 1L)).hasValue(2L);
         assertThat(timestampStore.get(defaultNamespace, 3L)).hasValue(4L);
