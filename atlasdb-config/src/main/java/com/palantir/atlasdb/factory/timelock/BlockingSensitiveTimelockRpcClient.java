@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.factory;
+package com.palantir.atlasdb.factory.timelock;
 
 import java.util.OptionalLong;
 import java.util.Set;
@@ -42,7 +42,7 @@ import com.palantir.timestamp.TimestampRange;
  * Given two proxies to the same set of underlying TimeLock servers, one configured to expect longer-running operations
  * on the server and one configured not to, routes calls appropriately.
  */
-class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
+public class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
     private final TimelockRpcClient blockingClient;
     private final TimelockRpcClient nonBlockingClient;
 
