@@ -195,7 +195,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     @Value.Immutable
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-    public interface CacheDescriptor {
+    interface CacheDescriptor {
         AtomicInteger currentSize();
         StoreNamespace storeNamespace();
     }
