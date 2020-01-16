@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: TimeLock now recovers more quickly when a node is partitioned off from
+    the network. Previously, if a leader node was partitioned off, talking to it as
+    a client would take about 50 seconds before the leader realised it was no longer
+    the leader. This should now be about 7 seconds.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4517
