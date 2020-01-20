@@ -38,11 +38,18 @@ public abstract class ClientOptions {
     private static final Duration CONNECT_TIMEOUT = Duration.ofMillis(500);
 
     @VisibleForTesting
+    // The read timeout controls how long the client waits to receive the first byte from the server before giving up,
+    // so in general read timeouts should not be set to less than what is considered an acceptable time for the server
+    // to give a suitable response.
+    // In the context of TimeLock, this timeout must be longer than how long an AwaitingLeadershipProxy takes to
+    // decide whether a node is the leader and still has a quorum.
     static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
+
+    // Should not be reduced below 65 seconds to support workflows involving locking.
     static final Duration BLOCKING_READ_TIMEOUT = Duration.ofSeconds(65);
 
+    // Under standard settings, throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
     private static final Duration STANDARD_BACKOFF_SLOT_SIZE = Duration.ofMillis(10);
-
     private static final int STANDARD_MAX_RETRIES = 13;
     private static final int NO_RETRIES = 0;
 
@@ -135,15 +142,6 @@ public abstract class ClientOptions {
                 .build();
     }
 
-    /**
-     * If {@link AuxiliaryRemotingParameters#shouldSupportBlockingOperations()} is configured to true, sets the read
-     * timeout of operations to {@link ClientOptions#BLOCKING_READ_TIMEOUT}; otherwise sets this to
-     * {@link ClientOptions#NON_BLOCKING_READ_TIMEOUT}. This controls how long the client waits to receive the first
-     * byte from the server before giving up, so in general read timeouts should not be set to less than what is
-     * considered an acceptable time for the server to give a suitable response.
-     *
-     * Connect timeouts are not affected by the value of {@param parameters}.
-     */
     private static void setupTimeouts(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
         builder.connectTimeout(CONNECT_TIMEOUT)
                 .readTimeout(parameters.shouldSupportBlockingOperations()
