@@ -26,9 +26,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.persistent.api.LogicalPersistentStore;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.streams.KeyedStream;
 
@@ -37,30 +35,30 @@ import okio.ByteString;
 /**
  * Stores timestamps using delta encoding for commit timestamp.
  */
-public class TimestampStore implements LogicalPersistentStore<Long, Long> {
-    private final PhysicalPersistentStore physicalPersistentStore;
+public class TimestampStore implements PersistentStore<Long, Long> {
+    private final PersistentStore<ByteString, ByteString> persistentStore;
 
-    public TimestampStore(PhysicalPersistentStore physicalPersistentStore) {
-        this.physicalPersistentStore = physicalPersistentStore;
+    public TimestampStore(PersistentStore<ByteString, ByteString> persistentStore) {
+        this.persistentStore = persistentStore;
     }
 
     @Nullable
     @Override
-    public Optional<Long> get(StoreNamespace storeNamespace, @Nonnull Long startTs) {
+    public Optional<Long> get(EntryFamilyHandle entryFamilyHandle, @Nonnull Long startTs) {
         ByteString byteKeyValue = toByteString(startTs);
-        return physicalPersistentStore.get(storeNamespace, byteKeyValue)
+        return persistentStore.get(entryFamilyHandle, byteKeyValue)
                 .map(value -> deserializeValue(startTs, value));
     }
 
     @Override
-    public Map<Long, Long> get(StoreNamespace storeNamespace, List<Long> keys) {
+    public Map<Long, Long> get(EntryFamilyHandle entryFamilyHandle, List<Long> keys) {
 
         List<ByteString> byteKeys = keys.stream()
                 .map(ValueType.VAR_LONG::convertFromJava)
                 .map(ByteString::of)
                 .collect(Collectors.toList());
 
-        Map<ByteString, ByteString> byteValues = physicalPersistentStore.get(storeNamespace, byteKeys);
+        Map<ByteString, ByteString> byteValues = persistentStore.get(entryFamilyHandle, byteKeys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -72,26 +70,31 @@ public class TimestampStore implements LogicalPersistentStore<Long, Long> {
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, @Nonnull Long startTs, @Nonnull Long commitTs) {
+    public void put(EntryFamilyHandle entryFamilyHandle, @Nonnull Long startTs, @Nonnull Long commitTs) {
         ByteString key = toByteString(startTs);
         ByteString value = toByteString(commitTs - startTs);
 
-        physicalPersistentStore.put(storeNamespace, key, value);
+        persistentStore.put(entryFamilyHandle, key, value);
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, Map<Long, Long> toWrite) {
-        KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
+    public void put(EntryFamilyHandle entryFamilyHandle, Map<Long, Long> toWrite) {
+        KeyedStream.stream(toWrite).forEach((key, value) -> put(entryFamilyHandle, key, value));
     }
 
     @Override
-    public StoreNamespace createNamespace(@Nonnull String name) {
-        return physicalPersistentStore.createNamespace(name);
+    public EntryFamilyHandle createEntryFamily() {
+        return persistentStore.createEntryFamily();
     }
 
     @Override
-    public void dropNamespace(StoreNamespace storeNamespace) {
-        physicalPersistentStore.dropNamespace(storeNamespace);
+    public void dropEntryFamily(EntryFamilyHandle entryFamilyHandle) {
+        persistentStore.dropEntryFamily(entryFamilyHandle);
+    }
+
+    @Override
+    public void close() throws Exception {
+        persistentStore.close();
     }
 
     private static Map.Entry<Long, Long> deserializeEntry(ByteString key, ByteString value) {

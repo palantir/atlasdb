@@ -31,27 +31,26 @@ import org.rocksdb.RocksDBException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 
 public final class RocksDbTimestampStoreTests {
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
-    private static final String DEFAULT_NAMESPACE_NAME = "default";
 
     private TimestampStore timestampStore;
-    private RocksDbPhysicalPersistentStore persistentStore;
-    private StoreNamespace defaultNamespace;
+    private RocksDbPersistentStore persistentStore;
+    private PersistentStore.EntryFamilyHandle entryFamily;
 
     @Before
     public void before() throws RocksDBException, IOException {
         File databaseFolder = TEMPORARY_FOLDER.newFolder();
         RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
-        persistentStore = new RocksDbPhysicalPersistentStore(rocksDb, databaseFolder);
+        persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
         timestampStore = new TimestampStore(persistentStore);
 
-        defaultNamespace = persistentStore.createNamespace(DEFAULT_NAMESPACE_NAME);
+        entryFamily = persistentStore.createEntryFamily();
     }
 
     @After
@@ -61,22 +60,22 @@ public final class RocksDbTimestampStoreTests {
 
     @Test
     public void emptyResult() {
-        assertThat(timestampStore.get(defaultNamespace, 1L)).isEmpty();
+        assertThat(timestampStore.get(entryFamily, 1L)).isEmpty();
     }
 
     @Test
     public void valueIsCorrectlyStored() {
-        timestampStore.put(defaultNamespace, 1L, 2L);
+        timestampStore.put(entryFamily, 1L, 2L);
 
-        assertThat(timestampStore.get(defaultNamespace, 1L)).hasValue(2L);
+        assertThat(timestampStore.get(entryFamily, 1L)).hasValue(2L);
     }
 
     @Test
     public void multiGetFilters() {
-        timestampStore.put(defaultNamespace, 1L, 2L);
-        timestampStore.put(defaultNamespace, 2L, 3L);
+        timestampStore.put(entryFamily, 1L, 2L);
+        timestampStore.put(entryFamily, 2L, 3L);
 
-        assertThat(timestampStore.get(defaultNamespace, ImmutableList.of(1L, 2L, 3L)))
+        assertThat(timestampStore.get(entryFamily, ImmutableList.of(1L, 2L, 3L)))
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(
                                 1L, 2L,
@@ -85,10 +84,10 @@ public final class RocksDbTimestampStoreTests {
 
     @Test
     public void multiPutCorrectlyStores() {
-        timestampStore.put(defaultNamespace, ImmutableMap.of(1L, 2L, 3L, 4L));
+        timestampStore.put(entryFamily, ImmutableMap.of(1L, 2L, 3L, 4L));
 
-        assertThat(timestampStore.get(defaultNamespace, 1L)).hasValue(2L);
-        assertThat(timestampStore.get(defaultNamespace, 3L)).hasValue(4L);
-        assertThat(timestampStore.get(defaultNamespace, 5L)).isEmpty();
+        assertThat(timestampStore.get(entryFamily, 1L)).hasValue(2L);
+        assertThat(timestampStore.get(entryFamily, 3L)).hasValue(4L);
+        assertThat(timestampStore.get(entryFamily, 5L)).isEmpty();
     }
 }

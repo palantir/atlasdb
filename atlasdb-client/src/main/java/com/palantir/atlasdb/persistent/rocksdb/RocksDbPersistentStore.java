@@ -45,45 +45,39 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.persistent.api.ImmutableStoreNamespace;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.ImmutableEntryFamilyHandle;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 
 import okio.ByteString;
 
-/**
- * Implementation of the {@link PhysicalPersistentStore} using RocksDB as the underlying persistent storage. Created
- * {@link StoreNamespace}s are backed by RocksDB ColumnFamilies such that calling
- * {@link RocksDbPhysicalPersistentStore#createNamespace(String)} with the same name will construct a new
- * {@link ColumnFamilyHandle} for each call.
- */
-public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentStore {
-    private static final Logger log = LoggerFactory.getLogger(RocksDbPhysicalPersistentStore.class);
+public final class RocksDbPersistentStore implements PersistentStore<ByteString, ByteString> {
+    private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);
 
     private final ConcurrentMap<UUID, ColumnFamilyHandle> availableColumnFamilies = new ConcurrentHashMap<>();
     private final RocksDB rocksDB;
     private final File databaseFolder;
 
-    public RocksDbPhysicalPersistentStore(RocksDB rocksDB, File databaseFolder) {
+    public RocksDbPersistentStore(RocksDB rocksDB, File databaseFolder) {
         this.rocksDB = rocksDB;
         this.databaseFolder = databaseFolder;
     }
 
     @Override
-    public Optional<ByteString> get(StoreNamespace storeNamespace, @Nonnull ByteString key) {
-        checkNamespaceExists(storeNamespace);
+    public Optional<ByteString> get(EntryFamilyHandle entryFamilyHandle, @Nonnull ByteString key) {
+        checkNamespaceExists(entryFamilyHandle);
 
-        return getValueBytes(availableColumnFamilies.get(storeNamespace.uniqueName()), key);
+        return getValueBytes(availableColumnFamilies.get(entryFamilyHandle.uniqueName()), key);
     }
 
     @Override
-    public Map<ByteString, ByteString> get(StoreNamespace storeNamespace, List<ByteString> keys) {
-        checkNamespaceExists(storeNamespace);
+    public Map<ByteString, ByteString> get(EntryFamilyHandle entryFamilyHandle, List<ByteString> keys) {
+        checkNamespaceExists(entryFamilyHandle);
 
         List<ByteString> byteValues = multiGetValueByteStrings(
-                availableColumnFamilies.get(storeNamespace.uniqueName()),
+                availableColumnFamilies.get(entryFamilyHandle.uniqueName()),
                 keys);
 
         if (byteValues.isEmpty()) {
@@ -100,36 +94,35 @@ public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentS
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, @Nonnull ByteString key, @Nonnull ByteString value) {
-        checkNamespaceExists(storeNamespace);
-        putEntry(availableColumnFamilies.get(storeNamespace.uniqueName()), key, value);
+    public void put(EntryFamilyHandle entryFamilyHandle, @Nonnull ByteString key, @Nonnull ByteString value) {
+        checkNamespaceExists(entryFamilyHandle);
+        putEntry(availableColumnFamilies.get(entryFamilyHandle.uniqueName()), key, value);
     }
 
     @Override
-    public void put(StoreNamespace storeNamespace, Map<ByteString, ByteString> toWrite) {
-        KeyedStream.stream(toWrite).forEach((key, value) -> put(storeNamespace, key, value));
+    public void put(EntryFamilyHandle entryFamilyHandle, Map<ByteString, ByteString> toWrite) {
+        KeyedStream.stream(toWrite).forEach((key, value) -> put(entryFamilyHandle, key, value));
     }
 
     @Override
-    public StoreNamespace createNamespace(@Nonnull String name) {
+    public EntryFamilyHandle createEntryFamily() {
         UUID columnFamily = createColumnFamily();
-        return ImmutableStoreNamespace.builder()
-                .humanReadableName(name)
+        return ImmutableEntryFamilyHandle.builder()
                 .uniqueName(columnFamily)
                 .build();
     }
 
     @Override
-    public void dropNamespace(StoreNamespace storeNamespace) {
-        checkNamespaceExists(storeNamespace);
+    public void dropEntryFamily(EntryFamilyHandle entryFamilyHandle) {
+        checkNamespaceExists(entryFamilyHandle);
 
-        dropColumnFamily(storeNamespace);
+        dropColumnFamily(entryFamilyHandle);
     }
 
-    private void checkNamespaceExists(StoreNamespace storeNamespace) {
+    private void checkNamespaceExists(EntryFamilyHandle entryFamilyHandle) {
         Preconditions.checkArgument(
-                availableColumnFamilies.containsKey(storeNamespace.uniqueName()),
-                "Store namespace does not exist");
+                availableColumnFamilies.containsKey(entryFamilyHandle.uniqueName()),
+                "Store entry family does not exist");
     }
 
     @Override
@@ -155,12 +148,12 @@ public final class RocksDbPhysicalPersistentStore implements PhysicalPersistentS
         return randomUuid;
     }
 
-    private void dropColumnFamily(StoreNamespace storeNamespace) {
+    private void dropColumnFamily(EntryFamilyHandle entryFamilyHandle) {
         callWithExceptionHandling(() -> {
-            rocksDB.dropColumnFamily(availableColumnFamilies.get(storeNamespace.uniqueName()));
+            rocksDB.dropColumnFamily(availableColumnFamilies.get(entryFamilyHandle.uniqueName()));
             return null;
         });
-        availableColumnFamilies.remove(storeNamespace.uniqueName());
+        availableColumnFamilies.remove(entryFamilyHandle.uniqueName());
     }
 
     private Optional<ByteString> getValueBytes(ColumnFamilyHandle columnFamilyHandle, ByteString key) {

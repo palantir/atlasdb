@@ -31,20 +31,18 @@ import org.rocksdb.RocksDB;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.persistent.api.ImmutableStoreNamespace;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.ImmutableEntryFamilyHandle;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore.EntryFamilyHandle;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 import okio.ByteString;
 
-public final class RocksDbPhysicalPersistentStoreTests {
+public final class RocksDbPersistentStoreTests {
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private static final String DEFAULT = "default";
-    private static final StoreNamespace NON_EXISTING_NAMESPACE = ImmutableStoreNamespace.builder()
-            .humanReadableName("bla")
+    private static final EntryFamilyHandle NON_EXISTING_NAMESPACE = ImmutableEntryFamilyHandle.builder()
             .uniqueName(UUID.randomUUID())
             .build();
     private static final ByteString KEY = ByteString.encodeUtf8("key");
@@ -52,88 +50,88 @@ public final class RocksDbPhysicalPersistentStoreTests {
     private static final ByteString KEY2 = ByteString.encodeUtf8("key2");
     private static final ByteString VALUE2 = ByteString.encodeUtf8("value2");
 
-    private PhysicalPersistentStore timestampMappingStore;
-    private StoreNamespace defaultNamespace;
+    private PersistentStore<ByteString, ByteString> persistentStore;
+    private EntryFamilyHandle defaultNamespace;
 
     @Before
     public void before() throws Exception {
         File databaseFolder = temporaryFolder.newFolder();
         RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
-        timestampMappingStore = new RocksDbPhysicalPersistentStore(rocksDb, databaseFolder);
-        defaultNamespace = timestampMappingStore.createNamespace(DEFAULT);
+        persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
+        defaultNamespace = persistentStore.createEntryFamily();
     }
 
     @After
     public void after() throws Exception {
-        timestampMappingStore.close();
+        persistentStore.close();
     }
 
     @Test
     public void entryMissing() {
-        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).isEmpty();
+        assertThat(persistentStore.get(defaultNamespace, KEY)).isEmpty();
     }
 
     @Test
     public void correctlyStored() {
-        timestampMappingStore.put(defaultNamespace, KEY, VALUE);
-        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).hasValue(VALUE);
+        persistentStore.put(defaultNamespace, KEY, VALUE);
+        assertThat(persistentStore.get(defaultNamespace, KEY)).hasValue(VALUE);
     }
 
     @Test
     public void storeNamespaceUniqueness() {
-        StoreNamespace differentDefault = timestampMappingStore.createNamespace(DEFAULT);
+        EntryFamilyHandle differentDefault = persistentStore.createEntryFamily();
         assertThat(differentDefault).isNotEqualTo(defaultNamespace);
 
-        timestampMappingStore.put(defaultNamespace, KEY, VALUE);
-        assertThat(timestampMappingStore.get(differentDefault, KEY)).isEmpty();
-        timestampMappingStore.dropNamespace(differentDefault);
+        persistentStore.put(defaultNamespace, KEY, VALUE);
+        assertThat(persistentStore.get(differentDefault, KEY)).isEmpty();
+        persistentStore.dropEntryFamily(differentDefault);
     }
 
     @Test
     public void droppingNonExistingFails() {
-        assertThatThrownBy(() -> timestampMappingStore.dropNamespace(NON_EXISTING_NAMESPACE))
+        assertThatThrownBy(() -> persistentStore.dropEntryFamily(NON_EXISTING_NAMESPACE))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
     public void getOnNonExistingFails() {
-        assertThatThrownBy(() -> timestampMappingStore.get(NON_EXISTING_NAMESPACE, KEY))
+        assertThatThrownBy(() -> persistentStore.get(NON_EXISTING_NAMESPACE, KEY))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
     public void putOnNonExistingFails() {
-        assertThatThrownBy(() -> timestampMappingStore.put(NON_EXISTING_NAMESPACE, KEY, VALUE))
+        assertThatThrownBy(() -> persistentStore.put(NON_EXISTING_NAMESPACE, KEY, VALUE))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
     public void droppingTwoTimesFailsOnSecond() {
-        StoreNamespace testNamespace = timestampMappingStore.createNamespace("test");
+        EntryFamilyHandle testNamespace = persistentStore.createEntryFamily();
 
-        timestampMappingStore.dropNamespace(testNamespace);
-        assertThatThrownBy(() -> timestampMappingStore.dropNamespace(testNamespace))
+        persistentStore.dropEntryFamily(testNamespace);
+        assertThatThrownBy(() -> persistentStore.dropEntryFamily(testNamespace))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
     public void testMultiPut() {
-        timestampMappingStore.put(
+        persistentStore.put(
                 defaultNamespace,
                 ImmutableMap.of(KEY, VALUE, KEY2, VALUE2));
 
-        assertThat(timestampMappingStore.get(defaultNamespace, KEY)).hasValue(VALUE);
-        assertThat(timestampMappingStore.get(defaultNamespace, KEY2)).hasValue(VALUE2);
+        assertThat(persistentStore.get(defaultNamespace, KEY)).hasValue(VALUE);
+        assertThat(persistentStore.get(defaultNamespace, KEY2)).hasValue(VALUE2);
     }
 
     @Test
     public void testMultiGet() {
-        timestampMappingStore.put(defaultNamespace, KEY, VALUE);
-        timestampMappingStore.put(defaultNamespace, KEY2, VALUE2);
+        persistentStore.put(defaultNamespace, KEY, VALUE);
+        persistentStore.put(defaultNamespace, KEY2, VALUE2);
 
         assertThat(
-                timestampMappingStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, ByteString.encodeUtf8("bla"))))
+                persistentStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, ByteString.encodeUtf8("bla"))))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         KEY, VALUE,
                         KEY2, VALUE2)

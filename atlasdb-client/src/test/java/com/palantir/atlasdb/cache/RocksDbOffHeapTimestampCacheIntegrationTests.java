@@ -29,9 +29,11 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 import com.palantir.atlasdb.util.MetricsManagers;
+
+import okio.ByteString;
 
 public final class RocksDbOffHeapTimestampCacheIntegrationTests {
     @ClassRule
@@ -39,24 +41,24 @@ public final class RocksDbOffHeapTimestampCacheIntegrationTests {
     private static final int CACHE_SIZE = 2;
 
     private TimestampCache offHeapTimestampCache;
-    private PhysicalPersistentStore physicalPersistentStore;
+    private PersistentStore<ByteString, ByteString> persistentStore;
 
     @Before
     public void before() throws RocksDBException, IOException {
         File databaseFolder = TEMPORARY_FOLDER.newFolder();
         RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
-        physicalPersistentStore = new RocksDbPhysicalPersistentStore(rocksDb, databaseFolder);
+        persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
 
         offHeapTimestampCache = OffHeapTimestampCache.create(
-                physicalPersistentStore,
+                persistentStore,
                 MetricsManagers.createForTests().getTaggedRegistry(),
                 () -> CACHE_SIZE);
     }
 
     @After
     public void after() throws Exception {
-        physicalPersistentStore.close();
+        persistentStore.close();
     }
 
     @Test

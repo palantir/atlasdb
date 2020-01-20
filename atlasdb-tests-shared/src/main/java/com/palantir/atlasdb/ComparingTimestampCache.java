@@ -24,10 +24,12 @@ import javax.annotation.Nullable;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.OffHeapTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+
+import okio.ByteString;
 
 public final class ComparingTimestampCache implements TimestampCache {
     private final TimestampCache first;
@@ -35,13 +37,13 @@ public final class ComparingTimestampCache implements TimestampCache {
 
     public static TimestampCache comparingOffHeapForTests(
             MetricsManager metricRegistry,
-            PhysicalPersistentStore physicalPersistentStore) {
+            PersistentStore<ByteString, ByteString> persistentStore) {
         TimestampCache first = new DefaultTimestampCache(
                 metricRegistry.getRegistry(),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
         TimestampCache second = OffHeapTimestampCache.create(
-                physicalPersistentStore,
+                persistentStore,
                 metricRegistry.getTaggedRegistry(),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 

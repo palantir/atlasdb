@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.cache;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -41,16 +42,17 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore.EntryFamilyHandle;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
+import okio.ByteString;
+
 public final class OffHeapTimestampCache implements TimestampCache {
     private static final Logger log = LoggerFactory.getLogger(OffHeapTimestampCache.class);
-    private static final String TIMESTAMP_CACHE_NAMESPACE = "timestamp_cache";
     private static final String BATCHER_PURPOSE = "off-heap-timestamp-cache";
     private static final MetricName CACHE_HIT = constructCacheMetricName("cacheHit");
     private static final MetricName CACHE_MISS = constructCacheMetricName("cacheMiss");
@@ -62,18 +64,18 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final ConcurrentMap<Long, Long> inflightRequests = new ConcurrentHashMap<>();
-    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Map.Entry<Long, Long>> timestampPutter;
+    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Void> timestampPutter;
 
     public static TimestampCache create(
-            PhysicalPersistentStore physicalPersistentStore,
+            PersistentStore<ByteString, ByteString> persistentStore,
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
-        TimestampStore timestampStore = new TimestampStore(physicalPersistentStore);
-        StoreNamespace storeNamespace = timestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
+        TimestampStore timestampStore = new TimestampStore(persistentStore);
+        EntryFamilyHandle entryFamilyHandle = timestampStore.createEntryFamily();
 
         CacheDescriptor cacheDescriptor = ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
-                .storeNamespace(storeNamespace)
+                .entryFamily(entryFamilyHandle)
                 .build();
 
         return new OffHeapTimestampCache(
@@ -105,7 +107,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
         CacheDescriptor previous = cacheDescriptor.getAndUpdate(prev -> proposedCacheDescriptor);
         if (previous != null) {
-            timestampStore.dropNamespace(previous.storeNamespace());
+            timestampStore.dropEntryFamily(previous.entryFamily());
         }
     }
 
@@ -137,14 +139,14 @@ public final class OffHeapTimestampCache implements TimestampCache {
             return Optional.of(inFlight);
         }
 
-        return timestampStore.get(cacheDescriptor.get().storeNamespace(), startTimestamp);
+        return timestampStore.get(cacheDescriptor.get().entryFamily(), startTimestamp);
     }
 
     private static CacheDescriptor createNamespaceAndConstructCacheProposal(TimestampStore timestampStore) {
-        StoreNamespace proposal = timestampStore.createNamespace(TIMESTAMP_CACHE_NAMESPACE);
+        EntryFamilyHandle proposal = timestampStore.createEntryFamily();
         return ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
-                .storeNamespace(proposal)
+                .entryFamily(proposal)
                 .build();
     }
 
@@ -154,8 +156,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .build();
     }
 
-    private static class WriteBatcher
-            implements CoalescingRequestFunction<Map.Entry<Long, Long>, Map.Entry<Long, Long>> {
+    private static class WriteBatcher implements CoalescingRequestFunction<Map.Entry<Long, Long>, Void> {
         OffHeapTimestampCache offHeapTimestampCache;
 
         WriteBatcher(OffHeapTimestampCache offHeapTimestampCache) {
@@ -163,7 +164,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         }
 
         @Override
-        public Map<Map.Entry<Long, Long>, Map.Entry<Long, Long>> apply(Set<Map.Entry<Long, Long>> request) {
+        public Map<Map.Entry<Long, Long>, Void> apply(Set<Map.Entry<Long, Long>> request) {
             CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             if (cacheDescriptor.currentSize().get() >= offHeapTimestampCache.maxSize.getAsLong()) {
                 offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
@@ -171,23 +172,22 @@ public final class OffHeapTimestampCache implements TimestampCache {
             }
             cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             try {
+                List<Long> toWrite = request.stream().map(Map.Entry::getKey).collect(Collectors.toList());
                 Map<Long, Long> response = offHeapTimestampCache.timestampStore.get(
-                        cacheDescriptor.storeNamespace(),
-                        request.stream().map(Map.Entry::getKey).collect(Collectors.toList()));
-
-                Map<Long, Long> toWrite = ImmutableMap.copyOf(Sets.difference(request, response.entrySet()));
-                offHeapTimestampCache.timestampStore.put(
-                        cacheDescriptor.storeNamespace(),
+                        cacheDescriptor.entryFamily(),
                         toWrite);
 
-                cacheDescriptor.currentSize().addAndGet(toWrite.size());
+                int sizeIncrease = Sets.difference(request, response.entrySet()).size();
+                offHeapTimestampCache.timestampStore.put(cacheDescriptor.entryFamily(), ImmutableMap.copyOf(request));
+
+                cacheDescriptor.currentSize().addAndGet(sizeIncrease);
             } catch (SafeIllegalArgumentException exception) {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
             } finally {
                 offHeapTimestampCache.inflightRequests.clear();
             }
-            return KeyedStream.of(request.stream()).collectToMap();
+            return KeyedStream.of(request.stream()).map(value -> (Void) null).collectToMap();
         }
     }
 
@@ -195,6 +195,6 @@ public final class OffHeapTimestampCache implements TimestampCache {
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     interface CacheDescriptor {
         AtomicInteger currentSize();
-        StoreNamespace storeNamespace();
+        EntryFamilyHandle entryFamily();
     }
 }

@@ -25,27 +25,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
+
+import okio.ByteString;
 
 /**
- * Constructs a new {@link PhysicalPersistentStore} with new persistent storage connection on each call of
+ * Constructs a new {@link PersistentStore} with new persistent storage connection on each call of
  * {@link DefaultPhysicalPersistentStorageFactory#constructPersistentStore(RocksDbPersistentStorageConfig)}.
  */
 public final class DefaultPhysicalPersistentStorageFactory implements PhysicalPersistentStorageFactory {
     private static final Logger log = LoggerFactory.getLogger(DefaultPhysicalPersistentStorageFactory.class);
 
     /**
-     * Constructs a {@link PhysicalPersistentStore} from a {@link RocksDbPersistentStorageConfig}.
+     * Constructs a {@link PersistentStore} from a {@link RocksDbPersistentStorageConfig}.
      *
      * @param config of the requested RocksDB persistent storage
-     * @return RockDB implementation of {@link PhysicalPersistentStore}
+     * @return RockDB implementation of {@link PersistentStore}
      */
-    public PhysicalPersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
+    public PersistentStore<ByteString, ByteString> constructPersistentStore(RocksDbPersistentStorageConfig config) {
         PersistentStorageFactories.sanitizeStoragePath(config.storagePath());
         File databaseFolder = new File(config.storagePath(), UUID.randomUUID().toString());
         RocksDB rocksDb = openRocksConnection(databaseFolder);
-        return new RocksDbPhysicalPersistentStore(rocksDb, databaseFolder);
+        return new RocksDbPersistentStore(rocksDb, databaseFolder);
     }
 
     private static RocksDB openRocksConnection(File databaseFolder) {

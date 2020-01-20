@@ -100,7 +100,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -138,6 +138,8 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
+
+import okio.ByteString;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
@@ -766,7 +768,7 @@ public class TransactionManagersTest {
                                 .build())
                 .build();
 
-        Optional<PhysicalPersistentStore> persistentStore =
+        Optional<PersistentStore<ByteString, ByteString>> persistentStore =
                 TransactionManagers.constructPersistentStoreIfConfigured(
                         installConfig,
                         new DefaultPhysicalPersistentStorageFactory(),
@@ -784,7 +786,7 @@ public class TransactionManagersTest {
                 .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
 
-        Optional<PhysicalPersistentStore> persistentStore =
+        Optional<PersistentStore<ByteString, ByteString>> persistentStore =
                 TransactionManagers.constructPersistentStoreIfConfigured(
                         installConfig,
                         new DefaultPhysicalPersistentStorageFactory(),
@@ -796,7 +798,7 @@ public class TransactionManagersTest {
 
     private TimestampCache constructTimestampCache(
             AtlasDbConfig installConfig,
-            Optional<PhysicalPersistentStore> persistentStore) {
+            Optional<PersistentStore<ByteString, ByteString>> persistentStore) {
         return TransactionManagers.timestampCache(
                 installConfig,
                 metricsManager,

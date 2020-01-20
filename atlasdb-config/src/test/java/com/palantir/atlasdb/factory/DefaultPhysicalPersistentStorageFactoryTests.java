@@ -31,7 +31,9 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+
+import okio.ByteString;
 
 public final class DefaultPhysicalPersistentStorageFactoryTests {
     @Rule
@@ -52,12 +54,12 @@ public final class DefaultPhysicalPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PhysicalPersistentStore physicalPersistentStore = new DefaultPhysicalPersistentStorageFactory()
+        PersistentStore<ByteString, ByteString> persistentStore = new DefaultPhysicalPersistentStorageFactory()
                 .constructPersistentStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
 
-        physicalPersistentStore.close();
+        persistentStore.close();
 
         assertThat(testFolderContent()).isEmpty();
     }
@@ -69,8 +71,8 @@ public final class DefaultPhysicalPersistentStorageFactoryTests {
                 .build();
         PhysicalPersistentStorageFactory factory = new DefaultPhysicalPersistentStorageFactory();
 
-        PhysicalPersistentStore firstStore = factory.constructPersistentStore(config);
-        PhysicalPersistentStore secondStore = factory.constructPersistentStore(config);
+        PersistentStore<ByteString, ByteString> firstStore = factory.constructPersistentStore(config);
+        PersistentStore<ByteString, ByteString> secondStore = factory.constructPersistentStore(config);
 
         assertThat(firstStore).isNotEqualTo(secondStore);
 
