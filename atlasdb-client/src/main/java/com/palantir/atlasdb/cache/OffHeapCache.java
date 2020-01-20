@@ -39,5 +39,4 @@ public interface OffHeapCache<K, V> {
      * Deletes all entries from the cache.
      */
     void clear();
-
 }
