@@ -78,7 +78,7 @@ public interface PersistentStore<K, V> extends AutoCloseable {
     /**
      * Creates a store space to be used to store key-value pairs. Each call creates a new store space.
      *
-     * @return handle to the created store space.
+     * @return handle to the created store space
      */
     PersistentStore.Handle createSpace();
 
