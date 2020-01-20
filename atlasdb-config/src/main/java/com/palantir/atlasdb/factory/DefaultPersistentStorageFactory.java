@@ -32,10 +32,10 @@ import okio.ByteString;
 
 /**
  * Constructs a new {@link PersistentStore} with new persistent storage connection on each call of
- * {@link DefaultPhysicalPersistentStorageFactory#constructPersistentStore(RocksDbPersistentStorageConfig)}.
+ * {@link DefaultPersistentStorageFactory#constructPersistentStore(RocksDbPersistentStorageConfig)}.
  */
-public final class DefaultPhysicalPersistentStorageFactory implements PhysicalPersistentStorageFactory {
-    private static final Logger log = LoggerFactory.getLogger(DefaultPhysicalPersistentStorageFactory.class);
+public final class DefaultPersistentStorageFactory implements PersistentStorageFactory {
+    private static final Logger log = LoggerFactory.getLogger(DefaultPersistentStorageFactory.class);
 
     /**
      * Constructs a {@link PersistentStore} from a {@link RocksDbPersistentStorageConfig}.

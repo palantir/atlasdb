@@ -771,7 +771,7 @@ public class TransactionManagersTest {
         Optional<PersistentStore<ByteString, ByteString>> persistentStore =
                 TransactionManagers.constructPersistentStoreIfConfigured(
                         installConfig,
-                        new DefaultPhysicalPersistentStorageFactory(),
+                        new DefaultPersistentStorageFactory(),
                         new LinkedList<>());
 
         TimestampCache timestampCache = constructTimestampCache(installConfig, persistentStore);
@@ -789,7 +789,7 @@ public class TransactionManagersTest {
         Optional<PersistentStore<ByteString, ByteString>> persistentStore =
                 TransactionManagers.constructPersistentStoreIfConfigured(
                         installConfig,
-                        new DefaultPhysicalPersistentStorageFactory(),
+                        new DefaultPersistentStorageFactory(),
                         new LinkedList<>());
 
         assertThat(persistentStore)

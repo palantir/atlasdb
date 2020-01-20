@@ -22,7 +22,7 @@ import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 
 import okio.ByteString;
 
-public interface PhysicalPersistentStorageFactory {
+public interface PersistentStorageFactory {
     /**
      * Constructs a {@link RocksDbPersistentStore} using the supplied configuration.
      *

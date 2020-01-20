@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.persistent.api.ImmutableEntryFamilyHandle;
+import com.palantir.atlasdb.persistent.api.ImmutableHandle;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -66,18 +66,18 @@ public final class RocksDbPersistentStore implements PersistentStore<ByteString,
     }
 
     @Override
-    public Optional<ByteString> get(EntryFamilyHandle entryFamilyHandle, @Nonnull ByteString key) {
-        checkNamespaceExists(entryFamilyHandle);
+    public Optional<ByteString> get(PersistentStore.Handle handle, @Nonnull ByteString key) {
+        checkNamespaceExists(handle);
 
-        return getValueBytes(availableColumnFamilies.get(entryFamilyHandle.uniqueName()), key);
+        return getValueBytes(availableColumnFamilies.get(handle.uniqueName()), key);
     }
 
     @Override
-    public Map<ByteString, ByteString> get(EntryFamilyHandle entryFamilyHandle, List<ByteString> keys) {
-        checkNamespaceExists(entryFamilyHandle);
+    public Map<ByteString, ByteString> get(PersistentStore.Handle handle, List<ByteString> keys) {
+        checkNamespaceExists(handle);
 
         List<ByteString> byteValues = multiGetValueByteStrings(
-                availableColumnFamilies.get(entryFamilyHandle.uniqueName()),
+                availableColumnFamilies.get(handle.uniqueName()),
                 keys);
 
         if (byteValues.isEmpty()) {
@@ -94,34 +94,34 @@ public final class RocksDbPersistentStore implements PersistentStore<ByteString,
     }
 
     @Override
-    public void put(EntryFamilyHandle entryFamilyHandle, @Nonnull ByteString key, @Nonnull ByteString value) {
-        checkNamespaceExists(entryFamilyHandle);
-        putEntry(availableColumnFamilies.get(entryFamilyHandle.uniqueName()), key, value);
+    public void put(PersistentStore.Handle handle, @Nonnull ByteString key, @Nonnull ByteString value) {
+        checkNamespaceExists(handle);
+        putEntry(availableColumnFamilies.get(handle.uniqueName()), key, value);
     }
 
     @Override
-    public void put(EntryFamilyHandle entryFamilyHandle, Map<ByteString, ByteString> toWrite) {
-        KeyedStream.stream(toWrite).forEach((key, value) -> put(entryFamilyHandle, key, value));
+    public void put(PersistentStore.Handle handle, Map<ByteString, ByteString> toWrite) {
+        KeyedStream.stream(toWrite).forEach((key, value) -> put(handle, key, value));
     }
 
     @Override
-    public EntryFamilyHandle createEntryFamily() {
+    public PersistentStore.Handle createSpace() {
         UUID columnFamily = createColumnFamily();
-        return ImmutableEntryFamilyHandle.builder()
+        return ImmutableHandle.builder()
                 .uniqueName(columnFamily)
                 .build();
     }
 
     @Override
-    public void dropEntryFamily(EntryFamilyHandle entryFamilyHandle) {
-        checkNamespaceExists(entryFamilyHandle);
+    public void dropStoreSpace(PersistentStore.Handle handle) {
+        checkNamespaceExists(handle);
 
-        dropColumnFamily(entryFamilyHandle);
+        dropColumnFamily(handle);
     }
 
-    private void checkNamespaceExists(EntryFamilyHandle entryFamilyHandle) {
+    private void checkNamespaceExists(PersistentStore.Handle handle) {
         Preconditions.checkArgument(
-                availableColumnFamilies.containsKey(entryFamilyHandle.uniqueName()),
+                availableColumnFamilies.containsKey(handle.uniqueName()),
                 "Store entry family does not exist");
     }
 
@@ -148,12 +148,12 @@ public final class RocksDbPersistentStore implements PersistentStore<ByteString,
         return randomUuid;
     }
 
-    private void dropColumnFamily(EntryFamilyHandle entryFamilyHandle) {
+    private void dropColumnFamily(PersistentStore.Handle handle) {
         callWithExceptionHandling(() -> {
-            rocksDB.dropColumnFamily(availableColumnFamilies.get(entryFamilyHandle.uniqueName()));
+            rocksDB.dropColumnFamily(availableColumnFamilies.get(handle.uniqueName()));
             return null;
         });
-        availableColumnFamilies.remove(entryFamilyHandle.uniqueName());
+        availableColumnFamilies.remove(handle.uniqueName());
     }
 
     private Optional<ByteString> getValueBytes(ColumnFamilyHandle columnFamilyHandle, ByteString key) {

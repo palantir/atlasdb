@@ -44,21 +44,21 @@ public class TimestampStore implements PersistentStore<Long, Long> {
 
     @Nullable
     @Override
-    public Optional<Long> get(EntryFamilyHandle entryFamilyHandle, @Nonnull Long startTs) {
+    public Optional<Long> get(PersistentStore.Handle handle, @Nonnull Long startTs) {
         ByteString byteKeyValue = toByteString(startTs);
-        return persistentStore.get(entryFamilyHandle, byteKeyValue)
+        return persistentStore.get(handle, byteKeyValue)
                 .map(value -> deserializeValue(startTs, value));
     }
 
     @Override
-    public Map<Long, Long> get(EntryFamilyHandle entryFamilyHandle, List<Long> keys) {
+    public Map<Long, Long> get(PersistentStore.Handle handle, List<Long> keys) {
 
         List<ByteString> byteKeys = keys.stream()
                 .map(ValueType.VAR_LONG::convertFromJava)
                 .map(ByteString::of)
                 .collect(Collectors.toList());
 
-        Map<ByteString, ByteString> byteValues = persistentStore.get(entryFamilyHandle, byteKeys);
+        Map<ByteString, ByteString> byteValues = persistentStore.get(handle, byteKeys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -70,26 +70,26 @@ public class TimestampStore implements PersistentStore<Long, Long> {
     }
 
     @Override
-    public void put(EntryFamilyHandle entryFamilyHandle, @Nonnull Long startTs, @Nonnull Long commitTs) {
+    public void put(PersistentStore.Handle handle, @Nonnull Long startTs, @Nonnull Long commitTs) {
         ByteString key = toByteString(startTs);
         ByteString value = toByteString(commitTs - startTs);
 
-        persistentStore.put(entryFamilyHandle, key, value);
+        persistentStore.put(handle, key, value);
     }
 
     @Override
-    public void put(EntryFamilyHandle entryFamilyHandle, Map<Long, Long> toWrite) {
-        KeyedStream.stream(toWrite).forEach((key, value) -> put(entryFamilyHandle, key, value));
+    public void put(PersistentStore.Handle handle, Map<Long, Long> toWrite) {
+        KeyedStream.stream(toWrite).forEach((key, value) -> put(handle, key, value));
     }
 
     @Override
-    public EntryFamilyHandle createEntryFamily() {
-        return persistentStore.createEntryFamily();
+    public PersistentStore.Handle createSpace() {
+        return persistentStore.createSpace();
     }
 
     @Override
-    public void dropEntryFamily(EntryFamilyHandle entryFamilyHandle) {
-        persistentStore.dropEntryFamily(entryFamilyHandle);
+    public void dropStoreSpace(PersistentStore.Handle handle) {
+        persistentStore.dropStoreSpace(handle);
     }
 
     @Override

@@ -40,7 +40,7 @@ public final class RocksDbTimestampStoreTests {
 
     private TimestampStore timestampStore;
     private RocksDbPersistentStore persistentStore;
-    private PersistentStore.EntryFamilyHandle entryFamily;
+    private PersistentStore.Handle entryFamily;
 
     @Before
     public void before() throws RocksDBException, IOException {
@@ -50,7 +50,7 @@ public final class RocksDbTimestampStoreTests {
         persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
         timestampStore = new TimestampStore(persistentStore);
 
-        entryFamily = persistentStore.createEntryFamily();
+        entryFamily = persistentStore.createSpace();
     }
 
     @After

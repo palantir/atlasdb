@@ -43,7 +43,6 @@ import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.atlasdb.persistent.api.PersistentStore.EntryFamilyHandle;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -71,11 +70,11 @@ public final class OffHeapTimestampCache implements TimestampCache {
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
         TimestampStore timestampStore = new TimestampStore(persistentStore);
-        EntryFamilyHandle entryFamilyHandle = timestampStore.createEntryFamily();
+        PersistentStore.Handle handle = timestampStore.createSpace();
 
         CacheDescriptor cacheDescriptor = ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
-                .entryFamily(entryFamilyHandle)
+                .handle(handle)
                 .build();
 
         return new OffHeapTimestampCache(
@@ -107,7 +106,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
         CacheDescriptor previous = cacheDescriptor.getAndUpdate(prev -> proposedCacheDescriptor);
         if (previous != null) {
-            timestampStore.dropEntryFamily(previous.entryFamily());
+            timestampStore.dropStoreSpace(previous.handle());
         }
     }
 
@@ -139,14 +138,14 @@ public final class OffHeapTimestampCache implements TimestampCache {
             return Optional.of(inFlight);
         }
 
-        return timestampStore.get(cacheDescriptor.get().entryFamily(), startTimestamp);
+        return timestampStore.get(cacheDescriptor.get().handle(), startTimestamp);
     }
 
     private static CacheDescriptor createNamespaceAndConstructCacheProposal(TimestampStore timestampStore) {
-        EntryFamilyHandle proposal = timestampStore.createEntryFamily();
+        PersistentStore.Handle proposal = timestampStore.createSpace();
         return ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
-                .entryFamily(proposal)
+                .handle(proposal)
                 .build();
     }
 
@@ -173,21 +172,18 @@ public final class OffHeapTimestampCache implements TimestampCache {
             cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             try {
                 List<Long> toWrite = request.stream().map(Map.Entry::getKey).collect(Collectors.toList());
-                Map<Long, Long> response = offHeapTimestampCache.timestampStore.get(
-                        cacheDescriptor.entryFamily(),
-                        toWrite);
+                Map<Long, Long> response = offHeapTimestampCache.timestampStore.get(cacheDescriptor.handle(), toWrite);
 
                 int sizeIncrease = Sets.difference(request, response.entrySet()).size();
-                offHeapTimestampCache.timestampStore.put(cacheDescriptor.entryFamily(), ImmutableMap.copyOf(request));
-
                 cacheDescriptor.currentSize().addAndGet(sizeIncrease);
+                offHeapTimestampCache.timestampStore.put(cacheDescriptor.handle(), ImmutableMap.copyOf(request));
             } catch (SafeIllegalArgumentException exception) {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
             } finally {
                 offHeapTimestampCache.inflightRequests.clear();
             }
-            return KeyedStream.of(request.stream()).map(value -> (Void) null).collectToMap();
+            return KeyedStream.of(request.stream()).<Void>map(value -> null).collectToMap();
         }
     }
 
@@ -195,6 +191,6 @@ public final class OffHeapTimestampCache implements TimestampCache {
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     interface CacheDescriptor {
         AtomicInteger currentSize();
-        EntryFamilyHandle entryFamily();
+        PersistentStore.Handle handle();
     }
 }

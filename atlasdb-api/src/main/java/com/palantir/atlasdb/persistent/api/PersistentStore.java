@@ -28,64 +28,66 @@ import org.immutables.value.Value;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public interface PersistentStore<K, V> extends AutoCloseable {
+    /**
+     * Represents a handle to the underlying space of key-value pairs. Handle is linked with one underlying store space.
+     */
     @Value.Immutable
-    interface EntryFamilyHandle {
+    interface Handle {
         UUID uniqueName();
     }
 
     /**
      * Gets the value associated with the entry specified by {@code key}.
      *
-     * @param entryFamilyHandle handle to the entry family from which we want to retrieve the value
-     * @param key                entry key for which we want to retrieve the value
+     * @param handle handle to the store space from which we want to retrieve the value
+     * @param key    entry key for which we want to retrieve the value
      * @return the {@link Optional} containing the value or empty if there is no associated value
-     * @throws SafeIllegalArgumentException when {@code entryFamilyHandle} is a handle to a non existing entry family
+     * @throws SafeIllegalArgumentException when referencing a non existing store space
      */
-    Optional<V> get(EntryFamilyHandle entryFamilyHandle, @Nonnull K key);
+    Optional<V> get(PersistentStore.Handle handle, @Nonnull K key);
 
     /**
      * Gets the values associated with the entries specified by {@code keys}.
      *
-     * @param entryFamilyHandle handle to the entry family from which we want to retrieve the values
-     * @param keys               representing keys for which we want to retrieve the values
+     * @param handle handle to the store space
+     * @param keys   representing keys for which we want to retrieve the values
      * @return a map from keys to values
      */
-    Map<K, V> get(EntryFamilyHandle entryFamilyHandle, List<K> keys);
+    Map<K, V> get(PersistentStore.Handle handle, List<K> keys);
 
     /**
      * Stores the {@code value} for the associated {@code key} while overwriting the existing value in the specified
-     * {@code entryFamilyHandle}.
+     * store space.
      *
-     * @param entryFamilyHandle of the store to which we should store the entry
-     * @param key                entry key
-     * @param value              entry value
-     * @throws SafeIllegalArgumentException when {@code entryFamilyHandle} is a handle to a non existing entry family
+     * @param handle of the store to which we should store the entry
+     * @param key    entry key
+     * @param value  entry value
+     * @throws SafeIllegalArgumentException when referencing a non existing store space
      */
-    void put(EntryFamilyHandle entryFamilyHandle, @Nonnull K key, @Nonnull V value);
+    void put(PersistentStore.Handle handle, @Nonnull K key, @Nonnull V value);
 
     /**
      * Stores the entry pairs given in {@code toWrite}, overwriting the existing values.
      *
-     * @param entryFamilyHandle of the store to which we should store the entry
-     * @param toWrite            entry pairs to write
-     * @throws SafeIllegalArgumentException when {@code entryFamilyHandle} is a handle to a non existing entry family
+     * @param handle  of the store space to which we should store the entry
+     * @param toWrite entry pairs to write
+     * @throws SafeIllegalArgumentException when referencing a non existing store space
      */
-    void put(EntryFamilyHandle entryFamilyHandle, Map<K, V> toWrite);
+    void put(PersistentStore.Handle handle, Map<K, V> toWrite);
 
     /**
-     * Creates a handle of type {@link EntryFamilyHandle} to the underlying store. Each call returns a new {@link
-     * EntryFamilyHandle}.
+     * Creates a store space to be used to store key-value pairs. Each call creates a new store space.
      *
-     * @return {@link EntryFamilyHandle} which represents a handle to the created entry family
+     * @return handle to the created store space.
      */
-    EntryFamilyHandle createEntryFamily();
+    PersistentStore.Handle createSpace();
 
     /**
-     * Drops the entry family specified by the supplied handle. Dropping of a entry family may fail if there are
-     * concurrent calls on the same entry family or if the entry family has already been dropped.
+     * Drops the store spacey specified by the supplied handle. Dropping of a store space may fail if there are
+     * concurrent calls on the same store space or if the store space has already been dropped.
      *
-     * @param entryFamilyHandle handle
-     * @throws SafeIllegalArgumentException if the {@code entryFamilyHandle} does not exist
+     * @param handle handle
+     * @throws SafeIllegalArgumentException if the {@code handle} points to a non-existing store space
      */
-    void dropEntryFamily(EntryFamilyHandle entryFamilyHandle);
+    void dropStoreSpace(PersistentStore.Handle handle);
 }

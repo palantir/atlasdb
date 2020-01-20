@@ -31,9 +31,8 @@ import org.rocksdb.RocksDB;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.persistent.api.ImmutableEntryFamilyHandle;
+import com.palantir.atlasdb.persistent.api.ImmutableHandle;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.atlasdb.persistent.api.PersistentStore.EntryFamilyHandle;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 import okio.ByteString;
@@ -42,7 +41,7 @@ public final class RocksDbPersistentStoreTests {
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private static final EntryFamilyHandle NON_EXISTING_NAMESPACE = ImmutableEntryFamilyHandle.builder()
+    private static final PersistentStore.Handle NON_EXISTING_NAMESPACE = ImmutableHandle.builder()
             .uniqueName(UUID.randomUUID())
             .build();
     private static final ByteString KEY = ByteString.encodeUtf8("key");
@@ -51,7 +50,7 @@ public final class RocksDbPersistentStoreTests {
     private static final ByteString VALUE2 = ByteString.encodeUtf8("value2");
 
     private PersistentStore<ByteString, ByteString> persistentStore;
-    private EntryFamilyHandle defaultNamespace;
+    private PersistentStore.Handle defaultNamespace;
 
     @Before
     public void before() throws Exception {
@@ -59,7 +58,7 @@ public final class RocksDbPersistentStoreTests {
         RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
         persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
-        defaultNamespace = persistentStore.createEntryFamily();
+        defaultNamespace = persistentStore.createSpace();
     }
 
     @After
@@ -80,17 +79,17 @@ public final class RocksDbPersistentStoreTests {
 
     @Test
     public void storeNamespaceUniqueness() {
-        EntryFamilyHandle differentDefault = persistentStore.createEntryFamily();
+        PersistentStore.Handle differentDefault = persistentStore.createSpace();
         assertThat(differentDefault).isNotEqualTo(defaultNamespace);
 
         persistentStore.put(defaultNamespace, KEY, VALUE);
         assertThat(persistentStore.get(differentDefault, KEY)).isEmpty();
-        persistentStore.dropEntryFamily(differentDefault);
+        persistentStore.dropStoreSpace(differentDefault);
     }
 
     @Test
     public void droppingNonExistingFails() {
-        assertThatThrownBy(() -> persistentStore.dropEntryFamily(NON_EXISTING_NAMESPACE))
+        assertThatThrownBy(() -> persistentStore.dropStoreSpace(NON_EXISTING_NAMESPACE))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
@@ -108,10 +107,10 @@ public final class RocksDbPersistentStoreTests {
 
     @Test
     public void droppingTwoTimesFailsOnSecond() {
-        EntryFamilyHandle testNamespace = persistentStore.createEntryFamily();
+        PersistentStore.Handle testNamespace = persistentStore.createSpace();
 
-        persistentStore.dropEntryFamily(testNamespace);
-        assertThatThrownBy(() -> persistentStore.dropEntryFamily(testNamespace))
+        persistentStore.dropStoreSpace(testNamespace);
+        assertThatThrownBy(() -> persistentStore.dropStoreSpace(testNamespace))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
