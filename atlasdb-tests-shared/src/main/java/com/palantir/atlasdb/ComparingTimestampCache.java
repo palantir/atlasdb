@@ -21,8 +21,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import com.palantir.atlasdb.cache.DefaultOffHeapCache;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
-import com.palantir.atlasdb.cache.OffHeapTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -40,7 +40,7 @@ public final class ComparingTimestampCache implements TimestampCache {
                 metricRegistry.getRegistry(),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
-        TimestampCache second = OffHeapTimestampCache.create(
+        TimestampCache second = DefaultOffHeapCache.create(
                 persistentStore,
                 metricRegistry.getTaggedRegistry(),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);

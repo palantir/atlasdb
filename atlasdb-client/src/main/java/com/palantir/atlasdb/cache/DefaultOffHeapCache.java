@@ -48,8 +48,8 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import okio.ByteString;
 
-public final class OffHeapTimestampCache implements TimestampCache {
-    private static final Logger log = LoggerFactory.getLogger(OffHeapTimestampCache.class);
+public final class DefaultOffHeapCache implements TimestampCache {
+    private static final Logger log = LoggerFactory.getLogger(DefaultOffHeapCache.class);
     private static final String BATCHER_PURPOSE = "off-heap-timestamp-cache";
     private static final MetricName CACHE_HIT = constructCacheMetricName("cacheHit");
     private static final MetricName CACHE_MISS = constructCacheMetricName("cacheMiss");
@@ -74,7 +74,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .handle(handle)
                 .build();
 
-        return new OffHeapTimestampCache(
+        return new DefaultOffHeapCache(
                 persistentStore,
                 new DeltaEncodingTimestampEntryMapper(new LongEntryMapper()),
                 cacheDescriptor,
@@ -82,7 +82,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 taggedMetricRegistry);
     }
 
-    private OffHeapTimestampCache(
+    private DefaultOffHeapCache(
             PersistentStore persistentStore,
             EntryMapper<Long, Long> entryMapper,
             CacheDescriptor cacheDescriptor,
@@ -145,25 +145,25 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     private static MetricName constructCacheMetricName(String metricSuffix) {
         return MetricName.builder()
-                .safeName(MetricRegistry.name(OffHeapTimestampCache.class, metricSuffix))
+                .safeName(MetricRegistry.name(DefaultOffHeapCache.class, metricSuffix))
                 .build();
     }
 
     private static class WriteBatcher implements CoalescingRequestFunction<Map.Entry<Long, Long>, Void> {
-        OffHeapTimestampCache offHeapTimestampCache;
+        DefaultOffHeapCache defaultOffHeapCache;
 
-        WriteBatcher(OffHeapTimestampCache offHeapTimestampCache) {
-            this.offHeapTimestampCache = offHeapTimestampCache;
+        WriteBatcher(DefaultOffHeapCache defaultOffHeapCache) {
+            this.defaultOffHeapCache = defaultOffHeapCache;
         }
 
         @Override
         public Map<Map.Entry<Long, Long>, Void> apply(Set<Map.Entry<Long, Long>> request) {
-            CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
-            if (cacheDescriptor.currentSize().get() >= offHeapTimestampCache.maxSize.getAsLong()) {
-                offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
-                offHeapTimestampCache.clear();
+            CacheDescriptor cacheDescriptor = defaultOffHeapCache.cacheDescriptor.get();
+            if (cacheDescriptor.currentSize().get() >= defaultOffHeapCache.maxSize.getAsLong()) {
+                defaultOffHeapCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
+                defaultOffHeapCache.clear();
             }
-            cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
+            cacheDescriptor = defaultOffHeapCache.cacheDescriptor.get();
             Set<Map.Entry<ByteString, ByteString>> serializedRequest = request.stream()
                     .map(this::serializeEntry)
                     .collect(Collectors.toSet());
@@ -172,11 +172,11 @@ public final class OffHeapTimestampCache implements TimestampCache {
                         .map(Map.Entry::getKey)
                         .collect(Collectors.toList());
                 Map<ByteString, ByteString> response =
-                        offHeapTimestampCache.persistentStore.get(cacheDescriptor.handle(), toWrite);
+                        defaultOffHeapCache.persistentStore.get(cacheDescriptor.handle(), toWrite);
 
                 int sizeIncrease = Sets.difference(request, response.entrySet()).size();
                 cacheDescriptor.currentSize().addAndGet(sizeIncrease);
-                offHeapTimestampCache.persistentStore.put(
+                defaultOffHeapCache.persistentStore.put(
                         cacheDescriptor.handle(),
                         ImmutableMap.copyOf(serializedRequest));
             } catch (SafeIllegalArgumentException exception) {
@@ -188,8 +188,8 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
         private Map.Entry<ByteString, ByteString> serializeEntry(Map.Entry<Long, Long> entry) {
             return Maps.immutableEntry(
-                    offHeapTimestampCache.entryMapper.serializeKey(entry.getKey()),
-                    offHeapTimestampCache.entryMapper.serializeValue(entry.getKey(), entry.getValue()));
+                    defaultOffHeapCache.entryMapper.serializeKey(entry.getKey()),
+                    defaultOffHeapCache.entryMapper.serializeValue(entry.getKey(), entry.getValue()));
         }
     }
 
