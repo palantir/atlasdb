@@ -2259,11 +2259,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 throw new TransactionLockTimeoutException("Our commit was already rolled back at commit time"
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
-            } else {
-                log.warn("Possible bug: Someone rolled back our transaction but"
-                        + " our locks were still valid; Atlas code is not allowed to do this, though others can.",
-                        SafeArg.of("immutableTimestampLock", immutableTimestampLock),
-                        SafeArg.of("commitLocksToken", commitLocksToken));
             }
         } catch (TransactionFailedException e1) {
             throw e1;
