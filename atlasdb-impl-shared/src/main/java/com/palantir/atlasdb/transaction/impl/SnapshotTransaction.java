@@ -1960,7 +1960,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             transactionOutcomeMetrics.markRollbackOtherTransaction();
             return true;
         } catch (KeyAlreadyExistsException e) {
-            log.info("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
+            log.debug("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
                     + " else's request with start: {}",
                     SafeArg.of("startTs", startTs),
                     new TransactionFailedRetriableException(
