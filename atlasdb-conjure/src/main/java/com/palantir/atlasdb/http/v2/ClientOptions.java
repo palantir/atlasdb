@@ -135,6 +135,15 @@ public abstract class ClientOptions {
                 .build();
     }
 
+    /**
+     * If {@link AuxiliaryRemotingParameters#shouldSupportBlockingOperations()} is configured to true, sets the read
+     * timeout of operations to {@link ClientOptions#BLOCKING_READ_TIMEOUT}; otherwise sets this to
+     * {@link ClientOptions#NON_BLOCKING_READ_TIMEOUT}. This controls how long the client waits to receive the first
+     * byte from the server before giving up, so in general read timeouts should not be set to less than what is
+     * considered an acceptable time for the server to give a suitable response.
+     *
+     * Connect timeouts are not affected by the value of {@param parameters}.
+     */
     private static void setupTimeouts(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
         builder.connectTimeout(CONNECT_TIMEOUT)
                 .readTimeout(parameters.shouldSupportBlockingOperations()

@@ -84,7 +84,7 @@ public class ClientOptionsTest {
     }
 
     @Test
-    public void defaultRetryingOptionsShouldMatchLegacyBehaviour() {
+    public void minimallySpecifiedRetryingParametersShouldMatchLegacyBehaviour() {
         ClientOptions clientOptions = ClientOptions.fromRemotingParameters(AuxiliaryRemotingParameters.builder()
                 .shouldLimitPayload(true)
                 .shouldRetry(true)
@@ -95,7 +95,7 @@ public class ClientOptionsTest {
     }
 
     @Test
-    public void defaultNonRetryingOptionsShouldMatchLegacyBehaviour() {
+    public void minimallySpecifiedNonRetryingParametersShouldMatchLegacyBehaviour() {
         ClientOptions clientOptions = ClientOptions.fromRemotingParameters(AuxiliaryRemotingParameters.builder()
                 .shouldLimitPayload(true)
                 .shouldRetry(false)
