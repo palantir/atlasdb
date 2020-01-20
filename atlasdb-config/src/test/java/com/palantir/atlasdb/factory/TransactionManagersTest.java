@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -38,19 +39,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.ws.rs.core.Response;
 
+import org.assertj.core.util.Files;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -72,12 +77,17 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.OffHeapTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
+import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
@@ -90,6 +100,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -104,7 +115,9 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.AutoDelegate_LockService;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -117,6 +130,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
@@ -192,7 +206,7 @@ public class TransactionManagersTest {
     private Consumer<Runnable> originalAsyncMethod;
 
     @ClassRule
-    public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public static final TemporaryFolder temporaryFolder = new TemporaryFolder(Files.currentFolder());
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
@@ -465,6 +479,38 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void interruptingLocalLeaderElectionTerminates() throws IOException {
+        Leaders.LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
+                metricsManager,
+                environment,
+                ImmutableLeaderConfig.builder()
+                        .localServer("https://example")
+                        .quorumSize(1)
+                        .addLeaders("https://example")
+                        .acceptorLogDir(temporaryFolder.newFolder())
+                        .learnerLogDir(temporaryFolder.newFolder())
+                        .build(),
+                () -> ImmutableLeaderRuntimeConfig.builder().build(),
+                USER_AGENT);
+        LeaderElectionService leader = localPaxosServices.leaderElectionService();
+        LockService lockService = LockServiceImpl.create();
+        LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(
+                LockService.class, () -> lockService, leader);
+        LockService localOrRemoteLock = LocalOrRemoteProxy.newProxyInstance(
+                LockService.class, leadershipLock, null, CompletableFuture.completedFuture(true));
+        try {
+            Thread.currentThread().interrupt();
+            assertThatCode(localOrRemoteLock::currentTimeMillis)
+                    .as("proxy correctly handles interrupts")
+                    .isInstanceOf(SafeIllegalStateException.class);
+            assertThat(Thread.currentThread().isInterrupted());
+        } finally {
+            // clear the interrupt flag to avoid affecting future tests
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void grabImmutableTsLockIsConfiguredWithBuilderOption() {
         TransactionConfig transactionConfig = ImmutableTransactionConfig.builder()
                 .build();
@@ -674,6 +720,88 @@ public class TransactionManagersTest {
     public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(false));
+    }
+
+    @Test
+    public void providedTimestampCacheOverridesAnyOtherConfig() {
+        MetricRegistry metricRegistry = metricsManager.getRegistry();
+        TimestampCache expectedTimestampCache = new DefaultTimestampCache(metricRegistry, () -> 10000L);
+
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
+                .timestampCache(expectedTimestampCache)
+                .build();
+
+        TimestampCache timestampCache = constructTimestampCache(installConfig, Optional.empty());
+
+        assertThat(timestampCache).isSameAs(expectedTimestampCache);
+    }
+
+    @Test
+    public void usingInMemoryTimestampCache() {
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
+                .build();
+
+        TimestampCache timestampCache = constructTimestampCache(installConfig, Optional.empty());
+
+        assertThat(timestampCache).isInstanceOf(DefaultTimestampCache.class);
+    }
+
+    @Test
+    public void usingPersistentStorage() throws IOException {
+        File storageFolder = temporaryFolder.newFolder();
+        String storagePath = Files.currentFolder().toPath()
+                .relativize(storageFolder.toPath())
+                .toString();
+
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
+                .persistentStorage(
+                        ImmutableRocksDbPersistentStorageConfig.builder()
+                                .storagePath(storagePath)
+                                .build())
+                .build();
+
+        Optional<PhysicalPersistentStore> persistentStore =
+                TransactionManagers.constructPersistentStoreIfConfigured(
+                        installConfig,
+                        new DefaultPhysicalPersistentStorageFactory(),
+                        new LinkedList<>());
+
+        TimestampCache timestampCache = constructTimestampCache(installConfig, persistentStore);
+
+        assertThat(timestampCache).isInstanceOf(OffHeapTimestampCache.class);
+    }
+
+    @Test
+    public void persistentStoreNotConstructed() {
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
+                .build();
+
+        Optional<PhysicalPersistentStore> persistentStore =
+                TransactionManagers.constructPersistentStoreIfConfigured(
+                        installConfig,
+                        new DefaultPhysicalPersistentStorageFactory(),
+                        new LinkedList<>());
+
+        assertThat(persistentStore)
+                .isEmpty();
+    }
+
+    private TimestampCache constructTimestampCache(
+            AtlasDbConfig installConfig,
+            Optional<PhysicalPersistentStore> persistentStore) {
+        return TransactionManagers.timestampCache(
+                installConfig,
+                metricsManager,
+                () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
+                persistentStore);
     }
 
     private KeyValueService initializeKeyValueServiceWithSweepSettings(

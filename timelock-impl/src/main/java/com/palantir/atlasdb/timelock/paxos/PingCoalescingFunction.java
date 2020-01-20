@@ -18,22 +18,37 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.atlasdb.timelock.paxos.AutobatchingPingableLeaderFactory.PingRequest;
 import com.palantir.paxos.LeaderPingResult;
+import com.palantir.paxos.LeaderPingResults;
+import com.palantir.paxos.LeaderPingerContext;
 
-final class PingCoalescingFunction implements CoalescingRequestFunction<Client, LeaderPingResult> {
+final class PingCoalescingFunction implements CoalescingRequestFunction<PingRequest, LeaderPingResult> {
 
-    private final BatchPingableLeader batchPingableLeader;
+    private final LeaderPingerContext<BatchPingableLeader> batchPingableLeader;
 
-    PingCoalescingFunction(BatchPingableLeader batchPingableLeader) {
+    PingCoalescingFunction(LeaderPingerContext<BatchPingableLeader> batchPingableLeader) {
         this.batchPingableLeader = batchPingableLeader;
     }
 
     @Override
-    public Map<Client, LeaderPingResult> apply(Set<Client> request) {
-        Set<Client> pingResults = batchPingableLeader.ping(request);
-        return Maps.toMap(request, client -> LeaderPingResult.fromBooleanResult(pingResults.contains(client)));
+    public Map<PingRequest, LeaderPingResult> apply(Set<PingRequest> requests) {
+        Set<Client> clientRequests = requests.stream().map(PingRequest::client).collect(Collectors.toSet());
+        Set<Client> pingResults = batchPingableLeader.pinger().ping(clientRequests);
+        return Maps.toMap(requests, client -> getLeaderPingResult(pingResults, client));
+    }
+
+    private LeaderPingResult getLeaderPingResult(Set<Client> pingResults, PingRequest currentRequest) {
+        if (pingResults.contains(currentRequest.client())) {
+            return LeaderPingResults.pingReturnedTrue(
+                    currentRequest.requestedLeaderId(),
+                    batchPingableLeader.hostAndPort());
+        } else {
+            return LeaderPingResults.pingReturnedFalse();
+        }
     }
 }

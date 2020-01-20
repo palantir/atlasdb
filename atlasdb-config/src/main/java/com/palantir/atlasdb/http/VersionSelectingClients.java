@@ -52,15 +52,30 @@ final class VersionSelectingClients {
             TargetFactory.InstanceAndVersion<T> legacyClient,
             VersionSelectingConfig versionSelectingConfig,
             Class<T> clazz) {
-        T instrumentedNewClient = instrumentWithClientVersionTag(
-                metricsManager.getTaggedRegistry(), newClient, clazz);
+        return createVersionSelectingClientWithRefreshingNewClient(
+                metricsManager,
+                () -> newClient,
+                legacyClient,
+                versionSelectingConfig,
+                clazz);
+    }
+
+    static <T> T createVersionSelectingClientWithRefreshingNewClient(
+            MetricsManager metricsManager,
+            Supplier<TargetFactory.InstanceAndVersion<T>> newClientSupplier,
+            TargetFactory.InstanceAndVersion<T> legacyClient,
+            VersionSelectingConfig versionSelectingConfig,
+            Class<T> clazz) {
+
+        Supplier<T> instrumentedNewClientSupplier = () -> instrumentWithClientVersionTag(
+                metricsManager.getTaggedRegistry(), newClientSupplier.get(), clazz);
         T instrumentedLegacyClient = instrumentWithClientVersionTag(
                 metricsManager.getTaggedRegistry(), legacyClient, clazz);
 
         AccumulatingValueMetric errorMetric = registerOrGetErrorMetric(metricsManager);
 
         return ExperimentRunningProxy.newProxyInstance(
-                instrumentedNewClient,
+                instrumentedNewClientSupplier,
                 instrumentedLegacyClient,
                 versionSelectingConfig.useNewClient(),
                 versionSelectingConfig.enableFallback(),

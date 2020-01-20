@@ -29,6 +29,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -48,6 +49,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @return true if and only if the TransactionManager has been fully initialized
      */
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }

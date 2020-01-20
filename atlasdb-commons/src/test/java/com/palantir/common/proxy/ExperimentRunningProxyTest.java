@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,17 +39,19 @@ public class ExperimentRunningProxyTest {
     private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException("foo");
 
     private final IntSupplier experimentalIntSupplier = mock(IntSupplier.class);
+    private final Supplier<IntSupplier> experimentSupplier = mock(Supplier.class);
     private final IntSupplier fallbackIntSupplier = () -> FALLBACK_RESULT;
     private final BooleanSupplier useExperimental = mock(BooleanSupplier.class);
     private final BooleanSupplier enableFallback = mock(BooleanSupplier.class);
     private final Clock clock = mock(Clock.class);
     private final AtomicLong errorCounter = new AtomicLong();
 
-    private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(experimentalIntSupplier,
+    private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(experimentSupplier,
             fallbackIntSupplier, useExperimental, enableFallback, clock, errorCounter::incrementAndGet));
 
     @Before
     public void setup() {
+        when(experimentSupplier.get()).thenReturn(experimentalIntSupplier);
         returnValueOnExperiment();
         enableFallback();
         setTimeTo(Instant.ofEpochSecond(0));

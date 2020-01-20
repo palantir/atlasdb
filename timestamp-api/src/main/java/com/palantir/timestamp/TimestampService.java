@@ -23,6 +23,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 
 /**
  * A {@link TimestampService} serves a sequence of timestamps. Requests to {@link TimestampService#getFreshTimestamp()}
@@ -42,6 +43,7 @@ public interface TimestampService {
      *
      * @return true iff the TimestampService has been fully initialized and is ready to use
      */
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }

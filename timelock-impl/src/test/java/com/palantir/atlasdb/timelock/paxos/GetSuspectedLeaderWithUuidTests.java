@@ -27,21 +27,26 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.paxos.LeaderPingerContext;
 
 public class GetSuspectedLeaderWithUuidTests {
 
@@ -62,7 +67,7 @@ public class GetSuspectedLeaderWithUuidTests {
 
         GetSuspectedLeaderWithUuid function = functionForRemotes(remote1, remote2);
 
-        TestBatchElement element1 = TestBatchElement.of(remote1.uuid());
+        TestBatchElement element1 = TestBatchElement.of(remote1.underlyingRpcClient().pinger().uuid());
         TestBatchElement element2 = TestBatchElement.random();
 
         function.accept(ImmutableList.of(element1, element2));
@@ -97,7 +102,7 @@ public class GetSuspectedLeaderWithUuidTests {
         assertThat(element.get())
                 .as("we're using the same instance for the same requests")
                 .isSameAs(elementWithSameUuid.get());
-        verify(remote, only()).uuid();
+        verify(remote.underlyingRpcClient().pinger(), only()).uuid();
     }
 
     @Test
@@ -110,18 +115,19 @@ public class GetSuspectedLeaderWithUuidTests {
         function.accept(ImmutableList.of(firstRequest));
 
         assertThat(firstRequest.get()).contains(remote);
-        verify(remote, times(1)).uuid();
+        verify(remote.underlyingRpcClient().pinger(), times(1)).uuid();
 
         TestBatchElement secondRequest = TestBatchElement.of(uuid);
         function.accept(ImmutableList.of(secondRequest));
 
         assertThat(secondRequest.get()).contains(remote);
-        verifyNoMoreInteractions(remote);
+        verifyNoMoreInteractions(remote.underlyingRpcClient().pinger());
     }
 
     private static ClientAwarePingableLeader remoteWithUuid(UUID uuid) {
-        ClientAwarePingableLeader mock = mock(ClientAwarePingableLeader.class);
-        return when(mock.uuid()).thenReturn(uuid).getMock();
+        ClientAwarePingableLeader mock = mock(ClientAwarePingableLeader.class, Answers.RETURNS_DEEP_STUBS);
+        when(mock.underlyingRpcClient().pinger().uuid()).thenReturn(uuid);
+        return mock;
     }
 
     private static ClientAwarePingableLeader remoteWithRandomUuid() {
@@ -129,10 +135,16 @@ public class GetSuspectedLeaderWithUuidTests {
     }
 
     private GetSuspectedLeaderWithUuid functionForRemotes(ClientAwarePingableLeader... remotes) {
-        Map<ClientAwarePingableLeader, ExecutorService> executors =
-                Maps.toMap(ImmutableList.copyOf(remotes), $ -> executorService);
+        Set<ClientAwarePingableLeader> clientAwareLeaders = ImmutableSet.copyOf(remotes);
 
-        return new GetSuspectedLeaderWithUuid(executors, LOCAL_UUID, Duration.ofSeconds(1));
+        Set<LeaderPingerContext<BatchPingableLeader>> rpcClients = clientAwareLeaders.stream()
+                .map(ClientAwarePingableLeader::underlyingRpcClient)
+                .collect(Collectors.toSet());
+
+        Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors =
+                Maps.toMap(ImmutableList.copyOf(rpcClients), $ -> executorService);
+
+        return new GetSuspectedLeaderWithUuid(executors, clientAwareLeaders, LOCAL_UUID, Duration.ofSeconds(1));
     }
 
     @Value.Immutable

@@ -16,59 +16,59 @@
 package com.palantir.atlasdb.timelock;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.FileWriter;
+import java.util.Locale;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateExceptionHandler;
 
 public class TemporaryConfigurationHolder extends ExternalResource {
-    @VisibleForTesting
-    static final String TEMP_DATA_DIR = "<TEMP_DATA_DIR>";
+
+    private static final Configuration TEMPLATE_CONFIG = templateConfig();
 
     private final TemporaryFolder temporaryFolder;
-    private final File configTemplate;
+    private final String templateName;
+    private final ImmutableTemplateVariables variables;
 
     private File temporaryConfigFile;
-    private File temporaryLogDirectory;
 
-    TemporaryConfigurationHolder(TemporaryFolder temporaryFolder, File configTemplate) {
+    TemporaryConfigurationHolder(
+            TemporaryFolder temporaryFolder,
+            String templateName,
+            TemplateVariables variables) {
         this.temporaryFolder = temporaryFolder;
-        this.configTemplate = configTemplate;
+        this.templateName = templateName;
+        this.variables = ImmutableTemplateVariables.copyOf(variables);
+    }
+
+    private static Configuration templateConfig() {
+        Configuration config = new Configuration(Configuration.VERSION_2_3_29);
+        config.setClassLoaderForTemplateLoading(TemporaryConfigurationHolder.class.getClassLoader(), "/");
+        config.setDefaultEncoding("UTF-8");
+        config.setLocale(Locale.UK);
+        config.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+        return config;
     }
 
     @Override
     public void before() throws Exception {
         temporaryConfigFile = temporaryFolder.newFile();
-        temporaryLogDirectory = temporaryFolder.newFolder();
         createTemporaryConfigFile();
     }
 
-    private void createTemporaryConfigFile() throws IOException {
-        writeNewFileWithPlaceholderSubstituted(configTemplate, temporaryLogDirectory.getPath(), temporaryConfigFile);
-    }
-
-    @VisibleForTesting
-    static void writeNewFileWithPlaceholderSubstituted(File sourceFile, String substitution, File destinationFile)
-            throws IOException {
-        Preconditions.checkArgument(!sourceFile.getCanonicalFile().equals(destinationFile.getCanonicalFile()),
-                "The source and destination files both point to '%s'.", sourceFile.getCanonicalPath());
-
-        String oldConfig = FileUtils.readFileToString(sourceFile, StandardCharsets.UTF_8);
-        String newConfig = replaceTempDataDirPlaceholder(oldConfig, substitution);
-        FileUtils.writeStringToFile(destinationFile, newConfig, StandardCharsets.UTF_8);
-    }
-
-    @VisibleForTesting
-    static String replaceTempDataDirPlaceholder(String config, String substitution) {
-        return config.replace(TEMP_DATA_DIR, substitution);
+    private void createTemporaryConfigFile() throws Exception {
+        Template template = TEMPLATE_CONFIG.getTemplate(templateName);
+        template.process(
+                variables.withDataDirectory(temporaryFolder.newFolder().getAbsolutePath()),
+                new FileWriter(temporaryConfigFile));
     }
 
     String getTemporaryConfigFileLocation() {
         return temporaryConfigFile.getPath();
     }
+
 }

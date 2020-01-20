@@ -18,6 +18,7 @@ package com.palantir.timelock.paxos;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.ManagedTimestampService;
 
@@ -27,7 +28,7 @@ public interface TimeLockServicesCreator {
      * and lock service supplier.
      */
     TimeLockServices createTimeLockServices(
-            String client,
+            Client client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier);
 }

@@ -47,6 +47,7 @@ dependencies {
     testCompile group: 'com.github.tomakehurst', name: 'wiremock'
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.awaitility', name: 'awaitility'
+    testCompile group: 'com.github.stefanbirkner', name: 'system-rules'
     // Needed for Jersey Response-based tests
     testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
 }

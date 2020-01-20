@@ -28,7 +28,6 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchEventVisitor;
 
 public class ArrayLockEventSlidingWindowTest {
     private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(10);
@@ -104,7 +103,7 @@ public class ArrayLockEventSlidingWindowTest {
     }
 
     private static LockWatchEvent createEvent(long sequence) {
-        return ImmutableFakeLockWatchEvent.of(sequence);
+        return ImmutableFakeLockWatchEvent.of(sequence, 1);
     }
 
     @Value.Immutable
@@ -112,8 +111,11 @@ public class ArrayLockEventSlidingWindowTest {
         @Value.Parameter
         public abstract long sequence();
 
+        @Value.Parameter
+        public abstract int size();
+
         @Override
-        public <T> T accept(LockWatchEventVisitor<T> visitor) {
+        public <T> T accept(LockWatchEvent.Visitor<T> visitor) {
             // do nothing
             return null;
         }

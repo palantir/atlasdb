@@ -16,21 +16,39 @@
 
 package com.palantir.lock.watch;
 
+import java.util.UUID;
+
 import org.immutables.value.Value;
+
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@JsonSerialize(as = ImmutableLockWatchCreatedEvent.class)
+@JsonDeserialize(as = ImmutableLockWatchCreatedEvent.class)
+@JsonTypeName(LockWatchCreatedEvent.TYPE)
 public abstract class LockWatchCreatedEvent implements LockWatchEvent {
-    abstract LockWatchRequest request();
+    static final String TYPE = "created";
+
+    public abstract UUID lockWatchId();
+    public abstract LockWatchRequest request();
 
     @Override
-    public <T> T accept(LockWatchEventVisitor<T> visitor) {
+    public int size() {
+        return request().references().size();
+    }
+
+    @Override
+    public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
     }
 
-    public static LockWatchEvent.Builder builder(LockWatchRequest request) {
+    public static LockWatchEvent.Builder builder(LockWatchRequest request, UUID lockWatchId) {
         ImmutableLockWatchCreatedEvent.Builder builder = ImmutableLockWatchCreatedEvent.builder()
-                .request(request);
+                .request(request)
+                .lockWatchId(lockWatchId);
         return seq -> builder.sequence(seq).build();
     }
 }

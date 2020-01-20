@@ -98,6 +98,12 @@ public abstract class LeaderConfig {
         return Duration.ofMillis(leaderPingResponseWaitMs());
     }
 
+    @JsonIgnore
+    @Value.Default
+    public Duration leaderAddressCacheTtl() {
+        return Duration.ofSeconds(15);
+    }
+
     @Value.Check
     protected final void check() {
         Preconditions.checkState(quorumSize() > leaders().size() / 2,

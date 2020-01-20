@@ -15,7 +15,10 @@
  */
 package com.palantir.lock.impl;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -76,7 +79,7 @@ public class LegacyTimelockServiceTest {
 
     @Test
     public void freshTimestampDelegatesToTimestampService() {
-        assertEquals(FRESH_TIMESTAMP, timelock.getFreshTimestamp());
+        assertThat(timelock.getFreshTimestamp()).isEqualTo(FRESH_TIMESTAMP);
     }
 
     @Test
@@ -85,7 +88,7 @@ public class LegacyTimelockServiceTest {
         TimestampRange range = TimestampRange.createInclusiveRange(21L, 30L);
         when(timestampService.getFreshTimestamps(numTimestamps)).thenReturn(range);
 
-        assertEquals(range, timelock.getFreshTimestamps(numTimestamps));
+        assertThat(timelock.getFreshTimestamps(numTimestamps)).isEqualTo(range);
     }
 
     @Test
@@ -97,7 +100,7 @@ public class LegacyTimelockServiceTest {
 
         LockImmutableTimestampResponse expectedResponse = LockImmutableTimestampResponse.of(immutableTs,
                 toTokenV2(expectedToken));
-        assertEquals(expectedResponse, timelock.lockImmutableTimestamp());
+        assertThat(timelock.lockImmutableTimestamp()).isEqualTo(expectedResponse);
     }
 
     @Test
@@ -108,7 +111,7 @@ public class LegacyTimelockServiceTest {
 
         mockMinLockedInVersionIdResponse(immutableTs);
 
-        assertEquals(immutableTs, timelock.getImmutableTimestamp());
+        assertThat(timelock.getImmutableTimestamp()).isEqualTo(immutableTs);
         inOrder.verify(timestampService).getFreshTimestamp();
         inOrder.verify(lockService).getMinLockedInVersionId(LOCK_CLIENT.getClientId());
     }
@@ -117,7 +120,7 @@ public class LegacyTimelockServiceTest {
     public void getImmutableTimestampReturnsFreshTimestampIfMinLockedInVersionIsNull() throws InterruptedException {
         mockMinLockedInVersionIdResponse(null);
 
-        assertEquals(FRESH_TIMESTAMP, timelock.getImmutableTimestamp());
+        assertThat(timelock.getImmutableTimestamp()).isEqualTo(FRESH_TIMESTAMP);
     }
 
     @Test
@@ -128,9 +131,32 @@ public class LegacyTimelockServiceTest {
 
         when(lockService.lock(LockClient.ANONYMOUS.getClientId(), legacyRequest)).thenReturn(LOCK_REFRESH_TOKEN);
 
-        assertEquals(LockResponse.successful(LOCK_TOKEN_V2), timelock.lock(
-                LockRequest.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)));
+        assertThat(timelock.lock(LockRequest.of(ImmutableSet.of(LOCK_A, LOCK_B), TIMEOUT)))
+                .isEqualTo(LockResponse.successful(LOCK_TOKEN_V2));
         verify(lockService).lock(LockClient.ANONYMOUS.getClientId(), legacyRequest);
+    }
+
+    @Test
+    public void unlocksImmutableTimestampLockIfGettingMinLockedInVersionThrows() throws InterruptedException {
+        Exception illegalStateException = new IllegalStateException();
+        when(timestampService.getFreshTimestamp()).thenReturn(5L);
+        when(lockService.lock(eq(LOCK_CLIENT.getClientId()), any())).thenReturn(LOCK_REFRESH_TOKEN);
+        when(lockService.getMinLockedInVersionId(any(String.class))).thenThrow(illegalStateException);
+
+        assertThatThrownBy(timelock::lockImmutableTimestamp).hasCause(illegalStateException);
+        verify(lockService).unlock(LOCK_REFRESH_TOKEN);
+    }
+
+    @Test
+    public void unlocksImmutableTimestampLockFromStartAtlasDbTransaction() throws InterruptedException {
+        Exception illegalStateException = new IllegalStateException();
+        when(timestampService.getFreshTimestamp())
+                .thenReturn(5L) // needed because locking the immutable timestamp takes out a fresh ts
+                .thenThrow(illegalStateException);
+        when(lockService.lock(eq(LOCK_CLIENT.getClientId()), any())).thenReturn(LOCK_REFRESH_TOKEN);
+
+        assertThatThrownBy(timelock::startIdentifiedAtlasDbTransaction).isEqualTo(illegalStateException);
+        verify(lockService).unlock(LOCK_REFRESH_TOKEN);
     }
 
     @Test
@@ -167,7 +193,7 @@ public class LegacyTimelockServiceTest {
         when(lockService.unlock(toLegacyToken(tokenB))).thenReturn(false);
 
         Set<LockToken> expected = ImmutableSet.of(tokenA);
-        assertEquals(expected, timelock.unlock(ImmutableSet.of(tokenA, tokenB)));
+        assertThat(timelock.unlock(ImmutableSet.of(tokenA, tokenB))).isEqualTo(expected);
     }
 
     private static LockToken randomLockToken() {
@@ -179,7 +205,7 @@ public class LegacyTimelockServiceTest {
         long time = 456L;
         when(lockService.currentTimeMillis()).thenReturn(time);
 
-        assertEquals(time, timelock.currentTimeMillis());
+        assertThat(timelock.currentTimeMillis()).isEqualTo(time);
     }
 
     private void mockMinLockedInVersionIdResponse(Long immutableTs) {

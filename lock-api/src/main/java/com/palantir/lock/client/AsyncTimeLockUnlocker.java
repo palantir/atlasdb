@@ -56,7 +56,7 @@ public final class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoClosea
                     } catch (Throwable t) {
                         log.info("Failed to unlock lock tokens {} from timelock. They will eventually expire on their "
                                         + "own, but if this message recurs frequently, it may be worth investigation.",
-                                SafeArg.of("lockTokens", allTokensToUnlock),
+                                SafeArg.of("numFailed", allTokensToUnlock.size()),
                                 t);
                     }
                     batch.stream().map(BatchElement::result).forEach(f -> f.set(null));

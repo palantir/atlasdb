@@ -80,20 +80,17 @@ public class LocalPaxosComponents {
         PaxosLearner learner = metrics.instrument(
                 PaxosLearner.class,
                 PaxosLearnerImpl.newLearner(learnerLogDir.toString()),
-                "paxos-learner",
                 client);
 
         Path acceptorLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
         PaxosAcceptor acceptor = metrics.instrument(
                 PaxosAcceptor.class,
                 PaxosAcceptorImpl.newAcceptor(acceptorLogDir.toString()),
-                "paxos-acceptor",
                 client);
 
         PingableLeader localPingableLeader = metrics.instrument(
                 PingableLeader.class,
                 new LocalPingableLeader(learner, leaderUuid),
-                "pingable-leader",
                 client);
 
         return ImmutableComponents.builder()
@@ -105,18 +102,16 @@ public class LocalPaxosComponents {
 
     private BatchPaxosAcceptor createBatchAcceptor() {
         AcceptorCache acceptorCache = metrics
-                .instrument(AcceptorCache.class, new AcceptorCacheImpl(), "acceptor-cache");
+                .instrument(AcceptorCache.class, new AcceptorCacheImpl());
         return metrics.instrument(
                 BatchPaxosAcceptor.class,
-                new LocalBatchPaxosAcceptor(this, acceptorCache),
-                "local-batch-paxos-acceptor");
+                new LocalBatchPaxosAcceptor(this, acceptorCache));
     }
 
     private BatchPaxosLearner createBatchLearner() {
         return metrics.instrument(
                 BatchPaxosLearner.class,
-                new LocalBatchPaxosLearner(this),
-                "local-batch-paxos-learner");
+                new LocalBatchPaxosLearner(this));
     }
 
     @Value.Immutable

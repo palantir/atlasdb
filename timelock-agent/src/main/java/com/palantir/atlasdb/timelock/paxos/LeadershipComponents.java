@@ -31,11 +31,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
-import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
+import com.palantir.timelock.paxos.NamespaceTracker;
 
 public class LeadershipComponents {
 
@@ -44,20 +45,17 @@ public class LeadershipComponents {
     private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = Maps.newConcurrentMap();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
-    private final TimelockPaxosMetrics metrics;
     private final Factory<LeadershipContext> leadershipContextFactory;
-    private final LeaderPingHealthCheck leaderPingHealthCheck;
+    private final List<HealthCheckPinger> healthCheckPingers;
 
-    public LeadershipComponents(
-            TimelockPaxosMetrics metrics,
+    LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
-            LeaderPingHealthCheck leaderPingHealthCheck) {
-        this.metrics = metrics;
+            List<HealthCheckPinger> healthCheckPingers) {
         this.leadershipContextFactory = leadershipContextFactory;
-        this.leaderPingHealthCheck = leaderPingHealthCheck;
+        this.healthCheckPingers = healthCheckPingers;
     }
 
-    public <T> T wrapInLeadershipProxy(Client client, String name, Class<T> clazz, Supplier<T> delegateSupplier) {
+    public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
         LeadershipContext context = getOrCreateNewLeadershipContext(client);
         T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, context.leaderElectionService());
 
@@ -65,15 +63,15 @@ public class LeadershipComponents {
         Closeable closeableInstance = (Closeable) instance;
         closer.register(closeableInstance);
 
-        return context.leadershipMetrics().instrument(name, clazz, instance);
+        return context.leadershipMetrics().instrument(clazz, instance);
     }
 
     public void shutdown() {
         closer.shutdown();
     }
 
-    public LeaderPingHealthCheck healthCheck() {
-        return leaderPingHealthCheck;
+    public LeaderPingHealthCheck healthCheck(NamespaceTracker namespaceTracker) {
+        return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers);
     }
 
     private LeadershipContext getOrCreateNewLeadershipContext(Client client) {
@@ -84,15 +82,9 @@ public class LeadershipComponents {
         LeadershipContext uninstrumentedLeadershipContext = leadershipContextFactory.create(client);
         closer.register(uninstrumentedLeadershipContext.closeables());
 
-        BatchingLeaderElectionService batchingLeaderElectionService =
-                new BatchingLeaderElectionService(uninstrumentedLeadershipContext.leaderElectionService());
-        closer.register(batchingLeaderElectionService);
-
-        LeaderElectionService leaderElectionService = metrics.instrument(
+        LeaderElectionService leaderElectionService = uninstrumentedLeadershipContext.leadershipMetrics().instrument(
                 LeaderElectionService.class,
-                batchingLeaderElectionService,
-                "leader-election-service",
-                client);
+                uninstrumentedLeadershipContext.leaderElectionService());
         closer.register(() -> shutdownLeaderElectionService(leaderElectionService));
 
         return ImmutableLeadershipContext.builder()

@@ -38,9 +38,9 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
+    private static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
     private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
 
-    public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
     final TimestampCache timestampValidationReadCache;
     private volatile boolean closed = false;
 

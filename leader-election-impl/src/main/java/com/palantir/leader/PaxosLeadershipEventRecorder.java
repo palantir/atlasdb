@@ -45,9 +45,9 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
             TaggedMetricRegistry metrics,
             String leaderUuid,
             @Nullable LeadershipObserver observer,
-            List<SafeArg<String>> safeArgs) {
+            List<SafeArg<String>> safeLoggingArgs) {
         return new PaxosLeadershipEventRecorder(
-                new LeadershipEvents(metrics, safeArgs),
+                new LeadershipEvents(metrics, safeLoggingArgs),
                 leaderUuid,
                 Optional.ofNullable(observer));
     }

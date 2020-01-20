@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -36,9 +38,8 @@ public class TimeLockServerDownIntegrationTest {
     private static final byte[] DATA = "foo".getBytes();
     private static final Cell CELL = Cell.create("bar".getBytes(), "baz".getBytes());
 
-    private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "https://localhost",
-            "paxosSingleServer.yml");
+    private static final TestableTimelockCluster CLUSTER =
+            new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();

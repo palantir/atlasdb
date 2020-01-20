@@ -61,7 +61,7 @@ public class HeldLocks {
     }
 
     private void registerLock() {
-        lockWatchingService.registerLock(descriptors.get());
+        lockWatchingService.registerLock(descriptors.get(), token);
     }
 
     /**

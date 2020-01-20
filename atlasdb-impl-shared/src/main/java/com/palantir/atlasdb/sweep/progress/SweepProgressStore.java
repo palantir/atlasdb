@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 
 @AutoDelegate
 public interface SweepProgressStore {
@@ -28,6 +29,7 @@ public interface SweepProgressStore {
 
     Optional<SweepProgress> loadProgress(TableReference tableRef);
 
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }

@@ -40,6 +40,7 @@ public final class LeaderElectionServiceBuilder {
     @Nullable private PaxosLeaderElectionEventRecorder eventRecorder = PaxosLeaderElectionEventRecorder.NO_OP;
     @Nullable private Duration pingRate;
     @Nullable private Duration randomWaitBeforeProposingLeadership;
+    @Nullable private Duration leaderAddressCacheTtl;
     @Nullable private UUID leaderUuid;
     private UnaryOperator<PaxosProposer> proposerDecorator = paxosProposer -> paxosProposer;
 
@@ -86,6 +87,13 @@ public final class LeaderElectionServiceBuilder {
         return this;
     }
 
+    public LeaderElectionServiceBuilder leaderAddressCacheTtl(Duration leaderAddressCacheTtl) {
+        Preconditions.checkNotNull(leaderAddressCacheTtl, "leaderAddressCacheTtl cannot be null");
+        Preconditions.checkArgument(!leaderAddressCacheTtl.isNegative(), "leaderAddressCacheTtl must be positive");
+        this.leaderAddressCacheTtl = leaderAddressCacheTtl;
+        return this;
+    }
+
     public LeaderElectionServiceBuilder leaderUuid(UUID leaderUuid) {
         this.leaderUuid = Preconditions.checkNotNull(leaderUuid, "leaderUuid cannot be null");
         return this;
@@ -103,8 +111,9 @@ public final class LeaderElectionServiceBuilder {
                 leaderPinger(),
                 acceptorClient(),
                 learnerClient(),
-                pingRate().toMillis(),
-                randomWaitBeforeProposingLeadership().toMillis(),
+                pingRate(),
+                randomWaitBeforeProposingLeadership(),
+                leaderAddressCacheTtl(),
                 eventRecorder());
     }
 
@@ -139,6 +148,10 @@ public final class LeaderElectionServiceBuilder {
     private Duration randomWaitBeforeProposingLeadership() {
         return Preconditions.checkNotNull(randomWaitBeforeProposingLeadership,
                 "randomWaitBeforeProposingLeadership not set");
+    }
+
+    private Duration leaderAddressCacheTtl() {
+        return Preconditions.checkNotNull(leaderAddressCacheTtl, "leaderAddressCacheTtl not set");
     }
 
     private UUID leaderUuid() {

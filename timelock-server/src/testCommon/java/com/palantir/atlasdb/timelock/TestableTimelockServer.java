@@ -18,10 +18,12 @@ package com.palantir.atlasdb.timelock;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TestableTimelockServer {
 
@@ -49,12 +51,23 @@ public class TestableTimelockServer {
         serverHolder.start();
     }
 
-    PingableLeader pingableLeader() {
-        return proxies.singleNode(serverHolder, PingableLeader.class);
+    TestableLeaderPinger pinger() {
+        PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class);
+        return namespaces -> {
+            if (pingableLeader.ping()) {
+                return ImmutableSet.copyOf(namespaces);
+            } else {
+                return ImmutableSet.of();
+            }
+        };
     }
 
     NamespacedClients client(String namespace) {
         return clientsByNamespace.computeIfAbsent(namespace, key -> NamespacedClients.from(namespace, proxyFactory));
+    }
+
+    public TaggedMetricRegistry taggedMetricRegistry() {
+        return serverHolder.getTaggedMetricsRegistry();
     }
 
     private static final class SingleNodeProxyFactory implements ProxyFactory {

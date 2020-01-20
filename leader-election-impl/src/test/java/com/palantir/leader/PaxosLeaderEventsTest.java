@@ -30,6 +30,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HostAndPort;
+import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.SingleLeaderPinger;
@@ -39,6 +41,8 @@ public class PaxosLeaderEventsTest {
 
     private static final UUID LOCAL_UUID = UUID.randomUUID();
     private static final UUID REMOTE_UUID = UUID.randomUUID();
+
+    private static final HostAndPort HOST_AND_PORT = HostAndPort.fromParts("localhost", 8080);
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -91,12 +95,12 @@ public class PaxosLeaderEventsTest {
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofSeconds(1));
         assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
-                .isEqualTo(LeaderPingResults.pingReturnedTrue());
+                .isEqualTo(LeaderPingResults.pingReturnedTrue(REMOTE_UUID, HOST_AND_PORT));
     }
 
     private LeaderPinger pingerWithTimeout(Duration leaderPingResponseWait) {
         return new SingleLeaderPinger(
-                ImmutableMap.of(pingableLeader, executorService),
+                ImmutableMap.of(ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT), executorService),
                 leaderPingResponseWait,
                 LOCAL_UUID);
     }

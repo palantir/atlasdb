@@ -424,7 +424,7 @@ Each column component is made up of a component name (specified in
 snake\_case), a value type, and optionally a byte ordering. Column
 components for dynamic columns must be primitive ValueTypes which can be
 partitioned and ordered. The order of the column component calls is the
-order in which the components will be stored together. Since dyanmic
+order in which the components will be stored together. Since dynamic
 columns of a row are retrieved in byte order, this means column
 component ordering determines sort ordering for retrieval.
 

@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Fix issue where we could get into a retry loop which when exhausted
+    would manifest in a non-actionable and non-retryable error resulting in visible
+    failures.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4481

@@ -25,6 +25,7 @@ public interface GenericsTester<A, B extends List<C>, C> {
 
     List<B> getListOfLists(A comparison);
 
+    @DoDelegate
     default Set<C> hello() {
         throw new UnsupportedOperationException("This class doesn't know how to say hello.");
     }

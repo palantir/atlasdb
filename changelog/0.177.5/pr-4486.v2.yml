@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Remediate a thread leak when the we reload the http clients every 30
+    minutes.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4486

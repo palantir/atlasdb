@@ -28,6 +28,7 @@ import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -262,6 +263,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      *
      * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)
      */
+    @DoDelegate
     default boolean supportsCheckAndSet() {
         return getCheckAndSetCompatibility() != CheckAndSetCompatibility.NOT_SUPPORTED;
     }
@@ -608,6 +610,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * Some compaction operations might block reads and writes.
      * These operations will trigger only if inMaintenanceMode is set to true.
      */
+    @DoDelegate
     @Timed
     default void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         compactInternally(tableRef);
@@ -638,6 +641,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      *         Note that this check ignores the cluster's availability - use {@link #getClusterAvailabilityStatus()} if
      *         you wish to verify that we can talk to the backing store.
      */
+    @DoDelegate
     default boolean isInitialized() {
         return true;
     }
@@ -646,6 +650,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * Whether or not read performance degrades significantly when many deleted cells are in the requested range.
      * This is used by sweep to determine if it should wait a while between runs after deleting a large number of cells.
      */
+    @DoDelegate
     default boolean performanceIsSensitiveToTombstones() {
         return false;
     }
@@ -653,6 +658,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * Whether {@link #compactInternally(TableReference)} should be called to free disk space.
      */
+    @DoDelegate
     default boolean shouldTriggerCompactions() {
         return false;
     }

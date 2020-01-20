@@ -72,7 +72,6 @@ public class PaxosTimestampCreator implements TimestampCreator {
                         acceptorNetworkClient,
                         learnerNetworkClient,
                         paxosRuntimeConfig.get().maximumWaitBeforeProposalMs()),
-                "paxos-timestamp-bound-store",
                 client);
         return PersistentTimestampServiceImpl.create(boundStore);
     }

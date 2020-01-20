@@ -17,6 +17,7 @@ package com.palantir.timelock.paxos;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -42,9 +43,9 @@ import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
-import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -61,7 +62,6 @@ public class TimeLockAgent {
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
     private final PaxosResources paxosResources;
-    private final PaxosLeadershipCreator leadershipCreator;
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
@@ -73,12 +73,13 @@ public class TimeLockAgent {
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
+            UserAgent userAgent,
             int threadPoolSize,
             long blockingTimeoutMs,
             Consumer<Object> registrar) {
         ExecutorService executor = createSharedExecutor(metricsManager);
         PaxosResources paxosResources = PaxosResourcesFactory.create(
-                ImmutableTimelockPaxosInstallationContext.of(install),
+                ImmutableTimelockPaxosInstallationContext.of(install, userAgent),
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
                 executor);
@@ -108,7 +109,6 @@ public class TimeLockAgent {
         this.registrar = registrar;
         this.paxosResources = paxosResources;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
-        this.leadershipCreator = new PaxosLeadershipCreator(metricsManager, install, runtime, registrar);
         this.timestampCreator = getTimestampCreator();
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
@@ -118,7 +118,7 @@ public class TimeLockAgent {
         this.timelockCreator = new AsyncTimeLockServicesCreator(
                 metricsManager,
                 lockLog,
-                leadershipCreator,
+                paxosResources.leadershipComponents(),
                 install.lockDiagnosticConfig(),
                 targetedSweepLockControlConfig);
     }
@@ -156,14 +156,13 @@ public class TimeLockAgent {
     private void createAndRegisterResources() {
         registerPaxosResource();
         registerExceptionMappers();
-        leadershipCreator.registerLeaderElectionService();
 
         // Finally, register the health check, and endpoints associated with the clients.
-        healthCheck = leadershipCreator.getHealthCheck();
         resource = TimeLockResource.create(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
+        healthCheck = paxosResources.leadershipComponents().healthCheck(resource::getActiveClients);
         LockWatchTestingService.create(
                 Suppliers.compose(TimeLockRuntimeConfiguration::lockWatchTestConfig, runtime::get),
                 resource::getLockWatchingResource);
@@ -171,12 +170,12 @@ public class TimeLockAgent {
     }
 
     @SuppressWarnings("unused") // used by external health checks
-    public TimeLockStatus getStatus() {
+    public Optional<HealthCheckDigest> getStatus() {
         if (getNumberOfActiveClients() == 0) {
-            return TimeLockStatus.PENDING_ELECTION;
+            return Optional.empty();
         }
 
-        return healthCheck.getStatus();
+        return Optional.of(healthCheck.getStatus());
     }
 
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks
@@ -231,13 +230,14 @@ public class TimeLockAgent {
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
                 .build();
 
+        Client typedClient = Client.of(client);
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
-                .createTimestampService(Client.of(client), leaderConfig);
+                .createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
-        return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
+        return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
 
     public void shutdown() {
-        leadershipCreator.shutdown();
+        paxosResources.leadershipComponents().shutdown();
     }
 }

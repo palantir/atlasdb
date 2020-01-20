@@ -17,8 +17,7 @@ package com.palantir.common.concurrent;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
@@ -29,10 +28,8 @@ import com.google.common.base.Throwables;
  * requested; requests will not receive results for computations that started prior to the request.
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
-
     private final Supplier<T> delegate;
-    private volatile CompletableFuture<T> nextResult = new CompletableFuture<T>();
-    private final Lock fairLock = new ReentrantLock(true);
+    private volatile Round round = new Round();
 
     public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
@@ -40,41 +37,53 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     @Override
     public T get() {
-        CompletableFuture<T> future = nextResult;
-
-        completeOrWaitForCompletion(future);
-
-        return getResult(future);
+        Round present = round;
+        if (present.isFirstToArrive()) {
+            present.execute();
+            return present.getResult();
+        }
+        Round next = present.awaitDone();
+        if (next.isFirstToArrive()) {
+            next.execute();
+        }
+        return next.getResult();
     }
 
-    private void completeOrWaitForCompletion(CompletableFuture<T> future) {
-        fairLock.lock();
-        try {
-            resetAndCompleteIfNotCompleted(future);
-        } finally {
-            fairLock.unlock();
+    private final class Round {
+        private final AtomicBoolean hasStarted = new AtomicBoolean(false);
+        private final CompletableFuture<T> future = new CompletableFuture<>();
+        private volatile Round next;
+
+        boolean isFirstToArrive() {
+            // adding the get benchmarks as faster, expected because compareAndSet forces an exclusive cache line
+            return !hasStarted.get() && hasStarted.compareAndSet(false, true);
+        }
+
+        Round awaitDone() {
+            try {
+                future.join();
+            } catch (CompletionException e) {
+                // ignore
+            }
+            return next;
+        }
+
+        void execute() {
+            next = new Round();
+            try {
+                future.complete(delegate.get());
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
+            round = next;
+        }
+
+        T getResult() {
+            try {
+                return future.join();
+            } catch (CompletionException e) {
+                throw Throwables.propagate(e.getCause());
+            }
         }
     }
-
-    private void resetAndCompleteIfNotCompleted(CompletableFuture<T> future) {
-        if (future.isDone()) {
-            return;
-        }
-
-        nextResult = new CompletableFuture<T>();
-        try {
-            future.complete(delegate.get());
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-    }
-
-    private T getResult(CompletableFuture<T> future) {
-        try {
-            return future.getNow(null);
-        } catch (CompletionException ex) {
-            throw Throwables.propagate(ex.getCause());
-        }
-    }
-
 }

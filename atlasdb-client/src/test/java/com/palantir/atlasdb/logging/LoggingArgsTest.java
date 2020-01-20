@@ -64,15 +64,11 @@ public class LoggingArgsTest {
     private static final String UNSAFE_ROW_NAME = "row";
     private static final String SAFE_COLUMN_NAME = "safecolumn";
     private static final String SAFE_COLUMN_NAME_2 = "safecolumn2";
-    private static final String UNSAFE_COLUMN_NAME = "column";
-    private static final String UNSAFE_COLUMN_NAME_2 = "column2";
 
     private static final byte[] SAFE_ROW_NAME_BYTES = PtBytes.toBytes(SAFE_ROW_NAME);
     private static final byte[] UNSAFE_ROW_NAME_BYTES = PtBytes.toBytes(UNSAFE_ROW_NAME);
     private static final byte[] SAFE_COLUMN_NAME_BYTES = PtBytes.toBytes(SAFE_COLUMN_NAME);
-    private static final byte[] UNSAFE_COLUMN_NAME_BYTES = PtBytes.toBytes(UNSAFE_COLUMN_NAME);
     private static final byte[] SAFE_COLUMN_NAME_BYTES_2 = PtBytes.toBytes(SAFE_COLUMN_NAME_2);
-    private static final byte[] UNSAFE_COLUMN_NAME_BYTES_2 = PtBytes.toBytes(UNSAFE_COLUMN_NAME_2);
 
     private static final RangeRequest SAFE_RANGE_REQUEST = RangeRequest.builder()
             .retainColumns(ImmutableList.of(SAFE_ROW_NAME_BYTES)).build();
@@ -83,16 +79,8 @@ public class LoggingArgsTest {
 
     private static final ColumnRangeSelection SAFE_COLUMN_RANGE = new ColumnRangeSelection(
             SAFE_COLUMN_NAME_BYTES, SAFE_COLUMN_NAME_BYTES_2);
-    private static final ColumnRangeSelection UNSAFE_COLUMN_RANGE = new ColumnRangeSelection(
-            UNSAFE_COLUMN_NAME_BYTES, UNSAFE_COLUMN_NAME_BYTES_2);
-    private static final ColumnRangeSelection MIXED_COLUMN_RANGE = new ColumnRangeSelection(
-            SAFE_COLUMN_NAME_BYTES, PtBytes.toBytes("zzzzzzz")); // This is unsafe, and later than "saferow"
     private static final BatchColumnRangeSelection SAFE_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
             SAFE_COLUMN_RANGE, 1);
-    private static final BatchColumnRangeSelection UNSAFE_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
-            UNSAFE_COLUMN_RANGE, 1);
-    private static final BatchColumnRangeSelection MIXED_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
-            MIXED_COLUMN_RANGE, 1);
 
     public static final boolean ALL_SAFE_FOR_LOGGING = true;
     public static final boolean NOT_ALL_SAFE_FOR_LOGGING = false;
@@ -156,20 +144,6 @@ public class LoggingArgsTest {
     }
 
     @Test
-    public void propagatesNameAndRowComponentNameIfSafe() {
-        Arg<String> rowNameArg = LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME);
-        assertThat(rowNameArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(rowNameArg.getValue()).isEqualTo(SAFE_ROW_NAME);
-    }
-
-    @Test
-    public void propagatesNameAndColumnNameIfSafe() {
-        Arg<String> columnNameArg = LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME);
-        assertThat(columnNameArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(columnNameArg.getValue()).isEqualTo(SAFE_COLUMN_NAME);
-    }
-
-    @Test
     public void canReturnBothSafeAndUnsafeTableReferences() {
         assertThat(LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE)).isInstanceOf(SafeArg.class);
         assertThat(LoggingArgs.tableRef(ARG_NAME, UNSAFE_TABLE_REFERENCE)).isInstanceOf(UnsafeArg.class);
@@ -181,48 +155,8 @@ public class LoggingArgsTest {
         LoggingArgs.SafeAndUnsafeTableReferences returnedArgs =
                 LoggingArgs.tableRefs(LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES);
 
-        assertThat(returnedArgs.safeTableRefs().getValue().contains(SAFE_TABLE_REFERENCE));
-        assertThat(returnedArgs.unsafeTableRefs().getValue().contains(UNSAFE_TABLE_REFERENCE));
-    }
-
-    @Test
-    public void canReturnBothSafeAndUnsafeRowComponentNames() {
-        assertThat(LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME))
-                .isInstanceOf(SafeArg.class);
-        assertThat(LoggingArgs.rowComponent(ARG_NAME, UNSAFE_TABLE_REFERENCE, UNSAFE_ROW_NAME))
-                .isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void canReturnBothSafeAndUnsafeColumnNames() {
-        assertThat(LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME))
-                .isInstanceOf(SafeArg.class);
-        assertThat(LoggingArgs.columnName(ARG_NAME, UNSAFE_TABLE_REFERENCE, UNSAFE_COLUMN_NAME))
-                .isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void canReturnSafeRowComponentEvenIfTableReferenceIsUnsafe() {
-        assertThat(LoggingArgs.rowComponent(ARG_NAME, UNSAFE_TABLE_REFERENCE, SAFE_ROW_NAME))
-                .isInstanceOf(SafeArg.class);
-    }
-
-    @Test
-    public void canReturnUnsafeRowComponentEvenIfTableReferenceIsSafe() {
-        assertThat(LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, UNSAFE_ROW_NAME))
-                .isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void canReturnSafeColumnNameEvenIfTableReferenceIsUnsafe() {
-        assertThat(LoggingArgs.columnName(ARG_NAME, UNSAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME))
-                .isInstanceOf(SafeArg.class);
-    }
-
-    @Test
-    public void canReturnUnsafeColumnNameEvenIfTableReferenceIsSafe() {
-        assertThat(LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, UNSAFE_COLUMN_NAME))
-                .isInstanceOf(UnsafeArg.class);
+        assertThat(returnedArgs.safeTableRefs().getValue()).contains(SAFE_TABLE_REFERENCE);
+        assertThat(returnedArgs.unsafeTableRefs().getValue()).contains(UNSAFE_TABLE_REFERENCE);
     }
 
     @Test
@@ -244,39 +178,13 @@ public class LoggingArgsTest {
     }
 
     @Test
-    public void returnsSafeColumnRangeWhenStartEndBothSafe() {
-        assertThat(LoggingArgs.columnRangeSelection(SAFE_TABLE_REFERENCE, SAFE_COLUMN_RANGE))
-                .isInstanceOf(SafeArg.class);
-    }
-
-    @Test
-    public void returnsUnsafeColumnRangeWhenBothColumnsUnsafe() {
-        assertThat(LoggingArgs.columnRangeSelection(SAFE_TABLE_REFERENCE, UNSAFE_COLUMN_RANGE))
-                .isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
     public void returnsUnsafeColumnRangeEvenWhenContainsSafeColumns() {
-        assertThat(LoggingArgs.columnRangeSelection(SAFE_TABLE_REFERENCE, MIXED_COLUMN_RANGE))
-                .isInstanceOf(UnsafeArg.class);
+        assertThat(LoggingArgs.columnRangeSelection(SAFE_COLUMN_RANGE)).isInstanceOf(UnsafeArg.class);
     }
 
     @Test
-    public void returnsSafeBatchBatchColumnRangeWhenStartEndBothSafe() {
-        assertThat(LoggingArgs.batchColumnRangeSelection(SAFE_TABLE_REFERENCE, SAFE_BATCH_COLUMN_RANGE))
-                .isInstanceOf(SafeArg.class);
-    }
-
-    @Test
-    public void returnsUnsafeBatchCOlumnRangeWhenBothColumnsUnsafe() {
-        assertThat(LoggingArgs.batchColumnRangeSelection(SAFE_TABLE_REFERENCE, UNSAFE_BATCH_COLUMN_RANGE))
-                .isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void returnsUnsafeBatchBatchColumnRangeEvenWhenContainsSafeColumns() {
-        assertThat(LoggingArgs.batchColumnRangeSelection(SAFE_TABLE_REFERENCE, MIXED_BATCH_COLUMN_RANGE))
-                .isInstanceOf(UnsafeArg.class);
+    public void returnsUnsafeBatchColumnRangeEvenWhenContainsSafeColumns() {
+        assertThat(LoggingArgs.batchColumnRangeSelection(SAFE_BATCH_COLUMN_RANGE)).isInstanceOf(UnsafeArg.class);
     }
 
     @Test

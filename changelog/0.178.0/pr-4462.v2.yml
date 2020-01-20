@@ -1,0 +1,8 @@
+type: break
+break:
+  description: |-
+    Fail on generating an AutoDelegate implementation if there are any default methods that have not been annotated with either @DoNotDelegate or @DoDelegate.
+
+    We now enforce decisions on whether default methods should be autoDelegated or not. This ensures that developers are considering this decision.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4462

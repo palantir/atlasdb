@@ -1,0 +1,2 @@
+type: rocksdb
+storagePath: rocksdb/path

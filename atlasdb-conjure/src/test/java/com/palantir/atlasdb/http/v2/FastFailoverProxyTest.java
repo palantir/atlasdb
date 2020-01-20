@@ -103,7 +103,7 @@ public class FastFailoverProxyTest {
         RetryableException retryableException = createRetryableException(QosException.retryOther(createUrl()));
         doThrow(retryableException).doNothing().when(longConsumer).accept(42L);
 
-        LongConsumer proxyConsumer = FastFailoverProxy.newProxyInstance(LongConsumer.class, longConsumer, clock);
+        LongConsumer proxyConsumer = FastFailoverProxy.newProxyInstance(LongConsumer.class, () -> longConsumer, clock);
         assertThatCode(() -> proxyConsumer.accept(42L)).doesNotThrowAnyException();
         verify(longConsumer, times(2)).accept(42L);
     }
@@ -148,7 +148,7 @@ public class FastFailoverProxyTest {
     }
 
     private void createProxy() {
-        proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, binaryOperator, clock);
+        proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, () -> binaryOperator, clock);
     }
 
 

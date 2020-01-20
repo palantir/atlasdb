@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.io.Closeable;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import org.immutables.value.Value;
 
@@ -27,14 +26,8 @@ import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 
 @Value.Immutable
-abstract class BatchingNetworkClientFactories implements NetworkClientFactories {
-
-    abstract PaxosUseCase useCase();
-    abstract TimelockPaxosMetrics metrics();
-    abstract PaxosRemoteClients remoteClients();
-    abstract LocalPaxosComponents components();
-    abstract int quorumSize();
-    abstract ExecutorService sharedExecutor();
+abstract class BatchingNetworkClientFactories implements
+        NetworkClientFactories, Dependencies.NetworkClientFactories {
 
     @Value.Auxiliary
     @Value.Derived
@@ -43,8 +36,7 @@ abstract class BatchingNetworkClientFactories implements NetworkClientFactories 
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosAcceptor.class,
                         components().batchAcceptor(),
-                        UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor()),
-                        "batch-paxos-acceptor")
+                        UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor()))
                 .all();
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
     }
@@ -56,8 +48,7 @@ abstract class BatchingNetworkClientFactories implements NetworkClientFactories 
                 .instrumentLocalAndRemotesFor(
                         BatchPaxosLearner.class,
                         components().batchLearner(),
-                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()),
-                        "batch-paxos-learner");
+                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()));
 
         return AutobatchingPaxosLearnerNetworkClientFactory.create(allBatchLearners, sharedExecutor(), quorumSize());
     }
@@ -78,5 +69,7 @@ abstract class BatchingNetworkClientFactories implements NetworkClientFactories 
     public Factory<PaxosLearnerNetworkClient> learner() {
         return learnerNetworkClientFactory()::paxosLearnerForClient;
     }
+
+    public abstract static class Builder implements NetworkClientFactories.Builder {}
 
 }

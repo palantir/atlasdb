@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.testing.DropwizardTestSupport;
 
@@ -75,6 +76,10 @@ public class TimeLockServerHolder extends ExternalResource {
         checkTimelockPortInitialised();
         // TODO(nziebart): hack
         return "https://localhost:" + timelockPort;
+    }
+
+    public TaggedMetricRegistry getTaggedMetricsRegistry() {
+        return ((TimeLockServerLauncher) timelockServer.getApplication()).taggedMetricRegistry();
     }
 
     private void checkTimelockPortInitialised() {

@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -45,8 +47,9 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
         addToWatches(locksToWatch);
-        logOpenLocks(locksToWatch);
-        logLockWatchEvent(locksToWatch);
+        UUID requestId = UUID.randomUUID();
+        logOpenLocks(locksToWatch, requestId);
+        logLockWatchEvent(locksToWatch, requestId);
     }
 
     @Override
@@ -55,8 +58,8 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public void registerLock(Set<LockDescriptor> locksTakenOut) {
-        lockEventLog.logLock(locksTakenOut.stream().filter(this::hasLockWatch).collect(Collectors.toSet()));
+    public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
+        lockEventLog.logLock(locksTakenOut.stream().filter(this::hasLockWatch).collect(Collectors.toSet()), token);
     }
 
     @Override
@@ -72,17 +75,17 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     // todo(gmaretic): if this is not performant enough, consider a more tailored approach
-    private void logOpenLocks(LockWatchRequest request) {
+    private void logOpenLocks(LockWatchRequest request, UUID requestId) {
         RangeSet<LockDescriptor> requestAsRangeSet = TreeRangeSet.create(toRanges(request));
         Set<LockDescriptor> openLocks = heldLocksCollection.locksHeld().stream()
                 .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
                 .filter(requestAsRangeSet::contains)
                 .collect(Collectors.toSet());
-        lockEventLog.logOpenLocks(openLocks);
+        lockEventLog.logOpenLocks(openLocks, requestId);
     }
 
-    private void logLockWatchEvent(LockWatchRequest locksToWatch) {
-        lockEventLog.logLockWatchCreated(locksToWatch);
+    private void logLockWatchEvent(LockWatchRequest locksToWatch, UUID requestId) {
+        lockEventLog.logLockWatchCreated(locksToWatch, requestId);
     }
 
     private boolean hasLockWatch(LockDescriptor lockDescriptor) {
