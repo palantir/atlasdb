@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Users can now specify when creating HTTP clients whether the client is expected to support endpoints that may block for extended periods on the server (by default, this is supported as in previous versions).
+
+    Client use-cases where endpoints are expected to return relatively quickly will benefit from having `shouldSupportBlockingOperations` be specified as false. In the event of connection failures or irregularities, the connection should be retried after 10 seconds (as opposed to 65).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4519
