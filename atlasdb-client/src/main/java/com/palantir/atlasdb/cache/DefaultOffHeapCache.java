@@ -25,13 +25,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -48,23 +48,25 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import okio.ByteString;
 
-public final class DefaultOffHeapCache implements TimestampCache {
+public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
     private static final Logger log = LoggerFactory.getLogger(DefaultOffHeapCache.class);
-    private static final String BATCHER_PURPOSE = "off-heap-timestamp-cache";
+    private static final String BATCHER_PURPOSE = "off-heap-cache";
     private static final MetricName CACHE_HIT = constructCacheMetricName("cacheHit");
     private static final MetricName CACHE_MISS = constructCacheMetricName("cacheMiss");
     private static final MetricName CACHE_NUKE = constructCacheMetricName("cacheNuke");
     private static final MetricName CACHE_SIZE = constructCacheMetricName("cacheSize");
 
     private final PersistentStore persistentStore;
-    private final EntryMapper<Long, Long> entryMapper;
+    private final EntryMapper<K, V> entryMapper;
     private final LongSupplier maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
-    private final TaggedMetricRegistry taggedMetricRegistry;
-    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Void> valuePutter;
+    private final DisruptorAutobatcher<Map.Entry<K, V>, Void> valuePutter;
+    private final Meter cacheHit;
+    private final Meter cacheMiss;
+    private final Counter cacheNuke;
 
-    public static TimestampCache create(
-            PersistentStore persistentStore,
+    public static <K, V> OffHeapCache<K, V> create(
+            PersistentStore<K, V> persistentStore,
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
         PersistentStore.Handle handle = persistentStore.createSpace();
@@ -84,7 +86,7 @@ public final class DefaultOffHeapCache implements TimestampCache {
 
     private DefaultOffHeapCache(
             PersistentStore persistentStore,
-            EntryMapper<Long, Long> entryMapper,
+            EntryMapper<K, V> entryMapper,
             CacheDescriptor cacheDescriptor,
             LongSupplier maxSize,
             TaggedMetricRegistry taggedMetricRegistry) {
@@ -92,8 +94,10 @@ public final class DefaultOffHeapCache implements TimestampCache {
         this.entryMapper = entryMapper;
         this.cacheDescriptor.set(cacheDescriptor);
         this.maxSize = maxSize;
-        this.taggedMetricRegistry = taggedMetricRegistry;
-        this.valuePutter = Autobatchers.coalescing(new WriteBatcher(this))
+        this.cacheHit = taggedMetricRegistry.meter(CACHE_HIT);
+        this.cacheMiss = taggedMetricRegistry.meter(CACHE_MISS);
+        this.cacheNuke = taggedMetricRegistry.counter(CACHE_NUKE);
+        this.valuePutter = Autobatchers.coalescing(new WriteBatcher<>(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
         Gauge<Integer> cacheSizeGauge = () -> this.cacheDescriptor.get().currentSize().intValue();
@@ -110,29 +114,20 @@ public final class DefaultOffHeapCache implements TimestampCache {
         }
     }
 
-
     @Override
-    public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
-        Futures.getUnchecked(valuePutter.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
+    public void put(K key, V value) {
+        Futures.getUnchecked(valuePutter.apply(Maps.immutableEntry(key, value)));
     }
 
-    @Nullable
     @Override
-    public Long getCommitTimestampIfPresent(Long startTimestamp) {
-        Optional<Long> value = getCommitTimestamp(startTimestamp);
-
-        if (value.isPresent()) {
-            taggedMetricRegistry.meter(CACHE_HIT).mark();
-        } else {
-            taggedMetricRegistry.meter(CACHE_MISS).mark();
-        }
-        return value.orElse(null);
+    public Optional<V> get(K key) {
+        Optional<V> value = persistentStore.get(cacheDescriptor.get().handle(), key);
+        getCacheMeter(value.isPresent()).mark();
+        return value;
     }
 
-    private Optional<Long> getCommitTimestamp(Long startTimestamp) {
-        ByteString key = entryMapper.serializeKey(startTimestamp);
-        return persistentStore.get(cacheDescriptor.get().handle(), key)
-                .map(value -> entryMapper.deserializeValue(key, value));
+    private Meter getCacheMeter(boolean cacheOutcome) {
+        return cacheOutcome ? cacheHit : cacheMiss;
     }
 
     private static CacheDescriptor createNamespaceAndConstructCacheProposal(PersistentStore persistentStore) {
@@ -149,21 +144,21 @@ public final class DefaultOffHeapCache implements TimestampCache {
                 .build();
     }
 
-    private static class WriteBatcher implements CoalescingRequestFunction<Map.Entry<Long, Long>, Void> {
-        DefaultOffHeapCache defaultOffHeapCache;
+    private static class WriteBatcher<K, V> implements CoalescingRequestFunction<Map.Entry<K, V>, Void> {
+        DefaultOffHeapCache<K, V> offHeapCache;
 
-        WriteBatcher(DefaultOffHeapCache defaultOffHeapCache) {
-            this.defaultOffHeapCache = defaultOffHeapCache;
+        WriteBatcher(DefaultOffHeapCache<K, V> offHeapCache) {
+            this.offHeapCache = offHeapCache;
         }
 
         @Override
-        public Map<Map.Entry<Long, Long>, Void> apply(Set<Map.Entry<Long, Long>> request) {
-            CacheDescriptor cacheDescriptor = defaultOffHeapCache.cacheDescriptor.get();
-            if (cacheDescriptor.currentSize().get() >= defaultOffHeapCache.maxSize.getAsLong()) {
-                defaultOffHeapCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
-                defaultOffHeapCache.clear();
+        public Map<Map.Entry<K, V>, Void> apply(Set<Map.Entry<K, V>> request) {
+            CacheDescriptor cacheDescriptor = offHeapCache.cacheDescriptor.get();
+            if (cacheDescriptor.currentSize().get() >= offHeapCache.maxSize.getAsLong()) {
+                offHeapCache.cacheNuke.inc();
+                offHeapCache.clear();
             }
-            cacheDescriptor = defaultOffHeapCache.cacheDescriptor.get();
+            cacheDescriptor = offHeapCache.cacheDescriptor.get();
             Set<Map.Entry<ByteString, ByteString>> serializedRequest = request.stream()
                     .map(this::serializeEntry)
                     .collect(Collectors.toSet());
@@ -172,11 +167,11 @@ public final class DefaultOffHeapCache implements TimestampCache {
                         .map(Map.Entry::getKey)
                         .collect(Collectors.toList());
                 Map<ByteString, ByteString> response =
-                        defaultOffHeapCache.persistentStore.get(cacheDescriptor.handle(), toWrite);
+                        offHeapCache.persistentStore.get(cacheDescriptor.handle(), toWrite);
 
                 int sizeIncrease = Sets.difference(request, response.entrySet()).size();
                 cacheDescriptor.currentSize().addAndGet(sizeIncrease);
-                defaultOffHeapCache.persistentStore.put(
+                offHeapCache.persistentStore.put(
                         cacheDescriptor.handle(),
                         ImmutableMap.copyOf(serializedRequest));
             } catch (SafeIllegalArgumentException exception) {
@@ -186,10 +181,10 @@ public final class DefaultOffHeapCache implements TimestampCache {
             return KeyedStream.of(request.stream()).<Void>map(value -> null).collectToMap();
         }
 
-        private Map.Entry<ByteString, ByteString> serializeEntry(Map.Entry<Long, Long> entry) {
+        private Map.Entry<ByteString, ByteString> serializeEntry(Map.Entry<K, V> entry) {
             return Maps.immutableEntry(
-                    defaultOffHeapCache.entryMapper.serializeKey(entry.getKey()),
-                    defaultOffHeapCache.entryMapper.serializeValue(entry.getKey(), entry.getValue()));
+                    offHeapCache.entryMapper.serializeKey(entry.getKey()),
+                    offHeapCache.entryMapper.serializeValue(entry.getKey(), entry.getValue()));
         }
     }
 
