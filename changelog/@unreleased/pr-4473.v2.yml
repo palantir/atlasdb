@@ -4,5 +4,5 @@ improvement:
     Change logging level of Rollback Other Transaction Logline
 
     Change the level of logging from info to debug for the message This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone else's request with start: {} from SnapshotTransaction as we already have logging for when that happens.
-    links:
+  links:
   - https://github.com/palantir/atlasdb/pull/4473
