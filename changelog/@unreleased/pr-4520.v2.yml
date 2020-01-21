@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    Read timeouts for the majority of TimeLock calls have been reduced from 65 to approximately 12.6 seconds. This allows for faster client-side recovery in the presence of unresponsive TimeLock hosts.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4520
