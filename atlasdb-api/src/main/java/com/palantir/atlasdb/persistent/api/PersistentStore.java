@@ -31,8 +31,8 @@ import okio.ByteString;
 
 public interface PersistentStore extends AutoCloseable {
     /**
-     * Represents a handle to the underlying space of key-value pairs. Handle is linked with one underlying store
-     * space.
+     * Represents a handle to the underlying space of key-value pairs. A space of key-value pairs is analogous to a
+     * PostgreSQL table of RocksdDb Column family. Handle is linked with one underlying store space.
      */
     @Value.Immutable
     interface Handle {
