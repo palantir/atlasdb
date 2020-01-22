@@ -1,16 +1,8 @@
 type: improvement
 improvement:
-  description: "Configurable perister creation\n\n[Referance Issue](https://github.com/palantir/atlasdb/issues/4124)\n\n**Goals
-    (and why)**:\n- Add ability to make persister reusable and not to create a new
-    instance on each hydration.  \n\n**Implementation Description (bullets)**:\n-
-    `Reusable` annotation is used on persister classes which are stateless and new
-    instance is not required on each hydration.\n- The default behaviour is to create
+  description: "Add ability to make persister reusable and not to create a new
+    instance on each hydration. The default behaviour is to create
     a new instance of persister on each hydration to avoid issues with persisters
-    which are stateful.\n\n**Testing (What was existing testing like?  What have you
-    done to improve it?)**:\n- Pending\n\n**Concerns (what feedback would you like?)**:\n-
-    So far, the changes cover code generation for named and dynamic column.\n\n**Where
-    should we start reviewing?**:\n- ColumnValueDescription#getHydrateCode\n\n\n<!---\nPlease
-    remember to:\n- Add any necessary release notes (including breaking changes)\n-
-    Make sure the documentation is up to date for your change\n--->"
+    which are stateful."
   links:
   - https://github.com/palantir/atlasdb/pull/4483
