@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -28,6 +29,12 @@ public final class MultiCassandraUtils {
 
     private MultiCassandraUtils() {
         // utility
+    }
+
+    /** Kill all of the Cassandra containers and start them again.  This wipes all data on the nodes. */
+    public static void resetCassandraCluster(Set<String> containerNames) {
+        containerNames.forEach(MultiCassandraUtils::killCassandraContainer);
+        containerNames.forEach(MultiCassandraUtils::startCassandraContainer);
     }
 
     public static void killCassandraContainer(String containerName) {

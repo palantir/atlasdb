@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.AfterClass;
@@ -23,11 +24,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
 public class MultiCassandraDoubleNodeDownEteTest {
+    private static final Set<String> ALL_CASSANDRA_NODES = ImmutableSet.of("cassandra1", "cassandra2", "cassandra3");
     private static final List<String> CASSANDRA_NODES_TO_KILL = ImmutableList.of("cassandra1", "cassandra2");
 
     @BeforeClass
@@ -36,8 +39,8 @@ public class MultiCassandraDoubleNodeDownEteTest {
     }
 
     @AfterClass
-    public static void startupCassandraNode() {
-        CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraUtils::startCassandraContainer);
+    public static void resetCassandraNode() {
+        MultiCassandraUtils.resetCassandraCluster(ALL_CASSANDRA_NODES);
     }
 
     @Test(expected = RuntimeException.class)
