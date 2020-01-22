@@ -320,7 +320,7 @@ public final class ColumnValueDescription {
                     "private final " + canonicalClassName + " REUSABLE_PERSISTER = \n" +
                                             "new " + canonicalClassName + "();";
             } else {
-                return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")); " +
+                return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")); \n" +
                     "}";
             }
         } else if (format == Format.PROTO) {
