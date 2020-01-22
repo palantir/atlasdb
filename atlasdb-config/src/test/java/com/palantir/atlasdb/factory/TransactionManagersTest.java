@@ -139,8 +139,6 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 
-import okio.ByteString;
-
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
     private static final String USER_AGENT_NAME = "user-agent";
@@ -768,7 +766,7 @@ public class TransactionManagersTest {
                                 .build())
                 .build();
 
-        Optional<PersistentStore<ByteString, ByteString>> persistentStore =
+        Optional<PersistentStore> persistentStore =
                 TransactionManagers.constructPersistentStoreIfConfigured(
                         installConfig,
                         new DefaultPersistentStorageFactory(),
@@ -786,7 +784,7 @@ public class TransactionManagersTest {
                 .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
 
-        Optional<PersistentStore<ByteString, ByteString>> persistentStore =
+        Optional<PersistentStore> persistentStore =
                 TransactionManagers.constructPersistentStoreIfConfigured(
                         installConfig,
                         new DefaultPersistentStorageFactory(),
@@ -798,7 +796,7 @@ public class TransactionManagersTest {
 
     private TimestampCache constructTimestampCache(
             AtlasDbConfig installConfig,
-            Optional<PersistentStore<ByteString, ByteString>> persistentStore) {
+            Optional<PersistentStore> persistentStore) {
         return TransactionManagers.timestampCache(
                 installConfig,
                 metricsManager,

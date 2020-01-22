@@ -33,15 +33,13 @@ import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 import com.palantir.atlasdb.util.MetricsManagers;
 
-import okio.ByteString;
-
 public final class RocksDbOffHeapTimestampCacheIntegrationTests {
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final int CACHE_SIZE = 2;
 
     private TimestampCache offHeapTimestampCache;
-    private PersistentStore<ByteString, ByteString> persistentStore;
+    private PersistentStore persistentStore;
 
     @Before
     public void before() throws RocksDBException, IOException {
@@ -52,6 +50,7 @@ public final class RocksDbOffHeapTimestampCacheIntegrationTests {
 
         offHeapTimestampCache = OffHeapTimestampCache.create(
                 persistentStore,
+                new TimestampStore(),
                 MetricsManagers.createForTests().getTaggedRegistry(),
                 () -> CACHE_SIZE);
     }

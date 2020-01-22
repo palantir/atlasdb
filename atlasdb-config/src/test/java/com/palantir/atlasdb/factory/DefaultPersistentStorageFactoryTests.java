@@ -33,8 +33,6 @@ import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 
-import okio.ByteString;
-
 public final class DefaultPersistentStorageFactoryTests {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder(Files.currentFolder());
@@ -54,7 +52,7 @@ public final class DefaultPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PersistentStore<ByteString, ByteString> persistentStore = new DefaultPersistentStorageFactory()
+        PersistentStore persistentStore = new DefaultPersistentStorageFactory()
                 .constructPersistentStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
@@ -71,8 +69,8 @@ public final class DefaultPersistentStorageFactoryTests {
                 .build();
         PersistentStorageFactory factory = new DefaultPersistentStorageFactory();
 
-        PersistentStore<ByteString, ByteString> firstStore = factory.constructPersistentStore(config);
-        PersistentStore<ByteString, ByteString> secondStore = factory.constructPersistentStore(config);
+        PersistentStore firstStore = factory.constructPersistentStore(config);
+        PersistentStore secondStore = factory.constructPersistentStore(config);
 
         assertThat(firstStore).isNotEqualTo(secondStore);
 

@@ -28,8 +28,6 @@ import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 
-import okio.ByteString;
-
 /**
  * Constructs a new {@link PersistentStore} with new persistent storage connection on each call of
  * {@link DefaultPersistentStorageFactory#constructPersistentStore(RocksDbPersistentStorageConfig)}.
@@ -43,7 +41,7 @@ public final class DefaultPersistentStorageFactory implements PersistentStorageF
      * @param config of the requested RocksDB persistent storage
      * @return RockDB implementation of {@link PersistentStore}
      */
-    public PersistentStore<ByteString, ByteString> constructPersistentStore(RocksDbPersistentStorageConfig config) {
+    public PersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
         PersistentStorageFactories.sanitizeStoragePath(config.storagePath());
         File databaseFolder = new File(config.storagePath(), UUID.randomUUID().toString());
         RocksDB rocksDb = openRocksConnection(databaseFolder);

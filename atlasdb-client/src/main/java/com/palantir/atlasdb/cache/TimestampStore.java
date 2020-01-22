@@ -16,100 +16,48 @@
 
 package com.palantir.atlasdb.cache;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
 
 import okio.ByteString;
 
 /**
  * Stores timestamps using delta encoding for commit timestamp.
  */
-public class TimestampStore implements PersistentStore<Long, Long> {
-    private final PersistentStore<ByteString, ByteString> persistentStore;
-
-    public TimestampStore(PersistentStore<ByteString, ByteString> persistentStore) {
-        this.persistentStore = persistentStore;
-    }
-
-    @Nullable
+public class TimestampStore implements OffHeapTimestampCache.EntryMapper {
     @Override
-    public Optional<Long> get(PersistentStore.Handle handle, @Nonnull Long startTs) {
-        ByteString byteKeyValue = toByteString(startTs);
-        return persistentStore.get(handle, byteKeyValue)
-                .map(value -> deserializeValue(startTs, value));
+    public ByteString serializeKey(Long key) {
+        Preconditions.checkNotNull(key, "Key should not be null");
+        return toByteString(key);
     }
 
     @Override
-    public Map<Long, Long> get(PersistentStore.Handle handle, List<Long> keys) {
-
-        List<ByteString> byteKeys = keys.stream()
-                .map(ValueType.VAR_LONG::convertFromJava)
-                .map(ByteString::of)
-                .collect(Collectors.toList());
-
-        Map<ByteString, ByteString> byteValues = persistentStore.get(handle, byteKeys);
-
-        if (byteValues.isEmpty()) {
-            return ImmutableMap.of();
-        }
-
-        return KeyedStream.stream(byteValues)
-                .mapEntries(TimestampStore::deserializeEntry)
-                .collectToMap();
+    public Long deserializeKey(ByteString key) {
+        Preconditions.checkNotNull(key, "Key should not be null");
+        return toLong(key);
     }
 
     @Override
-    public void put(PersistentStore.Handle handle, @Nonnull Long startTs, @Nonnull Long commitTs) {
-        ByteString key = toByteString(startTs);
-        ByteString value = toByteString(commitTs - startTs);
-
-        persistentStore.put(handle, key, value);
+    public ByteString serializeValue(Long key, Long value) {
+        Preconditions.checkNotNull(key, "Key should not be null");
+        Preconditions.checkNotNull(value, "Value should not be null");
+        return toByteString(value - key);
     }
 
     @Override
-    public void put(PersistentStore.Handle handle, Map<Long, Long> toWrite) {
-        KeyedStream.stream(toWrite).forEach((key, value) -> put(handle, key, value));
+    public Long deserializeValue(Long key, ByteString value) {
+        Preconditions.checkNotNull(key, "Key should not be null");
+        Preconditions.checkNotNull(value, "Value should not be null");
+        return key + toLong(value);
     }
 
-    @Override
-    public PersistentStore.Handle createSpace() {
-        return persistentStore.createSpace();
+    private static ByteString toByteString(@Nonnull Long value) {
+        return ByteString.of(ValueType.VAR_LONG.convertFromJava(value));
     }
 
-    @Override
-    public void dropStoreSpace(PersistentStore.Handle handle) {
-        persistentStore.dropStoreSpace(handle);
-    }
-
-    @Override
-    public void close() throws Exception {
-        persistentStore.close();
-    }
-
-    private static Map.Entry<Long, Long> deserializeEntry(ByteString key, ByteString value) {
-        Long deserializedKey = (Long) ValueType.VAR_LONG.convertToJava(key.toByteArray(), 0);
-        return Maps.immutableEntry(deserializedKey, deserializeValue(deserializedKey, value));
-    }
-
-    private static Long deserializeValue(Long key, ByteString value) {
-        if (value == null) {
-            return null;
-        }
-        return key + (Long) ValueType.VAR_LONG.convertToJava(value.toByteArray(), 0);
-    }
-
-    private static ByteString toByteString(@Nonnull Long startTs) {
-        return ByteString.of(ValueType.VAR_LONG.convertFromJava(startTs));
+    private static Long toLong(ByteString value) {
+        return (Long) ValueType.VAR_LONG.convertToJava(value.toByteArray(), 0);
     }
 }

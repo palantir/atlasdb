@@ -53,7 +53,7 @@ import com.palantir.tracing.Tracers.ThrowingCallable;
 
 import okio.ByteString;
 
-public final class RocksDbPersistentStore implements PersistentStore<ByteString, ByteString> {
+public final class RocksDbPersistentStore implements PersistentStore {
     private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);
 
     private final ConcurrentMap<UUID, ColumnFamilyHandle> availableColumnFamilies = new ConcurrentHashMap<>();

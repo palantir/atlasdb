@@ -20,8 +20,6 @@ import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 
-import okio.ByteString;
-
 public interface PersistentStorageFactory {
     /**
      * Constructs a {@link RocksDbPersistentStore} using the supplied configuration.
@@ -29,5 +27,5 @@ public interface PersistentStorageFactory {
      * @param config to use to configure the store
      * @return store to be used
      */
-    PersistentStore<ByteString, ByteString> constructPersistentStore(RocksDbPersistentStorageConfig config);
+    PersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config);
 }

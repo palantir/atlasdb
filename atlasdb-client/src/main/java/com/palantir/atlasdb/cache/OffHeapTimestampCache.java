@@ -58,19 +58,20 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private static final MetricName CACHE_NUKE = constructCacheMetricName("cacheNuke");
     private static final MetricName CACHE_SIZE = constructCacheMetricName("cacheSize");
 
-    private final TimestampStore timestampStore;
+    private final PersistentStore persistentStore;
+    private final EntryMapper entryMapper;
     private final LongSupplier maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final ConcurrentMap<Long, Long> inflightRequests = new ConcurrentHashMap<>();
-    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Void> timestampPutter;
+    private final DisruptorAutobatcher<Map.Entry<ByteString, ByteString>, Void> valuePutter;
 
     public static TimestampCache create(
-            PersistentStore<ByteString, ByteString> persistentStore,
+            PersistentStore persistentStore,
+            EntryMapper entryMapper,
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
-        TimestampStore timestampStore = new TimestampStore(persistentStore);
-        PersistentStore.Handle handle = timestampStore.createSpace();
+        PersistentStore.Handle handle = persistentStore.createSpace();
 
         CacheDescriptor cacheDescriptor = ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
@@ -78,22 +79,25 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .build();
 
         return new OffHeapTimestampCache(
-                timestampStore,
+                persistentStore,
+                entryMapper,
                 cacheDescriptor,
                 maxSize,
                 taggedMetricRegistry);
     }
 
     private OffHeapTimestampCache(
-            TimestampStore timestampStore,
+            PersistentStore persistentStore,
+            EntryMapper entryMapper,
             CacheDescriptor cacheDescriptor,
             LongSupplier maxSize,
             TaggedMetricRegistry taggedMetricRegistry) {
-        this.timestampStore = timestampStore;
+        this.persistentStore = persistentStore;
+        this.entryMapper = entryMapper;
         this.cacheDescriptor.set(cacheDescriptor);
         this.maxSize = maxSize;
         this.taggedMetricRegistry = taggedMetricRegistry;
-        this.timestampPutter = Autobatchers.coalescing(new WriteBatcher(this))
+        this.valuePutter = Autobatchers.coalescing(new WriteBatcher(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
         Gauge<Integer> cacheSizeGauge = () -> OffHeapTimestampCache.this.cacheDescriptor.get().currentSize().intValue();
@@ -102,11 +106,11 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     @Override
     public void clear() {
-        CacheDescriptor proposedCacheDescriptor = createNamespaceAndConstructCacheProposal(timestampStore);
+        CacheDescriptor proposedCacheDescriptor = createNamespaceAndConstructCacheProposal(persistentStore);
 
         CacheDescriptor previous = cacheDescriptor.getAndUpdate(prev -> proposedCacheDescriptor);
         if (previous != null) {
-            timestampStore.dropStoreSpace(previous.handle());
+            persistentStore.dropStoreSpace(previous.handle());
         }
     }
 
@@ -116,7 +120,10 @@ public final class OffHeapTimestampCache implements TimestampCache {
         if (inflightRequests.putIfAbsent(startTimestamp, commitTimestamp) != null) {
             return;
         }
-        Futures.getUnchecked(timestampPutter.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
+        Futures.getUnchecked(
+                valuePutter.apply(Maps.immutableEntry(
+                        entryMapper.serializeKey(startTimestamp),
+                        entryMapper.serializeValue(startTimestamp, commitTimestamp))));
     }
 
     @Nullable
@@ -138,11 +145,13 @@ public final class OffHeapTimestampCache implements TimestampCache {
             return Optional.of(inFlight);
         }
 
-        return timestampStore.get(cacheDescriptor.get().handle(), startTimestamp);
+        return persistentStore
+                .get(cacheDescriptor.get().handle(), entryMapper.serializeKey(startTimestamp))
+                .map(value -> entryMapper.deserializeValue(startTimestamp, value));
     }
 
-    private static CacheDescriptor createNamespaceAndConstructCacheProposal(TimestampStore timestampStore) {
-        PersistentStore.Handle proposal = timestampStore.createSpace();
+    private static CacheDescriptor createNamespaceAndConstructCacheProposal(PersistentStore persistentStore) {
+        PersistentStore.Handle proposal = persistentStore.createSpace();
         return ImmutableCacheDescriptor.builder()
                 .currentSize(new AtomicInteger())
                 .handle(proposal)
@@ -155,7 +164,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .build();
     }
 
-    private static class WriteBatcher implements CoalescingRequestFunction<Map.Entry<Long, Long>, Void> {
+    private static class WriteBatcher implements CoalescingRequestFunction<Map.Entry<ByteString, ByteString>, Void> {
         OffHeapTimestampCache offHeapTimestampCache;
 
         WriteBatcher(OffHeapTimestampCache offHeapTimestampCache) {
@@ -163,7 +172,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         }
 
         @Override
-        public Map<Map.Entry<Long, Long>, Void> apply(Set<Map.Entry<Long, Long>> request) {
+        public Map<Map.Entry<ByteString, ByteString>, Void> apply(Set<Map.Entry<ByteString, ByteString>> request) {
             CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             if (cacheDescriptor.currentSize().get() >= offHeapTimestampCache.maxSize.getAsLong()) {
                 offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
@@ -171,12 +180,15 @@ public final class OffHeapTimestampCache implements TimestampCache {
             }
             cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             try {
-                List<Long> toWrite = request.stream().map(Map.Entry::getKey).collect(Collectors.toList());
-                Map<Long, Long> response = offHeapTimestampCache.timestampStore.get(cacheDescriptor.handle(), toWrite);
+                List<ByteString> toWrite = request.stream()
+                        .map(Map.Entry::getKey)
+                        .collect(Collectors.toList());
+                Map<ByteString, ByteString> response =
+                        offHeapTimestampCache.persistentStore.get(cacheDescriptor.handle(), toWrite);
 
                 int sizeIncrease = Sets.difference(request, response.entrySet()).size();
                 cacheDescriptor.currentSize().addAndGet(sizeIncrease);
-                offHeapTimestampCache.timestampStore.put(cacheDescriptor.handle(), ImmutableMap.copyOf(request));
+                offHeapTimestampCache.persistentStore.put(cacheDescriptor.handle(), ImmutableMap.copyOf(request));
             } catch (SafeIllegalArgumentException exception) {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
@@ -187,6 +199,12 @@ public final class OffHeapTimestampCache implements TimestampCache {
         }
     }
 
+    interface EntryMapper {
+        ByteString serializeKey(Long key);
+        Long deserializeKey(ByteString key);
+        ByteString serializeValue(Long key, Long value);
+        Long deserializeValue(Long key, ByteString value);
+    }
     @Value.Immutable
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     interface CacheDescriptor {

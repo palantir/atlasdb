@@ -63,12 +63,10 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 
-import okio.ByteString;
-
 public abstract class TransactionTestSetup {
     @ClassRule
     public static final TemporaryFolder PERSISTENT_STORAGE_FOLDER = new TemporaryFolder();
-    private static PersistentStore<ByteString, ByteString> persistentStore;
+    private static PersistentStore persistentStore;
 
     @BeforeClass
     public static void storageSetUp() throws IOException, RocksDBException {

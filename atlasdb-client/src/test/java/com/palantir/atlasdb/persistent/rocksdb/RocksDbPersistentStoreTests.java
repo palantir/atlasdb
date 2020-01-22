@@ -49,7 +49,7 @@ public final class RocksDbPersistentStoreTests {
     private static final ByteString KEY2 = ByteString.encodeUtf8("key2");
     private static final ByteString VALUE2 = ByteString.encodeUtf8("value2");
 
-    private PersistentStore<ByteString, ByteString> persistentStore;
+    private PersistentStore persistentStore;
     private PersistentStore.Handle defaultNamespace;
 
     @Before

@@ -49,6 +49,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.OffHeapTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.TimestampStore;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -181,8 +182,6 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
-
-import okio.ByteString;
 
 @Value.Immutable
 @Value.Style(stagedBuilder = true)
@@ -433,7 +432,7 @@ public abstract class TransactionManagers {
                 this::withConsolidatedGrabImmutableTsLockFlag,
                 () -> runtimeConfigSupplier.get().transaction());
 
-        Optional<PersistentStore<ByteString, ByteString>> persistentStore =
+        Optional<PersistentStore> persistentStore =
                 constructPersistentStoreIfConfigured(config(), persistentStorageFactory(), closeables);
 
         TimestampCache timestampCache = instrumentedTimestampCache(
@@ -512,7 +511,7 @@ public abstract class TransactionManagers {
     }
 
     @VisibleForTesting
-    static Optional<PersistentStore<ByteString, ByteString>> constructPersistentStoreIfConfigured(
+    static Optional<PersistentStore> constructPersistentStoreIfConfigured(
             AtlasDbConfig config,
             PersistentStorageFactory persistentStorageFactory,
             @Output List<AutoCloseable> closeables) {
@@ -533,11 +532,15 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             MetricsManager metricsManager,
             Supplier<AtlasDbRuntimeConfig> runtimeConfig,
-            Optional<PersistentStore<ByteString, ByteString>> timestampStore) {
+            Optional<PersistentStore> timestampStore) {
         LongSupplier cacheSize = () -> runtimeConfig.get().getTimestampCacheSize();
         Supplier<TimestampCache> timestampCacheSupplier = () ->
                 timestampStore.map(store ->
-                        OffHeapTimestampCache.create(store, metricsManager.getTaggedRegistry(), cacheSize))
+                        OffHeapTimestampCache.create(
+                                store,
+                                new TimestampStore(),
+                                metricsManager.getTaggedRegistry(),
+                                cacheSize))
                         .orElseGet(() -> new DefaultTimestampCache(metricsManager.getRegistry(), cacheSize));
 
         return config.timestampCache().orElseGet(timestampCacheSupplier);
@@ -547,7 +550,7 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             MetricsManager metricsManager,
             Supplier<AtlasDbRuntimeConfig> runtimeConfig,
-            Optional<PersistentStore<ByteString, ByteString>> timestampStore) {
+            Optional<PersistentStore> timestampStore) {
         TimestampCache timestampCache = timestampCache(config, metricsManager, runtimeConfig, timestampStore);
 
         return AtlasDbMetrics.instrumentTimed(

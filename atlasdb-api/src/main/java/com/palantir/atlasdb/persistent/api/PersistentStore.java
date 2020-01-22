@@ -27,7 +27,9 @@ import org.immutables.value.Value;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
-public interface PersistentStore<K, V> extends AutoCloseable {
+import okio.ByteString;
+
+public interface PersistentStore extends AutoCloseable {
     /**
      * Represents a handle to the underlying space of key-value pairs. Handle is linked with one underlying store
      * space.
@@ -45,7 +47,7 @@ public interface PersistentStore<K, V> extends AutoCloseable {
      * @return the {@link Optional} containing the value or empty if there is no associated value
      * @throws SafeIllegalArgumentException when referencing a non existing store space
      */
-    Optional<V> get(PersistentStore.Handle handle, @Nonnull K key);
+    Optional<ByteString> get(PersistentStore.Handle handle, @Nonnull ByteString key);
 
     /**
      * Gets the values associated with the entries specified by {@code keys}. Keys which are not present in the store
@@ -55,7 +57,7 @@ public interface PersistentStore<K, V> extends AutoCloseable {
      * @param keys   representing keys for which we want to retrieve the values
      * @return a map from keys to values
      */
-    Map<K, V> get(PersistentStore.Handle handle, List<K> keys);
+    Map<ByteString, ByteString> get(PersistentStore.Handle handle, List<ByteString> keys);
 
     /**
      * Stores the {@code value} for the associated {@code key} while overwriting the existing value in the specified
@@ -66,7 +68,7 @@ public interface PersistentStore<K, V> extends AutoCloseable {
      * @param value  entry value
      * @throws SafeIllegalArgumentException when referencing a non existing store space
      */
-    void put(PersistentStore.Handle handle, @Nonnull K key, @Nonnull V value);
+    void put(PersistentStore.Handle handle, @Nonnull ByteString key, @Nonnull ByteString value);
 
     /**
      * Stores the entry pairs given in {@code toWrite}, overwriting the existing values.
@@ -75,7 +77,7 @@ public interface PersistentStore<K, V> extends AutoCloseable {
      * @param toWrite entry pairs to write
      * @throws SafeIllegalArgumentException when referencing a non existing store space
      */
-    void put(PersistentStore.Handle handle, Map<K, V> toWrite);
+    void put(PersistentStore.Handle handle, Map<ByteString, ByteString> toWrite);
 
     /**
      * Creates a store space to be used to store key-value pairs. Each call creates a new store space.
