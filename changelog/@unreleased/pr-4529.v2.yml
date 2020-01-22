@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Reset the Cassandra cluster after runs of Single/DoubleNodeDown ETE
+    Test.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4529
