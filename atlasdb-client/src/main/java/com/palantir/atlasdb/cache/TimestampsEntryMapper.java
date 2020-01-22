@@ -26,7 +26,7 @@ import okio.ByteString;
 /**
  * Stores timestamps using delta encoding for commit timestamp.
  */
-public class TimestampStore implements OffHeapTimestampCache.EntryMapper {
+public class TimestampsEntryMapper implements OffHeapTimestampCache.EntryMapper {
     @Override
     public ByteString serializeKey(Long key) {
         Preconditions.checkNotNull(key, "Key should not be null");

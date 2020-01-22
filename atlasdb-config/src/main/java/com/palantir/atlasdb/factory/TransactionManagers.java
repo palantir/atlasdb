@@ -49,7 +49,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.OffHeapTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cache.TimestampStore;
+import com.palantir.atlasdb.cache.TimestampsEntryMapper;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -538,7 +538,7 @@ public abstract class TransactionManagers {
                 timestampStore.map(store ->
                         OffHeapTimestampCache.create(
                                 store,
-                                new TimestampStore(),
+                                new TimestampsEntryMapper(),
                                 metricsManager.getTaggedRegistry(),
                                 cacheSize))
                         .orElseGet(() -> new DefaultTimestampCache(metricsManager.getRegistry(), cacheSize));
