@@ -29,7 +29,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public interface PersistentStore<K, V> extends AutoCloseable {
     /**
-     * Represents a handle to the underlying space of key-value pairs. Handle is linked with one underlying store space.
+     * Represents a handle to the underlying space of key-value pairs. Handle is linked with one underlying store
+     * space.
      */
     @Value.Immutable
     interface Handle {
@@ -39,7 +40,7 @@ public interface PersistentStore<K, V> extends AutoCloseable {
     /**
      * Gets the value associated with the entry specified by {@code key}.
      *
-     * @param handle handle to the store space from which we want to retrieve the value
+     * @param handle of the store space from which we want to retrieve the value
      * @param key    entry key for which we want to retrieve the value
      * @return the {@link Optional} containing the value or empty if there is no associated value
      * @throws SafeIllegalArgumentException when referencing a non existing store space
@@ -47,9 +48,10 @@ public interface PersistentStore<K, V> extends AutoCloseable {
     Optional<V> get(PersistentStore.Handle handle, @Nonnull K key);
 
     /**
-     * Gets the values associated with the entries specified by {@code keys}.
+     * Gets the values associated with the entries specified by {@code keys}. Keys which are not present in the store
+     * will not be included in the returned map.
      *
-     * @param handle handle to the store space
+     * @param handle of the store space
      * @param keys   representing keys for which we want to retrieve the values
      * @return a map from keys to values
      */
@@ -83,10 +85,10 @@ public interface PersistentStore<K, V> extends AutoCloseable {
     PersistentStore.Handle createSpace();
 
     /**
-     * Drops the store spacey specified by the supplied handle. Dropping of a store space may fail if there are
+     * Drops the store space specified by the supplied handle. Dropping of a store space may fail if there are
      * concurrent calls on the same store space or if the store space has already been dropped.
      *
-     * @param handle handle
+     * @param handle of the store space
      * @throws SafeIllegalArgumentException if the {@code handle} points to a non-existing store space
      */
     void dropStoreSpace(PersistentStore.Handle handle);
