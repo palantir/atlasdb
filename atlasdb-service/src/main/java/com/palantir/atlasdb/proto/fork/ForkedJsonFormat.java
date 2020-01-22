@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.proto.fork;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.CharBuffer;
-import java.text.CharacterIterator;
-import java.text.StringCharacterIterator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.Descriptor;
@@ -39,6 +27,17 @@ import com.google.protobuf.Message;
 import com.google.protobuf.UnknownFieldSet;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.CharBuffer;
+import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Forked version of com.googlecode.protobuf.format.JsonFormat from protobuf-java-format-1.2

@@ -15,21 +15,18 @@
  */
 package com.palantir.nexus.db.monitoring.profiler;
 
-import java.util.Collection;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.sql.SqlCallStats;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 enum SimpleSqlProfiler implements SqlProfiler {
     INSTANCE;

@@ -15,20 +15,6 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-
-import org.awaitility.Awaitility;
-import org.awaitility.Duration;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.RuleChain;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -48,6 +34,18 @@ import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.RuleChain;
 
 // Important: Some internal tests depend on this class.
 // Please recompile Oracle internal tests if any breaking changes are made to the setup.

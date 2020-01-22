@@ -15,6 +15,15 @@
  */
 package com.palantir.paxos;
 
+import com.codahale.metrics.Meter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.palantir.common.concurrent.MultiplexingCompletionService;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -28,19 +37,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.Meter;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.palantir.common.concurrent.MultiplexingCompletionService;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings("MethodTypeParameterName")
 public final class PaxosQuorumChecker {

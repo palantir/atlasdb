@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface SweepBatchWithPartitionInfo {

@@ -15,18 +15,15 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import java.util.OptionalLong;
-
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.restore.V1TransactionsTableRangeDeleter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.timestamp.TimestampRange;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import java.util.OptionalLong;
+import org.slf4j.LoggerFactory;
 
 @Command(name = "clean-transactions", description = "Clean out the entries in a _transactions table for the "
         + "purpose of deleting potentially inconsistent transactions from an underlying database that lacks "

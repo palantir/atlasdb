@@ -20,18 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.IntPredicate;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.github.rholder.retry.BlockStrategy;
 import com.google.common.collect.ImmutableList;
@@ -39,6 +28,14 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.impl.TransactionRetryStrategy.Retryable;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.IntPredicate;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionRetryStrategyTest {

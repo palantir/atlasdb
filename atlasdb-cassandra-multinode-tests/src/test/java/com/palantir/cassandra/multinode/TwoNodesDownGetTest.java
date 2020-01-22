@@ -15,8 +15,6 @@
  */
 package com.palantir.cassandra.multinode;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.common.base.ClosableIterator;
+import org.junit.Test;
 
 public class TwoNodesDownGetTest extends AbstractDegradedClusterTest {
 

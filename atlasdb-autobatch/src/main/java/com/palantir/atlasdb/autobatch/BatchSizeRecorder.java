@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import javax.annotation.concurrent.NotThreadSafe;
-
 import com.codahale.metrics.Histogram;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe // Disruptor runs the batching function on just one thread.
 public final class BatchSizeRecorder {

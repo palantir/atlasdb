@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.Map;
+import javax.annotation.Nullable;
 
 public abstract class AbstractTaskCheckpointer {
     private static final byte INCOMPLETE = 0;

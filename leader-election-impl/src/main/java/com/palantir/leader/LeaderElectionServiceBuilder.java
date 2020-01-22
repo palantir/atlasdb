@@ -16,12 +16,6 @@
 
 package com.palantir.leader;
 
-import java.time.Duration;
-import java.util.UUID;
-import java.util.function.UnaryOperator;
-
-import javax.annotation.Nullable;
-
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -29,6 +23,10 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
+import java.time.Duration;
+import java.util.UUID;
+import java.util.function.UnaryOperator;
+import javax.annotation.Nullable;
 
 @SuppressWarnings({"HiddenField", "OverloadMethodsDeclarationOrder"})
 public final class LeaderElectionServiceBuilder {

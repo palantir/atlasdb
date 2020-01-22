@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.Map;
 
 public final class TestConflictDetectionManagers {
     private TestConflictDetectionManagers() {}

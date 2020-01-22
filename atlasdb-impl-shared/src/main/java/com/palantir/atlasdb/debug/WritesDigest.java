@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.util.SortedMap;
-import java.util.SortedSet;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableWritesDigest.class)
 @JsonSerialize(as = ImmutableWritesDigest.class)

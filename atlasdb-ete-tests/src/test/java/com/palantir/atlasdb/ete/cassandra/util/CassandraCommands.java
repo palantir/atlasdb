@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.ete.cassandra.util;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public final class CassandraCommands {
     private CassandraCommands() {

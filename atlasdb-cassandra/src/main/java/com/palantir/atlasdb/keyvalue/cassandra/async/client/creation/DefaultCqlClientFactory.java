@@ -16,16 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
-import java.net.InetSocketAddress;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
-
-import javax.net.ssl.SSLContext;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.PoolingOptions;
@@ -47,6 +37,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.net.InetSocketAddress;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultCqlClientFactory implements CqlClientFactory {
     public static final CqlClientFactory DEFAULT = new DefaultCqlClientFactory();

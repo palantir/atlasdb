@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 /**
  * Additional parameters for clients to specify when connecting to remote services.

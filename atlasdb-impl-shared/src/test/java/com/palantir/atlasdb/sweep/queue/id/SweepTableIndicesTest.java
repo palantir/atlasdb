@@ -18,14 +18,12 @@ package com.palantir.atlasdb.sweep.queue.id;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import java.util.NoSuchElementException;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import java.util.NoSuchElementException;
+import org.junit.Test;
 
 public class SweepTableIndicesTest {
     private final KeyValueService kvs = new InMemoryKeyValueService(true);

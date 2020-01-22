@@ -18,14 +18,12 @@ package com.palantir.atlasdb.timelock.config;
 
 import static com.palantir.atlasdb.timelock.lock.TargetedSweepLockDecorator.LOCK_ACQUIRES_PER_SECOND;
 
-import java.util.Map;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.Map;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableTargetedSweepLockControlConfig.class)

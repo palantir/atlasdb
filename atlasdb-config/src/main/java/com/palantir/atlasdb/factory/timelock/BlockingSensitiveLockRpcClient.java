@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
-import java.math.BigInteger;
-import java.util.Optional;
-import java.util.Set;
-
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -29,6 +25,9 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
+import java.math.BigInteger;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Given two proxies to the same set of underlying remote lock servers, one configured to expect longer-running

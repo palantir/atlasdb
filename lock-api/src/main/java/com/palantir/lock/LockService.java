@@ -15,9 +15,14 @@
  */
 package com.palantir.lock;
 
+import com.google.common.annotations.Beta;
+import com.palantir.annotations.remoting.CancelableServerCall;
+import com.palantir.common.annotation.Idempotent;
+import com.palantir.common.annotation.NonIdempotent;
+import com.palantir.logsafe.Safe;
+import com.palantir.processors.AutoDelegate;
 import java.math.BigInteger;
 import java.util.Set;
-
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -25,13 +30,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.google.common.annotations.Beta;
-import com.palantir.annotations.remoting.CancelableServerCall;
-import com.palantir.common.annotation.Idempotent;
-import com.palantir.common.annotation.NonIdempotent;
-import com.palantir.logsafe.Safe;
-import com.palantir.processors.AutoDelegate;
 
 /**
  * Defines the service which handles locking operations.

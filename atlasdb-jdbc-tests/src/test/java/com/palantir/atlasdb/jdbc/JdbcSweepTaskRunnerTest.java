@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import org.junit.After;
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import org.junit.After;
+import org.junit.ClassRule;
 
 public class JdbcSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     @ClassRule

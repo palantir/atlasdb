@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
-
 import org.junit.Before;
 import org.junit.Test;
 

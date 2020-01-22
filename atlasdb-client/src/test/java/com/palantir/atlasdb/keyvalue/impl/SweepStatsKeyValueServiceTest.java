@@ -20,16 +20,14 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.timestamp.TimestampService;
+import java.nio.charset.StandardCharsets;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SweepStatsKeyValueServiceTest {
     private static final byte[] ROW = "row".getBytes(StandardCharsets.UTF_8);

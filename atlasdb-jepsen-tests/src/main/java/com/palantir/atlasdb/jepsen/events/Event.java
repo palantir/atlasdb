@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
+import clojure.lang.Keyword;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -26,8 +23,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
-
-import clojure.lang.Keyword;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import one.util.streamex.EntryStream;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")

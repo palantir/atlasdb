@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.cache;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.persistent.api.LogicalPersistentStore;
@@ -31,7 +23,12 @@ import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
 import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.streams.KeyedStream;
-
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import okio.ByteString;
 
 /**

@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.ProxySelector;
-import java.net.SocketAddress;
-import java.net.URI;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -43,7 +31,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.CachedTransformingSupplier;
-
 import feign.Client;
 import feign.Contract;
 import feign.Feign;
@@ -53,6 +40,17 @@ import feign.codec.Decoder;
 import feign.codec.Encoder;
 import feign.codec.ErrorDecoder;
 import feign.jaxrs.JAXRSContract;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
+import java.net.URI;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class AtlasDbFeignTargetFactory implements TargetFactory {
     // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,

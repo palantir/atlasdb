@@ -16,12 +16,6 @@
 
 package com.palantir.lock.impl;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Lists;
@@ -32,6 +26,10 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 /**
  * Note: This class does NOT strictly guarantee that state returned is up to date across all requests.

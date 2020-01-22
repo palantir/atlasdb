@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.CurrentValueMetric;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")

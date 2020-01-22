@@ -15,6 +15,11 @@
  */
 package com.palantir.timelock.paxos;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.timelock.config.ClusterConfiguration;
+import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collection;
@@ -22,14 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import javax.ws.rs.core.UriBuilder;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-import com.palantir.timelock.config.ClusterConfiguration;
-import com.palantir.timelock.config.TimeLockInstallConfiguration;
 
 public final class PaxosRemotingUtils {
     private PaxosRemotingUtils() {

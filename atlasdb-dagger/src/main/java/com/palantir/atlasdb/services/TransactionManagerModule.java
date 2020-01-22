@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import java.util.concurrent.Executors;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -41,9 +36,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.v2.TimelockService;
-
 import dagger.Module;
 import dagger.Provides;
+import java.util.concurrent.Executors;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Module
 public class TransactionManagerModule {

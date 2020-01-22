@@ -16,6 +16,8 @@
 */
 package com.palantir.atlasdb.config;
 
+import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
+import com.google.common.collect.ImmutableList;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,12 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
-import com.google.common.collect.ImmutableList;
 
 /**
  * A Jackson subtype resolver which discovers subtypes via the META-INF/services directory

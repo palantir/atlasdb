@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -32,6 +30,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
+import java.util.Map;
 
 public final class TransactionServices {
     private TransactionServices() {

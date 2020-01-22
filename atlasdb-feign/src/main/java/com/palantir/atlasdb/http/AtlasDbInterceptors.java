@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
-
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-
+import java.io.IOException;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.RequestBody;

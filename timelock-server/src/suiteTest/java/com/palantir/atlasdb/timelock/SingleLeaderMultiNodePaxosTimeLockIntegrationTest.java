@@ -20,15 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.atlasdb.timelock.suite.PaxosSuite;
+import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
+import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import com.palantir.atlasdb.timelock.suite.PaxosSuite;
-import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
-import com.palantir.atlasdb.timelock.util.ParameterInjector;
 
 @RunWith(Parameterized.class)
 public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {

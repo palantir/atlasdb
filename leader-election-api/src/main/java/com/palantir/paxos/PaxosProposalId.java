@@ -15,16 +15,13 @@
  */
 package com.palantir.paxos;
 
-import java.io.Serializable;
-
-import javax.annotation.Nonnull;
-
-import org.apache.commons.lang3.builder.CompareToBuilder;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
+import java.io.Serializable;
+import javax.annotation.Nonnull;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 /**
  * Proposal identifiers that establish a strict ordering.

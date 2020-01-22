@@ -17,9 +17,8 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import org.junit.Test;
 
 public class ShardAndStrategyTest {
 

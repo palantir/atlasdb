@@ -22,14 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
@@ -47,6 +39,12 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.TimeDuration;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AdvisoryLocksConditionTest {
 

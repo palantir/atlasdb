@@ -20,10 +20,9 @@ import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.CLIENT_
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public enum PaxosUseCase {
 

@@ -16,11 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.math.BigInteger;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -32,6 +27,9 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleHeldLocksToken;
+import java.math.BigInteger;
+import java.util.Set;
+import javax.annotation.Nullable;
 
 public class RemoteLockServiceAdapter implements LockService {
     private final NamespaceAgnosticLockRpcClient namespaceAgnosticLockRpcClient;

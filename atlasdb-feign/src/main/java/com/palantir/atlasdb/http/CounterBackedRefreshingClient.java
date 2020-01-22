@@ -15,19 +15,16 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
-
 import feign.Client;
 import feign.Request;
 import feign.Response;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CounterBackedRefreshingClient implements Client {
     private static final Logger log = LoggerFactory.getLogger(CounterBackedRefreshingClient.class);

@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.util;
 
-import java.lang.reflect.Method;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
 import com.palantir.tritium.event.InstrumentationProperties;
 import com.palantir.tritium.event.InvocationContext;
+import java.lang.reflect.Method;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 final class InstrumentationUtils {
     static final String FAILURES_METRIC_NAME = "failures";

@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.palantir.leader.LocalPingableLeader;
@@ -31,6 +23,12 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 public class LocalPaxosComponents {
 

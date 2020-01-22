@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Collection;
-import java.util.List;
-
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.nexus.db.sql.BasicSQLUtils;
+import java.util.Collection;
+import java.util.List;
 
 public final class WhereClauses {
     private final List<String> clauses;

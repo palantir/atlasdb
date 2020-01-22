@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.util.Locale;
-
-import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
-
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.Locale;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.TemporaryFolder;
 
 public class TemporaryConfigurationHolder extends ExternalResource {
 

@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.stream;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableStreamStorePersistenceConfiguration.class)
 @JsonDeserialize(as = ImmutableStreamStorePersistenceConfiguration.class)

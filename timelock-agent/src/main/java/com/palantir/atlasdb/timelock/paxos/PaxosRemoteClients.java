@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.net.URI;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.Path;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
@@ -41,6 +33,11 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.net.URI;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.ws.rs.Path;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class PaxosRemoteClients {

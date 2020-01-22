@@ -15,12 +15,11 @@
  */
 package com.palantir.common.concurrent;
 
+import com.google.common.base.Throwables;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
-
-import com.google.common.base.Throwables;
 
 /**
  * A supplier that coalesces computation requests, such that only one computation is ever running at a time, and

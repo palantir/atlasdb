@@ -15,16 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.codahale.metrics.Meter;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.atlasdb.util.MetricsManager;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-import com.codahale.metrics.Meter;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
-import com.palantir.atlasdb.util.MetricsManager;
 
 public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;

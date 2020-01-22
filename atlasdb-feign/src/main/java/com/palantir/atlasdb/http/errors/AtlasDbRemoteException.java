@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.http.errors;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableStackTraceElement;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /**
  * An AtlasDbRemoteException is a wrapper around a http-remoting RemoteException.
@@ -51,7 +49,8 @@ public class AtlasDbRemoteException extends RuntimeException {
         return remoteException.getRemoteException().getErrorName();
     }
 
-    // Cannot be named getStackTrace() because that is a method on RuntimeException that returns a list of 
+    // Cannot be named getStackTrace() because that is a method on RuntimeException that returns a list of
+
     // (non-serializable) StackTraceElements.
     @Nullable // For consistency with HTTP-Remoting API
     public List<AtlasDbStackTraceElement> getRemoteStackTrace() {

@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.OptionalLong;
-import java.util.Set;
-import java.util.UUID;
-
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.UUID;
 
 public interface LockEventLog {
     LockWatchStateUpdate getLogDiff(OptionalLong fromVersion);

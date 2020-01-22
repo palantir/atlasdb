@@ -17,9 +17,7 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.List;
-
 import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

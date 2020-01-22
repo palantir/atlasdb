@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.SetMultimap;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.PaxosValue;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import com.google.common.collect.SetMultimap;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.paxos.PaxosValue;
 
 public class LocalBatchPaxosLearner implements BatchPaxosLearner {
 

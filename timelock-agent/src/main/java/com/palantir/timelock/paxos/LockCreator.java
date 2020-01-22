@@ -15,10 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -27,6 +23,9 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.ThreadPooledLockService;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.function.Supplier;
 
 public class LockCreator {
     private final Supplier<TimeLockRuntimeConfiguration> runtime;

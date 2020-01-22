@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
-
-import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
 
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 

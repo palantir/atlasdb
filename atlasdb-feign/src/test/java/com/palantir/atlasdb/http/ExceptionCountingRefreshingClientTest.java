@@ -21,16 +21,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
-
 import feign.Client;
 import feign.Request;
 import feign.Response;
+import java.io.IOException;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class ExceptionCountingRefreshingClientTest {
     private Supplier<Client> clientSupplier = (Supplier<Client>) mock(Supplier.class);

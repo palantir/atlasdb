@@ -24,11 +24,9 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
 
-import java.util.function.Function;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.util.function.Function;
+import org.junit.Test;
 
 /**
  * Created by tboam on 03/11/2017.

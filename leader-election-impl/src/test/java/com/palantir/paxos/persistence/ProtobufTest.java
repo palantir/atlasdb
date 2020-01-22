@@ -17,8 +17,6 @@ package com.palantir.paxos.persistence;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosPromises;
 import com.palantir.paxos.PaxosProposal;
@@ -29,6 +27,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto;
+import org.junit.Test;
 
 public class ProtobufTest {
     @Test

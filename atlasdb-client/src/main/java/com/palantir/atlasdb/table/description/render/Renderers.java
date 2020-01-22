@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
@@ -25,6 +22,8 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.squareup.javapoet.MethodSpec;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Renderers {
     private Renderers() {

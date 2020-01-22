@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import java.util.Map;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.

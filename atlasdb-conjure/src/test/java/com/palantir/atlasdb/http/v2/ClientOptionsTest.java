@@ -18,13 +18,11 @@ package com.palantir.atlasdb.http.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
+import java.time.Duration;
+import org.junit.Test;
 
 public class ClientOptionsTest {
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of("tom", "1.2.3"));

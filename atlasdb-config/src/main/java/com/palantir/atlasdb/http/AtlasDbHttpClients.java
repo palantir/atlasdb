@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -28,6 +22,10 @@ import com.palantir.atlasdb.http.VersionSelectingClients.VersionSelectingConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AtlasDbHttpClients {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbHttpClients.class);

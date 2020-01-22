@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
-import java.util.OptionalLong;
-import java.util.Set;
-
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
@@ -37,6 +34,8 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.TimestampRange;
+import java.util.OptionalLong;
+import java.util.Set;
 
 /**
  * Given two proxies to the same set of underlying TimeLock servers, one configured to expect longer-running operations

@@ -18,7 +18,6 @@ package com.palantir.paxos;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.annotation.Nullable;
 
 /**

@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Iterator;
-import java.util.List;
-
-import javax.annotation.concurrent.Immutable;
-
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -36,6 +27,12 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
+import java.util.Iterator;
+import java.util.List;
+import javax.annotation.concurrent.Immutable;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 @Immutable
 public class NameMetadataDescription {

@@ -16,23 +16,21 @@
 
 package com.palantir.atlasdb.timelock.suite;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.junit.Rule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Suite;
-
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.ImmutableTemplateVariables;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TemplateVariables;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.junit.Rule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Suite;
 
 @RunWith(ParameterizedSuite.class)
 @Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)

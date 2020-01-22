@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.time.Duration;
-import java.util.Map;
-
 import com.google.common.collect.Maps;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.paxos.PaxosProposer;
+import java.time.Duration;
+import java.util.Map;
 
 public class LeaderElectionServiceFactory {
 

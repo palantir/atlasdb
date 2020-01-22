@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.restore;
 
-import java.util.OptionalLong;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -30,6 +28,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
+import java.util.OptionalLong;
 
 public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDeleter {
     private final KeyValueService kvs;

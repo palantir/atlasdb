@@ -15,26 +15,12 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.Clock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import feign.Client;
 import feign.Request;
@@ -43,6 +29,17 @@ import feign.Response;
 import feign.RetryableException;
 import feign.Retryer;
 import feign.Target;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private static final Logger log = LoggerFactory.getLogger(FailoverFeignTarget.class);

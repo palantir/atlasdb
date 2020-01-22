@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-
 import org.immutables.value.Value;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 @Value.Immutable
 public abstract class PaxosResources {

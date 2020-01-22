@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.compact;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityNamedColumn;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.HashMap;
+import java.util.Map;
 
 class SweepHistoryProvider {
 

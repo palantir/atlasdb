@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.factory;
 
+import com.google.common.base.MoreObjects;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,10 +30,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.google.common.base.MoreObjects;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 public final class PersistentStorageFactories {
     private static final Pattern UUID_PATTERN = Pattern.compile(

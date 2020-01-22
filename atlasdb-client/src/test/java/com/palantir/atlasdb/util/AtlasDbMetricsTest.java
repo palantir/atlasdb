@@ -17,12 +17,10 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.metrics.Timed;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public final class AtlasDbMetricsTest {
 

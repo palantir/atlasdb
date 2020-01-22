@@ -17,16 +17,14 @@ package com.palantir.lock.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
-
 import org.junit.Test;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 
 public class IdentifiedTimeLockRequestSerializationDeserializationTest {
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();

@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.palantir.lock.watch.LockWatchReferences;
 import java.util.OptionalLong;
 import java.util.Set;
-
-import com.palantir.lock.watch.LockWatchReferences;
 
 public final class NoOpTableWatchingService implements TableWatchingService {
     public static final TableWatchingService INSTANCE = new NoOpTableWatchingService();

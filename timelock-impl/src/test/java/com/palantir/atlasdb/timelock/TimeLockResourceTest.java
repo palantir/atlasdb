@@ -24,17 +24,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class TimeLockResourceTest {
     private static final String CLIENT_A = "a-client";

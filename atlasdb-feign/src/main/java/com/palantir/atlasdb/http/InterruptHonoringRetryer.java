@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.io.InterruptedIOException;
-
 import feign.RetryableException;
 import feign.Retryer;
+import java.io.InterruptedIOException;
 
 /**
  * Simple wrapper around the default Feign retryer that propagates {@link InterruptedIOException}s

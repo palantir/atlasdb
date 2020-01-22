@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimeLockServices {

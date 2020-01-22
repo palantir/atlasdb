@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.Collection;
-import java.util.Date;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HttpHeaders;
 import com.palantir.common.remoting.HeaderAccessUtils;
-
 import feign.Response;
 import feign.RetryableException;
 import feign.codec.ErrorDecoder;
+import java.util.Collection;
+import java.util.Date;
 
 public class AtlasDbErrorDecoder implements ErrorDecoder {
     private ErrorDecoder delegateDecoder = new SerializableErrorDecoder();

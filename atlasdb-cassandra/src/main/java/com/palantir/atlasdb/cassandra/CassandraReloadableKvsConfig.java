@@ -15,17 +15,16 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceConfig {
     private final CassandraKeyValueServiceConfig config;

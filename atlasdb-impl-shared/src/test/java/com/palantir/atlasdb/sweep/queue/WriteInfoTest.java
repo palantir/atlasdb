@@ -17,11 +17,10 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
+import org.junit.Test;
 
 public class WriteInfoTest {
     private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");

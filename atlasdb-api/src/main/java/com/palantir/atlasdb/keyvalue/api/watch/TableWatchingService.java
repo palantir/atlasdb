@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.OptionalLong;
-import java.util.Set;
-
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.watch.LockWatchReferences;
+import java.util.OptionalLong;
+import java.util.Set;
 
 public interface TableWatchingService {
     /**

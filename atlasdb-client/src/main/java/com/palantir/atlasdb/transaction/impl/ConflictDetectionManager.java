@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.Map;
+import javax.annotation.Nullable;
 
 public class ConflictDetectionManager {
     private final LoadingCache<TableReference, ConflictHandler> cache;

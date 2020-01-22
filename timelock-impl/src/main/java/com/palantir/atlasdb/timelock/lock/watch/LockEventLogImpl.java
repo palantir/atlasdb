@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.Set;
-import java.util.UUID;
-
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
@@ -31,6 +25,11 @@ import com.palantir.lock.watch.LockWatchOpenLocksEvent;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.UUID;
 
 public class LockEventLogImpl implements LockEventLog {
     private final UUID leaderId = UUID.randomUUID();

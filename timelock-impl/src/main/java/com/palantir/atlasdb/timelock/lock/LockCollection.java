@@ -16,14 +16,13 @@
 package com.palantir.atlasdb.timelock.lock;
 
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.palantir.lock.LockDescriptor;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 
 public class LockCollection {
 

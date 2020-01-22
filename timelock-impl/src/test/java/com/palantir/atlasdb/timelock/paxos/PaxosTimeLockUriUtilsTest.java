@@ -17,11 +17,9 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
+import org.junit.Test;
 
 public class PaxosTimeLockUriUtilsTest {
     private static final String ADDRESS_1 = "foo:1234";

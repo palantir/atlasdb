@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
@@ -28,6 +24,8 @@ import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapter;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapter;
+import java.util.List;
+import org.immutables.value.Value;
 
 @Value.Immutable
 abstract class SingleLeaderNetworkClientFactories implements

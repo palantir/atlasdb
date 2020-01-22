@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
-import org.jmock.Mockery;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -35,6 +25,14 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import org.jmock.Mockery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @AutoService(AtlasDbFactory.class)
 public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {

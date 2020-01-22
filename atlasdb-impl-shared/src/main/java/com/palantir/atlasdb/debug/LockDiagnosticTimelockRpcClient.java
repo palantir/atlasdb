@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.util.Optional;
-
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.AutoDelegate_TimelockRpcClient;
 import com.palantir.lock.v2.LockResponseV2;
@@ -26,6 +24,7 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import java.util.Optional;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.

@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.io.Closeable;
-import java.util.UUID;
-
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingerContext;
+import java.io.Closeable;
+import java.util.UUID;
 
 interface ClientAwarePingableLeader extends Closeable {
     LeaderPingResult ping(UUID requestedUuid, Client client);

@@ -15,20 +15,17 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.net.HttpHeaders;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.common.remoting.HeaderAccessUtils;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableErrorToExceptionConverter;
-
 import feign.Response;
 import feign.codec.ErrorDecoder;
+import java.io.IOException;
+import java.io.InputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SerializableErrorDecoder implements ErrorDecoder {
     private static final Logger log = LoggerFactory.getLogger(SerializableErrorDecoder.class);

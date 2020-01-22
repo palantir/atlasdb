@@ -15,10 +15,12 @@
  */
 package com.palantir.atlasdb.http;
 
+import com.google.common.io.CharStreams;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import feign.codec.ErrorDecoder;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map.Entry;
-
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.ForbiddenException;
@@ -33,11 +35,6 @@ import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-
-import com.google.common.io.CharStreams;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
-
-import feign.codec.ErrorDecoder;
 
 class RsErrorDecoder implements ErrorDecoder {
     @Override

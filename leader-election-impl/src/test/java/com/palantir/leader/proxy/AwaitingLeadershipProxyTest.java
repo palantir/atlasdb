@@ -25,6 +25,11 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.PaxosLeadershipToken;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -34,15 +39,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.base.Suppliers;
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.leader.PaxosLeadershipToken;
 
 public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";

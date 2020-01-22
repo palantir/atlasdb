@@ -30,24 +30,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.longThat;
 
-import java.sql.Date;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.http.HttpStatus;
-import org.hamcrest.Matcher;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableError;
-
 import feign.RetryableException;
+import java.sql.Date;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.http.HttpStatus;
+import org.hamcrest.Matcher;
+import org.junit.Before;
+import org.junit.Test;
 
 public class FailoverFeignTargetTest {
     private static final int FAILOVERS = 1000;

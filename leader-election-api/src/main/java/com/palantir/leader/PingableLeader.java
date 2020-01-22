@@ -15,12 +15,11 @@
  */
 package com.palantir.leader;
 
+import com.palantir.atlasdb.metrics.Timed;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.atlasdb.metrics.Timed;
 
 @Path("/leader")
 public interface PingableLeader {

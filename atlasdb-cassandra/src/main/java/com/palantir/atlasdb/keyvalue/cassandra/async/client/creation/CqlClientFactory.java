@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Optional;
 
 public interface CqlClientFactory {
     Optional<CqlClient> constructClient(

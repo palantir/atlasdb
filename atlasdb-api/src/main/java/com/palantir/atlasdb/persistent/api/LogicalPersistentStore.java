@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.persistent.api;
 
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import javax.annotation.Nonnull;
-
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
 
 public interface LogicalPersistentStore<K, V> {
     /**

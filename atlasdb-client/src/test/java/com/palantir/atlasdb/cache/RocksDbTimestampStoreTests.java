@@ -18,9 +18,12 @@ package com.palantir.atlasdb.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
 import java.io.File;
 import java.io.IOException;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -28,11 +31,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore.StoreNamespace;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
 
 public final class RocksDbTimestampStoreTests {
     @ClassRule

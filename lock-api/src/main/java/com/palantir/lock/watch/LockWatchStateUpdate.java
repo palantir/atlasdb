@@ -16,16 +16,14 @@
 
 package com.palantir.lock.watch;
 
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)

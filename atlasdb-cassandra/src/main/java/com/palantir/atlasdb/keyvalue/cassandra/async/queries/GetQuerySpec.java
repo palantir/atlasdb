@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
-import java.nio.ByteBuffer;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
-
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
@@ -29,6 +24,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Preconditions;
+import java.nio.ByteBuffer;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 

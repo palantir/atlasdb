@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.timestamp;
 
+import com.palantir.timestamp.TimestampBoundStore;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.timestamp.TimestampBoundStore;
 
 public abstract class AbstractDbTimestampBoundStoreTest {
     protected TimestampBoundStore store;

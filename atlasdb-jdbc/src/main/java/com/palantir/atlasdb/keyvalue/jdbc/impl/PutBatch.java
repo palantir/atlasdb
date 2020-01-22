@@ -16,9 +16,7 @@
 package com.palantir.atlasdb.keyvalue.jdbc.impl;
 
 import java.util.Collection;
-
 import javax.annotation.Nullable;
-
 import org.jooq.InsertValuesStep4;
 import org.jooq.Record;
 import org.jooq.Result;

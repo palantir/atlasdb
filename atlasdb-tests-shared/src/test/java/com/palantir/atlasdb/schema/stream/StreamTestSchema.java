@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import java.io.File;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.io.File;
 
 public class StreamTestSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new StreamTestSchema();

@@ -18,15 +18,13 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.timelock.config.ImmutableRateLimitConfig;
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class AsyncLockServiceTest {
     private static final Supplier<TargetedSweepLockControlConfig.RateLimitConfig> RATE_LIMIT_CONFIG_SUPPLIER

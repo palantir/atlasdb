@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -24,6 +22,7 @@ import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
 
 public class TestableTimelockServer {
 

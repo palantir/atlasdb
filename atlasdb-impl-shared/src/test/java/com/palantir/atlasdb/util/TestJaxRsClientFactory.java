@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.nio.file.Paths;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
@@ -25,8 +23,8 @@ import com.palantir.conjure.java.client.config.ClientConfigurations;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.okhttp.NoOpHostEventsSink;
-
 import io.dropwizard.testing.ResourceHelpers;
+import java.nio.file.Paths;
 
 public final class TestJaxRsClientFactory {
     private TestJaxRsClientFactory() {

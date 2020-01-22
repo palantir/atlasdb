@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
+import java.util.List;
 
 public interface Factories {
     interface LeaderPingerFactory {

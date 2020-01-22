@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -33,6 +26,12 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class LockWatchingServiceImpl implements LockWatchingService {
     private final LockEventLog lockEventLog;

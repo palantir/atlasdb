@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.config;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableRemotingClientConfig.class)
 @JsonDeserialize(as = ImmutableRemotingClientConfig.class)

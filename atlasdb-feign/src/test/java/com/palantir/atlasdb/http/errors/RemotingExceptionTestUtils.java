@@ -17,11 +17,10 @@ package com.palantir.atlasdb.http.errors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.stream.IntStream;
-
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableStackTraceElement;
+import java.util.List;
+import java.util.stream.IntStream;
 
 public final class RemotingExceptionTestUtils {
     private RemotingExceptionTestUtils() {

@@ -18,9 +18,8 @@ package com.palantir.atlasdb.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.Mode;
+import org.junit.Test;
 
 public class TargetedSweepLockControlConfigTests {
 

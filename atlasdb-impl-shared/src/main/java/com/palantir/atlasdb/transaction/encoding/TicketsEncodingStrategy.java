@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
-import java.util.Arrays;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.util.Arrays;
 
 /**
  * The ticketing algorithm distributes timestamps among rows and dynamic columns to avoid hot-spotting.

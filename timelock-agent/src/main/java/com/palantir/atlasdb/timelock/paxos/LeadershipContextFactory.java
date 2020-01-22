@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
@@ -29,6 +23,10 @@ import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
+import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class LeadershipContextFactory implements

@@ -15,11 +15,10 @@
  */
 package com.palantir.leader;
 
-import java.io.Serializable;
-import java.util.Optional;
-
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.metrics.Timed;
+import java.io.Serializable;
+import java.util.Optional;
 
 public interface LeaderElectionService {
     interface LeadershipToken extends Serializable {

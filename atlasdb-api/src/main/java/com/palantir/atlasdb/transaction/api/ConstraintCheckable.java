@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.util.List;
 import java.util.Map;
-
-import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public interface ConstraintCheckable {
     /**

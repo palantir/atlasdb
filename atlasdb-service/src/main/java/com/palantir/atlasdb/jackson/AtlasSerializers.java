@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-import java.util.Set;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
@@ -33,6 +30,8 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.util.Pair;
+import java.io.IOException;
+import java.util.Set;
 
 public final class AtlasSerializers {
 

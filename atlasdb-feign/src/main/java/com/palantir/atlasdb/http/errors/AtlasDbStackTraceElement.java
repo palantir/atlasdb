@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.http.errors;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.remoting2.errors.SerializableStackTraceElement;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableAtlasDbStackTraceElement.class)
 @JsonSerialize(as = ImmutableAtlasDbStackTraceElement.class)

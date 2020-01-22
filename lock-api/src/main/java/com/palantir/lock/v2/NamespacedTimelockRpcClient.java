@@ -16,12 +16,11 @@
 
 package com.palantir.lock.v2;
 
-import java.util.OptionalLong;
-import java.util.Set;
-
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.TimestampRange;
+import java.util.OptionalLong;
+import java.util.Set;
 
 /**
  * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a

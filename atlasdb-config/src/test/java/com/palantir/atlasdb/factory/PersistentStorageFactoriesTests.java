@@ -19,16 +19,14 @@ package com.palantir.atlasdb.factory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class PersistentStorageFactoriesTests {
     public static final String FIRST_SUBFOLDER_ROOT = "first";

@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.logsafe.Preconditions;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableSweepConfig.class)
 @JsonSerialize(as = ImmutableSweepConfig.class)

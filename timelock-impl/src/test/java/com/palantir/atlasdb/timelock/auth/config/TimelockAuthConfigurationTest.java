@@ -19,11 +19,6 @@ package com.palantir.atlasdb.timelock.auth.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
@@ -33,6 +28,9 @@ import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Credentials;
 import com.palantir.atlasdb.timelock.auth.api.ImmutableCredentials;
 import com.palantir.lock.TimelockNamespace;
+import java.io.File;
+import java.io.IOException;
+import org.junit.Test;
 
 public class TimelockAuthConfigurationTest {
     private static final String TIMELOCK_AUTH_CONFIG = "timelock-auth-config";

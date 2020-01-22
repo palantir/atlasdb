@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -36,6 +33,8 @@ import com.palantir.atlasdb.table.description.constraints.TableConstraint;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Defines a table for a schema.

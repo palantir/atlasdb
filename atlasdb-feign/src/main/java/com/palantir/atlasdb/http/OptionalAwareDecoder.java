@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.http;
 
+import feign.FeignException;
+import feign.Response;
+import feign.codec.Decoder;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Optional;
-
-import feign.FeignException;
-import feign.Response;
-import feign.codec.Decoder;
 
 public class OptionalAwareDecoder implements Decoder {
     private final Decoder delegate;

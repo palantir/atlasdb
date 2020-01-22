@@ -15,10 +15,9 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.SQLException;
-
-import com.palantir.nexus.db.DBType;
 
 /**
  * A SQL connection pool that can be flushed.

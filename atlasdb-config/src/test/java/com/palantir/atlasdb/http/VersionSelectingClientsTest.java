@@ -26,11 +26,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.IntStream;
-
-import org.junit.Test;
-
 import com.google.common.util.concurrent.AtomicDouble;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.http.VersionSelectingClients.VersionSelectingConfig;
@@ -39,6 +34,9 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.proxy.ExperimentRunningProxy;
 import com.palantir.timestamp.TimestampService;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
+import org.junit.Test;
 
 public class VersionSelectingClientsTest {
     private final AtomicDouble probability = new AtomicDouble(0.0);

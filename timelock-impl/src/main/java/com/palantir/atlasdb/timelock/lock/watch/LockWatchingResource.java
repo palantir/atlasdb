@@ -16,16 +16,14 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.palantir.lock.watch.LockWatchRequest;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import java.util.OptionalLong;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.lock.watch.LockWatchRequest;
-import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @Path("/lock-watch")
 @Produces(MediaType.APPLICATION_JSON)

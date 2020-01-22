@@ -15,16 +15,14 @@
  */
 package com.palantir.timelock.config;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import org.immutables.value.Value;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
