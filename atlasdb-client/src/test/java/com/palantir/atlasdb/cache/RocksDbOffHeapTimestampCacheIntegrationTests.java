@@ -50,7 +50,6 @@ public final class RocksDbOffHeapTimestampCacheIntegrationTests {
 
         offHeapTimestampCache = OffHeapTimestampCache.create(
                 persistentStore,
-                new TimestampsEntryMapper(),
                 MetricsManagers.createForTests().getTaggedRegistry(),
                 () -> CACHE_SIZE);
     }
@@ -78,17 +77,22 @@ public final class RocksDbOffHeapTimestampCacheIntegrationTests {
         offHeapTimestampCache.putAlreadyCommittedTransaction(2L, 4L);
         offHeapTimestampCache.putAlreadyCommittedTransaction(5L, 6L);
 
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(2L)).isNull();
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(5L)).isEqualTo(6L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L))
+                .isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(2L))
+                .isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(5L))
+                .isEqualTo(6L);
     }
 
     @Test
     public void clearCache() {
         offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isEqualTo(3L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L))
+                .isEqualTo(3L);
 
         offHeapTimestampCache.clear();
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L))
+                .isNull();
     }
 }

@@ -45,7 +45,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.persistent.api.ImmutableHandle;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -69,16 +68,14 @@ public final class RocksDbPersistentStore implements PersistentStore {
     public Optional<ByteString> get(PersistentStore.Handle handle, @Nonnull ByteString key) {
         checkNamespaceExists(handle);
 
-        return getValueBytes(availableColumnFamilies.get(handle.uniqueName()), key);
+        return getValueBytes(availableColumnFamilies.get(handle.id()), key);
     }
 
     @Override
     public Map<ByteString, ByteString> get(PersistentStore.Handle handle, List<ByteString> keys) {
         checkNamespaceExists(handle);
 
-        List<ByteString> byteValues = multiGetValueByteStrings(
-                availableColumnFamilies.get(handle.uniqueName()),
-                keys);
+        List<ByteString> byteValues = multiGetValueByteStrings(availableColumnFamilies.get(handle.id()), keys);
 
         if (byteValues.isEmpty()) {
             return ImmutableMap.of();
@@ -96,7 +93,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
     @Override
     public void put(PersistentStore.Handle handle, @Nonnull ByteString key, @Nonnull ByteString value) {
         checkNamespaceExists(handle);
-        putEntry(availableColumnFamilies.get(handle.uniqueName()), key, value);
+        putEntry(availableColumnFamilies.get(handle.id()), key, value);
     }
 
     @Override
@@ -106,10 +103,11 @@ public final class RocksDbPersistentStore implements PersistentStore {
 
     @Override
     public PersistentStore.Handle createSpace() {
-        UUID columnFamily = createColumnFamily();
-        return ImmutableHandle.builder()
-                .uniqueName(columnFamily)
-                .build();
+        Handle handle = PersistentStore.buildHandle();
+        ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
+                rocksDB.createColumnFamily(new ColumnFamilyDescriptor(handle.id().toString().getBytes())));
+        availableColumnFamilies.put(handle.id(), columnFamilyHandle);
+        return handle;
     }
 
     @Override
@@ -121,7 +119,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
 
     private void checkNamespaceExists(PersistentStore.Handle handle) {
         Preconditions.checkArgument(
-                availableColumnFamilies.containsKey(handle.uniqueName()),
+                availableColumnFamilies.containsKey(handle.id()),
                 "Store entry family does not exist");
     }
 
@@ -140,20 +138,12 @@ public final class RocksDbPersistentStore implements PersistentStore {
         }
     }
 
-    private UUID createColumnFamily() {
-        UUID randomUuid = UUID.randomUUID();
-        ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
-                rocksDB.createColumnFamily(new ColumnFamilyDescriptor(randomUuid.toString().getBytes())));
-        availableColumnFamilies.put(randomUuid, columnFamilyHandle);
-        return randomUuid;
-    }
-
     private void dropColumnFamily(PersistentStore.Handle handle) {
         callWithExceptionHandling(() -> {
-            rocksDB.dropColumnFamily(availableColumnFamilies.get(handle.uniqueName()));
+            rocksDB.dropColumnFamily(availableColumnFamilies.get(handle.id()));
             return null;
         });
-        availableColumnFamilies.remove(handle.uniqueName());
+        availableColumnFamilies.remove(handle.id());
     }
 
     private Optional<ByteString> getValueBytes(ColumnFamilyHandle columnFamilyHandle, ByteString key) {
@@ -161,7 +151,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
             return Optional.ofNullable(rocksDB.get(columnFamilyHandle, key.toByteArray())).map(ByteString::of);
         } catch (RocksDBException exception) {
             log.warn("Rocks db raised an exception", exception);
-            return null;
+            return Optional.empty();
         }
     }
 

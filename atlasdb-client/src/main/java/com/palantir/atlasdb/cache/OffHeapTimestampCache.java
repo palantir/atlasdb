@@ -57,7 +57,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private static final MetricName CACHE_SIZE = constructCacheMetricName("cacheSize");
 
     private final PersistentStore persistentStore;
-    private final EntryMapper entryMapper;
+    private final EntryMapper<Long, Long> entryMapper;
     private final LongSupplier maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
     private final TaggedMetricRegistry taggedMetricRegistry;
@@ -65,7 +65,6 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     public static TimestampCache create(
             PersistentStore persistentStore,
-            EntryMapper entryMapper,
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
         PersistentStore.Handle handle = persistentStore.createSpace();
@@ -77,7 +76,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
         return new OffHeapTimestampCache(
                 persistentStore,
-                entryMapper,
+                new DeltaEncodingTimestampEntryMapper(new LongEntryMapper()),
                 cacheDescriptor,
                 maxSize,
                 taggedMetricRegistry);
@@ -85,7 +84,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     private OffHeapTimestampCache(
             PersistentStore persistentStore,
-            EntryMapper entryMapper,
+            EntryMapper<Long, Long> entryMapper,
             CacheDescriptor cacheDescriptor,
             LongSupplier maxSize,
             TaggedMetricRegistry taggedMetricRegistry) {
@@ -134,8 +133,9 @@ public final class OffHeapTimestampCache implements TimestampCache {
     }
 
     private Optional<Long> getCommitTimestamp(Long startTimestamp) {
-        return persistentStore.get(cacheDescriptor.get().handle(), entryMapper.serializeKey(startTimestamp))
-                .map(value -> entryMapper.deserializeValue(startTimestamp, value));
+        ByteString key = entryMapper.serializeKey(startTimestamp);
+        return persistentStore.get(cacheDescriptor.get().handle(), key)
+                .map(value -> entryMapper.deserializeValue(key, value));
     }
 
     private static CacheDescriptor createNamespaceAndConstructCacheProposal(PersistentStore persistentStore) {
@@ -185,16 +185,18 @@ public final class OffHeapTimestampCache implements TimestampCache {
         }
     }
 
-    interface EntryMapper {
-        ByteString serializeKey(Long key);
-        Long deserializeKey(ByteString key);
-        ByteString serializeValue(Long key, Long value);
-        Long deserializeValue(Long key, ByteString value);
+    interface EntryMapper<K, V> {
+        ByteString serializeKey(K key);
+        K deserializeKey(ByteString key);
+        ByteString serializeValue(K key, V value);
+        K deserializeValue(ByteString key, ByteString value);
     }
+
     @Value.Immutable
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     interface CacheDescriptor {
         AtomicInteger currentSize();
         PersistentStore.Handle handle();
     }
+
 }

@@ -23,10 +23,7 @@ import com.palantir.logsafe.Preconditions;
 
 import okio.ByteString;
 
-/**
- * Stores timestamps using delta encoding for commit timestamp.
- */
-public class TimestampsEntryMapper implements OffHeapTimestampCache.EntryMapper {
+public class LongEntryMapper implements OffHeapTimestampCache.EntryMapper<Long, Long> {
     @Override
     public ByteString serializeKey(Long key) {
         Preconditions.checkNotNull(key, "Key should not be null");
@@ -43,14 +40,14 @@ public class TimestampsEntryMapper implements OffHeapTimestampCache.EntryMapper 
     public ByteString serializeValue(Long key, Long value) {
         Preconditions.checkNotNull(key, "Key should not be null");
         Preconditions.checkNotNull(value, "Value should not be null");
-        return toByteString(value - key);
+        return toByteString(value);
     }
 
     @Override
-    public Long deserializeValue(Long key, ByteString value) {
+    public Long deserializeValue(ByteString key, ByteString value) {
         Preconditions.checkNotNull(key, "Key should not be null");
         Preconditions.checkNotNull(value, "Value should not be null");
-        return key + toLong(value);
+        return toLong(value);
     }
 
     private static ByteString toByteString(@Nonnull Long value) {
