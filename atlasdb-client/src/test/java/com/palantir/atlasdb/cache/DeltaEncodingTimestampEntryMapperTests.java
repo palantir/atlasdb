@@ -47,6 +47,18 @@ public final class DeltaEncodingTimestampEntryMapperTests {
                 .isEqualTo(3L);
     }
 
+    @Test
+    public void valueEncodedAsDelta() {
+        assertThat(mapper.serializeValue(1L, 3L))
+                .isEqualByComparingTo(toByteString(2L));
+    }
+
+    @Test
+    public void valueDecodedWithDelta() {
+        assertThat(mapper.deserializeValue(toByteString(1L), toByteString(4L)))
+                .isEqualTo(5L);
+    }
+
     private static ByteString toByteString(long value) {
         return ByteString.of(ValueType.VAR_LONG.convertFromJava(value));
     }
