@@ -38,10 +38,10 @@ public interface PersistentStore extends AutoCloseable {
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     interface Handle {
         UUID id();
-    }
 
-    static Handle buildHandle() {
-        return ImmutableHandle.builder().id(UUID.randomUUID()).build();
+        static Handle newHandle() {
+            return ImmutableHandle.builder().id(UUID.randomUUID()).build();
+        }
     }
 
     /**

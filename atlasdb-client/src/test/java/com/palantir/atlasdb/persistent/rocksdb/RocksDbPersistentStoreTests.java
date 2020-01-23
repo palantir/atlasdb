@@ -39,7 +39,7 @@ public final class RocksDbPersistentStoreTests {
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private static final PersistentStore.Handle NON_EXISTING_NAMESPACE = PersistentStore.buildHandle();
+    private static final PersistentStore.Handle NON_EXISTING_NAMESPACE = PersistentStore.Handle.newHandle();
     private static final ByteString KEY = ByteString.encodeUtf8("key");
     private static final ByteString VALUE = ByteString.encodeUtf8("value");
     private static final ByteString KEY2 = ByteString.encodeUtf8("key2");

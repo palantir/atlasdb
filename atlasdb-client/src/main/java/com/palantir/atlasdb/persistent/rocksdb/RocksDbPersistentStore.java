@@ -103,7 +103,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
 
     @Override
     public PersistentStore.Handle createSpace() {
-        Handle handle = PersistentStore.buildHandle();
+        Handle handle = PersistentStore.Handle.newHandle();
         ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
                 rocksDB.createColumnFamily(new ColumnFamilyDescriptor(handle.id().toString().getBytes())));
         availableColumnFamilies.put(handle.id(), columnFamilyHandle);
