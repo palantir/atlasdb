@@ -197,7 +197,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
         ByteString serializeKey(K key);
         K deserializeKey(ByteString key);
         ByteString serializeValue(K key, V value);
-        K deserializeValue(ByteString key, ByteString value);
+        V deserializeValue(ByteString key, ByteString value);
     }
 
     @Value.Immutable
