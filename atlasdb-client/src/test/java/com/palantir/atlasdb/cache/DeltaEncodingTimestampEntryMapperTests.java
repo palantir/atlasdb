@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.atlasdb.table.description.ValueType;
 
 import okio.ByteString;
@@ -35,7 +36,7 @@ import okio.ByteString;
 @RunWith(MockitoJUnitRunner.class)
 public final class DeltaEncodingTimestampEntryMapperTests {
     @Mock
-    public LongEntryMapper longEntryMapper;
+    public EntryMapper<Long, Long> longEntryMapper;
 
     private EntryMapper<Long, Long> mapper;
 

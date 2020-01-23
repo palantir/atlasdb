@@ -16,41 +16,41 @@
 
 package com.palantir.atlasdb.cache;
 
+import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.logsafe.Preconditions;
 
 import okio.ByteString;
 
 public final class DeltaEncodingTimestampEntryMapper implements EntryMapper<Long, Long> {
+    private final EntryMapper<Long, Long> entryMapper;
 
-    private final LongEntryMapper longEntryMapper;
-
-    public DeltaEncodingTimestampEntryMapper(LongEntryMapper longEntryMapper) {
-        this.longEntryMapper = longEntryMapper;
+    public DeltaEncodingTimestampEntryMapper(EntryMapper<Long, Long> entryMapper) {
+        this.entryMapper = entryMapper;
     }
 
     @Override
     public ByteString serializeKey(Long key) {
         Preconditions.checkNotNull(key);
-        return longEntryMapper.serializeKey(key);
+        return entryMapper.serializeKey(key);
     }
 
     @Override
     public Long deserializeKey(ByteString key) {
         Preconditions.checkNotNull(key);
-        return longEntryMapper.deserializeKey(key);
+        return entryMapper.deserializeKey(key);
     }
 
     @Override
     public ByteString serializeValue(Long key, Long value) {
         Preconditions.checkNotNull(key);
         Preconditions.checkNotNull(value);
-        return longEntryMapper.serializeValue(key, value - key);
+        return entryMapper.serializeValue(key, value - key);
     }
 
     @Override
     public Long deserializeValue(ByteString key, ByteString value) {
         Preconditions.checkNotNull(key);
         Preconditions.checkNotNull(value);
-        return deserializeKey(key) + longEntryMapper.deserializeValue(key, value);
+        return deserializeKey(key) + entryMapper.deserializeValue(key, value);
     }
 }

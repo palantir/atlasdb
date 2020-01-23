@@ -18,12 +18,13 @@ package com.palantir.atlasdb.cache;
 
 import javax.annotation.Nonnull;
 
+import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
 
 import okio.ByteString;
 
-public class LongEntryMapper implements EntryMapper<Long, Long> {
+public final class LongEntryMapper implements EntryMapper<Long, Long> {
     @Override
     public ByteString serializeKey(Long key) {
         Preconditions.checkNotNull(key, "Key should not be null");
