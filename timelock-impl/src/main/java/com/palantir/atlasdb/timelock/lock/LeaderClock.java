@@ -19,11 +19,12 @@ package com.palantir.atlasdb.timelock.lock;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.common.time.NanoClock;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 
-public class LeaderClock {
+public final class LeaderClock {
     private final LeadershipId leadershipId;
     private final Supplier<NanoTime> clock;
 
@@ -34,7 +35,7 @@ public class LeaderClock {
     }
 
     public static LeaderClock create() {
-        return new LeaderClock(LeadershipId.random(), NanoTime::now);
+        return new LeaderClock(LeadershipId.random(), NanoClock.INSTANCE);
     }
 
     public LeaderTime time() {
