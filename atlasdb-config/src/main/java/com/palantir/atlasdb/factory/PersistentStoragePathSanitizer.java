@@ -24,7 +24,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,11 +36,9 @@ import com.palantir.logsafe.SafeArg;
 
 public final class PersistentStoragePathSanitizer {
     private static final Logger log = LoggerFactory.getLogger(PersistentStoragePathSanitizer.class);
-    private static final Pattern UUID_PATTERN = Pattern.compile(
-            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
-
     private static final PersistentStoragePathSanitizer INSTANCE = new PersistentStoragePathSanitizer();
-    private static final String MAGIC_SUFFIX = "atlasdb-persistent-storage";
+    @VisibleForTesting
+    static final String MAGIC_SUFFIX = "atlasdb-persistent-storage";
 
     public static PersistentStoragePathSanitizer create() {
         return INSTANCE;
