@@ -152,28 +152,30 @@ public class NamedColumnValueRenderer extends Renderer {
                 line("bytes = CompressionUtils.decompress(bytes, Compression.", col.getValue().getCompression().name(), ");");
                 switch (col.getValue().getFormat()) {
                 case PERSISTABLE:
-                        line("return of(", TypeName(col), ".BYTES_HYDRATOR.hydrateFromBytes(bytes));");
-                    line("}");
+                    line("return of(", TypeName(col), ".BYTES_HYDRATOR.hydrateFromBytes(bytes));");
                     break;
                 case PROTO:
-                        line("try {"); {
-                            line("return of(", TypeName(col), ".parseFrom(bytes));");
-                        } line("} catch (InvalidProtocolBufferException e) {"); {
-                            line("throw Throwables.throwUncheckedException(e);");
-                        } line("}");
-                    line("}");
-                break;
+                    line("try {"); {
+                        line("return of(", TypeName(col), ".parseFrom(bytes));");
+                    } line("} catch (InvalidProtocolBufferException e) {"); {
+                        line("throw Throwables.throwUncheckedException(e);");
+                    } line("}");
+                    break;
                 case PERSISTER:
-                    line("return of(", col.getValue().getHydrateCode("bytes"));
+                    line("return of(", col.getValue().getHydrateCode("bytes"), ");");
                     break;
                 case VALUE_TYPE:
-                        line("return of(", col.getValue().getValueType().getHydrateCode("bytes", "0"), ");");
-                    line("}");
+                    line("return of(", col.getValue().getValueType().getHydrateCode("bytes", "0"), ");");
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported value type: " + col.getValue().getFormat());
                 }
+            } line("}");
+
+            if (col.getValue().isReusablePersister()) {
+                line(col.getValue().instantiateReusablePersister());
             }
+
         } line("};");
     }
 

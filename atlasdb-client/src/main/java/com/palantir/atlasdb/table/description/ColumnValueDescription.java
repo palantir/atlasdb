@@ -307,21 +307,26 @@ public final class ColumnValueDescription {
         }
     }
 
+    public boolean isReusablePersister() {
+        if (format == Format.PERSISTER) {
+            Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
+            if (persisterClass.isAnnotationPresent(Reusable.class)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public String getHydrateCode(String varName) {
         varName = composeVarName(varName);
 
         if (format == Format.PERSISTABLE) {
             return canonicalClassName + "." + Persistable.HYDRATOR_NAME + ".hydrateFromBytes(" + varName + ")";
         } else if (format == Format.PERSISTER) {
-            Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
-            if (persisterClass.isAnnotationPresent(Reusable.class)) {
-                return "REUSABLE_PERSISTER.hydrateFromBytes(" + varName + "));\n" +
-                    "} \n" +
-                    "private final " + canonicalClassName + " REUSABLE_PERSISTER = \n" +
-                                            "new " + canonicalClassName + "();";
+            if (isReusablePersister()) {
+                return "REUSABLE_PERSISTER.hydrateFromBytes(" + varName + ")";
             } else {
-                return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")); \n" +
-                    "}";
+                return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")";
             }
         } else if (format == Format.PROTO) {
                 return "new Supplier<" + canonicalClassName + ">() { " +
@@ -342,6 +347,11 @@ public final class ColumnValueDescription {
     public String composeVarName(String varName) {
         return "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName +
                 ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
+    }
+
+    public String instantiateReusablePersister() {
+        return "private final " + canonicalClassName + " REUSABLE_PERSISTER = " +
+                        "new " + canonicalClassName + "();";
     }
 
     @SuppressWarnings("unchecked")
