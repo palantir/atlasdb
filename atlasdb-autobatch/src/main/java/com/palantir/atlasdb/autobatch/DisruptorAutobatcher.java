@@ -17,7 +17,13 @@
 package com.palantir.atlasdb.autobatch;
 
 import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -30,11 +36,7 @@ import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.TimeoutException;
-import com.lmax.disruptor.dsl.Disruptor;
-import com.palantir.logsafe.Preconditions;
+import com.palantir.common.concurrent.PTExecutors;
 
 /**
  * While this class is public, it shouldn't be used as API outside of AtlasDB because we
@@ -63,25 +65,21 @@ public final class DisruptorAutobatcher<T, R>
                 .build();
     }
 
-    private final Disruptor<DefaultBatchElement<T, R>> disruptor;
-    private final RingBuffer<DefaultBatchElement<T, R>> buffer;
+    private final BlockingQueue<DefaultBatchElement<T, R>> queue;
+    private final ExecutorService executorService;
     private volatile boolean closed = false;
 
-    DisruptorAutobatcher(
-            Disruptor<DefaultBatchElement<T, R>> disruptor,
-            RingBuffer<DefaultBatchElement<T, R>> buffer) {
-        this.disruptor = disruptor;
-        this.buffer = buffer;
+    DisruptorAutobatcher(BlockingQueue<DefaultBatchElement<T, R>> queue, ExecutorService executorService) {
+        this.queue = queue;
+        this.executorService = executorService;
+
     }
 
     @Override
     public ListenableFuture<R> apply(T argument) {
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
         SettableFuture<R> result = SettableFuture.create();
-        buffer.publishEvent((refresh, sequence) -> {
-            refresh.result = result;
-            refresh.argument = argument;
-        });
+        queue.add(new DefaultBatchElement<>(argument, result));
         return result;
     }
 
@@ -89,16 +87,26 @@ public final class DisruptorAutobatcher<T, R>
     public void close() {
         closed = true;
         try {
-            disruptor.shutdown(10, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            log.warn("Disruptor took more than 10 seconds to shutdown. "
-                    + "Ensure that handlers aren't uninterruptibly blocking and ensure that they are closed.", e);
+            executorService.shutdownNow();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+                log.warn("Disruptor took more than 10 seconds to shutdown. "
+                        + "Ensure that handlers aren't uninterruptibly blocking and ensure that they are closed.");
+            }
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 
     private static final class DefaultBatchElement<T, R> implements BatchElement<T, R> {
-        private T argument;
-        private SettableFuture<R> result;
+        private final T argument;
+        private final SettableFuture<R> result;
+
+        private DefaultBatchElement(T argument, SettableFuture<R> result) {
+            this.argument = argument;
+            this.result = result;
+        }
 
         @Override
         public T argument() {
@@ -113,12 +121,27 @@ public final class DisruptorAutobatcher<T, R>
 
     static <T, R> DisruptorAutobatcher<T, R> create(
             EventHandler<BatchElement<T, R>> eventHandler,
-            int bufferSize,
             String safeLoggablePurpose) {
-        Disruptor<DefaultBatchElement<T, R>> disruptor =
-                new Disruptor<>(DefaultBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
-        disruptor.handleEventsWith(eventHandler);
-        disruptor.start();
-        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer());
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor(threadFactory(safeLoggablePurpose));
+        BlockingQueue<DefaultBatchElement<T, R>> queue = new LinkedBlockingQueue<>();
+        DisruptorAutobatcher<T, R> autobatcher = new DisruptorAutobatcher<>(queue, executor);
+        executor.submit(() -> {
+            while (!autobatcher.closed) {
+                try {
+                    List<DefaultBatchElement<T, R>> results = new ArrayList<>();
+                    try {
+                        results.add(queue.take());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                    queue.drainTo(results);
+                    eventHandler.onEvents(Collections.unmodifiableList(results));
+                } catch (Throwable t) {
+                    log.warn("Caught a throwable", t);
+                }
+            }
+        });
+        return autobatcher;
     }
 }

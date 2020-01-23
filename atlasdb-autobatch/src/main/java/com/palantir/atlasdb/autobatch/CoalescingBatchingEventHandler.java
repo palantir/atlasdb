@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -24,30 +25,21 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.SettableFuture;
-import com.lmax.disruptor.EventHandler;
-import com.palantir.logsafe.SafeArg;
 
 final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
 
     private static final Logger log = LoggerFactory.getLogger(CoalescingBatchingEventHandler.class);
 
     private final CoalescingRequestFunction<T, R> function;
-    private final SetMultimap<T, SettableFuture<R>> pending;
 
-    CoalescingBatchingEventHandler(CoalescingRequestFunction<T, R> function, int bufferSize) {
+    CoalescingBatchingEventHandler(CoalescingRequestFunction<T, R> function) {
         this.function = function;
-        this.pending = HashMultimap.create(bufferSize, 5);
     }
 
     @Override
-    public void onEvent(BatchElement<T, R> event, long sequence, boolean endOfBatch) {
-        pending.put(event.argument(), event.result());
-        if (endOfBatch) {
-            flush();
-        }
-    }
-
-    private void flush() {
+    public void onEvents(List<BatchElement<T, R>> events) {
+        SetMultimap<T, SettableFuture<R>> pending = HashMultimap.create();
+        events.forEach(event -> pending.put(event.argument(), event.result()));
         try {
             Map<T, R> results = function.apply(pending.keySet());
             pending.forEach((argument, future) -> {

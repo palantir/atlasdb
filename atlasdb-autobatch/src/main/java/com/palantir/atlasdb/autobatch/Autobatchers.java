@@ -19,19 +19,15 @@ package com.palantir.atlasdb.autobatch;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CompileTimeConstant;
-import com.lmax.disruptor.EventHandler;
 import com.palantir.logsafe.Preconditions;
 
 public final class Autobatchers {
-
-    private static final int DEFAULT_BUFFER_SIZE = 1024;
 
     /**
      * When invoking an {@link DisruptorAutobatcher autobatcher}, an argument needs to be supplied. In the case of
@@ -61,7 +57,7 @@ public final class Autobatchers {
      * @see CoalescingRequestConsumer
      */
     public static <I, O> AutobatcherBuilder<I, O> coalescing(CoalescingRequestFunction<I, O> function) {
-        return new AutobatcherBuilder<>(bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize));
+        return new AutobatcherBuilder<>(bufferSize -> new CoalescingBatchingEventHandler<>(function));
     }
 
     public static <O> AutobatcherBuilder<SupplierKey, O> coalescing(Supplier<O> supplier) {
@@ -80,17 +76,17 @@ public final class Autobatchers {
      * @return builder where the autobatch can be further customised
      */
     public static <I, O> AutobatcherBuilder<I, O> independent(Consumer<List<BatchElement<I, O>>> batchFunction) {
-        return new AutobatcherBuilder<>(bufferSize -> new IndependentBatchingEventHandler<>(batchFunction, bufferSize));
+        return new AutobatcherBuilder<>(bufferSize -> new IndependentBatchingEventHandler<>(batchFunction));
     }
 
     public static final class AutobatcherBuilder<I, O> {
 
-        private final Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory;
+        private final EventHandler<BatchElement<I, O>> handler;
 
         @Nullable private String purpose;
 
-        private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory) {
-            this.handlerFactory = handlerFactory;
+        private AutobatcherBuilder(EventHandler<BatchElement<I, O>> handler) {
+            this.handler = handler;
         }
 
         public AutobatcherBuilder<I, O> safeLoggablePurpose(@CompileTimeConstant String purposeParam) {
@@ -100,12 +96,10 @@ public final class Autobatchers {
 
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
-            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
-
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(handler, purpose);
 
-            return DisruptorAutobatcher.create(profiledHandler, DEFAULT_BUFFER_SIZE, purpose);
+            return DisruptorAutobatcher.create(profiledHandler, purpose);
         }
 
     }

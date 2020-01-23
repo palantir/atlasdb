@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import com.lmax.disruptor.EventHandler;
-
 final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
 
     private final EventHandler<BatchElement<T, R>> delegateHandler;
@@ -33,9 +31,9 @@ final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, 
     }
 
     @Override
-    public void onEvent(BatchElement<T, R> event, long sequence, boolean endOfBatch) throws Exception {
+    public void onEvent(BatchElement<T, R> event, boolean endOfBatch) throws Exception {
         elementsSeenSoFar++;
-        delegateHandler.onEvent(event, sequence, endOfBatch);
+        delegateHandler.onEvent(event, endOfBatch);
 
         if (endOfBatch) {
             // Shouldn't affect clients, because futures have already been completed
