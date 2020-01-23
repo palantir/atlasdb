@@ -24,7 +24,7 @@ import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 
-public final class LeaderClock {
+public class LeaderClock {
     private final LeadershipId leadershipId;
     private final Supplier<NanoTime> clock;
 
