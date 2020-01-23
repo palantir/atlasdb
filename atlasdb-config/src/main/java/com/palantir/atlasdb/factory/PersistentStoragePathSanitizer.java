@@ -44,7 +44,7 @@ public final class PersistentStoragePathSanitizer {
         return INSTANCE;
     }
 
-    private final Set<String> SANITIZED_PATHS = new HashSet<>();
+    private final Set<String> sanitizedPaths = new HashSet<>();
 
     @VisibleForTesting
     PersistentStoragePathSanitizer() {}
@@ -57,7 +57,7 @@ public final class PersistentStoragePathSanitizer {
      * @param storagePath to the proposed storage location
      */
     public synchronized Path sanitizedStoragePath(String storagePath) {
-        if (SANITIZED_PATHS.contains(storagePath)) {
+        if (sanitizedPaths.contains(storagePath)) {
             return new File(storagePath, MAGIC_SUFFIX).toPath().toAbsolutePath();
         }
 
@@ -73,7 +73,7 @@ public final class PersistentStoragePathSanitizer {
                     storageDirectory.mkdir(),
                     "Not able to create a storage directory",
                     SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
-            SANITIZED_PATHS.add(storagePath);
+            sanitizedPaths.add(storagePath);
             return storageDirectory.toPath().toAbsolutePath();
         }
 
@@ -88,7 +88,7 @@ public final class PersistentStoragePathSanitizer {
             throw new RuntimeException(e);
         }
 
-        SANITIZED_PATHS.add(storagePath);
+        sanitizedPaths.add(storagePath);
         return storageDirectory.toPath().toAbsolutePath();
     }
 
