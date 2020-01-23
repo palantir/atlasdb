@@ -56,10 +56,11 @@ public final class DefaultPersistentStorageFactoryTests {
                 .constructPersistentStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
+        assertThat(testFolderContent().get(0).listFiles()).hasSize(1);
 
         persistentStore.close();
 
-        assertThat(testFolderContent()).isEmpty();
+        assertThat(testFolderContent().get(0).listFiles()).isEmpty();
     }
 
     @Test
@@ -74,12 +75,14 @@ public final class DefaultPersistentStorageFactoryTests {
 
         assertThat(firstStore).isNotEqualTo(secondStore);
 
-        assertThat(testFolderContent()).hasSize(2);
+        assertThat(testFolderContent()).hasSize(1);
+
+        assertThat(testFolderContent().get(0).listFiles()).hasSize(2);
 
         firstStore.close();
         secondStore.close();
 
-        assertThat(testFolderContent()).isEmpty();
+        assertThat(testFolderContent().get(0).listFiles()).isEmpty();
     }
 
     private List<File> testFolderContent() {
