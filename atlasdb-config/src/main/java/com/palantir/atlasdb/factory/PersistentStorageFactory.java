@@ -17,15 +17,15 @@
 package com.palantir.atlasdb.factory;
 
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 
-public interface PhysicalPersistentStorageFactory {
+public interface PersistentStorageFactory {
     /**
-     * Constructs a {@link RocksDbPhysicalPersistentStore} using the supplied configuration.
+     * Constructs a {@link RocksDbPersistentStore} using the supplied configuration.
      *
      * @param config to use to configure the store
      * @return store to be used
      */
-    PhysicalPersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config);
+    PersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config);
 }

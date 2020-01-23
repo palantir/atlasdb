@@ -42,8 +42,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -66,18 +66,18 @@ import com.palantir.util.Pair;
 public abstract class TransactionTestSetup {
     @ClassRule
     public static final TemporaryFolder PERSISTENT_STORAGE_FOLDER = new TemporaryFolder();
-    private static PhysicalPersistentStore physicalPersistentStore;
+    private static PersistentStore persistentStore;
 
     @BeforeClass
     public static void storageSetUp() throws IOException, RocksDBException {
         File storageDirectory = PERSISTENT_STORAGE_FOLDER.newFolder();
         RocksDB rocksDb = RocksDB.open(storageDirectory.getAbsolutePath());
-        physicalPersistentStore = new RocksDbPhysicalPersistentStore(rocksDb, storageDirectory);
+        persistentStore = new RocksDbPersistentStore(rocksDb, storageDirectory);
     }
 
     @AfterClass
     public static void storageTearDown() throws Exception {
-        physicalPersistentStore.close();
+        persistentStore.close();
     }
 
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
@@ -110,7 +110,7 @@ public abstract class TransactionTestSetup {
 
     @Before
     public void setUp() {
-        timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, physicalPersistentStore);
+        timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentStore);
 
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         lockClient = LockClient.of("test_client");

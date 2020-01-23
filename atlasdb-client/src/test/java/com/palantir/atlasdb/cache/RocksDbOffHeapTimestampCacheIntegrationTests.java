@@ -29,8 +29,8 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import com.palantir.atlasdb.persistent.api.PhysicalPersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPhysicalPersistentStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public final class RocksDbOffHeapTimestampCacheIntegrationTests {
@@ -39,24 +39,24 @@ public final class RocksDbOffHeapTimestampCacheIntegrationTests {
     private static final int CACHE_SIZE = 2;
 
     private TimestampCache offHeapTimestampCache;
-    private PhysicalPersistentStore physicalPersistentStore;
+    private PersistentStore persistentStore;
 
     @Before
     public void before() throws RocksDBException, IOException {
         File databaseFolder = TEMPORARY_FOLDER.newFolder();
         RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
-        physicalPersistentStore = new RocksDbPhysicalPersistentStore(rocksDb, databaseFolder);
+        persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
 
         offHeapTimestampCache = OffHeapTimestampCache.create(
-                physicalPersistentStore,
+                persistentStore,
                 MetricsManagers.createForTests().getTaggedRegistry(),
                 () -> CACHE_SIZE);
     }
 
     @After
     public void after() throws Exception {
-        physicalPersistentStore.close();
+        persistentStore.close();
     }
 
     @Test
@@ -77,17 +77,22 @@ public final class RocksDbOffHeapTimestampCacheIntegrationTests {
         offHeapTimestampCache.putAlreadyCommittedTransaction(2L, 4L);
         offHeapTimestampCache.putAlreadyCommittedTransaction(5L, 6L);
 
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(2L)).isNull();
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(5L)).isEqualTo(6L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L))
+                .isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(2L))
+                .isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(5L))
+                .isEqualTo(6L);
     }
 
     @Test
     public void clearCache() {
         offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isEqualTo(3L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L))
+                .isEqualTo(3L);
 
         offHeapTimestampCache.clear();
-        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L))
+                .isNull();
     }
 }
