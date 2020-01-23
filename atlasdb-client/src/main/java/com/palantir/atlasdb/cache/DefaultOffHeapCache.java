@@ -66,7 +66,8 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
     private final Counter cacheNuke;
 
     public static <K, V> OffHeapCache<K, V> create(
-            PersistentStore<K, V> persistentStore,
+            PersistentStore persistentStore,
+            EntryMapper<K, V> entryMapper,
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
         PersistentStore.Handle handle = persistentStore.createSpace();
@@ -78,7 +79,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
 
         return new DefaultOffHeapCache(
                 persistentStore,
-                new DeltaEncodingTimestampEntryMapper(new LongEntryMapper()),
+                entryMapper,
                 cacheDescriptor,
                 maxSize,
                 taggedMetricRegistry);
@@ -121,9 +122,10 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
 
     @Override
     public Optional<V> get(K key) {
-        Optional<V> value = persistentStore.get(cacheDescriptor.get().handle(), key);
+        ByteString serializedKey = entryMapper.serializeKey(key);
+        Optional<ByteString> value = persistentStore.get(cacheDescriptor.get().handle(), serializedKey);
         getCacheMeter(value.isPresent()).mark();
-        return value;
+        return value.map(v -> entryMapper.deserializeValue(serializedKey, v));
     }
 
     private Meter getCacheMeter(boolean cacheOutcome) {

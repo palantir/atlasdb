@@ -23,7 +23,7 @@ import com.palantir.logsafe.Preconditions;
 
 import okio.ByteString;
 
-public class LongEntryMapper implements OffHeapTimestampCache.EntryMapper<Long, Long> {
+public class LongEntryMapper implements DefaultOffHeapCache.EntryMapper<Long, Long> {
     @Override
     public ByteString serializeKey(Long key) {
         Preconditions.checkNotNull(key, "Key should not be null");

@@ -23,17 +23,19 @@ import javax.annotation.Nullable;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-import okio.ByteString;
-
 public final class OffHeapTimestampCache implements TimestampCache {
     private final OffHeapCache<Long, Long> offHeapCache;
 
     public static TimestampCache create(
-            PersistentStore<ByteString, ByteString> persistentStore,
+            PersistentStore persistentStore,
             TaggedMetricRegistry taggedMetricRegistry,
             LongSupplier maxSize) {
         return new OffHeapTimestampCache(
-                DefaultOffHeapCache.create(new TimestampStore(persistentStore), taggedMetricRegistry, maxSize));
+                DefaultOffHeapCache.create(
+                        persistentStore,
+                        new DeltaEncodingTimestampEntryMapper(new LongEntryMapper()),
+                        taggedMetricRegistry,
+                        maxSize));
     }
 
     private OffHeapTimestampCache(OffHeapCache<Long, Long> offHeapCache) {
