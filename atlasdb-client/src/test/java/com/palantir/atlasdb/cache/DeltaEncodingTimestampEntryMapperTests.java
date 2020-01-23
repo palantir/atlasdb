@@ -18,16 +18,31 @@ package com.palantir.atlasdb.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.palantir.atlasdb.table.description.ValueType;
 
 import okio.ByteString;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class DeltaEncodingTimestampEntryMapperTests {
-    private final OffHeapTimestampCache.EntryMapper<Long, Long> mapper =
-            new DeltaEncodingTimestampEntryMapper(new LongEntryMapper());
+    @Mock
+    public LongEntryMapper longEntryMapper;
+
+    private OffHeapTimestampCache.EntryMapper<Long, Long> mapper;
+
+    @Before
+    public void setUp() {
+        mapper = new DeltaEncodingTimestampEntryMapper(longEntryMapper);
+    }
 
     @Test
     public void failsOnNulls() {
@@ -40,23 +55,24 @@ public final class DeltaEncodingTimestampEntryMapperTests {
     }
 
     @Test
-    public void encodedValue() {
-        assertThat(mapper.deserializeKey(mapper.serializeKey(1L)))
-                .isEqualTo(1L);
-        assertThat(mapper.deserializeValue(mapper.serializeKey(1L), mapper.serializeValue(1L, 3L)))
-                .isEqualTo(3L);
-    }
-
-    @Test
     public void valueEncodedAsDelta() {
-        assertThat(mapper.serializeValue(1L, 3L))
-                .isEqualByComparingTo(toByteString(2L));
+        mapper.serializeValue(1L, 3L);
+
+        verify(longEntryMapper, times(1)).serializeValue(1L, 2L);
     }
 
     @Test
     public void valueDecodedWithDelta() {
+        when(longEntryMapper.deserializeValue(toByteString(1L), toByteString(4L)))
+                .thenReturn(4L);
+        when(longEntryMapper.deserializeKey(toByteString(1L)))
+                .thenReturn(1L);
+
         assertThat(mapper.deserializeValue(toByteString(1L), toByteString(4L)))
                 .isEqualTo(5L);
+
+        verify(longEntryMapper, times(1))
+                .deserializeValue(toByteString(1L), toByteString(4L));
     }
 
     private static ByteString toByteString(long value) {

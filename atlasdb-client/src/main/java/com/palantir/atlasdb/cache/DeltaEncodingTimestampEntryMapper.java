@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.cache;
 
+import com.palantir.logsafe.Preconditions;
+
 import okio.ByteString;
 
 public final class DeltaEncodingTimestampEntryMapper implements OffHeapTimestampCache.EntryMapper<Long, Long> {
@@ -28,21 +30,27 @@ public final class DeltaEncodingTimestampEntryMapper implements OffHeapTimestamp
 
     @Override
     public ByteString serializeKey(Long key) {
+        Preconditions.checkNotNull(key);
         return longEntryMapper.serializeKey(key);
     }
 
     @Override
     public Long deserializeKey(ByteString key) {
+        Preconditions.checkNotNull(key);
         return longEntryMapper.deserializeKey(key);
     }
 
     @Override
     public ByteString serializeValue(Long key, Long value) {
+        Preconditions.checkNotNull(key);
+        Preconditions.checkNotNull(value);
         return longEntryMapper.serializeValue(key, value - key);
     }
 
     @Override
     public Long deserializeValue(ByteString key, ByteString value) {
+        Preconditions.checkNotNull(key);
+        Preconditions.checkNotNull(value);
         return deserializeKey(key) + longEntryMapper.deserializeValue(key, value);
     }
 }
