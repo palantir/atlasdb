@@ -18,27 +18,29 @@ package com.palantir.common.time;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Supplier;
 
 public enum NanoClock implements Supplier<NanoTime> {
     INSTANCE;
 
-    private final AtomicReference<NanoTime> maxSeen = new AtomicReference<>();
+    private static final AtomicReferenceFieldUpdater<NanoClock, NanoTime> updater =
+            AtomicReferenceFieldUpdater.newUpdater(NanoClock.class, NanoTime.class, "maxSeen");
+    private volatile NanoTime maxSeen;
 
     @Override
     public NanoTime get() {
-        NanoTime currentMax = maxSeen.get();
+        NanoTime currentMax = maxSeen;
         NanoTime now = NanoTime.now();
-        checkState(!now.isBefore(currentMax), "Clock reversal detected");
+        checkState(currentMax == null || !now.isBefore(currentMax), "Clock reversal detected");
         maybeSetNewMax(now);
         return now;
     }
 
     private void maybeSetNewMax(NanoTime time) {
         while (true) {
-            NanoTime current = maxSeen.get();
-            if (time.isBefore(current) || maxSeen.compareAndSet(current, time)) {
+            NanoTime current = maxSeen;
+            if ((current != null && time.isBefore(current)) || updater.compareAndSet(this, current, time)) {
                 return;
             }
         }
