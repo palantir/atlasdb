@@ -61,7 +61,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
     private final LongSupplier maxSize;
     private final AtomicReference<CacheDescriptor> cacheDescriptor = new AtomicReference<>();
     private final TaggedMetricRegistry taggedMetricRegistry;
-    private final DisruptorAutobatcher<Map.Entry<ByteString, ByteString>, Void> valuePutter;
+    private final DisruptorAutobatcher<Map.Entry<Long, Long>, Void> valuePutter;
 
     public static TimestampCache create(
             PersistentStore persistentStore,
@@ -113,10 +113,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
     @Override
     public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
-        Futures.getUnchecked(
-                valuePutter.apply(Maps.immutableEntry(
-                        entryMapper.serializeKey(startTimestamp),
-                        entryMapper.serializeValue(startTimestamp, commitTimestamp))));
+        Futures.getUnchecked(valuePutter.apply(Maps.immutableEntry(startTimestamp, commitTimestamp)));
     }
 
     @Nullable
@@ -152,7 +149,7 @@ public final class OffHeapTimestampCache implements TimestampCache {
                 .build();
     }
 
-    private static class WriteBatcher implements CoalescingRequestFunction<Map.Entry<ByteString, ByteString>, Void> {
+    private static class WriteBatcher implements CoalescingRequestFunction<Map.Entry<Long, Long>, Void> {
         OffHeapTimestampCache offHeapTimestampCache;
 
         WriteBatcher(OffHeapTimestampCache offHeapTimestampCache) {
@@ -160,15 +157,18 @@ public final class OffHeapTimestampCache implements TimestampCache {
         }
 
         @Override
-        public Map<Map.Entry<ByteString, ByteString>, Void> apply(Set<Map.Entry<ByteString, ByteString>> request) {
+        public Map<Map.Entry<Long, Long>, Void> apply(Set<Map.Entry<Long, Long>> request) {
             CacheDescriptor cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
             if (cacheDescriptor.currentSize().get() >= offHeapTimestampCache.maxSize.getAsLong()) {
                 offHeapTimestampCache.taggedMetricRegistry.counter(CACHE_NUKE).inc();
                 offHeapTimestampCache.clear();
             }
             cacheDescriptor = offHeapTimestampCache.cacheDescriptor.get();
+            Set<Map.Entry<ByteString, ByteString>> serializedRequest = request.stream()
+                    .map(this::serializeEntry)
+                    .collect(Collectors.toSet());
             try {
-                List<ByteString> toWrite = request.stream()
+                List<ByteString> toWrite = serializedRequest.stream()
                         .map(Map.Entry::getKey)
                         .collect(Collectors.toList());
                 Map<ByteString, ByteString> response =
@@ -176,12 +176,20 @@ public final class OffHeapTimestampCache implements TimestampCache {
 
                 int sizeIncrease = Sets.difference(request, response.entrySet()).size();
                 cacheDescriptor.currentSize().addAndGet(sizeIncrease);
-                offHeapTimestampCache.persistentStore.put(cacheDescriptor.handle(), ImmutableMap.copyOf(request));
+                offHeapTimestampCache.persistentStore.put(
+                        cacheDescriptor.handle(),
+                        ImmutableMap.copyOf(serializedRequest));
             } catch (SafeIllegalArgumentException exception) {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
             }
             return KeyedStream.of(request.stream()).<Void>map(value -> null).collectToMap();
+        }
+
+        private Map.Entry<ByteString, ByteString> serializeEntry(Map.Entry<Long, Long> entry) {
+            return Maps.immutableEntry(
+                    offHeapTimestampCache.entryMapper.serializeKey(entry.getKey()),
+                    offHeapTimestampCache.entryMapper.serializeValue(entry.getKey(), entry.getValue()));
         }
     }
 
