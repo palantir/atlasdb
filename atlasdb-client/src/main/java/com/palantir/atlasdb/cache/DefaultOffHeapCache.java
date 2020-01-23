@@ -190,13 +190,6 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
         }
     }
 
-    interface EntryMapper<K, V> {
-        ByteString serializeKey(K key);
-        K deserializeKey(ByteString key);
-        ByteString serializeValue(K key, V value);
-        V deserializeValue(ByteString key, ByteString value);
-    }
-
     @Value.Immutable
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     interface CacheDescriptor {

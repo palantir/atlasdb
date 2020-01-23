@@ -37,7 +37,7 @@ public final class DeltaEncodingTimestampEntryMapperTests {
     @Mock
     public LongEntryMapper longEntryMapper;
 
-    private OffHeapTimestampCache.EntryMapper<Long, Long> mapper;
+    private EntryMapper<Long, Long> mapper;
 
     @Before
     public void setUp() {

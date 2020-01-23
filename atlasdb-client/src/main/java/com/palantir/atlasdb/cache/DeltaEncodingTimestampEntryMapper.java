@@ -20,7 +20,7 @@ import com.palantir.logsafe.Preconditions;
 
 import okio.ByteString;
 
-public final class DeltaEncodingTimestampEntryMapper implements DefaultOffHeapCache.EntryMapper<Long, Long> {
+public final class DeltaEncodingTimestampEntryMapper implements EntryMapper<Long, Long> {
 
     private final LongEntryMapper longEntryMapper;
 
