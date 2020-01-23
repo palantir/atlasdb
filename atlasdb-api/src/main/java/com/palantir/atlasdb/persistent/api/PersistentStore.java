@@ -35,6 +35,7 @@ public interface PersistentStore extends AutoCloseable {
      * PostgreSQL table or RocksdDb column family. Handle is linked with one underlying store space.
      */
     @Value.Immutable
+    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     interface Handle {
         UUID id();
     }
