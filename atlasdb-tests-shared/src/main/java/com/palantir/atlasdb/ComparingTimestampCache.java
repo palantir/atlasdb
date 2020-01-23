@@ -44,7 +44,6 @@ public final class ComparingTimestampCache implements TimestampCache {
                 persistentStore,
                 metricRegistry.getTaggedRegistry(),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
-
         return new ComparingTimestampCache(first, second);
     }
 

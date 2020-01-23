@@ -37,7 +37,7 @@ public final class DeltaEncodingTimestampEntryMapperTests {
     @Mock
     public LongEntryMapper longEntryMapper;
 
-    private OffHeapTimestampCache.EntryMapper<Long, Long> mapper;
+    private EntryMapper<Long, Long> mapper;
 
     @Before
     public void setUp() {
@@ -56,23 +56,20 @@ public final class DeltaEncodingTimestampEntryMapperTests {
 
     @Test
     public void valueEncodedAsDelta() {
-        mapper.serializeValue(1L, 3L);
+        mapper.serializeValue(50023423423423567L, 50023423423423570L);
 
-        verify(longEntryMapper, times(1)).serializeValue(1L, 2L);
+        verify(longEntryMapper, times(1)).serializeValue(50023423423423567L, 3L);
     }
 
     @Test
     public void valueDecodedWithDelta() {
-        when(longEntryMapper.deserializeValue(toByteString(1L), toByteString(4L)))
+        when(longEntryMapper.deserializeValue(toByteString(50023423423423567L), toByteString(4L)))
                 .thenReturn(4L);
-        when(longEntryMapper.deserializeKey(toByteString(1L)))
-                .thenReturn(1L);
+        when(longEntryMapper.deserializeKey(toByteString(50023423423423567L)))
+                .thenReturn(50023423423423567L);
 
-        assertThat(mapper.deserializeValue(toByteString(1L), toByteString(4L)))
-                .isEqualTo(5L);
-
-        verify(longEntryMapper, times(1))
-                .deserializeValue(toByteString(1L), toByteString(4L));
+        assertThat(mapper.deserializeValue(toByteString(50023423423423567L), toByteString(4L)))
+                .isEqualTo(50023423423423571L);
     }
 
     private static ByteString toByteString(long value) {
