@@ -65,6 +65,13 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
     private final Meter cacheMiss;
     private final Counter cacheNuke;
 
+    public interface EntryMapper<K, V> {
+        ByteString serializeKey(K key);
+        K deserializeKey(ByteString key);
+        ByteString serializeValue(K key, V value);
+        V deserializeValue(ByteString key, ByteString value);
+    }
+
     public static <K, V> OffHeapCache<K, V> create(
             PersistentStore persistentStore,
             EntryMapper<K, V> entryMapper,

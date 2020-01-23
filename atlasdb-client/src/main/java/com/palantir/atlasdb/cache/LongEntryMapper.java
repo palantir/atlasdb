@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cache;
 
 import javax.annotation.Nonnull;
 
+import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
 

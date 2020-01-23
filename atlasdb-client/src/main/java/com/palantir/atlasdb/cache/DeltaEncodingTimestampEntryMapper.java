@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.cache;
 
+import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.logsafe.Preconditions;
 
 import okio.ByteString;
