@@ -1,0 +1,109 @@
+/*
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.atlasdb.factory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+
+public final class PersistentStoragePathSanitizer {
+    private static final Logger log = LoggerFactory.getLogger(PersistentStoragePathSanitizer.class);
+    private static final PersistentStoragePathSanitizer INSTANCE = new PersistentStoragePathSanitizer();
+    @VisibleForTesting
+    static final String MAGIC_SUFFIX = "atlasdb-persistent-storage";
+
+    public static PersistentStoragePathSanitizer create() {
+        return INSTANCE;
+    }
+
+    private final Set<String> sanitizedPaths = new HashSet<>();
+
+    @VisibleForTesting
+    PersistentStoragePathSanitizer() {}
+
+    /**
+     * For the given path does the following: 1) it is sanitized only once per VM lifetime 2) if it exists checks that
+     * it is a directory, 3) if it is a directory removes all sub-folders whose names are string representation of a
+     * UUID.
+     *
+     * @param storagePath to the proposed storage location
+     */
+    public synchronized Path sanitizedStoragePath(String storagePath) {
+        if (sanitizedPaths.contains(storagePath)) {
+            return new File(storagePath, MAGIC_SUFFIX).toPath().toAbsolutePath();
+        }
+
+        File storageDirectory = new File(storagePath, MAGIC_SUFFIX);
+
+        Preconditions.checkArgument(
+                storageDirectory.getParentFile().isDirectory(),
+                "Storage path has to point to a directory",
+                SafeArg.of("storageDirectory", storageDirectory.getParentFile().getAbsolutePath()));
+
+        if (!storageDirectory.exists()) {
+            Preconditions.checkState(
+                    storageDirectory.mkdir(),
+                    "Not able to create a storage directory",
+                    SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
+            sanitizedPaths.add(storagePath);
+            return storageDirectory.toPath().toAbsolutePath();
+        }
+
+        Preconditions.checkState(
+                storageDirectory.isDirectory(),
+                "Persistent storage path magic atlas subfolder path points to a directory",
+                SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
+
+        try {
+            deletePath(storageDirectory.toPath().toAbsolutePath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        sanitizedPaths.add(storagePath);
+        return storageDirectory.toPath().toAbsolutePath();
+    }
+
+    private static void deletePath(Path absolutePath) throws IOException {
+        Preconditions.checkArgument(
+                absolutePath.isAbsolute(),
+                "Deletion path needs to be absolute",
+                SafeArg.of("path", absolutePath.toString()));
+        log.info("Deleted folder during sanitization.", SafeArg.of("path", absolutePath));
+
+        try (Stream<Path> stream = Files.walk(absolutePath)) {
+            List<Path> sortedPaths = stream.sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+            for (Path filePath : sortedPaths) {
+                Files.delete(filePath);
+            }
+        }
+    }
+}
