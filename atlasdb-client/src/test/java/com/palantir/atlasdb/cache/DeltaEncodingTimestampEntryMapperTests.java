@@ -35,7 +35,7 @@ import okio.ByteString;
 @RunWith(MockitoJUnitRunner.class)
 public final class DeltaEncodingTimestampEntryMapperTests {
     @Mock
-    public LongEntryMapper longEntryMapper;
+    public EntryMapper<Long, Long> longEntryMapper;
 
     private EntryMapper<Long, Long> mapper;
 

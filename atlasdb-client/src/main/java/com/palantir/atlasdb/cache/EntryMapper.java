@@ -18,7 +18,7 @@ package com.palantir.atlasdb.cache;
 
 import okio.ByteString;
 
-interface EntryMapper<K, V> {
+public interface EntryMapper<K, V> {
     ByteString serializeKey(K key);
     K deserializeKey(ByteString key);
     ByteString serializeValue(K key, V value);
