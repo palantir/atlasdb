@@ -118,9 +118,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
     }
 
     private void checkStoreSpaceExists(PersistentStore.Handle handle) {
-        Preconditions.checkArgument(
-                availableColumnFamilies.containsKey(handle.id()),
-                "Store space does not exist.");
+        Preconditions.checkArgument(availableColumnFamilies.containsKey(handle.id()), "Store space does not exist.");
     }
 
     @Override
