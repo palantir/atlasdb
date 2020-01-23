@@ -66,14 +66,14 @@ public final class RocksDbPersistentStore implements PersistentStore {
 
     @Override
     public Optional<ByteString> get(PersistentStore.Handle handle, @Nonnull ByteString key) {
-        checkNamespaceExists(handle);
+        checkStoreSpaceExists(handle);
 
         return getValueBytes(availableColumnFamilies.get(handle.id()), key);
     }
 
     @Override
     public Map<ByteString, ByteString> get(PersistentStore.Handle handle, List<ByteString> keys) {
-        checkNamespaceExists(handle);
+        checkStoreSpaceExists(handle);
 
         List<ByteString> byteValues = multiGetValueByteStrings(availableColumnFamilies.get(handle.id()), keys);
 
@@ -92,7 +92,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
 
     @Override
     public void put(PersistentStore.Handle handle, @Nonnull ByteString key, @Nonnull ByteString value) {
-        checkNamespaceExists(handle);
+        checkStoreSpaceExists(handle);
         putEntry(availableColumnFamilies.get(handle.id()), key, value);
     }
 
@@ -112,15 +112,15 @@ public final class RocksDbPersistentStore implements PersistentStore {
 
     @Override
     public void dropStoreSpace(PersistentStore.Handle handle) {
-        checkNamespaceExists(handle);
+        checkStoreSpaceExists(handle);
 
         dropColumnFamily(handle);
     }
 
-    private void checkNamespaceExists(PersistentStore.Handle handle) {
+    private void checkStoreSpaceExists(PersistentStore.Handle handle) {
         Preconditions.checkArgument(
                 availableColumnFamilies.containsKey(handle.id()),
-                "Store entry family does not exist");
+                "Store space does not exist.");
     }
 
     @Override
