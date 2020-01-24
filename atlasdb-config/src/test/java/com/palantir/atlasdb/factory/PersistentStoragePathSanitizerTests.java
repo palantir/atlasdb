@@ -30,8 +30,6 @@ import org.junit.rules.TemporaryFolder;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class PersistentStoragePathSanitizerTests {
-    public static final String FIRST_SUBFOLDER_ROOT = "first";
-    public static final String SECOND_SUBFOLDER_ROOT = "second";
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
@@ -59,20 +57,12 @@ public final class PersistentStoragePathSanitizerTests {
     @Test
     public void removesMagicFolder() {
         PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath).toFile().mkdir();
+        assertThat(testFolder.getRoot().listFiles())
+                .hasSize(1);
+
         PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath);
-        assertThat(testFolder.getRoot().listFiles()).isEmpty();
-    }
-
-    @Test
-    public void doesNotPreventSanitizationOfDifferentPaths() throws IOException {
-        File firstRoot = PersistentStoragePathSanitizer
-                .sanitizeStoragePath(testFolder.newFolder(FIRST_SUBFOLDER_ROOT).toPath().toString())
-                .toFile();
-        File secondRoot = PersistentStoragePathSanitizer
-                .sanitizeStoragePath(testFolder.newFolder(SECOND_SUBFOLDER_ROOT).toPath().toString())
-                .toFile();
-
-        assertThat(firstRoot.listFiles()).isEmpty();
-        assertThat(secondRoot.listFiles()).isEmpty();
+        assertThat(testFolder.getRoot().listFiles())
+                .as("Sanitization should remove the special subfolder.")
+                .isEmpty();
     }
 }

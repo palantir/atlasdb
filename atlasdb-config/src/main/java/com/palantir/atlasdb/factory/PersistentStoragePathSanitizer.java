@@ -60,7 +60,8 @@ public final class PersistentStoragePathSanitizer {
 
         Preconditions.checkState(
                 storageDirectory.isDirectory(),
-                "Persistent storage path magic atlas subfolder path points to a directory",
+                "Dedicated persistent storage path does not point to a directory. "
+                        + "Note this is not the same as the provided storage path as we create a special subfolder.",
                 SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
 
         try {
