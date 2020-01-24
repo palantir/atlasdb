@@ -36,9 +36,6 @@ import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 public final class DefaultPersistentStorageFactory implements PersistentStorageFactory {
     private static final Logger log = LoggerFactory.getLogger(DefaultPersistentStorageFactory.class);
 
-    public DefaultPersistentStorageFactory() {
-    }
-
     /**
      * Constructs a {@link PersistentStore} from a {@link RocksDbPersistentStorageConfig}.
      *

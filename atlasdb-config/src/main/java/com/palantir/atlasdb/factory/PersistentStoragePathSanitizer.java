@@ -38,7 +38,7 @@ public final class PersistentStoragePathSanitizer {
     private PersistentStoragePathSanitizer() {}
 
     /**
-     * For the given path does the following:
+     * For the given path deletes all files and directories under the folder named {@code MAGIC_SUFFIX}.
      *
      * @param storagePath to the proposed storage location
      */
