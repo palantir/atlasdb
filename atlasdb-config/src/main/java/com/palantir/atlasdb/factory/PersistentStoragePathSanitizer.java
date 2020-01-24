@@ -21,46 +21,28 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class PersistentStoragePathSanitizer {
     private static final Logger log = LoggerFactory.getLogger(PersistentStoragePathSanitizer.class);
-    private static final PersistentStoragePathSanitizer INSTANCE = new PersistentStoragePathSanitizer();
-    @VisibleForTesting
-    static final String MAGIC_SUFFIX = "atlasdb-persistent-storage";
+    private static final String MAGIC_SUFFIX = "atlasdb-persistent-storage";
 
-    public static PersistentStoragePathSanitizer create() {
-        return INSTANCE;
-    }
-
-    private final Set<String> sanitizedPaths = new HashSet<>();
-
-    @VisibleForTesting
-    PersistentStoragePathSanitizer() {}
+    private PersistentStoragePathSanitizer() {}
 
     /**
-     * For the given path does the following: 1) it is sanitized only once per VM lifetime 2) if it exists checks that
-     * it is a directory, 3) if it is a directory removes all sub-folders whose names are string representation of a
-     * UUID.
+     * For the given path does the following:
      *
      * @param storagePath to the proposed storage location
      */
-    public synchronized Path sanitizedStoragePath(String storagePath) {
-        if (sanitizedPaths.contains(storagePath)) {
-            return new File(storagePath, MAGIC_SUFFIX).toPath().toAbsolutePath();
-        }
-
+    public static Path sanitizeStoragePath(String storagePath) {
         File storageDirectory = new File(storagePath, MAGIC_SUFFIX);
 
         Preconditions.checkArgument(
@@ -73,7 +55,6 @@ public final class PersistentStoragePathSanitizer {
                     storageDirectory.mkdir(),
                     "Not able to create a storage directory",
                     SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
-            sanitizedPaths.add(storagePath);
             return storageDirectory.toPath().toAbsolutePath();
         }
 
@@ -88,7 +69,6 @@ public final class PersistentStoragePathSanitizer {
             throw new RuntimeException(e);
         }
 
-        sanitizedPaths.add(storagePath);
         return storageDirectory.toPath().toAbsolutePath();
     }
 

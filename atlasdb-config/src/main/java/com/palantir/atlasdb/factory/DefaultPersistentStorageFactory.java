@@ -35,10 +35,8 @@ import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
  */
 public final class DefaultPersistentStorageFactory implements PersistentStorageFactory {
     private static final Logger log = LoggerFactory.getLogger(DefaultPersistentStorageFactory.class);
-    private final PersistentStoragePathSanitizer persistentStoragePathSanitizer;
 
-    public DefaultPersistentStorageFactory(PersistentStoragePathSanitizer persistentStoragePathSanitizer) {
-        this.persistentStoragePathSanitizer = persistentStoragePathSanitizer;
+    public DefaultPersistentStorageFactory() {
     }
 
     /**
@@ -48,7 +46,7 @@ public final class DefaultPersistentStorageFactory implements PersistentStorageF
      * @return RockDB implementation of {@link PersistentStore}
      */
     public PersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
-        Path magicPath = persistentStoragePathSanitizer.sanitizedStoragePath(config.storagePath());
+        Path magicPath = PersistentStoragePathSanitizer.sanitizeStoragePath(config.storagePath());
         File databaseFolder = new File(magicPath.toAbsolutePath().toString(), UUID.randomUUID().toString());
         RocksDB rocksDb = openRocksConnection(databaseFolder);
         return new RocksDbPersistentStore(rocksDb, databaseFolder);

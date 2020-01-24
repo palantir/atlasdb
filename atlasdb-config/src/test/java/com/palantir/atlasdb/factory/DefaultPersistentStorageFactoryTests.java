@@ -52,7 +52,7 @@ public final class DefaultPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PersistentStore persistentStore = new DefaultPersistentStorageFactory(new PersistentStoragePathSanitizer())
+        PersistentStore persistentStore = new DefaultPersistentStorageFactory()
                 .constructPersistentStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
@@ -68,7 +68,7 @@ public final class DefaultPersistentStorageFactoryTests {
         RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
                 .storagePath(storagePath)
                 .build();
-        PersistentStorageFactory factory = new DefaultPersistentStorageFactory(new PersistentStoragePathSanitizer());
+        PersistentStorageFactory factory = new DefaultPersistentStorageFactory();
 
         PersistentStore firstStore = factory.constructPersistentStore(config);
         PersistentStore secondStore = factory.constructPersistentStore(config);

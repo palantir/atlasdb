@@ -36,32 +36,30 @@ public final class PersistentStoragePathSanitizerTests {
     public TemporaryFolder testFolder = new TemporaryFolder();
 
     private String testFolderPath;
-    private PersistentStoragePathSanitizer persistentStoragePathSanitizer;
 
     @Before
     public void setUp() {
         testFolderPath = testFolder.getRoot().getAbsolutePath();
-        persistentStoragePathSanitizer = new PersistentStoragePathSanitizer();
     }
 
     @Test
     public void emptyFolderSanitization() {
-        persistentStoragePathSanitizer.sanitizedStoragePath(testFolderPath);
+        PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath);
     }
 
     @Test
     public void sanitizingFile() throws IOException {
         File file = testFolder.newFile();
 
-        assertThatThrownBy(() -> persistentStoragePathSanitizer.sanitizedStoragePath(file.getAbsolutePath()))
+        assertThatThrownBy(() -> PersistentStoragePathSanitizer.sanitizeStoragePath(file.getAbsolutePath()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("has to point to a directory");
     }
 
     @Test
     public void removesMagicFolder() {
-        new File(testFolderPath, PersistentStoragePathSanitizer.MAGIC_SUFFIX).mkdir();
-        persistentStoragePathSanitizer.sanitizedStoragePath(testFolderPath);
+        PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath).toFile().mkdir();
+        PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).isEmpty();
     }
 
@@ -69,18 +67,7 @@ public final class PersistentStoragePathSanitizerTests {
     public void doesNotRemoveFiles() {
         new File(testFolderPath, "test");
 
-        persistentStoragePathSanitizer.sanitizedStoragePath(testFolderPath);
-        assertThat(testFolder.getRoot().listFiles()).hasSize(1);
-    }
-
-    @Test
-    public void preventMultipleSanitizationOfTheSamePath() throws IOException {
-        testFolder.newFolder(PersistentStoragePathSanitizer.MAGIC_SUFFIX);
-        persistentStoragePathSanitizer.sanitizedStoragePath(testFolderPath);
-        assertThat(testFolder.getRoot().listFiles()).isEmpty();
-
-        testFolder.newFolder(PersistentStoragePathSanitizer.MAGIC_SUFFIX);
-        persistentStoragePathSanitizer.sanitizedStoragePath(testFolderPath);
+        PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath);
         assertThat(testFolder.getRoot().listFiles()).hasSize(1);
     }
 
@@ -89,14 +76,20 @@ public final class PersistentStoragePathSanitizerTests {
         File firstRoot = testFolder.newFolder(FIRST_SUBFOLDER_ROOT);
         File secondRoot = testFolder.newFolder(SECOND_SUBFOLDER_ROOT);
 
-        testFolder.newFolder(FIRST_SUBFOLDER_ROOT, PersistentStoragePathSanitizer.MAGIC_SUFFIX);
-        testFolder.newFolder(SECOND_SUBFOLDER_ROOT, PersistentStoragePathSanitizer.MAGIC_SUFFIX);
+        PersistentStoragePathSanitizer
+                .sanitizeStoragePath(testFolder.newFolder(FIRST_SUBFOLDER_ROOT).toPath().toString())
+                .toFile()
+                .mkdir();
+        PersistentStoragePathSanitizer
+                .sanitizeStoragePath(testFolder.newFolder(SECOND_SUBFOLDER_ROOT).toPath().toString())
+                .toFile()
+                .mkdir();
 
         assertThat(firstRoot.listFiles()).hasSize(1);
         assertThat(secondRoot.listFiles()).hasSize(1);
 
-        persistentStoragePathSanitizer.sanitizedStoragePath(firstRoot.getPath());
-        persistentStoragePathSanitizer.sanitizedStoragePath(secondRoot.getPath());
+        PersistentStoragePathSanitizer.sanitizeStoragePath(firstRoot.getPath());
+        PersistentStoragePathSanitizer.sanitizeStoragePath(secondRoot.getPath());
 
         assertThat(firstRoot.listFiles()).isEmpty();
         assertThat(secondRoot.listFiles()).isEmpty();
