@@ -64,32 +64,13 @@ public final class PersistentStoragePathSanitizerTests {
     }
 
     @Test
-    public void doesNotRemoveFiles() {
-        new File(testFolderPath, "test");
-
-        PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath);
-        assertThat(testFolder.getRoot().listFiles()).hasSize(1);
-    }
-
-    @Test
     public void doesNotPreventSanitizationOfDifferentPaths() throws IOException {
-        File firstRoot = testFolder.newFolder(FIRST_SUBFOLDER_ROOT);
-        File secondRoot = testFolder.newFolder(SECOND_SUBFOLDER_ROOT);
-
-        PersistentStoragePathSanitizer
+        File firstRoot = PersistentStoragePathSanitizer
                 .sanitizeStoragePath(testFolder.newFolder(FIRST_SUBFOLDER_ROOT).toPath().toString())
-                .toFile()
-                .mkdir();
-        PersistentStoragePathSanitizer
+                .toFile();
+        File secondRoot = PersistentStoragePathSanitizer
                 .sanitizeStoragePath(testFolder.newFolder(SECOND_SUBFOLDER_ROOT).toPath().toString())
-                .toFile()
-                .mkdir();
-
-        assertThat(firstRoot.listFiles()).hasSize(1);
-        assertThat(secondRoot.listFiles()).hasSize(1);
-
-        PersistentStoragePathSanitizer.sanitizeStoragePath(firstRoot.getPath());
-        PersistentStoragePathSanitizer.sanitizeStoragePath(secondRoot.getPath());
+                .toFile();
 
         assertThat(firstRoot.listFiles()).isEmpty();
         assertThat(secondRoot.listFiles()).isEmpty();
