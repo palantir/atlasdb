@@ -21,63 +21,56 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.base.MoreObjects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
-public final class PersistentStorageFactories {
-    private static final Pattern UUID_PATTERN = Pattern.compile(
-            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+public final class PersistentStoragePathSanitizer {
+    private static final Logger log = LoggerFactory.getLogger(PersistentStoragePathSanitizer.class);
+    private static final String MAGIC_SUFFIX = "atlasdb-persistent-storage";
 
-    private static final Set<String> SANITIZED_PATHS = new HashSet<>();
-
-    private PersistentStorageFactories() {}
-
+    private PersistentStoragePathSanitizer() {}
 
     /**
-     * For the given path does the following: 1) it is sanitized only once per VM lifetime 2) if it exists checks that
-     * it is a directory, 3) if it is a directory removes all sub-folders whose names are string representation of a
-     * UUID.
+     * For the given path deletes all files and directories under the folder named {@code MAGIC_SUFFIX}.
      *
      * @param storagePath to the proposed storage location
      */
-    public static synchronized void sanitizeStoragePath(String storagePath) {
-        if (SANITIZED_PATHS.contains(storagePath)) {
-            return;
-        }
+    public static Path sanitizeStoragePath(String storagePath) {
+        File storageDirectory = new File(storagePath, MAGIC_SUFFIX);
 
-        File storageDirectory = new File(storagePath);
+        Preconditions.checkArgument(
+                storageDirectory.getParentFile().isDirectory(),
+                "Storage path has to point to a directory",
+                SafeArg.of("storageDirectory", storageDirectory.getParentFile().getAbsolutePath()));
+
         if (!storageDirectory.exists()) {
             Preconditions.checkState(
                     storageDirectory.mkdir(),
                     "Not able to create a storage directory",
                     SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
-            SANITIZED_PATHS.add(storagePath);
-            return;
+            return storageDirectory.toPath().toAbsolutePath();
         }
 
-        Preconditions.checkArgument(
+        Preconditions.checkState(
                 storageDirectory.isDirectory(),
-                "Storage path has to point to a directory",
+                "Dedicated persistent storage path does not point to a directory. "
+                        + "Note this is not the same as the provided storage path as we create a special subfolder.",
                 SafeArg.of("storageDirectory", storageDirectory.getAbsolutePath()));
 
-        for (File file : MoreObjects.firstNonNull(storageDirectory.listFiles(), new File[0])) {
-            if (file.isDirectory() && (UUID_PATTERN.matcher(file.getName()).matches())) {
-                try {
-                    deletePath(file.toPath().toAbsolutePath());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+        try {
+            deletePath(storageDirectory.toPath().toAbsolutePath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        SANITIZED_PATHS.add(storagePath);
+
+        return storageDirectory.toPath().toAbsolutePath();
     }
 
     private static void deletePath(Path absolutePath) throws IOException {
@@ -85,6 +78,7 @@ public final class PersistentStorageFactories {
                 absolutePath.isAbsolute(),
                 "Deletion path needs to be absolute",
                 SafeArg.of("path", absolutePath.toString()));
+        log.info("Deleted folder during sanitization.", SafeArg.of("path", absolutePath));
 
         try (Stream<Path> stream = Files.walk(absolutePath)) {
             List<Path> sortedPaths = stream.sorted(Comparator.reverseOrder()).collect(Collectors.toList());

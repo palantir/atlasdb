@@ -22,7 +22,6 @@ import java.io.File;
 import java.util.List;
 
 import org.assertj.core.util.Files;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -37,50 +36,47 @@ public final class DefaultPersistentStorageFactoryTests {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder(Files.currentFolder());
 
-    private String storagePath;
-
-    @Before
-    public void setUp() {
-        storagePath = Files.currentFolder()
-                .toPath()
-                .relativize(testFolder.getRoot().toPath())
-                .toString();
-    }
-
     @Test
     public void createsPersistentStorage() throws Exception {
-        RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
-                .storagePath(storagePath)
-                .build();
+        RocksDbPersistentStorageConfig config = createRocksDbConfig(testFolder.getRoot());
         PersistentStore persistentStore = new DefaultPersistentStorageFactory()
                 .constructPersistentStore(config);
 
         assertThat(testFolderContent()).hasSize(1);
+        assertThat(testFolderContent().get(0).listFiles()).hasSize(1);
 
         persistentStore.close();
 
-        assertThat(testFolderContent()).isEmpty();
+        assertThat(testFolderContent().get(0).listFiles()).isEmpty();
     }
+
 
     @Test
     public void createsMultiplePersistentStores() throws Exception {
-        RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
-                .storagePath(storagePath)
-                .build();
         PersistentStorageFactory factory = new DefaultPersistentStorageFactory();
 
-        PersistentStore firstStore = factory.constructPersistentStore(config);
-        PersistentStore secondStore = factory.constructPersistentStore(config);
+        PersistentStore firstStore = factory.constructPersistentStore(createRocksDbConfig(testFolder.newFolder()));
+        PersistentStore secondStore = factory.constructPersistentStore(createRocksDbConfig(testFolder.newFolder()));
 
         assertThat(firstStore).isNotEqualTo(secondStore);
 
-        assertThat(testFolderContent()).hasSize(2);
-
         firstStore.close();
         secondStore.close();
-
-        assertThat(testFolderContent()).isEmpty();
     }
+
+    private static ImmutableRocksDbPersistentStorageConfig createRocksDbConfig(File file) {
+        return ImmutableRocksDbPersistentStorageConfig.builder()
+                .storagePath(relativePath(file))
+                .build();
+    }
+
+    private static String relativePath(File file) {
+        return Files.currentFolder()
+                .toPath()
+                .relativize(file.toPath())
+                .toString();
+    }
+
 
     private List<File> testFolderContent() {
         return ImmutableList.copyOf(MoreObjects.firstNonNull(

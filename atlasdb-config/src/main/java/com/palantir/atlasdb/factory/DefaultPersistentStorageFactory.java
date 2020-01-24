@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.factory;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.UUID;
 
 import org.rocksdb.RocksDB;
@@ -42,8 +43,8 @@ public final class DefaultPersistentStorageFactory implements PersistentStorageF
      * @return RockDB implementation of {@link PersistentStore}
      */
     public PersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
-        PersistentStorageFactories.sanitizeStoragePath(config.storagePath());
-        File databaseFolder = new File(config.storagePath(), UUID.randomUUID().toString());
+        Path magicPath = PersistentStoragePathSanitizer.sanitizeStoragePath(config.storagePath());
+        File databaseFolder = new File(magicPath.toAbsolutePath().toString(), UUID.randomUUID().toString());
         RocksDB rocksDb = openRocksConnection(databaseFolder);
         return new RocksDbPersistentStore(rocksDb, databaseFolder);
     }
