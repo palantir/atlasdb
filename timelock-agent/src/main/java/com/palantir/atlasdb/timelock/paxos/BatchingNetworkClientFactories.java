@@ -32,23 +32,25 @@ abstract class BatchingNetworkClientFactories implements
     @Value.Auxiliary
     @Value.Derived
     AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory() {
-        List<BatchPaxosAcceptor> allBatchAcceptors = metrics()
-                .instrumentLocalAndRemotesFor(
-                        BatchPaxosAcceptor.class,
-                        components().batchAcceptor(),
-                        UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor()))
+        BatchPaxosAcceptor local = components().batchAcceptor();
+        List<BatchPaxosAcceptor> remotes =
+                UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor());
+        List<BatchPaxosAcceptor> allBatchAcceptors = LocalAndRemotes.of(local, remotes)
+                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosAcceptor.class, remote))
                 .all();
+
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
     }
 
     @Value.Auxiliary
     @Value.Derived
     AutobatchingPaxosLearnerNetworkClientFactory learnerNetworkClientFactory() {
-        LocalAndRemotes<BatchPaxosLearner> allBatchLearners = metrics()
-                .instrumentLocalAndRemotesFor(
-                        BatchPaxosLearner.class,
-                        components().batchLearner(),
-                        UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner()));
+        BatchPaxosLearner local = components().batchLearner();
+        List<BatchPaxosLearner> remotes =
+                UseCaseAwareBatchPaxosLearnerAdapter.wrap(useCase(), remoteClients().batchLearner());
+
+        LocalAndRemotes<BatchPaxosLearner> allBatchLearners = LocalAndRemotes.of(local, remotes)
+                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosLearner.class, remote));
 
         return AutobatchingPaxosLearnerNetworkClientFactory.create(allBatchLearners, sharedExecutor(), quorumSize());
     }

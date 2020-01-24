@@ -42,11 +42,7 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .wrap(useCase(), remoteClients())
                     .apply(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
-            LocalAndRemotes<PaxosAcceptor> allAcceptors = metrics().instrumentLocalAndRemotesFor(
-                    PaxosAcceptor.class,
-                    localAcceptor,
-                    remoteAcceptors,
-                    client);
+            LocalAndRemotes<PaxosAcceptor> allAcceptors = LocalAndRemotes.of(localAcceptor, remoteAcceptors);
             return new SingleLeaderAcceptorNetworkClient(
                     allAcceptors.all(),
                     quorumSize(),
@@ -63,11 +59,8 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .wrap(useCase(), remoteClients())
                     .apply(client);
             PaxosLearner localLearner = components().learner(client);
-            LocalAndRemotes<PaxosLearner> allLearners = metrics().instrumentLocalAndRemotesFor(
-                    PaxosLearner.class,
-                    localLearner,
-                    remoteLearners,
-                    client);
+
+            LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner, remoteLearners);
             return new SingleLeaderLearnerNetworkClient(
                     allLearners.local(),
                     allLearners.remotes(),
