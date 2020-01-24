@@ -64,12 +64,18 @@ abstract class BatchingNetworkClientFactories implements
 
     @Override
     public Factory<PaxosAcceptorNetworkClient> acceptor() {
-        return acceptorNetworkClientFactory()::paxosAcceptorForClient;
+        return client -> metrics().instrument(
+                PaxosAcceptorNetworkClient.class,
+                acceptorNetworkClientFactory().paxosAcceptorForClient(client),
+                client);
     }
 
     @Override
     public Factory<PaxosLearnerNetworkClient> learner() {
-        return learnerNetworkClientFactory()::paxosLearnerForClient;
+        return client -> metrics().instrument(
+                PaxosLearnerNetworkClient.class,
+                learnerNetworkClientFactory().paxosLearnerForClient(client),
+                client);
     }
 
     public abstract static class Builder implements NetworkClientFactories.Builder {}
