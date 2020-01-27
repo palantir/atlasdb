@@ -15,9 +15,11 @@
  */
 package com.palantir.common.concurrent;
 
+import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
@@ -29,7 +31,7 @@ import com.google.common.base.Throwables;
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
     private final Supplier<T> delegate;
-    private volatile Round round = new Round();
+    private final AtomicReference<Round> round = new AtomicReference<>(new Round(0));
 
     public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
@@ -37,7 +39,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     @Override
     public T get() {
-        Round present = round;
+        Round present = round.get();
         if (present.isFirstToArrive()) {
             present.execute();
             return present.getResult();
@@ -52,7 +54,13 @@ public class CoalescingSupplier<T> implements Supplier<T> {
     private final class Round {
         private final AtomicBoolean hasStarted = new AtomicBoolean(false);
         private final CompletableFuture<T> future = new CompletableFuture<>();
+        private final long roundNumber;
+
         private volatile Round next;
+
+        Round(long roundNumber) {
+            this.roundNumber = roundNumber;
+        }
 
         boolean isFirstToArrive() {
             // adding the get benchmarks as faster, expected because compareAndSet forces an exclusive cache line
@@ -69,13 +77,13 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         }
 
         void execute() {
-            next = new Round();
+            next = new Round(roundNumber + 1);
             try {
                 future.complete(delegate.get());
             } catch (Throwable t) {
                 future.completeExceptionally(t);
             }
-            round = next;
+            round.accumulateAndGet(next, (r1, r2) -> r1.roundNumber > r2.roundNumber ? r1 : r2);
         }
 
         T getResult() {
