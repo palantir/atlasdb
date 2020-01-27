@@ -2,7 +2,7 @@ version: '2'
 
 services:
   cassandra:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    image: palantirtechnologies/cassandra:$CASSANDRA_VERSION
     container_name: atlas_perf_cassandra
     ports:
       - "9160:9160"

@@ -2,7 +2,7 @@ version: '2'
 
 services:
   cassandra1:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    image: palantirtechnologies/cassandra:$CASSANDRA_VERSION
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
@@ -11,7 +11,7 @@ services:
       - LOCAL_JMX=no
 
   cassandra2:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    image: palantirtechnologies/cassandra:$CASSANDRA_VERSION
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
@@ -20,7 +20,7 @@ services:
       - LOCAL_JMX=no
 
   cassandra3:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    image: palantirtechnologies/cassandra:$CASSANDRA_VERSION
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
