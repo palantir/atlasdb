@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Indicate the source of instrumentation (stack trace) when logging that
+    something was instrumented. Internal reference PDS-109071.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4537
