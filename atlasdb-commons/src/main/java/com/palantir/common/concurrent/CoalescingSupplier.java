@@ -82,8 +82,9 @@ public class CoalescingSupplier<T> implements Supplier<T> {
                 future.complete(delegate.get());
             } catch (Throwable t) {
                 future.completeExceptionally(t);
+            } finally {
+                round.accumulateAndGet(next, (r1, r2) -> r1.roundNumber > r2.roundNumber ? r1 : r2);
             }
-            round.accumulateAndGet(next, (r1, r2) -> r1.roundNumber > r2.roundNumber ? r1 : r2);
         }
 
         T getResult() {
