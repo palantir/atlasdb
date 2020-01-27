@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: AtlasDB now logs whenever an interface is instrumented via AtlasDbMetrics.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4536
