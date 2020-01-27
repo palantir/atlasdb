@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Run tests against Cassandra 3.11.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4539
