@@ -32,7 +32,6 @@ import com.google.common.util.concurrent.SettableFuture;
 public class CoalescingSupplier<T> implements Supplier<T> {
     private final Supplier<T> delegate;
 
-    private final Object lock = new Object();
     private volatile Round round = new Round();
 
     public CoalescingSupplier(Supplier<T> delegate) {
@@ -75,6 +74,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
             return next;
         }
 
+        // Why is this safe? There are two phases of computation
         void execute() {
             next = new Round();
             ListenableFuture<T> result = compute();
