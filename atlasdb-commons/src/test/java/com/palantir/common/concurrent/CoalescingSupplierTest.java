@@ -128,25 +128,32 @@ public class CoalescingSupplierTest {
                 MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(poolSize));
         AtomicLong counter = new AtomicLong(0);
         Supplier<Long> supplier = new CoalescingSupplier<>(() -> {
-            try {
-                Thread.sleep(2);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            }
+            sleep(2);
             return counter.incrementAndGet();
         });
         List<ListenableFuture<?>> futures = IntStream.range(0, poolSize)
-                .mapToObj(index -> executorService.submit(() -> {
-                    long last = supplier.get();
-                    for (int i = 0; i < 128; i++) {
-                        long current = supplier.get();
-                        checkState(current > last, "current > last");
-                        last = current;
-                    }
-                })).collect(Collectors.toList());
+                .mapToObj(index -> executorService.submit(() -> assertIncreasing(supplier)))
+                .collect(Collectors.toList());
         executorService.shutdown();
         Futures.getUnchecked(Futures.allAsList(futures));
+    }
+
+    private static void assertIncreasing(Supplier<Long> supplier) {
+        long last = supplier.get();
+        for (int i = 0; i < 128; i++) {
+            long current = supplier.get();
+            checkState(current > last, "current > last");
+            last = current;
+        }
+    }
+
+    private static void sleep(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
     }
 
     private AsyncTasks getConcurrently(int count) {
