@@ -15,12 +15,14 @@
  */
 package com.palantir.common.concurrent;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 
 /**
  * A supplier that coalesces computation requests, such that only one computation is ever running at a time, and
@@ -29,6 +31,7 @@ import com.google.common.base.Throwables;
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
     private final Supplier<T> delegate;
+
     private volatile Round round = new Round();
 
     public CoalescingSupplier(Supplier<T> delegate) {
@@ -51,7 +54,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     private final class Round {
         private final AtomicBoolean hasStarted = new AtomicBoolean(false);
-        private final CompletableFuture<T> future = new CompletableFuture<>();
+        private final SettableFuture<T> future = SettableFuture.create();
         private volatile Round next;
 
         boolean isFirstToArrive() {
@@ -61,27 +64,39 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
         Round awaitDone() {
             try {
-                future.join();
-            } catch (CompletionException e) {
+                future.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
                 // ignore
             }
             return next;
         }
 
+        // Why is this safe? There are two phases of computation
         void execute() {
             next = new Round();
-            try {
-                future.complete(delegate.get());
-            } catch (Throwable t) {
-                future.completeExceptionally(t);
-            }
+            ListenableFuture<T> result = compute();
             round = next;
+            future.setFuture(result);
+        }
+
+        private ListenableFuture<T> compute() {
+            try {
+                return Futures.immediateFuture(delegate.get());
+            } catch (Throwable t) {
+                return Futures.immediateFailedFuture(t);
+            }
         }
 
         T getResult() {
             try {
-                return future.join();
-            } catch (CompletionException e) {
+                return future.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
                 throw Throwables.propagate(e.getCause());
             }
         }
