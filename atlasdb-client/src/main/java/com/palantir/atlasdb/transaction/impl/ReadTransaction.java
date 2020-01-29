@@ -126,7 +126,7 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     private void checkTableName(TableReference tableRef) {
-        SweepStrategy sweepStrategy = sweepStrategies.get().get(tableRef);
+        SweepStrategy sweepStrategy = sweepStrategies.get(tableRef);
         if (sweepStrategy == SweepStrategy.THOROUGH) {
             throw new SafeIllegalStateException(
                     "Cannot read from a table with a thorough sweep strategy in a read only transaction.");
