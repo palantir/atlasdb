@@ -1,8 +1,11 @@
 type: improvement
 improvement:
-  description: "Add ability to make persister reusable and not to create a new
-    instance on each hydration. The default behaviour is to create
-    a new instance of persister on each hydration to avoid issues with persisters
+  description: "Ability to make persister reusable (through specifying the @Reusable annotation) and not to create a new
+    instance on each hydration. Schemas must be regenerated in order to enable this.
+
+    Note: Persisters are only reusable if they're thread-safe and stateless.
+
+    The default behaviour is to create a new instance of persister on each hydration to avoid issues with persisters
     which are stateful."
   links:
   - https://github.com/palantir/atlasdb/pull/4483
