@@ -44,6 +44,7 @@ public class PaxosStatusCheckRateInvariant implements Invariant {
     @Override
     public InvariantCheckState runOneIteration() {
         if (!believesSelfToBeLeader.getAsBoolean()) {
+            log.debug("Paxos state check invariant not evaluated, because I am not the leader right now");
             return InvariantCheckState.noKnownViolation();
         }
 

@@ -44,6 +44,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
+import com.palantir.paxos.PaxosValidityEventRecorder;
 import com.palantir.paxos.PaxosValue;
 
 /**
@@ -83,7 +84,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             Duration updatePollingWait,
             Duration randomWaitBeforeProposingLeadership,
             Duration leaderAddressCacheTtl,
-            PaxosLeaderElectionEventRecorder eventRecorder) {
+            PaxosLeaderElectionEventRecorder eventRecorder,
+            PaxosValidityEventRecorder validityEventRecorder) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.leaderPinger = leaderPinger;
@@ -92,7 +94,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.eventRecorder = eventRecorder;
         this.latestRoundVerifier =
-                new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
+                new CoalescingPaxosLatestRoundVerifier(
+                        new PaxosLatestRoundVerifierImpl(acceptorClient, validityEventRecorder));
         this.leaderAddressCache = Caffeine.newBuilder()
                 .expireAfterWrite(leaderAddressCacheTtl)
                 .build();

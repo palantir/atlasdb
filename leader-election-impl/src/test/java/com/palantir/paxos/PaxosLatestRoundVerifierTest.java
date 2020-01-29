@@ -34,7 +34,7 @@ public class PaxosLatestRoundVerifierTest {
 
     private final PaxosAcceptorNetworkClient acceptorClient = mock(PaxosAcceptorNetworkClient.class);
 
-    private final PaxosLatestRoundVerifierImpl verifier = new PaxosLatestRoundVerifierImpl(acceptorClient);
+    private final PaxosLatestRoundVerifierImpl verifier = new PaxosLatestRoundVerifierImpl(acceptorClient, recorder);
 
     @Test
     public void hasQuorumIfAllNodesAgree() {

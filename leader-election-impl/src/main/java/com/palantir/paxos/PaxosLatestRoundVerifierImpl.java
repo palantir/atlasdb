@@ -18,14 +18,22 @@ package com.palantir.paxos;
 public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
 
     private final PaxosAcceptorNetworkClient acceptorClient;
+    private final PaxosValidityEventRecorder recorder;
 
-    public PaxosLatestRoundVerifierImpl(PaxosAcceptorNetworkClient acceptorClient) {
+    public PaxosLatestRoundVerifierImpl(
+            PaxosAcceptorNetworkClient acceptorClient,
+            PaxosValidityEventRecorder recorder) {
         this.acceptorClient = acceptorClient;
+        this.recorder = recorder;
     }
 
     @Override
     public PaxosQuorumStatus isLatestRound(long round) {
-        return collectResponses(round).getQuorumResult();
+        try {
+            return collectResponses(round).getQuorumResult();
+        } finally {
+            recorder.recordValidityCheck();
+        }
     }
 
     private PaxosResponses<PaxosResponse> collectResponses(long round) {
