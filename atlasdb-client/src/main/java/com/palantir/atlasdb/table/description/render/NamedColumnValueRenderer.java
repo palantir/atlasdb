@@ -173,7 +173,7 @@ public class NamedColumnValueRenderer extends Renderer {
             } line("}");
 
             if (col.getValue().isReusablePersister()) {
-                line(col.getValue().instantiateReusablePersister());
+                line(col.getValue().getInstantiateReusablePersisterCode());
             }
 
         } line("};");

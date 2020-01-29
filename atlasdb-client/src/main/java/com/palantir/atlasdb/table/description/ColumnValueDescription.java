@@ -310,9 +310,7 @@ public final class ColumnValueDescription {
     public boolean isReusablePersister() {
         if (format == Format.PERSISTER) {
             Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
-            if (persisterClass.isAnnotationPresent(Reusable.class)) {
-                return true;
-            }
+            return persisterClass.isAnnotationPresent(Reusable.class);
         }
         return false;
     }
@@ -349,7 +347,7 @@ public final class ColumnValueDescription {
                 ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
     }
 
-    public String instantiateReusablePersister() {
+    public String getInstantiateReusablePersisterCode() {
         return "private final " + canonicalClassName + " REUSABLE_PERSISTER = " +
                         "new " + canonicalClassName + "();";
     }

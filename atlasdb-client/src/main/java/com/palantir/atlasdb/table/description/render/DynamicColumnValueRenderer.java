@@ -179,7 +179,7 @@ public class DynamicColumnValueRenderer extends Renderer {
 
 
         if (val.isReusablePersister()) {
-            line(val.instantiateReusablePersister());
+            line(val.getInstantiateReusablePersisterCode());
         }
     }
 
