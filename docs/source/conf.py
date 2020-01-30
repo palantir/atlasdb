@@ -56,9 +56,9 @@ source_suffix = ['.rst', '.md']
 master_doc = 'index'
 
 # General information about the project.
-project = u'OSS AtlasDB'
-copyright = u'2017, Palantir Technologies'
-author = u'Palantir Technologies'
+project = 'OSS AtlasDB'
+copyright = '2017, Palantir Technologies'
+author = 'Palantir Technologies'
 
 def get_last_release_from_gradle():
   """ The version that was last released before this commit.
@@ -266,8 +266,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'AtlasDB.tex', u'AtlasDB Documentation',
-   u'Palantir Technologies', 'manual'),
+  (master_doc, 'AtlasDB.tex', 'AtlasDB Documentation',
+   'Palantir Technologies', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -296,7 +296,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'atlasdb', u'AtlasDB Documentation',
+    (master_doc, 'atlasdb', 'AtlasDB Documentation',
      [author], 1)
 ]
 
@@ -310,7 +310,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'AtlasDB', u'AtlasDB Documentation',
+  (master_doc, 'AtlasDB', 'AtlasDB Documentation',
    author, 'AtlasDB', 'One line description of project.',
    'Miscellaneous'),
 ]

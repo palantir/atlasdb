@@ -2,16 +2,16 @@
 
 set -x
 
-if command -v python >/dev/null 2>&1; then
+if command -v python3 >/dev/null 2>&1; then
     echo "Python is present."
 else
     echo "Python not found, installing."
-    sudo apt-get install python
+    sudo apt-get install python3
 fi
 
-if python -c "import dateutil" >/dev/null 2>&1; then
+if python3 -c "import dateutil" >/dev/null 2>&1; then
     echo "DateUtil is present."
 else
     echo "DateUtil not found. Installing."
-    sudo apt-get install python-dateutil
+    sudo pip3 install python-dateutil
 fi

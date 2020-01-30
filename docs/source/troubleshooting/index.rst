@@ -183,3 +183,68 @@ compare-and-set operation here.
          True
 
 Clients should be able to take the backup lock again after this step.
+
+Migrating from conservatively swept tables to thoroughly swept tables
+=====================================================================
+
+Background and Motivation
+-------------------------
+
+Long running read transactions need to be able to distinguish between cells that were never written to, and cells that
+have been overwritten and are now being cleaned by sweep. A solution to this is to leave a sentinel that will always be
+read no matter what timestamp the transaction is running at when deleting a cell along with the normal Atlas-level
+delete (empty byte-array). This is how tables running with conservative sweep work. The downside is that for data that
+is transient - i.e. gets written to and deleted fairly quickly - this metadata stays behind forever, and even if the
+table is empty from an Atlas level, it will still have all of this metadata in the underlying key value service,
+resulting in unbounded disk usage growth the more cells are written to and deleted from. It also means that more data
+is potentially loaded from the underlying KVS when doing range scans making queries worse as time goes on.
+
+An alternative solution is to take out locks on the immutable timestamp, such that sweep cannot progress further than
+any in progress transaction. This means we needn't write any of the sentinels for long running read transactions to
+find. This is how sweep interacts with tables that are marked with the "thorough" sweep strategy.
+
+Unless explicitly specified, tables will have the "conservative" sweep strategy, and as a result will accumulate a lot
+of cruft especially for the high traffic tables. Migrating from conservative to thorough in a HA setup is possible but
+not trivial as it is possible to run into data integrity concerns. If one node is writing sentinels, and the other is
+just taking out locks and *not* writing sentinels, a long running read transaction on the first node cannot tell the
+difference between an overwritten/deleted cell that occurred in a transaction on the new node was deleted or a cell
+that was never present, which results in once failing transactions succeeding.
+
+Migration strategy for rolling upgrades
+---------------------------------------
+
+.. warning::
+
+    Migration from conservative sweep to thorough sweep for a table is non-trivial and failure to adhere to the below
+    instructions can result in **severe data corruption**.
+
+Write transactions *do* take out the immutable timestamp lock, so an intermediate stage can be used here.
+
+#. Assume that the latest version of your service is ``A`` and the conservatively swept table is ``T``.
+#. Release a new version where all the *read-only* transactions that touch ``T`` are changed into *read/write*
+   transactions. Do **not** change the sweep strategy of ``T`` from the default (where no sweep strategy is defined) or
+   from ``SweepStrategy.CONSERVATIVE``. Call this version ``B``.
+#. Release another version ``C`` - based off of ``B`` - where ``T`` now is configured to have the sweep strategy
+   ``SweepStrategy.THOROUGH``.
+
+The combinations of versions that can run concurrently i.e. during a rolling upgrade are restricted and are as follows:
+
+* ``A`` and ``B``
+  * Sentinels are still being written, at the same time the immutable timestamp lock is being taken out on ``B``. This
+    adds a bit of overhead and is somewhat redundant since the sentinels are still being written, but it is an essential
+    step in the migration.
+* ``B`` and ``C``
+  * Sentinels are still being written but by *``B``* only. The immutable timestamp lock is being taken out on both
+    nodes. Should ``C`` delete a cell that ``B`` is currently writing to, sweep won't clear it underneath ``B`` since
+    the immutable timestamp lock is still being held.
+
+``A`` and ``C`` are illegal combinations as ``A`` is not taking out the immutable timestamp lock, so sweep can continue
+unhindered. ``C`` is also not writing sentinels, so when sweep deletes the cell from the KVS, read transactions on
+``A`` will treat the cell as empty as opposed to deleted.
+
+.. warning::
+
+    Once you've migrated, no __**new**__ sentinels will be written to the KVS, however any existing sentinels will be
+    left behind. This *can* be cleaned up by background sweep, but depending on the table in question, it could
+    potentially disrupt that service i.e. OOM. An alternative strategy would be to consider migrating the contents of
+    the old conservative table to a new table that's thorough by default and then dropping the old table.

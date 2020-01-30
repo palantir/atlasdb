@@ -92,7 +92,7 @@ jobs:
     steps:
       - attach_workspace: { at: . }
       - run: sudo apt-get update
-      - run: sudo apt-get install python python-pip
+      - run: sudo apt-get install python3 python3-pip
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
