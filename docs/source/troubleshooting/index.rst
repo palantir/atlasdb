@@ -230,13 +230,13 @@ Write transactions *do* take out the immutable timestamp lock, so an intermediat
 The combinations of versions that can run concurrently i.e. during a rolling upgrade are restricted and are as follows:
 
 * ``A`` and ``B``
-  * Sentinels are still being written, at the same time the immutable timestamp lock is being taken out on ``B``. This
-    adds a bit of overhead and is somewhat redundant since the sentinels are still being written, but it is an essential
-    step in the migration.
+   * Sentinels are still being written, at the same time the immutable timestamp lock is being taken out on ``B``. This
+     adds a bit of overhead and is somewhat redundant since the sentinels are still being written, but it is an essential
+     step in the migration.
 * ``B`` and ``C``
-  * Sentinels are still being written but by *``B``* only. The immutable timestamp lock is being taken out on both
-    nodes. Should ``C`` delete a cell that ``B`` is currently writing to, sweep won't clear it underneath ``B`` since
-    the immutable timestamp lock is still being held.
+   * Sentinels are still being written but by *``B``* only. The immutable timestamp lock is being taken out on both
+     nodes. Should ``C`` delete a cell that ``B`` is currently writing to, sweep won't clear it underneath ``B`` since
+     the immutable timestamp lock is still being held.
 
 ``A`` and ``C`` are illegal combinations as ``A`` is not taking out the immutable timestamp lock, so sweep can continue
 unhindered. ``C`` is also not writing sentinels, so when sweep deletes the cell from the KVS, read transactions on

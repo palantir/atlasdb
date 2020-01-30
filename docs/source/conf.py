@@ -37,7 +37,7 @@ extensions = [
     'code-block-with-version-replacement'
 ]
 
-# Included 
+# Included
 source_parsers = {
   '.md': CommonMarkParser,
 }
@@ -84,7 +84,7 @@ def get_last_release_from_gradle():
   codebase_root = os.path.join(conf_py_directory, '..', '..')
   p = subprocess.Popen(['./gradlew', 'printLastVersion'],
                        cwd=codebase_root, stdout=subprocess.PIPE)
-  stdout = p.communicate()[0]
+  stdout = p.communicate()[0].decode("utf-8")
   matcher = re.search('\d+\.\d+\.\d+[\.\-\+\w]*', stdout)
   return matcher.group(0)
 
