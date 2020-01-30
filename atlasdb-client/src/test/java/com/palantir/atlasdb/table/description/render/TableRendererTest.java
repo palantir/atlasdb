@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.persister.JsonNodePersister;
 import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -70,6 +71,27 @@ public class TableRendererTest {
             rowComponent("rowName", ValueType.STRING);
             columns();
             column("col1", "1", ValueType.VAR_LONG);
+        }};
+    }
+
+    @Test
+    public void testReusablePersisters() {
+        TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
+        String renderedTableDefinition = renderer.render("table", getTableWithUserSpecifiedPersister(TABLE_REF), NO_INDICES);
+        assertThat(renderedTableDefinition,
+                allOf(
+                        containsString("REUSABLE_PERSISTER.hydrateFromBytes"),
+                        containsString("private final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =")
+        ));
+    }
+
+    private TableDefinition getTableWithUserSpecifiedPersister(TableReference tableRef) {
+        return new TableDefinition() {{
+            javaTableName(tableRef.getTablename());
+            rowName();
+            rowComponent("rowName", ValueType.STRING);
+            columns();
+            column("col1", "1", JsonNodePersister.class);
         }};
     }
 }

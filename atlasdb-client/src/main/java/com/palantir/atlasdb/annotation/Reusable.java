@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.table.description.test;
+package com.palantir.atlasdb.annotation;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.atlasdb.annotation.Reusable;
-import com.palantir.atlasdb.persister.JacksonPersister;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Reusable
-public class StringValuePersister extends JacksonPersister<StringValue> {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    public StringValuePersister() {
-        super(StringValue.class, MAPPER);
-    }
+/**
+ * Use to annotate persister which is not stateful in order to avoid
+ * unnecessary object allocation (in the implementation of bytes hydrator).
+ *
+ * Note: Persister must be thread safe
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface Reusable {
 }

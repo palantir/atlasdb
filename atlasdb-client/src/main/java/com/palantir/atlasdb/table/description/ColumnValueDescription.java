@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.palantir.atlasdb.annotation.Reusable;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +87,7 @@ public final class ColumnValueDescription {
     final Compression compression;
     final ValueType type;
     @Nullable final String className; // null if format is VALUE_TYPE
+
     @Nullable final String canonicalClassName; // null if format is VALUE_TYPE
     // null if not a proto or descriptor is missing
     @Nullable final Descriptor protoDescriptor;
@@ -305,12 +307,25 @@ public final class ColumnValueDescription {
         }
     }
 
+    public boolean isReusablePersister() {
+        if (format == Format.PERSISTER) {
+            Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
+            return persisterClass.isAnnotationPresent(Reusable.class);
+        }
+        return false;
+    }
+
     public String getHydrateCode(String varName) {
-        varName = "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName + ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
+        varName = composeVarName(varName);
+
         if (format == Format.PERSISTABLE) {
             return canonicalClassName + "." + Persistable.HYDRATOR_NAME + ".hydrateFromBytes(" + varName + ")";
         } else if (format == Format.PERSISTER) {
-            return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")";
+            if (isReusablePersister()) {
+                return "REUSABLE_PERSISTER.hydrateFromBytes(" + varName + ")";
+            } else {
+                return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")";
+            }
         } else if (format == Format.PROTO) {
                 return "new Supplier<" + canonicalClassName + ">() { " +
                     "@Override " +
@@ -325,6 +340,16 @@ public final class ColumnValueDescription {
         } else {
             return type.getHydrateCode(varName, "0");
         }
+    }
+
+    public String composeVarName(String varName) {
+        return "com.palantir.atlasdb.compress.CompressionUtils.decompress(" + varName +
+                ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
+    }
+
+    public String getInstantiateReusablePersisterCode() {
+        return "private final " + canonicalClassName + " REUSABLE_PERSISTER = " +
+                        "new " + canonicalClassName + "();";
     }
 
     @SuppressWarnings("unchecked")
