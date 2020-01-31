@@ -141,6 +141,7 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.LeasedLockToken;
+import com.palantir.lock.client.LockTokenShare;
 import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -1669,6 +1670,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             tableRef);
     }
 
+    private static LockToken getTokenIfShared(LockToken token) {
+        if (token instanceof LockTokenShare) {
+            LockTokenShare shared = (LockTokenShare) token;
+            return shared.sharedLockToken();
+        }
+        return token;
+    }
+
     private static LockToken getServerTokenIfLeased(LockToken token) {
         if (token instanceof LeasedLockToken) {
             LeasedLockToken leased = (LeasedLockToken) token;
@@ -2270,8 +2279,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
                 log.info("This transaction has been rolled back by someone else.",
-                        SafeArg.of("immutableTimestampLock",
-                                immutableTimestampLock.map(SnapshotTransaction::getServerTokenIfLeased)),
+                        SafeArg.of("immutableTimestampLock", immutableTimestampLock
+                                .map(SnapshotTransaction::getTokenIfShared)
+                                .map(SnapshotTransaction::getServerTokenIfLeased)),
                         SafeArg.of("commitLocksToken", getServerTokenIfLeased(commitLocksToken)));
             }
         } catch (TransactionFailedException e1) {

@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 
-final class LockTokenShare implements LockToken {
+public final class LockTokenShare implements LockToken {
     private final UUID requestId;
     private final LockToken sharedLockToken;
     private final ReferenceCounter referenceCounter;
@@ -72,7 +72,7 @@ final class LockTokenShare implements LockToken {
         return Optional.empty();
     }
 
-    LockToken sharedLockToken() {
+    public LockToken sharedLockToken() {
         return sharedLockToken;
     }
 
