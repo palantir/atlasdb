@@ -35,7 +35,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
@@ -59,16 +61,34 @@ public class ConjureTimelockResourceTest {
     @Mock private LeaderTime leaderTime;
 
     private ConjureTimelockResource resource;
+    private ConjureTimelockService service;
 
     @Before
     public void before() {
         resource = new ConjureTimelockResource(TARGETER, unused -> timelockService);
+        service = ConjureTimelockResource.jersey(TARGETER, unused -> timelockService);
         when(timelockService.leaderTime()).thenReturn(leaderTime);
     }
 
     @Test
     public void canGetLeaderTime() {
         assertThat(Futures.getUnchecked(resource.leaderTime(AUTH_HEADER, NAMESPACE))).isEqualTo(leaderTime);
+    }
+
+    @Test
+    public void jerseyPropagatesExceptions() {
+        when(resource.leaderTime(AUTH_HEADER, NAMESPACE)).thenThrow(new BlockingTimeoutException(""));
+        assertQosExceptionThrownBy(
+                Futures.submitAsync(
+                        () -> Futures.immediateFuture(service.leaderTime(AUTH_HEADER, NAMESPACE)),
+                        MoreExecutors.directExecutor()),
+                new AssertVisitor() {
+            @Override
+            public Void visit(QosException.Throttle exception) {
+                assertThat(exception.getRetryAfter()).contains(Duration.ZERO);
+                return null;
+            }
+        });
     }
 
     @Test

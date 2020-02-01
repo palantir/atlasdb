@@ -142,7 +142,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
-                throw Throwables.propagate(e);
+                throw Throwables.propagate(e.getCause());
             }
         }
     }
