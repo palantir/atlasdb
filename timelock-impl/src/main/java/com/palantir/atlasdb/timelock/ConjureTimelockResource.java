@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
