@@ -17,20 +17,28 @@ package com.palantir.timelock.paxos;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
@@ -44,8 +52,10 @@ import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -61,6 +71,7 @@ public class TimeLockAgent {
     private final TimeLockInstallConfiguration install;
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
+    private final Optional<Consumer<UndertowService>> undertowRegistrar;
     private final PaxosResources paxosResources;
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
@@ -76,7 +87,8 @@ public class TimeLockAgent {
             UserAgent userAgent,
             int threadPoolSize,
             long blockingTimeoutMs,
-            Consumer<Object> registrar) {
+            Consumer<Object> registrar,
+            Optional<Consumer<UndertowService>> undertowRegistrar) {
         ExecutorService executor = createSharedExecutor(metricsManager);
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 ImmutableTimelockPaxosInstallationContext.of(install, userAgent),
@@ -88,6 +100,7 @@ public class TimeLockAgent {
                 metricsManager,
                 install,
                 runtime,
+                undertowRegistrar,
                 threadPoolSize,
                 blockingTimeoutMs,
                 registrar,
@@ -99,6 +112,7 @@ public class TimeLockAgent {
     private TimeLockAgent(MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
+            Optional<Consumer<UndertowService>> undertowRegistrar,
             int threadPoolSize,
             long blockingTimeoutMs,
             Consumer<Object> registrar,
@@ -106,6 +120,7 @@ public class TimeLockAgent {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
+        this.undertowRegistrar = undertowRegistrar;
         this.registrar = registrar;
         this.paxosResources = paxosResources;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
@@ -157,16 +172,29 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
 
+        Map<String, TimeLockServices> services = new ConcurrentHashMap<>();
+        Function<String, TimeLockServices> timelockServices =
+                namespace -> services.computeIfAbsent(
+                        namespace, this::createInvalidatingTimeLockServices);
+
         // Finally, register the health check, and endpoints associated with the clients.
         resource = TimeLockResource.create(
                 metricsManager,
-                this::createInvalidatingTimeLockServices,
+                timelockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
         healthCheck = paxosResources.leadershipComponents().healthCheck(resource::getActiveClients);
         LockWatchTestingService.create(
                 Suppliers.compose(TimeLockRuntimeConfiguration::lockWatchTestConfig, runtime::get),
                 resource::getLockWatchingResource);
         registrar.accept(resource);
+
+        Function<String, AsyncTimelockService> serviceCreator = namespace ->
+                timelockServices.apply(namespace).getTimelockService();
+        if (undertowRegistrar.isPresent()) {
+            undertowRegistrar.get().accept(ConjureTimelockResource.undertow(redirectRetryTargeter(), serviceCreator));
+        } else {
+            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), serviceCreator));
+        }
     }
 
     @SuppressWarnings("unused") // used by external health checks
@@ -208,11 +236,15 @@ public class TimeLockAgent {
     private void registerExceptionMappers() {
         registrar.accept(new BlockingTimeoutExceptionMapper());
 
-        URL localServer = PaxosRemotingUtils.convertAddressToUrl(install, install.cluster().localServer());
-        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(install, install.cluster().clusterMembers());
-        registrar.accept(new NotCurrentLeaderExceptionMapper(RedirectRetryTargeter.create(localServer, clusterUrls)));
+        registrar.accept(new NotCurrentLeaderExceptionMapper(redirectRetryTargeter()));
 
         registrar.accept(new TooManyRequestsExceptionMapper());
+    }
+
+    private RedirectRetryTargeter redirectRetryTargeter() {
+        URL localServer = PaxosRemotingUtils.convertAddressToUrl(install, install.cluster().localServer());
+        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(install, install.cluster().clusterMembers());
+        return RedirectRetryTargeter.create(localServer, clusterUrls);
     }
 
     /**

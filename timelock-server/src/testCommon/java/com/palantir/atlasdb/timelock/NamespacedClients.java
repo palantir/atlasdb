@@ -19,8 +19,10 @@ package com.palantir.atlasdb.timelock;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
@@ -55,7 +57,9 @@ public interface NamespacedClients {
 
     @Value.Derived
     default TimelockService timelockService() {
-        return RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient());
+        return RemoteTimelockServiceAdapter.create(
+                namespacedTimelockRpcClient(),
+                namespacedConjureTimelockService());
     }
 
     @Value.Derived
@@ -64,8 +68,18 @@ public interface NamespacedClients {
     }
 
     @Value.Derived
+    default NamespacedConjureTimelockService namespacedConjureTimelockService() {
+        return new NamespacedConjureTimelockService(conjureTimelockService(), namespace());
+    }
+
+    @Value.Derived
     default TimelockRpcClient timelockRpcClient() {
         return proxyFactory().createProxy(TimelockRpcClient.class);
+    }
+
+    @Value.Derived
+    default ConjureTimelockService conjureTimelockService() {
+        return proxyFactory().createProxy(ConjureTimelockService.class);
     }
 
     @Value.Derived

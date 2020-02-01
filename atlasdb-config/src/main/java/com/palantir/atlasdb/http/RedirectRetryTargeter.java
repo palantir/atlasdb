@@ -58,7 +58,7 @@ public final class RedirectRetryTargeter {
         return new RedirectRetryTargeter(otherServers);
     }
 
-    Optional<URL> redirectRequest(Optional<HostAndPort> leaderHint) {
+    public Optional<URL> redirectRequest(Optional<HostAndPort> leaderHint) {
         if (otherServers.isEmpty()) {
             return Optional.empty();
         }

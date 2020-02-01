@@ -25,7 +25,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
-    private static final String NAMESPACE = "test";
 
     private TimelockUtils() {
     }
@@ -36,7 +35,7 @@ public final class TimelockUtils {
     }
 
     private static List<String> hostnamesToEndpointUris(List<String> hosts) {
-        return Lists.transform(hosts, host -> String.format("http://%s:%d/%s", host, PORT, NAMESPACE));
+        return Lists.transform(hosts, host -> String.format("http://%s:%d", host, PORT));
     }
 
     private static <T> T createFromUris(MetricsManager metricsManager, List<String> endpointUris, Class<T> type) {

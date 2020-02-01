@@ -93,6 +93,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         return TimeLockServices.create(
                 asyncTimelockService,
                 lockService,
+                asyncTimelockService,
                 asyncTimelockResource,
                 lockWatchingResource,
                 asyncTimelockService);
