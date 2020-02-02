@@ -42,13 +42,13 @@ services:
     base-path: /tl
     endpoints:
       startTransactions:
-        http: POST /{namespace}/st
+        http: POST /st/{namespace}
         args:
           namespace: string
           request: ConjureStartTransactionsRequest
         returns: ConjureStartTransactionsResponse
       leaderTime:
-        http: POST /{namespace}/lt
+        http: POST /lt/{namespace}
         args:
           namespace: string
         returns: LeaderTime
