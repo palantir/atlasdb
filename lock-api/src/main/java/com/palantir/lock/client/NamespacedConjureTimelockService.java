@@ -22,7 +22,7 @@ import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
-public final class NamespacedConjureTimelockService {
+public class NamespacedConjureTimelockService {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final String namespace;
     private final ConjureTimelockService conjureTimelockService;
