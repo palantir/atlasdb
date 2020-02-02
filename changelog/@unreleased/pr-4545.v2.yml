@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Start moving timelock to Conjure endpoints.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4545
