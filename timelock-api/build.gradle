@@ -20,4 +20,5 @@ subprojects {
         compile project(':lock-api-objects')
         compile 'com.palantir.conjure.java:conjure-lib'
     }
+    tasks.licenseMain.enabled = false
 }
