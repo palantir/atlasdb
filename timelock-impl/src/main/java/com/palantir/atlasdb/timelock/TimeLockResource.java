@@ -41,7 +41,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@Path("/{namespace: [a-zA-Z0-9_-]+}")
+@Path("/{namespace: (?!tl)[a-zA-Z0-9_-]+}")
 public class TimeLockResource {
     private final Logger log = LoggerFactory.getLogger(TimeLockResource.class);
 
