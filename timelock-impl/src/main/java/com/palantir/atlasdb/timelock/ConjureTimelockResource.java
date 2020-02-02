@@ -115,7 +115,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                 }, MoreExecutors.directExecutor());
     }
 
-    private static final class JerseyAdapter implements ConjureTimelockService {
+    public static final class JerseyAdapter implements ConjureTimelockService {
         private final ConjureTimelockResource resource;
 
         private JerseyAdapter(ConjureTimelockResource resource) {
