@@ -95,10 +95,8 @@ public class RangeLoader {
     }
 
     private SlicePredicate getSlicePredicateForSingleColumn(RangeRequest rangeRequest, long startTs) {
-        SlicePredicate predicate;
         byte[] colName = rangeRequest.getColumnNames().iterator().next();
-        predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
-        return predicate;
+        return SlicePredicates.latestVersionForColumn(colName, startTs);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(

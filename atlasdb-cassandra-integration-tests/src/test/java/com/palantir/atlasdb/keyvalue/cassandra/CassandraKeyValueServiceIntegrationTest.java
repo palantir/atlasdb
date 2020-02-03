@@ -346,7 +346,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         byte[] contents_2 = results_2.next().getOnlyColumnValue().getContents();
 
         Assert.assertEquals(contents_1, contents_2);
-        Assert.assertEquals(contents_1, "data2");
+        Assert.assertEquals(Arrays.toString(contents_1), "data2");
     }
 
     @Test

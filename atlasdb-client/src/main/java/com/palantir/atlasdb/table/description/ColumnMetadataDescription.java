@@ -17,12 +17,12 @@ package com.palantir.atlasdb.table.description;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -70,18 +70,15 @@ public class ColumnMetadataDescription {
     }
 
     public Set<byte[]> getAllColumnNames() {
-        Set<byte[]> ret = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
-
         if (dynamicColumn != null) {
-            for (NameComponentDescription rowPart: dynamicColumn.getColumnNameDesc().getRowParts()) {
-                ret.add(rowPart.getComponentName().getBytes());
-            }
-            return ret;
+            return dynamicColumn.getColumnNameDesc().getRowParts().stream()
+                    .map(rowPart -> rowPart.getComponentName().getBytes())
+                    .collect(Collectors.toCollection(() -> Sets.newTreeSet(UnsignedBytes.lexicographicalComparator())));
+        } else {
+            return namedColumns.stream()
+                    .map(column -> column.getShortName().getBytes())
+                    .collect(Collectors.toCollection(() -> Sets.newTreeSet(UnsignedBytes.lexicographicalComparator())));
         }
-        for (NamedColumnDescription col : namedColumns) {
-            ret.add(col.getShortName().getBytes());
-        }
-        return ret;
     }
 
     public int getMaxValueSize() {
