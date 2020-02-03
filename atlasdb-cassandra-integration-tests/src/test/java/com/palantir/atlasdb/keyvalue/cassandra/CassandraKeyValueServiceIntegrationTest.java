@@ -45,6 +45,7 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -309,19 +310,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testRangeLoader() throws Exception {
-//        int numColumns = 5;
-//        TableReference tableReference = TableReference.createFromFullyQualifiedName(
-//                "test." + RandomStringUtils.randomAlphanumeric(16));
-//        List<NamedColumnDescription> columns = new ArrayList<>();
-//        for (int i = 1; i <= numColumns; ++i) {
-//            columns.add(new NamedColumnDescription(
-//                    "c" + i, "column" + i, ColumnValueDescription.forType(ValueType.BLOB)));
-//        }
-//        keyValueService.createTable(tableReference, TableMetadata.builder()
-//                .columns(new ColumnMetadataDescription(columns))
-//                .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
-//                .build()
-//                .persistToBytes());
         TableReference tableReference =
                 TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
         keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -329,25 +317,36 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         byte[] moreData = PtBytes.toBytes("data2");
 
         Cell row_1_cell = Cell.create(PtBytes.toBytes("row_1"), PtBytes.toBytes("column"));
-        Cell row_2_cell = Cell.create(PtBytes.toBytes("row_2"), PtBytes.toBytes("column"));
 
         keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(row_1_cell, Value.create(data, 8L)));
         keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(row_1_cell, Value.create(moreData, 88L)));
 
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(row_2_cell, Value.create(data, 8L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(row_2_cell, Value.create(moreData, 88L)));
-        byte[] x = keyValueService.getMetadataForTable(tableReference);
-        TableMetadata tmd = KeyValueServices.getTableMetadataSafe(keyValueService, tableReference);
+        TableMetadata tableMetadata = KeyValueServices.getTableMetadataSafe(keyValueService, tableReference);
 
-        int numCols = tmd.getColumns().getAllColumnValues().size();
+        Set<byte[]> allColumnNames = tableMetadata.getColumns().getAllColumnNames();
+        Assert.assertEquals(allColumnNames.size(), 1);
 
-        RangeRequest rangeRequest = RangeRequest.builder().build();
+        // case 1: single column table, columns specified in the rangeRequest
+        RangeRequest rangeRequest = RangeRequest.builder().retainColumns(allColumnNames).build();
+        ClosableIterator<RowResult<Value>> results_1 = keyValueService.getRange(tableReference,
+                rangeRequest,
+                (-89L));
 
-        ClosableIterator<RowResult<Value>> results = keyValueService.getRange(tableReference,
-                RangeRequest.builder().build(),
-                (8L + 1));
-        assertThat(results);
 
+        // single column table, columns are not specified in the rangeRequest
+        rangeRequest = RangeRequest.builder().build();
+        ClosableIterator<RowResult<Value>> results_2 = keyValueService.getRange(tableReference,
+                rangeRequest,
+                (-89L));
+
+        assertThat(results_1.hasNext());
+        assertThat(results_2.hasNext());
+
+        byte[] contents_1 = results_1.next().getOnlyColumnValue().getContents();
+        byte[] contents_2 = results_2.next().getOnlyColumnValue().getContents();
+
+        Assert.assertEquals(contents_1, contents_2);
+        Assert.assertEquals(contents_1, "data2");
     }
 
     @Test
