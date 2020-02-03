@@ -28,9 +28,7 @@ import com.palantir.logsafe.SafeArg;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(
-                value = ImmutableRocksDbPersistentStorageConfig.class,
-                name = RocksDbPersistentStorageConfig.TYPE)})
+        @JsonSubTypes.Type(value = RocksDbPersistentStorageConfig.class, name = RocksDbPersistentStorageConfig.TYPE)})
 public interface PersistentStorageConfig {
     String type();
 
@@ -49,7 +47,7 @@ public interface PersistentStorageConfig {
                 "Storage path must be relative",
                 SafeArg.of("storagePath", storagePath()));
 
-        File storageFile = new File(System.getProperty("user.dir"), storagePath());
+        File storageFile = new File(storagePath());
         if (storageFile.exists()) {
             Preconditions.checkState(
                     storageFile.isDirectory(),

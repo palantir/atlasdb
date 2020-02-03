@@ -7,9 +7,9 @@ atlas:
         - https://SERVER2:9421
         - https://SERVER3:9421
       sslConfiguration:
-        keyStorePath: var/security/keystore.jks
+        keyStorePath: var/security/keyStore.jks
         keyStorePassword: KEYSTORE_PASSWORD
-        trustStorePath: var/security/truststore.jks
+        trustStorePath: var/security/trustStore.jks
   defaultLockTimeoutSeconds: 20
   keyValueService:
     type: cassandra
@@ -22,9 +22,9 @@ atlas:
       - 'CASSANDRA2:9160'
       - 'CASSANDRA3:9160'
     sslConfiguration:
-      keyStorePath: var/security/keystore.jks
+      keyStorePath: var/security/keyStore.jks
       keyStorePassword: KEYSTORE_PASSWORD
-      trustStorePath: var/security/truststore.jks
+      trustStorePath: var/security/trustStore.jks
 
 server:
   requestLog:

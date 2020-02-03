@@ -28,6 +28,9 @@ import java.util.function.Supplier;
 
 import javax.validation.constraints.NotNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.Timer;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
@@ -64,6 +67,8 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
+    private static final Logger log = LoggerFactory.getLogger(SnapshotTransactionManager.class);
+
     private static final int NUM_RETRIES = 10;
 
     final MetricsManager metricsManager;

@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -105,6 +106,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 transactionService,
                 cdm2,
                 ssm2,
+                DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
@@ -143,6 +145,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 transactionService,
                 verifyCdm,
                 verifySsm,
+                DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
         final MutableLong count = new MutableLong();

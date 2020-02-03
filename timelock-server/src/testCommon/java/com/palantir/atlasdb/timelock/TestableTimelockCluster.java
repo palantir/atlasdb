@@ -15,20 +15,22 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.File;
-import java.util.Arrays;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.awaitility.Awaitility;
-import org.immutables.value.Value;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -36,72 +38,73 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
+import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.atlasdb.timelock.util.TestProxies;
-
-import io.dropwizard.testing.ResourceHelpers;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.InProgressResponseState;
+import com.palantir.paxos.PaxosQuorumChecker;
 
 public class TestableTimelockCluster implements TestRule {
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private final String clusterName;
+    private final String name;
     private final List<TemporaryConfigurationHolder> configs;
-    private final List<TestableTimelockServer> servers;
+    private final Set<TestableTimelockServer> servers;
+    private final Multimap<TestableTimelockServer, TestableTimelockServer> serverToOtherServers;
     private final FailoverProxyFactory proxyFactory;
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
 
-    @Nullable
-    private TestableTimelockServer lastLeader;
-
-    public TestableTimelockCluster(String baseUri, String... configFileTemplates) {
-        this(ClusterName.random(), baseUri, configFileTemplates);
+    public TestableTimelockCluster(String configFileTemplate, TemplateVariables... variables) {
+        this(name(), configFileTemplate, variables);
     }
 
-    public TestableTimelockCluster(ClusterName clusterName, String baseUri, String... configFileTemplates) {
-        this.clusterName = clusterName.get();
-        this.configs = Arrays.stream(configFileTemplates)
-                .map(this::getConfigHolder)
+    public TestableTimelockCluster(String name, String configFileTemplate, TemplateVariables... variables) {
+        this(name, configFileTemplate, ImmutableList.copyOf(variables));
+    }
+
+    public TestableTimelockCluster(String name, String configFileTemplate, Iterable<TemplateVariables> variables) {
+        this.name = name;
+        this.configs = Streams.stream(variables)
+                .map(variable -> getConfigHolder(configFileTemplate, variable))
                 .collect(Collectors.toList());
         this.servers = configs.stream()
                 .map(TestableTimelockCluster::getServerHolder)
-                .map(holder -> new TestableTimelockServer(baseUri, holder))
-                .collect(Collectors.toList());
-        this.proxyFactory = new FailoverProxyFactory(new TestProxies(baseUri, servers));
+                .map(holder -> new TestableTimelockServer("https://localhost", holder))
+                .collect(Collectors.toSet());
+        this.serverToOtherServers = KeyedStream.of(servers)
+                .map(server -> ImmutableSet.of(server))
+                .map(server -> Sets.difference(servers, server))
+                .flatMap(Collection::stream)
+                .collectToSetMultimap();
+        this.proxyFactory = new FailoverProxyFactory(new TestProxies("https://localhost", ImmutableList.copyOf(servers)));
     }
 
-    @Value.Immutable
-    public abstract static class ClusterName {
-        @Value.Parameter
-        public abstract String get();
-
-        @Override
-        public String toString() {
-            return get();
-        }
-
-        static ClusterName random() {
-            return ImmutableClusterName.of(Hashing.murmur3_32().hashLong(new Random().nextLong()).toString());
-        }
+    private static String name() {
+        return Hashing.murmur3_32().hashLong(new Random().nextLong()).toString();
     }
 
-    void waitUntilLeaderIsElected() {
-        waitUntilLeaderIsElected(ImmutableList.of(UUID.randomUUID().toString()));
+    void waitUntilLeaderIsElected(List<String> namespaces) {
+        waitUntilReadyToServeNamespaces(namespaces);
     }
 
-    void waitUntilLeaderIsElected(List<String> clients) {
-        waitUntilReadyToServeClients(clients);
-    }
-
-    private void waitUntilReadyToServeClients(List<String> clients) {
+    private void waitUntilReadyToServeNamespaces(List<String> namespaces) {
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        clients.forEach(name -> client(name).getFreshTimestamp());
+                        namespaces.forEach(namespace -> client(namespace).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -109,52 +112,60 @@ public class TestableTimelockCluster implements TestRule {
                 });
     }
 
-    void waitUntilAllServersOnlineAndReadyToServeClients(List<String> additionalClients) {
+    void waitUntilAllServersOnlineAndReadyToServeNamespaces(List<String> namespaces) {
         servers.forEach(TestableTimelockServer::start);
-        waitUntilReadyToServeClients(additionalClients);
+        waitUntilReadyToServeNamespaces(namespaces);
     }
 
-    TestableTimelockServer currentLeader() {
-        Optional<TestableTimelockServer> maybeCurrentLeader = tryToPingCurrentLeader();
-        if (maybeCurrentLeader.isPresent()) {
-            return maybeCurrentLeader.get();
-        }
-
-        for (TestableTimelockServer server : servers) {
-            try {
-                if (server.pingableLeader().ping()) {
-                    lastLeader = server;
-                    return server;
-                }
-            } catch (Throwable t) {
-                // continue;
-            }
-        }
-        throw new IllegalStateException("no nodes are currently the leader");
+    TestableTimelockServer currentLeaderFor(String namespace) {
+        return Iterables.getOnlyElement(currentLeaders(namespace).get(namespace));
     }
 
-    private Optional<TestableTimelockServer> tryToPingCurrentLeader() {
-        try {
-            if (lastLeader != null && lastLeader.pingableLeader().ping()) {
-                return Optional.of(lastLeader);
-            }
-            return Optional.empty();
-        } catch (Throwable t) {
-            return Optional.empty();
-        }
+    SetMultimap<String, TestableTimelockServer> currentLeaders(String... namespaces) {
+        Set<String> namespacesIterable = ImmutableSet.copyOf(namespaces);
+        KeyedStream<TestableTimelockServer, PaxosContainer<Set<String>>> responses = PaxosQuorumChecker.collectUntil(
+                ImmutableList.copyOf(servers),
+                server -> PaxosContainer.of(server.pinger().ping(namespaces)),
+                Maps.toMap(servers, unused -> executorService),
+                Duration.ofSeconds(2),
+                untilAllNamespacesAreSeen(namespacesIterable))
+                .stream();
+
+        return responses
+                .filter(PaxosContainer::isSuccessful)
+                .map(PaxosContainer::get)
+                .flatMap(Collection::stream)
+                .mapEntries((server, namespace) -> Maps.immutableEntry(namespace, server))
+                .collectToSetMultimap();
     }
 
-    List<TestableTimelockServer> nonLeaders() {
-        TestableTimelockServer leader = currentLeader();
-        return servers.stream()
-                .filter(server -> server != leader)
-                .collect(Collectors.toList());
+    private static Predicate<InProgressResponseState<TestableTimelockServer, PaxosContainer<Set<String>>>>
+            untilAllNamespacesAreSeen(Set<String> namespacesIterable) {
+        return state -> state.responses().values().stream()
+                .filter(PaxosContainer::isSuccessful)
+                .map(PaxosContainer::get)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet())
+                .containsAll(namespacesIterable);
     }
 
-    void failoverToNewLeader() {
+
+    SetMultimap<String, TestableTimelockServer> nonLeaders(String... namespaces) {
+        SetMultimap<String, TestableTimelockServer> currentLeaderPerNamespace = currentLeaders(namespaces);
+
+        assertThat(currentLeaderPerNamespace.asMap().values())
+                .as("there should only be one leader per namespace")
+                .allMatch(leadersForNamespace -> leadersForNamespace.size() == 1);
+
+        return KeyedStream.stream(currentLeaderPerNamespace)
+                .flatMap(leader -> serverToOtherServers.get(leader).stream())
+                .collectToSetMultimap();
+    }
+
+    void failoverToNewLeader(String namespace) {
         int maxTries = 5;
         for (int i = 0; i < maxTries; i++) {
-            if (tryFailoverToNewLeader()) {
+            if (tryFailoverToNewLeader(namespace)) {
                 return;
             }
         }
@@ -162,16 +173,16 @@ public class TestableTimelockCluster implements TestRule {
         throw new IllegalStateException("unable to force a failover after " + maxTries + " tries");
     }
 
-    private boolean tryFailoverToNewLeader() {
-        TestableTimelockServer leader = currentLeader();
+    private boolean tryFailoverToNewLeader(String namespace) {
+        TestableTimelockServer leader = currentLeaderFor(namespace);
         leader.kill();
-        waitUntilLeaderIsElected();
+        waitUntilLeaderIsElected(ImmutableList.of(namespace));
         leader.start();
 
-        return !currentLeader().equals(leader);
+        return !currentLeaderFor(namespace).equals(leader);
     }
 
-    List<TestableTimelockServer> servers() {
+    Set<TestableTimelockServer> servers() {
         return servers;
     }
 
@@ -219,9 +230,8 @@ public class TestableTimelockCluster implements TestRule {
         return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation);
     }
 
-    private TemporaryConfigurationHolder getConfigHolder(String configFileName) {
-        File configTemplate = new File(ResourceHelpers.resourceFilePath(configFileName));
-        return new TemporaryConfigurationHolder(temporaryFolder, configTemplate);
+    private TemporaryConfigurationHolder getConfigHolder(String templateName, TemplateVariables variables) {
+        return new TemporaryConfigurationHolder(temporaryFolder, templateName, variables);
     }
 
     @Override
@@ -231,6 +241,6 @@ public class TestableTimelockCluster implements TestRule {
 
     @Override
     public String toString() {
-        return clusterName;
+        return name;
     }
 }

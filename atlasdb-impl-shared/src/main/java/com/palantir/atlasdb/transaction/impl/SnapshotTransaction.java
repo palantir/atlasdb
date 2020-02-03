@@ -1960,7 +1960,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             transactionOutcomeMetrics.markRollbackOtherTransaction();
             return true;
         } catch (KeyAlreadyExistsException e) {
-            log.info("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
+            log.debug("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
                     + " else's request with start: {}",
                     SafeArg.of("startTs", startTs),
                     new TransactionFailedRetriableException(
@@ -2260,7 +2260,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
-                log.warn("Possible bug: Someone rolled back our transaction but"
+                log.debug("Possible bug: Someone rolled back our transaction but"
                         + " our locks were still valid; Atlas code is not allowed to do this, though others can.",
                         SafeArg.of("immutableTimestampLock", immutableTimestampLock),
                         SafeArg.of("commitLocksToken", commitLocksToken));

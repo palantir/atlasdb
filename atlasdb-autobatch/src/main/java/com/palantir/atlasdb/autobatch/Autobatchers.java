@@ -31,7 +31,7 @@ import com.palantir.logsafe.Preconditions;
 
 public final class Autobatchers {
 
-    private static final int DEFAULT_BUFFER_SIZE = 1024;
+    private static final int DEFAULT_BUFFER_SIZE = 2048;
 
     /**
      * When invoking an {@link DisruptorAutobatcher autobatcher}, an argument needs to be supplied. In the case of

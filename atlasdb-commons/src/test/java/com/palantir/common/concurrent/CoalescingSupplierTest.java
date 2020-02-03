@@ -26,12 +26,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -39,6 +42,10 @@ import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 public class CoalescingSupplierTest {
@@ -112,6 +119,41 @@ public class CoalescingSupplierTest {
         freezableDelegate.unfreeze();
 
         tasks.assertAllFailed(expected);
+    }
+
+    @Test
+    public void stressTest() {
+        int poolSize = 1024;
+        ListeningExecutorService executorService =
+                MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(poolSize));
+        AtomicLong counter = new AtomicLong(0);
+        Supplier<Long> supplier = new CoalescingSupplier<>(() -> {
+            sleep(2);
+            return counter.incrementAndGet();
+        });
+        List<ListenableFuture<?>> futures = IntStream.range(0, poolSize)
+                .mapToObj(index -> executorService.submit(() -> assertIncreasing(supplier)))
+                .collect(Collectors.toList());
+        executorService.shutdown();
+        Futures.getUnchecked(Futures.allAsList(futures));
+    }
+
+    private static void assertIncreasing(Supplier<Long> supplier) {
+        long last = supplier.get();
+        for (int i = 0; i < 128; i++) {
+            long current = supplier.get();
+            checkState(current > last, "current > last");
+            last = current;
+        }
+    }
+
+    private static void sleep(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
     }
 
     private AsyncTasks getConcurrently(int count) {

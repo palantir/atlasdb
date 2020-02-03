@@ -38,17 +38,16 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     @GuardedBy("this") private boolean isLeading = false;
 
     public static PaxosLeadershipEventRecorder create(TaggedMetricRegistry metrics, String leaderUuid) {
-        return create(metrics, leaderUuid, null, ImmutableList.of(), ImmutableList.of());
+        return create(metrics, leaderUuid, null, ImmutableList.of());
     }
 
     public static PaxosLeadershipEventRecorder create(
             TaggedMetricRegistry metrics,
             String leaderUuid,
             @Nullable LeadershipObserver observer,
-            List<SafeArg<String>> safeLoggingArgs,
-            List<SafeArg<String>> safeMetricArgs) {
+            List<SafeArg<String>> safeLoggingArgs) {
         return new PaxosLeadershipEventRecorder(
-                new LeadershipEvents(metrics, safeLoggingArgs, safeMetricArgs),
+                new LeadershipEvents(metrics, safeLoggingArgs),
                 leaderUuid,
                 Optional.ofNullable(observer));
     }

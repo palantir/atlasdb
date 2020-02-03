@@ -143,6 +143,8 @@ public class NamedColumnValueRenderer extends Renderer {
         } line("}");
     }
 
+
+
     private void bytesHydrator() {
         line("public static final Hydrator<", Name, "> BYTES_HYDRATOR = new Hydrator<", Name, ">() {"); {
             line("@Override");
@@ -169,6 +171,11 @@ public class NamedColumnValueRenderer extends Renderer {
                     throw new UnsupportedOperationException("Unsupported value type: " + col.getValue().getFormat());
                 }
             } line("}");
+
+            if (col.getValue().isReusablePersister()) {
+                line(col.getValue().getInstantiateReusablePersisterCode());
+            }
+
         } line("};");
     }
 

@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -73,6 +74,12 @@ public final class ServiceCreator {
         return create(metricsManager, servers, serviceClass, parameters);
     }
 
+    public <T> T createServiceWithoutBlockingOperations(Class<T> serviceClass) {
+        AuxiliaryRemotingParameters blockingUnsupportedParameters
+                = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldSupportBlockingOperations(false);
+        return create(metricsManager, servers, serviceClass, blockingUnsupportedParameters);
+    }
+
     /**
      * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link TrustContext}.
      */
@@ -109,6 +116,7 @@ public final class ServiceCreator {
                 .remotingClientConfig(remotingClientConfigSupplier)
                 .userAgent(userAgent)
                 .shouldLimitPayload(shouldLimitPayload)
+                .shouldSupportBlockingOperations(true) // TODO (jkong): Figure out when to migrate safely
                 .shouldRetry(true)
                 .build();
     }

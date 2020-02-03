@@ -17,16 +17,18 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -42,7 +44,6 @@ import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
-import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 
 public final class PaxosResourcesFactory {
@@ -95,12 +96,12 @@ public final class PaxosResourcesFactory {
                 dependencies.leaderPingResponseWait(),
                 dependencies.leaderUuid());
 
-        Factories.LeaderPingHealthCheckFactory healthCheckFactory = dependencies -> {
-            Set<PingableLeader> allPingableLeaders = ImmutableSet.<PingableLeader>builder()
-                    .add(dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
-                    .addAll(dependencies.remoteClients().nonBatchPingableLeaders())
-                    .build();
-            return new LeaderPingHealthCheck(allPingableLeaders);
+        Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
+            PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
+            List<PingableLeader> remotes = dependencies.remoteClients().nonBatchPingableLeaders();
+            return Stream.concat(Stream.of(local), remotes.stream())
+                    .map(SingleLeaderHealthCheckPinger::new)
+                    .collect(Collectors.toList());
         };
 
         LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
@@ -112,7 +113,7 @@ public final class PaxosResourcesFactory {
                 .metrics(timelockMetrics)
                 .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
                 .leaderPingerFactory(leaderPingerFactory)
-                .leaderPingHealthCheckFactory(healthCheckFactory)
+                .healthCheckPingersFactory(healthCheckPingersFactory)
                 .build();
 
         resourcesBuilder.leadershipContextFactory(factory);
