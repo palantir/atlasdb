@@ -19,8 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.xml.crypto.dsig.keyinfo.KeyValue;
-
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.SlicePredicate;
 
@@ -73,7 +71,7 @@ public class RangeLoader {
         SlicePredicate predicate;
 
         if (rangeRequest.getColumnNames().size() == 1) {
-            predicate = getSlicePredicate(rangeRequest, startTs);
+            predicate = getSlicePredicateForSingleColumn(rangeRequest, startTs);
         } else {
             TableMetadata tableMetadata = metaDataProvider.getMetaDataFromRef(tableRef);
             // todo (sudiksha) : add null check, also refactor
@@ -83,7 +81,7 @@ public class RangeLoader {
                         .endRowExclusive(rangeRequest.getEndExclusive())
                         .retainColumns(allColumnNames)
                         .build();
-               predicate = getSlicePredicate(newRangeRequest, startTs);
+               predicate = getSlicePredicateForSingleColumn(newRangeRequest, startTs);
             } else {
                 // TODO(nziebart): optimize fetching multiple columns by performing a parallel range request for
                 // each column. note that if no columns are specified, it's a special case that means all columns
@@ -96,7 +94,7 @@ public class RangeLoader {
         return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);
     }
 
-    private SlicePredicate getSlicePredicate(RangeRequest rangeRequest, long startTs) {
+    private SlicePredicate getSlicePredicateForSingleColumn(RangeRequest rangeRequest, long startTs) {
         SlicePredicate predicate;
         byte[] colName = rangeRequest.getColumnNames().iterator().next();
         predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
