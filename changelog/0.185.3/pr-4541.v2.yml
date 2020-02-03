@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix coalescing supplier race condition
+  links:
+  - https://github.com/palantir/atlasdb/pull/4541

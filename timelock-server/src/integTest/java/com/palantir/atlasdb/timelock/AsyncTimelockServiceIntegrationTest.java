@@ -177,11 +177,12 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void taggedMetricsCanBeIteratedThrough() {
         NamespacedClients randomNamespace = cluster.clientForRandomNamespace();
         randomNamespace.getFreshTimestamp();
-        Map<MetricName, Metric> metrics = cluster.currentLeader().taggedMetricRegistry().getMetrics();
+        Map<MetricName, Metric> metrics = cluster.currentLeaderFor(randomNamespace.namespace())
+                .taggedMetricRegistry().getMetrics();
         assertThat(metrics).hasKeySatisfying(new Condition<MetricName>("contains random namespace") {
             @Override
             public boolean matches(MetricName value) {
-                return value.safeTags().get("client").equals(randomNamespace.namespace());
+                return randomNamespace.namespace().equals(value.safeTags().get("client"));
             }
         });
     }

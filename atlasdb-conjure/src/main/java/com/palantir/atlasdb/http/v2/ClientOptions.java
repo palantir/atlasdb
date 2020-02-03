@@ -23,6 +23,8 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
@@ -33,28 +35,28 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @Value.Immutable
 public abstract class ClientOptions {
-    // TODO (jkong): Re-enable client QoS after response body leaks are handled correctly.
-    // Throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
-    public static final ClientOptions DEFAULT_RETRYING = ImmutableClientOptions.builder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(10))
-            .failedUrlCooldown(Duration.ofMillis(100))
-            .maxNumRetries(13)
-            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
-            .build();
+    private static final Duration CONNECT_TIMEOUT = Duration.ofMillis(500);
 
-    // TODO (jkong): Re-enable client QoS after response body leaks are handled correctly.
-    public static final ClientOptions DEFAULT_NO_RETRYING = ImmutableClientOptions.builder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(100))
-            .failedUrlCooldown(Duration.ofMillis(1))
-            .maxNumRetries(0)
-            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
-            .build();
+    @VisibleForTesting
+    // The read timeout controls how long the client waits to receive the first byte from the server before giving up,
+    // so in general read timeouts should not be set to less than what is considered an acceptable time for the server
+    // to give a suitable response.
+    // In the context of TimeLock, this timeout must be longer than how long an AwaitingLeadershipProxy takes to
+    // decide whether a node is the leader and still has a quorum.
+    static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
 
-    public static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
+    // Should not be reduced below 65 seconds to support workflows involving locking.
+    static final Duration BLOCKING_READ_TIMEOUT = Duration.ofSeconds(65);
+
+    // Under standard settings, throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
+    private static final Duration STANDARD_BACKOFF_SLOT_SIZE = Duration.ofMillis(10);
+    private static final int STANDARD_MAX_RETRIES = 13;
+    private static final int NO_RETRIES = 0;
+
+    private static final Duration STANDARD_FAILED_URL_COOLDOWN = Duration.ofMillis(100);
+    private static final Duration NON_RETRY_FAILED_URL_COOLDOWN = Duration.ofMillis(1);
+
+    static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofMillis(100))
             .readTimeout(Duration.ofSeconds(65))
             .backoffSlotSize(Duration.ofMillis(5))
@@ -128,5 +130,28 @@ public abstract class ClientOptions {
                 .failedUrlCooldown(coolDown)
                 .maxNumRetries(retries)
                 .build();
+    }
+
+    static ClientOptions fromRemotingParameters(AuxiliaryRemotingParameters parameters) {
+        ImmutableClientOptions.Builder builder = ImmutableClientOptions.builder();
+
+        setupTimeouts(builder, parameters);
+        setupRetrying(builder, parameters);
+
+        return builder.clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
+                .build();
+    }
+
+    private static void setupTimeouts(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
+        builder.connectTimeout(CONNECT_TIMEOUT)
+                .readTimeout(parameters.shouldSupportBlockingOperations()
+                        ? BLOCKING_READ_TIMEOUT : NON_BLOCKING_READ_TIMEOUT);
+    }
+
+    private static void setupRetrying(ImmutableClientOptions.Builder builder, AuxiliaryRemotingParameters parameters) {
+        builder.backoffSlotSize(STANDARD_BACKOFF_SLOT_SIZE)
+                .maxNumRetries(parameters.shouldRetry() ? STANDARD_MAX_RETRIES : NO_RETRIES)
+                .failedUrlCooldown(parameters.shouldRetry() ? STANDARD_FAILED_URL_COOLDOWN
+                        : NON_RETRY_FAILED_URL_COOLDOWN);
     }
 }

@@ -19,59 +19,68 @@ package com.palantir.atlasdb.factory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
+import java.util.List;
 
-import org.junit.ClassRule;
+import org.assertj.core.util.Files;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.ImmutableRocksDbPersistentStorageConfig;
 import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PersistentTimestampStore;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
 
 public final class DefaultPersistentStorageFactoryTests {
-    @ClassRule
-    public static final TemporaryFolder TEST_FOLDER = new TemporaryFolder();
-
     @Rule
-    public ProvideSystemProperty properties
-            = new ProvideSystemProperty("user.dir", TEST_FOLDER.getRoot().getAbsolutePath());
+    public TemporaryFolder testFolder = new TemporaryFolder(Files.currentFolder());
 
     @Test
     public void createsPersistentStorage() throws Exception {
-        File folder = TEST_FOLDER.newFolder();
-        RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
-                .storagePath(TEST_FOLDER.getRoot().toPath().relativize(folder.toPath()).toString())
-                .build();
-        PersistentTimestampStore persistentTimestampStore = new DefaultPersistentStorageFactory()
-                .constructPersistentTimestampStore(config);
+        RocksDbPersistentStorageConfig config = createRocksDbConfig(testFolder.getRoot());
+        PersistentStore persistentStore = new DefaultPersistentStorageFactory()
+                .constructPersistentStore(config);
 
-        assertThat(folder.listFiles()).hasSize(1);
+        assertThat(testFolderContent()).hasSize(1);
+        assertThat(testFolderContent().get(0).listFiles()).hasSize(1);
 
-        persistentTimestampStore.close();
+        persistentStore.close();
 
-        assertThat(folder.listFiles()).isEmpty();
+        assertThat(testFolderContent().get(0).listFiles()).isEmpty();
     }
+
 
     @Test
     public void createsMultiplePersistentStores() throws Exception {
-        File folder = TEST_FOLDER.newFolder();
-        RocksDbPersistentStorageConfig config = ImmutableRocksDbPersistentStorageConfig.builder()
-                .storagePath(TEST_FOLDER.getRoot().toPath().relativize(folder.toPath()).toString())
-                .build();
         PersistentStorageFactory factory = new DefaultPersistentStorageFactory();
 
-        PersistentTimestampStore firstStore = factory.constructPersistentTimestampStore(config);
-        PersistentTimestampStore secondStore = factory.constructPersistentTimestampStore(config);
+        PersistentStore firstStore = factory.constructPersistentStore(createRocksDbConfig(testFolder.newFolder()));
+        PersistentStore secondStore = factory.constructPersistentStore(createRocksDbConfig(testFolder.newFolder()));
 
         assertThat(firstStore).isNotEqualTo(secondStore);
 
-        assertThat(folder.listFiles()).hasSize(2);
-
         firstStore.close();
         secondStore.close();
+    }
 
-        assertThat(folder.listFiles()).isEmpty();
+    private static ImmutableRocksDbPersistentStorageConfig createRocksDbConfig(File file) {
+        return ImmutableRocksDbPersistentStorageConfig.builder()
+                .storagePath(relativePath(file))
+                .build();
+    }
+
+    private static String relativePath(File file) {
+        return Files.currentFolder()
+                .toPath()
+                .relativize(file.toPath())
+                .toString();
+    }
+
+
+    private List<File> testFolderContent() {
+        return ImmutableList.copyOf(MoreObjects.firstNonNull(
+                testFolder.getRoot().listFiles(),
+                new File[0]));
     }
 }

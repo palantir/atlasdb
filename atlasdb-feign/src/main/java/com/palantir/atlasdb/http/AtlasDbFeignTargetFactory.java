@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.ProxySelector;
@@ -31,6 +33,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
+import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.reflect.Reflection;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -38,8 +41,8 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.util.CachedTransformingSupplier;
 
 import feign.Client;
 import feign.Contract;
@@ -57,18 +60,11 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
     private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 10_000;
     private static final int DEFAULT_READ_TIMEOUT_MILLIS = 65_000;
 
-    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
-    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
-
     // TODO (jkong): Decide what to do with usage in benchmarking infrastructure
     public static final TargetFactory DEFAULT = new AtlasDbFeignTargetFactory(
             DEFAULT_CONNECT_TIMEOUT_MILLIS,
             DEFAULT_READ_TIMEOUT_MILLIS,
             FailoverFeignTarget.DEFAULT_MAX_BACKOFF.toMillis());
-    static final TargetFactory FAST_FAIL_FOR_TESTING = new AtlasDbFeignTargetFactory(
-            QUICK_FEIGN_TIMEOUT_MILLIS,
-            QUICK_FEIGN_TIMEOUT_MILLIS,
-            QUICK_MAX_BACKOFF_MILLIS);
 
     private static final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new Jdk8Module())
@@ -137,18 +133,25 @@ public final class AtlasDbFeignTargetFactory implements TargetFactory {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        PollingRefreshable<ServerListConfig> configPollingRefreshable =
-                PollingRefreshable.create(serverListConfigSupplier);
-        return wrapWithVersion(Reflection.newProxy(
-                type,
-                RefreshableProxyInvocationHandler.create(
-                        configPollingRefreshable.getRefreshable(),
-                        serverListConfig -> {
-                            if (serverListConfig.hasAtLeastOneServer()) {
-                                return createProxyWithFailover(serverListConfig, type, parameters).instance();
-                            }
-                            return createProxyForZeroNodes(type);
-                        })));
+        Supplier<T> clientSupplier = new CachedTransformingSupplier<>(
+                serverListConfigSupplier,
+                serverListConfig -> {
+                    if (serverListConfig.hasAtLeastOneServer()) {
+                        return createProxyWithFailover(serverListConfig, type, parameters).instance();
+                    }
+                    return createProxyForZeroNodes(type);
+                });
+
+        return wrapWithVersion(Reflection.newProxy(type, new AbstractInvocationHandler() {
+            @Override
+            protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+                try {
+                    return method.invoke(clientSupplier.get(), args);
+                } catch (InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            }
+        }));
     }
 
     public static <T> T createRsProxy(

@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -64,6 +65,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor) {
         this(
@@ -76,6 +78,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
+                timestampCache,
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
@@ -126,6 +129,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<Transaction> transactionWrapper,
@@ -141,7 +145,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                DefaultTimestampCache.createForTests(),
+                timestampCache,
                 false,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

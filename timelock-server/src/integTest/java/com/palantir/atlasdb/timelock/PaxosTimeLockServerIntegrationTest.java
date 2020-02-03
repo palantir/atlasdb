@@ -18,7 +18,8 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
+import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
+
 import java.util.List;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -44,8 +44,6 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
-
-import io.dropwizard.testing.ResourceHelpers;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
@@ -64,12 +62,10 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
-    private static final File TIMELOCK_CONFIG_TEMPLATE =
-            new File(ResourceHelpers.resourceFilePath("paxosSingleServer.yml"));
 
     private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
-            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, TIMELOCK_CONFIG_TEMPLATE);
+            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, "paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
     private static final TestableTimelockServer TIMELOCK =
@@ -87,7 +83,6 @@ public class PaxosTimeLockServerIntegrationTest {
     public static void waitForClusterToStabilize() {
         namespace1 = TIMELOCK.client(CLIENT_1);
         namespace2 = TIMELOCK.client(CLIENT_2);
-        PingableLeader leader = TIMELOCK.pingableLeader();
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
@@ -97,7 +92,7 @@ public class PaxosTimeLockServerIntegrationTest {
                         NAMESPACES.forEach(client -> TIMELOCK.client(client).getFreshTimestamp());
                         NAMESPACES.forEach(client -> TIMELOCK.client(client).timelockService().currentTimeMillis());
                         NAMESPACES.forEach(client -> TIMELOCK.client(client).legacyLockService().currentTimeMillis());
-                        return leader.ping();
+                        return TIMELOCK.pinger().ping(NAMESPACES).containsAll(NAMESPACES);
                     } catch (Throwable t) {
                         LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class).error("erreur!", t);
                         return false;

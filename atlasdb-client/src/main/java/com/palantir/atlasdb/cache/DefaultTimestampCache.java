@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.cache;
 
-import java.util.function.Supplier;
+import java.util.function.LongSupplier;
 
 import javax.annotation.Nullable;
 
@@ -26,8 +26,8 @@ import com.github.benmanes.caffeine.cache.Policy;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
-public class DefaultTimestampCache implements TimestampCache {
-    private final Supplier<Long> size;
+public final class DefaultTimestampCache implements TimestampCache {
+    private final LongSupplier size;
 
     private final Cache<Long, Long> startToCommitTimestampCache;
     private final Policy.Eviction<Long, Long> evictionPolicy;
@@ -40,9 +40,9 @@ public class DefaultTimestampCache implements TimestampCache {
                 .build();
     }
 
-    public DefaultTimestampCache(MetricRegistry metricRegistry, Supplier<Long> size) {
+    public DefaultTimestampCache(MetricRegistry metricRegistry, LongSupplier size) {
         this.size = size;
-        startToCommitTimestampCache = createCache(size.get());
+        startToCommitTimestampCache = createCache(size.getAsLong());
         evictionPolicy = startToCommitTimestampCache.policy().eviction().get();
         AtlasDbMetrics.registerCache(metricRegistry, startToCommitTimestampCache,
                 MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
@@ -56,8 +56,8 @@ public class DefaultTimestampCache implements TimestampCache {
     }
 
     private void resizeIfNecessary() {
-        if (evictionPolicy.getMaximum() != size.get()) {
-            evictionPolicy.setMaximum(size.get());
+        if (evictionPolicy.getMaximum() != size.getAsLong()) {
+            evictionPolicy.setMaximum(size.getAsLong());
         }
     }
 

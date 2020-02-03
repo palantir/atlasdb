@@ -18,6 +18,8 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
@@ -83,7 +85,7 @@ public class CassandraTimestampsEteTest {
         assertMaximumTimestampIsAheadByAtLeast(sstableMetadata, 2);
 
         // Failure here implies that the tombstone was dropped in the compaction, which shouldn't happen.
-        assertDroppableTombstoneRatioPositive(sstableMetadata);
+        assertEstimatedTombstonesPositive(sstableMetadata);
     }
 
     @Test
@@ -112,7 +114,7 @@ public class CassandraTimestampsEteTest {
 
         // Failure here means that the range tombstone was already dropped, which shouldn't happen (gc_grace will
         // prevent it from being removed)
-        assertDroppableTombstoneRatioPositive(sstableMetadata);
+        assertEstimatedTombstonesPositive(sstableMetadata);
     }
 
     private void sweepUntilNoValueExistsAtTimestamp(long id, long timestamp) {
@@ -159,12 +161,19 @@ public class CassandraTimestampsEteTest {
         return Long.parseLong(timestampMatcher.group(1));
     }
 
-    private void assertDroppableTombstoneRatioPositive(String sstableMetadata) {
-        Pattern pattern = Pattern.compile("Estimated droppable tombstones: ([0-9]*\\.[0-9]*)");
-        Matcher droppableTombstoneRatioMatcher = pattern.matcher(sstableMetadata);
-        assertThat(droppableTombstoneRatioMatcher.find())
-                .as("SSTableMetadata output contains the droppable tombstone ratio")
-                .isTrue();
-        assertThat(Double.parseDouble(droppableTombstoneRatioMatcher.group(1))).isGreaterThan(0);
+    private boolean hasEstimatedTombstones(String sstableMetadata) {
+        Iterator<String> it = Arrays.stream(sstableMetadata.split(System.lineSeparator())).iterator();
+        while (it.hasNext()) {
+            String nextLine = it.next();
+            if (nextLine.startsWith("Estimated tombstone drop times:")) {
+                // If the following line starts with "Count", then no information about tombstones was printed
+                return !it.next().startsWith("Count");
+            }
+        }
+        return false;
+    }
+
+    private void assertEstimatedTombstonesPositive(String sstableMetadata) {
+        assertThat(hasEstimatedTombstones(sstableMetadata)).isTrue();
     }
 }

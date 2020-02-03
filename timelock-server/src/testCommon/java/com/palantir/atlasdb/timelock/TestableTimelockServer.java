@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.util.TestProxies;
@@ -50,8 +51,15 @@ public class TestableTimelockServer {
         serverHolder.start();
     }
 
-    PingableLeader pingableLeader() {
-        return proxies.singleNode(serverHolder, PingableLeader.class);
+    TestableLeaderPinger pinger() {
+        PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class);
+        return namespaces -> {
+            if (pingableLeader.ping()) {
+                return ImmutableSet.copyOf(namespaces);
+            } else {
+                return ImmutableSet.of();
+            }
+        };
     }
 
     NamespacedClients client(String namespace) {

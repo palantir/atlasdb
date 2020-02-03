@@ -74,7 +74,7 @@ public interface Dependencies {
         com.palantir.atlasdb.timelock.paxos.NetworkClientFactories networkClientFactories();
     }
 
-    interface LeaderPingHealthCheck {
+    interface HealthCheckPinger {
         LocalPaxosComponents components();
         PaxosRemoteClients remoteClients();
     }

@@ -53,6 +53,7 @@ import java.util.function.Supplier;
 
 import javax.ws.rs.core.Response;
 
+import org.assertj.core.util.Files;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -198,7 +199,7 @@ public class TransactionManagersTest {
     private Consumer<Runnable> originalAsyncMethod;
 
     @ClassRule
-    public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public static final TemporaryFolder temporaryFolder = new TemporaryFolder(Files.currentFolder());
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());

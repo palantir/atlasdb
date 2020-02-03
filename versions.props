@@ -84,6 +84,7 @@ org.ow2.asm:asm = 7.0
 org.rocksdb:rocksdbjni = 6.4.6
 org.slf4j:* = 1.7.25
 org.yaml:snakeyaml = 1.23
+org.freemarker:freemarker = 2.3.29
 
 com.google.errorprone:error_prone_refaster = 2.3.3
 com.palantir.baseline:baseline-refaster-testing = 2.17.0
