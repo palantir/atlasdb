@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -37,13 +38,19 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
 public class LeadersTest {
 
-    private static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("foo:1234", "bar:5678");
+    private static final SslConfiguration SSL_CONFIGURATION
+            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    private static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
+    private static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("https://foo:1234", "https://bar:5678");
     private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG
             = () -> RemotingClientConfigs.ALWAYS_USE_CONJURE;
 
@@ -57,7 +64,7 @@ public class LeadersTest {
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
                 REMOTING_CLIENT_CONFIG,
-                Optional.empty(),
+                Optional.of(TRUST_CONTEXT),
                 PaxosLearner.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
@@ -77,7 +84,7 @@ public class LeadersTest {
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 REMOTING_CLIENT_CONFIG,
-                Optional.empty(),
+                Optional.of(TRUST_CONTEXT),
                 PaxosAcceptor.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
@@ -98,7 +105,7 @@ public class LeadersTest {
                 localAcceptor,
                 ImmutableSet.of(),
                 REMOTING_CLIENT_CONFIG,
-                Optional.empty(),
+                Optional.of(TRUST_CONTEXT),
                 PaxosAcceptor.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
@@ -117,7 +124,7 @@ public class LeadersTest {
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
                 REMOTING_CLIENT_CONFIG,
-                Optional.empty(),
+                Optional.of(TRUST_CONTEXT),
                 BigInteger.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
     }
@@ -130,7 +137,7 @@ public class LeadersTest {
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 REMOTING_CLIENT_CONFIG,
-                Optional.empty(),
+                Optional.of(TRUST_CONTEXT),
                 null,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
     }
