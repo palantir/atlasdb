@@ -148,9 +148,7 @@ public class TimeLockAgent {
     }
 
     private PaxosTimestampCreator getPaxosTimestampCreator() {
-        return new PaxosTimestampCreator(
-                paxosResources.timestamp(),
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
+        return new PaxosTimestampCreator(paxosResources.timestampServiceFactory());
     }
 
     private void createAndRegisterResources() {
