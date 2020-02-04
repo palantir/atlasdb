@@ -41,7 +41,7 @@ public abstract class LeadershipContextFactory implements
     abstract PaxosResourcesFactory.TimelockPaxosInstallationContext install();
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
-    abstract Factories.LeaderPingerFactory.Builder leaderPingerFactoryBuilder();
+    abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
 
     @Value.Derived
     @Override
@@ -68,7 +68,7 @@ public abstract class LeadershipContextFactory implements
     }
 
     @Value.Derived
-    public Factories.LeaderPingerFactory leaderPingerFactory() {
+    public Factories.LeaderPingerFactoryContainer leaderPingerFactory() {
         return leaderPingerFactoryBuilder().from(this).build();
     }
 

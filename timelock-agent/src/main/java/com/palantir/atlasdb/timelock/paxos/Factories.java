@@ -29,13 +29,13 @@ import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 
 public interface Factories {
-    interface LeaderPingerFactory {
+    interface LeaderPingerFactoryContainer {
         Factory<LeaderPinger> get();
         List<Closeable> closeables();
 
         interface Builder {
             Builder from(Dependencies.LeaderPinger dependencies);
-            LeaderPingerFactory build();
+            LeaderPingerFactoryContainer build();
         }
     }
 
@@ -44,7 +44,7 @@ public interface Factories {
     }
 
     @Value.Immutable
-    abstract class BatchingLeaderPingerFactory implements LeaderPingerFactory, Dependencies.LeaderPinger {
+    abstract class BatchingLeaderPingerFactory implements LeaderPingerFactoryContainer, Dependencies.LeaderPinger {
 
         @Value.Derived
         AutobatchingPingableLeaderFactory pingableLeaderFactory() {
@@ -65,11 +65,11 @@ public interface Factories {
             return ImmutableList.of(pingableLeaderFactory());
         }
 
-        public abstract static class Builder implements LeaderPingerFactory.Builder {}
+        public abstract static class Builder implements LeaderPingerFactoryContainer.Builder {}
     }
 
     @Value.Immutable
-    abstract class SingleLeaderPingerFactory implements LeaderPingerFactory, Dependencies.LeaderPinger {
+    abstract class SingleLeaderPingerFactory implements LeaderPingerFactoryContainer, Dependencies.LeaderPinger {
 
         @Value.Derived
         SingleLeaderPinger pinger() {
@@ -84,6 +84,6 @@ public interface Factories {
             return _client -> pinger();
         }
 
-        public abstract static class Builder implements LeaderPingerFactory.Builder {}
+        public abstract static class Builder implements LeaderPingerFactoryContainer.Builder {}
     }
 }
