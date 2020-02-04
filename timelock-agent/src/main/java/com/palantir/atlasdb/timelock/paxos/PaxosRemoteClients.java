@@ -74,7 +74,7 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
-        return createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, true);
+        return createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived
