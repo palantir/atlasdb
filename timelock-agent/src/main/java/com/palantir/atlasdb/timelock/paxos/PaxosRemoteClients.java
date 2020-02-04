@@ -31,7 +31,6 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
@@ -104,7 +103,6 @@ public abstract class PaxosRemoteClients {
     private <T> KeyedStream<HostAndPort, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
         return KeyedStream.of(context().remoteUris())
                 .map(uri -> AtlasDbHttpClients.createProxy(
-                        MetricsManagers.of(new MetricRegistry(), metrics()),
                         context().trustContext(),
                         uri,
                         clazz,

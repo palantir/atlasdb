@@ -37,7 +37,6 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
@@ -55,7 +54,6 @@ public class LeadersTest {
         when(localLearner.getGreatestLearnedValue()).thenReturn(presentPaxosValue);
 
         List<PaxosLearner> paxosLearners = Leaders.createProxyAndLocalList(
-                MetricsManagers.createForTests(),
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
                 REMOTING_CLIENT_CONFIG,
@@ -76,7 +74,6 @@ public class LeadersTest {
         when(localAcceptor.getLatestSequencePreparedOrAccepted()).thenReturn(1L);
 
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
-                MetricsManagers.createForTests(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 REMOTING_CLIENT_CONFIG,
@@ -98,7 +95,6 @@ public class LeadersTest {
         when(localAcceptor.getLatestSequencePreparedOrAccepted()).thenReturn(1L);
 
         List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
-                MetricsManagers.createForTests(),
                 localAcceptor,
                 ImmutableSet.of(),
                 REMOTING_CLIENT_CONFIG,
@@ -118,7 +114,6 @@ public class LeadersTest {
         BigInteger localBigInteger = new BigInteger("0");
 
         Leaders.createProxyAndLocalList(
-                MetricsManagers.createForTests(),
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
                 REMOTING_CLIENT_CONFIG,
@@ -132,7 +127,6 @@ public class LeadersTest {
         PaxosAcceptor localAcceptor = mock(PaxosAcceptor.class);
 
         Leaders.createProxyAndLocalList(
-                MetricsManagers.createForTests(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 REMOTING_CLIENT_CONFIG,
