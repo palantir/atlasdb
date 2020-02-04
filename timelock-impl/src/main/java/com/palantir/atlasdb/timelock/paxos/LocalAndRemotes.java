@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
@@ -49,6 +50,10 @@ interface LocalAndRemotes<T> {
         return ImmutableLocalAndRemotes.of(
                 mapper.apply(local()),
                 remotes().stream().map(mapper).collect(Collectors.toList()));
+    }
+
+    default LocalAndRemotes<T> enhanceRemotes(UnaryOperator<T> mapper) {
+        return ImmutableLocalAndRemotes.of(local(), remotes().stream().map(mapper).collect(Collectors.toList()));
     }
 
     default Map<T, ExecutorService> withSharedExecutor(ExecutorService sharedExecutor) {

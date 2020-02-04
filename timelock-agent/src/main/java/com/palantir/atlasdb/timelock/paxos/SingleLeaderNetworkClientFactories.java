@@ -42,15 +42,14 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .wrap(useCase(), remoteClients())
                     .apply(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
-            LocalAndRemotes<PaxosAcceptor> allAcceptors = metrics().instrumentLocalAndRemotesFor(
-                    PaxosAcceptor.class,
-                    localAcceptor,
-                    remoteAcceptors,
-                    client);
-            return new SingleLeaderAcceptorNetworkClient(
+
+            LocalAndRemotes<PaxosAcceptor> allAcceptors = LocalAndRemotes.of(localAcceptor, remoteAcceptors)
+                    .enhanceRemotes(remote -> metrics().instrument(PaxosAcceptor.class, remote, client));
+            SingleLeaderAcceptorNetworkClient uninstrumentedAcceptor = new SingleLeaderAcceptorNetworkClient(
                     allAcceptors.all(),
                     quorumSize(),
                     allAcceptors.withSharedExecutor(sharedExecutor()));
+            return metrics().instrument(PaxosAcceptorNetworkClient.class, uninstrumentedAcceptor);
         };
     }
 
@@ -63,16 +62,15 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .wrap(useCase(), remoteClients())
                     .apply(client);
             PaxosLearner localLearner = components().learner(client);
-            LocalAndRemotes<PaxosLearner> allLearners = metrics().instrumentLocalAndRemotesFor(
-                    PaxosLearner.class,
-                    localLearner,
-                    remoteLearners,
-                    client);
-            return new SingleLeaderLearnerNetworkClient(
+
+            LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner, remoteLearners)
+                    .enhanceRemotes(remote -> metrics().instrument(PaxosLearner.class, remote, client));
+            SingleLeaderLearnerNetworkClient uninstrumentedLearner = new SingleLeaderLearnerNetworkClient(
                     allLearners.local(),
                     allLearners.remotes(),
                     quorumSize(),
                     allLearners.withSharedExecutor(sharedExecutor()));
+            return metrics().instrument(PaxosLearnerNetworkClient.class, uninstrumentedLearner);
         };
     }
 
