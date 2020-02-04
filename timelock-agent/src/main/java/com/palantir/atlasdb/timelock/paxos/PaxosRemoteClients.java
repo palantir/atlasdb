@@ -90,10 +90,25 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
+    public List<BatchPingableLeader> batchPingableLeaders() {
+        return batchPingableLeadersWithContext().stream()
+                .map(LeaderPingerContext::pinger)
+                .collect(Collectors.toList());
+    }
+
+    @Value.Derived
     public List<LeaderPingerContext<PingableLeader>> nonBatchPingableLeadersWithContext() {
-        return createInstrumentedRemoteProxies(PingableLeader.class, false).entries()
-                .<LeaderPingerContext<PingableLeader>>map(entry ->
-                        ImmutableLeaderPingerContext.of(entry.getValue(), entry.getKey()))
+        return leaderPingerContext(PingableLeader.class);
+    }
+
+    @Value.Derived
+    public List<LeaderPingerContext<BatchPingableLeader>> batchPingableLeadersWithContext() {
+        return leaderPingerContext(BatchPingableLeader.class);
+    }
+
+    private <T> List<LeaderPingerContext<T>> leaderPingerContext(Class<T> clazz) {
+        return createInstrumentedRemoteProxies(clazz, false).entries()
+                .<LeaderPingerContext<T>>map(entry -> ImmutableLeaderPingerContext.of(entry.getValue(), entry.getKey()))
                 .collect(Collectors.toList());
     }
 
