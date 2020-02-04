@@ -84,7 +84,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
 
-        log.error("Paxos configuration\n{}", environment.getObjectMapper()
+        log.info("Paxos configuration\n{}", environment.getObjectMapper()
                 .writerWithDefaultPrettyPrinter()
                 .writeValueAsString(configuration.install().paxos()));
 
