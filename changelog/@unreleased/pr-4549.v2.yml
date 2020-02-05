@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Correctly report metrics for certain popular Timelock endpoints. Reduced
+    the places where we over report/double count the number of calls of a particular
+    metric
+  links:
+  - https://github.com/palantir/atlasdb/pull/4549

@@ -16,13 +16,13 @@ CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
-CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check')
+CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
 
-CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
+CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
 
 CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
-CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest' ':timelock-server:suiteTest')
+CONTAINER_6=(':timelock-server:suiteTest')
 
 CONTAINER_7=('compileJava' 'compileTestJava' ':atlasdb-refactorings:test')
 
