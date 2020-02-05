@@ -2,7 +2,7 @@
 apply from: '../gradle/shared.gradle'
 
 apply plugin: 'application'
-mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasDbPerfCli'
+mainClassName = 'com.palantir.atlasdb.performance.benchmarks.SpinnerBenchmark'
 applicationName = 'atlasdb-perf'
 
 schemas = ['com.palantir.atlasdb.performance.schema.StreamTestSchema']

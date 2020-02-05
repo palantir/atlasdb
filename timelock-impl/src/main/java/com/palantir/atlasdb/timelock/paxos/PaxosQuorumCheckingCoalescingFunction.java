@@ -54,7 +54,7 @@ public class PaxosQuorumCheckingCoalescingFunction<
             List<FUNC> delegateFunctions,
             Map<FUNC, ExecutorService> executors,
             int quorumSize) {
-        this.delegates = delegateFunctions;
+        this.delegates = ImmutableList.copyOf(delegateFunctions);
         this.executors = executors;
         this.quorumSize = quorumSize;
         this.defaultValue = PaxosResponsesWithRemote.of(quorumSize, ImmutableMap.of());
