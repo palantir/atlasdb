@@ -1670,22 +1670,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             tableRef);
     }
 
-    private static LockToken getTokenIfShared(LockToken token) {
-        if (token instanceof LockTokenShare) {
-            LockTokenShare shared = (LockTokenShare) token;
-            return shared.sharedLockToken();
-        }
-        return token;
-    }
-
-    private static LockToken getServerTokenIfLeased(LockToken token) {
-        if (token instanceof LeasedLockToken) {
-            LeasedLockToken leased = (LeasedLockToken) token;
-            return leased.serverToken();
-        }
-        return token;
-    }
-
     private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken,
                                               Set<LockToken> expiredLocks) {
         return "The following immutable timestamp lock was required: " + immutableTimestampLock
@@ -2279,10 +2263,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
                 log.info("This transaction has been rolled back by someone else.",
-                        SafeArg.of("immutableTimestampLock", immutableTimestampLock
-                                .map(SnapshotTransaction::getTokenIfShared)
-                                .map(SnapshotTransaction::getServerTokenIfLeased)),
-                        SafeArg.of("commitLocksToken", getServerTokenIfLeased(commitLocksToken)));
+                        immutableTimestampLock.map(token -> token.toSafeArg("immutableTimestampLock")),
+                        commitLocksToken.toSafeArg("commitLocksToken"));
             }
         } catch (TransactionFailedException e1) {
             throw e1;

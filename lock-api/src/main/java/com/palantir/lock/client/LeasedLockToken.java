@@ -77,4 +77,9 @@ public final class LeasedLockToken implements LockToken {
     public UUID getRequestId() {
         return requestId;
     }
+
+    @Override
+    public SafeArg<LockToken> toSafeArg(String name) {
+        return serverToken.toSafeArg(name);
+    }
 }
