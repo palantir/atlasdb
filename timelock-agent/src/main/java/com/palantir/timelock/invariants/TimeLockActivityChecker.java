@@ -36,7 +36,7 @@ public class TimeLockActivityChecker {
             timelockRpcClient.getFreshTimestamp(client);
             return true;
         } catch (Exception e) {
-            log.debug("Suppressed exception when checking TimeLock activity for client {}",
+            log.info("Suppressed exception when checking TimeLock activity for client {}",
                     SafeArg.of("client", client),
                     e);
             return false;

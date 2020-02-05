@@ -26,22 +26,24 @@ import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.lock.v2.TimelockRpcClient;
-import com.palantir.timelock.config.ClusterConfiguration;
+import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import com.palantir.timelock.paxos.PaxosRemotingUtils;
 
 public class TimeLockActivityCheckerFactory {
-    private final ClusterConfiguration timelockClusterConfiguration;
+    private final TimeLockInstallConfiguration installConfiguration;
     private final MetricsManager metricsManager;
     private final UserAgent userAgent;
 
     public TimeLockActivityCheckerFactory(
-            ClusterConfiguration timelockClusterConfiguration, MetricsManager metricsManager, UserAgent userAgent) {
-        this.timelockClusterConfiguration = timelockClusterConfiguration;
+            TimeLockInstallConfiguration installConfiguration, MetricsManager metricsManager, UserAgent userAgent) {
+        this.installConfiguration = installConfiguration;
         this.metricsManager = metricsManager;
         this.userAgent = userAgent;
     }
 
     public List<TimeLockActivityChecker> getTimeLockActivityCheckers() {
-        return timelockClusterConfiguration.clusterMembers()
+        return installConfiguration.cluster()
+                .clusterMembers()
                 .stream()
                 .map(this::createServiceCreatorForRemote)
                 .map(creator -> creator.createService(TimelockRpcClient.class))
@@ -59,9 +61,9 @@ public class TimeLockActivityCheckerFactory {
 
     private ServerListConfig getServerListConfig(String remoteUrl) {
         return ImmutableServerListConfig.builder()
-                .addServers(remoteUrl)
-                .sslConfiguration(timelockClusterConfiguration.cluster().security())
-                .proxyConfiguration(timelockClusterConfiguration.cluster().proxyConfiguration())
+                .addServers(PaxosRemotingUtils.addProtocol(installConfiguration, remoteUrl))
+                .sslConfiguration(installConfiguration.cluster().cluster().security())
+                .proxyConfiguration(installConfiguration.cluster().cluster().proxyConfiguration())
                 .build();
     }
 }

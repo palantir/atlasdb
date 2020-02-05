@@ -31,7 +31,6 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.paxos.HealthCheckDigest;
 
@@ -75,6 +74,10 @@ public final class NoSimultaneousServiceCheck {
 
     public void processHealthCheckDigest(HealthCheckDigest digest) {
         Set<Client> clientsWithMultipleLeaders = digest.statusesToClient().get(TimeLockStatus.MULTIPLE_LEADERS);
+        if (clientsWithMultipleLeaders.isEmpty()) {
+            return;
+        }
+
         log.info("Clients {} appear to have multiple leaders based on the leader ping health check. Scheduling"
                 + " checks on these specific clients now.", SafeArg.of("clients", clientsWithMultipleLeaders));
         clientsWithMultipleLeaders.forEach(this::scheduleCheckOnSpecificClient);

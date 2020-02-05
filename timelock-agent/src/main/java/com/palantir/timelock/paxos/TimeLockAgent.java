@@ -18,7 +18,6 @@ package com.palantir.timelock.paxos;
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -27,7 +26,6 @@ import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
@@ -48,7 +46,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
-import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -131,11 +128,7 @@ public class TimeLockAgent {
                 targetedSweepLockControlConfig);
 
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
-                new TimeLockActivityCheckerFactory(
-                        install.cluster(),
-                        metricsManager,
-                        userAgent
-                ).getTimeLockActivityCheckers());
+                new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
