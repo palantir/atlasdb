@@ -19,20 +19,13 @@ package com.palantir.timelock.invariants;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.factory.ServiceCreator;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.lock.v2.TimelockRpcClient;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.config.ClusterConfiguration;
 
 public class TimeLockActivityCheckerFactory {

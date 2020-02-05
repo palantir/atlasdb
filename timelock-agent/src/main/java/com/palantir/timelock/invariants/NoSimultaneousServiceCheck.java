@@ -29,7 +29,7 @@ import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public class NoSimultaneousServiceCheck {
+public final class NoSimultaneousServiceCheck {
     private static final Logger log = LoggerFactory.getLogger(NoSimultaneousServiceCheck.class);
 
     private static final int REQUIRED_CONSECUTIVE_VIOLATIONS_BEFORE_FAIL = 5;

@@ -54,7 +54,6 @@ import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
-import com.palantir.timelock.invariants.TimeLockActivityChecker;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
 

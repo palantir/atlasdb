@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public class ServerKiller {
+public final class ServerKiller {
     private static final Logger log = LoggerFactory.getLogger(ServerKiller.class);
 
     private ServerKiller() {
