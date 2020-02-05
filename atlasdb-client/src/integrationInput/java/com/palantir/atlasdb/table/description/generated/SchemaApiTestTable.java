@@ -335,8 +335,9 @@ public final class SchemaApiTestTable implements
             @Override
             public Column2 hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(new com.palantir.atlasdb.table.description.test.StringValuePersister().hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
+                return of(REUSABLE_PERSISTER.hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
             }
+            private final com.palantir.atlasdb.table.description.test.StringValuePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.table.description.test.StringValuePersister();
         };
 
         @Override

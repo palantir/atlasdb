@@ -25,8 +25,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
+import io.dropwizard.jackson.Jackson;
 import io.dropwizard.testing.DropwizardTestSupport;
 
 public class TimeLockServerHolder extends ExternalResource {
@@ -72,7 +74,7 @@ public class TimeLockServerHolder extends ExternalResource {
         return timelockPort;
     }
 
-    public String getTimelockUri() {
+    String getTimelockUri() {
         checkTimelockPortInitialised();
         // TODO(nziebart): hack
         return "https://localhost:" + timelockPort;
@@ -86,11 +88,11 @@ public class TimeLockServerHolder extends ExternalResource {
         Preconditions.checkState(portInitialised, "timelock server isn't running yet, bad initialisation?");
     }
 
-    public synchronized void kill() {
+    synchronized void kill() {
         after();
     }
 
-    public synchronized void start() {
+    synchronized void start() {
         try {
             before();
         } catch (Exception e) {
@@ -108,7 +110,15 @@ public class TimeLockServerHolder extends ExternalResource {
                 .intValue();
     }
 
-    public int getAdminPort() {
-        return timelockServer.getAdminPort();
+    TimeLockInstallConfiguration installConfig() {
+        checkTimelockPortInitialised();
+        ObjectMapper mapper = Jackson.newObjectMapper(new YAMLFactory());
+        try {
+            return mapper.readValue(new File(configFilePathSupplier.get()), CombinedTimeLockServerConfiguration.class)
+                    .install();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
+
 }

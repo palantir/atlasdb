@@ -57,7 +57,7 @@ public interface Dependencies {
         PaxosUseCase useCase();
         TimelockPaxosMetrics metrics();
         UUID leaderUuid();
-        com.palantir.paxos.LeaderPinger leaderPinger();
+        Factories.LeaderPingerFactoryContainer leaderPingerFactory();
         com.palantir.atlasdb.timelock.paxos.NetworkClientFactories networkClientFactories();
         Supplier<PaxosRuntimeConfiguration> runtime();
         AutobatchingLeadershipObserverFactory leadershipObserverFactory();

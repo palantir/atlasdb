@@ -2,6 +2,7 @@ install:
   paxos:
     data-directory: "${dataDirectory}"
     is-new-service: false
+    leader-mode: ${leaderMode}
   cluster:
     cluster:
       security:

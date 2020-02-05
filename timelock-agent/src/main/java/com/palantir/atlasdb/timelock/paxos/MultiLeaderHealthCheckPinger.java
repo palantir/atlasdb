@@ -20,21 +20,21 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Maps;
-import com.palantir.leader.PingableLeader;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.HealthCheckResponse;
 
-public final class SingleLeaderHealthCheckPinger implements HealthCheckPinger {
+public final class MultiLeaderHealthCheckPinger implements HealthCheckPinger {
 
-    private final PingableLeader pingableLeader;
+    private final BatchPingableLeader batchPingableLeader;
 
-    public SingleLeaderHealthCheckPinger(PingableLeader pingableLeader) {
-        this.pingableLeader = pingableLeader;
+    public MultiLeaderHealthCheckPinger(BatchPingableLeader batchPingableLeader) {
+        this.batchPingableLeader = batchPingableLeader;
     }
 
     @Override
     public Map<Client, HealthCheckResponse> apply(Set<Client> request) {
-        boolean isLeader = pingableLeader.ping();
-        return Maps.toMap(request, _client -> new HealthCheckResponse(isLeader));
+        Set<Client> results = batchPingableLeader.ping(request);
+        return Maps.toMap(request, client -> new HealthCheckResponse(results.contains(client)));
     }
+
 }

@@ -24,20 +24,29 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.common.streams.KeyedStream;
 
 @Value.Immutable
 public abstract class PaxosResources {
     public abstract PaxosResourcesFactory.PaxosUseCaseContext timestamp();
     abstract List<Object> adhocResources();
-
+    abstract Map<PaxosUseCase, LocalPaxosComponents> leadershipBatchComponents();
     abstract LeadershipContextFactory leadershipContextFactory();
+
+    @Value.Derived
+    Map<PaxosUseCase, BatchPaxosResources> leadershipBatchResources() {
+        return KeyedStream.stream(leadershipBatchComponents())
+                .map(PaxosResources::batchResourcesFromComponents)
+                .collectToMap();
+    }
 
     @Value.Derived
     public List<Object> resourcesForRegistration() {
         Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase =
                 ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
-                .put(PaxosUseCase.TIMESTAMP, batchResourcesForUseCase(timestamp()))
-                .build();
+                        .put(PaxosUseCase.TIMESTAMP, batchResourcesFromComponents(timestamp().components()))
+                        .putAll(leadershipBatchResources())
+                        .build();
 
         UseCaseAwareBatchPaxosResource combinedBatchResource =
                 new UseCaseAwareBatchPaxosResource(new EnumMap<>(batchPaxosResourcesByUseCase));
@@ -53,9 +62,7 @@ public abstract class PaxosResources {
         return new LeadershipComponents(leadershipContextFactory(), leadershipContextFactory().healthCheckPingers());
     }
 
-    private static BatchPaxosResources batchResourcesForUseCase(
-            PaxosResourcesFactory.PaxosUseCaseContext useCaseContext) {
-        LocalPaxosComponents components = useCaseContext.components();
+    private static BatchPaxosResources batchResourcesFromComponents(LocalPaxosComponents components) {
         BatchPaxosAcceptorResource acceptorResource = new BatchPaxosAcceptorResource(components.batchAcceptor());
         BatchPaxosLearnerResource learnerResource = new BatchPaxosLearnerResource(components.batchLearner());
         return ImmutableBatchPaxosResources.of(acceptorResource, learnerResource);

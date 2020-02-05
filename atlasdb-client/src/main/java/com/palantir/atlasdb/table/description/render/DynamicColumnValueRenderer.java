@@ -176,6 +176,11 @@ public class DynamicColumnValueRenderer extends Renderer {
                 throw new UnsupportedOperationException("Unsupported value type: " + val.getFormat());
             }
         } line("}");
+
+
+        if (val.isReusablePersister()) {
+            line(val.getInstantiateReusablePersisterCode());
+        }
     }
 
     private void getColumnNameFun() {

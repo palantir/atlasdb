@@ -39,9 +39,9 @@ public abstract class LeadershipContextFactory implements
         Dependencies.HealthCheckPinger {
 
     abstract PaxosResourcesFactory.TimelockPaxosInstallationContext install();
-    abstract Factories.LeaderPingerFactory leaderPingerFactory();
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
+    abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
 
     @Value.Derived
     @Override
@@ -68,13 +68,13 @@ public abstract class LeadershipContextFactory implements
     }
 
     @Value.Derived
-    public Duration leaderPingResponseWait() {
-        return runtime().get().leaderPingResponseWait();
+    public Factories.LeaderPingerFactoryContainer leaderPingerFactory() {
+        return leaderPingerFactoryBuilder().from(this).build();
     }
 
     @Value.Derived
-    public LeaderPinger leaderPinger() {
-        return leaderPingerFactory().create(this);
+    public Duration leaderPingResponseWait() {
+        return runtime().get().leaderPingResponseWait();
     }
 
     @Value.Derived
@@ -100,6 +100,7 @@ public abstract class LeadershipContextFactory implements
                 .leadershipMetrics(clientAwareComponents.leadershipMetrics())
                 .leaderElectionService(leaderElectionService)
                 .addCloseables(leaderElectionService)
+                .addAllCloseables(leaderPingerFactory().closeables())
                 .build();
     }
 
@@ -129,6 +130,11 @@ public abstract class LeadershipContextFactory implements
         @Value.Derived
         public PingableLeader localPingableLeader() {
             return components().pingableLeader(paxosClient());
+        }
+
+        @Value.Derived
+        public LeaderPinger leaderPinger() {
+            return leaderPingerFactory().get().create(paxosClient());
         }
 
         @Value.Derived
