@@ -16,10 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
-import java.util.Set;
 
-import com.google.common.base.Functions;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -27,6 +24,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 public class SweepStrategyManagers {
     private SweepStrategyManagers() {
@@ -34,47 +33,45 @@ public class SweepStrategyManagers {
     }
 
     public static SweepStrategyManager createDefault(KeyValueService kvs) {
-        return new SweepStrategyManager(getSweepStrategySupplier(kvs));
+        RecomputingSupplier<Map<TableReference, SweepStrategy>> supplier =
+                RecomputingSupplier.create(() -> getSweepStrategies(kvs));
+        return tableRef -> {
+            SweepStrategy strategy = supplier.get().get(tableRef);
+            if (strategy == null) {
+                strategy = supplier.recompute().get(tableRef);
+            }
+            return Preconditions.checkNotNull(strategy, "unknown table", SafeArg.of("tableRef", tableRef));
+        };
     }
 
     public static SweepStrategyManager createFromSchema(Schema schema) {
-        return new SweepStrategyManager(RecomputingSupplier.create(Suppliers.ofInstance(getSweepStrategies(schema))));
+        return tableRef -> {
+            TableMetadata tableMeta = Preconditions.checkNotNull(
+                    schema.getAllTablesAndIndexMetadata().get(tableRef),
+                    "unknown table",
+                    SafeArg.of("tableRef", tableRef));
+            return tableMeta.getSweepStrategy();
+        };
     }
 
     public static SweepStrategyManager fromMap(final Map<TableReference, SweepStrategy> map) {
-        return new SweepStrategyManager(RecomputingSupplier.create(Suppliers.ofInstance(map)));
+        return tableRef -> Preconditions.checkNotNull(
+                map.get(tableRef),
+                "unknown table",
+                SafeArg.of("tableRef", tableRef));
     }
 
-    public static SweepStrategyManager completelyConservative(KeyValueService kvs) {
-        return new SweepStrategyManager(getConservativeManager(kvs));
-    }
-
-    private static RecomputingSupplier<Map<TableReference, SweepStrategy>> getConservativeManager(final KeyValueService kvs) {
-        return RecomputingSupplier.create(() -> {
-            Set<TableReference> tables = kvs.getAllTableNames();
-            return Maps.asMap(tables, Functions.constant(SweepStrategy.CONSERVATIVE));
-        });
-    }
-
-    private static RecomputingSupplier<Map<TableReference, SweepStrategy>> getSweepStrategySupplier(final KeyValueService keyValueService) {
-        return RecomputingSupplier.create(() -> getSweepStrategies(keyValueService));
+    public static SweepStrategyManager completelyConservative() {
+        return tableRef -> SweepStrategy.CONSERVATIVE;
     }
 
     private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
-        return ImmutableMap.copyOf(Maps.transformEntries(kvs.getMetadataForTables(), (tableRef, tableMetadata) -> {
-            if (tableMetadata != null && tableMetadata.length > 0) {
-                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata).getSweepStrategy();
+        return ImmutableMap.copyOf(Maps.transformEntries(kvs.getMetadataForTables(), (tableRef, tableMeta) -> {
+            if (tableMeta != null && tableMeta.length > 0) {
+                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy();
             } else {
                 return SweepStrategy.CONSERVATIVE;
             }
         }));
-    }
-
-    private static Map<TableReference, SweepStrategy> getSweepStrategies(Schema schema) {
-        Map<TableReference, SweepStrategy> ret = Maps.newHashMap();
-        for (Map.Entry<TableReference, TableMetadata> e : schema.getAllTablesAndIndexMetadata().entrySet()) {
-            ret.put(e.getKey(), e.getValue().getSweepStrategy());
-        }
-        return ret;
     }
 }

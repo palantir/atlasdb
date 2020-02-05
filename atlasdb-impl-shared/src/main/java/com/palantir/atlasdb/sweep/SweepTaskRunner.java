@@ -45,6 +45,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
@@ -144,12 +145,13 @@ public class SweepTaskRunner {
             log.warn("The sweeper should not be run on tables passed through namespace mapping.");
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
-        if (keyValueService.getMetadataForTable(tableRef).length == 0) {
+        byte[] tableMeta = keyValueService.getMetadataForTable(tableRef);
+        if (tableMeta.length == 0) {
             log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
                     LoggingArgs.tableRef("tableRef", tableRef));
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
-        SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
+        SweepStrategy sweepStrategy = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy();
         Optional<Sweeper> maybeSweeper = Sweeper.of(sweepStrategy);
         return maybeSweeper.map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
                 .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);

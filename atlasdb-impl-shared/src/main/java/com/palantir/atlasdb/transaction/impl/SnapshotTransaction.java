@@ -875,7 +875,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isThoroughlySwept(TableReference tableRef) {
-        return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
+        return sweepStrategyManager.get(tableRef) == SweepStrategy.THOROUGH;
     }
 
     private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
