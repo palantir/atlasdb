@@ -19,6 +19,7 @@ import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -26,6 +27,7 @@ public abstract class AbstractAsyncTimelockServiceIntegrationTest {
             .localServerPort(9050)
             .addServerPorts()
             .clientPaxos(TimestampPaxos.builder().isUseBatchPaxos(true).build())
+            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
             .build();
 
     protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC =

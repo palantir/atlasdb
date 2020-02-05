@@ -148,7 +148,6 @@ public final class Leaders {
                 ServiceCreator.createTrustContext(config.sslConfiguration());
 
         List<PaxosLearner> learners = createProxyAndLocalList(
-                metricsManager,
                 ourLearner,
                 remotePaxosServerSpec.remoteLearnerUris(),
                 remotingClientConfig,
@@ -165,7 +164,6 @@ public final class Leaders {
                 createExecutorsForService(metricsManager, learners, "knowledge-update"));
 
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
-                metricsManager,
                 ourAcceptor,
                 remotePaxosServerSpec.remoteAcceptorUris(),
                 remotingClientConfig,
@@ -178,7 +176,6 @@ public final class Leaders {
                 createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"));
 
         List<LeaderPingerContext<PingableLeader>> otherLeaders = generatePingables(
-                metricsManager,
                 remotePaxosServerSpec.remoteLeaderUris(),
                 remotingClientConfig,
                 trustContext,
@@ -258,7 +255,6 @@ public final class Leaders {
     }
 
     public static <T> List<T> createProxyAndLocalList(
-            MetricsManager metricsManager,
             T localObject,
             Set<String> remoteUris,
             Supplier<RemotingClientConfig> remotingClientConfig,
@@ -269,7 +265,6 @@ public final class Leaders {
         // TODO (jkong): Enable runtime config for leader election services.
         List<T> remotes = remoteUris.stream()
                 .map(uri -> AtlasDbHttpClients.createProxy(
-                        metricsManager,
                         trustContext,
                         uri,
                         clazz,
@@ -287,14 +282,12 @@ public final class Leaders {
     }
 
     public static List<LeaderPingerContext<PingableLeader>> generatePingables(
-            MetricsManager metricsManager,
             Collection<String> remoteEndpoints,
             Supplier<RemotingClientConfig> remotingClientConfig,
             Optional<TrustContext> trustContext,
             UserAgent userAgent) {
         return KeyedStream.of(remoteEndpoints)
                 .mapKeys(endpoint -> AtlasDbHttpClients.createProxy(
-                        metricsManager,
                         trustContext,
                         endpoint,
                         PingableLeader.class,

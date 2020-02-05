@@ -189,7 +189,6 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void userAgentIsPresentOnClientRequests() {
         TestResource client = AtlasDbHttpClients.createProxy(
-                MetricsManagers.createForTests(),
                 TRUST_CONTEXT,
                 getUriForPort(availablePort1),
                 TestResource.class,

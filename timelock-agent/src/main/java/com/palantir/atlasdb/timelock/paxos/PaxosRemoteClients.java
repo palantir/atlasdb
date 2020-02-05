@@ -31,7 +31,6 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
@@ -74,7 +73,7 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
-        return createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, true);
+        return createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, false);
     }
 
     @Value.Derived
@@ -90,10 +89,25 @@ public abstract class PaxosRemoteClients {
     }
 
     @Value.Derived
+    public List<BatchPingableLeader> batchPingableLeaders() {
+        return batchPingableLeadersWithContext().stream()
+                .map(LeaderPingerContext::pinger)
+                .collect(Collectors.toList());
+    }
+
+    @Value.Derived
     public List<LeaderPingerContext<PingableLeader>> nonBatchPingableLeadersWithContext() {
-        return createInstrumentedRemoteProxies(PingableLeader.class, false).entries()
-                .<LeaderPingerContext<PingableLeader>>map(entry ->
-                        ImmutableLeaderPingerContext.of(entry.getValue(), entry.getKey()))
+        return leaderPingerContext(PingableLeader.class);
+    }
+
+    @Value.Derived
+    public List<LeaderPingerContext<BatchPingableLeader>> batchPingableLeadersWithContext() {
+        return leaderPingerContext(BatchPingableLeader.class);
+    }
+
+    private <T> List<LeaderPingerContext<T>> leaderPingerContext(Class<T> clazz) {
+        return createInstrumentedRemoteProxies(clazz, false).entries()
+                .<LeaderPingerContext<T>>map(entry -> ImmutableLeaderPingerContext.of(entry.getValue(), entry.getKey()))
                 .collect(Collectors.toList());
     }
 
@@ -104,7 +118,6 @@ public abstract class PaxosRemoteClients {
     private <T> KeyedStream<HostAndPort, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
         return KeyedStream.of(context().remoteUris())
                 .map(uri -> AtlasDbHttpClients.createProxy(
-                        MetricsManagers.of(new MetricRegistry(), metrics()),
                         context().trustContext(),
                         uri,
                         clazz,
