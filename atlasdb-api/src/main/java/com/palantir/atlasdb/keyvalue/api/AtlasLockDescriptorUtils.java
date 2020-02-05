@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.immutables.value.Value;
 
@@ -30,8 +30,6 @@ import com.palantir.lock.LockDescriptor;
 import okio.ByteString;
 
 public final class AtlasLockDescriptorUtils {
-    private static final byte[] ZERO_ARRAY = new byte[] {0};
-
     private AtlasLockDescriptorUtils() {
         // NOPE
     }
@@ -45,18 +43,11 @@ public final class AtlasLockDescriptorUtils {
         TableReference tableRef = tableRefAndRemainder.get().tableRef();
         ByteString remainingBytes = tableRefAndRemainder.get().remainder();
 
-        int lookupFrom = 0;
-        int nextCandidate;
-        List<Cell> cells = new ArrayList<>();
-        while ((nextCandidate = remainingBytes.indexOf(ZERO_ARRAY, lookupFrom)) != -1) {
-            if (nextCandidate > 0 && nextCandidate < remainingBytes.size() - 2) {
-                byte[] row = remainingBytes.substring(0, nextCandidate).toByteArray();
-                byte[] col = remainingBytes.substring(nextCandidate + 1, remainingBytes.size()).toByteArray();
-                cells.add(Cell.create(row, col));
-            }
-            lookupFrom = nextCandidate + 1;
-        }
-        return cells.stream().map(cell -> CellReference.of(tableRef, cell)).collect(Collectors.toList());
+        return IntStream.range(1, remainingBytes.size() - 2)
+                .filter(index -> isZeroDelimiterIndex(remainingBytes, index))
+                .mapToObj(index -> createCellFromByteString(remainingBytes, index))
+                .map(cell -> CellReference.of(tableRef, cell))
+                .collect(Collectors.toList());
     }
 
     public static Optional<TableRefAndRemainder> tryParseTableRef(LockDescriptor lockDescriptor) {
@@ -68,8 +59,18 @@ public final class AtlasLockDescriptorUtils {
         }
         String fullyQualifiedName = new String(rawBytes, 0, endOfTableName);
         TableReference tableRef = TableReference.createFromFullyQualifiedName(fullyQualifiedName);
-        ByteString remainingBytes = ByteString.of(rawBytes, endOfTableName + 1, rawBytes.length - 1 - endOfTableName);
+        ByteString remainingBytes = ByteString.of(rawBytes, endOfTableName + 1, rawBytes.length - (endOfTableName + 1));
         return Optional.of(ImmutableTableRefAndRemainder.of(tableRef, remainingBytes));
+    }
+
+    private static boolean isZeroDelimiterIndex(ByteString remainingBytes, int candidateIndex) {
+        return remainingBytes.getByte(candidateIndex) == 0;
+    }
+
+    private static Cell createCellFromByteString(ByteString remainingBytes, int zeroDelimiterIndex) {
+        byte[] row = remainingBytes.substring(0, zeroDelimiterIndex).toByteArray();
+        byte[] col = remainingBytes.substring(zeroDelimiterIndex + 1, remainingBytes.size()).toByteArray();
+        return Cell.create(row, col);
     }
 
     @Value.Immutable
