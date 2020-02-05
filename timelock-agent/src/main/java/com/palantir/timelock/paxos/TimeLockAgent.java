@@ -27,6 +27,7 @@ import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
@@ -188,14 +189,11 @@ public class TimeLockAgent {
         if (getNumberOfActiveClients() == 0) {
             return Optional.empty();
         }
-        HealthCheckDigest digest = healthCheck.getStatus();
-        Set<Client> clientsWithPossiblyMultipleLeaders = digest.statusesToClient().get(TimeLockStatus.MULTIPLE_LEADERS);
-        if (!clientsWithPossiblyMultipleLeaders.isEmpty()) {
-            // Run these checks on a different thread: we don't want health checks to block for too long.
-            clientsWithPossiblyMultipleLeaders.forEach(noSimultaneousServiceCheck::scheduleCheckOnSpecificClient);
-        }
 
-        return Optional.of(healthCheck.getStatus());
+        HealthCheckDigest status = healthCheck.getStatus();
+        noSimultaneousServiceCheck.processHealthCheckDigest(status);
+
+        return Optional.of(status);
     }
 
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks
