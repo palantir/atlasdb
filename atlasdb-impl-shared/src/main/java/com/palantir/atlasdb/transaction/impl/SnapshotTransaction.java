@@ -2232,6 +2232,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throws TransactionFailedException {
         Preconditions.checkArgument(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
         try {
+            if (immutableTimestampLock.isPresent()) {
+                log.error("This transaction has been rolled back by someone else.",
+                        immutableTimestampLock.get().toSafeArg(("immutableTimestampLock")),
+                        locksToken.toSafeArg("commitLocksToken"));
+            } else {
+                log.error("This transaction has been rolled back by someone else.",
+                        SafeArg.of("immutableTimestampLock", "not present"),
+                        locksToken.toSafeArg("commitLocksToken"));
+            }
             transactionService.putUnlessExists(getStartTimestamp(), commitTimestamp);
         } catch (KeyAlreadyExistsException e) {
             handleKeyAlreadyExistsException(commitTimestamp, e, locksToken);
@@ -2262,9 +2271,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
-                log.info("This transaction has been rolled back by someone else.",
-                        immutableTimestampLock.map(token -> token.toSafeArg("immutableTimestampLock")),
-                        commitLocksToken.toSafeArg("commitLocksToken"));
+                if (immutableTimestampLock.isPresent()) {
+                    log.info("This transaction has been rolled back by someone else.",
+                            immutableTimestampLock.get().toSafeArg(("immutableTimestampLock")),
+                            commitLocksToken.toSafeArg("commitLocksToken"));
+                } else {
+                    log.info("This transaction has been rolled back by someone else.",
+                            SafeArg.of("immutableTimestampLock", "not present"),
+                            commitLocksToken.toSafeArg("commitLocksToken"));
+                }
             }
         } catch (TransactionFailedException e1) {
             throw e1;
