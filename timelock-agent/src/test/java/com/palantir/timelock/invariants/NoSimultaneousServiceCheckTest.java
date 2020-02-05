@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.invariants;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -26,7 +25,6 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import java.util.function.Consumer;
 
-import org.jmock.lib.concurrent.DeterministicExecutor;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
