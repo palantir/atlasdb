@@ -18,6 +18,7 @@ package com.palantir.timelock.paxos;
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -46,11 +47,15 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
+import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
+import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
+import com.palantir.timelock.invariants.TimeLockActivityChecker;
+import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
@@ -65,6 +70,7 @@ public class TimeLockAgent {
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
+    private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
 
     private LeaderPingHealthCheck healthCheck;
     private TimeLockResource resource;
@@ -91,7 +97,8 @@ public class TimeLockAgent {
                 threadPoolSize,
                 blockingTimeoutMs,
                 registrar,
-                paxosResources);
+                paxosResources,
+                userAgent);
         agent.createAndRegisterResources();
         return agent;
     }
@@ -102,7 +109,8 @@ public class TimeLockAgent {
             int threadPoolSize,
             long blockingTimeoutMs,
             Consumer<Object> registrar,
-            PaxosResources paxosResources) {
+            PaxosResources paxosResources,
+            UserAgent userAgent) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
@@ -121,6 +129,13 @@ public class TimeLockAgent {
                 paxosResources.leadershipComponents(),
                 install.lockDiagnosticConfig(),
                 targetedSweepLockControlConfig);
+
+        this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
+                new TimeLockActivityCheckerFactory(
+                        install.cluster(),
+                        metricsManager,
+                        userAgent
+                ).getTimeLockActivityCheckers());
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
@@ -173,6 +188,11 @@ public class TimeLockAgent {
     public Optional<HealthCheckDigest> getStatus() {
         if (getNumberOfActiveClients() == 0) {
             return Optional.empty();
+        }
+        HealthCheckDigest digest = healthCheck.getStatus();
+        Set<Client> clientsWithPossiblyMultipleLeaders = digest.statusesToClient().get(TimeLockStatus.MULTIPLE_LEADERS);
+        if (!clientsWithPossiblyMultipleLeaders.isEmpty()) {
+            clientsWithPossiblyMultipleLeaders.forEach(noSimultaneousServiceCheck::performCheckOnSpecificClient);
         }
 
         return Optional.of(healthCheck.getStatus());

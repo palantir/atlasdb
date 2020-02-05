@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -48,7 +49,7 @@ public class NoSimultaneousServiceCheck {
         return new NoSimultaneousServiceCheck(timeLockActivityCheckers,
                 client -> {
                     throw ServerKiller.killMeNow(new SafeIllegalStateException(
-                            "We observed that multiple services were consistently all serving timestamps! This is"
+                            "We observed that multiple services were consistently serving timestamps! This is"
                                     + " potentially indicative of SEVERE DATA CORRUPTION, and should never happen in a"
                                     + " correct TimeLock implementation. If you see this message, please check the"
                                     + " frequency of leader elections on your stack. If there were very many leader"
@@ -58,14 +59,14 @@ public class NoSimultaneousServiceCheck {
                 });
     }
 
-    public void performCheckOnSpecificClient(String client) {
+    public void performCheckOnSpecificClient(Client client) {
         // Only fail on repeated violations, since it is possible for there to be a leader election between checks that
         // could legitimately cause false positives if we failed after one such issue. However, given the number of
         // checks it is unlikely that *that* many elections would occur.
         for (int attempt = 1; attempt <= REQUIRED_CONSECUTIVE_VIOLATIONS_BEFORE_FAIL; attempt++) {
             long numberOfNodesServingTimestamps = timeLockActivityCheckers.stream()
                     .map(timeLockActivityChecker ->
-                            timeLockActivityChecker.isThisNodeActivelyServingTimestampsForClient(client))
+                            timeLockActivityChecker.isThisNodeActivelyServingTimestampsForClient(client.value()))
                     .filter(x -> x)
                     .count();
             if (numberOfNodesServingTimestamps <= 1) {
@@ -84,7 +85,7 @@ public class NoSimultaneousServiceCheck {
                         SafeArg.of("backoffMillis", BACKOFF.toMillis()));
                 Uninterruptibles.sleepUninterruptibly(BACKOFF.toMillis(), TimeUnit.MILLISECONDS);
             } else {
-                failureMechanism.accept(client);
+                failureMechanism.accept(client.value());
             }
         }
     }
