@@ -33,6 +33,11 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.autobatch.Autobatchers;
+import com.palantir.atlasdb.autobatch.Autobatchers.SupplierKey;
+import com.palantir.atlasdb.autobatch.CoalescingRequestSupplier;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.concurrent.CoalescingSupplier;
 
 @State(Scope.Benchmark)
@@ -53,11 +58,20 @@ public class SpinnerBenchmark {
     };
     private final Spinner<Long> spinner = new Spinner<>(delegate);
     private final CoalescingSupplier<Long> supplier = new CoalescingSupplier<>(delegate);
+    private final DisruptorAutobatcher<SupplierKey, Long> disruptor =
+            Autobatchers.coalescing(new CoalescingRequestSupplier<>(delegate)).safeLoggablePurpose("").build();
+    private final Supplier<Long> disruptorSupplier = () -> Futures.getUnchecked(disruptor.apply(SupplierKey.INSTANCE));
     private long state = 0;
 
     @TearDown
     public void tearDown() {
         spinner.close();
+        disruptor.close();
+    }
+
+    @Benchmark
+    public long testDisruptor() {
+        return disruptorSupplier.get();
     }
 
     @Benchmark
