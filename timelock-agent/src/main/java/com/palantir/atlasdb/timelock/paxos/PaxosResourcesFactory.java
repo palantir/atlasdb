@@ -243,6 +243,7 @@ public final class PaxosResourcesFactory {
 
         return ImmutablePaxosResources.builder()
                 .addAdhocResources(new TimestampPaxosResource(paxosComponents))
+                .timestampPaxosComponents(paxosComponents)
                 .timestampServiceFactory(timestampFactory);
     }
 
