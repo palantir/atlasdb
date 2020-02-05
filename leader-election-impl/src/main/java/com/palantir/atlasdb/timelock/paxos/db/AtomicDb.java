@@ -16,7 +16,8 @@
 
 package com.palantir.atlasdb.timelock.paxos.db;
 
-public interface AtomicValue<T> {
-    T get();
-    boolean compareAndSet(T expected, T update);
+import java.util.function.Function;
+
+public interface AtomicDb {
+    <T> AtomicValue<T> value(String name, Function<T, byte[]> serializer, Function<byte[], T> deserializer);
 }
