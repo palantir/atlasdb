@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.common.concurrent.PTExecutors;
@@ -41,7 +42,8 @@ public final class NoSimultaneousServiceCheck {
     private final Consumer<String> failureMechanism;
     private final ExecutorService executorService;
 
-    private NoSimultaneousServiceCheck(
+    @VisibleForTesting
+    NoSimultaneousServiceCheck(
             List<TimeLockActivityChecker> timeLockActivityCheckers,
             Consumer<String> failureMechanism,
             ExecutorService executorService) {
@@ -70,14 +72,14 @@ public final class NoSimultaneousServiceCheck {
     public void scheduleCheckOnSpecificClient(Client client) {
         executorService.submit(() -> {
             try {
-                performCheckOnSpecificClient(client);
+                performCheckOnSpecificClientUnsafe(client);
             } catch (Exception e) {
                 log.info("No-simultaneous service check failed, suppressing exception to allow future checks", e);
             }
         });
     }
 
-    private void performCheckOnSpecificClient(Client client) {
+    private void performCheckOnSpecificClientUnsafe(Client client) {
         // Only fail on repeated violations, since it is possible for there to be a leader election between checks that
         // could legitimately cause false positives if we failed after one such issue. However, given the number of
         // checks it is unlikely that *that* many elections would occur.
