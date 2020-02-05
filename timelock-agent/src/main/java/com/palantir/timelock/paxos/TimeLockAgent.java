@@ -191,7 +191,8 @@ public class TimeLockAgent {
         HealthCheckDigest digest = healthCheck.getStatus();
         Set<Client> clientsWithPossiblyMultipleLeaders = digest.statusesToClient().get(TimeLockStatus.MULTIPLE_LEADERS);
         if (!clientsWithPossiblyMultipleLeaders.isEmpty()) {
-            clientsWithPossiblyMultipleLeaders.forEach(noSimultaneousServiceCheck::performCheckOnSpecificClient);
+            // Run these checks on a different thread: we don't want health checks to block for too long.
+            clientsWithPossiblyMultipleLeaders.forEach(noSimultaneousServiceCheck::scheduleCheckOnSpecificClient);
         }
 
         return Optional.of(healthCheck.getStatus());

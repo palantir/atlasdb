@@ -18,6 +18,7 @@ package com.palantir.timelock.invariants;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -37,15 +39,20 @@ public final class NoSimultaneousServiceCheck {
 
     private final List<TimeLockActivityChecker> timeLockActivityCheckers;
     private final Consumer<String> failureMechanism;
+    private final ExecutorService executorService;
 
     private NoSimultaneousServiceCheck(
             List<TimeLockActivityChecker> timeLockActivityCheckers,
-            Consumer<String> failureMechanism) {
+            Consumer<String> failureMechanism,
+            ExecutorService executorService) {
         this.timeLockActivityCheckers = timeLockActivityCheckers;
         this.failureMechanism = failureMechanism;
+        this.executorService = executorService;
     }
 
     public static NoSimultaneousServiceCheck create(List<TimeLockActivityChecker> timeLockActivityCheckers) {
+        ExecutorService executorService = PTExecutors.newSingleThreadExecutor(
+                PTExecutors.newNamedThreadFactory(false));
         return new NoSimultaneousServiceCheck(timeLockActivityCheckers,
                 client -> {
                     throw ServerKiller.killMeNow(new SafeIllegalStateException(
@@ -56,10 +63,21 @@ public final class NoSimultaneousServiceCheck {
                                     + " elections around this time, consider increasing the leader election timeout."
                                     + " Otherwise, please contact support - your stack may have been compromised."
                     ));
-                });
+                },
+                executorService);
     }
 
-    public void performCheckOnSpecificClient(Client client) {
+    public void scheduleCheckOnSpecificClient(Client client) {
+        executorService.submit(() -> {
+            try {
+                performCheckOnSpecificClient(client);
+            } catch (Exception e) {
+                log.info("No-simultaneous service check failed, suppressing exception to allow future checks", e);
+            }
+        });
+    }
+
+    private void performCheckOnSpecificClient(Client client) {
         // Only fail on repeated violations, since it is possible for there to be a leader election between checks that
         // could legitimately cause false positives if we failed after one such issue. However, given the number of
         // checks it is unlikely that *that* many elections would occur.
