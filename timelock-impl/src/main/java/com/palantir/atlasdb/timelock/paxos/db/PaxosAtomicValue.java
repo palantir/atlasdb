@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
+import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -203,14 +203,14 @@ public class PaxosAtomicValue<T> implements AtomicValue<T> {
             return Optional.of(defaultValue);
         }
 
-        PaxosResponses<PaxosContainer<Optional<T>>> responses =
+        PaxosResponses<PaxosQuorumCheckingCoalescingFunction.PaxosContainer<Optional<T>>> responses =
                 learnerClient.getLearnedValue(seq,
-                        maybeValue -> PaxosContainer.of(maybeValue
+                        maybeValue -> PaxosQuorumCheckingCoalescingFunction.PaxosContainer.of(maybeValue
                                 .map(PaxosValue::getData)
                                 .map(deserialize)));
 
         return responses.stream()
-                .map(PaxosContainer::get)
+                .map(PaxosQuorumCheckingCoalescingFunction.PaxosContainer::get)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst();

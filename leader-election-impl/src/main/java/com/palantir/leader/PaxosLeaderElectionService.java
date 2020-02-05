@@ -30,13 +30,14 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
-import com.palantir.atlasdb.timelock.paxos.db.AtomicValue;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
@@ -55,19 +56,18 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
 
     private final ReentrantLock lock = new ReentrantLock();
+    private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
+
+    private final PaxosProposer proposer;
+    private final PaxosLearner knowledge;
+
     private final LeaderPinger leaderPinger;
-    private final AtomicValue<Leadership> state = null;
+    private final PaxosLearnerNetworkClient learnerClient;
 
     private final Duration updatePollingRate;
     private final Duration randomWaitBeforeProposingLeadership;
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
-
-    @Value.Immutable
-    interface Leadership {
-        UUID leaderId();
-        UUID leadershipId();
-    }
 
     private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
     private final RateLimiter leaderEligibilityLoggingRateLimiter = RateLimiter.create(1);
@@ -84,10 +84,15 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             Duration randomWaitBeforeProposingLeadership,
             Duration leaderAddressCacheTtl,
             PaxosLeaderElectionEventRecorder eventRecorder) {
+        this.proposer = proposer;
+        this.knowledge = knowledge;
         this.leaderPinger = leaderPinger;
+        this.learnerClient = learnerClient;
         this.updatePollingRate = updatePollingWait;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.eventRecorder = eventRecorder;
+        this.latestRoundVerifier =
+                new CoalescingPaxosLatestRoundVerifier(new PaxosLatestRoundVerifierImpl(acceptorClient));
         this.leaderAddressCache = Caffeine.newBuilder()
                 .expireAfterWrite(leaderAddressCacheTtl)
                 .build();
@@ -153,7 +158,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private LeadershipState determineLeadershipState() {
-        Leadership greatestLearnedValue = state.getMaybeStale();
+        Optional<PaxosValue> greatestLearnedValue = knowledge.getGreatestLearnedValue();
         StillLeadingStatus leadingStatus = determineLeadershipStatus(greatestLearnedValue);
 
         return LeadershipState.of(greatestLearnedValue, leadingStatus);
@@ -216,11 +221,11 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         return status;
     }
 
-    private StillLeadingStatus determineLeadershipStatus(Optional<LeadershipState> value) {
+    private StillLeadingStatus determineLeadershipStatus(Optional<PaxosValue> value) {
         return value.map(this::determineLeadershipStatus).orElse(StillLeadingStatus.NOT_LEADING);
     }
 
-    private StillLeadingStatus determineLeadershipStatus(LeadershipState value) {
+    private StillLeadingStatus determineLeadershipStatus(PaxosValue value) {
         if (!isThisNodeTheLeaderFor(value)) {
             return StillLeadingStatus.NOT_LEADING;
         }
@@ -251,7 +256,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         }
     }
 
-    private boolean isThisNodeTheLeaderFor(LeadershipState value) {
+    private boolean isThisNodeTheLeaderFor(PaxosValue value) {
         return value.getLeaderUUID().equals(proposer.getUuid());
     }
 
