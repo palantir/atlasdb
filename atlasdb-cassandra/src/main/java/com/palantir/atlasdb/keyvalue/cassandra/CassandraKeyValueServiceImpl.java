@@ -413,6 +413,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider) {
         super(createInstrumentedFixedThreadPool(
                 config.poolSize() * config.servers().numberOfThriftHosts(),
+                config.maxConnectionBurstSize() * config.servers().numberOfThriftHosts(),
                 metricsManager.getRegistry()
         ));
         this.log = log;
@@ -442,10 +443,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 cassandraTableTruncator);
     }
 
-    private static ExecutorService createInstrumentedFixedThreadPool(int corePoolSize, MetricRegistry registry) {
+    private static ExecutorService createInstrumentedFixedThreadPool(int corePoolSize, int maxPoolSize,
+            MetricRegistry registry) {
         return Tracers.wrap(
                 new InstrumentedExecutorService(
-                        createFixedThreadPool("Atlas Cassandra KVS", corePoolSize),
+                        createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
                         registry,
                         MetricRegistry.name(CassandraKeyValueService.class, "executorService")));
     }
