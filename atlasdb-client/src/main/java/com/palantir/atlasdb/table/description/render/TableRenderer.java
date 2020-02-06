@@ -1,3 +1,4 @@
+
 /*
  * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
@@ -15,6 +16,7 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +36,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 import javax.annotation.Nullable;
@@ -867,11 +871,15 @@ public class TableRenderer {
         }
 
         private void renderGetRange() {
-            line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {"); {
+            line("private RangeRequest augmentRangeRequest(RangeRequest range) {"); {
                 line("if (range.getColumnNames().isEmpty()) {"); {
-                    line("range = range.getBuilder().retainColumns(allColumns).build();");
+                    line("return range.getBuilder().retainColumns(allColumns).build();");
                 } line("}");
-                line("return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+                line("return range;");
+            } line("}");
+            line();
+            line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {"); {
+                line("return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
                         line("return ", RowResult, ".of(input);");
@@ -881,9 +889,15 @@ public class TableRenderer {
         }
 
         private void renderGetRanges() {
+            line("private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {"); {
+                line("return StreamSupport.stream(ranges.spliterator(), false)");
+                line("              .map(rangeRequest -> augmentRangeRequest(rangeRequest))");
+                line("              .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));");
+            } line("}");
+            line();
             line("@Deprecated");
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
-                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);");
+                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));");
                 line("return IterableView.of(rangeResults).transform(");
                 line("        new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<", RowResult, ">>() {"); {
                     line("@Override");
@@ -901,31 +915,31 @@ public class TableRenderer {
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               int concurrencyLevel,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, ranges, concurrencyLevel,");
+                line("return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,");
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, ranges,");
+                line("return t.getRanges(tableRef, augmentRanges(ranges),");
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
-                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);");
+                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));");
                 line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");
             } line("}");
         }
 
         private void renderDeleteRange() {
             line("public void deleteRange(RangeRequest range) {"); {
-                line("deleteRanges(ImmutableSet.of(range));");
+                line("deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));");
             } line("}");
         }
 
         private void renderDynamicDeleteRanges() {
             line("public void deleteRanges(Iterable<RangeRequest> ranges) {"); {
-                line("BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<", RowResult, ">, RuntimeException>() {"); {
+                line("BatchingVisitables.concat(getRanges(augmentRanges(ranges))).batchAccept(1000, new AbortingVisitor<List<", RowResult, ">, RuntimeException>() {"); {
                     line("@Override");
                     line("public boolean visit(List<", RowResult, "> rowResults) {"); {
                         line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
@@ -943,7 +957,7 @@ public class TableRenderer {
 
         private void renderNamedDeleteRanges() {
             line("public void deleteRanges(Iterable<RangeRequest> ranges) {"); {
-                line("BatchingVisitables.concat(getRanges(ranges))");
+                line("BatchingVisitables.concat(getRanges(augmentRanges(ranges)))");
                 line("                  .transform(", RowResult, ".getRowNameFun())");
                 line("                  .batchAccept(1000, new AbortingVisitor<List<", Row, ">, RuntimeException>() {"); {
                     line("@Override");
@@ -1018,14 +1032,16 @@ public class TableRenderer {
                 line("Set<Cell> rawCells = ColumnValues.toCells(cells);");
                 line("Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);");
                 line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
-                line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {");
-                    line("if (e.getValue().length > 0) {");
+                line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {"); {
+                    line("if (e.getValue().length > 0) {"); {
                         line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
-                        line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
-                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                        line(Column, " col = ", Column,
+                                ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
+                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ",
+                                ColumnValue, ".hydrateValue(e.getValue());");
                         line("rowMap.put(row, ", ColumnValue, ".of(col, val));");
-                    line("}");
-                line("}");
+                    } line("}");
+                } line("}");
                 line("return rowMap;");
             } line("}");
         }
@@ -1214,85 +1230,89 @@ public class TableRenderer {
     }
 
     private static final Class<?>[] IMPORTS_WITHOUT_OPTIONAL = {
-        Set.class,
-        List.class,
-        Map.class,
-        SortedMap.class,
-        Callable.class,
-        Multimap.class,
-        Multimaps.class,
-        Collection.class,
-        Function.class,
-        BiFunction.class,
-        Persistable.class,
-        Hydrator.class,
-        Transaction.class,
-        NamedColumnValue.class,
-        ColumnValue.class,
-        BatchingVisitable.class,
-        RangeRequest.class,
-        Prefix.class,
-        BatchingVisitables.class,
-        BatchingVisitableView.class,
-        IterableView.class,
-        ColumnValues.class,
-        RowResult.class,
-        Persistables.class,
-        Maps.class,
-        Lists.class,
-        ImmutableMap.class,
-        ImmutableSet.class,
-        Sets.class,
-        HashSet.class,
-        HashMultimap.class,
-        ArrayListMultimap.class,
-        ImmutableMultimap.class,
-        Cell.class,
-        Cells.class,
-        EncodingUtils.class,
-        PtBytes.class,
-        MoreObjects.class,
-        Objects.class,
-        ComparisonChain.class,
-        Sha256Hash.class,
-        UUID.class,
-        EnumSet.class,
-        Descending.class,
-        AbortingVisitor.class,
-        AbortingVisitors.class,
-        AssertUtils.class,
-        AtlasDbConstraintCheckingMode.class,
-        ConstraintCheckingTransaction.class,
-        AtlasDbDynamicMutablePersistentTable.class,
-        AtlasDbNamedPersistentSet.class,
-        AtlasDbMutablePersistentTable.class,
-        AtlasDbNamedMutableTable.class,
-        ColumnSelection.class,
-        Joiner.class,
-        Entry.class,
-        Iterator.class,
-        Iterables.class,
-        Stream.class,
-        Supplier.class,
-        InvalidProtocolBufferException.class,
-        Throwables.class,
-        ImmutableList.class,
-        UnsignedBytes.class,
-        Collections2.class,
-        Arrays.class,
-        Bytes.class,
-        TypedRowResult.class,
-        TimeUnit.class,
-        CompressionUtils.class,
-        Compression.class,
-        Namespace.class,
-        Hashing.class,
-        ValueType.class,
-        Generated.class,
-        TableReference.class,
-        BatchColumnRangeSelection.class,
-        ColumnRangeSelections.class,
-        ColumnRangeSelection.class,
-        Iterators.class,
-    };
+            Set.class,
+            List.class,
+            Map.class,
+            SortedMap.class,
+            Callable.class,
+            Multimap.class,
+            Multimaps.class,
+            Collection.class,
+            Function.class,
+            BiFunction.class,
+            Persistable.class,
+            Hydrator.class,
+            Transaction.class,
+            NamedColumnValue.class,
+            ColumnValue.class,
+            BatchingVisitable.class,
+            RangeRequest.class,
+            Prefix.class,
+            BatchingVisitables.class,
+            BatchingVisitableView.class,
+            IterableView.class,
+            ColumnValues.class,
+            RowResult.class,
+            Persistables.class,
+            Maps.class,
+            Lists.class,
+            ImmutableMap.class,
+            ImmutableSet.class,
+            Sets.class,
+            HashSet.class,
+            HashMultimap.class,
+            ArrayListMultimap.class,
+            ImmutableMultimap.class,
+            Cell.class,
+            Cells.class,
+            EncodingUtils.class,
+            PtBytes.class,
+            MoreObjects.class,
+            Objects.class,
+            ComparisonChain.class,
+            Sha256Hash.class,
+            UUID.class,
+            EnumSet.class,
+            Descending.class,
+            AbortingVisitor.class,
+            AbortingVisitors.class,
+            AssertUtils.class,
+            AtlasDbConstraintCheckingMode.class,
+            ConstraintCheckingTransaction.class,
+            AtlasDbDynamicMutablePersistentTable.class,
+            AtlasDbNamedPersistentSet.class,
+            AtlasDbMutablePersistentTable.class,
+            AtlasDbNamedMutableTable.class,
+            ColumnSelection.class,
+            Joiner.class,
+            Entry.class,
+            Iterator.class,
+            Iterables.class,
+            Stream.class,
+            Supplier.class,
+            InvalidProtocolBufferException.class,
+            Throwables.class,
+            ImmutableList.class,
+            UnsignedBytes.class,
+            Collections2.class,
+            Arrays.class,
+            Bytes.class,
+            TypedRowResult.class,
+            TimeUnit.class,
+            CompressionUtils.class,
+            Compression.class,
+            Namespace.class,
+            Hashing.class,
+            ValueType.class,
+            Generated.class,
+            TableReference.class,
+            BatchColumnRangeSelection.class,
+            ColumnRangeSelections.class,
+            ColumnRangeSelection.class,
+            Iterators.class,
+            ArrayList.class,
+            Collectors.class,
+            StreamSupport.class
+            };
 }
+
