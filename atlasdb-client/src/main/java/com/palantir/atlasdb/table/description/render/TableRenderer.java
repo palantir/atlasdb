@@ -970,12 +970,20 @@ public class TableRenderer {
         }
 
         private void renderGetAllRowsUnordered() {
+            line("private ColumnSelection augmentColumnSelection(ColumnSelection columns) {"); {
+                line("if (columns.allColumnsSelected()) {"); {
+                    line("return allColumns;");
+                line("}");
+                } line("return columns;");
+            } line("}");
+            line();
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered() {"); {
                 line("return getAllRowsUnordered(allColumns);");
             } line("}");
             line();
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered(ColumnSelection columns) {"); {
-                line("return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),");
+                line("return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()");
+                line("        .retainColumns(augmentColumnSelection(columns)).build()),");
                 line("        new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
