@@ -28,12 +28,18 @@ import com.palantir.atlasdb.util.MetricsManager;
 
 public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;
-    private final RequestMetrics aggregateMetrics;
+    private final RequestMetrics aggregateRequestMetrics;
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+
+    // Tracks occurrences of client pool exhaustions.
+    // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
+    private final Meter poolExhaustionMeter;
 
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
-        this.aggregateMetrics = new RequestMetrics(metricsManager, null);
+        this.aggregateRequestMetrics = new RequestMetrics(metricsManager, null);
+        this.poolExhaustionMeter
+                = metricsManager.registerOrGetMeter(CassandraClientPoolMetrics.class, "pool-exhaustion");
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
@@ -43,10 +49,10 @@ public class CassandraClientPoolMetrics {
                 () -> blacklistSize.get());
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
-                aggregateMetrics::getExceptionProportion);
+                aggregateRequestMetrics::getExceptionProportion);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestConnectionExceptionProportion",
-                aggregateMetrics::getConnectionExceptionProportion);
+                aggregateRequestMetrics::getConnectionExceptionProportion);
     }
 
     public void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
@@ -61,10 +67,14 @@ public class CassandraClientPoolMetrics {
         updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestConnectionException);
     }
 
+    public void recordPoolExhaustion(CassandraClientPoolingContainer unused) {
+        poolExhaustionMeter.mark();
+    }
+
     private void updateMetricOnAggregateAndHost(
             CassandraClientPoolingContainer hostPool,
             Consumer<RequestMetrics> metricsConsumer) {
-        metricsConsumer.accept(aggregateMetrics);
+        metricsConsumer.accept(aggregateRequestMetrics);
         RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
         if (requestMetricsForHost != null) {
             metricsConsumer.accept(requestMetricsForHost);
