@@ -65,14 +65,13 @@ public class ReadTransactionShould {
     private AbstractTransaction delegateTransaction;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         delegateTransaction = Mockito.mock(AbstractTransaction.class);
         SweepStrategyManager sweepStrategies = Mockito.mock(SweepStrategyManager.class);
-        when(sweepStrategies.get()).thenReturn(ImmutableMap.of(
-                DUMMY_CONSERVATIVE_TABLE,
-                TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-                DUMMY_THOROUGH_TABLE,
-                TableMetadataPersistence.SweepStrategy.THOROUGH));
+        when(sweepStrategies.get(DUMMY_CONSERVATIVE_TABLE))
+                .thenReturn(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+        when(sweepStrategies.get(DUMMY_THOROUGH_TABLE))
+                .thenReturn(TableMetadataPersistence.SweepStrategy.THOROUGH);
         readTransaction = new ReadTransaction(delegateTransaction, sweepStrategies);
     }
 
@@ -102,7 +101,7 @@ public class ReadTransactionShould {
     }
 
     @Test
-    public void notAllowSimpleGetsOnThoroughTables() throws IllegalAccessException {
+    public void notAllowSimpleGetsOnThoroughTables() {
         Method[] declaredMethods = ReadTransaction.class.getDeclaredMethods();
 
         for (Method method : declaredMethods) {

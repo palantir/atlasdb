@@ -21,8 +21,8 @@ import java.util.function.Supplier;
 
 public class RecomputingSupplier<T> implements Supplier<T> {
     final Supplier<? extends T> supplier;
-    final AtomicReference<T> cache = new AtomicReference<T>();
-    final AtomicReference<CountDownLatch> latch = new AtomicReference<CountDownLatch>();
+    final AtomicReference<T> cache = new AtomicReference<>();
+    final AtomicReference<CountDownLatch> latch = new AtomicReference<>();
 
     private RecomputingSupplier(Supplier<? extends T> supplier) {
         this.supplier = supplier;
@@ -57,6 +57,6 @@ public class RecomputingSupplier<T> implements Supplier<T> {
     }
 
     public static <T> RecomputingSupplier<T> create(Supplier<? extends T> supplier) {
-        return new RecomputingSupplier<T>(supplier);
+        return new RecomputingSupplier<>(supplier);
     }
 }
