@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Make max threadpool size for Cass calls track connection pool sizes.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4556
