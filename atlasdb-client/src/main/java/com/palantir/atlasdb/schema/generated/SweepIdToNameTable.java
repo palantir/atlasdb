@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.schema.generated;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -17,7 +18,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -633,12 +636,20 @@ public final class SweepIdToNameTable implements
         return transformed;
     }
 
+    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<SweepIdToNameRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<SweepIdToNameRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(augmentColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, SweepIdToNameRowResult>() {
             @Override
             public SweepIdToNameRowResult apply(RowResult<byte[]> input) {
@@ -664,6 +675,7 @@ public final class SweepIdToNameTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -683,6 +695,7 @@ public final class SweepIdToNameTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -734,6 +747,7 @@ public final class SweepIdToNameTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
+     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -744,5 +758,5 @@ public final class SweepIdToNameTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "IK9kLlZUUg/BMhVdL0EVpA==";
+    static String __CLASS_HASH = "PP3JGq5qaMIxobdITptSoQ==";
 }

@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.table.description.generated;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -17,7 +18,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -688,11 +691,15 @@ public final class SchemaApiTestTable implements
         return transformed;
     }
 
-    public BatchingVisitableView<SchemaApiTestRowResult> getRange(RangeRequest range) {
+    private RangeRequest augmentRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            range = range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allColumns).build();
         }
-        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, SchemaApiTestRowResult>() {
+        return range;
+    }
+
+    public BatchingVisitableView<SchemaApiTestRowResult> getRange(RangeRequest range) {
+        return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, SchemaApiTestRowResult>() {
             @Override
             public SchemaApiTestRowResult apply(RowResult<byte[]> input) {
                 return SchemaApiTestRowResult.of(input);
@@ -700,9 +707,15 @@ public final class SchemaApiTestTable implements
         });
     }
 
+    private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
+        return StreamSupport.stream(ranges.spliterator(), false)
+                      .map(rangeRequest -> augmentRangeRequest(rangeRequest))
+                      .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
+    }
+
     @Deprecated
     public IterableView<BatchingVisitable<SchemaApiTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<SchemaApiTestRowResult>>() {
             @Override
@@ -720,27 +733,27 @@ public final class SchemaApiTestTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<SchemaApiTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges, concurrencyLevel,
+        return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<SchemaApiTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges,
+        return t.getRanges(tableRef, augmentRanges(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of)));
     }
 
     public Stream<BatchingVisitable<SchemaApiTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
-        deleteRanges(ImmutableSet.of(range));
+        deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
     }
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
-        BatchingVisitables.concat(getRanges(ranges))
+        BatchingVisitables.concat(getRanges(augmentRanges(ranges)))
                           .transform(SchemaApiTestRowResult.getRowNameFun())
                           .batchAccept(1000, new AbortingVisitor<List<SchemaApiTestRow>, RuntimeException>() {
             @Override
@@ -768,6 +781,7 @@ public final class SchemaApiTestTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -787,6 +801,7 @@ public final class SchemaApiTestTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -838,6 +853,7 @@ public final class SchemaApiTestTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
+     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -848,5 +864,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "G9lxb99ucQ5q+GVyaV8Exg==";
+    static String __CLASS_HASH = "lXQUczm2rmJgfcU3nMpoWw==";
 }

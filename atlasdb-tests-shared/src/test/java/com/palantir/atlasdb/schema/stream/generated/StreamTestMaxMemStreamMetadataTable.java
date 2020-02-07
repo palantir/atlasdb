@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.schema.stream.generated;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -17,7 +18,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -584,12 +587,20 @@ public final class StreamTestMaxMemStreamMetadataTable implements
         return transformed;
     }
 
+    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<StreamTestMaxMemStreamMetadataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestMaxMemStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(augmentColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, StreamTestMaxMemStreamMetadataRowResult>() {
             @Override
             public StreamTestMaxMemStreamMetadataRowResult apply(RowResult<byte[]> input) {
@@ -615,6 +626,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -634,6 +646,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -685,6 +698,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
+     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -695,5 +709,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/QmjaFxtVJalkvAUB2arxw==";
+    static String __CLASS_HASH = "i4amedGQobcuUMQhRkicgg==";
 }

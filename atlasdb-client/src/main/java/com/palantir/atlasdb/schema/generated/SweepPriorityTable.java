@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.schema.generated;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -17,7 +18,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -1068,11 +1071,15 @@ public final class SweepPriorityTable implements
         return transformed;
     }
 
-    public BatchingVisitableView<SweepPriorityRowResult> getRange(RangeRequest range) {
+    private RangeRequest augmentRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            range = range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allColumns).build();
         }
-        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, SweepPriorityRowResult>() {
+        return range;
+    }
+
+    public BatchingVisitableView<SweepPriorityRowResult> getRange(RangeRequest range) {
+        return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, SweepPriorityRowResult>() {
             @Override
             public SweepPriorityRowResult apply(RowResult<byte[]> input) {
                 return SweepPriorityRowResult.of(input);
@@ -1080,9 +1087,15 @@ public final class SweepPriorityTable implements
         });
     }
 
+    private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
+        return StreamSupport.stream(ranges.spliterator(), false)
+                      .map(rangeRequest -> augmentRangeRequest(rangeRequest))
+                      .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
+    }
+
     @Deprecated
     public IterableView<BatchingVisitable<SweepPriorityRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<SweepPriorityRowResult>>() {
             @Override
@@ -1100,27 +1113,27 @@ public final class SweepPriorityTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<SweepPriorityRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges, concurrencyLevel,
+        return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<SweepPriorityRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges,
+        return t.getRanges(tableRef, augmentRanges(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)));
     }
 
     public Stream<BatchingVisitable<SweepPriorityRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, SweepPriorityRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
-        deleteRanges(ImmutableSet.of(range));
+        deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
     }
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
-        BatchingVisitables.concat(getRanges(ranges))
+        BatchingVisitables.concat(getRanges(augmentRanges(ranges)))
                           .transform(SweepPriorityRowResult.getRowNameFun())
                           .batchAccept(1000, new AbortingVisitor<List<SweepPriorityRow>, RuntimeException>() {
             @Override
@@ -1148,6 +1161,7 @@ public final class SweepPriorityTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -1167,6 +1181,7 @@ public final class SweepPriorityTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -1218,6 +1233,7 @@ public final class SweepPriorityTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
+     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -1228,5 +1244,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "spVvFiOcJFcq4QaH96vRWg==";
+    static String __CLASS_HASH = "9MRgbA0Gs7fNe/DBobFImA==";
 }

@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.table.description.generated;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -17,7 +18,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -560,11 +563,15 @@ public final class RangeScanTestTable implements
         return transformed;
     }
 
-    public BatchingVisitableView<RangeScanTestRowResult> getRange(RangeRequest range) {
+    private RangeRequest augmentRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            range = range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allColumns).build();
         }
-        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
+        return range;
+    }
+
+    public BatchingVisitableView<RangeScanTestRowResult> getRange(RangeRequest range) {
+        return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
             @Override
             public RangeScanTestRowResult apply(RowResult<byte[]> input) {
                 return RangeScanTestRowResult.of(input);
@@ -572,9 +579,15 @@ public final class RangeScanTestTable implements
         });
     }
 
+    private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
+        return StreamSupport.stream(ranges.spliterator(), false)
+                      .map(rangeRequest -> augmentRangeRequest(rangeRequest))
+                      .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
+    }
+
     @Deprecated
     public IterableView<BatchingVisitable<RangeScanTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RangeScanTestRowResult>>() {
             @Override
@@ -592,27 +605,27 @@ public final class RangeScanTestTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<RangeScanTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges, concurrencyLevel,
+        return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, RangeScanTestRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<RangeScanTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges,
+        return t.getRanges(tableRef, augmentRanges(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, RangeScanTestRowResult::of)));
     }
 
     public Stream<BatchingVisitable<RangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, RangeScanTestRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
-        deleteRanges(ImmutableSet.of(range));
+        deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
     }
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
-        BatchingVisitables.concat(getRanges(ranges))
+        BatchingVisitables.concat(getRanges(augmentRanges(ranges)))
                           .transform(RangeScanTestRowResult.getRowNameFun())
                           .batchAccept(1000, new AbortingVisitor<List<RangeScanTestRow>, RuntimeException>() {
             @Override
@@ -640,6 +653,7 @@ public final class RangeScanTestTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -659,6 +673,7 @@ public final class RangeScanTestTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -710,6 +725,7 @@ public final class RangeScanTestTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
+     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -720,5 +736,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZKMoPN41jtJEy0pXuPnlGw==";
+    static String __CLASS_HASH = "Au58q9rzMTCFe3y4vBPJUw==";
 }

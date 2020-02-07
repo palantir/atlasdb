@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.table.description.generated;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -17,7 +18,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -618,11 +621,15 @@ public final class GenericRangeScanTestTable implements
         return transformed;
     }
 
-    public BatchingVisitableView<GenericRangeScanTestRowResult> getRange(RangeRequest range) {
+    private RangeRequest augmentRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            range = range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allColumns).build();
         }
-        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, GenericRangeScanTestRowResult>() {
+        return range;
+    }
+
+    public BatchingVisitableView<GenericRangeScanTestRowResult> getRange(RangeRequest range) {
+        return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, GenericRangeScanTestRowResult>() {
             @Override
             public GenericRangeScanTestRowResult apply(RowResult<byte[]> input) {
                 return GenericRangeScanTestRowResult.of(input);
@@ -630,9 +637,15 @@ public final class GenericRangeScanTestTable implements
         });
     }
 
+    private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
+        return StreamSupport.stream(ranges.spliterator(), false)
+                      .map(rangeRequest -> augmentRangeRequest(rangeRequest))
+                      .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
+    }
+
     @Deprecated
     public IterableView<BatchingVisitable<GenericRangeScanTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<GenericRangeScanTestRowResult>>() {
             @Override
@@ -650,27 +663,27 @@ public final class GenericRangeScanTestTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<GenericRangeScanTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges, concurrencyLevel,
+        return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<GenericRangeScanTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges,
+        return t.getRanges(tableRef, augmentRanges(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)));
     }
 
     public Stream<BatchingVisitable<GenericRangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
-        deleteRanges(ImmutableSet.of(range));
+        deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
     }
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
-        BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<GenericRangeScanTestRowResult>, RuntimeException>() {
+        BatchingVisitables.concat(getRanges(augmentRanges(ranges))).batchAccept(1000, new AbortingVisitor<List<GenericRangeScanTestRowResult>, RuntimeException>() {
             @Override
             public boolean visit(List<GenericRangeScanTestRowResult> rowResults) {
                 Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toRemove = HashMultimap.create();
@@ -702,6 +715,7 @@ public final class GenericRangeScanTestTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
+     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -721,6 +735,7 @@ public final class GenericRangeScanTestTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -772,6 +787,7 @@ public final class GenericRangeScanTestTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
+     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -782,5 +798,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "nN1NQLPJtq6erK2dXro9xw==";
+    static String __CLASS_HASH = "j3k0UTAiGdmK3ENuCEBVEQ==";
 }
