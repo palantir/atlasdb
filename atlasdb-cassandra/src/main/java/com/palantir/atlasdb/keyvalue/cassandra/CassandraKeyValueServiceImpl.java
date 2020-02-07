@@ -47,8 +47,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.InstrumentedExecutorService;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -131,6 +129,8 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.Tracers;
+import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -414,7 +414,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         super(createInstrumentedFixedThreadPool(
                 config.poolSize() * config.servers().numberOfThriftHosts(),
                 config.maxConnectionBurstSize() * config.servers().numberOfThriftHosts(),
-                metricsManager.getRegistry()
+                metricsManager.getTaggedRegistry()
         ));
         this.log = log;
         this.metricsManager = metricsManager;
@@ -443,13 +443,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 cassandraTableTruncator);
     }
 
-    private static ExecutorService createInstrumentedFixedThreadPool(int corePoolSize, int maxPoolSize,
-            MetricRegistry registry) {
+    private static ExecutorService createInstrumentedFixedThreadPool(
+            int corePoolSize,
+            int maxPoolSize,
+            TaggedMetricRegistry registry) {
         return Tracers.wrap(
-                new InstrumentedExecutorService(
+                MetricRegistries.instrument(registry,
                         createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
-                        registry,
-                        MetricRegistry.name(CassandraKeyValueService.class, "executorService")));
+                        "Atlas Cassandra KVS"));
     }
 
     @Override
