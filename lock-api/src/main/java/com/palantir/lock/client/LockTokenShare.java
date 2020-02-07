@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 final class LockTokenShare implements LockToken {
     private final UUID requestId;
@@ -88,5 +89,10 @@ final class LockTokenShare implements LockToken {
             referenceCount--;
             return referenceCount == 0;
         }
+    }
+
+    @Override
+    public SafeArg<LockToken> toSafeArg(String name) {
+        return sharedLockToken.toSafeArg(name);
     }
 }

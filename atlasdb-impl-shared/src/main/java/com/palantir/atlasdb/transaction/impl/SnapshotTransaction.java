@@ -2260,10 +2260,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
-                log.debug("Possible bug: Someone rolled back our transaction but"
-                        + " our locks were still valid; Atlas code is not allowed to do this, though others can.",
-                        SafeArg.of("immutableTimestampLock", immutableTimestampLock),
-                        SafeArg.of("commitLocksToken", commitLocksToken));
+                log.info("This transaction has been rolled back by someone else, even though we believe we still hold "
+                                + "the locks. This is not expected to occur frequently.",
+                        immutableTimestampLock
+                                .map(token -> token.toSafeArg("immutableTimestampLock"))
+                                .orElseGet(() -> SafeArg.of("immutableTimestampLock", null)),
+                        commitLocksToken.toSafeArg("commitLocksToken"));
             }
         } catch (TransactionFailedException e1) {
             throw e1;

@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.logsafe.SafeArg;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockToken.class)
@@ -34,4 +35,7 @@ public interface LockToken {
         return ImmutableLockToken.of(requestId);
     }
 
+    default SafeArg<LockToken> toSafeArg(String name) {
+        return SafeArg.of(name, this);
+    }
 }
