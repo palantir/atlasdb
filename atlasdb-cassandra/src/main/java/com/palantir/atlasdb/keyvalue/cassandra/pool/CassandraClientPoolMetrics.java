@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -33,20 +34,20 @@ public class CassandraClientPoolMetrics {
 
     // Tracks occurrences of client pool exhaustions.
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
-    private final Meter poolExhaustionMeter;
+    private final Counter poolExhaustionCounter;
 
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
         this.aggregateRequestMetrics = new RequestMetrics(metricsManager, null);
-        this.poolExhaustionMeter
-                = metricsManager.registerOrGetMeter(CassandraClientPoolMetrics.class, "pool-exhaustion");
+        this.poolExhaustionCounter
+                = metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
         // Keep metrics registered under CassandraClientPool.class rather than move them and potentially break things.
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
-                () -> blacklistSize.get());
+                blacklistSize::get);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
                 aggregateRequestMetrics::getExceptionProportion);
@@ -67,8 +68,8 @@ public class CassandraClientPoolMetrics {
         updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestConnectionException);
     }
 
-    public void recordPoolExhaustion(CassandraClientPoolingContainer unused) {
-        poolExhaustionMeter.mark();
+    public void recordPoolExhaustion() {
+        poolExhaustionCounter.inc();
     }
 
     private void updateMetricOnAggregateAndHost(

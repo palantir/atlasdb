@@ -120,7 +120,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                         SafeArg.of("maxTotal", clientPool.getMaxTotal()),
                         SafeArg.of("meanActiveTimeMillis", clientPool.getMeanActiveTimeMillis()),
                         SafeArg.of("meanIdleTimeMillis", clientPool.getMeanIdleTimeMillis()));
-                poolMetrics.recordPoolExhaustion(this);
+                poolMetrics.recordPoolExhaustion();
                 if (log.isDebugEnabled()) {
                     logThreadStates();
                 }
