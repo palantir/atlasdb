@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -28,25 +29,31 @@ import com.palantir.atlasdb.util.MetricsManager;
 
 public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;
-    private final RequestMetrics aggregateMetrics;
+    private final RequestMetrics aggregateRequestMetrics;
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+
+    // Tracks occurrences of client pool exhaustions.
+    // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
+    private final Counter poolExhaustionCounter;
 
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
-        this.aggregateMetrics = new RequestMetrics(metricsManager, null);
+        this.aggregateRequestMetrics = new RequestMetrics(metricsManager, null);
+        this.poolExhaustionCounter
+                = metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
         // Keep metrics registered under CassandraClientPool.class rather than move them and potentially break things.
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
-                () -> blacklistSize.get());
+                blacklistSize::get);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
-                aggregateMetrics::getExceptionProportion);
+                aggregateRequestMetrics::getExceptionProportion);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestConnectionExceptionProportion",
-                aggregateMetrics::getConnectionExceptionProportion);
+                aggregateRequestMetrics::getConnectionExceptionProportion);
     }
 
     public void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
@@ -61,10 +68,14 @@ public class CassandraClientPoolMetrics {
         updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestConnectionException);
     }
 
+    public void recordPoolExhaustion() {
+        poolExhaustionCounter.inc();
+    }
+
     private void updateMetricOnAggregateAndHost(
             CassandraClientPoolingContainer hostPool,
             Consumer<RequestMetrics> metricsConsumer) {
-        metricsConsumer.accept(aggregateMetrics);
+        metricsConsumer.accept(aggregateRequestMetrics);
         RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
         if (requestMetricsForHost != null) {
             metricsConsumer.accept(requestMetricsForHost);

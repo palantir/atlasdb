@@ -43,6 +43,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
@@ -59,17 +60,20 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final AtomicInteger openRequests = new AtomicInteger();
     private final GenericObjectPool<CassandraClient> clientPool;
     private final int poolNumber;
+    private final CassandraClientPoolMetrics poolMetrics;
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
             InetSocketAddress host,
             CassandraKeyValueServiceConfig config,
-            int poolNumber) {
+            int poolNumber,
+            CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
         this.host = host;
         this.config = config;
         this.poolNumber = poolNumber;
         this.clientPool = createClientPool();
+        this.poolMetrics = poolMetrics;
     }
 
     public InetSocketAddress getHost() {
@@ -116,6 +120,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                         SafeArg.of("maxTotal", clientPool.getMaxTotal()),
                         SafeArg.of("meanActiveTimeMillis", clientPool.getMeanActiveTimeMillis()),
                         SafeArg.of("meanIdleTimeMillis", clientPool.getMeanIdleTimeMillis()));
+                poolMetrics.recordPoolExhaustion();
                 if (log.isDebugEnabled()) {
                     logThreadStates();
                 }

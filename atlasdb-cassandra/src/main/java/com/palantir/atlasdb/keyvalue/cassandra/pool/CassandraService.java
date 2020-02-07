@@ -72,6 +72,7 @@ public class CassandraService implements AutoCloseable {
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
     private final Blacklist blacklist;
+    private final CassandraClientPoolMetrics poolMetrics;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
@@ -86,7 +87,11 @@ public class CassandraService implements AutoCloseable {
 
     private final Random random = new Random();
 
-    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
+    public CassandraService(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
         this.randomHostsSelected = metricsManager.getTaggedRegistry().counter(MetricName.builder()
                 .safeName(MetricRegistry.name(CassandraService.class, "randomHostsSelected")).build());
@@ -95,6 +100,7 @@ public class CassandraService implements AutoCloseable {
         this.config = config;
         this.myLocationSupplier = new HostLocationSupplier(this::getSnitch, config.overrideHostLocation());
         this.blacklist = blacklist;
+        this.poolMetrics = poolMetrics;
     }
 
     @Override
@@ -367,7 +373,7 @@ public class CassandraService implements AutoCloseable {
     public void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
         currentPools.put(server,
-                new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber));
+                new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber, poolMetrics));
     }
 
     public void removePool(InetSocketAddress removedServerAddress) {
