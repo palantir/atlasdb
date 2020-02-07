@@ -16,6 +16,8 @@
 
 package com.palantir.timelock.invariants;
 
+import java.util.OptionalLong;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,15 +33,14 @@ public class TimeLockActivityChecker {
         this.timelockRpcClient = timelockRpcClient;
     }
 
-    public boolean isThisNodeActivelyServingTimestampsForClient(String client) {
+    public OptionalLong getFreshTimestampFromNodeForClient(String client) {
         try {
-            timelockRpcClient.getFreshTimestamp(client);
-            return true;
+            return OptionalLong.of(timelockRpcClient.getFreshTimestamp(client));
         } catch (Exception e) {
             log.info("Suppressed exception when checking TimeLock activity for client {}",
                     SafeArg.of("client", client),
                     e);
-            return false;
+            return OptionalLong.empty();
         }
     }
 }

@@ -31,14 +31,14 @@ public class TimeLockActivityCheckerTest {
     private final TimeLockActivityChecker timeLockActivityChecker = new TimeLockActivityChecker(timelockRpcClient);
 
     @Test
-    public void ifGetFreshTimestampReturnsThenNodeIsActive() {
+    public void ifGetFreshTimestampReturnsTheValueIsPropagated() {
         when(timelockRpcClient.getFreshTimestamp(CLIENT)).thenReturn(8L);
-        assertThat(timeLockActivityChecker.isThisNodeActivelyServingTimestampsForClient(CLIENT)).isTrue();
+        assertThat(timeLockActivityChecker.getFreshTimestampFromNodeForClient(CLIENT)).hasValue(8L);
     }
 
     @Test
-    public void ifGetFreshTimestampThrowsThenNodeIsNotActive() {
+    public void ifGetFreshTimestampThrowsReturnsEmpty() {
         when(timelockRpcClient.getFreshTimestamp(CLIENT)).thenThrow(new RuntimeException());
-        assertThat(timeLockActivityChecker.isThisNodeActivelyServingTimestampsForClient(CLIENT)).isFalse();
+        assertThat(timeLockActivityChecker.getFreshTimestampFromNodeForClient(CLIENT)).isEmpty();
     }
 }

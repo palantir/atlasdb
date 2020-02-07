@@ -23,9 +23,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
+import java.time.Duration;
+import java.util.OptionalLong;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -50,14 +54,16 @@ public class NoSimultaneousServiceCheckTest {
 
     private final TimeLockActivityChecker checker1 = mock(TimeLockActivityChecker.class);
     private final TimeLockActivityChecker checker2 = mock(TimeLockActivityChecker.class);
+    private final AtomicLong timestamps = new AtomicLong(1L);
     private final Consumer<String> failureMechanism = mock(Consumer.class);
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck = new NoSimultaneousServiceCheck(
-            ImmutableList.of(checker1, checker2), failureMechanism, MoreExecutors.newDirectExecutorService());
+            ImmutableList.of(checker1, checker2), failureMechanism, MoreExecutors.newDirectExecutorService(),
+            Duration.ofMillis(50L));
 
     @Test
     public void failureMechanismNotInvokedIfOneNodeIsTheLeader() {
-        when(checker1.isThisNodeActivelyServingTimestampsForClient(CLIENT.value())).thenReturn(true);
-        when(checker2.isThisNodeActivelyServingTimestampsForClient(CLIENT.value())).thenReturn(false);
+        when(checker1.getFreshTimestampFromNodeForClient(CLIENT.value())).then(getNextTimestamp());
+        when(checker2.getFreshTimestampFromNodeForClient(CLIENT.value())).thenReturn(OptionalLong.empty());
 
         noSimultaneousServiceCheck.processHealthCheckDigest(DIGEST);
         verify(failureMechanism, never()).accept(anyString());
@@ -65,49 +71,79 @@ public class NoSimultaneousServiceCheckTest {
 
     @Test
     public void failureMechanismNotInvokedIfNoNodeIsTheLeader() {
-        when(checker1.isThisNodeActivelyServingTimestampsForClient(CLIENT.value())).thenReturn(false);
-        when(checker2.isThisNodeActivelyServingTimestampsForClient(CLIENT.value())).thenReturn(false);
+        when(checker1.getFreshTimestampFromNodeForClient(CLIENT.value())).thenReturn(OptionalLong.empty());
+        when(checker2.getFreshTimestampFromNodeForClient(CLIENT.value())).thenReturn(OptionalLong.empty());
 
         noSimultaneousServiceCheck.processHealthCheckDigest(DIGEST);
         verify(failureMechanism, never()).accept(anyString());
     }
 
     @Test
-    public void failureMechanismInvokedIfMultipleNodesConsistentlyClaimToBeTheLeader() {
-        when(checker1.isThisNodeActivelyServingTimestampsForClient(CLIENT.value())).thenReturn(true);
-        when(checker2.isThisNodeActivelyServingTimestampsForClient(CLIENT.value())).thenReturn(true);
+    public void failureMechanismNotInvokedIfMultipleNodesConsistentlyClaimToBeTheLeaderButTimestampsIncrease() {
+        when(checker1.getFreshTimestampFromNodeForClient(CLIENT.value())).then(getNextTimestamp());
+        when(checker2.getFreshTimestampFromNodeForClient(CLIENT.value())).then(getNextTimestamp());
+
+        noSimultaneousServiceCheck.processHealthCheckDigest(DIGEST);
+        verify(failureMechanism, never()).accept(anyString());
+        verify(checker1, times(5)).getFreshTimestampFromNodeForClient(CLIENT.value());
+        verify(checker2, times(5)).getFreshTimestampFromNodeForClient(CLIENT.value());
+    }
+
+    @Test
+    public void failureMechanismNotInvokedForPossibleLeadershipChanges() {
+        when(checker1.getFreshTimestampFromNodeForClient(CLIENT.value()))
+                .then(getNextTimestamp())
+                .then(getNextTimestamp())
+                .thenReturn(OptionalLong.empty());
+        when(checker2.getFreshTimestampFromNodeForClient(CLIENT.value())).then(getNextTimestamp());
+
+        noSimultaneousServiceCheck.processHealthCheckDigest(DIGEST);
+        verify(failureMechanism, never()).accept(anyString());
+        verify(checker1, times(3)).getFreshTimestampFromNodeForClient(CLIENT.value());
+        verify(checker2, times(3)).getFreshTimestampFromNodeForClient(CLIENT.value());
+    }
+
+
+    @Test
+    public void failureMechanismInvokedForRepeatedTimestampsBetweenRounds() {
+        when(checker1.getFreshTimestampFromNodeForClient(CLIENT.value()))
+                .then(getNextTimestamp())
+                .then(getNextTimestamp())
+                .then(ignore -> OptionalLong.of(timestamps.getAndIncrement() - 1));
+        when(checker2.getFreshTimestampFromNodeForClient(CLIENT.value())).then(getNextTimestamp());
 
         noSimultaneousServiceCheck.processHealthCheckDigest(DIGEST);
         verify(failureMechanism).accept(CLIENT.value());
     }
 
     @Test
-    public void failureMechanismNotInvokedForPossibleLeadershipChanges() {
-        when(checker1.isThisNodeActivelyServingTimestampsForClient(CLIENT.value()))
-                .thenReturn(true)
-                .thenReturn(true)
-                .thenReturn(false);
-        when(checker2.isThisNodeActivelyServingTimestampsForClient(CLIENT.value())).thenReturn(true);
+    public void failureMechanismInvokedForRepeatedTimestampsInSameRound() {
+        when(checker1.getFreshTimestampFromNodeForClient(CLIENT.value())).then(getNextTimestamp());
+        when(checker2.getFreshTimestampFromNodeForClient(CLIENT.value()))
+                .then(getNextTimestamp())
+                .then(ignore -> OptionalLong.of(timestamps.getAndIncrement() - 1));
 
         noSimultaneousServiceCheck.processHealthCheckDigest(DIGEST);
-        verify(failureMechanism, never()).accept(anyString());
-        verify(checker1, times(3)).isThisNodeActivelyServingTimestampsForClient(CLIENT.value());
-        verify(checker2, times(3)).isThisNodeActivelyServingTimestampsForClient(CLIENT.value());
+        verify(failureMechanism).accept(CLIENT.value());
     }
 
     @Test
     public void onlyRunsChecksIfWeSuspectMultipleLeaders() {
-        when(checker1.isThisNodeActivelyServingTimestampsForClient(anyString())).thenReturn(false);
-        when(checker2.isThisNodeActivelyServingTimestampsForClient(anyString())).thenReturn(true);
+        when(checker1.getFreshTimestampFromNodeForClient(anyString())).thenReturn(OptionalLong.empty());
+        when(checker2.getFreshTimestampFromNodeForClient(anyString())).then(getNextTimestamp());
 
         noSimultaneousServiceCheck.processHealthCheckDigest(MULTISTATE_DIGEST);
         verify(failureMechanism, never()).accept(anyString());
-        verify(checker1).isThisNodeActivelyServingTimestampsForClient(CLIENT.value());
-        verify(checker1, never()).isThisNodeActivelyServingTimestampsForClient(CLIENT_2.value());
-        verify(checker1, never()).isThisNodeActivelyServingTimestampsForClient(CLIENT_3.value());
+        verify(checker1).getFreshTimestampFromNodeForClient(CLIENT.value());
+        verify(checker1, never()).getFreshTimestampFromNodeForClient(CLIENT_2.value());
+        verify(checker1, never()).getFreshTimestampFromNodeForClient(CLIENT_3.value());
 
-        verify(checker2).isThisNodeActivelyServingTimestampsForClient(CLIENT.value());
-        verify(checker2, never()).isThisNodeActivelyServingTimestampsForClient(CLIENT_2.value());
-        verify(checker2, never()).isThisNodeActivelyServingTimestampsForClient(CLIENT_3.value());
+        verify(checker2).getFreshTimestampFromNodeForClient(CLIENT.value());
+        verify(checker2, never()).getFreshTimestampFromNodeForClient(CLIENT_2.value());
+        verify(checker2, never()).getFreshTimestampFromNodeForClient(CLIENT_3.value());
+    }
+
+    private Answer<OptionalLong> getNextTimestamp() {
+        return ignore -> OptionalLong.of(timestamps.getAndIncrement());
     }
 }

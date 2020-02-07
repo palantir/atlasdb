@@ -18,15 +18,18 @@ package com.palantir.timelock.invariants;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.common.concurrent.PTExecutors;
@@ -37,21 +40,23 @@ import com.palantir.timelock.paxos.HealthCheckDigest;
 public final class NoSimultaneousServiceCheck {
     private static final Logger log = LoggerFactory.getLogger(NoSimultaneousServiceCheck.class);
 
-    private static final int REQUIRED_CONSECUTIVE_VIOLATIONS_BEFORE_FAIL = 5;
-    private static final Duration BACKOFF = Duration.ofMillis(1337);
+    private static final int REQUIRED_ATTEMPTS_BEFORE_GIVING_UP = 5;
 
     private final List<TimeLockActivityChecker> timeLockActivityCheckers;
     private final Consumer<String> failureMechanism;
     private final ExecutorService executorService;
+    private final Duration backoff;
 
     @VisibleForTesting
     NoSimultaneousServiceCheck(
             List<TimeLockActivityChecker> timeLockActivityCheckers,
             Consumer<String> failureMechanism,
-            ExecutorService executorService) {
+            ExecutorService executorService,
+            Duration backoff) {
         this.timeLockActivityCheckers = timeLockActivityCheckers;
         this.failureMechanism = failureMechanism;
         this.executorService = executorService;
+        this.backoff = backoff;
     }
 
     public static NoSimultaneousServiceCheck create(List<TimeLockActivityChecker> timeLockActivityCheckers) {
@@ -69,7 +74,8 @@ public final class NoSimultaneousServiceCheck {
                             + " your stack may have been compromised",
                             SafeArg.of("client", client));
                 },
-                executorService);
+                executorService,
+                Duration.ofMillis(1337));
     }
 
     public void processHealthCheckDigest(HealthCheckDigest digest) {
@@ -97,13 +103,16 @@ public final class NoSimultaneousServiceCheck {
         // Only fail on repeated violations, since it is possible for there to be a leader election between checks that
         // could legitimately cause false positives if we failed after one such issue. However, given the number of
         // checks it is unlikely that *that* many elections would occur.
-        for (int attempt = 1; attempt <= REQUIRED_CONSECUTIVE_VIOLATIONS_BEFORE_FAIL; attempt++) {
-            long numberOfNodesServingTimestamps = timeLockActivityCheckers.stream()
+        long timestampBound = Long.MIN_VALUE;
+
+        for (int attempt = 1; attempt <= REQUIRED_ATTEMPTS_BEFORE_GIVING_UP; attempt++) {
+            List<Long> timestamps = timeLockActivityCheckers.stream()
                     .map(timeLockActivityChecker ->
-                            timeLockActivityChecker.isThisNodeActivelyServingTimestampsForClient(client.value()))
-                    .filter(x -> x)
-                    .count();
-            if (numberOfNodesServingTimestamps <= 1) {
+                            timeLockActivityChecker.getFreshTimestampFromNodeForClient(client.value()))
+                    .filter(OptionalLong::isPresent)
+                    .map(OptionalLong::getAsLong)
+                    .collect(Collectors.toList());
+            if (timestamps.size() <= 1) {
                 // Accept 0: the cluster being in such a bad state is not a terminal condition, could just be a
                 // network partition or legitimate no-quorum situation. No reason to kill the server then.
                 log.info("We don't think services were simultaneously serving timestamps for client {}",
@@ -111,16 +120,19 @@ public final class NoSimultaneousServiceCheck {
                 return;
             }
 
-            if (attempt < REQUIRED_CONSECUTIVE_VIOLATIONS_BEFORE_FAIL) {
-                log.info("We observed on attempt {} of {} that multiple services were serving timestamps. We'll try"
-                                + " again in {} ms to see if this remains the case.",
-                        SafeArg.of("attemptNumber", attempt),
-                        SafeArg.of("maximumAttempts", REQUIRED_CONSECUTIVE_VIOLATIONS_BEFORE_FAIL),
-                        SafeArg.of("backoffMillis", BACKOFF.toMillis()));
-                Uninterruptibles.sleepUninterruptibly(BACKOFF.toMillis(), TimeUnit.MILLISECONDS);
-            } else {
+            if (!Ordering.natural().isStrictlyOrdered(timestamps) || timestamps.get(0) <= timestampBound) {
                 failureMechanism.accept(client.value());
+                return;
             }
+
+            timestampBound = timestamps.get(timestamps.size() - 1);
+            log.info("We observed on attempt that multiple services were serving timestamps, but the timestamps were"
+                            + " served in an increasing order. We'll try again in {} ms to see if this remains the"
+                            + " case.",
+                    SafeArg.of("backoffMillis", backoff.toMillis()));
+            Uninterruptibles.sleepUninterruptibly(backoff.toMillis(), TimeUnit.MILLISECONDS);
         }
+        log.warn("We observed multiple services apparently serving timestamps simultaneously, but the timestamps"
+                + " were consistently served in increasing order.");
     }
 }
