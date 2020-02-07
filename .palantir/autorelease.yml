@@ -1,0 +1,6 @@
+type: local
+local:
+  releaseStrategy:
+    type: timeBasedRelease
+    timeBasedRelease:
+      timeSinceLastRelease: 1 days
