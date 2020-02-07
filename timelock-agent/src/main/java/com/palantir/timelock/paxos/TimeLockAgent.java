@@ -51,6 +51,8 @@ import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
+import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
+import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
@@ -65,6 +67,7 @@ public class TimeLockAgent {
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
+    private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
 
     private LeaderPingHealthCheck healthCheck;
     private TimeLockResource resource;
@@ -91,7 +94,8 @@ public class TimeLockAgent {
                 threadPoolSize,
                 blockingTimeoutMs,
                 registrar,
-                paxosResources);
+                paxosResources,
+                userAgent);
         agent.createAndRegisterResources();
         return agent;
     }
@@ -102,7 +106,8 @@ public class TimeLockAgent {
             int threadPoolSize,
             long blockingTimeoutMs,
             Consumer<Object> registrar,
-            PaxosResources paxosResources) {
+            PaxosResources paxosResources,
+            UserAgent userAgent) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
@@ -121,6 +126,9 @@ public class TimeLockAgent {
                 paxosResources.leadershipComponents(),
                 install.lockDiagnosticConfig(),
                 targetedSweepLockControlConfig);
+
+        this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
+                new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
@@ -175,7 +183,10 @@ public class TimeLockAgent {
             return Optional.empty();
         }
 
-        return Optional.of(healthCheck.getStatus());
+        HealthCheckDigest status = healthCheck.getStatus();
+        noSimultaneousServiceCheck.processHealthCheckDigest(status);
+
+        return Optional.of(status);
     }
 
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks
