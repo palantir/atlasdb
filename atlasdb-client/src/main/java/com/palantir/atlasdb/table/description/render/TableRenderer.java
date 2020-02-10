@@ -246,6 +246,8 @@ public class TableRenderer {
                 }
                 line();
                 if (table.isRangeScanAllowed()) {
+                    renderAugmentRange();
+                    line();
                     renderGetRange();
                     line();
                     renderGetRanges();
@@ -258,6 +260,8 @@ public class TableRenderer {
                         renderNamedDeleteRanges();
                     }
                 } else {
+                    renderAugmentColumnSelection();
+                    line();
                     renderGetAllRowsUnordered();
                 }
                 line();
@@ -869,7 +873,7 @@ public class TableRenderer {
             } line("}");
         }
 
-        private void renderGetRange() {
+        private void renderAugmentRange() {
             line("private RangeRequest augmentRangeRequest(RangeRequest range) {"); {
                 line("if (range.getColumnNames().isEmpty()) {"); {
                     line("return range.getBuilder().retainColumns(allColumns).build();");
@@ -877,6 +881,14 @@ public class TableRenderer {
                 line("return range;");
             } line("}");
             line();
+            line("private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {"); {
+                line("return StreamSupport.stream(ranges.spliterator(), false)");
+                line("              .map(rangeRequest -> augmentRangeRequest(rangeRequest))");
+                line("              .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));");
+            } line("}");
+        }
+
+        private void renderGetRange() {
             line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {"); {
                 line("return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
@@ -888,12 +900,6 @@ public class TableRenderer {
         }
 
         private void renderGetRanges() {
-            line("private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {"); {
-                line("return StreamSupport.stream(ranges.spliterator(), false)");
-                line("              .map(rangeRequest -> augmentRangeRequest(rangeRequest))");
-                line("              .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));");
-            } line("}");
-            line();
             line("@Deprecated");
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
                 line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));");
@@ -968,14 +974,16 @@ public class TableRenderer {
             } line("}");
         }
 
-        private void renderGetAllRowsUnordered() {
+        private void renderAugmentColumnSelection() {
             line("private ColumnSelection augmentColumnSelection(ColumnSelection columns) {"); {
                 line("if (columns.allColumnsSelected()) {"); {
                     line("return allColumns;");
-                line("}");
+                    line("}");
                 } line("return columns;");
             } line("}");
-            line();
+        }
+
+        private void renderGetAllRowsUnordered() {
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered() {"); {
                 line("return getAllRowsUnordered(allColumns);");
             } line("}");
