@@ -246,7 +246,7 @@ public class TableRenderer {
                 }
                 line();
                 if (table.isRangeScanAllowed()) {
-                    renderAugmentRange();
+                    renderOptimizeRangeRequests();
                     line();
                     renderGetRange();
                     line();
@@ -260,7 +260,7 @@ public class TableRenderer {
                         renderNamedDeleteRanges();
                     }
                 } else {
-                    renderAugmentColumnSelection();
+                    renderOptimizeColumnSelection();
                     line();
                     renderGetAllRowsUnordered();
                 }
@@ -873,24 +873,22 @@ public class TableRenderer {
             } line("}");
         }
 
-        private void renderAugmentRange() {
-            line("private RangeRequest augmentRangeRequest(RangeRequest range) {"); {
+        private void renderOptimizeRangeRequests() {
+            line("private RangeRequest optimizeColumnSelection(RangeRequest range) {"); {
                 line("if (range.getColumnNames().isEmpty()) {"); {
                     line("return range.getBuilder().retainColumns(allColumns).build();");
                 } line("}");
                 line("return range;");
             } line("}");
             line();
-            line("private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {"); {
-                line("return StreamSupport.stream(ranges.spliterator(), false)");
-                line("              .map(rangeRequest -> augmentRangeRequest(rangeRequest))");
-                line("              .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));");
+            line("private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {"); {
+                line("return Iterables.transform(ranges, this::optimizeColumnSelection);");
             } line("}");
         }
 
         private void renderGetRange() {
             line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {"); {
-                line("return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+                line("return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
                         line("return ", RowResult, ".of(input);");
@@ -902,7 +900,7 @@ public class TableRenderer {
         private void renderGetRanges() {
             line("@Deprecated");
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
-                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));");
+                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));");
                 line("return IterableView.of(rangeResults).transform(");
                 line("        new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<", RowResult, ">>() {"); {
                     line("@Override");
@@ -920,18 +918,18 @@ public class TableRenderer {
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               int concurrencyLevel,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,");
+                line("return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,");
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, augmentRanges(ranges),");
+                line("return t.getRanges(tableRef, optimizeColumnSelections(ranges),");
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
-                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));");
+                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));");
                 line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");
             } line("}");
         }
@@ -974,8 +972,8 @@ public class TableRenderer {
             } line("}");
         }
 
-        private void renderAugmentColumnSelection() {
-            line("private ColumnSelection augmentColumnSelection(ColumnSelection columns) {"); {
+        private void renderOptimizeColumnSelection() {
+            line("private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {"); {
                 line("if (columns.allColumnsSelected()) {"); {
                     line("return allColumns;");
                     line("}");
@@ -990,7 +988,7 @@ public class TableRenderer {
             line();
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered(ColumnSelection columns) {"); {
                 line("return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()");
-                line("        .retainColumns(augmentColumnSelection(columns)).build()),");
+                line("        .retainColumns(optimizeColumnSelection(columns)).build()),");
                 line("        new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
