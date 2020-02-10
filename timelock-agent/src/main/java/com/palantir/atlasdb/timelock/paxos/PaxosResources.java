@@ -24,14 +24,18 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.timestamp.ManagedTimestampService;
 
 @Value.Immutable
 public abstract class PaxosResources {
-    public abstract PaxosResourcesFactory.PaxosUseCaseContext timestamp();
-    abstract List<Object> adhocResources();
+
+    public abstract Factory<ManagedTimestampService> timestampServiceFactory();
+    abstract LocalPaxosComponents timestampPaxosComponents();
     abstract Map<PaxosUseCase, LocalPaxosComponents> leadershipBatchComponents();
     abstract LeadershipContextFactory leadershipContextFactory();
+    abstract List<Object> adhocResources();
 
     @Value.Derived
     Map<PaxosUseCase, BatchPaxosResources> leadershipBatchResources() {
@@ -44,7 +48,7 @@ public abstract class PaxosResources {
     public List<Object> resourcesForRegistration() {
         Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase =
                 ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
-                        .put(PaxosUseCase.TIMESTAMP, batchResourcesFromComponents(timestamp().components()))
+                        .put(PaxosUseCase.TIMESTAMP, batchResourcesFromComponents(timestampPaxosComponents()))
                         .putAll(leadershipBatchResources())
                         .build();
 

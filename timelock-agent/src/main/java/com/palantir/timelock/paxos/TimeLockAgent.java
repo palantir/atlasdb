@@ -145,7 +145,7 @@ public class TimeLockAgent {
     private TimestampCreator getTimestampCreator() {
         TsBoundPersisterConfiguration timestampBoundPersistence = install.timestampBoundPersistence();
         if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
-            return getPaxosTimestampCreator();
+            return new PaxosTimestampCreator(paxosResources.timestampServiceFactory());
         } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
             return new DbBoundTimestampCreator(
                     ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
@@ -153,12 +153,6 @@ public class TimeLockAgent {
         }
         throw new RuntimeException(String.format("Unknown TsBoundPersisterConfiguration found %s",
                 timestampBoundPersistence.getClass()));
-    }
-
-    private PaxosTimestampCreator getPaxosTimestampCreator() {
-        return new PaxosTimestampCreator(
-                paxosResources.timestamp(),
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
     }
 
     private void createAndRegisterResources() {

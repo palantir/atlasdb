@@ -19,61 +19,20 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
-import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory.PaxosUseCaseContext;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
-import com.palantir.paxos.PaxosAcceptorNetworkClient;
-import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosLearnerNetworkClient;
-import com.palantir.paxos.PaxosProposer;
-import com.palantir.timelock.config.PaxosRuntimeConfiguration;
+import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.PersistentTimestampServiceImpl;
-import com.palantir.timestamp.TimestampBoundStore;
 
 public class PaxosTimestampCreator implements TimestampCreator {
 
-    private final PaxosUseCaseContext context;
-    private final Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig;
+    private final Factory<ManagedTimestampService> timestampServiceFactory;
 
-    PaxosTimestampCreator(PaxosUseCaseContext context, Supplier<PaxosRuntimeConfiguration> paxosRuntimeConfig) {
-        this.context = context;
-        this.paxosRuntimeConfig = paxosRuntimeConfig;
+    PaxosTimestampCreator(Factory<ManagedTimestampService> timestampServiceFactory) {
+        this.timestampServiceFactory = timestampServiceFactory;
     }
 
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig unused) {
-        NetworkClientFactories clientFactories = context.networkClientFactories();
-        PaxosAcceptorNetworkClient acceptorNetworkClient = clientFactories.acceptor().create(client);
-        PaxosLearnerNetworkClient learnerNetworkClient = clientFactories.learner().create(client);
-        PaxosProposer proposer = context.proposerFactory().create(client);
-        PaxosLearner learner = context.components().learner(client);
-
-        return () -> createManagedPaxosTimestampService(
-                proposer,
-                client,
-                learner,
-                acceptorNetworkClient,
-                learnerNetworkClient);
-    }
-
-    private ManagedTimestampService createManagedPaxosTimestampService(
-            PaxosProposer proposer,
-            Client client,
-            PaxosLearner knowledge,
-            PaxosAcceptorNetworkClient acceptorNetworkClient,
-            PaxosLearnerNetworkClient learnerNetworkClient) {
-        // TODO (jkong): live reload ping
-        TimestampBoundStore boundStore = context.metrics().instrument(
-                TimestampBoundStore.class,
-                new PaxosTimestampBoundStore(
-                        proposer,
-                        knowledge,
-                        acceptorNetworkClient,
-                        learnerNetworkClient,
-                        paxosRuntimeConfig.get().maximumWaitBeforeProposalMs()),
-                client);
-        return PersistentTimestampServiceImpl.create(boundStore);
+        return () -> timestampServiceFactory.create(client);
     }
 
 }
