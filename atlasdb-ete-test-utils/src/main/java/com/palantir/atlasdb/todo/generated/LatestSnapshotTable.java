@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.todo.generated;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -18,9 +17,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -602,7 +599,6 @@ public final class LatestSnapshotTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -622,7 +618,6 @@ public final class LatestSnapshotTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
-     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -674,7 +669,6 @@ public final class LatestSnapshotTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
-     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -685,5 +679,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "IBeMkDnXBvpdA5HzwmPTKQ==";
+    static String __CLASS_HASH = "gmXqrkzDbPEKDSwZMubs6w==";
 }

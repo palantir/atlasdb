@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.schema.indexing.generated;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -18,9 +17,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -1418,19 +1415,19 @@ public final class DataTable implements
             return transformed;
         }
 
-        private RangeRequest optimizeColumnSelection(RangeRequest range) {
+        private RangeRequest optimizeRangeRequest(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 return range.getBuilder().retainColumns(allColumns).build();
             }
             return range;
         }
 
-        private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
-            return Iterables.transform(ranges, this::optimizeColumnSelection);
+        private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
+            return Iterables.transform(ranges, this::optimizeRangeRequest);
         }
 
         public BatchingVisitableView<Index1IdxRowResult> getRange(RangeRequest range) {
-            return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, Index1IdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, Index1IdxRowResult>() {
                 @Override
                 public Index1IdxRowResult apply(RowResult<byte[]> input) {
                     return Index1IdxRowResult.of(input);
@@ -1440,7 +1437,7 @@ public final class DataTable implements
 
         @Deprecated
         public IterableView<BatchingVisitable<Index1IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index1IdxRowResult>>() {
                 @Override
@@ -1458,18 +1455,18 @@ public final class DataTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<Index1IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
+            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index1IdxRowResult::of)));
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<Index1IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeColumnSelections(ranges),
+            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index1IdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<Index1IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
             return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, Index1IdxRowResult::of));
         }
 
@@ -2087,19 +2084,19 @@ public final class DataTable implements
             return transformed;
         }
 
-        private RangeRequest optimizeColumnSelection(RangeRequest range) {
+        private RangeRequest optimizeRangeRequest(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 return range.getBuilder().retainColumns(allColumns).build();
             }
             return range;
         }
 
-        private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
-            return Iterables.transform(ranges, this::optimizeColumnSelection);
+        private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
+            return Iterables.transform(ranges, this::optimizeRangeRequest);
         }
 
         public BatchingVisitableView<Index2IdxRowResult> getRange(RangeRequest range) {
-            return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, Index2IdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, Index2IdxRowResult>() {
                 @Override
                 public Index2IdxRowResult apply(RowResult<byte[]> input) {
                     return Index2IdxRowResult.of(input);
@@ -2109,7 +2106,7 @@ public final class DataTable implements
 
         @Deprecated
         public IterableView<BatchingVisitable<Index2IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index2IdxRowResult>>() {
                 @Override
@@ -2127,18 +2124,18 @@ public final class DataTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<Index2IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
+            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index2IdxRowResult::of)));
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<Index2IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeColumnSelections(ranges),
+            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index2IdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<Index2IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
             return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, Index2IdxRowResult::of));
         }
 
@@ -2734,19 +2731,19 @@ public final class DataTable implements
             return transformed;
         }
 
-        private RangeRequest optimizeColumnSelection(RangeRequest range) {
+        private RangeRequest optimizeRangeRequest(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 return range.getBuilder().retainColumns(allColumns).build();
             }
             return range;
         }
 
-        private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
-            return Iterables.transform(ranges, this::optimizeColumnSelection);
+        private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
+            return Iterables.transform(ranges, this::optimizeRangeRequest);
         }
 
         public BatchingVisitableView<Index3IdxRowResult> getRange(RangeRequest range) {
-            return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, Index3IdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, Index3IdxRowResult>() {
                 @Override
                 public Index3IdxRowResult apply(RowResult<byte[]> input) {
                     return Index3IdxRowResult.of(input);
@@ -2756,7 +2753,7 @@ public final class DataTable implements
 
         @Deprecated
         public IterableView<BatchingVisitable<Index3IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index3IdxRowResult>>() {
                 @Override
@@ -2774,18 +2771,18 @@ public final class DataTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<Index3IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
+            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index3IdxRowResult::of)));
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<Index3IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeColumnSelections(ranges),
+            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index3IdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<Index3IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
             return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, Index3IdxRowResult::of));
         }
 
@@ -3403,19 +3400,19 @@ public final class DataTable implements
             return transformed;
         }
 
-        private RangeRequest optimizeColumnSelection(RangeRequest range) {
+        private RangeRequest optimizeRangeRequest(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 return range.getBuilder().retainColumns(allColumns).build();
             }
             return range;
         }
 
-        private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
-            return Iterables.transform(ranges, this::optimizeColumnSelection);
+        private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
+            return Iterables.transform(ranges, this::optimizeRangeRequest);
         }
 
         public BatchingVisitableView<Index4IdxRowResult> getRange(RangeRequest range) {
-            return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, Index4IdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, Index4IdxRowResult>() {
                 @Override
                 public Index4IdxRowResult apply(RowResult<byte[]> input) {
                     return Index4IdxRowResult.of(input);
@@ -3425,7 +3422,7 @@ public final class DataTable implements
 
         @Deprecated
         public IterableView<BatchingVisitable<Index4IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<Index4IdxRowResult>>() {
                 @Override
@@ -3443,18 +3440,18 @@ public final class DataTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<Index4IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
+            return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index4IdxRowResult::of)));
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<Index4IdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, optimizeColumnSelections(ranges),
+            return t.getRanges(tableRef, optimizeRangeRequests(ranges),
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index4IdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<Index4IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
             return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, Index4IdxRowResult::of));
         }
 
@@ -3497,7 +3494,6 @@ public final class DataTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -3517,7 +3513,6 @@ public final class DataTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
-     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -3569,7 +3564,6 @@ public final class DataTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
-     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -3580,5 +3574,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "UYrOymy1c6/QIayQWgonqA==";
+    static String __CLASS_HASH = "zgTr3cKkOeLOV64n6VEA7w==";
 }

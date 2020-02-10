@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.timelock.benchmarks.schema.generated;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -18,9 +17,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -619,19 +616,19 @@ public final class KvRowsTable implements
         return transformed;
     }
 
-    private RangeRequest optimizeColumnSelection(RangeRequest range) {
+    private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             return range.getBuilder().retainColumns(allColumns).build();
         }
         return range;
     }
 
-    private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
-        return Iterables.transform(ranges, this::optimizeColumnSelection);
+    private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
+        return Iterables.transform(ranges, this::optimizeRangeRequest);
     }
 
     public BatchingVisitableView<KvRowsRowResult> getRange(RangeRequest range) {
-        return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, KvRowsRowResult>() {
+        return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, KvRowsRowResult>() {
             @Override
             public KvRowsRowResult apply(RowResult<byte[]> input) {
                 return KvRowsRowResult.of(input);
@@ -641,7 +638,7 @@ public final class KvRowsTable implements
 
     @Deprecated
     public IterableView<BatchingVisitable<KvRowsRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<KvRowsRowResult>>() {
             @Override
@@ -659,18 +656,18 @@ public final class KvRowsTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<KvRowsRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
+        return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KvRowsRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<KvRowsRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeColumnSelections(ranges),
+        return t.getRanges(tableRef, optimizeRangeRequests(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KvRowsRowResult::of)));
     }
 
     public Stream<BatchingVisitable<KvRowsRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, KvRowsRowResult::of));
     }
 
@@ -707,7 +704,6 @@ public final class KvRowsTable implements
      * This exists to avoid unused import warnings
      * {@link AbortingVisitor}
      * {@link AbortingVisitors}
-     * {@link ArrayList}
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
@@ -727,7 +723,6 @@ public final class KvRowsTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
-     * {@link Collectors}
      * {@link ColumnRangeSelection}
      * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
@@ -779,7 +774,6 @@ public final class KvRowsTable implements
      * {@link Sha256Hash}
      * {@link SortedMap}
      * {@link Stream}
-     * {@link StreamSupport}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -790,5 +784,5 @@ public final class KvRowsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "tDlP9N2h/W/0ZHM2+bZJVg==";
+    static String __CLASS_HASH = "Pyd9Io/nnVTQXvt3xkCJHA==";
 }
