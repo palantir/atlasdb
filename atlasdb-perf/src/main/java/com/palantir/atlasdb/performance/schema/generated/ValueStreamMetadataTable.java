@@ -587,7 +587,7 @@ public final class ValueStreamMetadataTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -600,7 +600,7 @@ public final class ValueStreamMetadataTable implements
 
     public BatchingVisitableView<ValueStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, ValueStreamMetadataRowResult>() {
             @Override
             public ValueStreamMetadataRowResult apply(RowResult<byte[]> input) {
@@ -709,5 +709,5 @@ public final class ValueStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "pLMQdJ6diIvqzpsDCIVoLA==";
+    static String __CLASS_HASH = "pcjVppV0WtJL8ybWmUbn4w==";
 }

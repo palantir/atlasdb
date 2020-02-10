@@ -621,7 +621,7 @@ public final class SnapshotsStreamHashAidxTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -634,7 +634,7 @@ public final class SnapshotsStreamHashAidxTable implements
 
     public BatchingVisitableView<SnapshotsStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, SnapshotsStreamHashAidxRowResult>() {
             @Override
             public SnapshotsStreamHashAidxRowResult apply(RowResult<byte[]> input) {
@@ -743,5 +743,5 @@ public final class SnapshotsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "rQUcaiwmHDtirG/gkFsTjA==";
+    static String __CLASS_HASH = "ylU1z2RJ6kEr6LThvg5Hqg==";
 }

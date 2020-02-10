@@ -621,7 +621,7 @@ public final class NamespacedTodoTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -634,7 +634,7 @@ public final class NamespacedTodoTable implements
 
     public BatchingVisitableView<NamespacedTodoRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, NamespacedTodoRowResult>() {
             @Override
             public NamespacedTodoRowResult apply(RowResult<byte[]> input) {
@@ -743,5 +743,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jM+NiDBEkZfr65mGF7Ga+A==";
+    static String __CLASS_HASH = "eS7yPggPIlgVAXDEo8XMEw==";
 }

@@ -621,7 +621,7 @@ public final class ValueStreamHashAidxTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -634,7 +634,7 @@ public final class ValueStreamHashAidxTable implements
 
     public BatchingVisitableView<ValueStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, ValueStreamHashAidxRowResult>() {
             @Override
             public ValueStreamHashAidxRowResult apply(RowResult<byte[]> input) {
@@ -743,5 +743,5 @@ public final class ValueStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ySho0vdTh9JXE8QA+1350Q==";
+    static String __CLASS_HASH = "HbO60VK17blcH10YvcQJwg==";
 }

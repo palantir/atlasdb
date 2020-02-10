@@ -649,15 +649,19 @@ public final class KvDynamicColumnsTable implements
         return transformed;
     }
 
-    private RangeRequest augmentRangeRequest(RangeRequest range) {
+    private RangeRequest optimizeColumnSelection(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             return range.getBuilder().retainColumns(allColumns).build();
         }
         return range;
     }
 
+    private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
+        return Iterables.transform(ranges, this::optimizeColumnSelection);
+    }
+
     public BatchingVisitableView<KvDynamicColumnsRowResult> getRange(RangeRequest range) {
-        return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, KvDynamicColumnsRowResult>() {
+        return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, KvDynamicColumnsRowResult>() {
             @Override
             public KvDynamicColumnsRowResult apply(RowResult<byte[]> input) {
                 return KvDynamicColumnsRowResult.of(input);
@@ -665,15 +669,9 @@ public final class KvDynamicColumnsTable implements
         });
     }
 
-    private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
-        return StreamSupport.stream(ranges.spliterator(), false)
-                      .map(rangeRequest -> augmentRangeRequest(rangeRequest))
-                      .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
-    }
-
     @Deprecated
     public IterableView<BatchingVisitable<KvDynamicColumnsRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<KvDynamicColumnsRowResult>>() {
             @Override
@@ -691,27 +689,27 @@ public final class KvDynamicColumnsTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<KvDynamicColumnsRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
+        return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KvDynamicColumnsRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<KvDynamicColumnsRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, augmentRanges(ranges),
+        return t.getRanges(tableRef, optimizeColumnSelections(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KvDynamicColumnsRowResult::of)));
     }
 
     public Stream<BatchingVisitable<KvDynamicColumnsRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, KvDynamicColumnsRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
-        deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
+        deleteRanges(ImmutableSet.of(range));
     }
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
-        BatchingVisitables.concat(getRanges(augmentRanges(ranges))).batchAccept(1000, new AbortingVisitor<List<KvDynamicColumnsRowResult>, RuntimeException>() {
+        BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<KvDynamicColumnsRowResult>, RuntimeException>() {
             @Override
             public boolean visit(List<KvDynamicColumnsRowResult> rowResults) {
                 Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumn> toRemove = HashMultimap.create();
@@ -826,5 +824,5 @@ public final class KvDynamicColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "iObZnKEEY5DS9oPrXaZldw==";
+    static String __CLASS_HASH = "ZoediI69Ga2ujucYqUwkGA==";
 }

@@ -575,7 +575,7 @@ public final class UserPhotosStreamValueTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -588,7 +588,7 @@ public final class UserPhotosStreamValueTable implements
 
     public BatchingVisitableView<UserPhotosStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, UserPhotosStreamValueRowResult>() {
             @Override
             public UserPhotosStreamValueRowResult apply(RowResult<byte[]> input) {
@@ -697,5 +697,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "NTmLYuk638KiKB2m5Q8gxw==";
+    static String __CLASS_HASH = "ZprW9eU8U2J2WQekWzVuyg==";
 }

@@ -563,7 +563,7 @@ public final class TableClearsTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -576,7 +576,7 @@ public final class TableClearsTable implements
 
     public BatchingVisitableView<TableClearsRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, TableClearsRowResult>() {
             @Override
             public TableClearsRowResult apply(RowResult<byte[]> input) {
@@ -685,5 +685,5 @@ public final class TableClearsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "EtM+IW1W9jjECP84FNzHgA==";
+    static String __CLASS_HASH = "2oY2ClM97EPSgUulgiNOIA==";
 }

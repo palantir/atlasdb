@@ -621,7 +621,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -634,7 +634,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
 
     public BatchingVisitableView<StreamTestMaxMemStreamIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, StreamTestMaxMemStreamIdxRowResult>() {
             @Override
             public StreamTestMaxMemStreamIdxRowResult apply(RowResult<byte[]> input) {
@@ -743,5 +743,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Aq8nhdGd4Tz9qNEHyCt5Zg==";
+    static String __CLASS_HASH = "XjSKoRLDDtWHj18j09bR2g==";
 }

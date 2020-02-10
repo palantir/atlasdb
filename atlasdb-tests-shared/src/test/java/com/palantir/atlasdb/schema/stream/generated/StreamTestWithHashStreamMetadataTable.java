@@ -601,7 +601,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -614,7 +614,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     public BatchingVisitableView<StreamTestWithHashStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, StreamTestWithHashStreamMetadataRowResult>() {
             @Override
             public StreamTestWithHashStreamMetadataRowResult apply(RowResult<byte[]> input) {
@@ -723,5 +723,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "h4KY78fn3IpiQZtMMTYzGw==";
+    static String __CLASS_HASH = "AVprc8D9pJ7Yc79tb7dLxA==";
 }

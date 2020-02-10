@@ -1136,7 +1136,7 @@ public final class UserProfileTable implements
         t.delete(TableReference.createFromFullyQualifiedName("default.user_birthdays_idx"), indexCells.build());
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -1149,7 +1149,7 @@ public final class UserProfileTable implements
 
     public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, UserProfileRowResult>() {
             @Override
             public UserProfileRowResult apply(RowResult<byte[]> input) {
@@ -1762,15 +1762,19 @@ public final class UserProfileTable implements
             return transformed;
         }
 
-        private RangeRequest augmentRangeRequest(RangeRequest range) {
+        private RangeRequest optimizeColumnSelection(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 return range.getBuilder().retainColumns(allColumns).build();
             }
             return range;
         }
 
+        private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
+            return Iterables.transform(ranges, this::optimizeColumnSelection);
+        }
+
         public BatchingVisitableView<CookiesIdxRowResult> getRange(RangeRequest range) {
-            return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
                 @Override
                 public CookiesIdxRowResult apply(RowResult<byte[]> input) {
                     return CookiesIdxRowResult.of(input);
@@ -1778,15 +1782,9 @@ public final class UserProfileTable implements
             });
         }
 
-        private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
-            return StreamSupport.stream(ranges.spliterator(), false)
-                          .map(rangeRequest -> augmentRangeRequest(rangeRequest))
-                          .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
-        }
-
         @Deprecated
         public IterableView<BatchingVisitable<CookiesIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CookiesIdxRowResult>>() {
                 @Override
@@ -1804,27 +1802,27 @@ public final class UserProfileTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<CookiesIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
+            return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CookiesIdxRowResult::of)));
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<CookiesIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, augmentRanges(ranges),
+            return t.getRanges(tableRef, optimizeColumnSelections(ranges),
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CookiesIdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<CookiesIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
             return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, CookiesIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
-            deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
+            deleteRanges(ImmutableSet.of(range));
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(augmentRanges(ranges))).batchAccept(1000, new AbortingVisitor<List<CookiesIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<CookiesIdxRowResult>, RuntimeException>() {
                 @Override
                 public boolean visit(List<CookiesIdxRowResult> rowResults) {
                     Multimap<CookiesIdxRow, CookiesIdxColumn> toRemove = HashMultimap.create();
@@ -2445,15 +2443,19 @@ public final class UserProfileTable implements
             return transformed;
         }
 
-        private RangeRequest augmentRangeRequest(RangeRequest range) {
+        private RangeRequest optimizeColumnSelection(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 return range.getBuilder().retainColumns(allColumns).build();
             }
             return range;
         }
 
+        private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
+            return Iterables.transform(ranges, this::optimizeColumnSelection);
+        }
+
         public BatchingVisitableView<CreatedIdxRowResult> getRange(RangeRequest range) {
-            return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
                 @Override
                 public CreatedIdxRowResult apply(RowResult<byte[]> input) {
                     return CreatedIdxRowResult.of(input);
@@ -2461,15 +2463,9 @@ public final class UserProfileTable implements
             });
         }
 
-        private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
-            return StreamSupport.stream(ranges.spliterator(), false)
-                          .map(rangeRequest -> augmentRangeRequest(rangeRequest))
-                          .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
-        }
-
         @Deprecated
         public IterableView<BatchingVisitable<CreatedIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CreatedIdxRowResult>>() {
                 @Override
@@ -2487,27 +2483,27 @@ public final class UserProfileTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<CreatedIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
+            return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CreatedIdxRowResult::of)));
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<CreatedIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, augmentRanges(ranges),
+            return t.getRanges(tableRef, optimizeColumnSelections(ranges),
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CreatedIdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<CreatedIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
             return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, CreatedIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
-            deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
+            deleteRanges(ImmutableSet.of(range));
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(augmentRanges(ranges))).batchAccept(1000, new AbortingVisitor<List<CreatedIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<CreatedIdxRowResult>, RuntimeException>() {
                 @Override
                 public boolean visit(List<CreatedIdxRowResult> rowResults) {
                     Multimap<CreatedIdxRow, CreatedIdxColumn> toRemove = HashMultimap.create();
@@ -3128,15 +3124,19 @@ public final class UserProfileTable implements
             return transformed;
         }
 
-        private RangeRequest augmentRangeRequest(RangeRequest range) {
+        private RangeRequest optimizeColumnSelection(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
                 return range.getBuilder().retainColumns(allColumns).build();
             }
             return range;
         }
 
+        private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
+            return Iterables.transform(ranges, this::optimizeColumnSelection);
+        }
+
         public BatchingVisitableView<UserBirthdaysIdxRowResult> getRange(RangeRequest range) {
-            return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
+            return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
                 @Override
                 public UserBirthdaysIdxRowResult apply(RowResult<byte[]> input) {
                     return UserBirthdaysIdxRowResult.of(input);
@@ -3144,15 +3144,9 @@ public final class UserProfileTable implements
             });
         }
 
-        private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
-            return StreamSupport.stream(ranges.spliterator(), false)
-                          .map(rangeRequest -> augmentRangeRequest(rangeRequest))
-                          .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
-        }
-
         @Deprecated
         public IterableView<BatchingVisitable<UserBirthdaysIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
+            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
             return IterableView.of(rangeResults).transform(
                     new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<UserBirthdaysIdxRowResult>>() {
                 @Override
@@ -3170,27 +3164,27 @@ public final class UserProfileTable implements
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
                                        BiFunction<RangeRequest, BatchingVisitable<UserBirthdaysIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
+            return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of)));
         }
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        BiFunction<RangeRequest, BatchingVisitable<UserBirthdaysIdxRowResult>, T> visitableProcessor) {
-            return t.getRanges(tableRef, augmentRanges(ranges),
+            return t.getRanges(tableRef, optimizeColumnSelections(ranges),
                     (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<UserBirthdaysIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
             return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
-            deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
+            deleteRanges(ImmutableSet.of(range));
         }
 
         public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(augmentRanges(ranges))).batchAccept(1000, new AbortingVisitor<List<UserBirthdaysIdxRowResult>, RuntimeException>() {
+            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<UserBirthdaysIdxRowResult>, RuntimeException>() {
                 @Override
                 public boolean visit(List<UserBirthdaysIdxRowResult> rowResults) {
                     Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toRemove = HashMultimap.create();
@@ -3307,5 +3301,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qjT8c8Fxbx+2n8hh8+HBWw==";
+    static String __CLASS_HASH = "lslPPG3ntMjhxOBXru97tQ==";
 }

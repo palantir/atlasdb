@@ -1071,15 +1071,19 @@ public final class SweepPriorityTable implements
         return transformed;
     }
 
-    private RangeRequest augmentRangeRequest(RangeRequest range) {
+    private RangeRequest optimizeColumnSelection(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             return range.getBuilder().retainColumns(allColumns).build();
         }
         return range;
     }
 
+    private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
+        return Iterables.transform(ranges, this::optimizeColumnSelection);
+    }
+
     public BatchingVisitableView<SweepPriorityRowResult> getRange(RangeRequest range) {
-        return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, SweepPriorityRowResult>() {
+        return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, SweepPriorityRowResult>() {
             @Override
             public SweepPriorityRowResult apply(RowResult<byte[]> input) {
                 return SweepPriorityRowResult.of(input);
@@ -1087,15 +1091,9 @@ public final class SweepPriorityTable implements
         });
     }
 
-    private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
-        return StreamSupport.stream(ranges.spliterator(), false)
-                      .map(rangeRequest -> augmentRangeRequest(rangeRequest))
-                      .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
-    }
-
     @Deprecated
     public IterableView<BatchingVisitable<SweepPriorityRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<SweepPriorityRowResult>>() {
             @Override
@@ -1113,27 +1111,27 @@ public final class SweepPriorityTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<SweepPriorityRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
+        return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<SweepPriorityRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, augmentRanges(ranges),
+        return t.getRanges(tableRef, optimizeColumnSelections(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)));
     }
 
     public Stream<BatchingVisitable<SweepPriorityRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, SweepPriorityRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
-        deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
+        deleteRanges(ImmutableSet.of(range));
     }
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
-        BatchingVisitables.concat(getRanges(augmentRanges(ranges)))
+        BatchingVisitables.concat(getRanges(ranges))
                           .transform(SweepPriorityRowResult.getRowNameFun())
                           .batchAccept(1000, new AbortingVisitor<List<SweepPriorityRow>, RuntimeException>() {
             @Override
@@ -1244,5 +1242,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "9MRgbA0Gs7fNe/DBobFImA==";
+    static String __CLASS_HASH = "uMVEBQOiQtvFjbeibDFWFw==";
 }

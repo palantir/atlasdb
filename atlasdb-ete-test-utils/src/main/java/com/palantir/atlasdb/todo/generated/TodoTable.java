@@ -563,7 +563,7 @@ public final class TodoTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -576,7 +576,7 @@ public final class TodoTable implements
 
     public BatchingVisitableView<TodoRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, TodoRowResult>() {
             @Override
             public TodoRowResult apply(RowResult<byte[]> input) {
@@ -685,5 +685,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "tHMk+fUpZTNccrAqhJ3yDg==";
+    static String __CLASS_HASH = "fLHTOaE2OvGYE8xRNDZLNw==";
 }

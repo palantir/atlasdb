@@ -563,7 +563,7 @@ public final class CompactMetadataTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -576,7 +576,7 @@ public final class CompactMetadataTable implements
 
     public BatchingVisitableView<CompactMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, CompactMetadataRowResult>() {
             @Override
             public CompactMetadataRowResult apply(RowResult<byte[]> input) {
@@ -685,5 +685,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "p/6AB6/hquB3LC3EA+jv/A==";
+    static String __CLASS_HASH = "hsAcemVJF84tEQ4r/jheVQ==";
 }

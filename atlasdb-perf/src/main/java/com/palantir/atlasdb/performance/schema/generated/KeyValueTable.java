@@ -563,15 +563,19 @@ public final class KeyValueTable implements
         return transformed;
     }
 
-    private RangeRequest augmentRangeRequest(RangeRequest range) {
+    private RangeRequest optimizeColumnSelection(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             return range.getBuilder().retainColumns(allColumns).build();
         }
         return range;
     }
 
+    private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {
+        return Iterables.transform(ranges, this::optimizeColumnSelection);
+    }
+
     public BatchingVisitableView<KeyValueRowResult> getRange(RangeRequest range) {
-        return BatchingVisitables.transform(t.getRange(tableRef, augmentRangeRequest(range)), new Function<RowResult<byte[]>, KeyValueRowResult>() {
+        return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, KeyValueRowResult>() {
             @Override
             public KeyValueRowResult apply(RowResult<byte[]> input) {
                 return KeyValueRowResult.of(input);
@@ -579,15 +583,9 @@ public final class KeyValueTable implements
         });
     }
 
-    private Iterable<RangeRequest> augmentRanges(Iterable<RangeRequest> ranges) {
-        return StreamSupport.stream(ranges.spliterator(), false)
-                      .map(rangeRequest -> augmentRangeRequest(rangeRequest))
-                      .collect(Collectors.toCollection(() -> new ArrayList<RangeRequest>()));
-    }
-
     @Deprecated
     public IterableView<BatchingVisitable<KeyValueRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, augmentRanges(ranges));
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<KeyValueRowResult>>() {
             @Override
@@ -605,27 +603,27 @@ public final class KeyValueTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, augmentRanges(ranges), concurrencyLevel,
+        return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, augmentRanges(ranges),
+        return t.getRanges(tableRef, optimizeColumnSelections(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of)));
     }
 
     public Stream<BatchingVisitable<KeyValueRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, augmentRanges(ranges));
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, KeyValueRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
-        deleteRanges(ImmutableSet.of(augmentRangeRequest(range)));
+        deleteRanges(ImmutableSet.of(range));
     }
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
-        BatchingVisitables.concat(getRanges(augmentRanges(ranges)))
+        BatchingVisitables.concat(getRanges(ranges))
                           .transform(KeyValueRowResult.getRowNameFun())
                           .batchAccept(1000, new AbortingVisitor<List<KeyValueRow>, RuntimeException>() {
             @Override
@@ -736,5 +734,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8y3rL6d7j0Udj+aDmWMvAw==";
+    static String __CLASS_HASH = "KgyeaMZVWA2maORAO2KiHg==";
 }

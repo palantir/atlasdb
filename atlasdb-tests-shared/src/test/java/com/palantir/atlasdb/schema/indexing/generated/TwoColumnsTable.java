@@ -810,7 +810,7 @@ public final class TwoColumnsTable implements
         t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_idx"), indexCells.build());
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -823,7 +823,7 @@ public final class TwoColumnsTable implements
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, TwoColumnsRowResult>() {
             @Override
             public TwoColumnsRowResult apply(RowResult<byte[]> input) {
@@ -1436,7 +1436,7 @@ public final class TwoColumnsTable implements
             return transformed;
         }
 
-        private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+        private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
             if (columns.allColumnsSelected()) {
                 return allColumns;
             }
@@ -1449,7 +1449,7 @@ public final class TwoColumnsTable implements
 
         public BatchingVisitableView<FooToIdCondIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
             return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                    .retainColumns(augmentColumnSelection(columns)).build()),
+                    .retainColumns(optimizeColumnSelection(columns)).build()),
                     new Function<RowResult<byte[]>, FooToIdCondIdxRowResult>() {
                 @Override
                 public FooToIdCondIdxRowResult apply(RowResult<byte[]> input) {
@@ -2078,7 +2078,7 @@ public final class TwoColumnsTable implements
             return transformed;
         }
 
-        private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+        private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
             if (columns.allColumnsSelected()) {
                 return allColumns;
             }
@@ -2091,7 +2091,7 @@ public final class TwoColumnsTable implements
 
         public BatchingVisitableView<FooToIdIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
             return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                    .retainColumns(augmentColumnSelection(columns)).build()),
+                    .retainColumns(optimizeColumnSelection(columns)).build()),
                     new Function<RowResult<byte[]>, FooToIdIdxRowResult>() {
                 @Override
                 public FooToIdIdxRowResult apply(RowResult<byte[]> input) {
@@ -2202,5 +2202,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "m+FbXv7EILYsymbjIgT/WQ==";
+    static String __CLASS_HASH = "+5GBr3RGgaM+ABy8xP/iKA==";
 }

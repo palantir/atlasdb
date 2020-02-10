@@ -671,7 +671,7 @@ public final class SweepableCellsTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -684,7 +684,7 @@ public final class SweepableCellsTable implements
 
     public BatchingVisitableView<SweepableCellsRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, SweepableCellsRowResult>() {
             @Override
             public SweepableCellsRowResult apply(RowResult<byte[]> input) {
@@ -793,5 +793,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "EWgqLbz7cd65cLCNN6Sm/A==";
+    static String __CLASS_HASH = "YhYDb+Kw7jYJaOzHmvcrrA==";
 }

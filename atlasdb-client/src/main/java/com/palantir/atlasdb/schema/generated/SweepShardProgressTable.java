@@ -589,7 +589,7 @@ public final class SweepShardProgressTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -602,7 +602,7 @@ public final class SweepShardProgressTable implements
 
     public BatchingVisitableView<SweepShardProgressRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, SweepShardProgressRowResult>() {
             @Override
             public SweepShardProgressRowResult apply(RowResult<byte[]> input) {
@@ -711,5 +711,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hYI6hUvfIZ7RI1HxKF/oLw==";
+    static String __CLASS_HASH = "YkLTgKei8di0L/Yf72iIkA==";
 }

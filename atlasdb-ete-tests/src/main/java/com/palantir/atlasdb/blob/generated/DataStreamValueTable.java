@@ -590,7 +590,7 @@ public final class DataStreamValueTable implements
         return transformed;
     }
 
-    private ColumnSelection augmentColumnSelection(ColumnSelection columns) {
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
             return allColumns;
         }
@@ -603,7 +603,7 @@ public final class DataStreamValueTable implements
 
     public BatchingVisitableView<DataStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(augmentColumnSelection(columns)).build()),
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, DataStreamValueRowResult>() {
             @Override
             public DataStreamValueRowResult apply(RowResult<byte[]> input) {
@@ -712,5 +712,5 @@ public final class DataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CHvHCSZ4d7LsZ7f9r7bnnQ==";
+    static String __CLASS_HASH = "TNx6vLm4kTYkmU1loi63hQ==";
 }
