@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: TimeLock now shuts itself down if it detects that the cluster is serving
+    timestamps in an inconsistent way.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4560
