@@ -34,6 +34,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.paxos.HealthCheckDigest;
 
@@ -64,15 +65,11 @@ public final class NoSimultaneousServiceCheck {
                 PTExecutors.newNamedThreadFactory(false));
         return new NoSimultaneousServiceCheck(timeLockActivityCheckers,
                 client -> {
-                    // TODO (jkong): Gather confidence and then change to ServerKiller, so that we ACTUALLY shoot
-                    // ourselves in the head.
-                    log.error("We observed that multiple services were consistently serving timestamps, for the"
-                            + " client {}. This is potentially indicative of SEVERE DATA CORRUPTION, and should"
-                            + " never happen in a correct TimeLock implementation. If you see this message, please"
-                            + " check the frequency of leader elections on your stack: if they are very frequent,"
-                            + " consider increasing the leader election timeout. Otherwise, please contact support -"
-                            + " your stack may have been compromised",
-                            SafeArg.of("client", client));
+                    throw ServerKiller.killMeNow(new SafeIllegalStateException("We observed that multiple services "
+                            + " served timestamps in an inconsistent way. This is potentially indicative of SEVERE DATA"
+                            + " CORRUPTION, and should never happen in a correct TimeLock implementation.",
+                            SafeArg.of("client", client)
+                    ));
                 },
                 executorService,
                 Duration.ofMillis(1337));
