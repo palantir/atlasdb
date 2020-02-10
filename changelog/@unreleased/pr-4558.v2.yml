@@ -1,8 +1,10 @@
 type: improvement
 improvement:
-  description: "In order to automatically use Nathan's optimization on single-column
-    table range scans, the generated code explicitly specifies the set of columns
-    in \"all columns\" range scan request. \n\nThis does not affect dynamic column
-    tables.\n"
+  description: "AtlasDB generated code now optimises getRanges and getRangesLazy to
+  select only required columns. This is known to improve performance for single-column
+  tables (Nathan's optimization). This does not affect dynamic column tables."
+
+  "AtlasDB users that check in their schemas need to regenerate them to benefit from this improvement."
+
   links:
   - https://github.com/palantir/atlasdb/pull/4558

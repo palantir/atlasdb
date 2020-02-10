@@ -874,21 +874,21 @@ public class TableRenderer {
         }
 
         private void renderOptimizeRangeRequests() {
-            line("private RangeRequest optimizeColumnSelection(RangeRequest range) {"); {
+            line("private RangeRequest optimizeRangeRequest(RangeRequest range) {"); {
                 line("if (range.getColumnNames().isEmpty()) {"); {
                     line("return range.getBuilder().retainColumns(allColumns).build();");
                 } line("}");
                 line("return range;");
             } line("}");
             line();
-            line("private Iterable<RangeRequest> optimizeColumnSelections(Iterable<RangeRequest> ranges) {"); {
-                line("return Iterables.transform(ranges, this::optimizeColumnSelection);");
+            line("private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {"); {
+                line("return Iterables.transform(ranges, this::optimizeRangeRequest);");
             } line("}");
         }
 
         private void renderGetRange() {
             line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {"); {
-                line("return BatchingVisitables.transform(t.getRange(tableRef, optimizeColumnSelection(range)), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+                line("return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
                         line("return ", RowResult, ".of(input);");
@@ -900,7 +900,7 @@ public class TableRenderer {
         private void renderGetRanges() {
             line("@Deprecated");
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
-                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeColumnSelections(ranges));");
+                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));");
                 line("return IterableView.of(rangeResults).transform(");
                 line("        new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<", RowResult, ">>() {"); {
                     line("@Override");
@@ -918,18 +918,18 @@ public class TableRenderer {
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               int concurrencyLevel,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, optimizeColumnSelections(ranges), concurrencyLevel,");
+                line("return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,");
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, optimizeColumnSelections(ranges),");
+                line("return t.getRanges(tableRef, optimizeRangeRequests(ranges),");
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
-                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeColumnSelections(ranges));");
+                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));");
                 line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");
             } line("}");
         }
@@ -976,8 +976,8 @@ public class TableRenderer {
             line("private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {"); {
                 line("if (columns.allColumnsSelected()) {"); {
                     line("return allColumns;");
-                    line("}");
-                } line("return columns;");
+                } line("}");
+                line("return columns;");
             } line("}");
         }
 
@@ -1322,10 +1322,7 @@ public class TableRenderer {
         BatchColumnRangeSelection.class,
         ColumnRangeSelections.class,
         ColumnRangeSelection.class,
-        Iterators.class,
-        ArrayList.class,
-        Collectors.class,
-        StreamSupport.class
+        Iterators.class
     };
 }
 
