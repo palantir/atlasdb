@@ -33,7 +33,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
@@ -130,8 +129,8 @@ public class TimeLockMigrationEteTest {
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
         softAssertions.assertThat(
-                ((AtlasDbRemoteException) catchThrowable(timestampClient::getFreshTimestamp)).getStatus())
-                .isEqualTo(404)
+                (catchThrowable(timestampClient::getFreshTimestamp)).getMessage())
+                .contains("NOT_FOUND")
                 .as("no longer exposes an embedded timestamp service");
     }
 
