@@ -64,7 +64,7 @@ public class TestableTimelockServer {
 
         switch (mode) {
             case SINGLE_LEADER:
-                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class);
+                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class, false);
                 return namespaces -> {
                     if (pingableLeader.ping()) {
                         return ImmutableSet.copyOf(namespaces);
@@ -73,7 +73,8 @@ public class TestableTimelockServer {
                     }
                 };
             case LEADER_PER_CLIENT:
-                BatchPingableLeader batchPingableLeader = proxies.singleNode(serverHolder, BatchPingableLeader.class);
+                BatchPingableLeader batchPingableLeader =
+                        proxies.singleNode(serverHolder, BatchPingableLeader.class, false);
                 return namespaces -> {
                     Set<Client> typedNamespaces = Streams.stream(namespaces)
                             .map(Client::of)

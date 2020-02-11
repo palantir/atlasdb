@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
@@ -51,13 +52,20 @@ public class TestProxies {
     }
 
     public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface) {
+        return singleNode(server, serviceInterface, true);
+    }
+
+    public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, boolean shouldRetry) {
         String uri = getServerUri(server);
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
+        AuxiliaryRemotingParameters parameters = shouldRetry ?
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING :
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_NO_RETRYING;
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING));
+                parameters));
     }
 
     public <T> T failover(Class<T> serviceInterface) {

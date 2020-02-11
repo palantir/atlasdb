@@ -31,6 +31,12 @@ public final class TestProxyUtils {
                     .shouldRetry(true)
                     .build();
 
+    public static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS_NO_RETRYING
+            = AuxiliaryRemotingParameters.builder()
+            .from(AUXILIARY_REMOTING_PARAMETERS_RETRYING)
+            .shouldRetry(false)
+            .build();
+
     private TestProxyUtils() {
         // constants
     }
