@@ -23,6 +23,7 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.proxy.SelfRefreshingProxy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class AtlasDbHttpClients {
@@ -36,7 +37,10 @@ public final class AtlasDbHttpClients {
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters).instance();
+        return SelfRefreshingProxy.create(
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters)
+                        .instance(),
+                type);
     }
 
     /**
@@ -51,10 +55,11 @@ public final class AtlasDbHttpClients {
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return VersionSelectingClients.instrumentWithClientVersionTag(
+        Supplier<T> clientFactory = () -> VersionSelectingClients.instrumentWithClientVersionTag(
                 metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithFailover(serverListConfig, type, parameters),
                 type);
+        return SelfRefreshingProxy.create(clientFactory, type);
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
@@ -62,13 +67,14 @@ public final class AtlasDbHttpClients {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters clientParameters) {
-        return VersionSelectingClients.instrumentWithClientVersionTag(
+        Supplier<T> clientFactory = () -> VersionSelectingClients.instrumentWithClientVersionTag(
                 metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),
                 type);
+        return SelfRefreshingProxy.create(clientFactory, type);
     }
 
     @VisibleForTesting
@@ -77,10 +83,11 @@ public final class AtlasDbHttpClients {
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        TargetFactory.InstanceAndVersion<T> instanceAndVersion =
+        Supplier<T> clientFactory = () -> VersionSelectingClients.instrumentWithClientVersionTag(
+                metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithQuickFailoverForTesting(
-                        serverListConfig, type, parameters);
-        return VersionSelectingClients.instrumentWithClientVersionTag(
-                metricsManager.getTaggedRegistry(), instanceAndVersion, type);
+                        serverListConfig, type, parameters),
+                type);
+        return SelfRefreshingProxy.create(clientFactory, type);
     }
 }
