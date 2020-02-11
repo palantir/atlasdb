@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
 import com.palantir.atlasdb.timelock.paxos.Client;
@@ -51,8 +53,12 @@ public class TestableTimelockServer {
         return serverHolder;
     }
 
-    void kill() {
-        serverHolder.kill();
+    ListenableFuture<Void> killAsync() {
+        return serverHolder.kill();
+    }
+
+    void killSync() {
+        Futures.getUnchecked(killAsync());
     }
 
     void start() {
@@ -64,7 +70,7 @@ public class TestableTimelockServer {
 
         switch (mode) {
             case SINGLE_LEADER:
-                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class);
+                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class, false);
                 return namespaces -> {
                     if (pingableLeader.ping()) {
                         return ImmutableSet.copyOf(namespaces);
@@ -73,7 +79,8 @@ public class TestableTimelockServer {
                     }
                 };
             case LEADER_PER_CLIENT:
-                BatchPingableLeader batchPingableLeader = proxies.singleNode(serverHolder, BatchPingableLeader.class);
+                BatchPingableLeader batchPingableLeader =
+                        proxies.singleNode(serverHolder, BatchPingableLeader.class, false);
                 return namespaces -> {
                     Set<Client> typedNamespaces = Streams.stream(namespaces)
                             .map(Client::of)

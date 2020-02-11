@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -90,27 +91,28 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void newLeaderTakesOverIfCurrentLeaderDies() {
-        cluster.currentLeaderFor(client.namespace()).kill();
+        cluster.currentLeaderFor(client.namespace()).killSync();
 
         assertThatCode(client::getFreshTimestamp)
                 .doesNotThrowAnyException();
     }
 
     @Test
-    public void leaderLosesLeadershipIfQuorumIsNotAlive() {
+    public void leaderLosesLeadershipIfQuorumIsNotAlive() throws ExecutionException {
         NamespacedClients leader = cluster.currentLeaderFor(client.namespace())
                 .client(client.namespace());
-        cluster.nonLeaders(client.namespace()).forEach((unused, server) -> server.kill());
+        cluster.killAndAwaitTermination(cluster.nonLeaders(client.namespace()).values());
 
         assertThatThrownBy(leader::getFreshTimestamp)
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
     @Test
-    public void someoneBecomesLeaderAgainAfterQuorumIsRestored() {
-        cluster.nonLeaders(client.namespace()).forEach((unused, server) -> server.kill());
-        cluster.nonLeaders(client.namespace()).forEach((unused, server) -> server.start());
+    public void someoneBecomesLeaderAgainAfterQuorumIsRestored() throws ExecutionException {
+        Set<TestableTimelockServer> nonLeaders = ImmutableSet.copyOf(cluster.nonLeaders(client.namespace()).values());
+        cluster.killAndAwaitTermination(nonLeaders);
 
+        nonLeaders.forEach(TestableTimelockServer::start);
         client.getFreshTimestamp();
     }
 
@@ -118,7 +120,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void canPerformRollingRestart() {
         bringAllNodesOnline();
         for (TestableTimelockServer server : cluster.servers()) {
-            server.kill();
+            server.killSync();
             cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
             client.getFreshTimestamp();
             server.start();

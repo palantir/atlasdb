@@ -234,7 +234,11 @@ public final class PaxosQuorumChecker {
             }
 
             if (!receivedResponses.hasQuorum()) {
-                encounteredErrors.forEach(throwable -> log.warn(PAXOS_MESSAGE_ERROR, throwable));
+                RuntimeException exceptionForSuppression = new RuntimeException("exception for suppresion");
+                encounteredErrors.forEach(throwable -> {
+                    throwable.addSuppressed(exceptionForSuppression);
+                    log.warn(PAXOS_MESSAGE_ERROR, throwable);
+                });
             }
         }
         return receivedResponses.collect();
