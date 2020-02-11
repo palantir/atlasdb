@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 import org.immutables.value.Value;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.config.RemotingClientConfig;
@@ -81,6 +82,19 @@ final class VersionSelectingClients {
                 versionSelectingConfig.enableFallback(),
                 clazz,
                 errorMetric::increment);
+    }
+
+    static <T> T createRefreshingNewClient(
+            Supplier<TargetFactory.InstanceAndVersion<T>> newClientSupplier,
+            Class<T> clazz) {
+
+        return ExperimentRunningProxy.newProxyInstance(
+                Suppliers.compose(TargetFactory.InstanceAndVersion::instance, newClientSupplier::get),
+                null,
+                () -> true,
+                () -> false,
+                clazz,
+                () -> { });
     }
 
     static <T> T instrumentWithClientVersionTag(

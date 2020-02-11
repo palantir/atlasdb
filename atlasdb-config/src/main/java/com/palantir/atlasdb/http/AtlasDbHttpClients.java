@@ -41,7 +41,9 @@ public final class AtlasDbHttpClients {
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters).instance();
+        return VersionSelectingClients.createRefreshingNewClient(
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters),
+                type);
     }
 
     /**
