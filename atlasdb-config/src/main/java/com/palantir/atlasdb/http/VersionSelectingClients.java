@@ -16,21 +16,9 @@
 
 package com.palantir.atlasdb.http;
 
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BooleanSupplier;
-import java.util.function.DoubleSupplier;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.atlasdb.config.RemotingClientConfig;
-import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.proxy.ExperimentRunningProxy;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 /**
