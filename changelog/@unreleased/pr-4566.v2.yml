@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Revert AtlasDB metrics to before we thought there were metrics issues
+  links:
+  - https://github.com/palantir/atlasdb/pull/4566
