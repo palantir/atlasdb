@@ -25,8 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tritium.api.event.InstrumentationFilter;
 import com.palantir.tritium.event.InstrumentationFilters;
 import com.palantir.tritium.event.InvocationContext;
@@ -79,7 +77,6 @@ public final class AtlasDbMetrics {
             U service,
             String name,
             Function<InvocationContext, Map<String, String>> tagFunction) {
-        logMetricsRegistration(serviceInterface, service, name);
         return Instrumentation.builder(serviceInterface, service)
                 .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
                 .withLogging(
@@ -107,7 +104,6 @@ public final class AtlasDbMetrics {
             U service,
             String name,
             InstrumentationFilter instrumentationFilter) {
-        logMetricsRegistration(serviceInterface, service, name);
         return Instrumentation.builder(serviceInterface, service)
                 .withFilter(instrumentationFilter)
                 .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
@@ -116,15 +112,6 @@ public final class AtlasDbMetrics {
                         LoggingLevel.TRACE,
                         LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
                 .build();
-    }
-
-    private static <T, U extends T> void logMetricsRegistration(Class<T> serviceInterface, U service, String name) {
-        log.info("Registering metrics for an instance of {} (implementation type believed to be {}) with name {}."
-                        + " Also logging an exception for purposes of discovering the current stack trace.",
-                SafeArg.of("serviceInterface", serviceInterface),
-                SafeArg.of("serviceClass", service.getClass()),
-                SafeArg.of("name", name),
-                new SafeRuntimeException("I exist to show you the stack trace"));
     }
 
     private static InstrumentationFilter instrumentTimedOnly() {
