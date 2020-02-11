@@ -57,9 +57,7 @@ public class TimeLockServerHolder extends ExternalResource {
             .dynamicPort()
             .dynamicHttpsPort()
             .keystorePath("var/security/keyStore.jks")
-            .keystorePassword("keystore")
-            .trustStorePath("var/security/trustStore.jks")
-            .trustStorePassword("palantir");
+            .keystorePassword("keystore");
 
     private final Supplier<String> configFilePathSupplier;
 
@@ -88,7 +86,6 @@ public class TimeLockServerHolder extends ExternalResource {
         timelockServer.before();
         isRunning = true;
         initialised = true;
-
 
         StubMapping catchAll = any(urlMatching(ALL_NAMESPACES))
                 .willReturn(aResponse().proxiedFrom(getTimelockUri())

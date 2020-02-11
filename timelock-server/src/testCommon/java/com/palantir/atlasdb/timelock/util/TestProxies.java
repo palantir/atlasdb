@@ -72,7 +72,11 @@ public class TestProxies {
         return singleNode(server, serviceInterface, true, proxyMode);
     }
 
-    public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, boolean shouldRetry, ProxyMode proxyMode) {
+    public <T> T singleNode(
+            TimeLockServerHolder server,
+            Class<T> serviceInterface,
+            boolean shouldRetry,
+            ProxyMode proxyMode) {
         String uri = getServerUri(server, proxyMode);
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single", proxyMode);
         AuxiliaryRemotingParameters parameters = shouldRetry
