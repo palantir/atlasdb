@@ -48,7 +48,11 @@ public interface AuxiliaryRemotingParameters {
         return true;
     }
 
+    /**
+     * @deprecated Conjure is now always used, and supplying alternative configs is not possible.
+     */
     @Value.Default
+    @Deprecated
     default Supplier<RemotingClientConfig> remotingClientConfig() {
         return () -> RemotingClientConfigs.ALWAYS_USE_CONJURE;
     }

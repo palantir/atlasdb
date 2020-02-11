@@ -57,13 +57,13 @@ import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
-import com.palantir.atlasdb.config.RemotingClientConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
@@ -81,7 +81,7 @@ import com.palantir.atlasdb.factory.timelock.BlockingSensitiveLockRpcClient;
 import com.palantir.atlasdb.factory.timelock.BlockingSensitiveTimelockRpcClient;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
-import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
@@ -1076,11 +1076,14 @@ public abstract class TransactionManagers {
 
             PingableLeader localPingableLeader = localPaxosServices.localPingableLeader();
             String localServerId = localPingableLeader.getUUID();
-            PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
+            PingableLeader remotePingableLeader = AtlasDbHttpClients.createProxy(
                     ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
-                    userAgent);
+                    AuxiliaryRemotingParameters.builder()
+                            .userAgent(userAgent)
+                            .shouldRetry(true)
+                            .build());
 
             // Determine asynchronously whether the remote services are talking to our local services.
             CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
