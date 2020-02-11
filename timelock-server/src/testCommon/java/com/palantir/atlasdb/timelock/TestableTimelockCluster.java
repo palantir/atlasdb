@@ -135,6 +135,10 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     SetMultimap<String, TestableTimelockServer> currentLeaders(String... namespaces) {
+        return currentLeaders(ImmutableSet.copyOf(namespaces));
+    }
+
+    SetMultimap<String, TestableTimelockServer> currentLeaders(Iterable<String> namespaces) {
         Set<String> namespacesIterable = ImmutableSet.copyOf(namespaces);
         KeyedStream<TestableTimelockServer, PaxosContainer<Set<String>>> responses = PaxosQuorumChecker.collectUntil(
                 ImmutableList.copyOf(servers),

@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.timelock;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.requestMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.File;
@@ -45,11 +45,13 @@ import io.dropwizard.testing.DropwizardTestSupport;
 
 public class TimeLockServerHolder extends ExternalResource {
 
+    static final String ALL_NAMESPACES = "/[a-zA-Z0-9_-]+/.*";
+
     static {
         Http2Agent.install();
     }
 
-    private static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
+    static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
 
     private static final WireMockConfiguration WIRE_MOCK_CONFIGURATION = WireMockConfiguration.wireMockConfig()
             .dynamicPort()
@@ -87,10 +89,11 @@ public class TimeLockServerHolder extends ExternalResource {
         isRunning = true;
         initialised = true;
 
-        StubMapping catchAll = requestMatching(request -> urlMatching("/[a-zA-Z0-9_-]+/.*").match(request.getUrl()))
-                .atPriority(Integer.MAX_VALUE)
+
+        StubMapping catchAll = any(urlMatching(ALL_NAMESPACES))
                 .willReturn(aResponse().proxiedFrom(getTimelockUri())
                         .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
+                .atPriority(Integer.MAX_VALUE)
                 .build();
         wireMock.register(catchAll);
     }
