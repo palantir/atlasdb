@@ -34,18 +34,6 @@ plugins {
     id 'com.google.protobuf' version '0.8.10'
 }
 
-allprojects {
-    repositories {
-        mavenCentral()
-        maven {
-            url 'http://dl.bintray.com/palantir/releases/'
-        }
-        maven {
-            url 'https://dl.bintray.com/marshallpierce/maven/'
-        }
-    }
-}
-
 apply plugin: 'com.palantir.baseline-config'
 apply plugin: 'com.palantir.baseline-circleci'
 apply plugin: 'com.palantir.git-version'
@@ -64,6 +52,16 @@ task printLastVersion {
 }
 
 allprojects {
+    repositories {
+        mavenCentral()
+        maven {
+            url 'http://dl.bintray.com/palantir/releases/'
+        }
+        maven {
+            url 'https://dl.bintray.com/marshallpierce/maven/'
+        }
+    }
+
     apply plugin: 'java-library'
     apply plugin: 'nebula.dependency-recommender'
     apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone

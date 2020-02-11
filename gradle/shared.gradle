@@ -12,16 +12,6 @@ sourceCompatibility = 1.8
 version = rootProject.version
 group = rootProject.group
 
-repositories {
-    mavenCentral()
-    maven {
-        url 'http://dl.bintray.com/palantir/releases/'
-    }
-    maven {
-        url 'https://dl.bintray.com/marshallpierce/maven/'
-    }
-}
-
 jar {
     manifest {
         attributes(
