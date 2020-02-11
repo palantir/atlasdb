@@ -18,8 +18,6 @@ package com.palantir.atlasdb.timelock;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static com.palantir.atlasdb.timelock.TimeLockServerHolder.ALL_NAMESPACES;
-import static com.palantir.atlasdb.timelock.TimeLockServerHolder.WIREMOCK_USER_AGENT;
 
 import java.util.Map;
 import java.util.Set;
@@ -81,7 +79,8 @@ public class TestableTimelockServer {
 
         switch (mode) {
             case SINGLE_LEADER:
-                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class, false, ProxyMode.DIRECT);
+                PingableLeader pingableLeader =
+                        proxies.singleNode(serverHolder, PingableLeader.class, false, ProxyMode.DIRECT);
                 return namespaces -> {
                     if (pingableLeader.ping()) {
                         return ImmutableSet.copyOf(namespaces);
@@ -90,7 +89,8 @@ public class TestableTimelockServer {
                     }
                 };
             case LEADER_PER_CLIENT:
-                BatchPingableLeader batchPingableLeader = proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
+                BatchPingableLeader batchPingableLeader =
+                        proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
                 return namespaces -> {
                     Set<Client> typedNamespaces = Streams.stream(namespaces)
                             .map(Client::of)
@@ -121,7 +121,7 @@ public class TestableTimelockServer {
     }
 
     void rejectAllNamespacesOtherThan(Iterable<String> namespacesToAccept) {
-        StubMapping failEverything = any(urlMatching(ALL_NAMESPACES))
+        StubMapping failEverything = any(urlMatching(TimeLockServerHolder.ALL_NAMESPACES))
                 .willReturn(aResponse().withStatus(503))
                 .atPriority(Integer.MAX_VALUE - 1)
                 .build();
@@ -135,9 +135,10 @@ public class TestableTimelockServer {
 
     void allowAllNamespaces() {
         serverHolder.wireMock().removeMappings();
-        StubMapping catchAll = any(urlMatching(ALL_NAMESPACES))
+        StubMapping catchAll = any(urlMatching(TimeLockServerHolder.ALL_NAMESPACES))
                 .willReturn(aResponse().proxiedFrom(serverHolder.getTimelockUri())
-                        .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
+                        .withAdditionalRequestHeader(
+                                "User-Agent", UserAgents.format(TimeLockServerHolder.WIREMOCK_USER_AGENT)))
                 .atPriority(Integer.MAX_VALUE)
                 .build();
         serverHolder.wireMock().register(catchAll);
@@ -150,7 +151,8 @@ public class TestableTimelockServer {
     private StubMapping namespacesIsProxiedToTimelock(MappingBuilder mappingBuilder) {
         return mappingBuilder
                 .willReturn(aResponse().proxiedFrom(serverHolder.getTimelockUri())
-                        .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
+                        .withAdditionalRequestHeader(
+                                "User-Agent", UserAgents.format(TimeLockServerHolder.WIREMOCK_USER_AGENT)))
                 .atPriority(1)
                 .build();
     }
