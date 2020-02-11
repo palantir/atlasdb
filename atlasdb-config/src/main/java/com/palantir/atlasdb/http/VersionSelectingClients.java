@@ -34,53 +34,13 @@ import com.palantir.common.proxy.ExperimentRunningProxy;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 /**
- * Factory for randomly selecting from a new and a legacy version of a client, based on a live-reloading probability.
- *
- * Please note that your clients will run independently; if there are stateful invariants that need to be enforced
- * across individual clients, you may need to share state appropriately.
+ * Utilities for instrumenting clients with appropriate metrics based on the version they are created with.
  */
 final class VersionSelectingClients {
     private static final String CLIENT_VERSION = "clientVersion";
 
     private VersionSelectingClients() {
         // No, nein, 9, U+39, U+FE0F, etc.
-    }
-
-    static <T> T createVersionSelectingClient(
-            MetricsManager metricsManager,
-            TargetFactory.InstanceAndVersion<T> newClient,
-            TargetFactory.InstanceAndVersion<T> legacyClient,
-            VersionSelectingConfig versionSelectingConfig,
-            Class<T> clazz) {
-        return createVersionSelectingClientWithRefreshingNewClient(
-                metricsManager,
-                () -> newClient,
-                legacyClient,
-                versionSelectingConfig,
-                clazz);
-    }
-
-    static <T> T createVersionSelectingClientWithRefreshingNewClient(
-            MetricsManager metricsManager,
-            Supplier<TargetFactory.InstanceAndVersion<T>> newClientSupplier,
-            TargetFactory.InstanceAndVersion<T> legacyClient,
-            VersionSelectingConfig versionSelectingConfig,
-            Class<T> clazz) {
-
-        Supplier<T> instrumentedNewClientSupplier = () -> instrumentWithClientVersionTag(
-                metricsManager.getTaggedRegistry(), newClientSupplier.get(), clazz);
-        T instrumentedLegacyClient = instrumentWithClientVersionTag(
-                metricsManager.getTaggedRegistry(), legacyClient, clazz);
-
-        AccumulatingValueMetric errorMetric = registerOrGetErrorMetric(metricsManager);
-
-        return ExperimentRunningProxy.newProxyInstance(
-                instrumentedNewClientSupplier,
-                instrumentedLegacyClient,
-                versionSelectingConfig.useNewClient(),
-                versionSelectingConfig.enableFallback(),
-                clazz,
-                errorMetric::increment);
     }
 
     static <T> T instrumentWithClientVersionTag(
@@ -93,30 +53,5 @@ final class VersionSelectingClients {
                 client.instance(),
                 MetricRegistry.name(clazz),
                 $ -> ImmutableMap.of(CLIENT_VERSION, client.version()));
-    }
-
-    private static AccumulatingValueMetric registerOrGetErrorMetric(MetricsManager metricsManager) {
-        return metricsManager.registerOrGetGauge(
-                ExperimentRunningProxy.class,
-                AtlasDbMetricNames.EXPERIMENT_ERRORS,
-                AccumulatingValueMetric::new);
-    }
-
-    @Value.Immutable
-    interface VersionSelectingConfig {
-        BooleanSupplier useNewClient();
-        BooleanSupplier enableFallback();
-
-        static VersionSelectingConfig withNewClientProbability(DoubleSupplier probability, BooleanSupplier fallback) {
-            return ImmutableVersionSelectingConfig.builder()
-                    .useNewClient(() -> ThreadLocalRandom.current().nextDouble() < probability.getAsDouble())
-                    .enableFallback(fallback)
-                    .build();
-        }
-
-        static VersionSelectingConfig fromRemotingConfigSupplier(Supplier<RemotingClientConfig> liveReloadingConfig) {
-            return withNewClientProbability(() -> liveReloadingConfig.get().maximumConjureRemotingProbability(),
-                    () -> liveReloadingConfig.get().enableLegacyClientFallback());
-        }
     }
 }
