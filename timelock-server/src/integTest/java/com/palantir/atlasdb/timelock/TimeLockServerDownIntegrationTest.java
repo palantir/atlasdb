@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
 
+import java.util.concurrent.ExecutionException;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -45,7 +47,7 @@ public class TimeLockServerDownIntegrationTest {
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     @Test
-    public void getsDependencyExceptionFromTransactionsWhenDown() {
+    public void getsDependencyExceptionFromTransactionsWhenDown() throws ExecutionException {
         TransactionManager txnManager = TimeLockTestUtils.createTransactionManager(CLUSTER);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
@@ -67,8 +69,8 @@ public class TimeLockServerDownIntegrationTest {
                 .isExactlyInstanceOf(AtlasDbDependencyException.class);
     }
 
-    private static void takeDownTimeLock() {
-        CLUSTER.servers().forEach(TestableTimelockServer::kill);
+    private static void takeDownTimeLock() throws ExecutionException {
+        CLUSTER.killAndAwaitTermination(CLUSTER.servers());
     }
 
 }

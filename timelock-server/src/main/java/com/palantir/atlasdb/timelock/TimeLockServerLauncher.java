@@ -22,6 +22,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,8 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -61,6 +64,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
     }
 
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+    private final SettableFuture<Void> shutdownFuture = SettableFuture.create();
 
     @Override
     public void initialize(Bootstrap<CombinedTimeLockServerConfiguration> bootstrap) {
@@ -108,10 +112,40 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 timeLockAgent.shutdown();
             }
         });
+        environment.lifecycle().addLifeCycleListener(new LifeCycle.Listener() {
+            @Override
+            public void lifeCycleStarting(LifeCycle event) {
+
+            }
+
+            @Override
+            public void lifeCycleStarted(LifeCycle event) {
+
+            }
+
+            @Override
+            public void lifeCycleFailure(LifeCycle event, Throwable cause) {
+                shutdownFuture.setException(cause);
+            }
+
+            @Override
+            public void lifeCycleStopping(LifeCycle event) {
+
+            }
+
+            @Override
+            public void lifeCycleStopped(LifeCycle event) {
+                shutdownFuture.set(null);
+            }
+        });
     }
 
     public TaggedMetricRegistry taggedMetricRegistry() {
         return taggedMetricRegistry;
+    }
+
+    public ListenableFuture<Void> shutdownFuture() {
+        return shutdownFuture;
     }
 
     @Provider

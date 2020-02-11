@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
 import com.palantir.atlasdb.timelock.paxos.Client;
@@ -51,8 +53,12 @@ public class TestableTimelockServer {
         return serverHolder;
     }
 
-    void kill() {
-        serverHolder.kill();
+    ListenableFuture<Void> killAsync() {
+        return serverHolder.kill();
+    }
+
+    void killSync() {
+        Futures.getUnchecked(killAsync());
     }
 
     void start() {
