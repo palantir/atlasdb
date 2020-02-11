@@ -16,6 +16,7 @@
 
 package com.palantir.common.proxy;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
@@ -57,6 +58,10 @@ public class SelfRefreshingProxy<T> extends AbstractInvocationHandler {
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        return method.invoke(proxySupplier.get(), args);
+        try {
+            return method.invoke(proxySupplier.get(), args);
+        } catch (InvocationTargetException e) {
+            throw e.getTargetException();
+        }
     }
 }

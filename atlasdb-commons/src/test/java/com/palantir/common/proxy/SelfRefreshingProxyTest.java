@@ -16,6 +16,8 @@
 
 package com.palantir.common.proxy;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -56,5 +58,13 @@ public class SelfRefreshingProxyTest {
         Uninterruptibles.sleepUninterruptibly(10, TimeUnit.NANOSECONDS);
         runnable.run();
         verify(mockSupplier, times(2)).get();
+    }
+
+    @Test
+    public void propagatesExceptionsCorrectly() {
+        Exception exception = new RuntimeException("bad times");
+        doThrow(exception).when(mockRunnable).run();
+        Runnable runnable = SelfRefreshingProxy.create(mockSupplier, Runnable.class);
+        assertThatThrownBy(runnable::run).isEqualTo(exception);
     }
 }
