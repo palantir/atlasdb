@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.requestMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -23,9 +27,15 @@ import org.junit.rules.ExternalResource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -39,10 +49,23 @@ public class TimeLockServerHolder extends ExternalResource {
         Http2Agent.install();
     }
 
+    private static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
+
+    private static final WireMockConfiguration WIRE_MOCK_CONFIGURATION = WireMockConfiguration.wireMockConfig()
+            .dynamicPort()
+            .dynamicHttpsPort()
+            .keystorePath("var/security/keyStore.jks")
+            .keystorePassword("keystore")
+            .trustStorePath("var/security/keyStore.jks")
+            .trustStorePassword("keystore");
+
     private final Supplier<String> configFilePathSupplier;
+
+    private final WireMockServer wireMockServer = new WireMockServer(WIRE_MOCK_CONFIGURATION);
+    private final WireMock wireMock = new WireMock(wireMockServer);
     private DropwizardTestSupport<CombinedTimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
-    private boolean portInitialised = false;
+    private boolean initialised = false;
     private int timelockPort;
 
     TimeLockServerHolder(Supplier<String> configFilePathSupplier) {
@@ -57,27 +80,46 @@ public class TimeLockServerHolder extends ExternalResource {
 
         timelockPort = readTimelockPort();
 
+        wireMockServer.start();
+
         timelockServer = new DropwizardTestSupport<>(TimeLockServerLauncher.class, configFilePathSupplier.get());
         timelockServer.before();
         isRunning = true;
-        portInitialised = true;
+        initialised = true;
+
+        StubMapping catchAll = requestMatching(request -> urlMatching("/[a-zA-Z0-9_-]+/.*").match(request.getUrl()))
+                .atPriority(Integer.MAX_VALUE)
+                .willReturn(aResponse().proxiedFrom(getTimelockUri())
+                        .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
+                .build();
+        wireMock.register(catchAll);
     }
 
     @Override
     protected void after() {
         if (isRunning) {
+            wireMockServer.stop();
             timelockServer.after();
             isRunning = false;
         }
     }
 
     public int getTimelockPort() {
-        checkTimelockPortInitialised();
+        checkTimelockInitialised();
         return timelockPort;
     }
 
+    public int getTimelockWiremockPort() {
+        checkTimelockInitialised();
+        return wireMockServer.httpsPort();
+    }
+
+    public WireMock wireMock() {
+        return wireMock;
+    }
+
     String getTimelockUri() {
-        checkTimelockPortInitialised();
+        checkTimelockInitialised();
         // TODO(nziebart): hack
         return "https://localhost:" + timelockPort;
     }
@@ -86,8 +128,8 @@ public class TimeLockServerHolder extends ExternalResource {
         return ((TimeLockServerLauncher) timelockServer.getApplication()).taggedMetricRegistry();
     }
 
-    private void checkTimelockPortInitialised() {
-        Preconditions.checkState(portInitialised, "timelock server isn't running yet, bad initialisation?");
+    private void checkTimelockInitialised() {
+        Preconditions.checkState(initialised, "timelock server isn't running yet, bad initialisation?");
     }
 
     synchronized ListenableFuture<Void> kill() {
@@ -121,7 +163,7 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     TimeLockInstallConfiguration installConfig() {
-        checkTimelockPortInitialised();
+        checkTimelockInitialised();
         ObjectMapper mapper = Jackson.newObjectMapper(new YAMLFactory());
         try {
             return mapper.readValue(new File(configFilePathSupplier.get()), CombinedTimeLockServerConfiguration.class)

@@ -51,13 +51,30 @@ public class TestProxies {
                 .collect(Collectors.toList());
     }
 
-    public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface) {
-        return singleNode(server, serviceInterface, true);
+    public enum ProxyMode {
+        DIRECT {
+            @Override
+            int getPort(TimeLockServerHolder serverHolder) {
+                return serverHolder.getTimelockPort();
+            }
+        },
+        WIREMOCK {
+            @Override
+            int getPort(TimeLockServerHolder serverHolder) {
+                return serverHolder.getTimelockWiremockPort();
+            }
+        };
+
+        abstract int getPort(TimeLockServerHolder serverHolder);
     }
 
-    public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, boolean shouldRetry) {
-        String uri = getServerUri(server);
-        List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
+    public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, ProxyMode proxyMode) {
+        return singleNode(server, serviceInterface, true, proxyMode);
+    }
+
+    public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, boolean shouldRetry, ProxyMode proxyMode) {
+        String uri = getServerUri(server, proxyMode);
+        List<Object> key = ImmutableList.of(serviceInterface, uri, "single", proxyMode);
         AuxiliaryRemotingParameters parameters = shouldRetry
                 ? TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING
                 : TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_NO_RETRYING;
@@ -68,12 +85,12 @@ public class TestProxies {
                 parameters));
     }
 
-    public <T> T failover(Class<T> serviceInterface) {
+    public <T> T failover(Class<T> serviceInterface, ProxyMode proxyMode) {
         List<String> uris = servers.stream()
-                .map(this::getServerUri)
+                .map(server -> getServerUri(server, proxyMode))
                 .collect(Collectors.toList());
 
-        List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
+        List<Object> key = ImmutableList.of(serviceInterface, uris, "failover", proxyMode);
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder().addAllServers(uris).sslConfiguration(SSL_CONFIGURATION).build(),
@@ -81,8 +98,8 @@ public class TestProxies {
                 TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING));
     }
 
-    private String getServerUri(TimeLockServerHolder server) {
-        return baseUri + ":" + server.getTimelockPort();
+    private String getServerUri(TimeLockServerHolder server, ProxyMode proxyMode) {
+        return baseUri + ":" + proxyMode.getPort(server);
     }
 
 }

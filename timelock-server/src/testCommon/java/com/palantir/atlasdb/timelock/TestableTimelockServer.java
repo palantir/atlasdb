@@ -29,6 +29,7 @@ import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -70,7 +71,7 @@ public class TestableTimelockServer {
 
         switch (mode) {
             case SINGLE_LEADER:
-                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class, false);
+                PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class, false, ProxyMode.DIRECT);
                 return namespaces -> {
                     if (pingableLeader.ping()) {
                         return ImmutableSet.copyOf(namespaces);
@@ -79,8 +80,7 @@ public class TestableTimelockServer {
                     }
                 };
             case LEADER_PER_CLIENT:
-                BatchPingableLeader batchPingableLeader =
-                        proxies.singleNode(serverHolder, BatchPingableLeader.class, false);
+                BatchPingableLeader batchPingableLeader = proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
                 return namespaces -> {
                     Set<Client> typedNamespaces = Streams.stream(namespaces)
                             .map(Client::of)
@@ -116,9 +116,10 @@ public class TestableTimelockServer {
         }
 
         @Override
-        public <T> T createProxy(Class<T> clazz) {
-            return proxies.singleNode(serverHolder, clazz);
+        public <T> T createProxy(Class<T> clazz, ProxyMode proxyMode) {
+            return proxies.singleNode(serverHolder, clazz, proxyMode);
         }
+
     }
 
 }

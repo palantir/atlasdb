@@ -81,8 +81,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
-        namespace1 = TIMELOCK.client(CLIENT_1);
-        namespace2 = TIMELOCK.client(CLIENT_2);
+        namespace1 = TIMELOCK.client(CLIENT_1).throughWireMockProxy();
+        namespace2 = TIMELOCK.client(CLIENT_2).throughWireMockProxy();
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
