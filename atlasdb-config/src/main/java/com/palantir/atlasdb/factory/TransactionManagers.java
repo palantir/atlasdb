@@ -1138,12 +1138,12 @@ public abstract class TransactionManagers {
         }
     }
 
-    private static int logFailureToReadRemoteTimestampServerId(int logAfter, Throwable e) {
-        if (--logAfter == 0) {
-            log.warn("Failed to read remote timestamp server ID", e);
-            logAfter = LOGGING_INTERVAL;
+    private static int logFailureToReadRemoteTimestampServerId(int logAfter, Throwable th) {
+        if (logAfter == 0) {
+            log.warn("Failed to read remote timestamp server ID", th);
+            return LOGGING_INTERVAL;
         }
-        return logAfter;
+        return logAfter - 1;
     }
 
     private static LockAndTimestampServices createRawRemoteServices(
