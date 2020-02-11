@@ -58,9 +58,9 @@ public class TestProxies {
     public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, boolean shouldRetry) {
         String uri = getServerUri(server);
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
-        AuxiliaryRemotingParameters parameters = shouldRetry ?
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING :
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_NO_RETRYING;
+        AuxiliaryRemotingParameters parameters = shouldRetry
+                ? TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING
+                : TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_NO_RETRYING;
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
                 Optional.of(TRUST_CONTEXT),
                 uri,

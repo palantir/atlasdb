@@ -120,8 +120,8 @@ public class TestableTimelockCluster implements TestRule {
         waitUntilReadyToServeNamespaces(namespaces);
     }
 
-    void killAndAwaitTermination(Iterable<TestableTimelockServer> servers) throws ExecutionException {
-        Set<ListenableFuture<Void>> shutdownFutures = ImmutableSet.copyOf(servers)
+    void killAndAwaitTermination(Iterable<TestableTimelockServer> serversToKill) throws ExecutionException {
+        Set<ListenableFuture<Void>> shutdownFutures = ImmutableSet.copyOf(serversToKill)
                 .stream()
                 .map(TestableTimelockServer::killAsync)
                 .collect(Collectors.toSet());
