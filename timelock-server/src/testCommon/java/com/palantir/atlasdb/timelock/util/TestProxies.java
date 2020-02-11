@@ -54,7 +54,6 @@ public class TestProxies {
         String uri = getServerUri(server);
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
-                MetricsManagers.createForTests(),
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,

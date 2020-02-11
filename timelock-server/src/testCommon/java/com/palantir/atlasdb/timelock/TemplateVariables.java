@@ -17,10 +17,15 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
+
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 
 @Value.Immutable
 @Value.Enclosing
@@ -31,6 +36,7 @@ public interface TemplateVariables {
     List<Integer> getServerPorts();
     Integer getLocalServerPort();
     TimestampPaxos getClientPaxos();
+    PaxosLeaderMode getLeaderMode();
 
     @Value.Check
     default TemplateVariables putLocalServerPortAmongstAllServerPorts() {
@@ -46,5 +52,19 @@ public interface TemplateVariables {
     @Value.Immutable
     interface TimestampPaxos {
         boolean isUseBatchPaxos();
+    }
+
+    static Iterable<TemplateVariables> generateThreeNodeTimelockCluster(
+            int startingPort,
+            UnaryOperator<ImmutableTemplateVariables.Builder> customizer) {
+        List<Integer> allPorts = IntStream.range(startingPort, startingPort + 3).boxed().collect(Collectors.toList());
+        return IntStream.range(startingPort, startingPort + 3)
+                .boxed()
+                .map(port -> ImmutableTemplateVariables.builder()
+                        .serverPorts(allPorts)
+                        .localServerPort(port))
+                .map(customizer)
+                .map(ImmutableTemplateVariables.Builder::build)
+                .collect(Collectors.toList());
     }
 }

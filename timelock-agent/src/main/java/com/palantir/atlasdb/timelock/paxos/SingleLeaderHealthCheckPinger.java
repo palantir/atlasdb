@@ -24,7 +24,7 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.HealthCheckResponse;
 
-public class SingleLeaderHealthCheckPinger implements HealthCheckPinger {
+public final class SingleLeaderHealthCheckPinger implements HealthCheckPinger {
 
     private final PingableLeader pingableLeader;
 

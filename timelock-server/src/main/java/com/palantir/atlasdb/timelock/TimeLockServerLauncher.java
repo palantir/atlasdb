@@ -23,8 +23,12 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
@@ -48,6 +52,8 @@ import io.dropwizard.setup.Environment;
  */
 public class TimeLockServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
 
+    private static final Logger log = LoggerFactory.getLogger(TimeLockServerLauncher.class);
+
     private static final UserAgent USER_AGENT =
             UserAgent.of(UserAgent.Agent.of("TimeLockServerLauncher", "0.0.0"));
 
@@ -68,7 +74,8 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
     }
 
     @Override
-    public void run(CombinedTimeLockServerConfiguration configuration, Environment environment) {
+    public void run(CombinedTimeLockServerConfiguration configuration, Environment environment)
+            throws JsonProcessingException {
         environment.getObjectMapper()
                 .registerModule(new Jdk8Module())
                 .registerModule(new JavaTimeModule());
@@ -77,6 +84,10 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
+
+        log.info("Paxos configuration\n{}", environment.getObjectMapper()
+                .writerWithDefaultPrettyPrinter()
+                .writeValueAsString(configuration.install().paxos()));
 
         TimeLockAgent timeLockAgent = TimeLockAgent.create(
                 metricsManager,

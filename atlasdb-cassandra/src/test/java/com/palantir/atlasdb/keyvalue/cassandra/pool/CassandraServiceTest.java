@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraServiceTest {
@@ -183,7 +184,9 @@ public class CassandraServiceTest {
 
         blacklist = new Blacklist(config);
 
-        CassandraService service = new CassandraService(MetricsManagers.createForTests(), config, blacklist);
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        CassandraService service = new CassandraService(
+                metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

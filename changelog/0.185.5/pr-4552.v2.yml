@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: TimeLock now logs ERROR messages if multiple nodes are believed to
+    be servicing timestamps for a given namespace that are non-monotonic. We intend
+    to gather confidence that our detection mechanisms don't have false positives,
+    and then stop the server in this case.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4552

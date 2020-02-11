@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: AtlasDB now publishes a metric that can be used to monitor Cassandra
+    connection pool exhaustion.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4555

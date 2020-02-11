@@ -131,7 +131,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
         TransactionService txnService
                 = TransactionServices.createRaw(kvs, transactionManager.getTimestampService(), false);
-        SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(kvs); // maybe createDefault
+        SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(); // maybe createDefault
         PersistentLockManager noLocks = new PersistentLockManager(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 new NoOpPersistentLockService(),

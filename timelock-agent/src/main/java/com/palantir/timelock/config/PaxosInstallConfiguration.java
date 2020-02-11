@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
@@ -43,6 +44,25 @@ public interface PaxosInstallConfiguration {
      */
     @JsonProperty("is-new-service")
     boolean isNewService();
+
+    enum PaxosLeaderMode {
+        SINGLE_LEADER,
+        LEADER_PER_CLIENT,
+        AUTO_MIGRATION_MODE
+    }
+
+    @JsonProperty("leader-mode")
+    @Value.Default
+    default PaxosLeaderMode leaderMode() {
+        return PaxosLeaderMode.SINGLE_LEADER;
+    }
+
+    @Value.Check
+    default void checkLeaderModeIsNotInAutoMigrationMode() {
+        Preconditions.checkState(
+                leaderMode() != PaxosLeaderMode.AUTO_MIGRATION_MODE,
+                "Auto migration mode is not supported just yet");
+    }
 
     @Value.Check
     default void check() {

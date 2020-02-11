@@ -37,17 +37,11 @@ public final class AtlasDbHttpClients {
     }
 
     public static <T> T createProxy(
-            MetricsManager metricsManager,
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return createExperimentallyWithFallback(
-                metricsManager,
-                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters),
-                () -> AtlasDbFeignTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters),
-                type,
-                parameters);
+        return ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters).instance();
     }
 
     /**

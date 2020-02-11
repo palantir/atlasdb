@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
@@ -155,6 +156,16 @@ public class MetricsManager {
         Timer timer = metricRegistry.timer(fullyQualifiedHistogramName);
         registerMetricName(fullyQualifiedHistogramName);
         return timer;
+    }
+
+    public Counter registerOrGetCounter(Class clazz, String counterName) {
+        return registerOrGetCounter(MetricRegistry.name(clazz, "", counterName));
+    }
+
+    private Counter registerOrGetCounter(String fullyQualifiedCounterName) {
+        Counter counter = metricRegistry.counter(fullyQualifiedCounterName);
+        registerMetricName(fullyQualifiedCounterName);
+        return counter;
     }
 
     public Meter registerOrGetMeter(Class clazz, String meterName) {

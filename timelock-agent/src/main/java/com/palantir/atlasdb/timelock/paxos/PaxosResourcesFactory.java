@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
@@ -41,10 +40,13 @@ import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.paxos.SingleLeaderPinger;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
+import com.palantir.timestamp.TimestampBoundStore;
 
 public final class PaxosResourcesFactory {
 
@@ -57,17 +59,19 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics.getTaggedRegistry());
 
-        PaxosUseCaseContext timestampContext =
-                timestampContext(install, metrics, paxosRuntime, sharedExecutor, remoteClients);
-
-        ImmutablePaxosResources.Builder resourcesBuilder = ImmutablePaxosResources.builder()
-                .timestamp(timestampContext)
-                .addAdhocResources(new TimestampPaxosResource(timestampContext.components()));
+        ImmutablePaxosResources.Builder resourcesBuilder =
+                setupTimestampResources(install, metrics, paxosRuntime, sharedExecutor, remoteClients);
 
         if (install.useLeaderForEachClient()) {
-            throw new UnsupportedOperationException("not implemented yet");
+            return configureLeaderForEachClient(
+                    resourcesBuilder,
+                    install,
+                    metrics,
+                    paxosRuntime,
+                    sharedExecutor,
+                    remoteClients);
         } else {
-            configureLeaderForAllClients(
+            return configureLeaderForAllClients(
                     resourcesBuilder,
                     install,
                     metrics,
@@ -75,11 +79,46 @@ public final class PaxosResourcesFactory {
                     sharedExecutor,
                     remoteClients);
         }
-
-        return resourcesBuilder.build();
     }
 
-    private static void configureLeaderForAllClients(
+    private static PaxosResources configureLeaderForEachClient(
+            ImmutablePaxosResources.Builder resourcesBuilder,
+            TimelockPaxosInstallationContext install,
+            MetricsManager metrics,
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
+            ExecutorService sharedExecutor,
+            PaxosRemoteClients remoteClients) {
+        TimelockPaxosMetrics timelockMetrics =
+                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics.getTaggedRegistry());
+
+        Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
+            BatchPingableLeader local = dependencies.components().batchPingableLeader();
+            List<BatchPingableLeader> remotes = dependencies.remoteClients().batchPingableLeaders();
+            return Stream.concat(Stream.of(local), remotes.stream())
+                    .map(MultiLeaderHealthCheckPinger::new)
+                    .collect(Collectors.toList());
+        };
+
+        LeadershipContextFactory factory = ImmutableLeadershipContextFactory.builder()
+                .install(install)
+                .sharedExecutor(sharedExecutor)
+                .remoteClients(remoteClients)
+                .runtime(paxosRuntime)
+                .useCase(PaxosUseCase.LEADER_FOR_EACH_CLIENT)
+                .metrics(timelockMetrics)
+                .networkClientFactoryBuilder(ImmutableBatchingNetworkClientFactories.builder())
+                .leaderPingerFactoryBuilder(ImmutableBatchingLeaderPingerFactory.builder())
+                .healthCheckPingersFactory(healthCheckPingersFactory)
+                .build();
+
+        return resourcesBuilder
+                .leadershipContextFactory(factory)
+                .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
+                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
+                .build();
+    }
+
+    private static PaxosResources configureLeaderForAllClients(
             ImmutablePaxosResources.Builder resourcesBuilder,
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
@@ -88,13 +127,6 @@ public final class PaxosResourcesFactory {
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics.getTaggedRegistry());
-
-        Factories.LeaderPingerFactory leaderPingerFactory = dependencies -> new SingleLeaderPinger(
-                Maps.toMap(
-                        dependencies.remoteClients().nonBatchPingableLeadersWithContext(),
-                        _pingableLeader -> dependencies.sharedExecutor()),
-                dependencies.leaderPingResponseWait(),
-                dependencies.leaderUuid());
 
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
@@ -112,37 +144,48 @@ public final class PaxosResourcesFactory {
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .metrics(timelockMetrics)
                 .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
-                .leaderPingerFactory(leaderPingerFactory)
+                .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
                 .build();
 
-        resourcesBuilder.leadershipContextFactory(factory);
-        resourcesBuilder.addAdhocResources(
-                new LeadershipResource(
-                        factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
-                        factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
-                factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
+        return resourcesBuilder
+                .leadershipContextFactory(factory)
+                .addAdhocResources(
+                        new LeadershipResource(
+                                factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
+                                factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+                        factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
+                .build();
     }
 
-    private static PaxosUseCaseContext timestampContext(
+    private static ImmutablePaxosResources.Builder setupTimestampResources(
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
+        TimelockPaxosMetrics timelockMetrics =
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
 
-        PaxosUseCaseContext timestampBatchContext = batchUseCaseContext(
-                install,
-                remoteClients,
-                metrics,
-                PaxosUseCase.TIMESTAMP,
-                sharedExecutor);
+        LocalPaxosComponents paxosComponents = new LocalPaxosComponents(
+                timelockMetrics,
+                PaxosUseCase.TIMESTAMP.logDirectoryRelativeToDataDirectory(install.dataDirectory()),
+                install.nodeUuid());
+
+        NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
+                .useCase(PaxosUseCase.TIMESTAMP)
+                .metrics(timelockMetrics)
+                .remoteClients(remoteClients)
+                .components(paxosComponents)
+                .quorumSize(install.quorumSize())
+                .sharedExecutor(sharedExecutor)
+                .build();
 
         NetworkClientFactories singleLeaderClientFactories = ImmutableSingleLeaderNetworkClientFactories.builder()
                 .useCase(PaxosUseCase.TIMESTAMP)
-                .metrics(timestampBatchContext.metrics())
+                .metrics(timelockMetrics)
                 .remoteClients(remoteClients)
-                .components(timestampBatchContext.components())
+                .components(paxosComponents)
                 .quorumSize(install.quorumSize())
                 .sharedExecutor(sharedExecutor)
                 .build();
@@ -152,76 +195,49 @@ public final class PaxosResourcesFactory {
 
         NetworkClientFactories combinedNetworkClientFactories = ImmutableNetworkClientFactories.builder()
                 .acceptor(client -> PredicateSwitchedProxy.newProxyInstance(
-                        timestampBatchContext.networkClientFactories().acceptor().create(client),
+                        batchClientFactories.acceptor().create(client),
                         singleLeaderClientFactories.acceptor().create(client),
                         useBatchPaxosForTimestamps,
                         PaxosAcceptorNetworkClient.class))
                 .learner(client -> PredicateSwitchedProxy.newProxyInstance(
-                        timestampBatchContext.networkClientFactories().learner().create(client),
+                        batchClientFactories.learner().create(client),
                         singleLeaderClientFactories.learner().create(client),
                         useBatchPaxosForTimestamps,
                         PaxosLearnerNetworkClient.class))
-                .addAllCloseables(timestampBatchContext.networkClientFactories().closeables())
+                .addAllCloseables(batchClientFactories.closeables())
                 .addAllCloseables(singleLeaderClientFactories.closeables())
                 .build();
 
-        return ImmutablePaxosUseCaseContext.builder()
-                .from(timestampBatchContext)
-                .networkClientFactories(combinedNetworkClientFactories)
-                .build();
-    }
+        Factory<PaxosProposer> proposerFactory = client -> {
+            PaxosAcceptorNetworkClient acceptorNetworkClient = combinedNetworkClientFactories.acceptor().create(client);
+            PaxosLearnerNetworkClient learnerNetworkClient = combinedNetworkClientFactories.learner().create(client);
 
-    private static PaxosUseCaseContext batchUseCaseContext(
-            TimelockPaxosInstallationContext install,
-            PaxosRemoteClients remoteClients,
-            MetricsManager metrics,
-            PaxosUseCase useCase,
-            ExecutorService sharedExecutor) {
-        TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(useCase, metrics.getTaggedRegistry());
+            PaxosProposer paxosProposer = PaxosProposerImpl.newProposer(
+                    acceptorNetworkClient,
+                    learnerNetworkClient,
+                    install.nodeUuid());
 
-        LocalPaxosComponents paxosComponents = new LocalPaxosComponents(
-                timelockMetrics,
-                useCase.logDirectoryRelativeToDataDirectory(install.dataDirectory()),
-                install.nodeUuid());
+            return timelockMetrics.instrument(PaxosProposer.class, paxosProposer, client);
+        };
 
-        NetworkClientFactories batchClientFactories = ImmutableBatchingNetworkClientFactories.builder()
-                .useCase(useCase)
-                .metrics(timelockMetrics)
-                .remoteClients(remoteClients)
-                .components(paxosComponents)
-                .quorumSize(install.quorumSize())
-                .sharedExecutor(sharedExecutor)
-                .build();
+        Factory<ManagedTimestampService> timestampFactory = client -> {
+            // TODO (jkong): live reload ping
+            TimestampBoundStore boundStore = timelockMetrics.instrument(
+                    TimestampBoundStore.class,
+                    new PaxosTimestampBoundStore(
+                            proposerFactory.create(client),
+                            paxosComponents.learner(client),
+                            combinedNetworkClientFactories.acceptor().create(client),
+                            combinedNetworkClientFactories.learner().create(client),
+                            paxosRuntime.get().maximumWaitBeforeProposalMs()),
+                    client);
+            return PersistentTimestampServiceImpl.create(boundStore);
+        };
 
-        return ImmutablePaxosUseCaseContext.builder()
-                .install(install)
-                .metrics(timelockMetrics)
-                .components(paxosComponents)
-                .networkClientFactories(batchClientFactories)
-                .build();
-    }
-
-    @Value.Immutable
-    public interface PaxosUseCaseContext {
-        TimelockPaxosInstallationContext install();
-        TimelockPaxosMetrics metrics();
-        LocalPaxosComponents components();
-        NetworkClientFactories networkClientFactories();
-
-        @Value.Derived
-        default Factory<PaxosProposer> proposerFactory() {
-            return client -> {
-                PaxosAcceptorNetworkClient acceptorNetworkClient = networkClientFactories().acceptor().create(client);
-                PaxosLearnerNetworkClient learnerNetworkClient = networkClientFactories().learner().create(client);
-
-                PaxosProposer paxosProposer = PaxosProposerImpl.newProposer(
-                        acceptorNetworkClient,
-                        learnerNetworkClient,
-                        install().nodeUuid());
-
-                return metrics().instrument(PaxosProposer.class, paxosProposer, client);
-            };
-        }
+        return ImmutablePaxosResources.builder()
+                .addAdhocResources(new TimestampPaxosResource(paxosComponents))
+                .timestampPaxosComponents(paxosComponents)
+                .timestampServiceFactory(timestampFactory);
     }
 
     @Value.Immutable
@@ -267,7 +283,7 @@ public final class PaxosResourcesFactory {
 
         @Value.Derived
         default boolean useLeaderForEachClient() {
-            return false;
+            return install().paxos().leaderMode() == PaxosLeaderMode.LEADER_PER_CLIENT;
         }
 
     }

@@ -126,7 +126,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config,
                 startupChecks,
                 exceptionHandler,
-                blacklist);
+                blacklist,
+                new CassandraClientPoolMetrics(metricsManager));
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
@@ -141,13 +142,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraService cassandra) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
-                metricsManager,
                 config,
                 startupChecks,
                 refreshDaemon,
                 exceptionHandler,
                 blacklist,
-                cassandra);
+                cassandra,
+                new CassandraClientPoolMetrics(metricsManager));
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
@@ -167,7 +168,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config,
                 StartupChecks.RUN,
                 exceptionHandler,
-                blacklist);
+                blacklist,
+                new CassandraClientPoolMetrics(metricsManager));
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
@@ -177,9 +179,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
-            Blacklist blacklist) {
-        this(metricsManager,
-                config,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics metrics) {
+        this(config,
                 startupChecks,
                 PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                         .setDaemon(true)
@@ -187,24 +189,25 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                         .build()),
                 exceptionHandler,
                 blacklist,
-                new CassandraService(metricsManager, config, blacklist));
+                new CassandraService(metricsManager, config, blacklist, metrics),
+                metrics);
     }
 
     private CassandraClientPoolImpl(
-            MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             ScheduledExecutorService refreshDaemon,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
-            CassandraService cassandra) {
-        this.metrics = new CassandraClientPoolMetrics(metricsManager);
+            CassandraService cassandra,
+            CassandraClientPoolMetrics metrics) {
         this.config = config;
         this.startupChecks = startupChecks;
         this.refreshDaemon = refreshDaemon;
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
+        this.metrics = metrics;
     }
 
     private void tryInitialize() {

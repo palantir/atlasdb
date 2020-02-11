@@ -40,6 +40,7 @@ public class LocalPaxosComponents {
     private final Map<Client, Components> componentsByClient = Maps.newConcurrentMap();
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
+    private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
 
     LocalPaxosComponents(TimelockPaxosMetrics metrics, Path logDirectory, UUID leaderUuid) {
         this.metrics = metrics;
@@ -47,6 +48,7 @@ public class LocalPaxosComponents {
         this.leaderUuid = leaderUuid;
         this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
         this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
+        this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
     }
 
     public PaxosAcceptor acceptor(Client client) {
@@ -67,6 +69,10 @@ public class LocalPaxosComponents {
 
     public BatchPaxosLearner batchLearner() {
         return memoizedBatchLearner.get();
+    }
+
+    public BatchPingableLeader batchPingableLeader() {
+        return memoizedBatchPingableLeader.get();
     }
 
     private Components getOrCreateComponents(Client client) {
@@ -112,6 +118,12 @@ public class LocalPaxosComponents {
         return metrics.instrument(
                 BatchPaxosLearner.class,
                 new LocalBatchPaxosLearner(this));
+    }
+
+    private BatchPingableLeader createBatchPingableLeader() {
+        return metrics.instrument(
+                BatchPingableLeader.class,
+                new BatchPingableLeaderResource(leaderUuid, this));
     }
 
     @Value.Immutable
