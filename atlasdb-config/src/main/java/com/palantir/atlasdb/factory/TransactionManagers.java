@@ -148,6 +148,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -1084,6 +1085,7 @@ public abstract class TransactionManagers {
                     AuxiliaryRemotingParameters.builder()
                             .userAgent(userAgent)
                             .shouldRetry(true)
+                            .shouldLimitPayload(true)
                             .build());
 
             // Determine asynchronously whether the remote services are talking to our local services.
@@ -1098,11 +1100,14 @@ public abstract class TransactionManagers {
                     } catch (ClientErrorException e) {
                         useLocalServicesFuture.complete(false);
                         return;
-                    } catch (Throwable e) {
-                        if (--logAfter == 0) {
-                            log.warn("Failed to read remote timestamp server ID", e);
-                            logAfter = LOGGING_INTERVAL;
+                    } catch (UnknownRemoteException e) {
+                        if (400 <= e.getStatus() && e.getStatus() <= 499) {
+                            useLocalServicesFuture.complete(false);
+                            return;
                         }
+                        logAfter = logFailureToReadRemoteTimestampServerId(logAfter, e);
+                    } catch (Throwable e) {
+                        logAfter = logFailureToReadRemoteTimestampServerId(logAfter, e);
                     }
                     Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
                 }
@@ -1131,6 +1136,14 @@ public abstract class TransactionManagers {
                     .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
                     .build();
         }
+    }
+
+    private static int logFailureToReadRemoteTimestampServerId(int logAfter, Throwable e) {
+        if (--logAfter == 0) {
+            log.warn("Failed to read remote timestamp server ID", e);
+            logAfter = LOGGING_INTERVAL;
+        }
+        return logAfter;
     }
 
     private static LockAndTimestampServices createRawRemoteServices(
