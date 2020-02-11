@@ -2010,12 +2010,20 @@ public final class AllValueTypesTestTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<AllValueTypesTestRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<AllValueTypesTestRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, AllValueTypesTestRowResult>() {
             @Override
             public AllValueTypesTestRowResult apply(RowResult<byte[]> input) {
@@ -2121,5 +2129,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "E+l2YKDkACfDR3fqNe+o+g==";
+    static String __CLASS_HASH = "OSZcNk0sMucYPONOidAxGw==";
 }

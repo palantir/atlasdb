@@ -572,12 +572,20 @@ public final class HotspottyDataStreamValueTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<HotspottyDataStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<HotspottyDataStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, HotspottyDataStreamValueRowResult>() {
             @Override
             public HotspottyDataStreamValueRowResult apply(RowResult<byte[]> input) {
@@ -683,5 +691,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "h7DRumeDwFy8zaoa4W9uNA==";
+    static String __CLASS_HASH = "UHaviafQ2Hk6wA4jcqo9Kw==";
 }

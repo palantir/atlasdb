@@ -665,12 +665,20 @@ public final class SweepableTimestampsTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<SweepableTimestampsRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<SweepableTimestampsRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, SweepableTimestampsRowResult>() {
             @Override
             public SweepableTimestampsRowResult apply(RowResult<byte[]> input) {
@@ -776,5 +784,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5iC+nT3xDVTidq0kWH0TUQ==";
+    static String __CLASS_HASH = "10JKFw2xWKtto7uePC6N9w==";
 }

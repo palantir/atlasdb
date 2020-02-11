@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +35,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 import javax.annotation.Nullable;
@@ -243,6 +246,8 @@ public class TableRenderer {
                 }
                 line();
                 if (table.isRangeScanAllowed()) {
+                    renderOptimizeRangeRequests();
+                    line();
                     renderGetRange();
                     line();
                     renderGetRanges();
@@ -255,6 +260,8 @@ public class TableRenderer {
                         renderNamedDeleteRanges();
                     }
                 } else {
+                    renderOptimizeColumnSelection();
+                    line();
                     renderGetAllRowsUnordered();
                 }
                 line();
@@ -866,12 +873,22 @@ public class TableRenderer {
             } line("}");
         }
 
+        private void renderOptimizeRangeRequests() {
+            line("private RangeRequest optimizeRangeRequest(RangeRequest range) {"); {
+                line("if (range.getColumnNames().isEmpty()) {"); {
+                    line("return range.getBuilder().retainColumns(allColumns).build();");
+                } line("}");
+                line("return range;");
+            } line("}");
+            line();
+            line("private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {"); {
+                line("return Iterables.transform(ranges, this::optimizeRangeRequest);");
+            } line("}");
+        }
+
         private void renderGetRange() {
             line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {"); {
-                line("if (range.getColumnNames().isEmpty()) {"); {
-                    line("range = range.getBuilder().retainColumns(allColumns).build();");
-                } line("}");
-                line("return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+                line("return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
                         line("return ", RowResult, ".of(input);");
@@ -883,7 +900,7 @@ public class TableRenderer {
         private void renderGetRanges() {
             line("@Deprecated");
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
-                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);");
+                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));");
                 line("return IterableView.of(rangeResults).transform(");
                 line("        new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<", RowResult, ">>() {"); {
                     line("@Override");
@@ -901,18 +918,18 @@ public class TableRenderer {
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               int concurrencyLevel,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, ranges, concurrencyLevel,");
+                line("return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,");
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
-                line("return t.getRanges(tableRef, ranges,");
+                line("return t.getRanges(tableRef, optimizeRangeRequests(ranges),");
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
-                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);");
+                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));");
                 line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");
             } line("}");
         }
@@ -955,13 +972,23 @@ public class TableRenderer {
             } line("}");
         }
 
+        private void renderOptimizeColumnSelection() {
+            line("private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {"); {
+                line("if (columns.allColumnsSelected()) {"); {
+                    line("return allColumns;");
+                } line("}");
+                line("return columns;");
+            } line("}");
+        }
+
         private void renderGetAllRowsUnordered() {
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered() {"); {
                 line("return getAllRowsUnordered(allColumns);");
             } line("}");
             line();
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered(ColumnSelection columns) {"); {
-                line("return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),");
+                line("return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()");
+                line("        .retainColumns(optimizeColumnSelection(columns)).build()),");
                 line("        new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
                     line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
@@ -1018,14 +1045,16 @@ public class TableRenderer {
                 line("Set<Cell> rawCells = ColumnValues.toCells(cells);");
                 line("Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);");
                 line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
-                line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {");
-                    line("if (e.getValue().length > 0) {");
+                line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {"); {
+                    line("if (e.getValue().length > 0) {"); {
                         line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
-                        line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
-                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                        line(Column, " col = ", Column,
+                                ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
+                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ",
+                                ColumnValue, ".hydrateValue(e.getValue());");
                         line("rowMap.put(row, ", ColumnValue, ".of(col, val));");
-                    line("}");
-                line("}");
+                    } line("}");
+                } line("}");
                 line("return rowMap;");
             } line("}");
         }
@@ -1293,6 +1322,7 @@ public class TableRenderer {
         BatchColumnRangeSelection.class,
         ColumnRangeSelections.class,
         ColumnRangeSelection.class,
-        Iterators.class,
+        Iterators.class
     };
 }
+

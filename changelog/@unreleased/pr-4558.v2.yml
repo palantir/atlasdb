@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: AtlasDB generated code now optimises getRanges and getRangesLazy to
+  select only required columns. This is known to improve performance for single-column
+  tables (Nathan's optimization). This does not affect dynamic column tables.
+
+  AtlasDB users that check in their schemas need to regenerate them to benefit from this improvement.
+
+  links:
+  - https://github.com/palantir/atlasdb/pull/4558
