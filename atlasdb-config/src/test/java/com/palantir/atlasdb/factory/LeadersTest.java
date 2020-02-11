@@ -116,7 +116,7 @@ public class LeadersTest {
         verifyNoMoreInteractions(localAcceptor);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void createProxyAndLocalListThrowsIfCreatingObjectsWithoutHttpMethodAnnotatedMethods() {
         BigInteger localBigInteger = new BigInteger("0");
 
