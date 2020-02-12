@@ -10,8 +10,8 @@
             [knossos.history :as history])
   ;; We can import any Java objects, since Clojure runs on the JVM
   (:import com.palantir.atlasdb.http.TimestampClient)
-  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers))
-  (:import com.palantir.atlasdb.util.MetricsManagers)
+  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
+  (:import com.palantir.atlasdb.util.MetricsManagers))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Defining the set of of operations that you can do with a client

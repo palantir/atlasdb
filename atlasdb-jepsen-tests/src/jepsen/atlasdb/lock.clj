@@ -11,8 +11,8 @@
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
   (:import com.palantir.atlasdb.http.JepsenLockClient)
   (:import com.palantir.atlasdb.http.SynchronousLockClient)
-  (:import com.palantir.atlasdb.http.AsyncLockClient))
-  (:import com.palantir.atlasdb.util.MetricsManagers)
+  (:import com.palantir.atlasdb.http.AsyncLockClient)
+  (:import com.palantir.atlasdb.util.MetricsManagers))
 
 (def lock-names ["alpha" "bravo" "charlie" "delta"])
 
