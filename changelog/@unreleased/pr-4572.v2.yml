@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Bisection to figure out Timelock OOM issues. Trying commit 506167ebd which is just publishing changes.
+  links:
+    - https://github.com/palantir/atlasdb/pull/4571
+    - https://github.com/palantir/atlasdb/pull/4527
+    - https://github.com/palantir/atlasdb/pull/4547
