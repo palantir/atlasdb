@@ -28,6 +28,8 @@
         (c/exec :mkdir "/timelock-server")
         (c/exec :tar :xf "/timelock-server.tgz" "-C" "/timelock-server" "--strip-components" "1")
         (c/upload "resources/atlasdb/timelock.yml" "/timelock-server/var/conf")
+        (c/upload "var/security/keyStore.jks" "/timelock-server/var/security")
+        (c/upload "var/security/trustStore.jks" "/timelock-server/var/security")
         (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/timelock-server/var/conf/timelock.yml"))
       (start! node))
 

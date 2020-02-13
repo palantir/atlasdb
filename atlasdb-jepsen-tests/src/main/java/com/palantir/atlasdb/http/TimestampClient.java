@@ -17,7 +17,10 @@ package com.palantir.atlasdb.http;
 
 import java.util.List;
 
+import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.lock.client.RemoteTimelockServiceAdapter;
+import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampClient {
@@ -25,6 +28,9 @@ public final class TimestampClient {
     }
 
     public static TimestampService create(MetricsManager metricsManager, List<String> hosts) {
-        return TimelockUtils.createClient(metricsManager, hosts, TimestampService.class);
+        return new TimelockTimestampServiceAdapter(
+               RemoteTimelockServiceAdapter.create(
+                       TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class),
+                       TimelockUtils.NAMESPACE));
     }
 }

@@ -26,6 +26,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
+import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 
@@ -38,11 +39,13 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
 
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {
         return new AsyncLockClient(
-                TimelockUtils.createClient(metricsManager, hosts, NamespacedTimelockRpcClient.class));
+                new NamespacedTimelockRpcClient(
+                        TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class),
+                        TimelockUtils.NAMESPACE));
     }
 
     @Override
-    public LockToken lock(String client, String lockName) throws InterruptedException {
+    public LockToken lock(String client, String lockName) {
         LockRequest lockRequest = LockRequest.of(
                 ImmutableSet.of(StringLockDescriptor.of(lockName)),
                 Long.MAX_VALUE,
@@ -54,12 +57,12 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     }
 
     @Override
-    public Set<LockToken> unlock(Set<LockToken> lockTokenV2s) throws InterruptedException {
+    public Set<LockToken> unlock(Set<LockToken> lockTokenV2s) {
         return timelockService.unlock(lockTokenV2s);
     }
 
     @Override
-    public Set<LockToken> refresh(Set<LockToken> lockTokenV2s) throws InterruptedException {
+    public Set<LockToken> refresh(Set<LockToken> lockTokenV2s) {
         return timelockService.refreshLockLeases(lockTokenV2s);
     }
 }
