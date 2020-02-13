@@ -17,9 +17,11 @@ package com.palantir.atlasdb.http;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -44,24 +46,26 @@ public final class TimelockUtils {
     }
 
     private static List<String> hostnamesToEndpointUris(List<String> hosts) {
-        return Lists.transform(hosts, host -> String.format("https://%s:%d", host, PORT));
+        return hosts.stream().map(host -> String.format("https://%s:%d", host, PORT)).collect(Collectors.toList());
     }
 
-    private static <T> T createFromUris(MetricsManager unused, List<String> endpointUris, Class<T> type) {
+    private static <T> T createFromUris(MetricsManager metricsManager, List<String> endpointUris, Class<T> type) {
         ServerListConfig serverListConfig = ImmutableServerListConfig.builder()
                 .addAllServers(endpointUris)
                 .sslConfiguration(SSL_CONFIGURATION)
                 .build();
-        T proxy = AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
-                unused,
+        // lock technically blocking, but OK to run with short timeout given the way the tests work.
+        AuxiliaryRemotingParameters build = AuxiliaryRemotingParameters.builder()
+                .shouldRetry(false)
+                .shouldLimitPayload(false)
+                .shouldSupportBlockingOperations(false)
+                .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", "1.2.3")))
+                .build();
+
+        return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
+                metricsManager,
                 serverListConfig,
                 type,
-                AuxiliaryRemotingParameters.builder()
-                        .shouldRetry(false)
-                        .shouldLimitPayload(false)
-                        .shouldSupportBlockingOperations(true)
-                        .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", "1.2.3")))
-                        .build());
-        return proxy;
+                build);
     }
 }
