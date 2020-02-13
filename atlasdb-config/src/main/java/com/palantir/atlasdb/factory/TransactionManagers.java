@@ -163,6 +163,7 @@ import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
@@ -871,15 +872,32 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices) {
         TimelockService timelockServiceWithBatching = lockAndTimestampServices.timelock();
-        TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
-                timelockServiceWithBatching,
-                metricsManager.getRegistry());
+        TimelockService instrumentedTimelockService = AtlasDbMetrics.instrumentTimed(
+                metricsManager.getRegistry(),
+                TritiumTimelockService.class,
+                new TritiumTimelockService(new InstrumentedTimelockService(
+                        timelockServiceWithBatching,
+                        metricsManager.getRegistry())));
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .timestamp(new TimelockTimestampServiceAdapter(instrumentedTimelockService))
                 .timelock(instrumentedTimelockService)
                 .build();
+    }
+
+    public static final class TritiumTimelockService implements AutoDelegate_TimelockService {
+
+        private final TimelockService delegate;
+
+        public TritiumTimelockService(TimelockService delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public TimelockService delegate() {
+            return delegate;
+        }
     }
 
     private static LockAndTimestampServices createRawInstrumentedServices(

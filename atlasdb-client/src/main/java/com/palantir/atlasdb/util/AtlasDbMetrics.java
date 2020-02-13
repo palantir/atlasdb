@@ -33,6 +33,7 @@ import com.palantir.tritium.event.log.LoggingLevel;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.proxy.Instrumentation;
+import com.palantir.tritium.tracing.TracingInvocationEventHandler;
 
 public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
@@ -79,6 +80,7 @@ public final class AtlasDbMetrics {
             Function<InvocationContext, Map<String, String>> tagFunction) {
         return Instrumentation.builder(serviceInterface, service)
                 .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
+                .withHandler(TracingInvocationEventHandler.create(name))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
@@ -107,6 +109,7 @@ public final class AtlasDbMetrics {
         return Instrumentation.builder(serviceInterface, service)
                 .withFilter(instrumentationFilter)
                 .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
+                .withHandler(TracingInvocationEventHandler.create(name))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
