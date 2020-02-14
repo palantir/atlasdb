@@ -37,7 +37,6 @@ import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.TimestampService;
 
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
@@ -183,7 +182,6 @@ public class TimeLockMigrationEteTest {
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
         return AtlasDbHttpClients.createProxy(
-                MetricsManagers.createForTests(),
                 Optional.empty(),
                 uri,
                 clazz,
@@ -193,7 +191,6 @@ public class TimeLockMigrationEteTest {
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
         return AtlasDbHttpClients.createProxy(
-                MetricsManagers.createForTests(),
                 Optional.empty(),
                 uri,
                 TimestampService.class,
