@@ -19,19 +19,13 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Supplier;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.timelock.config.ImmutableRateLimitConfig;
-import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class AsyncLockServiceTest {
-    private static final Supplier<TargetedSweepLockControlConfig.RateLimitConfig> RATE_LIMIT_CONFIG_SUPPLIER
-            = () -> ImmutableRateLimitConfig.of(false,
-            TargetedSweepLockControlConfig.ShardAndThreadConfig.defaultConfig());
 
     @Test
     public void executorsShutDownAfterClose() {
@@ -40,8 +34,8 @@ public class AsyncLockServiceTest {
         AsyncLockService asyncLockService = AsyncLockService.createDefault(
                 new LockLog(MetricsManagers.createForTests().getRegistry(), () -> 1L),
                 reaperExecutor,
-                timeoutExecutor,
-                RATE_LIMIT_CONFIG_SUPPLIER);
+                timeoutExecutor
+        );
 
         asyncLockService.close();
         assertThat(reaperExecutor.isShutdown()).isTrue();

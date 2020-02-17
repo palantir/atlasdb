@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Remove targeted sweep rate limiting from Timelock.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4583
