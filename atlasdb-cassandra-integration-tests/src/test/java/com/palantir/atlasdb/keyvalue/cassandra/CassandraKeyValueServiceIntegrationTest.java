@@ -66,6 +66,7 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
@@ -298,6 +299,69 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
 
         assertThat(results).doesNotContainKey(CELL);
+    }
+
+    @Test
+    public void testGetRowsForDeletion() throws Exception {
+        TableReference tableReference =
+                TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
+        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        byte[] data = PtBytes.toBytes("data");
+        byte[] moreData = PtBytes.toBytes("data2");
+
+        Cell CELL_1 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column"));
+        Cell CELL_4 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        Cell CELL_5 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column2"));
+
+
+        Cell CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column"));
+        Cell CELL_3 = Cell.create(PtBytes.toBytes("row3"), PtBytes.toBytes("column"));
+
+
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL, Value.create(data, 8L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL, Value.create(moreData, 88L)));
+
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 80L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_4, Value.create(moreData, 85L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_5, Value.create(moreData, 88L)));
+
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_4, Value.create(moreData, 95L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_5, Value.create(moreData, 98L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 90L)));
+//
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 93L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 95L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 99L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_3, Value.create(moreData, 91L)));
+
+
+
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 100L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 101L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 102L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 103L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 104L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 105L)));
+//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 106L)));
+
+
+        Iterable<byte[]> rows = new ArrayList() {{
+           add(PtBytes.toBytes("row1"));
+            add(PtBytes.toBytes("row2"));
+            add(PtBytes.toBytes("row3"));
+            add(PtBytes.toBytes("row4"));
+            add(PtBytes.toBytes("row5"));
+
+        }};
+
+        Map<Cell, Value> result = keyValueService.getRows(tableReference, rows, ColumnSelection.all(), STARTING_ATLAS_TIMESTAMP - 1);
+
+//        keyValueService.delete(tableReference, ImmutableListMultimap.of(CELL, 8L));
+//
+//        putDummyValueAtCellAndTimestamp(tableReference, CELL, 8L, STARTING_ATLAS_TIMESTAMP - 1);
+//        Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
+//
+        assertThat(result).doesNotContainKey(CELL);
     }
 
     @Test

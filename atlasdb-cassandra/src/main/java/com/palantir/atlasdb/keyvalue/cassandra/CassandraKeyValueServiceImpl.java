@@ -17,14 +17,17 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -131,6 +134,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -595,7 +599,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
                     "Atlas getRows " + hostAndRows.getValue().size()
                             + " rows from " + tableRef + " on " + hostAndRows.getKey(),
-                    () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
+                    () -> getRowsToBeDeletedForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
         }
         List<Map<Cell, Value>> perHostResults = taskRunner.runAllTasksCancelOnFailure(tasks);
         Map<Cell, Value> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
@@ -650,6 +654,114 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
+    }
+
+    // todo(Sudiksha) / Write tests to go through the flow here
+    private Map<Cell, Value> getRowsToBeDeletedForSingleHost(final InetSocketAddress host,
+            final TableReference tableRef,
+            final List<byte[]> rows,
+            final long startTs) {
+        try {
+            int rowCount = 0;
+            final Map<Cell, Value> result = Maps.newHashMap();
+            int fetchBatchCount = config.fetchBatchCount();
+            for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
+                rowCount += batch.size();
+                result.putAll(fetchAllColumnsForRows(host, tableRef, batch, startTs));
+            }
+            if (rowCount > fetchBatchCount) {
+                log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
+                                + "this may indicate overly-large batching on a higher level.\n{}",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("rowCount", rowCount),
+                        SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
+            }
+            return ImmutableMap.copyOf(result);
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    private Map<Cell, Value> fetchAllColumnsForRows(final InetSocketAddress host,
+            final TableReference tableRef,
+            final List<byte[]> rows,
+            final long startTs) throws Exception {
+        final Map<ByteBuffer, List<ColumnOrSuperColumn>> result = Maps.newHashMap();
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult; //todo (Sudiksha) check null condition?
+
+        int magicBatchSize = 1;
+
+        SlicePredicate pred;
+        List<ColumnOrSuperColumn> resultForRow;
+
+        for (byte[] row: rows) {
+            pred = SlicePredicates.create(Range.ALL, Limit.of(magicBatchSize));
+
+            //todo(Sudiksha): refactor
+            while (true) {
+                partialResult = fetchColumnsInOneRequest(host, tableRef, ImmutableList.of(row), startTs, pred);
+
+                //todo refactor
+                ByteBuffer row_buf = ByteBuffer.wrap(row);
+                resultForRow = result.getOrDefault(row_buf, new ArrayList<>());
+                resultForRow.addAll(partialResult.get(row_buf));
+                result.put(row_buf, resultForRow);
+
+                pred = getSlicePredicate(partialResult);
+                if (partialResult.size() < magicBatchSize || pred == null) {
+                    break;
+                }
+            }
+        }
+
+        Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(rows.size());
+        new ValueExtractor(metricsManager, ret)
+                .extractResults(result, startTs, ColumnSelection.all());
+        return ret;
+    }
+
+    // todo(sudiksha): rename
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchColumnsInOneRequest(final InetSocketAddress host,
+            final TableReference tableRef,
+            final List<byte[]> rows,
+            final long startTs,
+            SlicePredicate pred) throws Exception {
+        return clientPool.runWithRetryOnHost(host,
+                new FunctionCheckedException<CassandraClient, Map<ByteBuffer, List<ColumnOrSuperColumn>>, Exception>() {
+                    @Override
+                    public Map<ByteBuffer, List<ColumnOrSuperColumn>> apply(CassandraClient client) throws Exception {
+                        List<ByteBuffer> rowNames = wrap(rows);
+
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
+                                "getRows", client, tableRef, rowNames, pred, readConsistency);
+
+                        return results;
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "multiget_slice(" + tableRef.getQualifiedName() + ", "
+                                + rows.size() + " rows" + ")";
+                    }
+                }
+        );
+    }
+
+    private static SlicePredicate getSlicePredicate(Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
+        // todo(Sudiksha): why is results map?
+        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry: results.entrySet()) {
+            List<ColumnOrSuperColumn> listOfCells = entry.getValue();
+
+            if (listOfCells.size() > 0) {
+                ColumnOrSuperColumn lastCol = listOfCells.get(listOfCells.size() - 1);
+                Pair<byte[], Long> pa =  CassandraKeyValueServices.decompose(lastCol.getColumn().name);
+                //todo(Sudiksha): refactor
+                return SlicePredicates.create(Range.of(CassandraKeyValueServices
+                        .makeCompositeBuffer(RangeRequests.nextLexicographicName(pa.lhSide), Long.MAX_VALUE),
+                        Range.UNBOUND_END), Limit.of(1));
+            }
+        }
+        return null;
     }
 
     private static List<ByteBuffer> wrap(List<byte[]> arrays) {
