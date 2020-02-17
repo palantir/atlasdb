@@ -47,7 +47,7 @@ public final class AtlasDbHttpClients {
         return Suppliers.memoizeWithExpiration(
                 () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters)
                         .instance(),
-                Duration.ofMinutes(10).toMinutes(),
+                Duration.ofMinutes(30).toMinutes(),
                 TimeUnit.MINUTES).get();
 
     }
