@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Added safeLogging tags to SQL connection pool logging.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4577

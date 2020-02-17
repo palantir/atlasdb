@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
@@ -114,7 +116,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 return conn;
             } catch (SQLException e) {
                 log.error("[{}] Dropping connection which failed validation",
-                        connConfig.getConnectionPoolName(),
+                        SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                         e);
                 dataSourcePool.evictConnection(conn);
 
@@ -140,13 +142,14 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                                     + "numIdleConnections = {}, "
                                     + "numConnections = {}, "
                                     + "numThreadsAwaitingCheckout = {}",
-                            connConfig.getConnectionPoolName(),
-                            poolProxy.getActiveConnections(),
-                            poolProxy.getIdleConnections(),
-                            poolProxy.getTotalConnections(),
-                            poolProxy.getThreadsAwaitingConnection());
+                            SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
+                            SafeArg.of("activeConnections", poolProxy.getActiveConnections()),
+                            SafeArg.of("idleConnections", poolProxy.getIdleConnections()),
+                            SafeArg.of("totalConnections", poolProxy.getTotalConnections()),
+                            SafeArg.of("threadsAwaitingConnection", poolProxy.getThreadsAwaitingConnection()));
                 } catch (Exception e) {
-                    log.error("[{}] Unable to log pool statistics.", connConfig.getConnectionPoolName(), e);
+                    log.error("[{}] Unable to log pool statistics.",
+                            SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()), e);
                 }
             }
         }
@@ -187,8 +190,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         log.error("Failed to get connection from the datasource "
                         + "{}. Please check the jdbc url ({}), the password, "
                         + "and that the secure server key is correct for the hashed password.",
-                connConfig.getConnectionPoolName(),
-                connConfig.getUrl());
+                SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
+                UnsafeArg.of("url", connConfig.getUrl()));
     }
 
     /**
@@ -383,10 +386,10 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             long elapsedMillis = globalStopwatch.elapsed(TimeUnit.MILLISECONDS);
             if (elapsedMillis > 1000) {
                 log.warn("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
-                        connConfig.getConnectionPoolName(),
-                        elapsedMillis,
-                        acquisitionMillis,
-                        connectionTestMillis);
+                        SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
+                        SafeArg.of("elapsedMillis", elapsedMillis),
+                        SafeArg.of("acquisitionMillis", acquisitionMillis),
+                        SafeArg.of("connectionTestMillis", connectionTestMillis));
                 logPoolStats();
             } else {
                 if (log.isDebugEnabled()) {
