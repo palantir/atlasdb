@@ -22,16 +22,13 @@ import java.lang.reflect.Proxy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
@@ -39,9 +36,8 @@ import com.palantir.logsafe.SafeArg;
 public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ExperimentRunningProxy.class);
     static final Duration REFRESH_INTERVAL = Duration.ofMinutes(10);
-    static final Duration CLIENT_REFRESH_INTERVAL = Duration.ofMinutes(30);
 
-    private final Supplier<T> refreshingExperimentalServiceSupplier;
+    private final T experimentalService;
     private final T fallbackService;
     private final BooleanSupplier useExperimental;
     private final BooleanSupplier enableFallback;
@@ -52,14 +48,13 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
 
     @VisibleForTesting
     ExperimentRunningProxy(
-            Supplier<T> experimentalServiceSupplier,
+            T experimentalService,
             T fallbackService,
             BooleanSupplier useExperimental,
             BooleanSupplier enableFallback,
             Clock clock,
             Runnable errorTask) {
-        this.refreshingExperimentalServiceSupplier = Suppliers.memoizeWithExpiration(
-                experimentalServiceSupplier::get, CLIENT_REFRESH_INTERVAL.toMinutes(), TimeUnit.MINUTES);
+        this.experimentalService = experimentalService;
         this.fallbackService = fallbackService;
         this.useExperimental = useExperimental;
         this.enableFallback = enableFallback;
@@ -69,14 +64,14 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(
-            Supplier<T> experimentalServiceSupplier,
+            T experimentalService,
             T fallbackService,
             BooleanSupplier useExperimental,
             BooleanSupplier enableFallback,
             Class<T> clazz,
             Runnable markErrorMetric) {
         ExperimentRunningProxy<T> service = new ExperimentRunningProxy<>(
-                experimentalServiceSupplier,
+                experimentalService,
                 fallbackService,
                 useExperimental,
                 enableFallback,
@@ -91,7 +86,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         boolean runExperiment = useExperimental();
-        Object target = runExperiment ? refreshingExperimentalServiceSupplier.get() : fallbackService;
+        Object target = runExperiment ? experimentalService : fallbackService;
         try {
             return method.invoke(target, args);
         } catch (InvocationTargetException e) {

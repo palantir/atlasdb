@@ -16,9 +16,12 @@
 
 package com.palantir.atlasdb.http.v2;
 
+import java.net.SocketTimeoutException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
@@ -26,6 +29,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.ImmutableInstanceAndVersion;
 import com.palantir.atlasdb.http.TargetFactory;
+import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
@@ -103,12 +107,30 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             ClientOptions clientOptions) {
         ClientConfiguration clientConfiguration = clientOptions.serverListToClient(serverListConfig);
 
-        T client = JaxRsClient.create(
+        T client = wrapConjureClientWithOkHttpTimeoutHandling(type, () -> JaxRsClient.create(
                 type,
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 HOST_METRICS_REGISTRY,
-                clientConfiguration);
+                clientConfiguration));
         return decorateFailoverProxy(type, () -> client);
+    }
+
+    private static <T> T wrapConjureClientWithOkHttpTimeoutHandling(Class<T> iface, Supplier<T> clientFactory) {
+        return ReplaceIfExceptionMatchingProxy.newProxyInstance(
+                iface,
+                Suppliers.memoizeWithExpiration(clientFactory::get, 20, TimeUnit.MINUTES),
+                ConjureJavaRuntimeTargetFactory::isPossiblyOkHttpTimeoutBug);
+    }
+
+    private static boolean isPossiblyOkHttpTimeoutBug(Throwable throwable) {
+        try {
+            throw throwable;
+        } catch (SocketTimeoutException e) {
+            return true;
+        } catch (Throwable t) {
+            Throwable cause = t.getCause();
+            return cause != null && isPossiblyOkHttpTimeoutBug(cause);
+        }
     }
 
     private static <T> InstanceAndVersion<T> decorateFailoverProxy(Class<T> type, Supplier<T> client) {

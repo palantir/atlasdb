@@ -92,10 +92,10 @@ public final class AtlasDbHttpClients {
             AuxiliaryRemotingParameters clientParameters) {
         TargetFactory.InstanceAndVersion<T> fallbackProxy = fallbackProxySupplier.get();
         try {
-            return VersionSelectingClients.createVersionSelectingClientWithRefreshingNewClient(
+            return VersionSelectingClients.createVersionSelectingClient(
                     metricsManager,
-                    experimentalProxySupplier,
                     fallbackProxy,
+                    experimentalProxySupplier.get(),
                     VersionSelectingConfig.fromRemotingConfigSupplier(clientParameters.remotingClientConfig()),
                     type);
         } catch (Exception e) {
