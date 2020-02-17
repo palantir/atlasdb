@@ -28,10 +28,8 @@ import com.palantir.lock.LockDescriptor;
 public class LockCollection {
 
     private final LoadingCache<LockDescriptor, AsyncLock> locksById;
-    private final OrderedLocksDecorator locksDecorator;
 
-    public LockCollection(OrderedLocksDecorator locksDecorator) {
-        this.locksDecorator = locksDecorator;
+    public LockCollection() {
         locksById = Caffeine.newBuilder()
                 .weakValues()
                 .build(ExclusiveLock::new);
@@ -45,7 +43,7 @@ public class LockCollection {
             locks.add(getLock(descriptor));
         }
 
-        return locksDecorator.decorate(orderedDescriptors, locks);
+        return OrderedLocks.fromOrderedList(locks);
     }
 
     private static List<LockDescriptor> sort(Set<LockDescriptor> descriptors) {

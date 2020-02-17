@@ -31,8 +31,6 @@ import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
-import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
-import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
@@ -52,20 +50,17 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final LockLog lockLog;
     private final LeadershipComponents leadershipComponents;
     private final Map<Client, LockDiagnosticConfig> lockDiagnosticConfig;
-    private final Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier;
 
     AsyncTimeLockServicesCreator(
             MetricsManager metricsManager,
             LockLog lockLog,
             LeadershipComponents leadershipComponents,
             // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-            Map<Client, LockDiagnosticConfig> lockDiagnosticConfig,
-            Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier) {
+            Map<Client, LockDiagnosticConfig> lockDiagnosticConfig) {
         this.metricsManager = metricsManager;
         this.lockLog = lockLog;
         this.leadershipComponents = leadershipComponents;
         this.lockDiagnosticConfig = lockDiagnosticConfig;
-        this.lockControlConfigSupplier = lockControlConfigSupplier;
     }
 
     @Override
@@ -116,13 +111,9 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 AsyncLockService.createDefault(
                         maybeEnhancedLockLog,
                         reaperExecutor,
-                        timeoutExecutor,
-                        rateLimitConfig(client)),
+                        timeoutExecutor
+                ),
                 timestampServiceSupplier.get());
-    }
-
-    private Supplier<RateLimitConfig> rateLimitConfig(Client client) {
-        return () -> lockControlConfigSupplier.get().rateLimitConfig(client.value());
     }
 
     /**

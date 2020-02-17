@@ -17,11 +17,11 @@ package com.palantir.timelock.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestRuntimeConfig;
 
 /**
@@ -30,6 +30,7 @@ import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestRuntimeConfig;
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @Value.Immutable
+@JsonIgnoreProperties("targeted-sweep-locks")
 public abstract class TimeLockRuntimeConfiguration {
 
     @Value.Default
@@ -55,12 +56,6 @@ public abstract class TimeLockRuntimeConfiguration {
     @Value.Default
     public long slowLockLogTriggerMillis() {
         return 10000;
-    }
-
-    @JsonProperty("targeted-sweep-locks")
-    @Value.Default
-    public TargetedSweepLockControlConfig targetedSweepLockControlConfig() {
-        return TargetedSweepLockControlConfig.defaultConfig();
     }
 
     @JsonProperty("test-only-lock-watches")
