@@ -15,13 +15,16 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.VersionSelectingClients.VersionSelectingConfig;
@@ -41,7 +44,12 @@ public final class AtlasDbHttpClients {
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters).instance();
+        return Suppliers.memoizeWithExpiration(
+                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters)
+                        .instance(),
+                Duration.ofMinutes(30).toMinutes(),
+                TimeUnit.MINUTES).get();
+
     }
 
     /**

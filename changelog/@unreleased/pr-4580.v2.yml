@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Memoize JaxRs clients for a maximum period of 30 minutes (what's on develop).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4580
