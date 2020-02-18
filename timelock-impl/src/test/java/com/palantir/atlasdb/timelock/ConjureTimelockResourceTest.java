@@ -77,7 +77,8 @@ public class ConjureTimelockResourceTest {
 
     @Test
     public void jerseyPropagatesExceptions() {
-        when(resource.leaderTime(AUTH_HEADER, NAMESPACE)).thenThrow(new BlockingTimeoutException(""));
+        when(resource.leaderTime(AUTH_HEADER, NAMESPACE))
+                .thenReturn(Futures.immediateFailedFuture(new BlockingTimeoutException("")));
         assertQosExceptionThrownBy(
                 Futures.submitAsync(
                         () -> Futures.immediateFuture(service.leaderTime(AUTH_HEADER, NAMESPACE)),

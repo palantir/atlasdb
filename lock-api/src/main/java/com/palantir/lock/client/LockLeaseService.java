@@ -25,7 +25,6 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.concurrent.CoalescingSupplier;
-import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -35,8 +34,6 @@ import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.logsafe.Preconditions;
@@ -70,12 +67,7 @@ class LockLeaseService {
     }
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {
-        StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
-                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
-
-        return ImmutableLockImmutableTimestampResponse.of(
-                response.immutableTimestamp().getImmutableTimestamp(),
-                LeasedLockToken.of(response.immutableTimestamp().getLock(), response.getLease()));
+        return startTransactions(1).immutableTimestamp();
     }
 
     StartTransactionResponseV4 startTransactions(int batchSize) {

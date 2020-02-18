@@ -66,11 +66,6 @@ public interface TimelockRpcClient {
     LockImmutableTimestampResponse lockImmutableTimestamp(
             @PathParam("namespace") String namespace, IdentifiedTimeLockRequest request);
 
-    @POST
-    @Path("start-atlasdb-transaction-v3")
-    StartAtlasDbTransactionResponseV3 deprecatedStartTransaction(
-            @PathParam("namespace") String namespace, StartIdentifiedAtlasDbTransactionRequest request);
-
     /**
      * Returns a {@link StartTransactionResponseV4} which has a single immutable ts, and a range of timestamps to
      * be used as start timestamps.

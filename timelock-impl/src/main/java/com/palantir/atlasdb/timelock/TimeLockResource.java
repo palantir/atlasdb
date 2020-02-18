@@ -41,7 +41,11 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@Path("/{namespace: (?!tl)[a-zA-Z0-9_-]+}")
+/**
+ * DO NOT add new endpoints in here. Instead, define them as Conjure endpoints.
+ */
+@Path("/{namespace: (?!tl$)[a-zA-Z0-9_-]+}")
+@Deprecated
 public class TimeLockResource {
     private final Logger log = LoggerFactory.getLogger(TimeLockResource.class);
 

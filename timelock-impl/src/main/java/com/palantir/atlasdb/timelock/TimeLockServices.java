@@ -43,7 +43,9 @@ public interface TimeLockServices {
 
     TimestampService getTimestampService();
     LockService getLockService();
+    // The Jersey endpoints
     AsyncTimelockResource getTimelockResource();
+    // The RPC-independent leadership-enabled implementation of the timelock service
     AsyncTimelockService getTimelockService();
     LockWatchingResource getLockWatchingResource();
     TimestampManagementService getTimestampManagementService();

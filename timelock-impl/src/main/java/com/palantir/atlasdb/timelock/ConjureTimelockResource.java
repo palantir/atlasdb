@@ -77,7 +77,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestorId(request.getRequestorId())
                     .numTransactions(request.getNumTransactions())
                     .build();
-            StartTransactionResponseV5 response = tl(namespace).startTransactionsWithWatches(legacyRequest);
+            StartTransactionResponseV5 response = forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
             return ConjureStartTransactionsResponse.builder()
                     .immutableTimestamp(response.immutableTimestamp())
                     .timestamps(response.timestamps())
@@ -88,10 +88,10 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
     @Override
     public ListenableFuture<LeaderTime> leaderTime(AuthHeader authHeader, String namespace) {
-        return handleExceptions(() -> tl(namespace).leaderTime());
+        return handleExceptions(() -> forNamespace(namespace).leaderTime());
     }
 
-    private AsyncTimelockService tl(String namespace) {
+    private AsyncTimelockService forNamespace(String namespace) {
         return timelockServices.apply(namespace);
     }
 
