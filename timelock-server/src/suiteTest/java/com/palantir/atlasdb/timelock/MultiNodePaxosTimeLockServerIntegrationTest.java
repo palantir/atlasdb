@@ -107,6 +107,11 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void canUseNamespaceStartingWithTlOnLegacyEndpoints() {
+        cluster.client("tl" + "suffix").getFreshTimestamp();
+    }
+
+    @Test
     public void leaderLosesLeadershipIfQuorumIsNotAlive() throws ExecutionException {
         NamespacedClients leader = cluster.currentLeaderFor(client.namespace())
                 .client(client.namespace());
