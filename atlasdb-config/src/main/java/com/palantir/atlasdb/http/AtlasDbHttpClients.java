@@ -94,8 +94,8 @@ public final class AtlasDbHttpClients {
         try {
             return VersionSelectingClients.createVersionSelectingClient(
                     metricsManager,
-                    fallbackProxy,
                     experimentalProxySupplier.get(),
+                    fallbackProxy,
                     VersionSelectingConfig.fromRemotingConfigSupplier(clientParameters.remotingClientConfig()),
                     type);
         } catch (Exception e) {
