@@ -27,7 +27,7 @@ import com.palantir.timestamp.TimestampService;
 /**
  * DO NOT add new endpoints in here. Instead, define them as Conjure endpoints.
  */
-@Path("/{namespace: (?!tl)[a-zA-Z0-9_-]+}")
+@Path("/{namespace: (?!tl/)[a-zA-Z0-9_-]+}")
 @Deprecated
 public class TimeLockResource {
     private final TimelockNamespaces namespaces;
