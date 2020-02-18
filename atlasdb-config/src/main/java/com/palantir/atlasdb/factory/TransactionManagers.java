@@ -122,6 +122,7 @@ import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -157,6 +158,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
@@ -985,6 +987,9 @@ public abstract class TransactionManagers {
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
+        ConjureTimelockService conjureTimelockService =
+                creator.createServiceWithoutBlockingOperations(ConjureTimelockService.class);
+
         TimelockRpcClient timelockClient = new BlockingSensitiveTimelockRpcClient(
                 creator.createService(TimelockRpcClient.class),
                 creator.createServiceWithoutBlockingOperations(TimelockRpcClient.class));
@@ -996,9 +1001,11 @@ public abstract class TransactionManagers {
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(withDiagnosticsTimelockClient, timelockNamespace);
+        NamespacedConjureTimelockService namespacedConjureTimelockService
+                = new NamespacedConjureTimelockService(conjureTimelockService, timelockNamespace);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
-                = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient);
+                = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient, namespacedConjureTimelockService);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 creator.createServiceWithoutBlockingOperations(TimestampManagementRpcClient.class), timelockNamespace);
 

@@ -27,7 +27,6 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
-    private static final String NAMESPACE = "test";
 
     private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(
             Paths.get("var", "security", "trustStore.jks"),
@@ -43,7 +42,7 @@ public final class TimelockUtils {
     }
 
     private static List<String> hostnamesToEndpointUris(List<String> hosts) {
-        return Lists.transform(hosts, host -> String.format("https://%s:%d/%s", host, PORT, NAMESPACE));
+        return Lists.transform(hosts, host -> String.format("http://%s:%d", host, PORT));
     }
 
     private static <T> T createFromUris(MetricsManager metricsManager, List<String> endpointUris, Class<T> type) {

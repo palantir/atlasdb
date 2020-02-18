@@ -52,11 +52,6 @@ public class NamespacedTimelockRpcClient {
         return timelockRpcClient.lockImmutableTimestamp(namespace, request);
     }
 
-    public StartAtlasDbTransactionResponseV3 deprecatedStartTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelockRpcClient.deprecatedStartTransaction(namespace, request);
-    }
-
     public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
         return timelockRpcClient.startTransactions(namespace, request);
     }

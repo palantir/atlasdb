@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 
 import java.util.Set;
 
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -35,18 +36,24 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
 
-    private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient) {
+    private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureTimelockService) {
         this.rpcClient = rpcClient;
-        this.lockLeaseService = LockLeaseService.create(rpcClient);
+        this.lockLeaseService = LockLeaseService.create(rpcClient, conjureTimelockService);
         this.transactionStarter = TransactionStarter.create(lockLeaseService);
     }
 
-    public static RemoteTimelockServiceAdapter create(NamespacedTimelockRpcClient rpcClient) {
-        return new RemoteTimelockServiceAdapter(rpcClient);
+    public static RemoteTimelockServiceAdapter create(
+            NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureClient) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient);
     }
 
-    public static RemoteTimelockServiceAdapter create(TimelockRpcClient rpcClient, String timelockNamespace) {
-        return create(new NamespacedTimelockRpcClient(rpcClient, timelockNamespace));
+    public static RemoteTimelockServiceAdapter create(
+            TimelockRpcClient rpcClient, ConjureTimelockService conjureClient, String timelockNamespace) {
+        return create(
+                new NamespacedTimelockRpcClient(rpcClient, timelockNamespace),
+                new NamespacedConjureTimelockService(conjureClient, timelockNamespace));
     }
 
     @Override

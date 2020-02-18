@@ -53,6 +53,7 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 @RunWith(MockitoJUnitRunner.class)
 public class LockLeaseServiceTest {
     @Mock private NamespacedTimelockRpcClient namespacedTimelockRpcClient;
+    @Mock private NamespacedConjureTimelockService namespacedConjureTimelockService;
     @Mock private LockRequest lockRequest;
     @Mock private PartitionedTimestamps partitionedTimestamps;
 
@@ -70,7 +71,8 @@ public class LockLeaseServiceTest {
     @Before
     public void before() {
         when(namespacedTimelockRpcClient.getLeaderTime()).thenAnswer(inv -> LeaderTime.of(LEADER_ID, time.get()));
-        lockLeaseService = new LockLeaseService(namespacedTimelockRpcClient, SERVICE_ID);
+        lockLeaseService = new LockLeaseService(
+                namespacedTimelockRpcClient, namespacedConjureTimelockService, SERVICE_ID);
     }
 
     @Test

@@ -27,7 +27,8 @@ public interface TimeLockServices {
     static TimeLockServices create(
             TimestampService timestampService,
             LockService lockService,
-            AsyncTimelockResource timelockService,
+            AsyncTimelockService timelockService,
+            AsyncTimelockResource timelockResource,
             LockWatchingResource lockWatchingResource,
             TimestampManagementService timestampManagementService) {
         return ImmutableTimeLockServices.builder()
@@ -35,13 +36,17 @@ public interface TimeLockServices {
                 .lockService(lockService)
                 .timestampManagementService(timestampManagementService)
                 .timelockService(timelockService)
+                .timelockResource(timelockResource)
                 .lockWatchingResource(lockWatchingResource)
                 .build();
     }
 
     TimestampService getTimestampService();
     LockService getLockService();
-    AsyncTimelockResource getTimelockService();
+    // The Jersey endpoints
+    AsyncTimelockResource getTimelockResource();
+    // The RPC-independent leadership-enabled implementation of the timelock service
+    AsyncTimelockService getTimelockService();
     LockWatchingResource getLockWatchingResource();
     TimestampManagementService getTimestampManagementService();
 }

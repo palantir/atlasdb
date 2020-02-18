@@ -22,8 +22,9 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.concurrent.CoalescingSupplier;
-import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -33,40 +34,59 @@ import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
+    private static final boolean HAVE_ROLLED_OUT_CONJURE_CHANGES_INTERNALLY = false;
     private final NamespacedTimelockRpcClient delegate;
+    private final NamespacedConjureTimelockService conjureDelegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
 
     @VisibleForTesting
-    LockLeaseService(NamespacedTimelockRpcClient timelockRpcClient, UUID clientId) {
+    LockLeaseService(
+            NamespacedTimelockRpcClient timelockRpcClient,
+            NamespacedConjureTimelockService conjureDelegate,
+            UUID clientId) {
         this.delegate = timelockRpcClient;
+        this.conjureDelegate = conjureDelegate;
         this.clientId = clientId;
-        this.time = new CoalescingSupplier<>(timelockRpcClient::getLeaderTime);
+        if (HAVE_ROLLED_OUT_CONJURE_CHANGES_INTERNALLY) {
+            this.time = new CoalescingSupplier<>(conjureDelegate::leaderTime);
+        } else {
+            this.time = new CoalescingSupplier<>(delegate::getLeaderTime);
+        }
     }
 
-    static LockLeaseService create(NamespacedTimelockRpcClient timelockRpcClient) {
-        return new LockLeaseService(timelockRpcClient, UUID.randomUUID());
+    static LockLeaseService create(
+            NamespacedTimelockRpcClient timelockRpcClient,
+            NamespacedConjureTimelockService conjureTimelock) {
+        return new LockLeaseService(timelockRpcClient, conjureTimelock, UUID.randomUUID());
     }
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {
-        StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
-                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
-
-        return ImmutableLockImmutableTimestampResponse.of(
-                response.immutableTimestamp().getImmutableTimestamp(),
-                LeasedLockToken.of(response.immutableTimestamp().getLock(), response.getLease()));
+        return startTransactions(1).immutableTimestamp();
     }
 
     StartTransactionResponseV4 startTransactions(int batchSize) {
-        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
-        StartTransactionResponseV4 response = delegate.startTransactions(request);
+        final StartTransactionResponseV4 response;
+        if (HAVE_ROLLED_OUT_CONJURE_CHANGES_INTERNALLY) {
+            ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
+                    .requestorId(clientId)
+                    .requestId(UUID.randomUUID())
+                    .numTransactions(batchSize)
+                    .build();
+            ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
+            response = StartTransactionResponseV4.of(
+                    conjureResponse.getImmutableTimestamp(),
+                    conjureResponse.getTimestamps(),
+                    conjureResponse.getLease());
+        } else {
+            StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
+            response = delegate.startTransactions(request);
+        }
 
         Lease lease = response.lease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);

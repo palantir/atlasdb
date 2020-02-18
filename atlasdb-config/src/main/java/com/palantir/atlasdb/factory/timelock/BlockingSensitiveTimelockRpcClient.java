@@ -26,8 +26,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
@@ -72,12 +70,6 @@ public class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
     public LockImmutableTimestampResponse lockImmutableTimestamp(String namespace, IdentifiedTimeLockRequest request) {
         // Despite the name, these locks are not exclusive so we do not expect blocking.
         return nonBlockingClient.lockImmutableTimestamp(namespace, request);
-    }
-
-    @Override
-    public StartAtlasDbTransactionResponseV3 deprecatedStartTransaction(String namespace,
-            StartIdentifiedAtlasDbTransactionRequest request) {
-        return nonBlockingClient.deprecatedStartTransaction(namespace, request);
     }
 
     @Override
