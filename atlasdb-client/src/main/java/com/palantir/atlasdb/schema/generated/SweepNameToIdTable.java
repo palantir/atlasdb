@@ -574,12 +574,20 @@ public final class SweepNameToIdTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<SweepNameToIdRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<SweepNameToIdRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, SweepNameToIdRowResult>() {
             @Override
             public SweepNameToIdRowResult apply(RowResult<byte[]> input) {
@@ -685,5 +693,5 @@ public final class SweepNameToIdTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "s9zHRD9HAzEhp13L6+ZO4g==";
+    static String __CLASS_HASH = "mSOxVQOF3LQIfVZ4kuvsBQ==";
 }

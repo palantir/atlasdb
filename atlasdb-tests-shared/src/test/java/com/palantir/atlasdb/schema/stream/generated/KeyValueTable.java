@@ -560,12 +560,20 @@ public final class KeyValueTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<KeyValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<KeyValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, KeyValueRowResult>() {
             @Override
             public KeyValueRowResult apply(RowResult<byte[]> input) {
@@ -671,5 +679,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BYGWmy0KvpGJjzSxj43itA==";
+    static String __CLASS_HASH = "mbTxKGjRIjkPFxHTPd04xw==";
 }

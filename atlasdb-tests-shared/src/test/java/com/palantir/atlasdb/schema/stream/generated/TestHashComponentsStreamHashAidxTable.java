@@ -618,12 +618,20 @@ public final class TestHashComponentsStreamHashAidxTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<TestHashComponentsStreamHashAidxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<TestHashComponentsStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, TestHashComponentsStreamHashAidxRowResult>() {
             @Override
             public TestHashComponentsStreamHashAidxRowResult apply(RowResult<byte[]> input) {
@@ -729,5 +737,5 @@ public final class TestHashComponentsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BRYFXhQNblQxMn0fqYlQeQ==";
+    static String __CLASS_HASH = "4CxaRgL97b3KHSb3i55YJw==";
 }

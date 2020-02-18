@@ -560,12 +560,20 @@ public final class AuditedDataTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<AuditedDataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<AuditedDataRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, AuditedDataRowResult>() {
             @Override
             public AuditedDataRowResult apply(RowResult<byte[]> input) {
@@ -671,5 +679,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "EGnx5lzRwirDKf6FLStpYQ==";
+    static String __CLASS_HASH = "aY4NrChDSphxVyxbnmNIqQ==";
 }

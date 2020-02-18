@@ -688,11 +688,19 @@ public final class SchemaApiTestTable implements
         return transformed;
     }
 
-    public BatchingVisitableView<SchemaApiTestRowResult> getRange(RangeRequest range) {
+    private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            range = range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allColumns).build();
         }
-        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, SchemaApiTestRowResult>() {
+        return range;
+    }
+
+    private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
+        return Iterables.transform(ranges, this::optimizeRangeRequest);
+    }
+
+    public BatchingVisitableView<SchemaApiTestRowResult> getRange(RangeRequest range) {
+        return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, SchemaApiTestRowResult>() {
             @Override
             public SchemaApiTestRowResult apply(RowResult<byte[]> input) {
                 return SchemaApiTestRowResult.of(input);
@@ -702,7 +710,7 @@ public final class SchemaApiTestTable implements
 
     @Deprecated
     public IterableView<BatchingVisitable<SchemaApiTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<SchemaApiTestRowResult>>() {
             @Override
@@ -720,18 +728,18 @@ public final class SchemaApiTestTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<SchemaApiTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges, concurrencyLevel,
+        return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<SchemaApiTestRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges,
+        return t.getRanges(tableRef, optimizeRangeRequests(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of)));
     }
 
     public Stream<BatchingVisitable<SchemaApiTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of));
     }
 
@@ -848,5 +856,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "G9lxb99ucQ5q+GVyaV8Exg==";
+    static String __CLASS_HASH = "UZ8uuV9Ywijcm/eaFUUGWA==";
 }

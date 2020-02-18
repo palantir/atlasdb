@@ -25,19 +25,6 @@ runtime:
   paxos:
     timestamp-paxos:
       use-batch-paxos: ${clientPaxos.useBatchPaxos?c}
-  targeted-sweep-locks:
-    mode: disabled-by-default
-    excluded-clients:
-      - should-rate-limit
-      - should-rate-limit-circular
-    concurrency:
-      should-rate-limit:
-        shards: 1
-      should-rate-limit-circular:
-        nodes: 2
-        shards: 8
-        conservative-threads: 1
-        thorough-threads: 2
 
 server:
   minThreads: 1

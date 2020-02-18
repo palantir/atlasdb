@@ -572,12 +572,20 @@ public final class ValueStreamValueTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<ValueStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<ValueStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, ValueStreamValueRowResult>() {
             @Override
             public ValueStreamValueRowResult apply(RowResult<byte[]> input) {
@@ -683,5 +691,5 @@ public final class ValueStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "PM74YW0mIqMp265E0Cwx+w==";
+    static String __CLASS_HASH = "uoZzWxTINh2Aw767Nw8qYw==";
 }

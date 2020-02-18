@@ -38,7 +38,6 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
-import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestingService;
 import com.palantir.atlasdb.timelock.paxos.Client;
@@ -128,14 +127,12 @@ public class TimeLockAgent {
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
 
-        Supplier<TargetedSweepLockControlConfig> targetedSweepLockControlConfig = Suppliers.compose(
-                TimeLockRuntimeConfiguration::targetedSweepLockControlConfig, runtime::get);
         this.timelockCreator = new AsyncTimeLockServicesCreator(
                 metricsManager,
                 lockLog,
                 paxosResources.leadershipComponents(),
-                install.lockDiagnosticConfig(),
-                targetedSweepLockControlConfig);
+                install.lockDiagnosticConfig()
+        );
 
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
                 new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());

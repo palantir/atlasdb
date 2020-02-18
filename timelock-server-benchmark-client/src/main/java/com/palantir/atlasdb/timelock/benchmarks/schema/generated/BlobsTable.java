@@ -560,12 +560,20 @@ public final class BlobsTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<BlobsRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<BlobsRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, BlobsRowResult>() {
             @Override
             public BlobsRowResult apply(RowResult<byte[]> input) {
@@ -671,5 +679,5 @@ public final class BlobsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0BaY87Xke52zUxnOtlXXSg==";
+    static String __CLASS_HASH = "ZVu9kfE8BlJMdNms4TAn1w==";
 }

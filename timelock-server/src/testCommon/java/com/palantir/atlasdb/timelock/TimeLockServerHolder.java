@@ -23,6 +23,8 @@ import org.junit.rules.ExternalResource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -37,7 +39,7 @@ public class TimeLockServerHolder extends ExternalResource {
         Http2Agent.install();
     }
 
-    private Supplier<String> configFilePathSupplier;
+    private final Supplier<String> configFilePathSupplier;
     private DropwizardTestSupport<CombinedTimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
     private boolean portInitialised = false;
@@ -88,8 +90,16 @@ public class TimeLockServerHolder extends ExternalResource {
         Preconditions.checkState(portInitialised, "timelock server isn't running yet, bad initialisation?");
     }
 
-    synchronized void kill() {
+    synchronized ListenableFuture<Void> kill() {
+        if (!isRunning) {
+            return Futures.immediateFailedFuture(new RuntimeException("timelock hasn't started"));
+        }
         after();
+        return getShutdownFuture();
+    }
+
+    private ListenableFuture<Void> getShutdownFuture() {
+        return ((TimeLockServerLauncher) timelockServer.getApplication()).shutdownFuture();
     }
 
     synchronized void start() {

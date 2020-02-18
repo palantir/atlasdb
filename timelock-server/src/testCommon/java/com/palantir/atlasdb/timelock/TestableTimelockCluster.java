@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +47,8 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.streams.KeyedStream;
@@ -117,6 +120,15 @@ public class TestableTimelockCluster implements TestRule {
         waitUntilReadyToServeNamespaces(namespaces);
     }
 
+    void killAndAwaitTermination(Iterable<TestableTimelockServer> serversToKill) throws ExecutionException {
+        Set<ListenableFuture<Void>> shutdownFutures = ImmutableSet.copyOf(serversToKill)
+                .stream()
+                .map(TestableTimelockServer::killAsync)
+                .collect(Collectors.toSet());
+
+        Futures.getDone(Futures.allAsList(shutdownFutures));
+    }
+
     TestableTimelockServer currentLeaderFor(String namespace) {
         return Iterables.getOnlyElement(currentLeaders(namespace).get(namespace));
     }
@@ -175,7 +187,7 @@ public class TestableTimelockCluster implements TestRule {
 
     private boolean tryFailoverToNewLeader(String namespace) {
         TestableTimelockServer leader = currentLeaderFor(namespace);
-        leader.kill();
+        leader.killSync();
         waitUntilLeaderIsElected(ImmutableList.of(namespace));
         leader.start();
 

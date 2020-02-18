@@ -584,12 +584,20 @@ public final class StreamTestStreamMetadataTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<StreamTestStreamMetadataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, StreamTestStreamMetadataRowResult>() {
             @Override
             public StreamTestStreamMetadataRowResult apply(RowResult<byte[]> input) {
@@ -695,5 +703,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vUhf73e3J1miSxRQllAZVw==";
+    static String __CLASS_HASH = "//+Vok0wO6GsnnxnOL+rNg==";
 }

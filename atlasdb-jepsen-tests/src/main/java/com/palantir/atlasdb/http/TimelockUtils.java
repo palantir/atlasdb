@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.nio.file.Paths;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -22,9 +23,15 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
+
+    private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(
+            Paths.get("var", "security", "trustStore.jks"),
+            Paths.get("var", "security", "keyStore.jks"),
+            "keystore");
 
     private TimelockUtils() {
     }
@@ -41,7 +48,10 @@ public final class TimelockUtils {
     private static <T> T createFromUris(MetricsManager metricsManager, List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 metricsManager,
-                ImmutableServerListConfig.builder().addAllServers(endpointUris).build(),
+                ImmutableServerListConfig.builder()
+                        .addAllServers(endpointUris)
+                        .sslConfiguration(SSL_CONFIGURATION)
+                        .build(),
                 type,
                 AuxiliaryRemotingParameters.builder()
                         .shouldRetry(true)

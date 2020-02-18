@@ -572,12 +572,20 @@ public final class StreamTestStreamValueTable implements
         return transformed;
     }
 
+    private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
+        if (columns.allColumnsSelected()) {
+            return allColumns;
+        }
+        return columns;
+    }
+
     public BatchingVisitableView<StreamTestStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, StreamTestStreamValueRowResult>() {
             @Override
             public StreamTestStreamValueRowResult apply(RowResult<byte[]> input) {
@@ -683,5 +691,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "t4siupL4rI2rgk/Ry/XT1Q==";
+    static String __CLASS_HASH = "r4Rn+nXnvjeaPOB0x0RzHA==";
 }

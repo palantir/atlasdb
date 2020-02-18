@@ -560,11 +560,19 @@ public final class KeyValueTable implements
         return transformed;
     }
 
-    public BatchingVisitableView<KeyValueRowResult> getRange(RangeRequest range) {
+    private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            range = range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allColumns).build();
         }
-        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, KeyValueRowResult>() {
+        return range;
+    }
+
+    private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
+        return Iterables.transform(ranges, this::optimizeRangeRequest);
+    }
+
+    public BatchingVisitableView<KeyValueRowResult> getRange(RangeRequest range) {
+        return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, KeyValueRowResult>() {
             @Override
             public KeyValueRowResult apply(RowResult<byte[]> input) {
                 return KeyValueRowResult.of(input);
@@ -574,7 +582,7 @@ public final class KeyValueTable implements
 
     @Deprecated
     public IterableView<BatchingVisitable<KeyValueRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<KeyValueRowResult>>() {
             @Override
@@ -592,18 +600,18 @@ public final class KeyValueTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges, concurrencyLevel,
+        return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of)));
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, ranges,
+        return t.getRanges(tableRef, optimizeRangeRequests(ranges),
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of)));
     }
 
     public Stream<BatchingVisitable<KeyValueRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, KeyValueRowResult::of));
     }
 
@@ -720,5 +728,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "EKg8g6KEhPObhtqejN6Weg==";
+    static String __CLASS_HASH = "EUckTePDEQOv8KBw83tT+w==";
 }
