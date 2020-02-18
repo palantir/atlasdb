@@ -17,9 +17,7 @@ package com.palantir.timelock.paxos;
 
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -36,6 +34,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
@@ -77,7 +76,7 @@ public class TimeLockAgent {
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
 
     private LeaderPingHealthCheck healthCheck;
-    private TimeLockResource resource;
+    private TimelockNamespaces namespaces;
 
     public static TimeLockAgent create(
             MetricsManager metricsManager,
@@ -170,24 +169,21 @@ public class TimeLockAgent {
         registerPaxosResource();
         registerExceptionMappers();
 
-        Map<String, TimeLockServices> services = new ConcurrentHashMap<>();
-        Function<String, TimeLockServices> timelockServices =
-                namespace -> services.computeIfAbsent(
-                        namespace, this::createInvalidatingTimeLockServices);
+        TimelockNamespaces namespaces = new TimelockNamespaces(
+                metricsManager,
+                this::createInvalidatingTimeLockServices,
+                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
 
         // Finally, register the health check, and endpoints associated with the clients.
-        resource = TimeLockResource.create(
-                metricsManager,
-                timelockServices,
-                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
-        healthCheck = paxosResources.leadershipComponents().healthCheck(resource::getActiveClients);
+        TimeLockResource resource = TimeLockResource.create(namespaces);
+        healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
         LockWatchTestingService.create(
                 Suppliers.compose(TimeLockRuntimeConfiguration::lockWatchTestConfig, runtime::get),
                 resource::getLockWatchingResource);
         registrar.accept(resource);
 
-        Function<String, AsyncTimelockService> serviceCreator = namespace ->
-                timelockServices.apply(namespace).getTimelockService();
+        Function<String, AsyncTimelockService> serviceCreator =
+                namespace -> namespaces.get(namespace).getTimelockService();
         if (undertowRegistrar.isPresent()) {
             undertowRegistrar.get().accept(ConjureTimelockResource.undertow(redirectRetryTargeter(), serviceCreator));
         } else {
@@ -209,12 +205,12 @@ public class TimeLockAgent {
 
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks
     public int getNumberOfActiveClients() {
-        return resource.getNumberOfActiveClients();
+        return namespaces.getNumberOfActiveClients();
     }
 
     @SuppressWarnings("unused") // used by external health checks
     public int getMaxNumberOfClients() {
-        return resource.getMaxNumberOfClients();
+        return namespaces.getMaxNumberOfClients();
     }
 
     @SuppressWarnings("unused")
