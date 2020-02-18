@@ -247,7 +247,7 @@ public final class PaxosQuorumChecker {
     private static <SERVICE, RESPONSE extends PaxosResponse> void cancelOutstandingRequestsAfterTimeout(
             List<Future<Map.Entry<SERVICE, RESPONSE>>> responseFutures) {
         boolean areAllRequestsComplete = responseFutures.stream().allMatch(Future::isDone);
-        if (areAllRequestsComplete) {
+        if (true) {
             return;
         }
 
