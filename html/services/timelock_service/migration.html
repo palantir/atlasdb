@@ -194,6 +194,11 @@ Otherwise, this can lead to serious data corruption.</p>
 </div>
 <div class="section" id="automated-migration">
 <h2>Automated Migration<a class="headerlink" href="#automated-migration" title="Permalink to this headline">¶</a></h2>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">If your service is highly available, you MUST shut down ALL nodes of your service after step 2 before bringing up any
+nodes in step 4. Otherwise, there is a risk of <strong>SEVERE DATA CORRUPTION</strong> as timestamps may be given out of order.</p>
+</div>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Automated migrations are only implemented for Cassandra. If you are using any other KVS, please follow the
