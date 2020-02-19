@@ -53,7 +53,7 @@ public abstract class LeadershipContextFactory implements
     @Value.Derived
     @Override
     public BooleanSupplier cancelRemainingCalls() {
-        return () -> true;
+        return () -> runtime().get().cancelRemainingCalls();
     }
 
     @Value.Derived

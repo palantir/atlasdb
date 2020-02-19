@@ -80,6 +80,12 @@ public interface PaxosRuntimeConfiguration {
         return TimestampPaxosConfig.defaultConfig();
     }
 
+    @Value.Default
+    @JsonProperty("cancel-remaining-calls")
+    default boolean cancelRemainingCalls() {
+        return false;
+    }
+
     @Value.Immutable
     @JsonDeserialize(as = ImmutableTimestampPaxosConfig.class)
     @JsonSerialize(as = ImmutableTimestampPaxosConfig.class)
