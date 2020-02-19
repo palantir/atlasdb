@@ -598,7 +598,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
                     "Atlas getRows " + hostAndRows.getValue().size()
                             + " rows from " + tableRef + " on " + hostAndRows.getKey(),
-                    () -> getRowsToBeDeletedForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
+                    () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
         }
         List<Map<Cell, Value>> perHostResults = taskRunner.runAllTasksCancelOnFailure(tasks);
         Map<Cell, Value> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
@@ -609,54 +609,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> getRowsForSingleHost(final InetSocketAddress host,
-                                                  final TableReference tableRef,
-                                                  final List<byte[]> rows,
-                                                  final long startTs) {
-        try {
-            int rowCount = 0;
-            final Map<Cell, Value> result = Maps.newHashMap();
-            int fetchBatchCount = config.fetchBatchCount();
-            for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
-                rowCount += batch.size();
-                result.putAll(clientPool.runWithRetryOnHost(host,
-                        new FunctionCheckedException<CassandraClient, Map<Cell, Value>, Exception>() {
-                            @Override
-                            public Map<Cell, Value> apply(CassandraClient client) throws Exception {
-                                // We want to get all the columns in the row so set start and end to empty.
-                                SlicePredicate pred = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
-
-                                List<ByteBuffer> rowNames = wrap(batch);
-
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
-                                        "getRows", client, tableRef, rowNames, pred, readConsistency);
-                                Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(batch.size());
-                                new ValueExtractor(metricsManager, ret)
-                                        .extractResults(results, startTs, ColumnSelection.all());
-                                return ret;
-                            }
-
-                            @Override
-                            public String toString() {
-                                return "multiget_slice(" + tableRef.getQualifiedName() + ", "
-                                        + batch.size() + " rows" + ")";
-                            }
-                        }));
-            }
-            if (rowCount > fetchBatchCount) {
-                log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
-                        + "this may indicate overly-large batching on a higher level.\n{}",
-                        LoggingArgs.tableRef(tableRef),
-                        SafeArg.of("rowCount", rowCount),
-                        SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
-            }
-            return ImmutableMap.copyOf(result);
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-        }
-    }
-
-    //todo(Sudiksha): do we want this to be the default?
-    private Map<Cell, Value> getRowsToBeDeletedForSingleHost(final InetSocketAddress host,
             final TableReference tableRef,
             final List<byte[]> rows,
             final long startTs) {
@@ -666,7 +618,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int fetchBatchCount = config.fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
-                result.putAll(fetchAllColumnsForRows(host, tableRef, batch, startTs));
+                result.putAll(fetchAllCellsForRows(host, tableRef, batch, startTs));
             }
             if (rowCount > fetchBatchCount) {
                 log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
@@ -681,34 +633,29 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private Map<Cell, Value> fetchAllColumnsForRows(final InetSocketAddress host,
+    private Map<Cell, Value> fetchAllCellsForRows(final InetSocketAddress host,
             final TableReference tableRef,
             final List<byte[]> rows,
             final long startTs) throws Exception {
+
         final Map<ByteBuffer, List<ColumnOrSuperColumn>> result = Maps.newHashMap();
         Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult;
-        int magicBatchSize = 1;
-
-        List<KeyPredicate> query = cellLoader.translateRowsToKeyPredicates(rows, magicBatchSize);
-        List<ColumnOrSuperColumn> resultForRow;
+        List<KeyPredicate> query = cellLoader.translateRowsToKeyPredicates(rows, config.fetchPerRowReadLimit());
 
         //todo(Sudiksha): refactor
         while (!query.isEmpty()) {
-            partialResult = fetchLimitedColumnsForRows(host, tableRef, query);
 
+            partialResult = fetchCellsForKeyPredicates(host, tableRef, query, startTs);
             query.clear();
 
             //todo refactor
             for(Entry<ByteBuffer, List<ColumnOrSuperColumn>> cellsForRow: partialResult.entrySet()) {
+
                 List<ColumnOrSuperColumn> cells = cellsForRow.getValue();
 
                 if (!cells.isEmpty()) {
                     ByteBuffer row = cellsForRow.getKey();
-
-                    resultForRow = result.getOrDefault(row, new ArrayList<>());
-                    resultForRow.addAll(cells);
-                    result.put(row, resultForRow);
-
+                    result.getOrDefault(row, new ArrayList<>()).addAll(cells);
                     query.add(new KeyPredicate()
                             .setKey(row)
                             .setPredicate(getSlicePredicate(cells)));
@@ -723,49 +670,26 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return ret;
     }
 
-    // todo(sudiksha): rename
-    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchLimitedColumnsForRow(final InetSocketAddress host,
+    //todo(Sudiksha): rename | refactor
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchCellsForKeyPredicates(final InetSocketAddress host,
             final TableReference tableRef,
-            final List<byte[]> rows,
-            SlicePredicate pred) throws Exception {
-        return clientPool.runWithRetryOnHost(host,
-                new FunctionCheckedException<CassandraClient, Map<ByteBuffer, List<ColumnOrSuperColumn>>, Exception>() {
-                    @Override
-                    public Map<ByteBuffer, List<ColumnOrSuperColumn>> apply(CassandraClient client) throws Exception {
-                        List<ByteBuffer> rowNames = wrap(rows);
-
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
-                                "getRows", client, tableRef, rowNames, pred, readConsistency);
-
-                        return results;
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "multiget_slice(" + tableRef.getQualifiedName() + ", "
-                                + rows.size() + " rows" + ")";
-                    }
-                }
-        );
-    }
-
-    //todo(Sudiksha): This method uses multiget_multislice
-    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchLimitedColumnsForRows(final InetSocketAddress host,
-            final TableReference tableRef,
-            List<KeyPredicate> query) throws Exception {
+            List<KeyPredicate> query,
+            final long startTs) throws Exception {
         return clientPool.runWithRetryOnHost(
                 host,
                 new FunctionCheckedException<CassandraClient, Map<ByteBuffer, List<ColumnOrSuperColumn>>, Exception>() {
                     @Override
                     public Map<ByteBuffer, List<ColumnOrSuperColumn>> apply(CassandraClient client) throws Exception {
-//                        if (log.isTraceEnabled()) {
-//                            log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
-//                                    SafeArg.of("cells", partition.size()),
-//                                    LoggingArgs.tableRef(tableRef),
-//                                    SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
-//                                    SafeArg.of("startTs", startTs),
-//                                    SafeArg.of("host", CassandraLogHelper.host(host)));
-//                        }
+
+                        //todo(Sudiksha): double check logging
+                        if (log.isTraceEnabled()) {
+                            log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
+                                    SafeArg.of("cells", query.size()),
+                                    LoggingArgs.tableRef(tableRef),
+                                    SafeArg.of("timestampClause", ""),
+                                    SafeArg.of("startTs", startTs),
+                                    SafeArg.of("host", CassandraLogHelper.host(host)));
+                        }
 
                         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = wrappingQueryRunner.multiget_multislice(
                                 "getRows", client, tableRef, query, readConsistency);
@@ -777,9 +701,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                     @Override
                     public String toString() {
-                        return "todo(Sudiksha)";
-//                        return "multiget_multislice(" + host + ", " + colFam + ", "
-//                                + partition.size() + " cells" + ")";
+                        //todo(Sudiksha): double check
+                        return "multiget_multislice(" + host + ", "
+                                + query.size() + " cells" + ")";
                     }
 
                 }
@@ -791,10 +715,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (columns.size() > 0) {
 
             ColumnOrSuperColumn lastCol = columns.get(columns.size() - 1);
-            Pair<byte[], Long> pa =  CassandraKeyValueServices.decompose(lastCol.getColumn().name);
+            Pair<byte[], Long> pair =  CassandraKeyValueServices.decompose(lastCol.getColumn().name);
 
             return SlicePredicates.create(Range.of(CassandraKeyValueServices
-                    .makeCompositeBuffer(RangeRequests.nextLexicographicName(pa.lhSide), Long.MAX_VALUE),
+                    .makeCompositeBuffer(RangeRequests.nextLexicographicName(pair.lhSide), Long.MAX_VALUE),
                     Range.UNBOUND_END), Limit.of(1));
         }
         return null;
