@@ -14,6 +14,10 @@ Otherwise, this can lead to serious data corruption.
 Automated Migration
 -------------------
 
+.. danger::
+    If your service is highly available, you MUST shut down ALL nodes of your service after step 2 before bringing up any
+    nodes in step 4. Otherwise, there is a risk of **SEVERE DATA CORRUPTION** as timestamps may be given out of order.
+
 .. warning::
     Automated migrations are only implemented for Cassandra. If you are using any other KVS, please follow the
     instructions at :ref:`manual-timelock-migration`.
