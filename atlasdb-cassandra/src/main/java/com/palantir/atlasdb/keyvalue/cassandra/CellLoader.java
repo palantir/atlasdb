@@ -218,4 +218,21 @@ final class CellLoader {
                 SafeArg.of("rows", numRows),
                 SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
     }
+
+    //todo(Sudiksha)
+    public static List<KeyPredicate> translateRowsToKeyPredicates(
+            List<byte[]> rows, int magicBatchSize) {
+        List<KeyPredicate> keyPredicates = new ArrayList<>(rows.size());
+
+        for (byte[] row : rows) {
+            SlicePredicate predicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.of(magicBatchSize));
+
+
+            KeyPredicate keyPredicate = new KeyPredicate()
+                    .setKey(row)
+                    .setPredicate(predicate);
+            keyPredicates.add(keyPredicate);
+        }
+        return keyPredicates;
+    }
 }

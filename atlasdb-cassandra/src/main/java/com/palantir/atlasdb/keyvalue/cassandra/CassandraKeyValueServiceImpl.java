@@ -41,6 +41,7 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
@@ -688,27 +689,31 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult;
         int magicBatchSize = 1;
 
-        SlicePredicate pred;
+        List<KeyPredicate> query = cellLoader.translateRowsToKeyPredicates(rows, magicBatchSize);
         List<ColumnOrSuperColumn> resultForRow;
 
-        //todo(Sudiksha): parallelize? | use multiget_multislice?
-        for (byte[] row: rows) {
-            pred = SlicePredicates.create(Range.ALL, Limit.of(magicBatchSize));
+        //todo(Sudiksha): refactor
+        while (!query.isEmpty()) {
+            partialResult = fetchLimitedColumnsForRows(host, tableRef, query);
 
-            //todo(Sudiksha): refactor
-            while (true) {
-                partialResult = fetchLimitedColumnsForRows(host, tableRef, ImmutableList.of(row), pred);
+            query.clear();
 
-                //todo refactor
-                ByteBuffer row_buf = ByteBuffer.wrap(row);
-                resultForRow = result.getOrDefault(row_buf, new ArrayList<>());
-                resultForRow.addAll(partialResult.get(row_buf));
-                result.put(row_buf, resultForRow);
+            //todo refactor
+            for(Entry<ByteBuffer, List<ColumnOrSuperColumn>> cellsForRow: partialResult.entrySet()) {
+                List<ColumnOrSuperColumn> cells = cellsForRow.getValue();
 
-                pred = getSlicePredicate(partialResult.get(row_buf));
-                if (partialResult.get(row_buf).size() < magicBatchSize || pred == null) {
-                    break;
+                if (!cells.isEmpty()) {
+                    ByteBuffer row = cellsForRow.getKey();
+
+                    resultForRow = result.getOrDefault(row, new ArrayList<>());
+                    resultForRow.addAll(cells);
+                    result.put(row, resultForRow);
+
+                    query.add(new KeyPredicate()
+                            .setKey(row)
+                            .setPredicate(getSlicePredicate(cells)));
                 }
+
             }
         }
 
@@ -719,7 +724,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     // todo(sudiksha): rename
-    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchLimitedColumnsForRows(final InetSocketAddress host,
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchLimitedColumnsForRow(final InetSocketAddress host,
             final TableReference tableRef,
             final List<byte[]> rows,
             SlicePredicate pred) throws Exception {
@@ -740,6 +745,43 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         return "multiget_slice(" + tableRef.getQualifiedName() + ", "
                                 + rows.size() + " rows" + ")";
                     }
+                }
+        );
+    }
+
+    //todo(Sudiksha): This method uses multiget_multislice
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchLimitedColumnsForRows(final InetSocketAddress host,
+            final TableReference tableRef,
+            List<KeyPredicate> query) throws Exception {
+        return clientPool.runWithRetryOnHost(
+                host,
+                new FunctionCheckedException<CassandraClient, Map<ByteBuffer, List<ColumnOrSuperColumn>>, Exception>() {
+                    @Override
+                    public Map<ByteBuffer, List<ColumnOrSuperColumn>> apply(CassandraClient client) throws Exception {
+//                        if (log.isTraceEnabled()) {
+//                            log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
+//                                    SafeArg.of("cells", partition.size()),
+//                                    LoggingArgs.tableRef(tableRef),
+//                                    SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
+//                                    SafeArg.of("startTs", startTs),
+//                                    SafeArg.of("host", CassandraLogHelper.host(host)));
+//                        }
+
+                        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = wrappingQueryRunner.multiget_multislice(
+                                "getRows", client, tableRef, query, readConsistency);
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults = Maps.transformValues(results,
+                                lists -> Lists.newArrayList(Iterables.concat(lists)));
+
+                        return aggregatedResults;
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "todo(Sudiksha)";
+//                        return "multiget_multislice(" + host + ", " + colFam + ", "
+//                                + partition.size() + " cells" + ")";
+                    }
+
                 }
         );
     }

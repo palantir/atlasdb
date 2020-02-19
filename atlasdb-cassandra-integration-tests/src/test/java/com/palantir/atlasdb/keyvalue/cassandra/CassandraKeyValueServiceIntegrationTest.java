@@ -323,26 +323,16 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 80L)));
         keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_4, Value.create(moreData, 85L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_5, Value.create(moreData, 88L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_5, Value.create(moreData, 89L)));
 
         keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_4, Value.create(moreData, 95L)));
         keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_5, Value.create(moreData, 98L)));
         keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 90L)));
-//
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 93L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 95L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 99L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_3, Value.create(moreData, 91L)));
 
-
-
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 100L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 101L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 102L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 103L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 104L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 105L)));
-//        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 106L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 73L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 75L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 79L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_3, Value.create(moreData, 51L)));
 
 
         Iterable<byte[]> rows = new ArrayList() {{
@@ -356,12 +346,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         Map<Cell, Value> result = keyValueService.getRows(tableReference, rows, ColumnSelection.all(), STARTING_ATLAS_TIMESTAMP - 1);
 
-//        keyValueService.delete(tableReference, ImmutableListMultimap.of(CELL, 8L));
-//
-//        putDummyValueAtCellAndTimestamp(tableReference, CELL, 8L, STARTING_ATLAS_TIMESTAMP - 1);
-//        Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
-//
-        assertThat(result).doesNotContainKey(CELL);
+        assertThat(result).containsKeys(CELL_1, CELL_2, CELL_3, CELL_4, CELL_5);
     }
 
     @Test
