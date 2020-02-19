@@ -49,7 +49,7 @@ abstract class SingleLeaderNetworkClientFactories implements
                     allAcceptors.all(),
                     quorumSize(),
                     allAcceptors.withSharedExecutor(sharedExecutor()),
-                    cancelRemainingCalls());
+                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosAcceptorNetworkClient.class, uninstrumentedAcceptor);
         };
     }
@@ -71,7 +71,7 @@ abstract class SingleLeaderNetworkClientFactories implements
                     allLearners.remotes(),
                     quorumSize(),
                     allLearners.withSharedExecutor(sharedExecutor()),
-                    cancelRemainingCalls());
+                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosLearnerNetworkClient.class, uninstrumentedLearner);
         };
     }

@@ -42,8 +42,7 @@ abstract class BatchingNetworkClientFactories implements
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(
                 allBatchAcceptors,
                 sharedExecutor(),
-                quorumSize(),
-                cancelRemainingCalls());
+                quorumSize());
     }
 
     @Value.Auxiliary
@@ -59,8 +58,7 @@ abstract class BatchingNetworkClientFactories implements
         return AutobatchingPaxosLearnerNetworkClientFactory.create(
                 allBatchLearners,
                 sharedExecutor(),
-                quorumSize(),
-                cancelRemainingCalls());
+                quorumSize());
     }
 
     @Value.Auxiliary

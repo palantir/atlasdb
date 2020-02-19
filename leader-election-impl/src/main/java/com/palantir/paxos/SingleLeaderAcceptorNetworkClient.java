@@ -19,7 +19,6 @@ package com.palantir.paxos;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BooleanSupplier;
 
 import com.google.common.collect.ImmutableList;
 
@@ -28,13 +27,13 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
     private final Map<PaxosAcceptor, ExecutorService> executors;
-    private final BooleanSupplier cancelRemainingCalls;
+    private final boolean cancelRemainingCalls;
 
     public SingleLeaderAcceptorNetworkClient(
             List<PaxosAcceptor> acceptors,
             int quorumSize,
             Map<PaxosAcceptor, ExecutorService> executors,
-            BooleanSupplier cancelRemainingCalls) {
+            boolean cancelRemainingCalls) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
         this.executors = executors;
@@ -49,7 +48,7 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
-                cancelRemainingCalls.getAsBoolean()).withoutRemotes();
+                cancelRemainingCalls).withoutRemotes();
     }
 
     @Override
@@ -60,7 +59,7 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
-                cancelRemainingCalls.getAsBoolean()).withoutRemotes();
+                cancelRemainingCalls).withoutRemotes();
     }
 
     @Override
@@ -71,6 +70,6 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
-                cancelRemainingCalls.getAsBoolean()).withoutRemotes();
+                cancelRemainingCalls).withoutRemotes();
     }
 }

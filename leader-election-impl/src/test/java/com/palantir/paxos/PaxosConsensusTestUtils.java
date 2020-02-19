@@ -78,7 +78,7 @@ public final class PaxosConsensusTestUtils {
                 acceptors,
                 quorumSize,
                 Maps.toMap(acceptors, $ -> executor),
-                () -> true);
+                true);
 
         for (int i = 0; i < numLeaders; i++) {
             UUID leaderUuid = UUID.randomUUID();
@@ -88,7 +88,7 @@ public final class PaxosConsensusTestUtils {
                     .filter(learner -> !learner.equals(ourLearner))
                     .collect(ImmutableList.toImmutableList());
             PaxosLearnerNetworkClient learnerNetworkClient = new SingleLeaderLearnerNetworkClient(
-                    ourLearner, remoteLearners, quorumSize, Maps.toMap(learners, $ -> executor), () -> true);
+                    ourLearner, remoteLearners, quorumSize, Maps.toMap(learners, $ -> executor), true);
 
             LeaderElectionService leader = new LeaderElectionServiceBuilder()
                     .leaderUuid(leaderUuid)
@@ -98,7 +98,7 @@ public final class PaxosConsensusTestUtils {
                     .knowledge(ourLearner)
                     .acceptorClient(acceptorNetworkClient)
                     .learnerClient(learnerNetworkClient)
-                    .leaderPinger(new SingleLeaderPinger(ImmutableMap.of(), Duration.ZERO, leaderUuid, () -> true))
+                    .leaderPinger(new SingleLeaderPinger(ImmutableMap.of(), Duration.ZERO, leaderUuid, true))
                     .build();
             leaders.add(SimulatingFailingServerProxy.newProxyInstance(
                     LeaderElectionService.class,

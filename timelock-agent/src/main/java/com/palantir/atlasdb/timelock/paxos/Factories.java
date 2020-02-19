@@ -51,8 +51,7 @@ public interface Factories {
             return AutobatchingPingableLeaderFactory.create(
                     Maps.toMap(remoteClients().batchPingableLeadersWithContext(), _pingableLeader -> sharedExecutor()),
                     leaderPingResponseWait(),
-                    leaderUuid(),
-                    cancelRemainingCalls());
+                    leaderUuid());
         }
 
         @Override
@@ -78,7 +77,7 @@ public interface Factories {
                     Maps.toMap(remoteClients().nonBatchPingableLeadersWithContext(), _pingable -> sharedExecutor()),
                     leaderPingResponseWait(),
                     leaderUuid(),
-                    cancelRemainingCalls());
+                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
         }
 
         @Override

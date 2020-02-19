@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
 import org.immutables.value.Value;
@@ -50,18 +49,15 @@ public class PaxosQuorumCheckingCoalescingFunction<
     private final Map<FUNC, ExecutorService> executors;
     private final int quorumSize;
     private final PaxosResponsesWithRemote<FUNC, RESP> defaultValue;
-    private final BooleanSupplier cancelRemainingCalls;
 
     public PaxosQuorumCheckingCoalescingFunction(
             List<FUNC> delegateFunctions,
             Map<FUNC, ExecutorService> executors,
-            int quorumSize,
-            BooleanSupplier cancelRemainingCalls) {
+            int quorumSize) {
         this.delegates = delegateFunctions;
         this.executors = executors;
         this.quorumSize = quorumSize;
         this.defaultValue = PaxosResponsesWithRemote.of(quorumSize, ImmutableMap.of());
-        this.cancelRemainingCalls = cancelRemainingCalls;
     }
 
     @Override
@@ -71,7 +67,8 @@ public class PaxosQuorumCheckingCoalescingFunction<
                 delegate -> PaxosContainer.of(delegate.apply(requests)),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT, cancelRemainingCalls.getAsBoolean());
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
 
         Map<REQ, PaxosResponsesWithRemote<FUNC, RESP>> responseMap = responses.stream()
                 .map(PaxosContainer::get)
@@ -101,16 +98,14 @@ public class PaxosQuorumCheckingCoalescingFunction<
             List<SERVICE> services,
             ExecutorService executor,
             int quorumSize,
-            Function<SERVICE, F> functionFactory,
-            BooleanSupplier cancelRemainingCalls) {
+            Function<SERVICE, F> functionFactory) {
         return services.stream()
                 .map(functionFactory)
                 .collect(collectingAndThen(
                         toList(), functions -> new PaxosQuorumCheckingCoalescingFunction<>(
                                 functions,
                                 Maps.toMap(functions, $ -> executor),
-                                quorumSize,
-                                cancelRemainingCalls)));
+                                quorumSize)));
     }
 
     public static <REQ, RESP extends PaxosResponse, SERVICE, FUNCTION extends CoalescingRequestFunction<REQ, RESP>>
@@ -118,11 +113,10 @@ public class PaxosQuorumCheckingCoalescingFunction<
             List<SERVICE> services,
             ExecutorService executor,
             int quorumSize,
-            Function<SERVICE, FUNCTION> functionFactory,
-            BooleanSupplier cancelRemainingCalls) {
+            Function<SERVICE, FUNCTION> functionFactory) {
 
         PaxosQuorumCheckingCoalescingFunction<REQ, RESP, FUNCTION> wrap =
-                wrapWithRemotes(services, executor, quorumSize, functionFactory, cancelRemainingCalls);
+                wrapWithRemotes(services, executor, quorumSize, functionFactory);
 
         return request ->
                 KeyedStream.stream(wrap.apply(request)).map(PaxosResponsesWithRemote::withoutRemotes).collectToMap();

@@ -130,8 +130,7 @@ public class AutobatchingPingableLeaderFactoryTests {
         return AutobatchingPingableLeaderFactory.create(
                 Maps.toMap(ImmutableSet.copyOf(rpcs), $ -> executorService),
                 Duration.ofSeconds(1),
-                UUID.randomUUID(),
-                () -> true);
+                UUID.randomUUID());
     }
 
     private static LeaderPingerContext<BatchPingableLeader> batchPingableLeader(

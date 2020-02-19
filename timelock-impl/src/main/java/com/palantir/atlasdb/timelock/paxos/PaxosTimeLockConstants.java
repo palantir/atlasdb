@@ -30,6 +30,8 @@ public final class PaxosTimeLockConstants {
 
     public static final Client LEGACY_PAXOS_AS_CLIENT = Client.of(LEADER_PAXOS_NAMESPACE);
 
+    public static final boolean CANCEL_REMAINING_CALLS = false;
+
     private PaxosTimeLockConstants() {
     }
 }

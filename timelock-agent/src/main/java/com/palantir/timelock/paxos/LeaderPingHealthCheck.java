@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -29,6 +28,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
@@ -43,15 +43,12 @@ public class LeaderPingHealthCheck {
     private final NamespaceTracker namespaceTracker;
     private final List<HealthCheckPinger> pingers;
     private final ExecutorService executorService;
-    private final BooleanSupplier cancelRemainingCalls;
 
     public LeaderPingHealthCheck(
             NamespaceTracker namespaceTracker,
-            List<HealthCheckPinger> pingers,
-            BooleanSupplier cancelRemainingCalls) {
+            List<HealthCheckPinger> pingers) {
         this.namespaceTracker = namespaceTracker;
         this.pingers = pingers;
-        this.cancelRemainingCalls = cancelRemainingCalls;
         this.executorService = PTExecutors.newFixedThreadPool(
                 pingers.size(),
                 new NamedThreadFactory("leader-ping-healthcheck", true));
@@ -66,7 +63,7 @@ public class LeaderPingHealthCheck {
                         pinger -> PaxosContainer.of(pinger.apply(namespacesToCheck)),
                         executorService,
                         HEALTH_CHECK_TIME_LIMIT,
-                        cancelRemainingCalls.getAsBoolean());
+                        PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
 
         Map<Client, PaxosResponses<HealthCheckResponse>> responsesByClient = responses.stream()
                 .map(PaxosContainer::get)

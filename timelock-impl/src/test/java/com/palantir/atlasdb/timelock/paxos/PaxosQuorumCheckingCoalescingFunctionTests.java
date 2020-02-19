@@ -116,8 +116,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
         return new PaxosQuorumCheckingCoalescingFunction<>(
                 ImmutableList.copyOf(nodes),
                 executors,
-                QUORUM_SIZE,
-                () -> true);
+                QUORUM_SIZE);
     }
 
     private static TestFunction functionFor(Map.Entry<Long, Long>... mappings) {

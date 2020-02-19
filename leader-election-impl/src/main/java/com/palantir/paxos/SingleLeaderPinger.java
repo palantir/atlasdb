@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 
 import javax.annotation.Nullable;
 
@@ -48,13 +47,13 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final Map<LeaderPingerContext<PingableLeader>, ExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
     private final UUID localUuid;
-    private final BooleanSupplier cancelRemainingCalls;
+    private final boolean cancelRemainingCalls;
 
     public SingleLeaderPinger(
             Map<LeaderPingerContext<PingableLeader>, ExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             UUID localUuid,
-            BooleanSupplier cancelRemainingCalls) {
+            boolean cancelRemainingCalls) {
         this.leaderPingExecutors = otherPingableExecutors;
         this.leaderPingResponseWait = leaderPingResponseWait;
         this.localUuid = localUuid;
@@ -139,7 +138,7 @@ public class SingleLeaderPinger implements LeaderPinger {
                         leaderPingResponseWait,
                         state -> state.responses().values().stream().map(PaxosString::get).anyMatch(
                                 uuid.toString()::equals),
-                        cancelRemainingCalls.getAsBoolean());
+                        cancelRemainingCalls);
 
         for (Map.Entry<LeaderPingerContext<PingableLeader>, PaxosString> cacheEntry :
                 responses.responses().entrySet()) {

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.BooleanSupplier;
 
 import org.immutables.value.Value;
 
@@ -48,12 +47,6 @@ public abstract class LeadershipContextFactory implements
     @Override
     public int quorumSize() {
         return install().quorumSize();
-    }
-
-    @Value.Derived
-    @Override
-    public BooleanSupplier cancelRemainingCalls() {
-        return () -> runtime().get().cancelRemainingCalls();
     }
 
     @Value.Derived

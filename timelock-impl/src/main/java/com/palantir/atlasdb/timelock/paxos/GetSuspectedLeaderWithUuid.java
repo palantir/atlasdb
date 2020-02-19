@@ -65,7 +65,6 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
     private final BiMap<LeaderPingerContext<BatchPingableLeader>, ClientAwarePingableLeader> clientAwareLeaders;
     private final UUID localUuid;
     private final Duration leaderPingResponseWait;
-    private final boolean cancelRemainingCalls;
 
     private final Map<UUID, LeaderPingerContext<BatchPingableLeader>> cache = Maps.newHashMap();
 
@@ -73,15 +72,13 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
             Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
             Set<ClientAwarePingableLeader> clientAwarePingableLeaders,
             UUID localUuid,
-            Duration leaderPingResponseWait,
-            boolean cancelRemainingCalls) {
+            Duration leaderPingResponseWait) {
         this.executors = executors;
         this.clientAwareLeaders = KeyedStream.of(clientAwarePingableLeaders)
                 .mapKeys(ClientAwarePingableLeader::underlyingRpcClient)
                 .collectTo(HashBiMap::create);
         this.localUuid = localUuid;
         this.leaderPingResponseWait = leaderPingResponseWait;
-        this.cancelRemainingCalls = cancelRemainingCalls;
     }
 
     @Override
@@ -111,7 +108,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
                         leaderPingResponseWait,
                         state -> state.responses().values().stream().map(PaxosContainer::get).collect(toSet())
                                 .containsAll(uncachedUuids),
-                        cancelRemainingCalls);
+                        PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
 
         for (Map.Entry<LeaderPingerContext<BatchPingableLeader>, PaxosContainer<UUID>> resultEntries : results.responses().entrySet()) {
             LeaderPingerContext<BatchPingableLeader> pingable = resultEntries.getKey();

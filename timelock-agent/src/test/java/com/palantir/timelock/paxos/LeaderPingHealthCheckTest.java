@@ -50,7 +50,7 @@ public class LeaderPingHealthCheckTest {
                 .putAll(TimeLockStatus.MULTIPLE_LEADERS, ALL_CLIENTS)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
@@ -62,7 +62,7 @@ public class LeaderPingHealthCheckTest {
                 .putAll(TimeLockStatus.MULTIPLE_LEADERS, ALL_CLIENTS)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
@@ -74,7 +74,7 @@ public class LeaderPingHealthCheckTest {
                 .putAll(TimeLockStatus.ONE_LEADER, ALL_CLIENTS)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
@@ -87,7 +87,7 @@ public class LeaderPingHealthCheckTest {
                 .putAll(TimeLockStatus.NO_LEADER, ALL_CLIENTS)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
@@ -102,7 +102,7 @@ public class LeaderPingHealthCheckTest {
                 .putAll(TimeLockStatus.ONE_LEADER, ALL_CLIENTS)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
@@ -117,7 +117,7 @@ public class LeaderPingHealthCheckTest {
                 .putAll(TimeLockStatus.NO_LEADER, ALL_CLIENTS)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
@@ -132,7 +132,7 @@ public class LeaderPingHealthCheckTest {
                 .putAll(TimeLockStatus.NO_QUORUM, ALL_CLIENTS)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
@@ -147,7 +147,7 @@ public class LeaderPingHealthCheckTest {
                 .putAll(TimeLockStatus.NO_QUORUM, ALL_CLIENTS)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
@@ -164,7 +164,7 @@ public class LeaderPingHealthCheckTest {
                 .put(TimeLockStatus.MULTIPLE_LEADERS, CLIENT3)
                 .build();
 
-        assertThat(new LeaderPingHealthCheck(TRACKER, leaders, () -> true).getStatus().statusesToClient())
+        assertThat(new LeaderPingHealthCheck(TRACKER, leaders).getStatus().statusesToClient())
                 .isEqualTo(expected);
     }
 
