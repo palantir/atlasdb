@@ -22,12 +22,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -656,7 +654,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    // todo(Sudiksha) / Write tests to go through the flow here
+    //todo(Sudiksha): do we want this to be the default?
     private Map<Cell, Value> getRowsToBeDeletedForSingleHost(final InetSocketAddress host,
             final TableReference tableRef,
             final List<byte[]> rows,
@@ -687,19 +685,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final List<byte[]> rows,
             final long startTs) throws Exception {
         final Map<ByteBuffer, List<ColumnOrSuperColumn>> result = Maps.newHashMap();
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult; //todo (Sudiksha) check null condition?
-
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult;
         int magicBatchSize = 1;
 
         SlicePredicate pred;
         List<ColumnOrSuperColumn> resultForRow;
 
+        //todo(Sudiksha): parallelize? | use multiget_multislice?
         for (byte[] row: rows) {
             pred = SlicePredicates.create(Range.ALL, Limit.of(magicBatchSize));
 
             //todo(Sudiksha): refactor
             while (true) {
-                partialResult = fetchColumnsInOneRequest(host, tableRef, ImmutableList.of(row), startTs, pred);
+                partialResult = fetchLimitedColumnsForRows(host, tableRef, ImmutableList.of(row), pred);
 
                 //todo refactor
                 ByteBuffer row_buf = ByteBuffer.wrap(row);
@@ -707,8 +705,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 resultForRow.addAll(partialResult.get(row_buf));
                 result.put(row_buf, resultForRow);
 
-                pred = getSlicePredicate(partialResult);
-                if (partialResult.size() < magicBatchSize || pred == null) {
+                pred = getSlicePredicate(partialResult.get(row_buf));
+                if (partialResult.get(row_buf).size() < magicBatchSize || pred == null) {
                     break;
                 }
             }
@@ -721,10 +719,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     // todo(sudiksha): rename
-    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchColumnsInOneRequest(final InetSocketAddress host,
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchLimitedColumnsForRows(final InetSocketAddress host,
             final TableReference tableRef,
             final List<byte[]> rows,
-            final long startTs,
             SlicePredicate pred) throws Exception {
         return clientPool.runWithRetryOnHost(host,
                 new FunctionCheckedException<CassandraClient, Map<ByteBuffer, List<ColumnOrSuperColumn>>, Exception>() {
@@ -747,19 +744,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         );
     }
 
-    private static SlicePredicate getSlicePredicate(Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
-        // todo(Sudiksha): why is results map?
-        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry: results.entrySet()) {
-            List<ColumnOrSuperColumn> listOfCells = entry.getValue();
+    //todo(Sudiksha): refactor | names
+    private static SlicePredicate getSlicePredicate(List<ColumnOrSuperColumn> columns) {
+        if (columns.size() > 0) {
 
-            if (listOfCells.size() > 0) {
-                ColumnOrSuperColumn lastCol = listOfCells.get(listOfCells.size() - 1);
-                Pair<byte[], Long> pa =  CassandraKeyValueServices.decompose(lastCol.getColumn().name);
-                //todo(Sudiksha): refactor
-                return SlicePredicates.create(Range.of(CassandraKeyValueServices
-                        .makeCompositeBuffer(RangeRequests.nextLexicographicName(pa.lhSide), Long.MAX_VALUE),
-                        Range.UNBOUND_END), Limit.of(1));
-            }
+            ColumnOrSuperColumn lastCol = columns.get(columns.size() - 1);
+            Pair<byte[], Long> pa =  CassandraKeyValueServices.decompose(lastCol.getColumn().name);
+
+            return SlicePredicates.create(Range.of(CassandraKeyValueServices
+                    .makeCompositeBuffer(RangeRequests.nextLexicographicName(pa.lhSide), Long.MAX_VALUE),
+                    Range.UNBOUND_END), Limit.of(1));
         }
         return null;
     }
