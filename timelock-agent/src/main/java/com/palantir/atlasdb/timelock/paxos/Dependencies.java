@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import com.palantir.leader.PaxosLeadershipEventRecorder;
@@ -37,6 +38,7 @@ public interface Dependencies {
     }
 
     interface LeaderPinger {
+        BooleanSupplier cancelRemainingCalls();
         PaxosRemoteClients remoteClients();
         ExecutorService sharedExecutor();
         UUID leaderUuid();
@@ -44,6 +46,7 @@ public interface Dependencies {
     }
 
     interface NetworkClientFactories {
+        BooleanSupplier cancelRemainingCalls();
         PaxosUseCase useCase();
         TimelockPaxosMetrics metrics();
         PaxosRemoteClients remoteClients();

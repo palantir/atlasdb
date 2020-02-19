@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -42,10 +43,15 @@ public class LeaderPingHealthCheck {
     private final NamespaceTracker namespaceTracker;
     private final List<HealthCheckPinger> pingers;
     private final ExecutorService executorService;
+    private final BooleanSupplier cancelRemainingCalls;
 
-    public LeaderPingHealthCheck(NamespaceTracker namespaceTracker, List<HealthCheckPinger> pingers) {
+    public LeaderPingHealthCheck(
+            NamespaceTracker namespaceTracker,
+            List<HealthCheckPinger> pingers,
+            BooleanSupplier cancelRemainingCalls) {
         this.namespaceTracker = namespaceTracker;
         this.pingers = pingers;
+        this.cancelRemainingCalls = cancelRemainingCalls;
         this.executorService = PTExecutors.newFixedThreadPool(
                 pingers.size(),
                 new NamedThreadFactory("leader-ping-healthcheck", true));
@@ -59,7 +65,8 @@ public class LeaderPingHealthCheck {
                         ImmutableList.copyOf(pingers),
                         pinger -> PaxosContainer.of(pinger.apply(namespacesToCheck)),
                         executorService,
-                        HEALTH_CHECK_TIME_LIMIT);
+                        HEALTH_CHECK_TIME_LIMIT,
+                        cancelRemainingCalls.getAsBoolean());
 
         Map<Client, PaxosResponses<HealthCheckResponse>> responsesByClient = responses.stream()
                 .map(PaxosContainer::get)

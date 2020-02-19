@@ -51,7 +51,8 @@ public interface Factories {
             return AutobatchingPingableLeaderFactory.create(
                     Maps.toMap(remoteClients().batchPingableLeadersWithContext(), _pingableLeader -> sharedExecutor()),
                     leaderPingResponseWait(),
-                    leaderUuid());
+                    leaderUuid(),
+                    cancelRemainingCalls());
         }
 
         @Override
@@ -76,7 +77,8 @@ public interface Factories {
             return new SingleLeaderPinger(
                     Maps.toMap(remoteClients().nonBatchPingableLeadersWithContext(), _pingable -> sharedExecutor()),
                     leaderPingResponseWait(),
-                    leaderUuid());
+                    leaderUuid(),
+                    cancelRemainingCalls());
         }
 
         @Override

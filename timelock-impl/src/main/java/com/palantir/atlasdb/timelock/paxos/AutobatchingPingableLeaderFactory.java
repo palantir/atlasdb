@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
@@ -65,13 +66,19 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
     public static AutobatchingPingableLeaderFactory create(
             Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
             Duration leaderPingResponseWait,
-            UUID localUuid) {
+            UUID localUuid,
+            BooleanSupplier cancelRemainingCalls) {
         Set<ClientAwarePingableLeader> clientAwarePingables = executors.keySet().stream()
                 .<ClientAwarePingableLeader>map(ClientAwarePingableLeaderImpl::create)
                 .collect(Collectors.toSet());
 
         DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidAutobatcher = Autobatchers.independent(
-                new GetSuspectedLeaderWithUuid(executors, clientAwarePingables, localUuid, leaderPingResponseWait))
+                new GetSuspectedLeaderWithUuid(
+                        executors,
+                        clientAwarePingables,
+                        localUuid,
+                        leaderPingResponseWait,
+                        cancelRemainingCalls.getAsBoolean()))
                 .safeLoggablePurpose("batch-paxos-pingable-leader.uuid")
                 .build();
 

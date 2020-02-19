@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
 import com.google.common.collect.Maps;
@@ -54,19 +55,22 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
     public static AutobatchingPaxosLearnerNetworkClientFactory create(
             LocalAndRemotes<BatchPaxosLearner> learners,
             ExecutorService executor,
-            int quorumSize) {
+            int quorumSize,
+            BooleanSupplier cancelRemainingCalls) {
         DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponse> learn =
                 Autobatchers.coalescing(new LearnCoalescingConsumer(learners.local(), learners.remotes(), executor))
                         .safeLoggablePurpose("batch-paxos-learner.learn")
                         .build();
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> learnedValues =
-                Autobatchers.coalescing(wrap(learners.all(), executor, quorumSize, LearnedValuesCoalescingFunction::new))
+                Autobatchers.coalescing(wrap(learners.all(), executor, quorumSize, LearnedValuesCoalescingFunction::new,
+                        cancelRemainingCalls))
                         .safeLoggablePurpose("batch-paxos-learner.learned-values")
                         .build();
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> learnedValuesSince =
-                Autobatchers.coalescing(wrap(learners.all(), executor, quorumSize, LearnedValuesSinceCoalescingFunction::new))
+                Autobatchers.coalescing(wrap(learners.all(), executor, quorumSize, LearnedValuesSinceCoalescingFunction::new,
+                        cancelRemainingCalls))
                 .safeLoggablePurpose("batch-paxos-learner.learned-values-since")
                 .build();
 

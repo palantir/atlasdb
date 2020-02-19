@@ -144,7 +144,8 @@ public class PaxosTimestampBoundStoreTest {
 
         if (useBatch) {
             AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory =
-                    AutobatchingPaxosAcceptorNetworkClientFactory.create(batchPaxosAcceptors, executor, QUORUM_SIZE);
+                    AutobatchingPaxosAcceptorNetworkClientFactory.create(batchPaxosAcceptors, executor, QUORUM_SIZE,
+                            () -> true);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
 
             List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories = batchPaxosLearners
@@ -157,7 +158,7 @@ public class PaxosTimestampBoundStoreTest {
                     .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.create(
                             localAndRemotes,
                             executor,
-                            QUORUM_SIZE))
+                            QUORUM_SIZE, () -> true))
                     .collect(toList());
 
             learnerClientsByNode = learnerNetworkClientFactories.stream()
@@ -168,14 +169,15 @@ public class PaxosTimestampBoundStoreTest {
             learnerNetworkClientFactories.forEach(closer::register);
         } else {
             acceptorClient = new SingleLeaderAcceptorNetworkClient(
-                    acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor));
+                    acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor), () -> true);
 
             learnerClientsByNode = learners.stream()
                     .map(learner -> new SingleLeaderLearnerNetworkClient(
                             learner,
                             learners.stream().filter(otherLearners -> otherLearners != learner).collect(toList()),
                             QUORUM_SIZE,
-                            Maps.toMap(learners, $ -> executor)))
+                            Maps.toMap(learners, $ -> executor),
+                            () -> true))
                     .collect(toList());
         }
 

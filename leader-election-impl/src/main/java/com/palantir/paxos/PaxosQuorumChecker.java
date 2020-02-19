@@ -73,8 +73,9 @@ public final class PaxosQuorumChecker {
      * @param remotes a list endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
      * @param quorumSize number of acknowledge requests required to reach quorum
-     * @param executorService runs the requests
+     * @param executors runs requests for a given remote on its own executor
      * @param remoteRequestTimeout timeout for the call
+     * @param cancelRemainingCalls whether or not to cancel in progress calls after we've received enough responses
      * @return a list responses
      */
     public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
@@ -82,24 +83,9 @@ public final class PaxosQuorumChecker {
             ImmutableList<SERVICE> remotes,
             Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            ExecutorService executorService,
-            Duration remoteRequestTimeout) {
-        return collectResponses(
-                remotes,
-                request,
-                quorumSize,
-                mapToSingleExecutorService(remotes, executorService),
-                remoteRequestTimeout,
-                quorumShortcutPredicate(quorumSize));
-    }
-
-    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
-            collectQuorumResponses(
-            ImmutableList<SERVICE> remotes,
-            Function<SERVICE, RESPONSE> request,
-            int quorumSize,
             Map<? extends SERVICE, ExecutorService> executors,
-            Duration remoteRequestTimeout) {
+            Duration remoteRequestTimeout,
+            boolean cancelRemainingCalls) {
         Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
                 "Each remote should have an executor.");
         return collectResponses(
@@ -108,7 +94,8 @@ public final class PaxosQuorumChecker {
                 quorumSize,
                 executors,
                 remoteRequestTimeout,
-                quorumShortcutPredicate(quorumSize));
+                quorumShortcutPredicate(quorumSize),
+                cancelRemainingCalls);
     }
 
     private static <SERVICE, RESPONSE> Predicate<InProgressResponseState<SERVICE, RESPONSE>>
@@ -124,6 +111,7 @@ public final class PaxosQuorumChecker {
      * @param remotes a list of endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
      * @param executorService runs the requests
+     * @param cancelRemainingCalls whether or not to cancel in progress calls after we've received enough responses
      * @return a list of responses
      */
     public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponses<RESPONSE>
@@ -131,14 +119,16 @@ public final class PaxosQuorumChecker {
             ImmutableList<SERVICE> remotes,
             Function<SERVICE, RESPONSE> request,
             ExecutorService executorService,
-            Duration remoteRequestTimeout) {
+            Duration remoteRequestTimeout,
+            boolean cancelRemainingCalls) {
         return collectResponses(
                 remotes,
                 request,
                 remotes.size(),
                 mapToSingleExecutorService(remotes, executorService),
                 remoteRequestTimeout,
-                $ -> false).withoutRemotes();
+                $ -> false,
+                cancelRemainingCalls).withoutRemotes();
     }
 
     public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE> collectUntil(
@@ -146,14 +136,16 @@ public final class PaxosQuorumChecker {
             Function<SERVICE, RESPONSE> request,
             Map<SERVICE, ExecutorService> executors,
             Duration remoteRequestTimeout,
-            Predicate<InProgressResponseState<SERVICE, RESPONSE>> predicate) {
+            Predicate<InProgressResponseState<SERVICE, RESPONSE>> predicate,
+            boolean cancelRemainingCalls) {
         return collectResponses(
                 remotes,
                 request,
                 remotes.size(),
                 executors,
                 remoteRequestTimeout,
-                predicate);
+                predicate,
+                cancelRemainingCalls);
     }
 
     private static <SERVICE> Map<SERVICE, ExecutorService> mapToSingleExecutorService(
@@ -172,6 +164,7 @@ public final class PaxosQuorumChecker {
      * @param quorumSize number of acknowledge requests after termination
      * @param executors run the requests
      * @param shouldSkipNextRequest whether or not the next request should be skipped
+     * @param cancelRemainingCalls whether or not to cancel in-progress calls once we've received enough responses
      * @return a list of responses
      */
     private static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
@@ -181,7 +174,8 @@ public final class PaxosQuorumChecker {
             int quorumSize,
             Map<? extends SERVICE, ExecutorService> executors,
             Duration remoteRequestTimeout,
-            Predicate<InProgressResponseState<SERVICE, RESPONSE>> shouldSkipNextRequest) {
+            Predicate<InProgressResponseState<SERVICE, RESPONSE>> shouldSkipNextRequest,
+            boolean cancelRemainingCalls) {
         MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService =
                 MultiplexingCompletionService.create(executors);
 
@@ -227,7 +221,7 @@ public final class PaxosQuorumChecker {
             log.warn("paxos request interrupted", e);
             interrupted = true;
         } finally {
-            cancelOutstandingRequestsAfterTimeout(allFutures);
+            cancelOutstandingRequestsAfterTimeout(cancelRemainingCalls, allFutures);
 
             if (interrupted) {
                 Thread.currentThread().interrupt();
@@ -249,9 +243,11 @@ public final class PaxosQuorumChecker {
     }
 
     private static <SERVICE, RESPONSE extends PaxosResponse> void cancelOutstandingRequestsAfterTimeout(
+            boolean shouldCancel,
             List<Future<Map.Entry<SERVICE, RESPONSE>>> responseFutures) {
+
         boolean areAllRequestsComplete = responseFutures.stream().allMatch(Future::isDone);
-        if (areAllRequestsComplete) {
+        if (!shouldCancel || areAllRequestsComplete) {
             return;
         }
 

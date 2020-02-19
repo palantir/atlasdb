@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
@@ -47,12 +48,15 @@ public class LeadershipComponents {
 
     private final Factory<LeadershipContext> leadershipContextFactory;
     private final List<HealthCheckPinger> healthCheckPingers;
+    private final BooleanSupplier cancelRemainingCalls;
 
     LeadershipComponents(
             Factory<LeadershipContext> leadershipContextFactory,
-            List<HealthCheckPinger> healthCheckPingers) {
+            List<HealthCheckPinger> healthCheckPingers,
+            BooleanSupplier cancelRemainingCalls) {
         this.leadershipContextFactory = leadershipContextFactory;
         this.healthCheckPingers = healthCheckPingers;
+        this.cancelRemainingCalls = cancelRemainingCalls;
     }
 
     public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
@@ -71,7 +75,7 @@ public class LeadershipComponents {
     }
 
     public LeaderPingHealthCheck healthCheck(NamespaceTracker namespaceTracker) {
-        return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers);
+        return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers, cancelRemainingCalls);
     }
 
     private LeadershipContext getOrCreateNewLeadershipContext(Client client) {

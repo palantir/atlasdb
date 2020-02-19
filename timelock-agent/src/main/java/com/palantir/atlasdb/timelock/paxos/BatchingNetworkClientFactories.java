@@ -39,7 +39,11 @@ abstract class BatchingNetworkClientFactories implements
                 .enhanceRemotes(remote -> metrics().instrument(BatchPaxosAcceptor.class, remote))
                 .all();
 
-        return AutobatchingPaxosAcceptorNetworkClientFactory.create(allBatchAcceptors, sharedExecutor(), quorumSize());
+        return AutobatchingPaxosAcceptorNetworkClientFactory.create(
+                allBatchAcceptors,
+                sharedExecutor(),
+                quorumSize(),
+                cancelRemainingCalls());
     }
 
     @Value.Auxiliary
@@ -52,7 +56,11 @@ abstract class BatchingNetworkClientFactories implements
         LocalAndRemotes<BatchPaxosLearner> allBatchLearners = LocalAndRemotes.of(local, remotes)
                 .enhanceRemotes(remote -> metrics().instrument(BatchPaxosLearner.class, remote));
 
-        return AutobatchingPaxosLearnerNetworkClientFactory.create(allBatchLearners, sharedExecutor(), quorumSize());
+        return AutobatchingPaxosLearnerNetworkClientFactory.create(
+                allBatchLearners,
+                sharedExecutor(),
+                quorumSize(),
+                cancelRemainingCalls());
     }
 
     @Value.Auxiliary

@@ -144,7 +144,7 @@ public class GetSuspectedLeaderWithUuidTests {
         Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors =
                 Maps.toMap(ImmutableList.copyOf(rpcClients), $ -> executorService);
 
-        return new GetSuspectedLeaderWithUuid(executors, clientAwareLeaders, LOCAL_UUID, Duration.ofSeconds(1));
+        return new GetSuspectedLeaderWithUuid(executors, clientAwareLeaders, LOCAL_UUID, Duration.ofSeconds(1), true);
     }
 
     @Value.Immutable

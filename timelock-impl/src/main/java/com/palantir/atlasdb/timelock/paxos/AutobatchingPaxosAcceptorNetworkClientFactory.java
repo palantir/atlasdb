@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BooleanSupplier;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -54,20 +55,24 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
     public static AutobatchingPaxosAcceptorNetworkClientFactory create(
             List<BatchPaxosAcceptor> acceptors,
             ExecutorService executor,
-            int quorumSize) {
+            int quorumSize,
+            BooleanSupplier cancelRemainingCalls) {
 
         DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare =
-                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, PrepareCoalescingFunction::new))
+                Autobatchers.coalescing(
+                        wrap(acceptors, executor, quorumSize, PrepareCoalescingFunction::new, cancelRemainingCalls))
                         .safeLoggablePurpose("batch-paxos-acceptor.prepare")
                         .build();
 
         DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept =
-                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, AcceptCoalescingFunction::new))
+                Autobatchers.coalescing(
+                        wrap(acceptors, executor, quorumSize, AcceptCoalescingFunction::new, cancelRemainingCalls))
                         .safeLoggablePurpose("batch-paxos-acceptor.accept")
                         .build();
 
         DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequenceAutobatcher =
-                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, BatchingPaxosLatestSequenceCache::new))
+                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, BatchingPaxosLatestSequenceCache::new,
+                        cancelRemainingCalls))
                         .safeLoggablePurpose("batch-paxos-acceptor.latest-sequence-cache")
                         .build();
 

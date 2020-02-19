@@ -19,6 +19,7 @@ package com.palantir.paxos;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BooleanSupplier;
 
 import com.google.common.collect.ImmutableList;
 
@@ -27,14 +28,17 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
     private final Map<PaxosAcceptor, ExecutorService> executors;
+    private final BooleanSupplier cancelRemainingCalls;
 
     public SingleLeaderAcceptorNetworkClient(
             List<PaxosAcceptor> acceptors,
             int quorumSize,
-            Map<PaxosAcceptor, ExecutorService> executors) {
+            Map<PaxosAcceptor, ExecutorService> executors,
+            BooleanSupplier cancelRemainingCalls) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
         this.executors = executors;
+        this.cancelRemainingCalls = cancelRemainingCalls;
     }
 
     @Override
@@ -44,7 +48,8 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 acceptor -> acceptor.prepare(seq, proposalId),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                cancelRemainingCalls.getAsBoolean()).withoutRemotes();
     }
 
     @Override
@@ -54,7 +59,8 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 acceptor -> acceptor.accept(seq, proposal),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                cancelRemainingCalls.getAsBoolean()).withoutRemotes();
     }
 
     @Override
@@ -64,6 +70,7 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                cancelRemainingCalls.getAsBoolean()).withoutRemotes();
     }
 }
