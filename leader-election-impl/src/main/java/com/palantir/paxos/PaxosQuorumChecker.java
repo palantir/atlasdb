@@ -221,7 +221,9 @@ public final class PaxosQuorumChecker {
             log.warn("paxos request interrupted", e);
             interrupted = true;
         } finally {
-            cancelOutstandingRequestsAfterTimeout(cancelRemainingCalls, allFutures);
+            if (cancelRemainingCalls) {
+                cancelOutstandingRequestsAfterTimeout(allFutures);
+            }
 
             if (interrupted) {
                 Thread.currentThread().interrupt();
@@ -243,11 +245,10 @@ public final class PaxosQuorumChecker {
     }
 
     private static <SERVICE, RESPONSE extends PaxosResponse> void cancelOutstandingRequestsAfterTimeout(
-            boolean shouldCancel,
             List<Future<Map.Entry<SERVICE, RESPONSE>>> responseFutures) {
 
         boolean areAllRequestsComplete = responseFutures.stream().allMatch(Future::isDone);
-        if (!shouldCancel || areAllRequestsComplete) {
+        if (areAllRequestsComplete) {
             return;
         }
 
