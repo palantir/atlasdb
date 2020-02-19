@@ -102,7 +102,8 @@ public class PaxosLeaderEventsTest {
         return new SingleLeaderPinger(
                 ImmutableMap.of(ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT), executorService),
                 leaderPingResponseWait,
-                LOCAL_UUID);
+                LOCAL_UUID,
+                true);
     }
 
 }

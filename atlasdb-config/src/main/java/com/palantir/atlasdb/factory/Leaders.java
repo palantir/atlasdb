@@ -161,7 +161,8 @@ public final class Leaders {
                 ourLearner,
                 remoteLearners,
                 config.quorumSize(),
-                createExecutorsForService(metricsManager, learners, "knowledge-update"));
+                createExecutorsForService(metricsManager, learners, "knowledge-update"),
+                true);
 
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
                 ourAcceptor,
@@ -173,7 +174,8 @@ public final class Leaders {
         PaxosAcceptorNetworkClient acceptorNetworkClient = new SingleLeaderAcceptorNetworkClient(
                 acceptors,
                 config.quorumSize(),
-                createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"));
+                createExecutorsForService(metricsManager, acceptors, "latest-round-verifier"),
+                true);
 
         List<LeaderPingerContext<PingableLeader>> otherLeaders = generatePingables(
                 remotePaxosServerSpec.remoteLeaderUris(),
@@ -184,7 +186,8 @@ public final class Leaders {
         LeaderPinger leaderPinger = new SingleLeaderPinger(
                 createExecutorsForService(metricsManager, otherLeaders, "leader-ping"),
                 config.leaderPingResponseWait(),
-                leaderUuid);
+                leaderUuid,
+                true);
 
         LeaderElectionService uninstrumentedLeaderElectionService = new LeaderElectionServiceBuilder()
                 .leaderUuid(leaderUuid)

@@ -47,14 +47,17 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final Map<LeaderPingerContext<PingableLeader>, ExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
     private final UUID localUuid;
+    private final boolean cancelRemainingCalls;
 
     public SingleLeaderPinger(
             Map<LeaderPingerContext<PingableLeader>, ExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
-            UUID localUuid) {
+            UUID localUuid,
+            boolean cancelRemainingCalls) {
         this.leaderPingExecutors = otherPingableExecutors;
         this.leaderPingResponseWait = leaderPingResponseWait;
         this.localUuid = localUuid;
+        this.cancelRemainingCalls = cancelRemainingCalls;
     }
 
     @Override
@@ -134,7 +137,8 @@ public class SingleLeaderPinger implements LeaderPinger {
                         leaderPingExecutors,
                         leaderPingResponseWait,
                         state -> state.responses().values().stream().map(PaxosString::get).anyMatch(
-                                uuid.toString()::equals));
+                                uuid.toString()::equals),
+                        cancelRemainingCalls);
 
         for (Map.Entry<LeaderPingerContext<PingableLeader>, PaxosString> cacheEntry :
                 responses.responses().entrySet()) {

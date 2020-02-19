@@ -63,7 +63,9 @@ public abstract class PaxosResources {
 
     @Value.Derived
     public LeadershipComponents leadershipComponents() {
-        return new LeadershipComponents(leadershipContextFactory(), leadershipContextFactory().healthCheckPingers());
+        return new LeadershipComponents(
+                leadershipContextFactory(),
+                leadershipContextFactory().healthCheckPingers());
     }
 
     private static BatchPaxosResources batchResourcesFromComponents(LocalPaxosComponents components) {

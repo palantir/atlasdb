@@ -140,7 +140,8 @@ public class TestableTimelockCluster implements TestRule {
                 server -> PaxosContainer.of(server.pinger().ping(namespaces)),
                 Maps.toMap(servers, unused -> executorService),
                 Duration.ofSeconds(2),
-                untilAllNamespacesAreSeen(namespacesIterable))
+                untilAllNamespacesAreSeen(namespacesIterable),
+                true)
                 .stream();
 
         return responses

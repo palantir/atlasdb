@@ -71,7 +71,11 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
                 .collect(Collectors.toSet());
 
         DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidAutobatcher = Autobatchers.independent(
-                new GetSuspectedLeaderWithUuid(executors, clientAwarePingables, localUuid, leaderPingResponseWait))
+                new GetSuspectedLeaderWithUuid(
+                        executors,
+                        clientAwarePingables,
+                        localUuid,
+                        leaderPingResponseWait))
                 .safeLoggablePurpose("batch-paxos-pingable-leader.uuid")
                 .build();
 

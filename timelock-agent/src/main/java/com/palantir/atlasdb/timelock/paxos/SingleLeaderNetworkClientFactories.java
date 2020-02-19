@@ -48,7 +48,8 @@ abstract class SingleLeaderNetworkClientFactories implements
             SingleLeaderAcceptorNetworkClient uninstrumentedAcceptor = new SingleLeaderAcceptorNetworkClient(
                     allAcceptors.all(),
                     quorumSize(),
-                    allAcceptors.withSharedExecutor(sharedExecutor()));
+                    allAcceptors.withSharedExecutor(sharedExecutor()),
+                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosAcceptorNetworkClient.class, uninstrumentedAcceptor);
         };
     }
@@ -69,7 +70,8 @@ abstract class SingleLeaderNetworkClientFactories implements
                     allLearners.local(),
                     allLearners.remotes(),
                     quorumSize(),
-                    allLearners.withSharedExecutor(sharedExecutor()));
+                    allLearners.withSharedExecutor(sharedExecutor()),
+                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosLearnerNetworkClient.class, uninstrumentedLearner);
         };
     }

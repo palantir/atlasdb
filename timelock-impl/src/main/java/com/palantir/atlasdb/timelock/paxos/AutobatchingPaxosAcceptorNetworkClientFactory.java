@@ -57,12 +57,14 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
             int quorumSize) {
 
         DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare =
-                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, PrepareCoalescingFunction::new))
+                Autobatchers.coalescing(
+                        wrap(acceptors, executor, quorumSize, PrepareCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.prepare")
                         .build();
 
         DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept =
-                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, AcceptCoalescingFunction::new))
+                Autobatchers.coalescing(
+                        wrap(acceptors, executor, quorumSize, AcceptCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.accept")
                         .build();
 
