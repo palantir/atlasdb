@@ -641,6 +641,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         final Map<ByteBuffer, List<ColumnOrSuperColumn>> result = Maps.newHashMap();
         Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult;
         List<KeyPredicate> query = cellLoader.translateRowsToKeyPredicates(rows, config.fetchPerRowReadLimit());
+        List<ColumnOrSuperColumn> cells;
 
         //todo(Sudiksha): refactor
         while (!query.isEmpty()) {
@@ -651,11 +652,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             //todo refactor
             for(Entry<ByteBuffer, List<ColumnOrSuperColumn>> cellsForRow: partialResult.entrySet()) {
 
-                List<ColumnOrSuperColumn> cells = cellsForRow.getValue();
+                cells = cellsForRow.getValue();
 
                 if (!cells.isEmpty()) {
                     ByteBuffer row = cellsForRow.getKey();
-                    result.getOrDefault(row, new ArrayList<>()).addAll(cells);
+                    cells.addAll(result.getOrDefault(row, new ArrayList<>()));
+                    result.put(row, cells);
                     query.add(new KeyPredicate()
                             .setKey(row)
                             .setPredicate(getSlicePredicate(cells)));
