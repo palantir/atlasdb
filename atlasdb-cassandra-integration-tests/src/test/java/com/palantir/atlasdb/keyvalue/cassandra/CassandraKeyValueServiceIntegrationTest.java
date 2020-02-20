@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -45,6 +46,7 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
+import org.assertj.core.api.MapAssert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -302,52 +304,38 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void testGetRowsForDeletion() throws Exception {
+    public void testGetRowsForDeletion() {
         TableReference tableReference =
                 TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
         keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
         byte[] data = PtBytes.toBytes("data");
-        byte[] moreData = PtBytes.toBytes("data2");
 
-        Cell CELL_1 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column"));
-        Cell CELL_4 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        Cell CELL_5 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column2"));
+        Cell CELL_WITH_VERSIONS = Cell.create(row(1), column(1));
+        Cell CELL_WITH_SAME_ROW = Cell.create(row(1), column(2));
+        Cell CELL_WITH_DIFFERENT_ROW = Cell.create(row(2), column(1));
 
-
-        Cell CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column"));
-        Cell CELL_3 = Cell.create(PtBytes.toBytes("row3"), PtBytes.toBytes("column"));
-
-
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL, Value.create(data, 8L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL, Value.create(moreData, 88L)));
-
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 80L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_4, Value.create(moreData, 85L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_5, Value.create(moreData, 89L)));
-
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_4, Value.create(moreData, 95L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_5, Value.create(moreData, 98L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_1, Value.create(moreData, 90L)));
-
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 73L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 75L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_2, Value.create(moreData, 79L)));
-        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL_3, Value.create(moreData, 51L)));
+        ImmutableListMultimap tableValues = ImmutableListMultimap.builder()
+                .putAll(CELL_WITH_VERSIONS, valueWithTimestamps(data, ImmutableList.of(57L, 72L, 100L)))
+                .putAll(CELL_WITH_SAME_ROW, valueWithTimestamps(data, ImmutableList.of(63L)))
+                .putAll(CELL_WITH_DIFFERENT_ROW, valueWithTimestamps(data, ImmutableList.of(42L, 81L)))
+                .build();
 
 
-        Iterable<byte[]> rows = new ArrayList() {{
-           add(PtBytes.toBytes("row1"));
-            add(PtBytes.toBytes("row2"));
-            add(PtBytes.toBytes("row3"));
-            add(PtBytes.toBytes("row4"));
-            add(PtBytes.toBytes("row5"));
+        keyValueService.putWithTimestamps(tableReference, tableValues);
 
-        }};
+        Map<Cell, Value> result = keyValueService.getRows(
+                tableReference,
+                ImmutableList.of(row(1), row(2)),
+                ColumnSelection.all(),
+                STARTING_ATLAS_TIMESTAMP - 1);
 
-        Map<Cell, Value> result = keyValueService.getRows(tableReference, rows, ColumnSelection.all(), STARTING_ATLAS_TIMESTAMP - 1);
-
-        assertThat(result).containsKeys(CELL_1, CELL_2, CELL_3, CELL_4, CELL_5);
+        assertThat(result).containsOnly(
+                entry(CELL_WITH_VERSIONS, Value.create(data, 100L)),
+                entry(CELL_WITH_SAME_ROW, Value.create(data, 63L)),
+                entry(CELL_WITH_DIFFERENT_ROW, Value.create(data, 81L)));
     }
+
 
     @Test
     public void rangeTombstonesWrittenAtFreshTimestamp() throws Exception {

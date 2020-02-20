@@ -1944,11 +1944,11 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(keyValueService.getClusterAvailabilityStatus(), is(ClusterAvailabilityStatus.ALL_AVAILABLE));
     }
 
-    private static byte[] row(int number) {
+    protected static byte[] row(int number) {
         return PtBytes.toBytes("row" + number);
     }
 
-    private static byte[] column(int number) {
+    protected static byte[] column(int number) {
         return PtBytes.toBytes("column" + number);
     }
 
@@ -2019,5 +2019,11 @@ public abstract class AbstractKeyValueServiceTest {
                         .deleteSentinels(deleteSentinels)
                         .build());
         keyValueService.deleteAllTimestamps(tableRef, deletes);
+    }
+
+    protected List<Value> valueWithTimestamps(byte[] data, List<Long> timestamps) {
+        return timestamps.stream()
+                .map(timestamp -> Value.create(data, timestamp))
+                .collect(Collectors.toList());
     }
 }
