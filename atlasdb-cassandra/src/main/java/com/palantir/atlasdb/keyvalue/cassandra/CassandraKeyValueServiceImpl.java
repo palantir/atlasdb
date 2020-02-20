@@ -639,9 +639,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final long startTs) throws Exception {
 
         final Map<ByteBuffer, List<ColumnOrSuperColumn>> result = Maps.newHashMap();
+        List<KeyPredicate> query = rows.stream().map(row -> new KeyPredicate()
+                .setKey(row)
+                .setPredicate(SlicePredicates
+                        .create(SlicePredicates.Range.ALL,
+                                SlicePredicates.Limit.of(config.fetchReadLimitPerRow()))))
+                .collect(Collectors.toList());
+
         Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult;
-        List<KeyPredicate> query = cellLoader.translateRowsToKeyPredicates(rows, config.fetchPerRowReadLimit());
         List<ColumnOrSuperColumn> cells;
+
 
         //todo(Sudiksha): refactor
         while (!query.isEmpty()) {
@@ -670,6 +677,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         new ValueExtractor(metricsManager, ret)
                 .extractResults(result, startTs, ColumnSelection.all());
         return ret;
+    }
+
+    private boolean filterKeyPredicate(Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult,
+            KeyPredicate keyPredicate) {
+        return !partialResult.getOrDefault(keyPredicate.getKey(),
+                new ArrayList<>()).isEmpty();
     }
 
     //todo(Sudiksha): rename | refactor
@@ -723,7 +736,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     .makeCompositeBuffer(RangeRequests.nextLexicographicName(pair.lhSide), Long.MAX_VALUE),
                     Range.UNBOUND_END), Limit.of(1));
         }
-        return null;
+        return SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
     }
 
     private static List<ByteBuffer> wrap(List<byte[]> arrays) {

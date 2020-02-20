@@ -304,7 +304,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void testGetRowsForDeletion() {
+    public void testGetRows() {
         TableReference tableReference =
                 TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
         keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);

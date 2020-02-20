@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
@@ -217,20 +218,5 @@ final class CellLoader {
                 LoggingArgs.tableRef(tableRef),
                 SafeArg.of("rows", numRows),
                 SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
-    }
-
-    //todo(Sudiksha): refactor
-    public static List<KeyPredicate> translateRowsToKeyPredicates(
-            List<byte[]> rows, int readLimitPerRow) {
-        List<KeyPredicate> keyPredicates = new ArrayList<>(rows.size());
-
-        for (byte[] row : rows) {
-            SlicePredicate predicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.of(readLimitPerRow));
-            KeyPredicate keyPredicate = new KeyPredicate()
-                    .setKey(row)
-                    .setPredicate(predicate);
-            keyPredicates.add(keyPredicate);
-        }
-        return keyPredicates;
     }
 }
