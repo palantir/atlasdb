@@ -292,7 +292,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Default
     default int fetchReadLimitPerRow() {
-        return CassandraConstants.DEFAULT_PER_ROW_READ_LIMIT;
+        return CassandraConstants.DEFAULT_READ_LIMIT_PER_ROW;
     }
 
     /**
