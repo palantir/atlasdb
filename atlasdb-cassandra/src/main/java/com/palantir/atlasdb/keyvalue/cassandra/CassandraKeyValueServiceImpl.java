@@ -666,9 +666,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static KeyPredicate keyPredicate(ByteBuffer row, SlicePredicate predicate) {
-        return new KeyPredicate()
-                .setKey(row)
-                .setPredicate(predicate);
+        return new KeyPredicate().setKey(row).setPredicate(predicate);
     }
 
     private static SlicePredicate allPredicateWithLimit(int limit) {
@@ -713,14 +711,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         );
     }
 
-    private static SlicePredicate getNextLexicographicalSlicePredicate(List<ColumnOrSuperColumn> columns) {
+    private SlicePredicate getNextLexicographicalSlicePredicate(List<ColumnOrSuperColumn> columns) {
         if (columns.size() > 0) {
             ColumnOrSuperColumn lastCol = columns.get(columns.size() - 1);
             Pair<byte[], Long> pair =  CassandraKeyValueServices.decompose(lastCol.getColumn().name);
 
             return SlicePredicates.create(Range.of(CassandraKeyValueServices
                     .makeCompositeBuffer(RangeRequests.nextLexicographicName(pair.lhSide), Long.MAX_VALUE),
-                    Range.UNBOUND_END), Limit.of(1));
+                    Range.UNBOUND_END), Limit.of(config.fetchReadLimitPerRow()));
         }
         return SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
     }
