@@ -52,12 +52,16 @@ public class LockEventLogImpl implements LockEventLog {
 
     @Override
     public void logLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken) {
-        slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken));
+        if (!locksTakenOut.isEmpty()) {
+            slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken));
+        }
     }
 
     @Override
     public void logUnlock(Set<LockDescriptor> locksUnlocked) {
-        slidingWindow.add(UnlockEvent.builder(locksUnlocked));
+        if (!locksUnlocked.isEmpty()) {
+            slidingWindow.add(UnlockEvent.builder(locksUnlocked));
+        }
     }
 
     @Override

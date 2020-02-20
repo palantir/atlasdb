@@ -21,6 +21,8 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Range;
@@ -34,10 +36,24 @@ import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
+/**
+ * Note on concurrency:
+ * We use a fair read write lock mechanism and synchronisation as follows:
+ * 1. Registering locks and unlocks requires a read lock.
+ * 2. Updating the set of watched ranges requires a write lock to swap the actual reference. This ensures that, as soon
+ *    as ranges are updated, any registered locks and unlocks onwards will use the updated ranges for filtering. This
+ *    is necessary to guarantee that the log will reflect any changes to {@link #heldLocksCollection} that occur during
+ *    execution of {@link #logOpenLocks(LockWatchRequest, UUID)}.
+ * 3. Updating in {@link #addToWatches(LockWatchRequest)} is synchronised to minimise the scope of holding the write
+ *    lock above while still preventing concurrent updates.
+ * 4. Fairness of the lock ensures that updates are eventually granted, even in the presence of constant locks and
+ *    unlocks.
+ */
 public class LockWatchingServiceImpl implements LockWatchingService {
     private final LockEventLog lockEventLog;
     private final HeldLocksCollection heldLocksCollection;
     private final AtomicReference<RangeSet<LockDescriptor>> ranges = new AtomicReference<>(TreeRangeSet.create());
+    private final ReadWriteLock watchesLock = new ReentrantReadWriteLock(true);
 
     public LockWatchingServiceImpl(LockEventLog lockEventLog, HeldLocksCollection heldLocksCollection) {
         this.lockEventLog = lockEventLog;
@@ -59,19 +75,38 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
-        lockEventLog.logLock(locksTakenOut.stream().filter(this::hasLockWatch).collect(Collectors.toSet()), token);
+        watchesLock.readLock().lock();
+        try {
+            lockEventLog.logLock(locksTakenOut.stream().filter(this::hasLockWatch).collect(Collectors.toSet()), token);
+        } finally {
+            watchesLock.readLock().unlock();
+        }
     }
 
     @Override
     public void registerUnlock(Set<LockDescriptor> unlocked) {
+        watchesLock.readLock().lock();
+        try {
         lockEventLog.logUnlock(unlocked.stream().filter(this::hasLockWatch).collect(Collectors.toSet()));
+        } finally {
+            watchesLock.readLock().unlock();
+        }
     }
 
     private synchronized void addToWatches(LockWatchRequest request) {
         RangeSet<LockDescriptor> oldRanges = ranges.get();
+        List<Range<LockDescriptor>> requestAsRanges = toRanges(request);
+        if (oldRanges.enclosesAll(requestAsRanges)) {
+            return;
+        }
         RangeSet<LockDescriptor> newRanges = TreeRangeSet.create(oldRanges);
-        newRanges.addAll(toRanges(request));
-        ranges.set(newRanges);
+        newRanges.addAll(requestAsRanges);
+        watchesLock.writeLock().lock();
+        try {
+            this.ranges.set(newRanges);
+        } finally {
+            watchesLock.writeLock().unlock();
+        }
     }
 
     // todo(gmaretic): if this is not performant enough, consider a more tailored approach
