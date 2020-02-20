@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,6 +59,8 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -638,54 +639,42 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final List<byte[]> rows,
             final long startTs) throws Exception {
 
-        final Map<ByteBuffer, List<ColumnOrSuperColumn>> result = Maps.newHashMap();
-        List<KeyPredicate> query = rows.stream().map(row -> new KeyPredicate()
-                .setKey(row)
-                .setPredicate(SlicePredicates
-                        .create(SlicePredicates.Range.ALL,
-                                SlicePredicates.Limit.of(config.fetchReadLimitPerRow()))))
+        final ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = LinkedListMultimap.create();
+
+        List<KeyPredicate> query = rows.stream()
+                .map(row -> keyPredicate(ByteBuffer.wrap(row), allPredicateWithLimit(config.fetchReadLimitPerRow())))
                 .collect(Collectors.toList());
 
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult;
-        List<ColumnOrSuperColumn> cells;
-
-
-        //todo(Sudiksha): refactor
         while (!query.isEmpty()) {
+            ListMultimap<ByteBuffer, ColumnOrSuperColumn> partialResult = KeyedStream.stream(fetchCellsForKeyPredicates(host, tableRef, query, startTs))
+                    .filter(cells -> !cells.isEmpty())
+                    .flatMap(Collection::stream)
+                    .collectToMultimap(LinkedListMultimap::create);
 
-            partialResult = fetchCellsForKeyPredicates(host, tableRef, query, startTs);
-            query.clear();
+            result.putAll(partialResult);
 
-            //todo refactor
-            for(Entry<ByteBuffer, List<ColumnOrSuperColumn>> cellsForRow: partialResult.entrySet()) {
-
-                cells = cellsForRow.getValue();
-
-                if (!cells.isEmpty()) {
-                    ByteBuffer row = cellsForRow.getKey();
-                    cells.addAll(result.getOrDefault(row, new ArrayList<>()));
-                    result.put(row, cells);
-                    query.add(new KeyPredicate()
-                            .setKey(row)
-                            .setPredicate(getSlicePredicate(cells)));
-                }
-
-            }
+            query = KeyedStream.stream(Multimaps.asMap(partialResult))
+                    .map((row, cells) -> keyPredicate(row, getNextLexicographicalSlicePredicate(cells)))
+                    .values()
+                    .collect(Collectors.toList());
         }
 
         Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(rows.size());
         new ValueExtractor(metricsManager, ret)
-                .extractResults(result, startTs, ColumnSelection.all());
+                .extractResults(Multimaps.asMap(result), startTs, ColumnSelection.all());
         return ret;
     }
 
-    private boolean filterKeyPredicate(Map<ByteBuffer, List<ColumnOrSuperColumn>> partialResult,
-            KeyPredicate keyPredicate) {
-        return !partialResult.getOrDefault(keyPredicate.getKey(),
-                new ArrayList<>()).isEmpty();
+    private static KeyPredicate keyPredicate(ByteBuffer row, SlicePredicate predicate) {
+        return new KeyPredicate()
+                .setKey(row)
+                .setPredicate(predicate);
     }
 
-    //todo(Sudiksha): rename | refactor
+    private static SlicePredicate allPredicateWithLimit(int limit) {
+        return SlicePredicates.create(Range.ALL, Limit.of(limit));
+    }
+
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchCellsForKeyPredicates(final InetSocketAddress host,
             final TableReference tableRef,
             List<KeyPredicate> query,
@@ -708,10 +697,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = wrappingQueryRunner.multiget_multislice(
                                 "getRows", client, tableRef, query, readConsistency);
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults = Maps.transformValues(results,
-                                lists -> Lists.newArrayList(Iterables.concat(lists)));
 
-                        return aggregatedResults;
+                        return Maps.transformValues(results,
+                                lists -> Lists.newArrayList(Iterables.concat(lists)));
                     }
 
                     @Override
@@ -725,10 +713,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         );
     }
 
-    //todo(Sudiksha): refactor | names
-    private static SlicePredicate getSlicePredicate(List<ColumnOrSuperColumn> columns) {
+    private static SlicePredicate getNextLexicographicalSlicePredicate(List<ColumnOrSuperColumn> columns) {
         if (columns.size() > 0) {
-
             ColumnOrSuperColumn lastCol = columns.get(columns.size() - 1);
             Pair<byte[], Long> pair =  CassandraKeyValueServices.decompose(lastCol.getColumn().name);
 
