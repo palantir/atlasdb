@@ -46,7 +46,6 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
-import org.assertj.core.api.MapAssert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -60,6 +59,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -315,10 +315,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Cell CELL_WITH_SAME_ROW = Cell.create(row(1), column(2));
         Cell CELL_WITH_DIFFERENT_ROW = Cell.create(row(2), column(1));
 
-        ImmutableListMultimap tableValues = ImmutableListMultimap.builder()
-                .putAll(CELL_WITH_VERSIONS, valueWithTimestamps(data, ImmutableList.of(57L, 72L, 100L)))
-                .putAll(CELL_WITH_SAME_ROW, valueWithTimestamps(data, ImmutableList.of(63L)))
-                .putAll(CELL_WITH_DIFFERENT_ROW, valueWithTimestamps(data, ImmutableList.of(42L, 81L)))
+        ImmutableListMultimap<Cell, Value> tableValues = ImmutableListMultimap.<Cell, Value>builder()
+                .putAll(CELL_WITH_VERSIONS, valueWithTimestamps(data, 57L, 72L, 100L))
+                .putAll(CELL_WITH_SAME_ROW, valueWithTimestamps(data, 63L))
+                .putAll(CELL_WITH_DIFFERENT_ROW, valueWithTimestamps(data, 42L, 81L))
                 .build();
 
 

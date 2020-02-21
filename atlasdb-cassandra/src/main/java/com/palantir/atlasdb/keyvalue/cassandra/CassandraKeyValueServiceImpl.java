@@ -659,10 +659,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     .collect(Collectors.toList());
         }
 
-        Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(rows.size());
-        new ValueExtractor(metricsManager, ret)
-                .extractResults(Multimaps.asMap(result), startTs, ColumnSelection.all());
-        return ret;
+        ValueExtractor extractor = new ValueExtractor(metricsManager, Maps.newHashMapWithExpectedSize(result.size()));
+        extractor.extractResults(Multimaps.asMap(result), startTs, ColumnSelection.all());
+        return extractor.asMap();
     }
 
     private static KeyPredicate keyPredicate(ByteBuffer row, SlicePredicate predicate) {
@@ -683,12 +682,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     @Override
                     public Map<ByteBuffer, List<ColumnOrSuperColumn>> apply(CassandraClient client) throws Exception {
 
-                        //todo(Sudiksha): double check logging
                         if (log.isTraceEnabled()) {
-                            log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
+                            log.trace("Requesting {} cells from {} starting at timestamp {} on {} "
+                                            + "as part of fetching cells for key predicates.",
                                     SafeArg.of("cells", query.size()),
                                     LoggingArgs.tableRef(tableRef),
-                                    SafeArg.of("timestampClause", ""),
                                     SafeArg.of("startTs", startTs),
                                     SafeArg.of("host", CassandraLogHelper.host(host)));
                         }
@@ -702,8 +700,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                     @Override
                     public String toString() {
-                        //todo(Sudiksha): double check
-                        return "multiget_multislice(" + host + ", "
+                        return "multiget_multislice(" + host + ", " + tableRef +
                                 + query.size() + " cells" + ")";
                     }
 
@@ -712,15 +709,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private SlicePredicate getNextLexicographicalSlicePredicate(List<ColumnOrSuperColumn> columns) {
-        if (columns.size() > 0) {
-            ColumnOrSuperColumn lastCol = columns.get(columns.size() - 1);
-            Pair<byte[], Long> pair =  CassandraKeyValueServices.decompose(lastCol.getColumn().name);
+        Preconditions.checkState(!columns.isEmpty(), "Columns was empty. This is probably an AtlasDb bug");
 
-            return SlicePredicates.create(Range.of(CassandraKeyValueServices
-                    .makeCompositeBuffer(RangeRequests.nextLexicographicName(pair.lhSide), Long.MAX_VALUE),
-                    Range.UNBOUND_END), Limit.of(config.fetchReadLimitPerRow()));
-        }
-        return SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
+        Column lastColumn = columns.get(columns.size() - 1).getColumn();
+        Pair<byte[], Long> columnNameAndTimestamp = CassandraKeyValueServices.decompose(lastColumn.name);
+        ByteBuffer nextLexicographicColumn = CassandraKeyValueServices.makeCompositeBuffer(
+                RangeRequests.nextLexicographicName(columnNameAndTimestamp.lhSide), Long.MAX_VALUE);
+
+        return SlicePredicates.create(
+                Range.of(nextLexicographicColumn, Range.UNBOUND_END),
+                Limit.of(config.fetchReadLimitPerRow()));
+
     }
 
     private static List<ByteBuffer> wrap(List<byte[]> arrays) {

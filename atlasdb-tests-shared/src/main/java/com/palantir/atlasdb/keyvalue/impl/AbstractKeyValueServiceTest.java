@@ -2021,9 +2021,9 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.deleteAllTimestamps(tableRef, deletes);
     }
 
-    protected List<Value> valueWithTimestamps(byte[] data, List<Long> timestamps) {
-        return timestamps.stream()
-                .map(timestamp -> Value.create(data, timestamp))
+    protected static List<Value> valueWithTimestamps(byte[] data, long... timestamps) {
+        return Arrays.stream(timestamps)
+                .mapToObj(timestamp -> Value.create(data, timestamp))
                 .collect(Collectors.toList());
     }
 }
