@@ -43,6 +43,7 @@ import java.util.SortedMap;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
@@ -2021,8 +2022,8 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.deleteAllTimestamps(tableRef, deletes);
     }
 
-    protected static List<Value> valueWithTimestamps(byte[] data, long... timestamps) {
-        return Arrays.stream(timestamps)
+    protected static List<Value> valueWithNumberOfTimestamps(byte[] data, long numberOfTimestamps) {
+        return LongStream.rangeClosed(1L, numberOfTimestamps)
                 .mapToObj(timestamp -> Value.create(data, timestamp))
                 .collect(Collectors.toList());
     }

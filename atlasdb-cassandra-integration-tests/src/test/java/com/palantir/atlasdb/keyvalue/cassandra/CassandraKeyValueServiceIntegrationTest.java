@@ -40,6 +40,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
@@ -59,7 +61,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -84,6 +85,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -238,7 +240,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig
                 .copyOf(CASSANDRA.getConfig())
-                .withGcGraceSeconds(gcGraceSeconds);
+                .withGcGraceSeconds(gcGraceSeconds)
+                .withFetchReadLimitPerRow(100);
     }
 
     private static String getInternalTestTableName() {
@@ -304,7 +307,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void testGetRows() {
+    public void testGetRows_highlyVersionedCells() {
         TableReference tableReference =
                 TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
         keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -313,27 +316,53 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         Cell CELL_WITH_VERSIONS = Cell.create(row(1), column(1));
         Cell CELL_WITH_SAME_ROW = Cell.create(row(1), column(2));
-        Cell CELL_WITH_DIFFERENT_ROW = Cell.create(row(2), column(1));
 
         ImmutableListMultimap<Cell, Value> tableValues = ImmutableListMultimap.<Cell, Value>builder()
-                .putAll(CELL_WITH_VERSIONS, valueWithTimestamps(data, 57L, 72L, 100L))
-                .putAll(CELL_WITH_SAME_ROW, valueWithTimestamps(data, 63L))
-                .putAll(CELL_WITH_DIFFERENT_ROW, valueWithTimestamps(data, 42L, 81L))
+                .putAll(CELL_WITH_VERSIONS, valueWithNumberOfTimestamps(data, 250L))
+                .putAll(CELL_WITH_SAME_ROW, valueWithNumberOfTimestamps(data, 200L))
                 .build();
-
 
         keyValueService.putWithTimestamps(tableReference, tableValues);
 
         Map<Cell, Value> result = keyValueService.getRows(
                 tableReference,
-                ImmutableList.of(row(1), row(2)),
+                ImmutableList.of(CELL_WITH_VERSIONS.getRowName(), CELL_WITH_SAME_ROW.getRowName()),
                 ColumnSelection.all(),
                 STARTING_ATLAS_TIMESTAMP - 1);
 
         assertThat(result).containsOnly(
-                entry(CELL_WITH_VERSIONS, Value.create(data, 100L)),
-                entry(CELL_WITH_SAME_ROW, Value.create(data, 63L)),
-                entry(CELL_WITH_DIFFERENT_ROW, Value.create(data, 81L)));
+                entry(CELL_WITH_VERSIONS, Value.create(data, 250L)),
+                entry(CELL_WITH_SAME_ROW, Value.create(data, 200L)));
+    }
+
+    @Test
+    public void testGetRows_manyColumnRows() {
+        TableReference tableReference =
+                TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
+        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        byte[] data = PtBytes.toBytes("data");
+
+        ImmutableListMultimap.Builder builder = ImmutableListMultimap.<Cell, Value>builder();
+
+        IntStream stream = IntStream.rangeClosed(1, 1000);
+
+        byte[] row1 = row(1);
+
+        ImmutableListMultimap<Cell, Value> tableValues = stream.mapToObj(
+                col -> Cell.create(row1, column(col)))
+                .collect(ImmutableListMultimap.toImmutableListMultimap(
+                        cell -> cell, cell -> Value.create(data, 1L)));
+
+        keyValueService.putWithTimestamps(tableReference, tableValues);
+
+        Map<Cell, Value> result = keyValueService.getRows(
+                tableReference,
+                ImmutableList.of(row1),
+                ColumnSelection.all(),
+                STARTING_ATLAS_TIMESTAMP - 1);
+
+        assertThat(result).isEqualTo(KeyedStream.stream(tableValues).collectToMap());
     }
 
 
