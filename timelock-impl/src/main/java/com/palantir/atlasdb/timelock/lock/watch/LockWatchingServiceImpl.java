@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -28,11 +28,11 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
-import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
@@ -40,32 +40,29 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
  * Note on concurrency:
  * We use a fair read write lock mechanism and synchronisation as follows:
  * 1. Registering locks and unlocks requires a read lock.
- * 2. Updating the set of watched ranges requires a write lock to swap the actual reference. This ensures that, as soon
- *    as ranges are updated, any registered locks and unlocks onwards will use the updated ranges for filtering. This
- *    is necessary to guarantee that the log will reflect any changes to {@link #heldLocksCollection} that occur during
- *    execution of {@link #logOpenLocks(LockWatchRequest, UUID)}.
+ * 2. Updating watches requires a write lock to swap the actual reference. This ensures that, as soon as an update is
+ *    made, any registered locks and unlocks onwards will use updated ranges for filtering. This is necessary to
+ *    guarantee that the log will contain any locks/unlocks of newly watched locks; see
+ *    {@link LockEventLogImpl#calculateOpenLocks} for more details.
  * 3. Updating in {@link #addToWatches(LockWatchRequest)} is synchronised to minimise the scope of holding the write
  *    lock above while still preventing concurrent updates.
  * 4. Fairness of the lock ensures that updates are eventually granted, even in the presence of constant locks and
  *    unlocks.
  */
+@SuppressWarnings("UnstableApiUsage")
 public class LockWatchingServiceImpl implements LockWatchingService {
     private final LockEventLog lockEventLog;
-    private final HeldLocksCollection heldLocksCollection;
-    private final AtomicReference<RangeSet<LockDescriptor>> ranges = new AtomicReference<>(TreeRangeSet.create());
+    private final AtomicReference<LockWatches> watches = new AtomicReference<>(LockWatches.create());
     private final ReadWriteLock watchesLock = new ReentrantReadWriteLock(true);
 
-    public LockWatchingServiceImpl(LockEventLog lockEventLog, HeldLocksCollection heldLocksCollection) {
-        this.lockEventLog = lockEventLog;
-        this.heldLocksCollection = heldLocksCollection;
+    public LockWatchingServiceImpl(HeldLocksCollection heldLocksCollection) {
+        this.lockEventLog = new LockEventLogImpl(watches::get, heldLocksCollection);
     }
 
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
-        addToWatches(locksToWatch);
-        UUID requestId = UUID.randomUUID();
-        logOpenLocks(locksToWatch, requestId);
-        logLockWatchEvent(locksToWatch, requestId);
+        Optional<LockWatches> changes = addToWatches(locksToWatch);
+        changes.ifPresent(this::logLockWatchEvent);
     }
 
     @Override
@@ -87,49 +84,45 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     public void registerUnlock(Set<LockDescriptor> unlocked) {
         watchesLock.readLock().lock();
         try {
-        lockEventLog.logUnlock(unlocked.stream().filter(this::hasLockWatch).collect(Collectors.toSet()));
+            lockEventLog.logUnlock(unlocked.stream().filter(this::hasLockWatch).collect(Collectors.toSet()));
         } finally {
             watchesLock.readLock().unlock();
         }
     }
 
-    private synchronized void addToWatches(LockWatchRequest request) {
-        RangeSet<LockDescriptor> oldRanges = ranges.get();
-        List<Range<LockDescriptor>> requestAsRanges = toRanges(request);
-        if (oldRanges.enclosesAll(requestAsRanges)) {
-            return;
+    private synchronized Optional<LockWatches> addToWatches(LockWatchRequest request) {
+        LockWatches oldWatches = watches.get();
+        Optional<LockWatches> newWatches = filterNewWatches(request, oldWatches);
+        if (newWatches.isPresent()) {
+            LockWatches updatedWatches = LockWatches.merge(oldWatches, newWatches.get());
+            watchesLock.writeLock().lock();
+            try {
+                watches.set(updatedWatches);
+            } finally {
+                watchesLock.writeLock().unlock();
+            }
         }
-        RangeSet<LockDescriptor> newRanges = TreeRangeSet.create(oldRanges);
-        newRanges.addAll(requestAsRanges);
-        watchesLock.writeLock().lock();
-        try {
-            this.ranges.set(newRanges);
-        } finally {
-            watchesLock.writeLock().unlock();
-        }
+        return newWatches;
     }
 
-    // todo(gmaretic): if this is not performant enough, consider a more tailored approach
-    private void logOpenLocks(LockWatchRequest request, UUID requestId) {
-        RangeSet<LockDescriptor> requestAsRangeSet = TreeRangeSet.create(toRanges(request));
-        Set<LockDescriptor> openLocks = heldLocksCollection.locksHeld().stream()
-                .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
-                .filter(requestAsRangeSet::contains)
-                .collect(Collectors.toSet());
-        lockEventLog.logOpenLocks(openLocks, requestId);
+    private Optional<LockWatches> filterNewWatches(LockWatchRequest request, LockWatches oldWatches) {
+        Set<LockWatchReference> newRefs = new HashSet<>();
+        RangeSet<LockDescriptor> newRanges = TreeRangeSet.create();
+        for (LockWatchReference singleReference : request.references()) {
+            Range<LockDescriptor> referenceAsRange = singleReference.accept(LockWatchReferences.TO_RANGES_VISITOR);
+            if (!oldWatches.ranges().encloses(referenceAsRange)) {
+                newRefs.add(singleReference);
+                newRanges.add(referenceAsRange);
+            }
+        }
+        return newRefs.isEmpty() ? Optional.empty() : Optional.of(ImmutableLockWatches.of(newRefs, newRanges));
     }
 
-    private void logLockWatchEvent(LockWatchRequest locksToWatch, UUID requestId) {
-        lockEventLog.logLockWatchCreated(locksToWatch, requestId);
+    private void logLockWatchEvent(LockWatches newWatches) {
+        lockEventLog.logLockWatchCreated(newWatches);
     }
 
     private boolean hasLockWatch(LockDescriptor lockDescriptor) {
-        return ranges.get().contains(lockDescriptor);
-    }
-
-    private static List<Range<LockDescriptor>> toRanges(LockWatchRequest request) {
-        return request.references().stream()
-                .map(ref -> ref.accept(LockWatchReferences.TO_RANGES_VISITOR))
-                .collect(Collectors.toList());
+        return watches.get().ranges().contains(lockDescriptor);
     }
 }

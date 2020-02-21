@@ -17,53 +17,96 @@
 package com.palantir.lock.watch;
 
 import java.util.List;
-import java.util.OptionalLong;
+import java.util.Set;
 import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.ImmutableList;
-import com.palantir.logsafe.Preconditions;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 
-@Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableLockWatchStateUpdate.class)
-@JsonDeserialize(as = ImmutableLockWatchStateUpdate.class)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = LockWatchStateUpdate.Failed.class, name = LockWatchStateUpdate.Failed.TYPE),
+        @JsonSubTypes.Type(value = LockWatchStateUpdate.Success.class, name = LockWatchStateUpdate.Success.TYPE),
+        @JsonSubTypes.Type(value = LockWatchStateUpdate.Snapshot.class, name = LockWatchStateUpdate.Snapshot.TYPE)})
 public interface LockWatchStateUpdate {
-    LockWatchStateUpdate EMPTY = LockWatchStateUpdate.failure(UUID.randomUUID(), OptionalLong.empty());
+    UUID logId();
+    <T> T accept(Visitor<T> visitor);
 
-    UUID leaderId();
-    boolean success();
-    OptionalLong lastKnownVersion();
-    List<LockWatchEvent> events();
-
-    @Value.Check
-    default void lastEventSequenceMatchesLastKnownVersion() {
-        if (!events().isEmpty()) {
-            Preconditions.checkState(lastKnownVersion().isPresent(),
-                    "If events are present, last known version must be present as well.");
-            LockWatchEvent lastEvent = events().get(events().size() - 1);
-            Preconditions.checkState(lastEvent.sequence() == lastKnownVersion().getAsLong(),
-                    "The sequence of the last event and the last known version must match");
-        }
+    static LockWatchStateUpdate failure(UUID logId) {
+        return ImmutableFailed.builder().logId(logId).build();
     }
 
-    static LockWatchStateUpdate of(UUID leaderId, boolean success, OptionalLong version, List<LockWatchEvent> events) {
-        return ImmutableLockWatchStateUpdate.builder()
-                .leaderId(leaderId)
-                .success(success)
+    static LockWatchStateUpdate success(UUID logId, long version, List<LockWatchEvent> events) {
+        return ImmutableSuccess.builder().logId(logId).lastKnownVersion(version).events(events).build();
+    }
+
+    static LockWatchStateUpdate snapshot(UUID logId, long version, Set<LockDescriptor> locked,
+            Set<LockWatchReference> lockWatches) {
+        return ImmutableSnapshot.builder()
+                .logId(logId)
                 .lastKnownVersion(version)
-                .events(events)
+                .locked(locked)
+                .lockWatches(lockWatches)
                 .build();
     }
 
-    static LockWatchStateUpdate failure(UUID uuid, OptionalLong lastKnownVersion) {
-        return of(uuid, false, lastKnownVersion, ImmutableList.of());
+    @Value.Immutable
+    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @JsonSerialize(as = ImmutableFailed.class)
+    @JsonDeserialize(as = ImmutableFailed.class)
+    @JsonTypeName(Failed.TYPE)
+    interface Failed extends LockWatchStateUpdate {
+        String TYPE = "fail";
+
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
+        }
     }
 
-    static LockWatchStateUpdate update(UUID uuid, long lastKnownVersion, List<LockWatchEvent> events) {
-        return of(uuid, true, OptionalLong.of(lastKnownVersion), events);
+    @Value.Immutable
+    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @JsonSerialize(as = ImmutableSuccess.class)
+    @JsonDeserialize(as = ImmutableSuccess.class)
+    @JsonTypeName(Success.TYPE)
+    interface Success extends LockWatchStateUpdate {
+        String TYPE = "regular";
+        long lastKnownVersion();
+        List<LockWatchEvent> events();
+
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    @Value.Immutable
+    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @JsonSerialize(as = ImmutableSnapshot.class)
+    @JsonDeserialize(as = ImmutableSnapshot.class)
+    @JsonTypeName(Snapshot.TYPE)
+    interface Snapshot extends LockWatchStateUpdate {
+        String TYPE = "snapshot";
+        long lastKnownVersion();
+        Set<LockDescriptor> locked();
+        Set<LockWatchReference> lockWatches();
+
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    interface Visitor<T> {
+        T visit(Failed failed);
+        T visit(Success success);
+        T visit(Snapshot snapshot);
     }
 }
