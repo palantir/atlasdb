@@ -349,12 +349,12 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         byte[] row1 = row(1);
 
-        ImmutableListMultimap<Cell, Value> tableValues = stream.mapToObj(
+        Map<Cell, Value> tableValues = stream.mapToObj(
                 col -> Cell.create(row1, column(col)))
-                .collect(ImmutableListMultimap.toImmutableListMultimap(
+                .collect(Collectors.toMap(
                         cell -> cell, cell -> Value.create(data, 1L)));
 
-        keyValueService.putWithTimestamps(tableReference, tableValues);
+        keyValueService.putWithTimestamps(tableReference, KeyedStream.stream(tableValues).collectToSetMultimap());
 
         Map<Cell, Value> result = keyValueService.getRows(
                 tableReference,
@@ -362,7 +362,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ColumnSelection.all(),
                 STARTING_ATLAS_TIMESTAMP - 1);
 
-        assertThat(result).isEqualTo(KeyedStream.stream(tableValues).collectToMap());
+        assertThat(result).isEqualTo(tableValues);
     }
 
 
