@@ -88,6 +88,7 @@ public final class Autobatchers {
         private final Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory;
 
         @Nullable private String purpose;
+        private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
         private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory) {
             this.handlerFactory = handlerFactory;
@@ -98,12 +99,17 @@ public final class Autobatchers {
             return this;
         }
 
+        public AutobatcherBuilder<I, O> safeTag(String key, String value) {
+            this.safeTags.put(key, value);
+            return this;
+        }
+
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
-                    new ProfilingEventHandler<>(handler, purpose);
+                    new ProfilingEventHandler<>(handler, purpose, safeTags.build());
 
             return DisruptorAutobatcher.create(profiledHandler, DEFAULT_BUFFER_SIZE, purpose);
         }

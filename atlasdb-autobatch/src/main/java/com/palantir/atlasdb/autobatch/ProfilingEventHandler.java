@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import java.util.Map;
+
 import com.lmax.disruptor.EventHandler;
 
 final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
@@ -27,9 +29,10 @@ final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, 
 
     ProfilingEventHandler(
             EventHandler<BatchElement<T, R>> delegateHandler,
-            String safeIdentifier) {
+            String safeIdentifier,
+            Map<String, String> tags) {
         this.delegateHandler = delegateHandler;
-        this.batchSizeRecorder = BatchSizeRecorder.create(safeIdentifier);
+        this.batchSizeRecorder = BatchSizeRecorder.create(safeIdentifier, tags);
     }
 
     @Override

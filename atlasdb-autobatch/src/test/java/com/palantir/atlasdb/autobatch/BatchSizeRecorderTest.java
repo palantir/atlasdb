@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import com.codahale.metrics.Histogram;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
@@ -29,7 +30,7 @@ public class BatchSizeRecorderTest {
 
     @Test
     public void metersResults() {
-        BatchSizeRecorder batchSizeRecorder = BatchSizeRecorder.create(SAFE_IDENTIFIER);
+        BatchSizeRecorder batchSizeRecorder = BatchSizeRecorder.create(SAFE_IDENTIFIER, ImmutableMap.of());
         batchSizeRecorder.markBatchProcessed(5);
         batchSizeRecorder.markBatchProcessed(10);
 

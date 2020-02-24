@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import java.util.Map;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 import com.codahale.metrics.Histogram;
@@ -32,10 +34,11 @@ public final class BatchSizeRecorder {
         this.histogram = histogram;
     }
 
-    public static BatchSizeRecorder create(String safeLoggerIdentifier) {
+    public static BatchSizeRecorder create(String safeLoggerIdentifier, Map<String, String> tags) {
         Histogram histogram = SharedTaggedMetricRegistries.getSingleton().histogram(MetricName.builder()
                         .safeName(AUTOBATCHER_METER)
                         .putSafeTags("identifier", safeLoggerIdentifier)
+                        .putAllSafeTags(tags)
                         .build());
         return new BatchSizeRecorder(histogram);
     }
