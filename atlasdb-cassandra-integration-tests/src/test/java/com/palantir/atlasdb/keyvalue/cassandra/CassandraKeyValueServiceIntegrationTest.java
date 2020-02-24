@@ -322,25 +322,25 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         byte[] data = PtBytes.toBytes("data");
 
-        Cell CELL_WITH_VERSIONS = Cell.create(row(1), column(1));
-        Cell CELL_WITH_SAME_ROW = Cell.create(row(1), column(2));
+        Cell cellWithVersions = Cell.create(row(1), column(1));
+        Cell cellWithSameRow = Cell.create(row(1), column(2));
 
         ImmutableListMultimap<Cell, Value> tableValues = ImmutableListMultimap.<Cell, Value>builder()
-                .putAll(CELL_WITH_VERSIONS, valueWithNumberOfTimestamps(data, 250L))
-                .putAll(CELL_WITH_SAME_ROW, valueWithNumberOfTimestamps(data, 200L))
+                .putAll(cellWithVersions, valueWithNumberOfTimestamps(data, 250L))
+                .putAll(cellWithSameRow, valueWithNumberOfTimestamps(data, 200L))
                 .build();
 
         keyValueService.putWithTimestamps(tableReference, tableValues);
 
         Map<Cell, Value> result = keyValueService.getRows(
                 tableReference,
-                ImmutableList.of(CELL_WITH_VERSIONS.getRowName(), CELL_WITH_SAME_ROW.getRowName()),
+                ImmutableList.of(cellWithVersions.getRowName(), cellWithSameRow.getRowName()),
                 ColumnSelection.all(),
                 STARTING_ATLAS_TIMESTAMP - 1);
 
         assertThat(result).containsOnly(
-                entry(CELL_WITH_VERSIONS, Value.create(data, 250L)),
-                entry(CELL_WITH_SAME_ROW, Value.create(data, 200L)));
+                entry(cellWithVersions, Value.create(data, 250L)),
+                entry(cellWithSameRow, Value.create(data, 200L)));
     }
 
     @Test

@@ -696,8 +696,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     SafeArg.of("host", CassandraLogHelper.host(host)));
                         }
 
-                        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = wrappingQueryRunner.multiget_multislice(
-                                "getRows", client, tableRef, query, readConsistency);
+                        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =
+                                wrappingQueryRunner.multiget_multislice(
+                                        "getRows",
+                                        client,
+                                        tableRef,
+                                        query,
+                                        readConsistency);
 
                         return Maps.transformValues(results,
                                 lists -> Lists.newArrayList(Iterables.concat(lists)));
