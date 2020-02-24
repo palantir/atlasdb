@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -99,7 +100,8 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
-                registrar);
+                registrar,
+                Optional.empty());
 
         environment.lifecycle().manage(new Managed() {
             @Override

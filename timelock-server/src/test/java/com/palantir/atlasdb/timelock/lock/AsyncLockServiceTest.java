@@ -63,7 +63,6 @@ public class AsyncLockServiceTest {
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
             locks,
-            mock(TargetedSweepLockDecorator.class),
             immutableTimestampTracker,
             acquirer,
             heldLocks,

@@ -21,14 +21,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
@@ -46,7 +44,6 @@ public class AsyncLockService implements Closeable {
     private final ScheduledExecutorService reaperExecutor;
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
-    private final TargetedSweepLockDecorator decorator;
     private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
     private final LockLog lockLog;
@@ -60,26 +57,21 @@ public class AsyncLockService implements Closeable {
      * @param lockLog lock logger
      * @param reaperExecutor executor for reaping locks that have not been refreshed by clients
      * @param timeoutExecutor executor for timing out lock requests that have blocked for longer than permitted
-     * @param targetedSweepRateLimitConfig configuration for special treatment of targeted sweep locks
      * @return an asynchronous lock service
      */
     public static AsyncLockService createDefault(
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
-            ScheduledExecutorService timeoutExecutor,
-            Supplier<RateLimitConfig> targetedSweepRateLimitConfig) {
+            ScheduledExecutorService timeoutExecutor) {
 
         LeaderClock clock = LeaderClock.create();
-        TargetedSweepLockDecorator targetedSweepLockDecorator =
-                TargetedSweepLockDecorator.create(targetedSweepRateLimitConfig, timeoutExecutor);
 
         HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
         LockWatchingService lockWatchingService = new LockWatchingServiceImpl(new LockEventLogImpl(), heldLocks);
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
 
         return new AsyncLockService(
-                new LockCollection(targetedSweepLockDecorator),
-                targetedSweepLockDecorator,
+                new LockCollection(),
                 new ImmutableTimestampTracker(),
                 lockAcquirer,
                 heldLocks,
@@ -93,7 +85,6 @@ public class AsyncLockService implements Closeable {
     @VisibleForTesting
     AsyncLockService(
             LockCollection locks,
-            TargetedSweepLockDecorator decorator,
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
@@ -104,7 +95,6 @@ public class AsyncLockService implements Closeable {
             // TODO(fdesouza): Remove this once PDS-95791 is resolved.
             LockLog lockLog) {
         this.locks = locks;
-        this.decorator = decorator;
         this.immutableTsTracker = immutableTimestampTracker;
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
@@ -206,7 +196,6 @@ public class AsyncLockService implements Closeable {
     public void close() {
         reaperExecutor.shutdown();
         lockAcquirer.close();
-        decorator.close();
         heldLocks.failAllOutstandingRequestsWithNotCurrentLeaderException();
     }
 }

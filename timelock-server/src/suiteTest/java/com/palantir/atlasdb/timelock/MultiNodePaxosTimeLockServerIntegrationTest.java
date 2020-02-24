@@ -79,6 +79,15 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         });
     }
 
+
+    @Test
+    public void nonLeadersReturn503_conjure() {
+        cluster.nonLeaders(client.namespace()).forEach((namespace, server) -> {
+            assertThatThrownBy(() -> server.client(namespace).namespacedConjureTimelockService().leaderTime())
+                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+        });
+    }
+
     @Test
     public void leaderRespondsToRequests() {
         NamespacedClients currentLeader = cluster.currentLeaderFor(client.namespace())
@@ -95,6 +104,11 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
         assertThatCode(client::getFreshTimestamp)
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void canUseNamespaceStartingWithTlOnLegacyEndpoints() {
+        cluster.client("tl" + "suffix").getFreshTimestamp();
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,51 +32,53 @@ import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
-public class TimeLockResourceTest {
+@RunWith(MockitoJUnitRunner.class)
+public class TimelockNamespacesTest {
     private static final String CLIENT_A = "a-client";
     private static final String CLIENT_B = "b-client";
-
+    
     private static final int DEFAULT_MAX_NUMBER_OF_CLIENTS = 5;
 
     private final TimeLockServices servicesA = mock(TimeLockServices.class);
     private final TimeLockServices servicesB = mock(TimeLockServices.class);
 
-    private final Function<String, TimeLockServices> serviceFactory = mock(Function.class);
-    private final Supplier<Integer> maxNumberOfClientsSupplier = mock(Supplier.class);
+    @Mock private Function<String, TimeLockServices> serviceFactory;
+    @Mock private Supplier<Integer> maxNumberOfClientsSupplier;
+
     private final MetricsManager metricsManager = new MetricsManager(
             new MetricRegistry(),
             DefaultTaggedMetricRegistry.getDefault(),
             unused -> false);
-    private final TimeLockResource resource = TimeLockResource.create(
-            metricsManager,
-            serviceFactory,
-            maxNumberOfClientsSupplier);
-
+    private TimelockNamespaces namespaces;
 
     @Before
     public void before() {
+        namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
         when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
         when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
         when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
-
+    
     @Test
     public void returnsProperServiceForEachClient() {
-        assertThat(resource.getOrCreateServices(CLIENT_A)).isEqualTo(servicesA);
-        assertThat(resource.getOrCreateServices(CLIENT_B)).isEqualTo(servicesB);
+        assertThat(namespaces.get(CLIENT_A)).isEqualTo(servicesA);
+        assertThat(namespaces.get(CLIENT_B)).isEqualTo(servicesB);
     }
 
     @Test
     public void servicesAreOnlyCreatedOncePerClient() {
-        resource.getTimeService(CLIENT_A);
-        resource.getTimeService(CLIENT_A);
+        namespaces.get(CLIENT_A);
+        namespaces.get(CLIENT_A);
 
         verify(serviceFactory, times(1)).apply(any());
     }
@@ -84,7 +87,7 @@ public class TimeLockResourceTest {
     public void doesNotCreateNewClientsAfterMaximumNumberHasBeenReached() {
         createMaximumNumberOfClients();
 
-        assertThatThrownBy(() -> resource.getTimeService(uniqueClient()))
+        assertThatThrownBy(() -> namespaces.get(uniqueClient()))
                 .isInstanceOf(IllegalStateException.class);
 
         verify(serviceFactory, times(DEFAULT_MAX_NUMBER_OF_CLIENTS)).apply(any());
@@ -94,14 +97,14 @@ public class TimeLockResourceTest {
     @Test
     public void returnsMaxNumberOfClients() {
         createMaximumNumberOfClients();
-        assertThat(resource.getNumberOfActiveClients()).isEqualTo(DEFAULT_MAX_NUMBER_OF_CLIENTS);
+        assertThat(namespaces.getNumberOfActiveClients()).isEqualTo(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
 
     @Test
     public void onClientCreationIncreaseNumberOfClients() {
-        assertThat(resource.getNumberOfActiveClients()).isEqualTo(0);
-        resource.getTimeService(uniqueClient());
-        assertThat(resource.getNumberOfActiveClients()).isEqualTo(1);
+        assertThat(namespaces.getNumberOfActiveClients()).isEqualTo(0);
+        namespaces.get(uniqueClient());
+        assertThat(namespaces.getNumberOfActiveClients()).isEqualTo(1);
     }
 
     @Test
@@ -110,7 +113,7 @@ public class TimeLockResourceTest {
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS + 1);
 
-        resource.getTimeService(uniqueClient());
+        namespaces.get(uniqueClient());
     }
 
     @Test
@@ -118,12 +121,12 @@ public class TimeLockResourceTest {
         assertNumberOfActiveClientsIs(0);
         assertMaxClientsIs(DEFAULT_MAX_NUMBER_OF_CLIENTS);
 
-        resource.getOrCreateServices(uniqueClient());
+        namespaces.get(uniqueClient());
 
         assertNumberOfActiveClientsIs(1);
         assertMaxClientsIs(DEFAULT_MAX_NUMBER_OF_CLIENTS);
 
-        resource.getOrCreateServices(uniqueClient());
+        namespaces.get(uniqueClient());
 
         assertNumberOfActiveClientsIs(2);
         assertMaxClientsIs(DEFAULT_MAX_NUMBER_OF_CLIENTS);
@@ -147,7 +150,7 @@ public class TimeLockResourceTest {
 
     private void createMaximumNumberOfClients() {
         for (int i = 0; i < DEFAULT_MAX_NUMBER_OF_CLIENTS; i++) {
-            resource.getTimeService(uniqueClient());
+            namespaces.get(uniqueClient());
         }
     }
 
@@ -156,19 +159,19 @@ public class TimeLockResourceTest {
     }
 
     private void assertNumberOfActiveClientsIs(int expected) {
-        assertThat(getGaugeValueForTimeLockResource(TimeLockResource.ACTIVE_CLIENTS))
+        assertThat(getGaugeValueForTimeLockResource(TimelockNamespaces.ACTIVE_CLIENTS))
                 .isEqualTo(expected);
     }
 
     private void assertMaxClientsIs(int expected) {
-        assertThat(getGaugeValueForTimeLockResource(TimeLockResource.MAX_CLIENTS))
+        assertThat(getGaugeValueForTimeLockResource(TimelockNamespaces.MAX_CLIENTS))
                 .isEqualTo(expected);
     }
 
     private int getGaugeValueForTimeLockResource(String gaugeName) {
         Object value = Optional.ofNullable(metricsManager.getRegistry()
                 .getGauges()
-                .get(TimeLockResource.class.getCanonicalName() + "." + gaugeName)
+                .get(TimelockNamespaces.class.getCanonicalName() + "." + gaugeName)
                 .getValue())
                 .orElseThrow(() -> new IllegalStateException("Gauge with gauge name " + gaugeName + " did not exist."));
         return (int) value;

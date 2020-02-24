@@ -10,6 +10,8 @@ libsDirName = file('build/artifacts')
 dependencies {
     compile project(":atlasdb-autobatch")
     compile project(":atlasdb-commons")
+    compile project(':lock-api-objects')
+    compile project(':timelock-api:timelock-api-jersey')
     compile project(":timestamp-api")
     compile project(":timestamp-client")
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'

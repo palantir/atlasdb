@@ -35,7 +35,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRequest.Builder;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;

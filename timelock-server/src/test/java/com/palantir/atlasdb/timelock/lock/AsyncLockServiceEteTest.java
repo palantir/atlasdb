@@ -69,8 +69,7 @@ public class AsyncLockServiceEteTest {
     private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(
             mock(LockEventLog.class), heldLocks);
     private final AsyncLockService service = new AsyncLockService(
-            new LockCollection(OrderedLocksDecorator.DO_NOTHING),
-            mock(TargetedSweepLockDecorator.class),
+            new LockCollection(),
             new ImmutableTimestampTracker(),
             new LockAcquirer(new LockLog(new MetricRegistry(), () -> 2L),
                     Executors.newSingleThreadScheduledExecutor(),

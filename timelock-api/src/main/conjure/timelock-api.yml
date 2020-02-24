@@ -1,0 +1,54 @@
+types:
+  imports:
+    LeaderTime:
+      base-type: any
+      external:
+        java: com.palantir.lock.v2.LeaderTime
+    NanoTime:
+      base-type: safelong
+      external:
+        java: com.palantir.common.time.NanoTime
+    PartitionedTimestamps:
+      base-type: any
+      external:
+        java: com.palantir.lock.v2.PartitionedTimestamps
+    LockImmutableTimestampResponse:
+      base-type: any
+      external:
+        java: com.palantir.lock.v2.LockImmutableTimestampResponse
+    Lease:
+      base-type: any
+      external:
+        java: com.palantir.lock.v2.Lease
+  definitions:
+    default-package: com.palantir.atlasdb.timelock.api
+    objects:
+      ConjureStartTransactionsRequest:
+        fields:
+          requestId: uuid
+          requestorId: uuid
+          numTransactions: integer
+      ConjureStartTransactionsResponse:
+        fields:
+          immutableTimestamp: LockImmutableTimestampResponse
+          timestamps: PartitionedTimestamps
+          lease: Lease
+
+services:
+  ConjureTimelockService:
+    name: Timelock service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.api
+    base-path: /tl
+    endpoints:
+      startTransactions:
+        http: POST /st/{namespace}
+        args:
+          namespace: string
+          request: ConjureStartTransactionsRequest
+        returns: ConjureStartTransactionsResponse
+      leaderTime:
+        http: POST /lt/{namespace}
+        args:
+          namespace: string
+        returns: LeaderTime

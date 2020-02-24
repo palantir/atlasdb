@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.server;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
@@ -55,6 +57,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
-                environment.jersey()::register);
+                environment.jersey()::register,
+                Optional.empty());
     }
 }

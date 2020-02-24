@@ -15,125 +15,53 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
-import com.palantir.atlasdb.timelock.paxos.Client;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@Path("/{namespace: [a-zA-Z0-9_-]+}")
+/**
+ * DO NOT add new endpoints in here. Instead, define them as Conjure endpoints.
+ */
+@Path("/{namespace: (?!tl/)[a-zA-Z0-9_-]+}")
+@Deprecated
 public class TimeLockResource {
-    private final Logger log = LoggerFactory.getLogger(TimeLockResource.class);
+    private final TimelockNamespaces namespaces;
 
-    @VisibleForTesting
-    static final String ACTIVE_CLIENTS = "activeClients";
-    @VisibleForTesting
-    static final String MAX_CLIENTS = "maxClients";
-
-    private final Function<String, TimeLockServices>  clientServicesFactory;
-    private final ConcurrentMap<String, TimeLockServices> servicesByNamespace = Maps.newConcurrentMap();
-    private final Supplier<Integer> maxNumberOfClients;
-
-    private TimeLockResource(
-            Function<String, TimeLockServices> clientServicesFactory,
-            Supplier<Integer> maxNumberOfClients) {
-        this.clientServicesFactory = clientServicesFactory;
-        this.maxNumberOfClients = maxNumberOfClients;
+    private TimeLockResource(TimelockNamespaces namespaces) {
+        this.namespaces = namespaces;
     }
 
-    public static TimeLockResource create(MetricsManager metricsManager,
-            Function<String, TimeLockServices> clientServicesFactory,
-            Supplier<Integer> maxNumberOfClients) {
-        TimeLockResource resource = new TimeLockResource(clientServicesFactory, maxNumberOfClients);
-        registerClientCapacityMetrics(resource, metricsManager);
-        return resource;
+    public static TimeLockResource create(TimelockNamespaces namespaces) {
+        return new TimeLockResource(namespaces);
     }
 
     @Path("/lock")
     public LockService getLockService(@Safe @PathParam("namespace") String namespace) {
-        return getOrCreateServices(namespace).getLockService();
+        return namespaces.get(namespace).getLockService();
     }
 
     @Path("/timestamp")
     public TimestampService getTimeService(@Safe @PathParam("namespace") String namespace) {
-        return getOrCreateServices(namespace).getTimestampService();
+        return namespaces.get(namespace).getTimestampService();
     }
 
     @Path("/timelock")
     public AsyncTimelockResource getTimelockService(@Safe @PathParam("namespace") String namespace) {
-        return getOrCreateServices(namespace).getTimelockService();
+        return namespaces.get(namespace).getTimelockResource();
     }
 
     @Path("/lock-watch")
     public LockWatchingResource getLockWatchingResource(@Safe @PathParam("namespace") String namespace) {
-        return getOrCreateServices(namespace).getLockWatchingResource();
+        return namespaces.get(namespace).getLockWatchingResource();
     }
 
     @Path("/timestamp-management")
     public TimestampManagementService getTimestampManagementService(@Safe @PathParam("namespace") String namespace) {
-        return getOrCreateServices(namespace).getTimestampManagementService();
-    }
-
-    @VisibleForTesting
-    TimeLockServices getOrCreateServices(String namespace) {
-        return servicesByNamespace.computeIfAbsent(namespace, this::createNewClient);
-    }
-
-    public int getNumberOfActiveClients() {
-        return servicesByNamespace.size();
-    }
-
-    public int getMaxNumberOfClients() {
-        return maxNumberOfClients.get();
-    }
-
-    public Set<Client> getActiveClients() {
-        return servicesByNamespace.keySet().stream().map(Client::of).collect(Collectors.toSet());
-    }
-
-    private TimeLockServices createNewClient(String namespace) {
-        Preconditions.checkArgument(!namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
-                "The client name '%s' is reserved for the leader election service, and may not be "
-                        + "used.",
-                PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
-
-        if (getNumberOfActiveClients() >= getMaxNumberOfClients()) {
-            log.error(
-                    "Unable to create timelock services for client {}, as it would exceed the maximum number of "
-                            + "allowed clients ({}). If this is intentional, the maximum number of clients can be "
-                            + "increased via the maximum-number-of-clients runtime config property.",
-                    SafeArg.of("client", namespace),
-                    SafeArg.of("maxNumberOfClients", getMaxNumberOfClients()));
-            throw new SafeIllegalStateException("Maximum number of clients exceeded");
-        }
-
-        TimeLockServices services = clientServicesFactory.apply(namespace);
-        log.info("Successfully created services for a new TimeLock client {}.", SafeArg.of("client", namespace));
-        return services;
-    }
-
-    private static void registerClientCapacityMetrics(TimeLockResource resource, MetricsManager metricsManager) {
-        metricsManager.registerMetric(TimeLockResource.class, ACTIVE_CLIENTS, resource::getNumberOfActiveClients);
-        metricsManager.registerMetric(TimeLockResource.class, MAX_CLIENTS, resource::getMaxNumberOfClients);
+        return namespaces.get(namespace).getTimestampManagementService();
     }
 }
