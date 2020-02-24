@@ -1,9 +1,9 @@
 type: improvement
 improvement:
   description: |-
-    The getRows endpoint fetches all the cells (all the versions) for a given list of rows from Cassandra if the columns are not explicitly specified. This endpoint thus causes a lot of very large reads on Cassandra when reading a list of rows from a table with many rows that are quite wide.
-
-    Instead of reading all the cells (and all the versions of these cells) from Cassandra in one request, split the very large read query into number of serial requests with limited reads. It is maintained that all the cells are read and only (some) older versions of cells may be skipped while reading from Cassandra.
+    To avoid very large reads on Cassandra, the getRows endpoint now splits a read query into number of serial requests with limited reads instead of fetching all the cells (all the versions) for a given list of rows from Cassandra. It is maintained that all the cells are read and only (some) older versions of cells may be skipped while reading from Cassandra.
+    
+    The read limit per request is configurable.
 
   links:
   - https://github.com/palantir/atlasdb/pull/4588
