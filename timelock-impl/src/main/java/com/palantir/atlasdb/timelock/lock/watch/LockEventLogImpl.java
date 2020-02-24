@@ -77,7 +77,7 @@ public class LockEventLogImpl implements LockEventLog {
         eventsToReplay.get().forEach(eventReplayer::replay);
         return LockWatchStateUpdate.snapshot(
                 logId,
-                endVersion + eventsToReplay.get().size(),
+                endVersion,
                 eventReplayer.locked,
                 eventReplayer.watches);
     }
@@ -209,7 +209,7 @@ public class LockEventLogImpl implements LockEventLog {
 
         @Override
         public Void visit(UnlockEvent unlockEvent) {
-            unlockEvent.lockDescriptors().stream().filter(lockWatches.ranges()::contains).forEach(locked::remove);
+            locked.removeAll(unlockEvent.lockDescriptors());
             return null;
         }
 
