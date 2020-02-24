@@ -40,6 +40,7 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
@@ -58,6 +59,8 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -131,6 +134,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -231,6 +235,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
+    private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
@@ -302,7 +307,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    private static CassandraKeyValueService create(
+    @VisibleForTesting
+    static CassandraKeyValueService create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
@@ -437,6 +443,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, tableMetadata,
                 cassandraTableTruncator);
+        this.runtimeConfigSupplier = runtimeConfigSupplier;
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(
@@ -606,42 +613,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> getRowsForSingleHost(final InetSocketAddress host,
-                                                  final TableReference tableRef,
-                                                  final List<byte[]> rows,
-                                                  final long startTs) {
+            final TableReference tableRef,
+            final List<byte[]> rows,
+            final long startTs) {
         try {
             int rowCount = 0;
             final Map<Cell, Value> result = Maps.newHashMap();
             int fetchBatchCount = config.fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
-                result.putAll(clientPool.runWithRetryOnHost(host,
-                        new FunctionCheckedException<CassandraClient, Map<Cell, Value>, Exception>() {
-                            @Override
-                            public Map<Cell, Value> apply(CassandraClient client) throws Exception {
-                                // We want to get all the columns in the row so set start and end to empty.
-                                SlicePredicate pred = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
-
-                                List<ByteBuffer> rowNames = wrap(batch);
-
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
-                                        "getRows", client, tableRef, rowNames, pred, readConsistency);
-                                Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(batch.size());
-                                new ValueExtractor(metricsManager, ret)
-                                        .extractResults(results, startTs, ColumnSelection.all());
-                                return ret;
-                            }
-
-                            @Override
-                            public String toString() {
-                                return "multiget_slice(" + tableRef.getQualifiedName() + ", "
-                                        + batch.size() + " rows" + ")";
-                            }
-                        }));
+                result.putAll(getAllCellsForRows(host, tableRef, batch, startTs));
             }
             if (rowCount > fetchBatchCount) {
                 log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
-                        + "this may indicate overly-large batching on a higher level.\n{}",
+                                + "this may indicate overly-large batching on a higher level.\n{}",
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("rowCount", rowCount),
                         SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
@@ -650,6 +635,101 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
+    }
+
+    private Map<Cell, Value> getAllCellsForRows(final InetSocketAddress host,
+            final TableReference tableRef,
+            final List<byte[]> rows,
+            final long startTs) throws Exception {
+
+        final ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = LinkedListMultimap.create();
+
+        List<KeyPredicate> query = rows.stream()
+                .map(row -> keyPredicate(ByteBuffer.wrap(row), allPredicateWithLimit(
+                        runtimeConfigSupplier.get().fetchReadLimitPerRow())))
+                .collect(Collectors.toList());
+
+        while (!query.isEmpty()) {
+            ListMultimap<ByteBuffer, ColumnOrSuperColumn> partialResult = KeyedStream.stream(
+                    getForKeyPredicates(host, tableRef, query, startTs))
+                    .filter(cells -> !cells.isEmpty())
+                    .flatMap(Collection::stream)
+                    .collectToMultimap(LinkedListMultimap::create);
+
+            result.putAll(partialResult);
+
+            query = KeyedStream.stream(Multimaps.asMap(partialResult))
+                    .map((row, cells) -> keyPredicate(row, getNextLexicographicalSlicePredicate(cells)))
+                    .values()
+                    .collect(Collectors.toList());
+        }
+
+        ValueExtractor extractor = new ValueExtractor(metricsManager, Maps.newHashMapWithExpectedSize(result.size()));
+        extractor.extractResults(Multimaps.asMap(result), startTs, ColumnSelection.all());
+        return extractor.asMap();
+    }
+
+    private static KeyPredicate keyPredicate(ByteBuffer row, SlicePredicate predicate) {
+        return new KeyPredicate().setKey(row).setPredicate(predicate);
+    }
+
+    private static SlicePredicate allPredicateWithLimit(int limit) {
+        return SlicePredicates.create(Range.ALL, Limit.of(limit));
+    }
+
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> getForKeyPredicates(final InetSocketAddress host,
+            final TableReference tableRef,
+            List<KeyPredicate> query,
+            final long startTs) throws Exception {
+        return clientPool.runWithRetryOnHost(
+                host,
+                new FunctionCheckedException<CassandraClient, Map<ByteBuffer, List<ColumnOrSuperColumn>>, Exception>() {
+                    @Override
+                    public Map<ByteBuffer, List<ColumnOrSuperColumn>> apply(CassandraClient client) throws Exception {
+
+                        if (log.isTraceEnabled()) {
+                            log.trace("Requesting {} cells from {} starting at timestamp {} on {} "
+                                            + "as part of fetching cells for key predicates.",
+                                    SafeArg.of("cells", query.size()),
+                                    LoggingArgs.tableRef(tableRef),
+                                    SafeArg.of("startTs", startTs),
+                                    SafeArg.of("host", CassandraLogHelper.host(host)));
+                        }
+
+                        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =
+                                wrappingQueryRunner.multiget_multislice(
+                                        "getRows",
+                                        client,
+                                        tableRef,
+                                        query,
+                                        readConsistency);
+
+                        return Maps.transformValues(results,
+                                lists -> Lists.newArrayList(Iterables.concat(lists)));
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "multiget_multislice(" + host + ", " + tableRef + ", "
+                                + query.size() + " cells)";
+                    }
+
+                }
+        );
+    }
+
+    private SlicePredicate getNextLexicographicalSlicePredicate(List<ColumnOrSuperColumn> columns) {
+        Preconditions.checkState(!columns.isEmpty(), "Columns was empty. This is probably an AtlasDb bug");
+
+        Column lastColumn = columns.get(columns.size() - 1).getColumn();
+        Pair<byte[], Long> columnNameAndTimestamp = CassandraKeyValueServices.decompose(lastColumn.name);
+        ByteBuffer nextLexicographicColumn = CassandraKeyValueServices.makeCompositeBuffer(
+                RangeRequests.nextLexicographicName(columnNameAndTimestamp.lhSide), Long.MAX_VALUE);
+
+        return SlicePredicates.create(
+                Range.of(nextLexicographicColumn, Range.UNBOUND_END),
+                Limit.of(runtimeConfigSupplier.get().fetchReadLimitPerRow()));
+
     }
 
     private static List<ByteBuffer> wrap(List<byte[]> arrays) {

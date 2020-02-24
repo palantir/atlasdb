@@ -43,6 +43,7 @@ import java.util.SortedMap;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
@@ -1944,11 +1945,11 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(keyValueService.getClusterAvailabilityStatus(), is(ClusterAvailabilityStatus.ALL_AVAILABLE));
     }
 
-    private static byte[] row(int number) {
+    protected static byte[] row(int number) {
         return PtBytes.toBytes("row" + number);
     }
 
-    private static byte[] column(int number) {
+    protected static byte[] column(int number) {
         return PtBytes.toBytes("column" + number);
     }
 
@@ -2019,5 +2020,11 @@ public abstract class AbstractKeyValueServiceTest {
                         .deleteSentinels(deleteSentinels)
                         .build());
         keyValueService.deleteAllTimestamps(tableRef, deletes);
+    }
+
+    protected static List<Value> valueWithNumberOfTimestamps(byte[] data, long numberOfTimestamps) {
+        return LongStream.rangeClosed(1L, numberOfTimestamps)
+                .mapToObj(timestamp -> Value.create(data, timestamp))
+                .collect(Collectors.toList());
     }
 }
