@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: |-
+    Bound the number of pings to the leader to the ping rate. This should alleviate load on timelock and reduce the
+    likelihood of a single error causing leader elections under the `LEADER_PER_CLIENT` mode.
