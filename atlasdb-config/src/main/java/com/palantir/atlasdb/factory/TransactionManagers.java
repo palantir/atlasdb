@@ -1102,8 +1102,7 @@ public abstract class TransactionManagers {
                         return;
                     } catch (UnknownRemoteException e) {
                         if (400 <= e.getStatus() && e.getStatus() <= 499) {
-                            useLocalServicesFuture.complete(false);
-                            return;
+                        log.error("BLA ABLB ALB (@#FN *)Q@h( _FNW Q#)JMR _fu2340f 120f j2430-=fk 1", e);
                         }
                         logAfter = logFailureToReadRemoteTimestampServerId(logAfter, e);
                     } catch (Throwable e) {
