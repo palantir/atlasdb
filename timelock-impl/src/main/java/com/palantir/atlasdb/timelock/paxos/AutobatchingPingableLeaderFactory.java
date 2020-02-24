@@ -165,16 +165,19 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
                         .get(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 log.warn("received interrupt whilst trying to ping leader",
-                        SafeArg.of("client", client));
+                        SafeArg.of("client", client),
+                        e);
                 Thread.currentThread().interrupt();
                 return LeaderPingResults.pingCallFailure(e);
             } catch (ExecutionException e) {
-                log.warn("received error whilst trying to ping leader", e.getCause(),
-                        SafeArg.of("client", client));
+                log.warn("received error whilst trying to ping leader",
+                        SafeArg.of("client", client),
+                        e.getCause());
                 return LeaderPingResults.pingCallFailure(e.getCause());
             } catch (TimeoutException e) {
                 log.warn("timed out whilst trying to ping leader",
-                        SafeArg.of("client", client));
+                        SafeArg.of("client", client),
+                        e);
                 return LeaderPingResults.pingTimedOut();
             }
         }
