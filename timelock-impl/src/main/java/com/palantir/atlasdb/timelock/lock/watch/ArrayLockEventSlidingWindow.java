@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -61,6 +62,14 @@ public class ArrayLockEventSlidingWindow {
             remaining.get().forEach(eventReplayer::replay);
             add(LockWatchCreatedEvent.builder(eventReplayer.getReferences(), eventReplayer.getLockedDescriptors()));
         }
+    }
+
+    /**
+     * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
+     * result in a deadlock.
+     */
+    public synchronized <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
+        return ValueAndVersion.of(lastVersion(), task.get());
     }
 
     /**

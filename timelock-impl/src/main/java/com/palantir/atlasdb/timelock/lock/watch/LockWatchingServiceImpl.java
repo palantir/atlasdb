@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Range;
@@ -66,8 +67,22 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion) {
-        return lockEventLog.getLogDiff(lastKnownVersion);
+    public LockWatchStateUpdate getWatchStateUpdateOrSnapshot(OptionalLong lastKnownVersion) {
+        return lockEventLog.getLogDiffOrSnapshot(lastKnownVersion);
+    }
+
+    @Override
+    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion, long endVersion) {
+        return lockEventLog.getLogDiff(lastKnownVersion, endVersion);
+    }
+
+    /**
+     * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
+     * result in a deadlock.
+     */
+    @Override
+    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
+        return lockEventLog.runTaskAndAtomicallyReturnVersion(task);
     }
 
     @Override

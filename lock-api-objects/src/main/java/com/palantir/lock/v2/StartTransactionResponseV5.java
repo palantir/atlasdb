@@ -32,11 +32,15 @@ public interface StartTransactionResponseV5 {
     Lease lease();
     LockWatchStateUpdate lockWatchUpdate();
 
-    static StartTransactionResponseV5 fromV4(StartTransactionResponseV4 v4response, LockWatchStateUpdate lockWatch) {
+    static StartTransactionResponseV5 of(
+            LockImmutableTimestampResponse immutableTimestamp,
+            PartitionedTimestamps timestamps,
+            Lease lease,
+            LockWatchStateUpdate lockWatch) {
         return ImmutableStartTransactionResponseV5.builder()
-                .immutableTimestamp(v4response.immutableTimestamp())
-                .timestamps(v4response.timestamps())
-                .lease(v4response.lease())
+                .immutableTimestamp(immutableTimestamp)
+                .timestamps(timestamps)
+                .lease(lease)
                 .lockWatchUpdate(lockWatch)
                 .build();
     }

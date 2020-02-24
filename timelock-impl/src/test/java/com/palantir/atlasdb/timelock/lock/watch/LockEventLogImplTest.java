@@ -75,7 +75,7 @@ public class LockEventLogImplTest {
     public void lockUpdateTest() {
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2);
         log.logLock(locks, TOKEN);
-        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.of(-1L));
+        LockWatchStateUpdate update = log.getLogDiffOrSnapshot(OptionalLong.of(-1L));
 
         LockWatchStateUpdate.Success success = UpdateVisitors.assertSuccess(update);
         assertThat(success.events()).containsExactly(LockEvent.builder(locks, TOKEN).build(0L));
@@ -85,7 +85,7 @@ public class LockEventLogImplTest {
     public void unlockUpdateTest() {
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2);
         log.logUnlock(locks);
-        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.of(-1L));
+        LockWatchStateUpdate update = log.getLogDiffOrSnapshot(OptionalLong.of(-1L));
 
         LockWatchStateUpdate.Success success = UpdateVisitors.assertSuccess(update);
         assertThat(success.events()).containsExactly(UnlockEvent.builder(locks).build(0L));
@@ -96,7 +96,7 @@ public class LockEventLogImplTest {
         LockWatchReference secondRowReference = LockWatchReferenceUtils.rowPrefix(TABLE_REF, PtBytes.toBytes("2"));
         LockWatches newWatches = createWatchesFor(secondRowReference);
         log.logLockWatchCreated(newWatches);
-        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.of(-1L));
+        LockWatchStateUpdate update = log.getLogDiffOrSnapshot(OptionalLong.of(-1L));
 
         LockWatchStateUpdate.Success success = UpdateVisitors.assertSuccess(update);
         assertThat(success.events()).containsExactly(
@@ -111,7 +111,7 @@ public class LockEventLogImplTest {
         LockWatchReference entireTable = LockWatchReferenceUtils.entireTable(TABLE_REF);
         lockWatches.set(createWatchesFor(entireTable));
 
-        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.empty());
+        LockWatchStateUpdate update = log.getLogDiffOrSnapshot(OptionalLong.empty());
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(-1L);
@@ -125,7 +125,7 @@ public class LockEventLogImplTest {
         lockWatches.set(createWatchesFor(entireTable));
 
         log.logLock(ImmutableSet.of(DESCRIPTOR), TOKEN);
-        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.empty());
+        LockWatchStateUpdate update = log.getLogDiffOrSnapshot(OptionalLong.empty());
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(0L);
@@ -138,7 +138,7 @@ public class LockEventLogImplTest {
         LockWatchReference entireTable = LockWatchReferenceUtils.entireTable(TABLE_REF);
         lockWatches.set(createWatchesFor(entireTable));
 
-        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.of(100L));
+        LockWatchStateUpdate update = log.getLogDiffOrSnapshot(OptionalLong.of(100L));
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(-1L);
@@ -152,7 +152,7 @@ public class LockEventLogImplTest {
         lockWatches.set(createWatchesFor(entireTable));
 
         logLockAndUnlockWhenCalculatingOpenLocks();
-        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.empty());
+        LockWatchStateUpdate update = log.getLogDiffOrSnapshot(OptionalLong.empty());
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(1L);
