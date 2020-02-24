@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -62,10 +61,11 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
 
     public static AutobatchingPingableLeaderFactory create(
             Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
-            Duration leaderPingResponseWait,
+            Duration pingRate,
+            Duration pingResponseWait,
             UUID localUuid) {
         Set<ClientAwarePingableLeader> clientAwarePingables = executors.keySet().stream()
-                .<ClientAwarePingableLeader>map(ClientAwarePingableLeaderImpl::create)
+                .map(remoteClient -> clientAwarePingableLeader(remoteClient, pingRate, pingResponseWait, localUuid))
                 .collect(Collectors.toSet());
 
         DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidAutobatcher = Autobatchers.independent(
@@ -73,14 +73,14 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
                         executors,
                         clientAwarePingables,
                         localUuid,
-                        leaderPingResponseWait))
+                        pingResponseWait))
                 .safeLoggablePurpose("batch-paxos-pingable-leader.uuid")
                 .build();
 
         return new AutobatchingPingableLeaderFactory(
                 clientAwarePingables,
                 uuidAutobatcher,
-                leaderPingResponseWait);
+                pingResponseWait);
     }
 
     @Override
@@ -99,41 +99,18 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
         return new AutobatchingLeaderPinger(client);
     }
 
-    private static final class ClientAwarePingableLeaderImpl implements ClientAwarePingableLeader {
-
-        private final DisruptorAutobatcher<PingRequest, LeaderPingResult> pingAutobatcher;
-        private final LeaderPingerContext<BatchPingableLeader> remoteClient;
-
-        ClientAwarePingableLeaderImpl(
-                DisruptorAutobatcher<PingRequest, LeaderPingResult> pingAutobatcher,
-                LeaderPingerContext<BatchPingableLeader> remoteClient) {
-            this.pingAutobatcher = pingAutobatcher;
-            this.remoteClient = remoteClient;
-        }
-
-        static ClientAwarePingableLeaderImpl create(LeaderPingerContext<BatchPingableLeader> remoteClient) {
-            DisruptorAutobatcher<PingRequest, LeaderPingResult> pingAutobatcher =
-                    Autobatchers.coalescing(new PingCoalescingFunction(remoteClient))
-                            .safeLoggablePurpose("batch-pingable-leader.ping")
-                            .build();
-
-            return new ClientAwarePingableLeaderImpl(pingAutobatcher, remoteClient);
-        }
-
-        @Override
-        public Future<LeaderPingResult> ping(UUID requestedUuid, Client client) {
-            return pingAutobatcher.apply(ImmutablePingRequest.of(client, requestedUuid));
-        }
-
-        @Override
-        public LeaderPingerContext<BatchPingableLeader> underlyingRpcClient() {
-            return remoteClient;
-        }
-
-        @Override
-        public void close() {
-            pingAutobatcher.close();
-        }
+    private static ClientAwarePingableLeader clientAwarePingableLeader(
+            LeaderPingerContext<BatchPingableLeader> remoteClient,
+            Duration leaderPingRate,
+            Duration leaderPingResponseWait,
+            UUID localUuid) {
+        ManualBatchingPingableLeader manualBatchingPingableLeader = new ManualBatchingPingableLeader(
+                remoteClient,
+                leaderPingRate,
+                leaderPingResponseWait,
+                localUuid);
+        manualBatchingPingableLeader.startAsync();
+        return manualBatchingPingableLeader;
     }
 
     private final class AutobatchingLeaderPinger implements LeaderPinger {
@@ -152,6 +129,8 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
                     return LeaderPingResults.pingReturnedFalse();
                 }
 
+                // TODO(fdesouza): should we do `deadline - now` here in the event that uuidToRemote consumes most
+                //  of the budget?
                 return maybePingableLeader.get().ping(uuid, client)
                         .get(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
