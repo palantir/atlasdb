@@ -1101,6 +1101,8 @@ public abstract class TransactionManagers {
                         useLocalServicesFuture.complete(false);
                         return;
                     } catch (UnknownRemoteException e) {
+                        // This is done to replicate previous behaviour, where 4xxs returned to a JaxRsClient would
+                        // manifest as ClientErrorExceptions.
                         if (400 <= e.getStatus() && e.getStatus() <= 499) {
                             useLocalServicesFuture.complete(false);
                             return;

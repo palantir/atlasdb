@@ -187,7 +187,7 @@ public class LeaderPingHealthCheckTest {
 
     private static HealthCheckPinger getMockOfPingableLeaderWherePingThrows() {
         HealthCheckPinger mockLeader = mock(HealthCheckPinger.class);
-        when(mockLeader.apply(ALL_CLIENTS)).thenThrow(mock(IllegalStateException.class));
+        when(mockLeader.apply(ALL_CLIENTS)).thenThrow(new IllegalStateException());
         return mockLeader;
     }
 }
