@@ -146,6 +146,28 @@ public class LockEventLogImplTest {
         assertThat(snapshot.lockWatches()).containsExactly(entireTable);
     }
 
+    @Test
+    public void snapshotReflectsEventsOcurringDuringOpenLocksCalculation() {
+        LockWatchReference entireTable = LockWatchReferenceUtils.entireTable(TABLE_REF);
+        lockWatches.set(createWatchesFor(entireTable));
+
+        logLockAndUnlockWhenCalculatingOpenLocks();
+        LockWatchStateUpdate update = log.getLogDiff(OptionalLong.empty());
+
+        LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
+        assertThat(snapshot.lastKnownVersion()).isEqualTo(1L);
+        assertThat(snapshot.locked()).isEqualTo(ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3));
+        assertThat(snapshot.lockWatches()).containsExactly(entireTable);
+    }
+
+    private void logLockAndUnlockWhenCalculatingOpenLocks() {
+        when(heldLocks.getLocks()).thenAnswer(unused -> {
+            log.logLock(ImmutableSet.of(DESCRIPTOR), LockToken.of(UUID.randomUUID()));
+            log.logUnlock(ImmutableSet.of(DESCRIPTOR_2));
+            return ImmutableSet.of(LOCK_2, LOCK_3);
+        });
+    }
+
     private LockWatches createWatchesFor(LockWatchReference... references) {
         return ImmutableLockWatches.of(
                 Arrays.stream(references).collect(Collectors.toSet()),
