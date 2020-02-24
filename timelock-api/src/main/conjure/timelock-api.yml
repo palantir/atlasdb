@@ -20,6 +20,14 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.Lease
+    LockWatchStateUpdate:
+      base-type: any
+      external:
+        java: com.palantir.lock.watch.LockWatchStateUpdate
+    LockWatchRequest:
+      base-type: any
+      external:
+        java: com.palantir.lock.watch.LockWatchRequest
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
@@ -33,7 +41,22 @@ types:
           immutableTimestamp: LockImmutableTimestampResponse
           timestamps: PartitionedTimestamps
           lease: Lease
-
+      StartTransactionsWithWatchesRequest:
+        fields:
+          requestId: uuid
+          requestorId: uuid
+          numTransactions: integer
+          lastKnownVersion: optional<safelong>
+      StartTransactionsWithWatchesResponse:
+        fields:
+          immutableTimestamp: LockImmutableTimestampResponse
+          timestamps: PartitionedTimestamps
+          lease: Lease
+          lockWatchUpdate: LockWatchStateUpdate
+      GetCommitTimestampResponse:
+        fields:
+          commitTimestamp: safelong
+          lockWatchUpdate: LockWatchStateUpdate
 services:
   ConjureTimelockService:
     name: Timelock service
@@ -47,8 +70,37 @@ services:
           namespace: string
           request: ConjureStartTransactionsRequest
         returns: ConjureStartTransactionsResponse
+      startTransactionsWithWatches:
+        http: POST /stww/{namespace}
+        args:
+          namespace: string
+          request: StartTransactionsWithWatchesRequest
+        returns: StartTransactionsWithWatchesResponse
       leaderTime:
         http: POST /lt/{namespace}
         args:
           namespace: string
         returns: LeaderTime
+      getCommitTimestampWithWatches:
+        http: POST /gctww/{namespace}
+        args:
+          namespace: string
+          lastKnownVersion: optional<safelong>
+        returns: GetCommitTimestampResponse
+  ConjureLockWatchingService:
+    name: Lock Watching service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.lock.watch
+    base-path: /lw
+    endpoints:
+      startWatching:
+        http: POST /sw/{namespace}
+        args:
+          namespace: string
+          request: LockWatchRequest
+      getWatchState:
+        http: POST /ws/{namespace}
+        args:
+          namespace: string
+          lastKnownVersion: optional<safelong>
+        returns: LockWatchStateUpdate

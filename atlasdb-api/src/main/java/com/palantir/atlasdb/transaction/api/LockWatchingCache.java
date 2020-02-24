@@ -57,7 +57,7 @@ public interface LockWatchingCache {
      * Creates a view of the cache for a transaction, based on the start timestamp and the lock watch state.
      *
      * @param startTimestamp of the transaction
-     * @param lockWatchState returned from the {@link com.palantir.lock.v2.StartTransactionWithWatchesResponse}
+     * @param lockWatchState state
      * @return view of the cache
      */
     TransactionLockWatchingCacheView getView(long startTimestamp, LockWatchStateUpdate lockWatchState);

@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.timelock;
 
 import java.time.Duration;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -32,8 +34,12 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
+import com.palantir.atlasdb.timelock.api.StartTransactionsWithWatchesRequest;
+import com.palantir.atlasdb.timelock.api.StartTransactionsWithWatchesResponse;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.conjure.java.api.errors.QosException;
+import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
@@ -42,6 +48,7 @@ import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV5;
+import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
@@ -87,8 +94,38 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     @Override
+    public ListenableFuture<StartTransactionsWithWatchesResponse> startTransactionsWithWatches(AuthHeader authHeader,
+            String namespace, StartTransactionsWithWatchesRequest request) {
+        return handleExceptions(() -> {
+            StartTransactionRequestV5 legacyRequest = ImmutableStartTransactionRequestV5.builder()
+                    .requestId(request.getRequestId())
+                    .requestorId(request.getRequestorId())
+                    .numTransactions(request.getNumTransactions())
+                    .build();
+            StartTransactionResponseV5 response = forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
+            return StartTransactionsWithWatchesResponse.builder()
+                    .immutableTimestamp(response.immutableTimestamp())
+                    .timestamps(response.timestamps())
+                    .lease(response.lease())
+                    .lockWatchUpdate(response.lockWatchUpdate())
+                    .build();
+        });
+    }
+
+    @Override
     public ListenableFuture<LeaderTime> leaderTime(AuthHeader authHeader, String namespace) {
         return handleExceptions(() -> forNamespace(namespace).leaderTime());
+    }
+
+    @Override
+    public ListenableFuture<GetCommitTimestampResponse> getCommitTimestampWithWatches(AuthHeader authHeader,
+            String namespace, Optional<SafeLong> lastKnownVersion) {
+        return handleExceptions(() -> {
+            TimestampWithWatches response = forNamespace(namespace).getCommitTimestampWithWatches(lastKnownVersion
+                            .map(safeLong -> OptionalLong.of(safeLong.longValue()))
+                            .orElseGet(OptionalLong::empty));
+            return GetCommitTimestampResponse.of(SafeLong.of(response.timestamp()), response.lockWatches());
+        });
     }
 
     private AsyncTimelockService forNamespace(String namespace) {
@@ -131,8 +168,20 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
 
         @Override
+        public StartTransactionsWithWatchesResponse startTransactionsWithWatches(AuthHeader authHeader,
+                String namespace, StartTransactionsWithWatchesRequest request) {
+            return unwrap(resource.startTransactionsWithWatches(authHeader, namespace, request));
+        }
+
+        @Override
         public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
             return unwrap(resource.leaderTime(authHeader, namespace));
+        }
+
+        @Override
+        public GetCommitTimestampResponse getCommitTimestampWithWatches(AuthHeader authHeader, String namespace,
+                Optional<SafeLong> lastKnownVersion) {
+            return unwrap(resource.getCommitTimestampWithWatches(authHeader, namespace, lastKnownVersion));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

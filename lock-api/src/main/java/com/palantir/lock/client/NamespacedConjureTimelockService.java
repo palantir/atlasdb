@@ -19,6 +19,8 @@ package com.palantir.lock.client;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.StartTransactionsWithWatchesRequest;
+import com.palantir.atlasdb.timelock.api.StartTransactionsWithWatchesResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -34,6 +36,10 @@ public class NamespacedConjureTimelockService {
 
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         return conjureTimelockService.startTransactions(AUTH_HEADER, namespace, request);
+    }
+
+    public StartTransactionsWithWatchesResponse startTransactionsWithWatches(StartTransactionsWithWatchesRequest req) {
+        return conjureTimelockService.startTransactionsWithWatches(AUTH_HEADER, namespace, req);
     }
 
     public LeaderTime leaderTime() {
