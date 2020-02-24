@@ -38,10 +38,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.LongStream;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
@@ -64,7 +64,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -104,6 +106,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             TableReference.createFromFullyQualifiedName("ns.default_table");
     private static final String CASSANDRA_DEFAULT_TABLE_NAME =
             AbstractKeyValueService.internalTableName(ATLAS_DEFAULT_TABLE_REFERENCE);
+    private static final Supplier<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG_SUPPLIER =
+            () -> ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                    .fetchReadLimitPerRow(100)
+                    .build();
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -113,12 +119,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         };
         return Arrays.asList(data);
     }
+
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
             MetricsManagers.createForTests(),
             getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
+            RUNTIME_CONFIG_SUPPLIER,
             CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
-            logger));
+            logger,
+            AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC));
 
     private final String name;
 
@@ -240,8 +249,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig
                 .copyOf(CASSANDRA.getConfig())
-                .withGcGraceSeconds(gcGraceSeconds)
-                .withFetchReadLimitPerRow(100);
+                .withGcGraceSeconds(gcGraceSeconds);
     }
 
     private static String getInternalTestTableName() {
@@ -342,8 +350,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         byte[] data = PtBytes.toBytes("data");
-
-        ImmutableListMultimap.Builder builder = ImmutableListMultimap.<Cell, Value>builder();
 
         IntStream stream = IntStream.rangeClosed(1, 1000);
 

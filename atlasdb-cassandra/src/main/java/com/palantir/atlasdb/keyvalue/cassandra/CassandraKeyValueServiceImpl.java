@@ -235,6 +235,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
+    private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
@@ -306,7 +307,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    private static CassandraKeyValueService create(
+    @VisibleForTesting
+    static CassandraKeyValueService create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
@@ -441,6 +443,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, tableMetadata,
                 cassandraTableTruncator);
+        this.runtimeConfigSupplier = runtimeConfigSupplier;
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(
@@ -619,7 +622,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int fetchBatchCount = config.fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
-                result.putAll(fetchAllCellsForRows(host, tableRef, batch, startTs));
+                result.putAll(getAllCellsForRows(host, tableRef, batch, startTs));
             }
             if (rowCount > fetchBatchCount) {
                 log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
@@ -634,7 +637,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private Map<Cell, Value> fetchAllCellsForRows(final InetSocketAddress host,
+    private Map<Cell, Value> getAllCellsForRows(final InetSocketAddress host,
             final TableReference tableRef,
             final List<byte[]> rows,
             final long startTs) throws Exception {
@@ -642,11 +645,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         final ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = LinkedListMultimap.create();
 
         List<KeyPredicate> query = rows.stream()
-                .map(row -> keyPredicate(ByteBuffer.wrap(row), allPredicateWithLimit(config.fetchReadLimitPerRow())))
+                .map(row -> keyPredicate(ByteBuffer.wrap(row), allPredicateWithLimit(
+                        runtimeConfigSupplier.get().fetchReadLimitPerRow())))
                 .collect(Collectors.toList());
 
         while (!query.isEmpty()) {
-            ListMultimap<ByteBuffer, ColumnOrSuperColumn> partialResult = KeyedStream.stream(fetchCellsForKeyPredicates(host, tableRef, query, startTs))
+            ListMultimap<ByteBuffer, ColumnOrSuperColumn> partialResult = KeyedStream.stream(
+                    getForKeyPredicates(host, tableRef, query, startTs))
                     .filter(cells -> !cells.isEmpty())
                     .flatMap(Collection::stream)
                     .collectToMultimap(LinkedListMultimap::create);
@@ -672,7 +677,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return SlicePredicates.create(Range.ALL, Limit.of(limit));
     }
 
-    private Map<ByteBuffer, List<ColumnOrSuperColumn>> fetchCellsForKeyPredicates(final InetSocketAddress host,
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> getForKeyPredicates(final InetSocketAddress host,
             final TableReference tableRef,
             List<KeyPredicate> query,
             final long startTs) throws Exception {
@@ -700,8 +705,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                     @Override
                     public String toString() {
-                        return "multiget_multislice(" + host + ", " + tableRef +
-                                + query.size() + " cells" + ")";
+                        return "multiget_multislice(" + host + ", " + tableRef + ", "
+                                + query.size() + " cells)";
                     }
 
                 }
@@ -718,7 +723,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         return SlicePredicates.create(
                 Range.of(nextLexicographicColumn, Range.UNBOUND_END),
-                Limit.of(config.fetchReadLimitPerRow()));
+                Limit.of(runtimeConfigSupplier.get().fetchReadLimitPerRow()));
 
     }
 

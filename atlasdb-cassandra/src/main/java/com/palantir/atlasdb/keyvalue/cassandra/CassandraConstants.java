@@ -64,6 +64,7 @@ public final class CassandraConstants {
     // TODO (jkong): Review this limit, it seems like we are making very big requests to Cassandra even at this value
     public static final int DEFAULT_SINGLE_QUERY_LOAD_BATCH_LIMIT = 50_000;
 
+    // TODO(Sudiksha): This is used to be compatible with past behaviour
     public static final int DEFAULT_READ_LIMIT_PER_ROW = Integer.MAX_VALUE;
 
     static final int DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL = 1;

@@ -290,11 +290,6 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return 32;
     }
 
-    @Value.Default
-    default int fetchReadLimitPerRow() {
-        return CassandraConstants.DEFAULT_READ_LIMIT_PER_ROW;
-    }
-
     /**
      * Obsolete value, replaced by {@link SweepConfig#readLimit}.
      *
