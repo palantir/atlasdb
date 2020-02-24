@@ -55,17 +55,17 @@ public final class TimelockUtils {
                 .sslConfiguration(SSL_CONFIGURATION)
                 .build();
         // lock technically blocking, but OK to run with short timeout given the way the tests work.
-        AuxiliaryRemotingParameters build = AuxiliaryRemotingParameters.builder()
+        AuxiliaryRemotingParameters parameters = AuxiliaryRemotingParameters.builder()
                 .shouldRetry(false)
                 .shouldLimitPayload(false)
                 .shouldSupportBlockingOperations(false)
-                .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", "1.2.3")))
+                .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", UserAgent.Agent.DEFAULT_VERSION)))
                 .build();
 
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 metricsManager,
                 serverListConfig,
                 type,
-                build);
+                parameters);
     }
 }
