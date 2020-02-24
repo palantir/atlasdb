@@ -76,7 +76,8 @@ public interface Factories {
             return new SingleLeaderPinger(
                     Maps.toMap(remoteClients().nonBatchPingableLeadersWithContext(), _pingable -> sharedExecutor()),
                     leaderPingResponseWait(),
-                    leaderUuid());
+                    leaderUuid(),
+                    PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
         }
 
         @Override

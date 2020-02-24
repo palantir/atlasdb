@@ -102,12 +102,13 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
 
         PaxosResponsesWithRemote<LeaderPingerContext<BatchPingableLeader>, PaxosContainer<UUID>> results =
                 PaxosQuorumChecker.collectUntil(
-                ImmutableList.copyOf(executors.keySet()),
-                pingable -> PaxosContainer.of(pingable.pinger().uuid()),
-                executors,
-                leaderPingResponseWait,
-                state -> state.responses().values().stream().map(PaxosContainer::get).collect(toSet())
-                        .containsAll(uncachedUuids));
+                        ImmutableList.copyOf(executors.keySet()),
+                        pingable -> PaxosContainer.of(pingable.pinger().uuid()),
+                        executors,
+                        leaderPingResponseWait,
+                        state -> state.responses().values().stream().map(PaxosContainer::get).collect(toSet())
+                                .containsAll(uncachedUuids),
+                        PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
 
         for (Map.Entry<LeaderPingerContext<BatchPingableLeader>, PaxosContainer<UUID>> resultEntries : results.responses().entrySet()) {
             LeaderPingerContext<BatchPingableLeader> pingable = resultEntries.getKey();

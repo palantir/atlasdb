@@ -113,7 +113,10 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
             TestFunction... nodes) {
         Map<TestFunction, ExecutorService> executors =
                 Maps.asMap(ImmutableSet.copyOf(nodes), $ -> executorService);
-        return new PaxosQuorumCheckingCoalescingFunction<>(ImmutableList.copyOf(nodes), executors, QUORUM_SIZE);
+        return new PaxosQuorumCheckingCoalescingFunction<>(
+                ImmutableList.copyOf(nodes),
+                executors,
+                QUORUM_SIZE);
     }
 
     private static TestFunction functionFor(Map.Entry<Long, Long>... mappings) {

@@ -55,7 +55,7 @@ allprojects {
     repositories {
         mavenCentral()
         maven {
-            url 'http://dl.bintray.com/palantir/releases/'
+            url 'https://dl.bintray.com/palantir/releases/'
         }
         maven {
             url 'https://dl.bintray.com/marshallpierce/maven/'

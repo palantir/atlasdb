@@ -28,6 +28,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
@@ -43,7 +44,9 @@ public class LeaderPingHealthCheck {
     private final List<HealthCheckPinger> pingers;
     private final ExecutorService executorService;
 
-    public LeaderPingHealthCheck(NamespaceTracker namespaceTracker, List<HealthCheckPinger> pingers) {
+    public LeaderPingHealthCheck(
+            NamespaceTracker namespaceTracker,
+            List<HealthCheckPinger> pingers) {
         this.namespaceTracker = namespaceTracker;
         this.pingers = pingers;
         this.executorService = PTExecutors.newFixedThreadPool(
@@ -59,7 +62,8 @@ public class LeaderPingHealthCheck {
                         ImmutableList.copyOf(pingers),
                         pinger -> PaxosContainer.of(pinger.apply(namespacesToCheck)),
                         executorService,
-                        HEALTH_CHECK_TIME_LIMIT);
+                        HEALTH_CHECK_TIME_LIMIT,
+                        PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
 
         Map<Client, PaxosResponses<HealthCheckResponse>> responsesByClient = responses.stream()
                 .map(PaxosContainer::get)

@@ -67,7 +67,8 @@ public class PaxosQuorumCheckingCoalescingFunction<
                 delegate -> PaxosContainer.of(delegate.apply(requests)),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
 
         Map<REQ, PaxosResponsesWithRemote<FUNC, RESP>> responseMap = responses.stream()
                 .map(PaxosContainer::get)

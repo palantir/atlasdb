@@ -27,14 +27,17 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
     private final Map<PaxosAcceptor, ExecutorService> executors;
+    private final boolean cancelRemainingCalls;
 
     public SingleLeaderAcceptorNetworkClient(
             List<PaxosAcceptor> acceptors,
             int quorumSize,
-            Map<PaxosAcceptor, ExecutorService> executors) {
+            Map<PaxosAcceptor, ExecutorService> executors,
+            boolean cancelRemainingCalls) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
         this.executors = executors;
+        this.cancelRemainingCalls = cancelRemainingCalls;
     }
 
     @Override
@@ -44,7 +47,8 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 acceptor -> acceptor.prepare(seq, proposalId),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                cancelRemainingCalls).withoutRemotes();
     }
 
     @Override
@@ -54,7 +58,8 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 acceptor -> acceptor.accept(seq, proposal),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                cancelRemainingCalls).withoutRemotes();
     }
 
     @Override
@@ -64,6 +69,7 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                cancelRemainingCalls).withoutRemotes();
     }
 }
