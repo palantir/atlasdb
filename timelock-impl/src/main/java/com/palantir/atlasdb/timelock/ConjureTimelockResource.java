@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -119,11 +118,10 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
     @Override
     public ListenableFuture<GetCommitTimestampResponse> getCommitTimestampWithWatches(AuthHeader authHeader,
-            String namespace, Optional<SafeLong> lastKnownVersion) {
+            String namespace, SafeLong lastKnownVersion) {
         return handleExceptions(() -> {
-            TimestampWithWatches response = forNamespace(namespace).getCommitTimestampWithWatches(lastKnownVersion
-                            .map(safeLong -> OptionalLong.of(safeLong.longValue()))
-                            .orElseGet(OptionalLong::empty));
+            TimestampWithWatches response = forNamespace(namespace)
+                    .getCommitTimestampWithWatches(OptionalLong.of(lastKnownVersion.longValue()));
             return GetCommitTimestampResponse.of(SafeLong.of(response.timestamp()), response.lockWatches());
         });
     }
@@ -180,7 +178,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
         @Override
         public GetCommitTimestampResponse getCommitTimestampWithWatches(AuthHeader authHeader, String namespace,
-                Optional<SafeLong> lastKnownVersion) {
+                SafeLong lastKnownVersion) {
             return unwrap(resource.getCommitTimestampWithWatches(authHeader, namespace, lastKnownVersion));
         }
 

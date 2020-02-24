@@ -77,7 +77,7 @@ public interface LockWatchStateUpdate {
     @JsonDeserialize(as = ImmutableSuccess.class)
     @JsonTypeName(Success.TYPE)
     interface Success extends LockWatchStateUpdate {
-        String TYPE = "regular";
+        String TYPE = "success";
         long lastKnownVersion();
         List<LockWatchEvent> events();
 

@@ -47,6 +47,9 @@ types:
           requestorId: uuid
           numTransactions: integer
           lastKnownVersion: optional<safelong>
+        docs: |
+          An empty lastKnownVersion is treated as a request for a snapshot update. If the list of all events since last
+          known version is not available anymore, we will attempt to return a snapshot update.
       StartTransactionsWithWatchesResponse:
         fields:
           immutableTimestamp: LockImmutableTimestampResponse
@@ -76,6 +79,10 @@ services:
           namespace: string
           request: StartTransactionsWithWatchesRequest
         returns: StartTransactionsWithWatchesResponse
+        docs: |
+          The returned lock watch state the state taken atomically along with issuing the start timestamps. A failed
+          update means the lock watch state changed too much while start timestamps were being issued, which is
+          indicative of poorly registered lock watches.
       leaderTime:
         http: POST /lt/{namespace}
         args:
@@ -85,8 +92,11 @@ services:
         http: POST /gctww/{namespace}
         args:
           namespace: string
-          lastKnownVersion: optional<safelong>
+          lastKnownVersion: safelong
         returns: GetCommitTimestampResponse
+        docs: |
+          Returns a fresh timestamp and the list of all lock watch events since the last known version. If we are unable
+          to recover all of the requested events, the returned update will be a failure.
   ConjureLockWatchingService:
     name: Lock Watching service
     default-auth: header
