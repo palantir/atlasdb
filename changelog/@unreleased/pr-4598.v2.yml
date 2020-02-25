@@ -1,30 +1,5 @@
 type: fix
 fix:
-  description: |-
-    Bump Atlas retry timeout to 15 seocnds
-
-    **Goals (and why)**:
-    PDS-111849 - caused by Timelock being down for >10 seconds during a leader election. Increasing this retry timeout to 15 seconds should vastly reduce the chance of there being a problem.
-
-    **Implementation Description (bullets)**:
-    Changed hard-coded variable from 10 to 15 seconds
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-    N/A
-
-    **Concerns (what feedback would you like?)**:
-    Verify that there are no other places where this limit needs to be changed.
-
-    **Where should we start reviewing?**:
-    `FastFailoverProxy`
-
-    **Priority (whenever / two weeks / yesterday)**:
-    Today
-
-    <!---
-    Please remember to:
-    - Add any necessary release notes (including breaking changes)
-    - Make sure the documentation is up to date for your change
-    --->
+  description: Bump Atlas retry timeout to 15 seocnds
   links:
   - https://github.com/palantir/atlasdb/pull/4598
