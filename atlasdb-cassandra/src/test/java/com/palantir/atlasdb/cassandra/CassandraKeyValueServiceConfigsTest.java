@@ -117,7 +117,7 @@ public class CassandraKeyValueServiceConfigsTest {
     @Test
     public void canParseRuntimeDeprecatedConfigType() throws IOException {
         KeyValueServiceRuntimeConfig config =
-                AtlasDbConfigs.OBJECT_MAPPER.readValue("type: cassandra",
+                AtlasDbConfigs.OBJECT_MAPPER.readValue("type: CassandraKeyValueServiceRuntimeConfig",
                         KeyValueServiceRuntimeConfig.class);
     }
 }
