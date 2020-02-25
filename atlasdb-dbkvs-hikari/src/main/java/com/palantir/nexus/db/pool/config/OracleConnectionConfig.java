@@ -218,6 +218,6 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
             return "SERVICE_NAME=" + getServiceName().get();
         }
 
-        throw new IllegalArgumentException("Both the sid and service name are absent! This is unexpected.");
+        throw new IllegalArgumentException("Both the sid and service name are absent! One needs to be specified.");
     }
 }
