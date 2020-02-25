@@ -39,16 +39,15 @@ public interface LockWatchStateUpdate {
     UUID logId();
     <T> T accept(Visitor<T> visitor);
 
-    static LockWatchStateUpdate failure(UUID logId) {
+    static Failed failure(UUID logId) {
         return ImmutableFailed.builder().logId(logId).build();
     }
 
-    static LockWatchStateUpdate success(UUID logId, long version, List<LockWatchEvent> events) {
+    static Success success(UUID logId, long version, List<LockWatchEvent> events) {
         return ImmutableSuccess.builder().logId(logId).lastKnownVersion(version).events(events).build();
     }
 
-    static LockWatchStateUpdate snapshot(UUID logId, long version, Set<LockDescriptor> locked,
-            Set<LockWatchReference> lockWatches) {
+    static Snapshot snapshot(UUID logId, long version, Set<LockDescriptor> locked, Set<LockWatchReference> lockWatches) {
         return ImmutableSnapshot.builder()
                 .logId(logId)
                 .lastKnownVersion(version)
