@@ -83,7 +83,7 @@ public class ArrayLockEventSlidingWindow {
      *      this method, that is no longer the case when the method returns.
      */
     public Optional<List<LockWatchEvent>> getFromVersion(long version) {
-        return getFromTo(version, nextSequence - 1);
+        return getFromTo(version, lastVersion());
     }
 
     public Optional<List<LockWatchEvent>> getFromTo(long startVersion, long endVersion) {

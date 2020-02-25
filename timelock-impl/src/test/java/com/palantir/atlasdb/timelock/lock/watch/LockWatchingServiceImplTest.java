@@ -106,6 +106,29 @@ public class LockWatchingServiceImplTest {
     }
 
     @Test
+    public void registeringWatchWithOverlappingScopeLogsAlreadyWatchedLocksInScopeAgain() {
+        LockDescriptor ab = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("ab"));
+        LockDescriptor bc = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("bc"));
+        LockDescriptor cd = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("cd"));
+        when(heldLocks.getLocks()).thenReturn(ImmutableList.of(
+                LOCK, new ExclusiveLock(ab), new ExclusiveLock(bc), new ExclusiveLock(cd)));
+
+        LockWatchReference acRange = LockWatchReferenceUtils
+                .rowRange(TABLE, PtBytes.toBytes("a"), PtBytes.toBytes("c"));
+        LockWatchReference bdRange = LockWatchReferenceUtils
+                .rowRange(TABLE, PtBytes.toBytes("b"), PtBytes.toBytes("d"));
+
+        lockWatcher.startWatching(LockWatchRequest.of(ImmutableSet.of(acRange)));
+        lockWatcher.startWatching(LockWatchRequest.of(ImmutableSet.of(bdRange)));
+
+        List<LockWatchEvent> expectedEvents = ImmutableList.of(
+                createdEvent(ImmutableSet.of(acRange), ImmutableSet.of(ab, bc)),
+                createdEvent(ImmutableSet.of(bdRange), ImmutableSet.of(bc, cd)));
+        assertLoggedEvents(expectedEvents);
+    }
+
+
+    @Test
     public void registeringWatchWithNarrowerScopeIsNoop() {
         LockWatchRequest request = tableRequest();
         lockWatcher.startWatching(request);
@@ -242,7 +265,6 @@ public class LockWatchingServiceImplTest {
                 unlockEvent(ImmutableSet.of(CELL_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
-
 
     private LockWatchEvent createdEvent(Set<LockWatchReference> references, Set<LockDescriptor> descriptors) {
         return LockWatchCreatedEvent.builder(references, descriptors).build(sequenceCounter++);
