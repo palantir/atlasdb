@@ -27,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
@@ -48,14 +49,14 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         if (getServerDn().isPresent()) {
             return String.format("jdbc:oracle:thin:@(DESCRIPTION="
                             + "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))"
-                            + "(CONNECT_DATA=(SID=%s))"
+                            + "(CONNECT_DATA=(%s))"
                             + "(SECURITY=(SSL_SERVER_CERT_DN=\"%s\")))",
-                    getProtocol().getUrlString(), getHost(), getPort(), getSid(), getServerDn().get());
+                    getProtocol().getUrlString(), getHost(), getPort(), getConnectionDataString(), getServerDn().get());
         } else {
             return String.format("jdbc:oracle:thin:@(DESCRIPTION="
                             + "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))"
-                            + "(CONNECT_DATA=(SID=%s)))",
-                    getProtocol().getUrlString(), getHost(), getPort(), getSid());
+                            + "(CONNECT_DATA=(%s)))",
+                    getProtocol().getUrlString(), getHost(), getPort(), getConnectionDataString());
         }
     }
 
@@ -63,7 +64,10 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Value.Derived
     @JsonIgnore
     public Optional<String> namespace() {
-        return Optional.of(getSid());
+        // If an SID is provided, maintain it - this is needed for legacy compatibility. But if a service name
+        // is provided, that identifies the database and we don't want to enforce consistency checks with the
+        // TimeLock client.
+        return getSid();
     }
 
     @Override
@@ -78,7 +82,9 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         return "SELECT 1 FROM dual";
     }
 
-    public abstract String getSid();
+    public abstract Optional<String> getSid();
+
+    public abstract Optional<String> getServiceName();
 
     public abstract Optional<String> getServerDn();
 
@@ -133,8 +139,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
         if (getProtocol() == ConnectionProtocol.TCPS) {
             // Create the truststore
-            File clientTrustore = new File(getTruststorePath().get());
-            props.setProperty("javax.net.ssl.trustStore", clientTrustore.getAbsolutePath());
+            File clientTruststore = new File(getTruststorePath().get());
+            props.setProperty("javax.net.ssl.trustStore", clientTruststore.getAbsolutePath());
             props.setProperty("javax.net.ssl.trustStorePassword", getTruststorePassword().get());
 
             // Enable server domain matching
@@ -167,6 +173,9 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Value.Check
     protected final void check() {
+        Preconditions.checkArgument(getSid().isPresent() != getServiceName().isPresent(),
+                "Exactly one of sid and serviceName should be provided.");
+
         if (getProtocol() == ConnectionProtocol.TCPS) {
             Preconditions.checkArgument(getTruststorePath().isPresent(),
                     "ConnectionProtocol.TCPS requires a truststore");
@@ -198,5 +207,17 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
             Preconditions.checkArgument(!getKeystorePassword().isPresent(),
                     "a keystore password without enabling ConnectionProtocol.TCPS");
         }
+    }
+
+    private String getConnectionDataString() {
+        if (getSid().isPresent()) {
+            return "SID=" + getSid().get();
+        }
+
+        if (getServiceName().isPresent()) {
+            return "SERVICE_NAME=" + getServiceName().get();
+        }
+
+        throw new IllegalArgumentException("Both the sid and service name are absent! This is unexpected.");
     }
 }
