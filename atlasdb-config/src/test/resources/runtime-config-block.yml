@@ -27,6 +27,3 @@ sweep:
 internalSchema:
   targetTransactionsSchemaVersion: 1
 
-keyValueService:
-  type: cassandra
-  fetchReadLimitPerRow: 1000
