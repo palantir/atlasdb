@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 
 public class CassandraKeyValueServiceConfigsTest {
     private static final String KEYSPACE = "ks";
@@ -115,8 +116,8 @@ public class CassandraKeyValueServiceConfigsTest {
 
     @Test
     public void canParseRuntimeDeprecatedConfigType() throws IOException {
-        CassandraKeyValueServiceRuntimeConfig config =
-                AtlasDbConfigs.OBJECT_MAPPER.readValue("type: CassandraKeyValueServiceRuntimeConfig",
-                        CassandraKeyValueServiceRuntimeConfig.class);
+        KeyValueServiceRuntimeConfig config =
+                AtlasDbConfigs.OBJECT_MAPPER.readValue("type: cassandra",
+                        KeyValueServiceRuntimeConfig.class);
     }
 }
