@@ -94,7 +94,7 @@ public class FastFailoverProxyTest {
         when(binaryOperator.apply(1, 2)).thenThrow(retryableException);
 
         assertThatThrownBy(() -> proxy.apply(1, 2)).isEqualTo(retryableException);
-        verify(binaryOperator, times(10)).apply(1, 2);
+        verify(binaryOperator, times(15)).apply(1, 2);
     }
 
     @Test
