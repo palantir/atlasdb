@@ -111,7 +111,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             profiler.logAcquisitionAndRestart();
 
             try {
-                testConnection(conn);
+                conn.isValid(connConfig.getCheckoutTimeout());
                 profiler.logConnectionTest();
                 return conn;
             } catch (SQLException e) {
