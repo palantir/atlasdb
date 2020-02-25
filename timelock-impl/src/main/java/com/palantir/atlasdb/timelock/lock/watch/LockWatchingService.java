@@ -27,7 +27,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public interface LockWatchingService {
     void startWatching(LockWatchRequest locksToWatch);
-    LockWatchStateUpdate getWatchStateUpdateOrSnapshot(OptionalLong lastKnownVersion);
+    LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion);
     LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion, long endVersion);
     <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task);
     void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token);

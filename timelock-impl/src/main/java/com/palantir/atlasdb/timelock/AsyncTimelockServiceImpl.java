@@ -183,7 +183,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion) {
-        return TimestampWithWatches.of(getFreshTimestamp(), getWatchStateUpdateOrSnapshot(lastKnownVersion));
+        return TimestampWithWatches.of(getFreshTimestamp(), getWatchStateUpdate(lastKnownVersion));
     }
 
     @Override
@@ -217,8 +217,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public LockWatchStateUpdate getWatchStateUpdateOrSnapshot(OptionalLong lastKnownVersion) {
-        return lockService.getLockWatchingService().getWatchStateUpdateOrSnapshot(lastKnownVersion);
+    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion) {
+        return lockService.getLockWatchingService().getWatchStateUpdate(lastKnownVersion);
     }
 
     @Override

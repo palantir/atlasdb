@@ -269,7 +269,7 @@ public class LockWatchingServiceImplTest {
     }
 
     private void assertLoggedEvents(List<LockWatchEvent> expectedEvents) {
-        LockWatchStateUpdate update = lockWatcher.getWatchStateUpdateOrSnapshot(OptionalLong.of(-1));
+        LockWatchStateUpdate update = lockWatcher.getWatchStateUpdate(OptionalLong.of(-1));
         List<LockWatchEvent> events = UpdateVisitors.assertSuccess(update).events();
         assertThat(events).isEqualTo(expectedEvents);
     }

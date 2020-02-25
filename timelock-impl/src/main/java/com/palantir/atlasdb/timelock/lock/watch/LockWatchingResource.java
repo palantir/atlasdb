@@ -46,6 +46,6 @@ public class LockWatchingResource {
     @POST
     @Path("watch-state")
     public LockWatchStateUpdate getWatchState(OptionalLong lastKnownVersion) {
-        return lockWatchingService.getWatchStateUpdateOrSnapshot(lastKnownVersion);
+        return lockWatchingService.getWatchStateUpdate(lastKnownVersion);
     }
 }
