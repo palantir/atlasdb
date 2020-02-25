@@ -1,0 +1,13 @@
+type: fix
+fix:
+  description: |-
+    KeyValueServiceRuntimeConfig added to the list of Jackson discoverable classes for successful serialization/ deserialization of/to AtlasDbRuntimeConfig.
+
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/4600
