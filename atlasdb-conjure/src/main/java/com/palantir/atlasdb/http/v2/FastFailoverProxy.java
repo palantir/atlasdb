@@ -41,7 +41,7 @@ import feign.RetryableException;
  * leader election is still taking place.
  */
 public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
-    private static final Duration TIME_LIMIT = Duration.ofSeconds(10);
+    private static final Duration TIME_LIMIT = Duration.ofSeconds(15);
 
     private final Supplier<T> delegate;
     private final Clock clock;
