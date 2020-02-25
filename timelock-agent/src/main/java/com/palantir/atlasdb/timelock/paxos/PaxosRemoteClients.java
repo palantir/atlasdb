@@ -127,13 +127,13 @@ public abstract class PaxosRemoteClients {
                                 .shouldRetry(shouldRetry)
                                 .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
                                 .build()))
-                .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
+                .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort)
+                .map((hostAndPort, proxy) -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         metrics(),
                         clazz,
                         proxy,
                         MetricRegistry.name(clazz),
-                        _unused -> ImmutableMap.of()))
-                .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort);
+                        _unused -> ImmutableMap.of("remote", hostAndPort.toString())));
     }
 
     private static HostAndPort convertAddressToHostAndPort(String url) {
