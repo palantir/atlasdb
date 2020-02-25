@@ -49,16 +49,21 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     @Override
-    public LockWatchStateUpdate getLogDiffOrSnapshot(OptionalLong fromVersion) {
+    public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion) {
+        return getLogDiff(fromVersion, slidingWindow.lastVersion());
+    }
+
+    @Override
+    public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion, long toVersion) {
         if (!fromVersion.isPresent()) {
             return attemptToCalculateSnapshot();
         }
-        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromVersion(fromVersion.getAsLong());
+        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromTo(fromVersion.getAsLong(), toVersion);
         if (!maybeEvents.isPresent()) {
             return attemptToCalculateSnapshot();
         }
         List<LockWatchEvent> events = maybeEvents.get();
-        return LockWatchStateUpdate.success(logId, fromVersion.getAsLong() + events.size(), events);
+        return LockWatchStateUpdate.success(logId, toVersion, events);
     }
 
     /**
@@ -104,16 +109,6 @@ public class LockEventLogImpl implements LockEventLog {
                 .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
                 .filter(watchedRanges::contains)
                 .collect(Collectors.toSet());
-    }
-
-    @Override
-    public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion, long toVersion) {
-        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromTo(fromVersion.orElse(-1L), toVersion);
-        if (!maybeEvents.isPresent()) {
-            return LockWatchStateUpdate.failure(logId);
-        }
-        List<LockWatchEvent> events = maybeEvents.get();
-        return LockWatchStateUpdate.success(logId, toVersion, events);
     }
 
     /**

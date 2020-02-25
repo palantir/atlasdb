@@ -27,15 +27,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public interface LockWatchingService {
     void startWatching(LockWatchRequest locksToWatch);
-    /**
-     * Returns an update with the difference from lastKnownVersion to current version. If difference cannot be computed,
-     * we try to return a snapshot update, or a failed update if the snapshot computation fails.
-     */
     LockWatchStateUpdate getWatchStateUpdateOrSnapshot(OptionalLong lastKnownVersion);
-    /**
-     * Returns an update with all events from lastKnownVersion (exclusive) to endVersion (inclusive). If the update
-     * cannot be computed, returns a failed update.
-     */
     LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion, long endVersion);
     <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task);
     void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token);

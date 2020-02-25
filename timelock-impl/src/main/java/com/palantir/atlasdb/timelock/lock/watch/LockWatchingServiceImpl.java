@@ -68,7 +68,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public LockWatchStateUpdate getWatchStateUpdateOrSnapshot(OptionalLong lastKnownVersion) {
-        return lockEventLog.getLogDiffOrSnapshot(lastKnownVersion);
+        return lockEventLog.getLogDiff(lastKnownVersion);
     }
 
     @Override

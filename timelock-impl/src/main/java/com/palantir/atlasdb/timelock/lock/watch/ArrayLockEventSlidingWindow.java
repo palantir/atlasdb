@@ -35,12 +35,12 @@ public class ArrayLockEventSlidingWindow {
     private final int maxSize;
     private volatile long nextSequence = 0;
 
-    public ArrayLockEventSlidingWindow(int maxSize) {
+    ArrayLockEventSlidingWindow(int maxSize) {
         this.buffer = new LockWatchEvent[maxSize];
         this.maxSize = maxSize;
     }
 
-    public long lastVersion() {
+    long lastVersion() {
         return nextSequence - 1;
     }
 
@@ -50,13 +50,13 @@ public class ArrayLockEventSlidingWindow {
      * Note on concurrency:
      * 1. Each write to buffer is followed by a write to nextSequence, which is volatile.
      */
-    public synchronized void add(LockWatchEvent.Builder eventBuilder) {
+    synchronized void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
         buffer[LongMath.mod(nextSequence, maxSize)] = event;
         nextSequence++;
     }
 
-    public synchronized void finalizeAndAddSnapshot(long startVersion, LockWatchCreatedEventReplayer eventReplayer) {
+    synchronized void finalizeAndAddSnapshot(long startVersion, LockWatchCreatedEventReplayer eventReplayer) {
         Optional<List<LockWatchEvent>> remaining = getFromVersion(startVersion);
         if (remaining.isPresent()) {
             remaining.get().forEach(eventReplayer::replay);
@@ -68,7 +68,7 @@ public class ArrayLockEventSlidingWindow {
      * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
      * result in a deadlock.
      */
-    public synchronized <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
+    synchronized <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
         return ValueAndVersion.of(lastVersion(), task.get());
     }
 
@@ -91,11 +91,11 @@ public class ArrayLockEventSlidingWindow {
      *      the state where, even though all the necessary events were in the requested window at the start of executing
      *      this method, that is no longer the case when the method returns.
      */
-    public Optional<List<LockWatchEvent>> getFromVersion(long version) {
+    Optional<List<LockWatchEvent>> getFromVersion(long version) {
         return getFromTo(version, nextSequence - 1);
     }
 
-    public Optional<List<LockWatchEvent>> getFromTo(long startVersion, long endVersion) {
+    Optional<List<LockWatchEvent>> getFromTo(long startVersion, long endVersion) {
         if (versionInTheFuture(startVersion, endVersion) || versionTooOld(startVersion, endVersion)) {
             return Optional.empty();
         }

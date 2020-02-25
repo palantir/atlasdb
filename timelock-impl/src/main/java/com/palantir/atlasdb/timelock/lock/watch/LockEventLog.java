@@ -25,7 +25,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
 public interface LockEventLog {
-    LockWatchStateUpdate getLogDiffOrSnapshot(OptionalLong fromVersion);
+    LockWatchStateUpdate getLogDiff(OptionalLong fromVersion);
     LockWatchStateUpdate getLogDiff(OptionalLong fromVersion, long toVersion);
     <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task);
     void logLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken);
