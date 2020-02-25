@@ -152,7 +152,11 @@ These are the required parameters:
 
     *    - sid
          - The site identifier for the Oracle server.
-         - Yes
+         - No, but one of sid and serviceName must be specified.
+
+    *    - serviceName
+         - The service name for the Oracle server.
+         - No, but one of sid and serviceName must be specified.
 
     *    - dbLogin
          - The Oracle DB username.
