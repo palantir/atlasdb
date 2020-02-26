@@ -35,6 +35,7 @@ import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosResponses;
+import com.palantir.tracing.Observability;
 
 public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable {
 
@@ -60,17 +61,20 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
                 Autobatchers.coalescing(
                         wrap(acceptors, executor, quorumSize, PrepareCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.prepare")
+                        .observability(Observability.SAMPLE)
                         .build();
 
         DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept =
                 Autobatchers.coalescing(
                         wrap(acceptors, executor, quorumSize, AcceptCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.accept")
+                        .observability(Observability.SAMPLE)
                         .build();
 
         DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequenceAutobatcher =
                 Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, BatchingPaxosLatestSequenceCache::new))
                         .safeLoggablePurpose("batch-paxos-acceptor.latest-sequence-cache")
+                        .observability(Observability.SAMPLE)
                         .build();
 
         return new AutobatchingPaxosAcceptorNetworkClientFactory(prepare, accept, latestSequenceAutobatcher);
