@@ -39,7 +39,7 @@ public interface LockWatchStateUpdate {
     UUID logId();
     <T> T accept(Visitor<T> visitor);
 
-    static Failed failure(UUID logId) {
+    static Failed failed(UUID logId) {
         return ImmutableFailed.builder().logId(logId).build();
     }
 
@@ -47,22 +47,27 @@ public interface LockWatchStateUpdate {
         return ImmutableSuccess.builder().logId(logId).lastKnownVersion(version).events(events).build();
     }
 
-    static Snapshot snapshot(UUID logId, long version, Set<LockDescriptor> locked, Set<LockWatchReference> references) {
+    static Snapshot snapshot(UUID logId, long version, Set<LockDescriptor> locked,
+            Set<LockWatchReference> lockWatches) {
         return ImmutableSnapshot.builder()
                 .logId(logId)
                 .lastKnownVersion(version)
                 .locked(locked)
-                .lockWatches(references)
+                .lockWatches(lockWatches)
                 .build();
     }
 
+    /**
+     * A failed update denotes that we were unable to get the difference since last known version, and we were also
+     * unable to compute a snapshot update.
+     */
     @Value.Immutable
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     @JsonSerialize(as = ImmutableFailed.class)
     @JsonDeserialize(as = ImmutableFailed.class)
     @JsonTypeName(Failed.TYPE)
     interface Failed extends LockWatchStateUpdate {
-        String TYPE = "fail";
+        String TYPE = "failed";
 
         @Override
         default <T> T accept(Visitor<T> visitor) {
@@ -70,13 +75,17 @@ public interface LockWatchStateUpdate {
         }
     }
 
+    /**
+     * A successful update is an update containing information about all lock watch events occurring since the previous
+     * last known version.
+     */
     @Value.Immutable
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     @JsonSerialize(as = ImmutableSuccess.class)
     @JsonDeserialize(as = ImmutableSuccess.class)
     @JsonTypeName(Success.TYPE)
     interface Success extends LockWatchStateUpdate {
-        String TYPE = "regular";
+        String TYPE = "success";
         long lastKnownVersion();
         List<LockWatchEvent> events();
 
@@ -86,6 +95,12 @@ public interface LockWatchStateUpdate {
         }
     }
 
+    /**
+     * A snapshot update is generally returned when it was impossible to return a successful update. This can happen
+     * if we fall behind, or we just started so we don't have a last known version. It generally
+     * means that all previous lock watch information must be purged, as it is impossible to know what events were
+     * missed, but contains all of the current lock watch information as the state of the world moving forward.
+     */
     @Value.Immutable
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     @JsonSerialize(as = ImmutableSnapshot.class)

@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    To avoid very large reads on Cassandra, the getRows endpoint now splits a read query into number of serial requests with limited reads instead of fetching all the cells (all the versions) for a given list of rows from Cassandra. It is maintained that all the cells are read and only (some) older versions of cells may be skipped while reading from Cassandra.
+    
+    The read limit per request is configurable.
+
+  links:
+  - https://github.com/palantir/atlasdb/pull/4588
