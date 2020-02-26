@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,28 +17,23 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Set;
-import java.util.UUID;
 
-import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
 public final class NoOpLockWatchManager implements LockWatchManager {
     public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
-    public static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
-            LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of()));
 
-    private NoOpLockWatchManager() {
-        // ...
+    @Override
+    public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
+        throw new UnsupportedOperationException("Lock watch registration not supported");
     }
 
     @Override
-    public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchEntries) {
-        // noop
-    }
-
-    @Override
-    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
-        return NONE;
+    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps,
+            IdentifiedVersion lastKnownVersion) {
+        return NoOpLockWatchEventCache.INSTANCE.getEventsForTransactions(startTimestamps, lastKnownVersion);
     }
 }

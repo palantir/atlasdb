@@ -19,7 +19,9 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import java.util.Set;
 
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
 public interface LockWatchManager {
     /**

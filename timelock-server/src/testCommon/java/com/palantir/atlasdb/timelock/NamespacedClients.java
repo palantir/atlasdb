@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
@@ -33,6 +34,8 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
@@ -59,7 +62,13 @@ public interface NamespacedClients {
     default TimelockService timelockService() {
         return RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient(),
-                namespacedConjureTimelockService());
+                namespacedConjureTimelockService(),
+                lockWatchEventCache());
+    }
+
+    @Value.Default
+    default LockWatchEventCache lockWatchEventCache() {
+        return NoOpLockWatchEventCache.INSTANCE;
     }
 
     @Value.Derived

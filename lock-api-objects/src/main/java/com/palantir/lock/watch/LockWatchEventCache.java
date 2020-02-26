@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.lock.watch;
 
-import java.util.UUID;
+import java.util.Set;
 
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface IdentifiedVersion {
-    @Value.Parameter
-    UUID id();
-    @Value.Parameter
-    long version();
+public interface LockWatchEventCache {
+    IdentifiedVersion lastKnownVersion();
+    IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    void processUpdate(LockWatchStateUpdate update);
+    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version);
 }

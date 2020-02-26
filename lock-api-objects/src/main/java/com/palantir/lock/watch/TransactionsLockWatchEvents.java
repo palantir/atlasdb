@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.lock.watch;
 
 import java.util.List;
 import java.util.Map;
 
 import org.immutables.value.Value;
-
-import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchStateUpdate;
 
 /**
  * Represents a condensed view of lock watch events occurring between some known version and a set of start transaction
@@ -32,12 +29,12 @@ public interface TransactionsLockWatchEvents {
     <T> T accept(Visitor<T> visitor);
 
     interface Visitor<T> {
-        T visit(Success success);
+        T visit(Events success);
         T visit(Failure failure);
     }
 
-    static Success success(List<LockWatchEvent> events, Map<Long, Long> startTsToSequence) {
-        return ImmutableSuccess.of(events, startTsToSequence);
+    static Events success(List<LockWatchEvent> events, Map<Long, Long> startTsToSequence) {
+        return ImmutableEvents.of(events, startTsToSequence);
     }
 
     static Failure failure(LockWatchStateUpdate.Snapshot snapshot) {
@@ -49,7 +46,7 @@ public interface TransactionsLockWatchEvents {
      * last started transaction, and a mapping of start timestamps to their respective last occurred event.
      */
     @Value.Immutable
-    interface Success extends TransactionsLockWatchEvents {
+    interface Events extends TransactionsLockWatchEvents {
         @Value.Parameter
         List<LockWatchEvent> events();
         @Value.Parameter
