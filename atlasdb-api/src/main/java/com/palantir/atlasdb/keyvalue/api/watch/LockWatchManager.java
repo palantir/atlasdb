@@ -28,5 +28,11 @@ public interface LockWatchManager {
     @Idempotent
     void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
 
-    TransactionsLockWatchEvents getEventsForStartTimestamps(Set<Long> startTimestamps);
+    /**
+     * Returns a condensed view of new lock watch events since lastKnownVersion for a set of transactions identified by
+     * their start timestamps.
+     * @param startTimestamps a set of start timestamps identifying transactions
+     * @param lastKnownVersion exclusive start version to get events from
+     */
+    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion lastKnownVersion);
 }

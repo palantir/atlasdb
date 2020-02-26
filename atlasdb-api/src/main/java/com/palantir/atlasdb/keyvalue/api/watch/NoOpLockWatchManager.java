@@ -38,7 +38,7 @@ public final class NoOpLockWatchManager implements LockWatchManager {
     }
 
     @Override
-    public TransactionsLockWatchEvents getEventsForStartTimestamps(Set<Long> startTimestamps) {
+    public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
         return NONE;
     }
 }

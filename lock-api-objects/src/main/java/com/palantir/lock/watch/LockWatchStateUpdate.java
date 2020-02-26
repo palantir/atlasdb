@@ -47,12 +47,12 @@ public interface LockWatchStateUpdate {
         return ImmutableSuccess.builder().logId(logId).lastKnownVersion(version).events(events).build();
     }
 
-    static Snapshot snapshot(UUID logId, long version, Set<LockDescriptor> locked, Set<LockWatchReference> lockWatches) {
+    static Snapshot snapshot(UUID logId, long version, Set<LockDescriptor> locked, Set<LockWatchReference> references) {
         return ImmutableSnapshot.builder()
                 .logId(logId)
                 .lastKnownVersion(version)
                 .locked(locked)
-                .lockWatches(lockWatches)
+                .lockWatches(references)
                 .build();
     }
 

@@ -24,6 +24,10 @@ import org.immutables.value.Value;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
+/**
+ * Represents a condensed view of lock watch events occurring between some known version and a set of start transaction
+ * calls.
+ */
 public interface TransactionsLockWatchEvents {
     <T> T accept(Visitor<T> visitor);
 
@@ -40,6 +44,10 @@ public interface TransactionsLockWatchEvents {
         return ImmutableFailure.of(snapshot);
     }
 
+    /**
+     * A successful result contains a list of all lock watch events occurring between the last known version and the
+     * last started transaction, and a mapping of start timestamps to their respective last occurred event.
+     */
     @Value.Immutable
     interface Success extends TransactionsLockWatchEvents {
         @Value.Parameter
@@ -53,6 +61,12 @@ public interface TransactionsLockWatchEvents {
         }
     }
 
+    /**
+     * A failure denotes that it was not possible to compute the result for all of the requested transactions. Since
+     * that generally implies we will fail to get the necessary information for the commit timestamp anyway, instead of
+     * giving partial information, we return a single snapshot that can be used to reseed the state of lock watches for
+     * all future transactions.
+     */
     @Value.Immutable
     interface Failure extends TransactionsLockWatchEvents {
         @Value.Parameter
