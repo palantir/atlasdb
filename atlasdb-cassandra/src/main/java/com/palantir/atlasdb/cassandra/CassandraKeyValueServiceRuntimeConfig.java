@@ -108,6 +108,11 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return 6;
     }
 
+    @Value.Default
+    public int fetchReadLimitPerRow() {
+        return CassandraConstants.DEFAULT_READ_LIMIT_PER_ROW;
+    }
+
     /**
      * Setting this value to true will cause us to take a more conservative approach to retrying requests on exceptions.
      */

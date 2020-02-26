@@ -91,11 +91,11 @@ public class ArrayLockEventSlidingWindow {
      *      the state where, even though all the necessary events were in the requested window at the start of executing
      *      this method, that is no longer the case when the method returns.
      */
-    Optional<List<LockWatchEvent>> getFromVersion(long version) {
-        return getFromTo(version, nextSequence - 1);
+    public Optional<List<LockWatchEvent>> getFromVersion(long version) {
+        return getFromTo(version, lastVersion());
     }
 
-    Optional<List<LockWatchEvent>> getFromTo(long startVersion, long endVersion) {
+    public Optional<List<LockWatchEvent>> getFromTo(long startVersion, long endVersion) {
         if (versionInTheFuture(startVersion, endVersion) || versionTooOld(startVersion, endVersion)) {
             return Optional.empty();
         }
