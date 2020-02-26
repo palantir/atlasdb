@@ -17,6 +17,8 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -33,13 +35,15 @@ public class SweepStrategyManagers {
     }
 
     public static SweepStrategyManager createDefault(KeyValueService kvs) {
-        RecomputingSupplier<Map<TableReference, SweepStrategy>> supplier =
-                RecomputingSupplier.create(() -> getSweepStrategies(kvs));
+        // On a cache miss, load metadata only for the relevant table. Helpful when many dynamic tables.
+        LoadingCache<TableReference, SweepStrategy> cache = Caffeine.newBuilder()
+                .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
         return tableRef -> {
-            SweepStrategy strategy = supplier.get().get(tableRef);
-            if (strategy == null) {
-                strategy = supplier.recompute().get(tableRef);
+            // Add all existing tables the first time this is called, to optimize for cases when mostly non-dynamic tables.
+            if (cache.estimatedSize() == 0) {
+                cache.putAll(getSweepStrategies(kvs));
             }
+            SweepStrategy strategy = cache.get(tableRef);
             return Preconditions.checkNotNull(strategy, "unknown table", SafeArg.of("tableRef", tableRef));
         };
     }
@@ -66,12 +70,15 @@ public class SweepStrategyManagers {
     }
 
     private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
-        return ImmutableMap.copyOf(Maps.transformEntries(kvs.getMetadataForTables(), (tableRef, tableMeta) -> {
-            if (tableMeta != null && tableMeta.length > 0) {
-                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy();
-            } else {
-                return SweepStrategy.CONSERVATIVE;
-            }
-        }));
+        return ImmutableMap.copyOf(Maps.transformValues(kvs.getMetadataForTables(),
+                SweepStrategyManagers::getSweepStrategy));
+    }
+
+    private static SweepStrategy getSweepStrategy(byte[] tableMeta) {
+        if (tableMeta != null && tableMeta.length > 0) {
+            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy();
+        } else {
+            return SweepStrategy.CONSERVATIVE;
+        }
     }
 }
