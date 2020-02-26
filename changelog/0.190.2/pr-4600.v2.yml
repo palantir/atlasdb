@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: KeyValueServiceRuntimeConfig added to the list of Jackson discoverable
+    classes for successful serialization/deserialization of/to AtlasDbRuntimeConfig.
+    Previously, key value service runtime configuration would not have been deserializable,
+    meaning that attempting to define runtime configuration in YML would cause an
+    exception to be thrown.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4600

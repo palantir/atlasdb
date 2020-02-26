@@ -41,11 +41,11 @@ public class LockEventLogImpl implements LockEventLog {
     private final UUID logId = UUID.randomUUID();
     private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(1000);
     private final Supplier<LockWatches> watchesSupplier;
-    private final HeldLocksCollection heldLocks;
+    private final HeldLocksCollection heldLocksCollection;
 
-    public LockEventLogImpl(Supplier<LockWatches> watchesSupplier, HeldLocksCollection heldLocks) {
+    public LockEventLogImpl(Supplier<LockWatches> watchesSupplier, HeldLocksCollection heldLocksCollection) {
         this.watchesSupplier = watchesSupplier;
-        this.heldLocks = heldLocks;
+        this.heldLocksCollection = heldLocksCollection;
     }
 
     @Override
@@ -72,7 +72,7 @@ public class LockEventLogImpl implements LockEventLog {
 
         Optional<List<LockWatchEvent>> eventsToReplay = slidingWindow.getFromTo(startVersion, endVersion);
         if (!eventsToReplay.isPresent()) {
-            return LockWatchStateUpdate.failure(logId);
+            return LockWatchStateUpdate.failed(logId);
         }
         eventsToReplay.get().forEach(eventReplayer::replay);
         return LockWatchStateUpdate.snapshot(
@@ -100,7 +100,7 @@ public class LockEventLogImpl implements LockEventLog {
      * implement.
      */
     private Set<LockDescriptor> calculateOpenLocks(RangeSet<LockDescriptor> watchedRanges) {
-        return heldLocks.locksHeld().stream()
+        return heldLocksCollection.locksHeld().stream()
                 .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
                 .filter(watchedRanges::contains)
                 .collect(Collectors.toSet());
