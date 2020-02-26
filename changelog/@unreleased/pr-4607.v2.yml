@@ -1,0 +1,28 @@
+type: fix
+fix:
+  description: |-
+    SweepStrategyManagers only load one table metadata on cache miss
+
+    **Goals (and why)**:
+
+    Do not have to reload all tables' metadata (which could include a LOT of tables) every single time there is a cache miss.
+
+    **Implementation Description (bullets)**:
+
+    Rather than have a supplier that recalculates the entire map each time, just get and cache each entry. But still add all initial tables at the beginning as a perf optimization.
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+
+    **Concerns (what feedback would you like?)**:
+
+    **Where should we start reviewing?**:
+
+    **Priority (whenever / two weeks / yesterday)**:
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/4607
