@@ -38,6 +38,7 @@ import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPingerContext;
@@ -51,6 +52,7 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
     private final LeaderPingerContext<BatchPingableLeader> remoteClient;
     private final Duration leaderPingRate;
     private final Duration leaderPingResponseWait;
+    private final UUID nodeUuid;
 
     private final Map<Client, SettableFuture<Void>> hasProcessedFirstRequest = Maps.newConcurrentMap();
     private final AtomicReference<LastResult> lastResult = new AtomicReference<>();
@@ -64,6 +66,8 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
         this.remoteClient = remoteClient;
         this.leaderPingRate = leaderPingRate;
         this.leaderPingResponseWait = leaderPingResponseWait;
+        this.nodeUuid = nodeUuid;
+
         // TODO(fdesouza): for comparison whilst testing
         MetricName metricName = MetricName.builder()
                 .safeName("atlasdb.autobatcherMeter")
@@ -80,7 +84,7 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
         // since there is a case where we'll miss the window, we must wait until the client has been registered and
         // been included in an existing batch
         // wait up to leaderPingResponseRate each time until it has been included and requested in a batch
-        Instant deadline = Instant.now().plus(leaderPingResponseWait);
+        Instant requestTime = Instant.now();
 
         return FluentFuture.from(hasProcessedFirstRequest.computeIfAbsent(client, $ -> SettableFuture.create()))
                 .transform(
@@ -90,13 +94,25 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
                         // equivalent.
                         $ -> {
                             // if for any reason we've stopped, bubble up the exception
-                            State state = state();
-                            Preconditions.checkState(
-                                    state != State.STOPPING && state != State.TERMINATED,
-                                    "pinger is either shutdown or in the process of shutting down");
-                            return lastResult.get().result(client, deadline, remoteClient.hostAndPort(), requestedUuid);
+                            checkNotShutdown();
+                            return lastResult.get().result(
+                                    client,
+                                    requestTime.minus(leaderPingResponseWait),
+                                    remoteClient.hostAndPort(),
+                                    requestedUuid);
                         },
                         MoreExecutors.directExecutor());
+    }
+
+    private void checkNotShutdown() {
+        State state = state();
+        Preconditions.checkState(state != State.STOPPING && state != State.TERMINATED,
+                "pinger is either shutdown or in the process of shutting down");
+    }
+
+    @Override
+    protected String serviceName() {
+        return String.format("ManualBatchingPingableLeader %s -> %s", nodeUuid.toString(), remoteClient.hostAndPort());
     }
 
     @Override
@@ -108,11 +124,19 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
     protected void runOneIteration() {
         try {
             Set<Client> clientsToCheck = ImmutableSet.copyOf(hasProcessedFirstRequest.keySet());
+            Instant before = Instant.now();
             Set<Client> clientsThisNodeIsTheLeaderFor = remoteClient.pinger().ping(clientsToCheck);
-            Instant now = Instant.now();
-            LastResult lastResult = ImmutableLastResult.of(now, clientsThisNodeIsTheLeaderFor);
-            this.lastResult.set(lastResult);
-            // don't need to do stuff with leaderPingResponseRate since it's captured by the future handling above
+            Instant after = Instant.now();
+
+            Duration pingDuration = Duration.between(before, after);
+            if (pingDuration.compareTo(leaderPingResponseWait) >= 0) {
+                log.info("Ping took more than ping response wait, any waiters will report that ping timing out {}",
+                        SafeArg.of("pingDuration", pingDuration),
+                        SafeArg.of("leaderPingResponseWait", leaderPingResponseWait));
+            }
+            LastResult newResult = ImmutableLastResult.of(after, clientsThisNodeIsTheLeaderFor);
+            this.lastResult.set(newResult);
+
             histogram.update(clientsToCheck.size());
             clientsToCheck.forEach(clientJustProcessed -> hasProcessedFirstRequest.get(clientJustProcessed).set(null));
         } catch (Exception e) {
@@ -142,10 +166,10 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
 
         default LeaderPingResult result(
                 Client client,
-                Instant deadline,
+                Instant earliestCompletedByDeadline,
                 HostAndPort hostAndPort,
                 UUID requestedUuid) {
-            if (timestamp().isAfter(deadline)) {
+            if (timestamp().isBefore(earliestCompletedByDeadline)) {
                 return LeaderPingResults.pingTimedOut();
             }
 
@@ -155,5 +179,6 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
                 return LeaderPingResults.pingReturnedFalse();
             }
         }
+
     }
 }
