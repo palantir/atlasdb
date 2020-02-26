@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
