@@ -42,6 +42,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPingerContext;
+import com.palantir.tracing.Observability;
+import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
@@ -57,6 +59,10 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
     private final Map<Client, SettableFuture<Void>> hasProcessedFirstRequest = Maps.newConcurrentMap();
     private final AtomicReference<LastResult> lastResult = new AtomicReference<>();
     private final Histogram histogram;
+    private final Runnable tracedRun = Tracers.wrapWithNewTrace(
+            "manual-batching-pingable-leader",
+            Observability.SAMPLE,
+            this::singleIterationInternal);
 
     ManualBatchingPingableLeader(
             LeaderPingerContext<BatchPingableLeader> remoteClient,
@@ -122,6 +128,10 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
 
     @Override
     protected void runOneIteration() {
+        tracedRun.run();
+    }
+
+    private void singleIterationInternal() {
         try {
             Set<Client> clientsToCheck = ImmutableSet.copyOf(hasProcessedFirstRequest.keySet());
             Instant before = Instant.now();
@@ -136,15 +146,14 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
             }
             LastResult newResult = ImmutableLastResult.of(after, clientsThisNodeIsTheLeaderFor);
             this.lastResult.set(newResult);
-
             histogram.update(clientsToCheck.size());
+
             clientsToCheck.forEach(clientJustProcessed -> hasProcessedFirstRequest.get(clientJustProcessed).set(null));
         } catch (Exception e) {
             // TODO(fdesouza): should this also set the result to include any exceptions??
             //  Means no caching of last good result in the presence of errors
             log.warn("Failed to ping node, trying again in the next round", e);
         }
-
     }
 
     @Override
