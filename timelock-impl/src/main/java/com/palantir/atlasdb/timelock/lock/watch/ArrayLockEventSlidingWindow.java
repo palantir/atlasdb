@@ -19,12 +19,13 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalLong;
 
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl.LockWatchCreatedEventReplayer;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 
 @ThreadSafe
@@ -38,8 +39,8 @@ public class ArrayLockEventSlidingWindow {
         this.maxSize = maxSize;
     }
 
-    public OptionalLong getVersion() {
-        return nextSequence == 0 ? OptionalLong.empty() : OptionalLong.of(nextSequence - 1);
+    public long lastVersion() {
+        return nextSequence - 1;
     }
 
     /**
@@ -52,6 +53,14 @@ public class ArrayLockEventSlidingWindow {
         LockWatchEvent event = eventBuilder.build(nextSequence);
         buffer[LongMath.mod(nextSequence, maxSize)] = event;
         nextSequence++;
+    }
+
+    public synchronized void finalizeAndAddSnapshot(long startVersion, LockWatchCreatedEventReplayer eventReplayer) {
+        Optional<List<LockWatchEvent>> remaining = getFromVersion(startVersion);
+        if (remaining.isPresent()) {
+            remaining.get().forEach(eventReplayer::replay);
+            add(LockWatchCreatedEvent.builder(eventReplayer.getReferences(), eventReplayer.getLockedDescriptors()));
+        }
     }
 
     /**
@@ -74,21 +83,23 @@ public class ArrayLockEventSlidingWindow {
      *      this method, that is no longer the case when the method returns.
      */
     public Optional<List<LockWatchEvent>> getFromVersion(long version) {
-        long lastWrittenSequence = nextSequence - 1;
+        return getFromTo(version, lastVersion());
+    }
 
-        if (versionInTheFuture(version, lastWrittenSequence) || versionTooOld(version, lastWrittenSequence)) {
+    public Optional<List<LockWatchEvent>> getFromTo(long startVersion, long endVersion) {
+        if (versionInTheFuture(startVersion, endVersion) || versionTooOld(startVersion, endVersion)) {
             return Optional.empty();
         }
 
-        int startIndex = LongMath.mod(version + 1, maxSize);
-        int windowSize = Ints.saturatedCast(lastWrittenSequence - version);
+        int startIndex = LongMath.mod(startVersion + 1, maxSize);
+        int windowSize = Ints.saturatedCast(endVersion - startVersion);
         List<LockWatchEvent> events = new ArrayList<>(windowSize);
 
         for (int i = startIndex; events.size() < windowSize; i = incrementAndMod(i)) {
             events.add(buffer[i]);
         }
 
-        return validateConsistencyOrReturnEmpty(version, events);
+        return validateConsistencyOrReturnEmpty(startVersion, events);
     }
 
     private int incrementAndMod(int num) {

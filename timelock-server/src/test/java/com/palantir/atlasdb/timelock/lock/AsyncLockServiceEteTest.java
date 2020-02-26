@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -36,7 +35,6 @@ import org.junit.rules.TestRule;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.timelock.lock.watch.LockEventLog;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.flake.FlakeRetryingRule;
@@ -66,8 +64,7 @@ public class AsyncLockServiceEteTest {
 
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 2L);
     private final HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(
-            mock(LockEventLog.class), heldLocks);
+    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks);
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
