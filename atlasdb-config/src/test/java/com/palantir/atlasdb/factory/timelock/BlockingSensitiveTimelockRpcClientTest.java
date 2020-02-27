@@ -20,15 +20,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import java.util.UUID;
-
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
-import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.WaitForLocksRequest;
 
@@ -40,13 +36,6 @@ public class BlockingSensitiveTimelockRpcClientTest {
     private static final WaitForLocksRequest WAIT_FOR_LOCKS_REQUEST = WaitForLocksRequest.of(
             ImmutableSet.of(StringLockDescriptor.of("waiting-lock")),
             60_000);
-    private static final StartTransactionRequestV5 START_TRANSACTION_REQUEST
-            = ImmutableStartTransactionRequestV5.builder()
-            .lastKnownLockLogVersion(88)
-            .numTransactions(66)
-            .requestId(UUID.randomUUID())
-            .requestorId(UUID.randomUUID())
-            .build();
 
     private final TimelockRpcClient blocking = mock(TimelockRpcClient.class);
     private final TimelockRpcClient nonBlocking = mock(TimelockRpcClient.class);
@@ -70,9 +59,9 @@ public class BlockingSensitiveTimelockRpcClientTest {
 
     @Test
     public void startTransactionUsesNonBlockingClient() {
-        sensitiveClient.startTransactionsWithWatches(NAMESPACE, START_TRANSACTION_REQUEST);
+        sensitiveClient.getFreshTimestamp(NAMESPACE);
 
-        verify(nonBlocking).startTransactionsWithWatches(NAMESPACE, START_TRANSACTION_REQUEST);
-        verify(blocking, never()).startTransactionsWithWatches(NAMESPACE, START_TRANSACTION_REQUEST);
+        verify(nonBlocking).getFreshTimestamp(NAMESPACE);
+        verify(blocking, never()).getFreshTimestamp(NAMESPACE);
     }
 }

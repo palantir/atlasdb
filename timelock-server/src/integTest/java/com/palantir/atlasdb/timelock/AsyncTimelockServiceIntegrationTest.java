@@ -41,6 +41,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.HeldLocksGrant;
@@ -61,8 +63,6 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -142,17 +142,19 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void batchedStartTransactionCallShouldLockImmutableTimestamp() {
         // requestor id corresponds to an instance of the timelock service client
-        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
-                UUID.randomUUID(),
-                123);
+        ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
+                .numTransactions(123)
+                .requestorId(UUID.randomUUID())
+                .requestId(UUID.randomUUID())
+                .build();
 
-        LockImmutableTimestampResponse response1 = namespace.namespacedTimelockRpcClient()
+        LockImmutableTimestampResponse response1 = namespace.namespacedConjureTimelockService()
                 .startTransactions(request)
-                .immutableTimestamp();
+                .getImmutableTimestamp();
 
-        LockImmutableTimestampResponse response2 = namespace.namespacedTimelockRpcClient()
+        LockImmutableTimestampResponse response2 = namespace.namespacedConjureTimelockService()
                 .startTransactions(request)
-                .immutableTimestamp();
+                .getImmutableTimestamp();
 
         // above are two *separate* batches
 
@@ -606,11 +608,13 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
-        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
-                requestorUuid,
-                numRequestedTimestamps);
-        StartTransactionResponseV4 response = namespace.namespacedTimelockRpcClient().startTransactions(request);
-        return response.timestamps().stream()
+        ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
+                .requestId(UUID.randomUUID())
+                .requestorId(requestorUuid)
+                .numTransactions(numRequestedTimestamps)
+                .build();
+        ConjureStartTransactionsResponse response = namespace.namespacedConjureTimelockService().startTransactions(request);
+        return response.getTimestamps().stream()
                 .boxed()
                 .collect(Collectors.toList());
     }
