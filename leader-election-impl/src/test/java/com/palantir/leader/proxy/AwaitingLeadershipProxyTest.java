@@ -59,7 +59,7 @@ public class AwaitingLeadershipProxyTest {
     public void before() throws InterruptedException {
         when(leaderElectionService.blockOnBecomingLeader()).thenReturn(leadershipToken);
         when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
-        when(leaderElectionService.isStillLeadingAsync(leadershipToken)).thenReturn(
+        when(leaderElectionService.isStillLeading(leadershipToken)).thenReturn(
                 Futures.immediateFuture(LeaderElectionService.StillLeadingStatus.LEADING));
     }
 
@@ -69,7 +69,7 @@ public class AwaitingLeadershipProxyTest {
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
         when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
-        when(mockLeader.isStillLeadingAsync(any(LeaderElectionService.LeadershipToken.class)))
+        when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(Futures.immediateFuture(LeaderElectionService.StillLeadingStatus.LEADING));
 
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
@@ -86,7 +86,7 @@ public class AwaitingLeadershipProxyTest {
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenNotLeading() {
         when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
-        when(mockLeader.isStillLeadingAsync(any(LeaderElectionService.LeadershipToken.class)))
+        when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(Futures.immediateFuture(LeaderElectionService.StillLeadingStatus.NOT_LEADING));
 
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
@@ -200,7 +200,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     private void loseLeadership(Callable proxy) throws InterruptedException {
-        when(leaderElectionService.isStillLeadingAsync(any()))
+        when(leaderElectionService.isStillLeading(any()))
                 .thenReturn(Futures.immediateFuture(LeaderElectionService.StillLeadingStatus.NOT_LEADING));
         when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
             // never return
