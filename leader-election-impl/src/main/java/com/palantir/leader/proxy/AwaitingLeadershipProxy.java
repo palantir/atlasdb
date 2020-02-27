@@ -208,7 +208,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                         return Futures.immediateFuture(leading);
                     } else {
                         return Futures.transformAsync(
-                                schedulingExecutor.schedule(() -> {}, 700, TimeUnit.MILLISECONDS),
+                                schedulingExecutor.schedule(() -> { }, 700, TimeUnit.MILLISECONDS),
                                 $ -> isStillLeadingAsync(token, newRetriesRemaining),
                                 executionExecutor);
                     }
@@ -259,26 +259,25 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     .transformAsync(delegate -> (ListenableFuture<Object>) method.invoke(delegate, args),
                             executionExecutor)
                     .catchingAsync(InvocationTargetException.class, e -> {
-                                throw handleDelegateThrewException(leadershipToken, e);
-                            },
-                            executionExecutor);
+                        throw handleDelegateThrewException(leadershipToken, e);
+                    }, executionExecutor);
         }
     }
 
     private RuntimeException handleDelegateThrewException(
-            LeadershipToken leadershipToken, InvocationTargetException e) throws Exception {
-        if (e.getTargetException() instanceof ServiceNotAvailableException
-                || e.getTargetException() instanceof NotCurrentLeaderException) {
-            markAsNotLeading(leadershipToken, e.getCause());
+            LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
+        if (exception.getTargetException() instanceof ServiceNotAvailableException
+                || exception.getTargetException() instanceof NotCurrentLeaderException) {
+            markAsNotLeading(leadershipToken, exception.getCause());
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
-        if (e.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
+        if (exception.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
             throw notCurrentLeaderException("received an interrupt due to leader election.",
-                    e.getTargetException());
+                    exception.getTargetException());
         }
-        Throwables.propagateIfPossible(e.getTargetException(), Exception.class);
-        throw new RuntimeException(e.getTargetException());
+        Throwables.propagateIfPossible(exception.getTargetException(), Exception.class);
+        throw new RuntimeException(exception.getTargetException());
     }
 
     private static <T> T getFutureResultThrowingCause(Future<T> future) {

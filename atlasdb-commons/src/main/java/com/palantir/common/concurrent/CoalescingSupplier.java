@@ -55,6 +55,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         }
     }
 
+    @SuppressWarnings("CheckReturnValue")
     public ListenableFuture<T> getAsync() {
         Round present = round;
         if (present.isFirstToArrive()) {
