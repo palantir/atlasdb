@@ -21,15 +21,10 @@ import java.util.Set;
 
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.StartTransactionRequestV5;
-import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -73,17 +68,6 @@ public class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
     }
 
     @Override
-    public StartTransactionResponseV4 startTransactions(String namespace, StartTransactionRequestV4 request) {
-        return nonBlockingClient.startTransactions(namespace, request);
-    }
-
-    @Override
-    public StartTransactionResponseV5 startTransactionsWithWatches(String namespace,
-            StartTransactionRequestV5 request) {
-        return nonBlockingClient.startTransactionsWithWatches(namespace, request);
-    }
-
-    @Override
     public long getImmutableTimestamp(String namespace) {
         return nonBlockingClient.getImmutableTimestamp(namespace);
     }
@@ -101,11 +85,6 @@ public class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
     @Override
     public RefreshLockResponseV2 refreshLockLeases(String namespace, Set<LockToken> tokens) {
         return nonBlockingClient.refreshLockLeases(namespace, tokens);
-    }
-
-    @Override
-    public LeaderTime getLeaderTime(String namespace) {
-        return nonBlockingClient.getLeaderTime(namespace);
     }
 
     @Override

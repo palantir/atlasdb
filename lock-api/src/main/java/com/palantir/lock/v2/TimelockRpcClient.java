@@ -20,7 +20,6 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -66,23 +65,6 @@ public interface TimelockRpcClient {
     LockImmutableTimestampResponse lockImmutableTimestamp(
             @PathParam("namespace") String namespace, IdentifiedTimeLockRequest request);
 
-    /**
-     * Returns a {@link StartTransactionResponseV4} which has a single immutable ts, and a range of timestamps to
-     * be used as start timestamps.
-     *
-     * It is guaranteed to have at least one usable timestamp matching the partition criteria in the returned timestamp
-     * range, but there is no other guarantee given. (It can be less than number of requested timestamps)
-     */
-    @POST
-    @Path("start-atlasdb-transaction-v4")
-    StartTransactionResponseV4 startTransactions(
-            @PathParam("namespace") String namespace, StartTransactionRequestV4 request);
-
-    @POST
-    @Path("start-atlasdb-transaction-v5")
-    StartTransactionResponseV5 startTransactionsWithWatches(
-            @PathParam("namespace") String namespace, StartTransactionRequestV5 request);
-
     @POST
     @Path("immutable-timestamp")
     long getImmutableTimestamp(@PathParam("namespace") String namespace);
@@ -98,10 +80,6 @@ public interface TimelockRpcClient {
     @POST
     @Path("refresh-locks-v2")
     RefreshLockResponseV2 refreshLockLeases(@PathParam("namespace") String namespace, Set<LockToken> tokens);
-
-    @GET
-    @Path("leader-time")
-    LeaderTime getLeaderTime(@PathParam("namespace") String namespace);
 
     @POST
     @Path("unlock")
