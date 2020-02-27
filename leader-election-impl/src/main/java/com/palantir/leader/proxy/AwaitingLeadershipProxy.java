@@ -196,12 +196,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     // Wait for at most 6.3 seconds in case of a momentary network partition
-    private ListenableFuture<StillLeadingStatus> isStillLeadingAsync(LeadershipToken token) {
-        return isStillLeadingAsync(token, MAX_NO_QUORUM_RETRIES);
+    private ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken token) {
+        return isStillLeading(token, MAX_NO_QUORUM_RETRIES);
     }
 
-    private ListenableFuture<StillLeadingStatus> isStillLeadingAsync(LeadershipToken token, int retriesRemaining) {
-        return Futures.transformAsync(leaderElectionService.isStillLeadingAsync(token),
+    private ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken token, int retriesRemaining) {
+        return Futures.transformAsync(leaderElectionService.isStillLeading(token),
                 leading -> {
                     int newRetriesRemaining = retriesRemaining - 1;
                     if (leading != StillLeadingStatus.NO_QUORUM || newRetriesRemaining == 0) {
@@ -209,7 +209,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     } else {
                         return Futures.transformAsync(
                                 schedulingExecutor.schedule(() -> { }, 700, TimeUnit.MILLISECONDS),
-                                $ -> isStillLeadingAsync(token, newRetriesRemaining),
+                                $ -> isStillLeading(token, newRetriesRemaining),
                                 executionExecutor);
                     }
                 }, executionExecutor);
@@ -229,7 +229,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         Object maybeValidDelegate = delegateRef.get();
 
-        ListenableFuture<StillLeadingStatus> leadingFuture = isStillLeadingAsync(leadershipToken);
+        ListenableFuture<StillLeadingStatus> leadingFuture = isStillLeading(leadershipToken);
 
         ListenableFuture<Object> delegateFuture = Futures.transform(leadingFuture,
                 leading -> {

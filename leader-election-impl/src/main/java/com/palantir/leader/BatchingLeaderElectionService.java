@@ -62,13 +62,8 @@ public class BatchingLeaderElectionService implements LeaderElectionService, Clo
     }
 
     @Override
-    public StillLeadingStatus isStillLeading(LeadershipToken token) {
+    public ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken token) {
         return delegate.isStillLeading(token);
-    }
-
-    @Override
-    public ListenableFuture<StillLeadingStatus> isStillLeadingAsync(LeadershipToken token) {
-        return delegate.isStillLeadingAsync(token);
     }
 
     @Override

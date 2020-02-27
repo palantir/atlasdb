@@ -209,12 +209,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     @Override
-    public StillLeadingStatus isStillLeading(LeadershipToken token) {
-        return Futures.getUnchecked(isStillLeadingAsync(token));
-    }
-
-    @Override
-    public ListenableFuture<StillLeadingStatus> isStillLeadingAsync(LeadershipToken token) {
+    public ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken token) {
         if (!(token instanceof PaxosLeadershipToken)) {
             return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
         }
