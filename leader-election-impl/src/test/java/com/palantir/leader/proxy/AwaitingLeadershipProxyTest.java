@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -40,6 +41,7 @@ import org.junit.Test;
 
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -172,6 +174,22 @@ public class AwaitingLeadershipProxyTest {
         verify(leaderElectionService, atLeast(2)).blockOnBecomingLeader();
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void returnsFailedFutureIfNotTheLeader() throws Exception {
+        IntWrapper mock = mock(IntWrapper.class);
+
+        when(leaderElectionService.blockOnBecomingLeader()).thenThrow(new RuntimeException());
+        IntWrapper proxy = AwaitingLeadershipProxy.newProxyInstance(
+                IntWrapper.class, () -> mock, leaderElectionService);
+        ListenableFuture<Integer> future = proxy.getAsync();
+
+        assertThatThrownBy(future::get)
+                .isInstanceOf(ExecutionException.class)
+                .hasCauseInstanceOf(NotCurrentLeaderException.class);
+        verify(mock, never()).getAsync();
+    }
+
     @SuppressWarnings("IllegalThrows")
     private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
         CountDownLatch delegateCallStarted = new CountDownLatch(1);
@@ -222,4 +240,8 @@ public class AwaitingLeadershipProxyTest {
         Uninterruptibles.sleepUninterruptibly(100L, TimeUnit.MILLISECONDS);
     }
 
+    private interface IntWrapper {
+        int get();
+        ListenableFuture<Integer> getAsync();
+    }
 }

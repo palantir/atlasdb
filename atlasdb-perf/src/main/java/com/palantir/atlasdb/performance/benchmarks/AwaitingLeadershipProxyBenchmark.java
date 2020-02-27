@@ -76,6 +76,7 @@ public class AwaitingLeadershipProxyBenchmark {
     }
 
 
+
     public interface LeaderAwareService {
         int somethingBlocking();
         ListenableFuture<?> somethingAsync();

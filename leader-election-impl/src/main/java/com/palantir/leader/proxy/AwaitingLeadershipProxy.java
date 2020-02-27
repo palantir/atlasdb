@@ -210,7 +210,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             return null;
         }
 
-        final LeadershipToken leadershipToken = getLeadershipToken();
+        ListenableFuture<LeadershipToken> leadershipToken = getLeadershipToken();
 
         Object maybeValidDelegate = delegateRef.get();
 
@@ -222,7 +222,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
                     // and should assume we're not the leader
                     if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
-                        markAsNotLeading(leadershipToken, null /* cause */);
+                        markAsNotLeading(getFutureResultThrowingCause(leadershipToken), null /* cause */);
                     }
 
                     if (isClosed) {
@@ -238,14 +238,14 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             try {
                 return method.invoke(delegate, args);
             } catch (InvocationTargetException e) {
-                throw handleDelegateThrewException(leadershipToken, e);
+                throw handleDelegateThrewException(getFutureResultThrowingCause(leadershipToken), e);
             }
         } else {
             return FluentFuture.from(delegateFuture)
                     .transformAsync(delegate -> (ListenableFuture<Object>) method.invoke(delegate, args),
                             executionExecutor)
                     .catchingAsync(InvocationTargetException.class, e -> {
-                        throw handleDelegateThrewException(leadershipToken, e);
+                        throw handleDelegateThrewException(getFutureResultThrowingCause(leadershipToken), e);
                     }, executionExecutor);
         }
     }
@@ -278,8 +278,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    @VisibleForTesting
-    LeadershipToken getLeadershipToken() {
+    private ListenableFuture<LeadershipToken> getLeadershipToken() {
         LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {
@@ -294,11 +293,11 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             }
 
             if (leadershipToken == null) {
-                throw notCurrentLeaderException;
+                return Futures.immediateFailedFuture(notCurrentLeaderException);
             }
         }
 
-        return leadershipToken;
+        return Futures.immediateFuture(leadershipToken);
     }
 
     private boolean isStillCurrentToken(LeadershipToken leadershipToken) {
