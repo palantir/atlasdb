@@ -39,7 +39,6 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
-    private static final boolean HAVE_ROLLED_OUT_CONJURE_CHANGES_INTERNALLY = false;
     private final NamespacedTimelockRpcClient delegate;
     private final NamespacedConjureTimelockService conjureDelegate;
     private final UUID clientId;
@@ -53,11 +52,7 @@ class LockLeaseService {
         this.delegate = timelockRpcClient;
         this.conjureDelegate = conjureDelegate;
         this.clientId = clientId;
-        if (HAVE_ROLLED_OUT_CONJURE_CHANGES_INTERNALLY) {
-            this.time = new CoalescingSupplier<>(conjureDelegate::leaderTime);
-        } else {
-            this.time = new CoalescingSupplier<>(delegate::getLeaderTime);
-        }
+        this.time = new CoalescingSupplier<>(conjureDelegate::leaderTime);
     }
 
     static LockLeaseService create(
@@ -72,21 +67,16 @@ class LockLeaseService {
 
     StartTransactionResponseV4 startTransactions(int batchSize) {
         final StartTransactionResponseV4 response;
-        if (HAVE_ROLLED_OUT_CONJURE_CHANGES_INTERNALLY) {
-            ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
-                    .requestorId(clientId)
-                    .requestId(UUID.randomUUID())
-                    .numTransactions(batchSize)
-                    .build();
-            ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
-            response = StartTransactionResponseV4.of(
-                    conjureResponse.getImmutableTimestamp(),
-                    conjureResponse.getTimestamps(),
-                    conjureResponse.getLease());
-        } else {
-            StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
-            response = delegate.startTransactions(request);
-        }
+        ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
+                .requestorId(clientId)
+                .requestId(UUID.randomUUID())
+                .numTransactions(batchSize)
+                .build();
+        ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
+        response = StartTransactionResponseV4.of(
+                conjureResponse.getImmutableTimestamp(),
+                conjureResponse.getTimestamps(),
+                conjureResponse.getLease());
 
         Lease lease = response.lease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
