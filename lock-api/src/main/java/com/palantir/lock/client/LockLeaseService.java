@@ -66,14 +66,13 @@ class LockLeaseService {
     }
 
     StartTransactionResponseV4 startTransactions(int batchSize) {
-        final StartTransactionResponseV4 response;
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
                 .build();
         ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
-        response = StartTransactionResponseV4.of(
+        StartTransactionResponseV4 response = StartTransactionResponseV4.of(
                 conjureResponse.getImmutableTimestamp(),
                 conjureResponse.getTimestamps(),
                 conjureResponse.getLease());
