@@ -20,8 +20,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 
 /**
@@ -31,6 +34,8 @@ import com.google.common.util.concurrent.SettableFuture;
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
     private final Supplier<T> delegate;
+    private static final ListeningExecutorService executor =
+            MoreExecutors.listeningDecorator(PTExecutors.newCachedThreadPool());
 
     private volatile Round round = new Round();
 
@@ -40,16 +45,30 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     @Override
     public T get() {
+        try {
+            return getAsync().get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.propagate(e.getCause());
+        }
+    }
+
+    public ListenableFuture<T> getAsync() {
         Round present = round;
         if (present.isFirstToArrive()) {
-            present.execute();
-            return present.getResult();
+            return Futures.submitAsync(() -> {
+                present.execute();
+                return present.getResult();
+            }, executor);
         }
-        Round next = present.awaitDone();
-        if (next.isFirstToArrive()) {
-            next.execute();
-        }
-        return next.getResult();
+        return Futures.transformAsync(present.done(), next -> {
+            if (next.isFirstToArrive()) {
+                executor.submit(next::execute);
+            }
+            return next.getResult();
+        }, MoreExecutors.directExecutor());
     }
 
     private final class Round {
@@ -60,6 +79,12 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         boolean isFirstToArrive() {
             // adding the get benchmarks as faster, expected because compareAndSet forces an exclusive cache line
             return !hasStarted.get() && hasStarted.compareAndSet(false, true);
+        }
+
+        ListenableFuture<Round> done() {
+            return FluentFuture.from(future)
+                    .catching(Throwable.class, thrown -> null, MoreExecutors.directExecutor())
+                    .transform(x -> next, MoreExecutors.directExecutor());
         }
 
         Round awaitDone() {
@@ -90,15 +115,8 @@ public class CoalescingSupplier<T> implements Supplier<T> {
             }
         }
 
-        T getResult() {
-            try {
-                return future.get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.propagate(e.getCause());
-            }
+        ListenableFuture<T> getResult() {
+            return future;
         }
     }
 }

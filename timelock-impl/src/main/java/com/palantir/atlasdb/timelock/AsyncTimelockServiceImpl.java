@@ -19,6 +19,8 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
@@ -165,14 +167,14 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
-        return StartTransactionResponseV5.fromV4(
+    public ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(StartTransactionRequestV5 request) {
+        return Futures.immediateFuture(StartTransactionResponseV5.fromV4(
                 startTransactions(ImmutableStartTransactionRequestV4.builder()
                         .requestId(request.requestId())
                         .requestorId(request.requestorId())
                         .numTransactions(request.numTransactions())
                         .build()),
-                getWatchStateUpdate(request.lastKnownLockLogVersion()));
+                getWatchStateUpdate(request.lastKnownLockLogVersion())));
     }
 
     @Override
@@ -181,8 +183,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public LeaderTime leaderTime() {
-        return lockService.leaderTime();
+    public ListenableFuture<LeaderTime> leaderTime() {
+        return Futures.immediateFuture(lockService.leaderTime());
     }
 
     @Override

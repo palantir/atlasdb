@@ -29,6 +29,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
@@ -41,6 +44,7 @@ import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
+import com.palantir.paxos.PaxosQuorumStatus;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
@@ -206,36 +210,46 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
-        if (!(token instanceof PaxosLeadershipToken)) {
-            return StillLeadingStatus.NOT_LEADING;
-        }
+        return Futures.getUnchecked(isStillLeadingAsync(token));
+    }
 
+    @Override
+    public ListenableFuture<StillLeadingStatus> isStillLeadingAsync(LeadershipToken token) {
+        if (!(token instanceof PaxosLeadershipToken)) {
+            return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
+        }
         PaxosLeadershipToken paxosToken = (PaxosLeadershipToken) token;
         return determineAndRecordLeadershipStatus(paxosToken);
     }
 
-    private StillLeadingStatus determineAndRecordLeadershipStatus(
+    private ListenableFuture<StillLeadingStatus> determineAndRecordLeadershipStatus(
             PaxosLeadershipToken paxosToken) {
-        StillLeadingStatus status = determineLeadershipStatus(paxosToken.value);
-        recordLeadershipStatus(paxosToken, status);
-        return status;
+        ListenableFuture<StillLeadingStatus> statusFuture = determineLeadershipStatus(paxosToken.value);
+        return Futures.transform(statusFuture, status -> {
+            recordLeadershipStatus(paxosToken, status);
+            return status;
+        }, MoreExecutors.directExecutor());
     }
 
     private StillLeadingStatus determineLeadershipStatus(Optional<PaxosValue> value) {
-        return value.map(this::determineLeadershipStatus).orElse(StillLeadingStatus.NOT_LEADING);
+        return value.map(this::determineLeadershipStatus)
+                .map(Futures::getUnchecked)
+                .orElse(StillLeadingStatus.NOT_LEADING);
     }
 
-    private StillLeadingStatus determineLeadershipStatus(PaxosValue value) {
+    private ListenableFuture<StillLeadingStatus> determineLeadershipStatus(PaxosValue value) {
         if (!isThisNodeTheLeaderFor(value)) {
-            return StillLeadingStatus.NOT_LEADING;
+            return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
         }
 
         if (!isLatestRound(value)) {
-            return StillLeadingStatus.NOT_LEADING;
+            return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
         }
 
-        return latestRoundVerifier.isLatestRound(value.getRound())
-                .toStillLeadingStatus();
+        return Futures.transform(
+                latestRoundVerifier.isLatestRoundAsync(value.getRound()),
+                PaxosQuorumStatus::toStillLeadingStatus,
+                MoreExecutors.directExecutor());
     }
 
     private boolean isLatestRound(PaxosValue value) {
