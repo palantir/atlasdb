@@ -613,7 +613,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .requestorId(requestorUuid)
                 .numTransactions(numRequestedTimestamps)
                 .build();
-        ConjureStartTransactionsResponse response = namespace.namespacedConjureTimelockService().startTransactions(request);
+        ConjureStartTransactionsResponse response = namespace.namespacedConjureTimelockService()
+                .startTransactions(request);
         return response.getTimestamps().stream()
                 .boxed()
                 .collect(Collectors.toList());

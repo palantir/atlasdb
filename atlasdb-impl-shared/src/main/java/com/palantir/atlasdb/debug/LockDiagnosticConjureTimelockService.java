@@ -26,6 +26,7 @@ import com.palantir.tokens.auth.AuthHeader;
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
  * @deprecated Remove this once PDS-95791 is resolved.
  */
+@Deprecated
 public class LockDiagnosticConjureTimelockService implements ConjureTimelockService {
     private final ConjureTimelockService conjureDelegate;
     private final ClientLockDiagnosticCollector lockDiagnosticCollector;
