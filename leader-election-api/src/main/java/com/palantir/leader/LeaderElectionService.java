@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.util.Optional;
 
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.metrics.Timed;
 
 public interface LeaderElectionService {
@@ -75,6 +76,8 @@ public interface LeaderElectionService {
      */
     @Timed
     StillLeadingStatus isStillLeading(LeadershipToken token);
+
+    ListenableFuture<StillLeadingStatus> isStillLeadingAsync(LeadershipToken token);
 
     /**
      * Attempts to give up leadership. Note that this does not guarantee that a different node will be elected the

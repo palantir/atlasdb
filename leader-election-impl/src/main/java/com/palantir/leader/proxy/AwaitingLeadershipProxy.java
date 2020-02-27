@@ -22,7 +22,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -35,8 +37,14 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.google.common.util.concurrent.Uninterruptibles;
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
@@ -50,8 +58,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
-    private static final long MAX_NO_QUORUM_RETRIES = 10;
+    private static final int MAX_NO_QUORUM_RETRIES = 10;
     private static final Duration GAIN_LEADERSHIP_BACKOFF = Duration.ofMillis(500);
+    private static final ListeningScheduledExecutorService schedulingExecutor =
+            MoreExecutors.listeningDecorator(PTExecutors.newScheduledThreadPoolExecutor(1));
+    private static final ListeningExecutorService executionExecutor = MoreExecutors.listeningDecorator(
+            PTExecutors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
@@ -183,6 +195,26 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
+    // Wait for at most 6.3 seconds in case of a momentary network partition
+    private ListenableFuture<StillLeadingStatus> isStillLeadingAsync(LeadershipToken token) {
+        return isStillLeadingAsync(token, MAX_NO_QUORUM_RETRIES);
+    }
+
+    private ListenableFuture<StillLeadingStatus> isStillLeadingAsync(LeadershipToken token, int retriesRemaining) {
+        return Futures.transformAsync(leaderElectionService.isStillLeadingAsync(token),
+                leading -> {
+                    int newRetriesRemaining = retriesRemaining - 1;
+                    if (leading != StillLeadingStatus.NO_QUORUM || newRetriesRemaining == 0) {
+                        return Futures.immediateFuture(leading);
+                    } else {
+                        return Futures.transformAsync(
+                                schedulingExecutor.schedule(() -> {}, 700, TimeUnit.MILLISECONDS),
+                                $ -> isStillLeadingAsync(token, newRetriesRemaining),
+                                executionExecutor);
+                    }
+                }, executionExecutor);
+    }
+
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         if (method.getName().equals("close") && args.length == 0) {
@@ -195,46 +227,69 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         final LeadershipToken leadershipToken = getLeadershipToken();
 
-        Object delegate = delegateRef.get();
-        StillLeadingStatus leading = null;
+        Object maybeValidDelegate = delegateRef.get();
 
-        // Wait for at most 6.3 seconds in case of a momentary network partition
-        for (int i = 0; i < MAX_NO_QUORUM_RETRIES; i++) {
-            // TODO(nziebart): check if leadershipTokenRef has been nulled out between iterations?
-            leading = leaderElectionService.isStillLeading(leadershipToken);
-            if (leading != StillLeadingStatus.NO_QUORUM) {
-                break;
+        ListenableFuture<StillLeadingStatus> leadingFuture = isStillLeadingAsync(leadershipToken);
+
+        ListenableFuture<Object> delegateFuture = Futures.transform(leadingFuture,
+                leading -> {
+                    // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
+                    // and should assume we're not the leader
+                    if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
+                        markAsNotLeading(leadershipToken, null /* cause */);
+                    }
+
+                    if (isClosed) {
+                        throw new IllegalStateException("already closed proxy for " + interfaceClass.getName());
+                    }
+
+                    Preconditions.checkNotNull(maybeValidDelegate, "%s backing is null", interfaceClass.getName());
+                    return maybeValidDelegate;
+                }, executionExecutor);
+
+        if (!method.getReturnType().equals(ListenableFuture.class)) {
+            Object delegate = getFutureResultThrowingCause(delegateFuture);
+            try {
+                return method.invoke(delegate, args);
+            } catch (InvocationTargetException e) {
+                throw handleDelegateThrewException(leadershipToken, e);
             }
-            if (i != MAX_NO_QUORUM_RETRIES - 1) {
-                Uninterruptibles.sleepUninterruptibly(700, TimeUnit.MILLISECONDS);
-            }
+        } else {
+            return FluentFuture.from(delegateFuture)
+                    .transformAsync(delegate -> (ListenableFuture<Object>) method.invoke(delegate, args),
+                            executionExecutor)
+                    .catchingAsync(InvocationTargetException.class, e -> {
+                                throw handleDelegateThrewException(leadershipToken, e);
+                            },
+                            executionExecutor);
         }
+    }
 
-        // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
-        // and should assume we're not the leader
-        if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
-            markAsNotLeading(leadershipToken, null /* cause */);
+    private RuntimeException handleDelegateThrewException(
+            LeadershipToken leadershipToken, InvocationTargetException e) throws Exception {
+        if (e.getTargetException() instanceof ServiceNotAvailableException
+                || e.getTargetException() instanceof NotCurrentLeaderException) {
+            markAsNotLeading(leadershipToken, e.getCause());
         }
-
-        if (isClosed) {
-            throw new IllegalStateException("already closed proxy for " + interfaceClass.getName());
+        // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
+        // in case of a leader election.
+        if (e.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
+            throw notCurrentLeaderException("received an interrupt due to leader election.",
+                    e.getTargetException());
         }
+        Throwables.propagateIfPossible(e.getTargetException(), Exception.class);
+        throw new RuntimeException(e.getTargetException());
+    }
 
-        Preconditions.checkNotNull(delegate, "%s backing is null", interfaceClass.getName());
+    private static <T> T getFutureResultThrowingCause(Future<T> future) {
         try {
-            return method.invoke(delegate, args);
-        } catch (InvocationTargetException e) {
-            if (e.getTargetException() instanceof ServiceNotAvailableException
-                    || e.getTargetException() instanceof NotCurrentLeaderException) {
-                markAsNotLeading(leadershipToken, e.getCause());
-            }
-            // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
-            // in case of a leader election.
-            if (e.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
-                throw notCurrentLeaderException("received an interrupt due to leader election.",
-                        e.getTargetException());
-            }
-            throw e.getTargetException();
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            Throwables.throwIfUnchecked(e.getCause());
+            throw new RuntimeException(e);
         }
     }
 

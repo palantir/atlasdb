@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -30,10 +31,12 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.debug.LockDiagnosticInfo;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.common.base.Throwables;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
@@ -128,7 +131,19 @@ public class AsyncTimelockResource {
     @POST
     @Path("start-atlasdb-transaction-v5")
     public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
-        return timelock.startTransactionsWithWatches(request);
+        return unwrapListenableFuture(timelock.startTransactionsWithWatches(request));
+    }
+
+    private static <T> T unwrapListenableFuture(ListenableFuture<T> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            Throwables.throwIfUncheckedException(e.getCause());
+            throw new RuntimeException(e.getCause());
+        }
     }
 
     @POST
@@ -200,7 +215,7 @@ public class AsyncTimelockResource {
     @GET
     @Path("leader-time")
     public LeaderTime getLeaderTime() {
-        return timelock.leaderTime();
+        return unwrapListenableFuture(timelock.leaderTime());
     }
 
     @POST

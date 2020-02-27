@@ -77,12 +77,14 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestorId(request.getRequestorId())
                     .numTransactions(request.getNumTransactions())
                     .build();
-            StartTransactionResponseV5 response = forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
-            return ConjureStartTransactionsResponse.builder()
-                    .immutableTimestamp(response.immutableTimestamp())
-                    .timestamps(response.timestamps())
-                    .lease(response.lease())
-                    .build();
+            ListenableFuture<StartTransactionResponseV5> responseFuture =
+                    forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
+            return Futures.transform(responseFuture, response -> ConjureStartTransactionsResponse.builder()
+                            .immutableTimestamp(response.immutableTimestamp())
+                            .timestamps(response.timestamps())
+                            .lease(response.lease())
+                            .build(),
+                    MoreExecutors.directExecutor());
         });
     }
 
@@ -95,9 +97,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         return timelockServices.apply(namespace);
     }
 
-    private <T> ListenableFuture<T> handleExceptions(Supplier<T> supplier) {
-        return handleExceptions(Futures.submitAsync(
-                () -> Futures.immediateFuture(supplier.get()), MoreExecutors.directExecutor()));
+    private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
+        return handleExceptions(Futures.submitAsync(supplier::get, MoreExecutors.directExecutor()));
     }
 
     private <T> ListenableFuture<T> handleExceptions(ListenableFuture<T> future) {
