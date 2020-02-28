@@ -20,6 +20,14 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.Lease
+    LastKnownVersion:
+      base-type: any
+      external:
+        java: com.palantir.lock.watch.LastKnownVersion
+    LockWatchStateUpdate:
+      base-type: any
+      external:
+        java: com.palantir.lock.watch.LockWatchStateUpdate
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
@@ -28,11 +36,13 @@ types:
           requestId: uuid
           requestorId: uuid
           numTransactions: integer
+          lastKnownVersion: LastKnownVersion
       ConjureStartTransactionsResponse:
         fields:
           immutableTimestamp: LockImmutableTimestampResponse
           timestamps: PartitionedTimestamps
           lease: Lease
+          lockWatchUpdate: LockWatchStateUpdate
 
 services:
   ConjureTimelockService:

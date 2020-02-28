@@ -35,6 +35,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.watch.LastKnownVersion;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
@@ -69,6 +70,7 @@ class LockLeaseService {
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
+                .lastKnownVersion(LastKnownVersion.UNKNOWN)
                 .build();
         ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
         StartTransactionResponseV4 response = StartTransactionResponseV4.of(

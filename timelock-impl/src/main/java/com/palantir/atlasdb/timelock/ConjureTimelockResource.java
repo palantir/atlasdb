@@ -82,6 +82,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .immutableTimestamp(response.immutableTimestamp())
                     .timestamps(response.timestamps())
                     .lease(response.lease())
+                    .lockWatchUpdate(response.lockWatchUpdate())
                     .build();
         });
     }

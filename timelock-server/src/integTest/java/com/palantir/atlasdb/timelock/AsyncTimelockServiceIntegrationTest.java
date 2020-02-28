@@ -66,6 +66,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.LastKnownVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.metrics.registry.MetricName;
 
@@ -146,6 +147,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .numTransactions(123)
                 .requestorId(UUID.randomUUID())
                 .requestId(UUID.randomUUID())
+                .lastKnownVersion(LastKnownVersion.UNKNOWN)
                 .build();
 
         LockImmutableTimestampResponse response1 = namespace.namespacedConjureTimelockService()
@@ -612,6 +614,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .requestId(UUID.randomUUID())
                 .requestorId(requestorUuid)
                 .numTransactions(numRequestedTimestamps)
+                .lastKnownVersion(LastKnownVersion.UNKNOWN)
                 .build();
         ConjureStartTransactionsResponse response = namespace.namespacedConjureTimelockService()
                 .startTransactions(request);
