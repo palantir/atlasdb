@@ -20,8 +20,10 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
 public final class NoOpLockWatchManager implements LockWatchManager {
     public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();

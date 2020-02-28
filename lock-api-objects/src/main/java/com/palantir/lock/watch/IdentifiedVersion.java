@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.lock.watch;
 
 import java.util.UUID;
 
