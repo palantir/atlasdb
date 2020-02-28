@@ -20,10 +20,10 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.Lease
-    LastKnownVersion:
+    Long:
       base-type: any
       external:
-        java: com.palantir.lock.watch.LastKnownVersion
+        java: java.lang.Long
     LockWatchStateUpdate:
       base-type: any
       external:
@@ -36,7 +36,7 @@ types:
           requestId: uuid
           requestorId: uuid
           numTransactions: integer
-          lastKnownVersion: LastKnownVersion
+          lastKnownVersion: optional<Long>
       ConjureStartTransactionsResponse:
         fields:
           immutableTimestamp: LockImmutableTimestampResponse

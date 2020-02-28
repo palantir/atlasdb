@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock;
 
 import java.time.Duration;
+import java.util.OptionalLong;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -76,6 +77,9 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestId(request.getRequestId())
                     .requestorId(request.getRequestorId())
                     .numTransactions(request.getNumTransactions())
+                    .lastKnownLockLogVersion(request.getLastKnownVersion()
+                            .map(OptionalLong::of)
+                            .orElseGet(OptionalLong::empty))
                     .build();
             StartTransactionResponseV5 response = forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
             return ConjureStartTransactionsResponse.builder()
