@@ -45,7 +45,7 @@ import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.TimestampWithWatches;
+import com.palantir.lock.watch.CommitTimestampsWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
@@ -176,8 +176,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion) {
-        return TimestampWithWatches.of(getFreshTimestamp(), getWatchStateUpdate(lastKnownVersion));
+    public CommitTimestampsWithWatches getCommitTimestamps(int numTimestamps, OptionalLong lastKnownVersion) {
+        return CommitTimestampsWithWatches.of(getFreshTimestamps(numTimestamps), getWatchStateUpdate(lastKnownVersion));
     }
 
     @Override

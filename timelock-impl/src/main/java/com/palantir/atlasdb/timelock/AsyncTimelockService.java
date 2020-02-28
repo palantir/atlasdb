@@ -36,7 +36,7 @@ import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.watch.TimestampWithWatches;
+import com.palantir.lock.watch.CommitTimestampsWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 
 public interface AsyncTimelockService extends ManagedTimestampService, LockWatchingService, Closeable {
@@ -63,7 +63,7 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
 
     StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request);
 
-    TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion);
+    CommitTimestampsWithWatches getCommitTimestamps(int numTimestamps, OptionalLong lastKnownVersion);
 
     LeaderTime leaderTime();
 }

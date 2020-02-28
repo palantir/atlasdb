@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock;
 
 import java.time.Duration;
+import java.util.OptionalLong;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -32,6 +33,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
@@ -42,6 +44,7 @@ import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV5;
+import com.palantir.lock.watch.CommitTimestampsWithWatches;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
@@ -91,6 +94,14 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         return handleExceptions(() -> forNamespace(namespace).leaderTime());
     }
 
+    @Override
+    public ListenableFuture<CommitTimestampsWithWatches> getCommitTimestamps(AuthHeader authHeader, String namespace,
+            GetCommitTimestampsRequest request) {
+        return handleExceptions(() -> forNamespace(namespace).getCommitTimestamps(
+                request.getNumTimestamps(),
+                request.getLastKnownVersion().map(OptionalLong::of).orElseGet(OptionalLong::empty)));
+    }
+
     private AsyncTimelockService forNamespace(String namespace) {
         return timelockServices.apply(namespace);
     }
@@ -133,6 +144,12 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         @Override
         public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
             return unwrap(resource.leaderTime(authHeader, namespace));
+        }
+
+        @Override
+        public CommitTimestampsWithWatches getCommitTimestamps(AuthHeader authHeader, String namespace,
+                GetCommitTimestampsRequest request) {
+            return unwrap(resource.getCommitTimestamps(authHeader, namespace, request));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

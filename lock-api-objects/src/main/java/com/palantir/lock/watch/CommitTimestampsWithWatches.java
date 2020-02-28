@@ -20,15 +20,16 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.timestamp.TimestampRange;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableTimestampWithWatches.class)
-@JsonDeserialize(as = ImmutableTimestampWithWatches.class)
-public interface TimestampWithWatches {
-    long timestamp();
+@JsonSerialize(as = ImmutableCommitTimestampsWithWatches.class)
+@JsonDeserialize(as = ImmutableCommitTimestampsWithWatches.class)
+public interface CommitTimestampsWithWatches {
+    TimestampRange timestamps();
     LockWatchStateUpdate lockWatches();
 
-    static TimestampWithWatches of(long timestamp, LockWatchStateUpdate lockWatches) {
-        return ImmutableTimestampWithWatches.builder().timestamp(timestamp).lockWatches(lockWatches).build();
+    static CommitTimestampsWithWatches of(TimestampRange timestamps, LockWatchStateUpdate lockWatches) {
+        return ImmutableCommitTimestampsWithWatches.builder().timestamps(timestamps).lockWatches(lockWatches).build();
     }
 }
