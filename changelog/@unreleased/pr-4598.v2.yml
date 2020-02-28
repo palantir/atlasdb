@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Bump Atlas retry timeout to 15 seocnds
+  links:
+  - https://github.com/palantir/atlasdb/pull/4598
