@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,7 +36,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.watch.LastKnownVersion;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
@@ -70,7 +70,7 @@ class LockLeaseService {
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
-                .lastKnownVersion(LastKnownVersion.UNKNOWN)
+                .lastKnownVersion(Optional.empty())
                 .build();
         ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
         StartTransactionResponseV4 response = StartTransactionResponseV4.of(
