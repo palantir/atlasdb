@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -64,6 +63,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             MoreExecutors.listeningDecorator(PTExecutors.newScheduledThreadPoolExecutor(1));
     private static final ListeningExecutorService executionExecutor = MoreExecutors.listeningDecorator(
             PTExecutors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+    private static final AsyncRetrier<StillLeadingStatus> statusRetrier = new AsyncRetrier<>(
+            MAX_NO_QUORUM_RETRIES,
+            Duration.ofMillis(700),
+            schedulingExecutor,
+            executionExecutor,
+            status -> status != StillLeadingStatus.NO_QUORUM);
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
@@ -195,26 +200,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    // Wait for at most 6.3 seconds in case of a momentary network partition
-    private ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken token) {
-        return isStillLeading(token, MAX_NO_QUORUM_RETRIES);
-    }
-
-    private ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken token, int retriesRemaining) {
-        return Futures.transformAsync(leaderElectionService.isStillLeading(token),
-                leading -> {
-                    int newRetriesRemaining = retriesRemaining - 1;
-                    if (leading != StillLeadingStatus.NO_QUORUM || newRetriesRemaining == 0) {
-                        return Futures.immediateFuture(leading);
-                    } else {
-                        return Futures.transformAsync(
-                                schedulingExecutor.schedule(() -> { }, 700, TimeUnit.MILLISECONDS),
-                                $ -> isStillLeading(token, newRetriesRemaining),
-                                executionExecutor);
-                    }
-                }, executionExecutor);
-    }
-
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         if (method.getName().equals("close") && args.length == 0) {
@@ -229,7 +214,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         Object maybeValidDelegate = delegateRef.get();
 
-        ListenableFuture<StillLeadingStatus> leadingFuture = isStillLeading(leadershipToken);
+        ListenableFuture<StillLeadingStatus> leadingFuture =
+                statusRetrier.retryUntilSatistfied(() -> leaderElectionService.isStillLeading(leadershipToken));
 
         ListenableFuture<Object> delegateFuture = Futures.transform(leadingFuture,
                 leading -> {
