@@ -1,6 +1,0 @@
-type: improvement
-improvement:
-  description: Switched to using lighter-weight JDBC connection testing on pool check-in
-    and check-out
-  links:
-  - https://github.com/palantir/atlasdb/pull/4602

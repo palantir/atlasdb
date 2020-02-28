@@ -158,6 +158,9 @@ public abstract class ConnectionConfig {
         // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
 
+        // TODO (bullman): See if driver supports JDBC4 (isValid()) and use it.
+        config.setConnectionTestQuery(getTestQuery());
+
         if (!props.isEmpty()) {
             config.setDataSourceProperties(props);
         }
