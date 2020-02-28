@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Start transactions requests now return lock watch state information
+  links:
+  - https://github.com/palantir/atlasdb/pull/4614
