@@ -66,8 +66,6 @@ public class TimeLockAgent {
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
-    private final Consumer<Object> registrar;
-    private final Optional<Consumer<UndertowService>> undertowRegistrar;
     private final PaxosResources paxosResources;
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
@@ -76,6 +74,7 @@ public class TimeLockAgent {
 
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
+    private TimeLockResource timeLockResource;
 
     public static TimeLockAgent create(
             MetricsManager metricsManager,
@@ -83,9 +82,7 @@ public class TimeLockAgent {
             Supplier<TimeLockRuntimeConfiguration> runtime,
             UserAgent userAgent,
             int threadPoolSize,
-            long blockingTimeoutMs,
-            Consumer<Object> registrar,
-            Optional<Consumer<UndertowService>> undertowRegistrar) {
+            long blockingTimeoutMs) {
         ExecutorService executor = createSharedExecutor(metricsManager);
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 ImmutableTimelockPaxosInstallationContext.of(install, userAgent),
@@ -97,30 +94,25 @@ public class TimeLockAgent {
                 metricsManager,
                 install,
                 runtime,
-                undertowRegistrar,
                 threadPoolSize,
                 blockingTimeoutMs,
-                registrar,
                 paxosResources,
                 userAgent);
-        agent.createAndRegisterResources();
+        agent.createResources();
         return agent;
     }
 
-    private TimeLockAgent(MetricsManager metricsManager,
+    private TimeLockAgent(
+            MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
-            Optional<Consumer<UndertowService>> undertowRegistrar,
             int threadPoolSize,
             long blockingTimeoutMs,
-            Consumer<Object> registrar,
             PaxosResources paxosResources,
             UserAgent userAgent) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
-        this.undertowRegistrar = undertowRegistrar;
-        this.registrar = registrar;
         this.paxosResources = paxosResources;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.timestampCreator = getTimestampCreator();
@@ -162,23 +154,24 @@ public class TimeLockAgent {
                 timestampBoundPersistence.getClass()));
     }
 
-    private void createAndRegisterResources() {
-        registerPaxosResource();
-        registerExceptionMappers();
-
+    private void createResources() {
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
 
         // Finally, register the health check, and endpoints associated with the clients.
-        TimeLockResource resource = TimeLockResource.create(namespaces);
+        timeLockResource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
         LockWatchTestingService.create(
                 Suppliers.compose(TimeLockRuntimeConfiguration::lockWatchTestConfig, runtime::get),
-                resource::getLockWatchingResource);
-        registrar.accept(resource);
+                timeLockResource::getLockWatchingResource);
+    }
 
+    public void registerResources(Consumer<Object> registrar, Optional<Consumer<UndertowService>> undertowRegistrar) {
+        registerPaxosResource(registrar);
+        registerExceptionMappers(registrar);
+        registrar.accept(timeLockResource);
         Function<String, AsyncTimelockService> serviceCreator =
                 namespace -> namespaces.get(namespace).getTimelockService();
         if (undertowRegistrar.isPresent()) {
@@ -223,11 +216,11 @@ public class TimeLockAgent {
     }
 
     // No runtime configuration at the moment.
-    private void registerPaxosResource() {
+    private void registerPaxosResource(Consumer<Object> registrar) {
         paxosResources.resourcesForRegistration().forEach(registrar::accept);
     }
 
-    private void registerExceptionMappers() {
+    private void registerExceptionMappers(Consumer<Object> registrar) {
         registrar.accept(new BlockingTimeoutExceptionMapper());
 
         registrar.accept(new NotCurrentLeaderExceptionMapper(redirectRetryTargeter()));

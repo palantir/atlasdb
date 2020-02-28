@@ -99,9 +99,9 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 configuration::runtime, // this won't actually live reload
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
-                CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
-                registrar,
-                Optional.empty());
+                CombinedTimeLockServerConfiguration.blockingTimeoutMs());
+
+        timeLockAgent.registerResources(registrar, Optional.empty());
 
         environment.lifecycle().manage(new Managed() {
             @Override

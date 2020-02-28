@@ -56,8 +56,8 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
                 configuration::runtime, // this won't actually live reload
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
-                CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
-                environment.jersey()::register,
-                Optional.empty());
+                CombinedTimeLockServerConfiguration.blockingTimeoutMs());
+
+        agent.registerResources(environment.jersey()::register, Optional.empty());
     }
 }
