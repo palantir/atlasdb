@@ -20,7 +20,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -41,7 +40,6 @@ import feign.RetryableException;
  * leader election is still taking place.
  */
 public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
-    private static final Duration TIME_LIMIT = Duration.ofSeconds(15);
 
     private final Supplier<T> delegate;
     private final Clock clock;
@@ -68,7 +66,7 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        Instant lastRetryInstant = clock.instant().plus(TIME_LIMIT);
+        Instant lastRetryInstant = clock.instant().plus(ClientOptions.REDIRECT_RETRY_TIME_LIMIT);
         ResultOrThrowable attempt = singleInvocation(method, args);
         while (clock.instant().isBefore(lastRetryInstant) && !attempt.isSuccessful()) {
             Throwable cause = attempt.throwable().get();

@@ -48,6 +48,10 @@ public abstract class ClientOptions {
     // Should not be reduced below 65 seconds to support workflows involving locking.
     static final Duration BLOCKING_READ_TIMEOUT = Duration.ofSeconds(65);
 
+    // Time limit for retrying requests which in turn retry 308s that have reached their 20 retry limit defined
+    // in conjure-java-runtime
+    static final Duration REDIRECT_RETRY_TIME_LIMIT = Duration.ofSeconds(15);
+
     // Under standard settings, throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
     private static final Duration STANDARD_BACKOFF_SLOT_SIZE = Duration.ofMillis(10);
     private static final int STANDARD_MAX_RETRIES = 13;
