@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Added a batched endpoint for getting commit timestamps with lock watch
+    state
+  links:
+  - https://github.com/palantir/atlasdb/pull/4616
