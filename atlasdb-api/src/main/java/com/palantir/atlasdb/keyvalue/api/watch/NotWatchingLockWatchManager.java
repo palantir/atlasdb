@@ -20,18 +20,22 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.client.CommitUpdate;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
-public final class NoOpLockWatchManager implements LockWatchManager {
-    public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
+public final class NotWatchingLockWatchManager implements LockWatchManager {
     public static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
             LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of()));
 
-    private NoOpLockWatchManager() {
-        // ...
+    private final TimelockService timelock;
+
+    public NotWatchingLockWatchManager(TimelockService timelock) {
+        this.timelock = timelock;
     }
 
     @Override
@@ -42,5 +46,10 @@ public final class NoOpLockWatchManager implements LockWatchManager {
     @Override
     public TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version) {
         return NONE;
+    }
+
+    @Override
+    public CommitUpdate getCommitUpdate(long startTimestamp, LockToken commitLockToken) {
+        return CommitUpdate.invalidateWatches(timelock.getFreshTimestamp());
     }
 }

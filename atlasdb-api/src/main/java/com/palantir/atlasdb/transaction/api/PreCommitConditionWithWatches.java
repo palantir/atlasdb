@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.lock.client.CommitUpdate;
+
 @FunctionalInterface
 public interface PreCommitConditionWithWatches {
     /**
@@ -23,7 +25,7 @@ public interface PreCommitConditionWithWatches {
      *
      * Otherwise, throws a {@link TransactionFailedException} and the transaction will not be committed.
      */
-    void throwIfConditionInvalid(TimestampWithLockInfo commitTimestampWithLockWatchInfo);
+    void throwIfConditionInvalid(CommitUpdate commitTimestampWithLockWatchInfo);
 
     /**
      * Cleans up any state managed by this condition, e.g. a lock that should be held for the lifetime of the
@@ -37,8 +39,8 @@ public interface PreCommitConditionWithWatches {
     static PreCommitConditionWithWatches fromPrecommitCondition(PreCommitCondition preCommitCondition) {
         return new PreCommitConditionWithWatches() {
             @Override
-            public void throwIfConditionInvalid(TimestampWithLockInfo commitTimestampWithLockWatchInfo) {
-                preCommitCondition.throwIfConditionInvalid(commitTimestampWithLockWatchInfo.timestamp());
+            public void throwIfConditionInvalid(CommitUpdate commitUpdate) {
+                preCommitCondition.throwIfConditionInvalid(commitUpdate.commitTs());
             }
 
             @Override

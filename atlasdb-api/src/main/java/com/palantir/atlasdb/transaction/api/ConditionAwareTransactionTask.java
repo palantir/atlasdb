@@ -15,6 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-public interface ConditionAwareTransactionTask<T, C extends PreCommitCondition, E extends Exception> {
+public interface ConditionAwareTransactionTask<T, C extends PreCommitConditionWithWatches, E extends Exception> {
     T execute(Transaction transaction, C condition) throws E;
 }

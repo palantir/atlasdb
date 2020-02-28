@@ -49,7 +49,7 @@ import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
+import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
