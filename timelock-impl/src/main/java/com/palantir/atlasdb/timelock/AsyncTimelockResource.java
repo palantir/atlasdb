@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -29,6 +30,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.debug.LockDiagnosticInfo;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
@@ -55,11 +59,15 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tracing.DeferredTracer;
 
 @Path("/timelock")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class AsyncTimelockResource {
+
+    private static final Logger log = LoggerFactory.getLogger(AsyncTimelockResource.class);
+
     private final LockLog lockLog;
     private final AsyncTimelockService timelock;
 
@@ -140,6 +148,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
+        addTimeout("lock", response);
         AsyncResult<Leased<LockToken>> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -156,6 +165,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock-v2")
     public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
+        addTimeout("lock-v2", response);
         AsyncResult<Leased<LockToken>> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -172,6 +182,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
+        addTimeout("wait-for-locks", response);
         AsyncResult<Void> result = timelock.waitForLocks(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -224,5 +235,14 @@ public class AsyncTimelockResource {
     @Path("do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
     public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(Set<UUID> requestIds) {
         return lockLog.getAndLogLockDiagnosticInfo(requestIds);
+    }
+
+    private void addTimeout(String operation, AsyncResponse response) {
+        DeferredTracer deferredTracer = new DeferredTracer(operation);
+        response.setTimeout(5, TimeUnit.MINUTES);
+        response.setTimeoutHandler(asyncResponse -> deferredTracer.withTrace(() -> {
+            log.info("Request timeout");
+            return null;
+        }));
     }
 }
