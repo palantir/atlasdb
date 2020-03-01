@@ -16,6 +16,7 @@
 package com.palantir.timelock.config;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -39,6 +40,9 @@ public interface TimeLockInstallConfiguration {
 
     ClusterConfiguration cluster();
 
+    @JsonProperty("dedicated-paxos-config")
+    Optional<DedicatedPaxosConfiguration> dedicatedPaxosConfig();
+
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
      * @deprecated Remove this once PDS-95791 is resolved.
@@ -50,5 +54,22 @@ public interface TimeLockInstallConfiguration {
     @Value.Default
     default TsBoundPersisterConfiguration timestampBoundPersistence() {
         return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
+    }
+
+    @Value.Immutable
+    @JsonDeserialize(as = ImmutableDedicatedPaxosConfiguration.class)
+    @JsonSerialize(as = ImmutableDedicatedPaxosConfiguration.class)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    interface DedicatedPaxosConfiguration {
+
+        default boolean enabled() {
+            return false;
+        }
+
+        @JsonProperty("paxos-port")
+        int paxosPort();
+
+
+        ClusterConfiguration cluster();
     }
 }

@@ -261,12 +261,12 @@ public final class PaxosResourcesFactory {
 
         @Value.Derived
         default Set<String> clusterAddresses() {
-            return PaxosRemotingUtils.getClusterAddresses(install());
+            return PaxosRemotingUtils.getClusterAddresses(install(), true);
         }
 
         @Value.Derived
         default Set<String> remoteUris() {
-            return PaxosRemotingUtils.getRemoteServerPaths(install());
+            return PaxosRemotingUtils.getRemoteServerPaths(install(), true);
         }
 
         @Value.Derived
@@ -277,7 +277,7 @@ public final class PaxosResourcesFactory {
         @Value.Derived
         default Optional<TrustContext> trustContext() {
             return PaxosRemotingUtils
-                    .getSslConfigurationOptional(install())
+                    .getSslConfigurationOptional(install(), true)
                     .map(SslSocketFactories::createTrustContext);
         }
 

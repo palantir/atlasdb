@@ -40,35 +40,78 @@ public final class PaxosRemotingUtils {
         return elements.size() / 2 + 1;
     }
 
-    public static Set<String> getRemoteServerPaths(TimeLockInstallConfiguration install) {
-        return addProtocols(install, getRemoteServerAddresses(install));
+    public static Set<String> getRemoteServerPaths(
+            TimeLockInstallConfiguration install) {
+        return getRemoteServerPaths(install, false);
+    }
+
+    public static Set<String> getRemoteServerPaths(
+            TimeLockInstallConfiguration install, boolean useDedicatedIfAvailable) {
+        return addProtocols(install, getRemoteServerAddresses(install, useDedicatedIfAvailable), useDedicatedIfAvailable);
     }
 
     public static ImmutableSet<String> getClusterAddresses(TimeLockInstallConfiguration install) {
-        return ImmutableSet.copyOf(getClusterConfiguration(install).clusterMembers());
+        return getClusterAddresses(install, false);
+    }
+
+    public static ImmutableSet<String> getClusterAddresses(
+            TimeLockInstallConfiguration install,
+            boolean useDedicatedIfAvailable) {
+        return ImmutableSet.copyOf(getClusterConfiguration(install, useDedicatedIfAvailable).clusterMembers());
     }
 
     public static Set<String> getRemoteServerAddresses(TimeLockInstallConfiguration install) {
-        return Sets.difference(getClusterAddresses(install),
-                ImmutableSet.of(install.cluster().localServer()));
+        return getRemoteServerAddresses(install, false);
+    }
+
+    public static Set<String> getRemoteServerAddresses(
+            TimeLockInstallConfiguration install,
+            boolean useDedicatedIfAvailable) {
+        return Sets.difference(getClusterAddresses(install, useDedicatedIfAvailable),
+                ImmutableSet.of(getClusterConfiguration(install, useDedicatedIfAvailable).localServer()));
     }
 
     public static ClusterConfiguration getClusterConfiguration(TimeLockInstallConfiguration install) {
-        return install.cluster();
+        return getClusterConfiguration(install, false);
+    }
+
+    public static ClusterConfiguration getClusterConfiguration(
+            TimeLockInstallConfiguration install,
+            boolean useDedicatedIfAvailable) {
+        return install.dedicatedPaxosConfig()
+                .filter(dedicatedConfig -> useDedicatedIfAvailable && dedicatedConfig.enabled())
+                .map(TimeLockInstallConfiguration.DedicatedPaxosConfiguration::cluster)
+                .orElse(install.cluster());
     }
 
     public static Optional<SslConfiguration> getSslConfigurationOptional(TimeLockInstallConfiguration install) {
-        return getClusterConfiguration(install).cluster().security();
+        return getSslConfigurationOptional(install, false);
+    }
+
+    public static Optional<SslConfiguration> getSslConfigurationOptional(
+            TimeLockInstallConfiguration install, boolean useDedicatedIfAvailable) {
+        return getClusterConfiguration(install, useDedicatedIfAvailable).cluster().security();
     }
 
     public static String addProtocol(TimeLockInstallConfiguration install, String address) {
-        String protocolPrefix = getSslConfigurationOptional(install).isPresent() ? "https://" : "http://";
+        return addProtocol(install, address, false);
+    }
+
+    public static String addProtocol(TimeLockInstallConfiguration install,
+            String address, boolean useDedicatedIfAvailable) {
+        String protocolPrefix = getSslConfigurationOptional(install, useDedicatedIfAvailable)
+                .isPresent() ? "https://" : "http://";
         return protocolPrefix + address;
     }
 
     public static Set<String> addProtocols(TimeLockInstallConfiguration install, Set<String> addresses) {
+        return addProtocols(install, addresses, false);
+    }
+
+    public static Set<String> addProtocols(
+            TimeLockInstallConfiguration install, Set<String> addresses, boolean useDedicatedIfAvailable) {
         return addresses.stream()
-                .map(address -> addProtocol(install, address))
+                .map(address -> addProtocol(install, address, useDedicatedIfAvailable))
                 .collect(Collectors.toSet());
     }
 
