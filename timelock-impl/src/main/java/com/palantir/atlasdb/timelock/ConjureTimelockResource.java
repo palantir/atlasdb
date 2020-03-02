@@ -28,6 +28,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
@@ -42,6 +44,7 @@ import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV5;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
@@ -87,6 +90,15 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     @Override
+    public ListenableFuture<ConjureGetFreshTimestampsResponse> getFreshTimestamps(
+            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
+        return handleExceptions(() -> {
+            TimestampRange range = forNamespace(namespace).getFreshTimestamps(request.getNumTimestamps());
+            return ConjureGetFreshTimestampsResponse.of(range.getLowerBound(), range.getUpperBound());
+        });
+    }
+
+    @Override
     public ListenableFuture<LeaderTime> leaderTime(AuthHeader authHeader, String namespace) {
         return handleExceptions(() -> forNamespace(namespace).leaderTime());
     }
@@ -128,6 +140,14 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                 String namespace,
                 ConjureStartTransactionsRequest request) {
             return unwrap(resource.startTransactions(authHeader, namespace, request));
+        }
+
+        @Override
+        public ConjureGetFreshTimestampsResponse getFreshTimestamps(
+                AuthHeader authHeader,
+                String namespace,
+                ConjureGetFreshTimestampsRequest request) {
+            return unwrap(resource.getFreshTimestamps(authHeader, namespace, request));
         }
 
         @Override
