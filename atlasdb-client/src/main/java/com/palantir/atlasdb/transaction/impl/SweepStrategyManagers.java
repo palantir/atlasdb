@@ -38,13 +38,11 @@ public class SweepStrategyManagers {
         // On a cache miss, load metadata only for the relevant table. Helpful when many dynamic tables.
         LoadingCache<TableReference, SweepStrategy> cache = Caffeine.newBuilder()
                 .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
-        return tableRef -> {
-            // Add all existing tables the first time this is called, to optimize for cases when mostly non-dynamic tables.
-            if (cache.estimatedSize() == 0) {
-                cache.putAll(getSweepStrategies(kvs));
-            }
-            return cache.get(tableRef);
-        };
+
+        // Add all existing tables immediately, to optimize for cases when using mostly non-dynamic tables.
+        cache.putAll(getSweepStrategies(kvs));
+
+        return cache::get;
     }
 
     public static SweepStrategyManager createFromSchema(Schema schema) {
