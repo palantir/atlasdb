@@ -18,7 +18,6 @@ package com.palantir.atlasdb.autobatch;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -30,7 +29,6 @@ import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Observability;
-import com.palantir.tracing.Tracers;
 
 public final class Autobatchers {
 
@@ -117,16 +115,8 @@ public final class Autobatchers {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
-            EventHandler<BatchElement<I, O>> tracingHandler = (event, sequence, endOfBatch) -> {
-                if (endOfBatch) {
-                    Tracers.wrapWithNewTrace(purpose, observability, (Callable<Void>) () -> {
-                        handler.onEvent(event, sequence, true);
-                        return null;
-                    }).call();
-                } else {
-                    handler.onEvent(event, sequence, false);
-                }
-            };
+            EventHandler<BatchElement<I, O>> tracingHandler =
+                    new TracingEventHandler<>(handler, purpose, observability);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
