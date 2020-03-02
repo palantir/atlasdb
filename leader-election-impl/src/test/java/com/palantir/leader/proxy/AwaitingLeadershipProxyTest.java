@@ -61,7 +61,6 @@ public class AwaitingLeadershipProxyTest {
     private final LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
     private final Runnable mockRunnable = mock(Runnable.class);
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
-    private final LeaderElectionService mockLeader = mock(LeaderElectionService.class);
 
     @Rule public final ExpectedException expect = ExpectedException.none();
 
@@ -78,11 +77,8 @@ public class AwaitingLeadershipProxyTest {
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
-        when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
-        when(mockLeader.isStillLeading(any(LeadershipToken.class)))
-                .thenReturn(Futures.immediateFuture(StillLeadingStatus.LEADING));
-
-        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                Runnable.class, delegateSupplier, leaderElectionService);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -146,11 +142,11 @@ public class AwaitingLeadershipProxyTest {
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenNotLeading() {
-        when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
-        when(mockLeader.isStillLeading(any(LeadershipToken.class)))
+        when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
 
-        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                Runnable.class, delegateSupplier, leaderElectionService);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
