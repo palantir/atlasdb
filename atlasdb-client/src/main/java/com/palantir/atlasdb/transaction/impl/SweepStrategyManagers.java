@@ -36,15 +36,21 @@ public class SweepStrategyManagers {
     }
 
     public static SweepStrategyManager createDefault(KeyValueService kvs) {
-        // On a cache miss, load metadata only for the relevant table. Helpful when many dynamic tables.
-        LoadingCache<TableReference, SweepStrategy> cache = Caffeine.newBuilder()
-                .expireAfterAccess(1, TimeUnit.DAYS)
-                .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
+        // Wrap in a RecomputingSupplier for its logic to protect against concurrent initialization
+        RecomputingSupplier<LoadingCache<TableReference, SweepStrategy>> sweepStrategySupplierLoadingCache =
+                RecomputingSupplier.create(() -> {
+                    // On a cache miss, load metadata only for the relevant table. Helpful when many dynamic tables.
+                    LoadingCache<TableReference, SweepStrategy> cache = Caffeine.newBuilder()
+                            .expireAfterAccess(1, TimeUnit.DAYS)
+                            .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
 
-        // Add all existing tables immediately, to optimize for cases when using mostly non-dynamic tables.
-        cache.putAll(getSweepStrategies(kvs));
+                    // On async initialization, add all tables to optimize for cases when using mostly non-dynamic tables.
+                    cache.putAll(getSweepStrategies(kvs));
 
-        return cache::get;
+                    return cache;
+                });
+
+        return tableRef -> sweepStrategySupplierLoadingCache.get().get(tableRef);
     }
 
     public static SweepStrategyManager createFromSchema(Schema schema) {

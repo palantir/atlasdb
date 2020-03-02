@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: SweepStrategyManagers uses RecomputingSupplier again to initialize
+    async while still ensuring that only one thread loads metadata for all tables
+    at once.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4626
