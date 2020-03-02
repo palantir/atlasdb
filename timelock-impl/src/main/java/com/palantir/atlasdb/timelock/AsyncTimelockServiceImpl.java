@@ -188,6 +188,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
+    public ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest) {
+        return Futures.immediateFuture(getFreshTimestamps(timestampsToRequest));
+    }
+
+    @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
     }
