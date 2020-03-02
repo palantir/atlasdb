@@ -27,7 +27,7 @@ final class TracingEventHandler<I, O> implements EventHandler<BatchElement<I, O>
     private final String purpose;
     private final Observability observability;
 
-    public TracingEventHandler(
+    TracingEventHandler(
             EventHandler<BatchElement<I, O>> delegate,
             String purpose,
             Observability observability) {
