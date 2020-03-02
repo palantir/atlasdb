@@ -18,16 +18,15 @@ package com.palantir.atlasdb.timelock;
 
 import java.time.Duration;
 import java.util.OptionalLong;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -83,12 +82,14 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestorId(request.getRequestorId())
                     .numTransactions(request.getNumTransactions())
                     .build();
-            StartTransactionResponseV5 response = forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
-            return ConjureStartTransactionsResponse.builder()
-                    .immutableTimestamp(response.immutableTimestamp())
-                    .timestamps(response.timestamps())
-                    .lease(response.lease())
-                    .build();
+            ListenableFuture<StartTransactionResponseV5> responseFuture =
+                    forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
+            return Futures.transform(responseFuture, response -> ConjureStartTransactionsResponse.builder()
+                            .immutableTimestamp(response.immutableTimestamp())
+                            .timestamps(response.timestamps())
+                            .lease(response.lease())
+                            .build(),
+                    MoreExecutors.directExecutor());
         });
     }
 
@@ -96,8 +97,12 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     public ListenableFuture<ConjureGetFreshTimestampsResponse> getFreshTimestamps(
             AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
         return handleExceptions(() -> {
-            TimestampRange range = forNamespace(namespace).getFreshTimestamps(request.getNumTimestamps());
-            return ConjureGetFreshTimestampsResponse.of(range.getLowerBound(), range.getUpperBound());
+            ListenableFuture<TimestampRange> rangeFuture = forNamespace(namespace)
+                    .getFreshTimestampsAsync(request.getNumTimestamps());
+            return Futures.transform(
+                    rangeFuture,
+                    range -> ConjureGetFreshTimestampsResponse.of(range.getLowerBound(), range.getUpperBound()),
+                    MoreExecutors.directExecutor());
         });
     }
 
@@ -118,9 +123,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         return timelockServices.apply(namespace);
     }
 
-    private <T> ListenableFuture<T> handleExceptions(Supplier<T> supplier) {
-        return handleExceptions(Futures.submitAsync(
-                () -> Futures.immediateFuture(supplier.get()), MoreExecutors.directExecutor()));
+    private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
+        return handleExceptions(Futures.submitAsync(supplier::get, MoreExecutors.directExecutor()));
     }
 
     private <T> ListenableFuture<T> handleExceptions(ListenableFuture<T> future) {
@@ -173,14 +177,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
-            try {
-                return future.get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.propagate(e.getCause());
-            }
+            return AtlasFutures.getUnchecked(future);
         }
     }
 }

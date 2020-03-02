@@ -20,8 +20,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 
 /**
@@ -31,6 +34,8 @@ import com.google.common.util.concurrent.SettableFuture;
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
     private final Supplier<T> delegate;
+    private static final ListeningExecutorService executor =
+            MoreExecutors.listeningDecorator(PTExecutors.newCachedThreadPool());
 
     private volatile Round round = new Round();
 
@@ -52,6 +57,23 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         return next.getResult();
     }
 
+    @SuppressWarnings("CheckReturnValue")
+    public ListenableFuture<T> getAsync() {
+        Round present = round;
+        if (present.isFirstToArrive()) {
+            return Futures.submitAsync(() -> {
+                present.execute();
+                return present.getResultAsync();
+            }, executor);
+        }
+        return Futures.transformAsync(present.done(), next -> {
+            if (next.isFirstToArrive()) {
+                executor.submit(next::execute);
+            }
+            return next.getResultAsync();
+        }, MoreExecutors.directExecutor());
+    }
+
     private final class Round {
         private final AtomicBoolean hasStarted = new AtomicBoolean(false);
         private final SettableFuture<T> future = SettableFuture.create();
@@ -60,6 +82,12 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         boolean isFirstToArrive() {
             // adding the get benchmarks as faster, expected because compareAndSet forces an exclusive cache line
             return !hasStarted.get() && hasStarted.compareAndSet(false, true);
+        }
+
+        ListenableFuture<Round> done() {
+            return FluentFuture.from(future)
+                    .catching(Throwable.class, thrown -> null, MoreExecutors.directExecutor())
+                    .transform(x -> next, MoreExecutors.directExecutor());
         }
 
         Round awaitDone() {
@@ -88,6 +116,10 @@ public class CoalescingSupplier<T> implements Supplier<T> {
             } catch (Throwable t) {
                 return Futures.immediateFailedFuture(t);
             }
+        }
+
+        ListenableFuture<T> getResultAsync() {
+            return future;
         }
 
         T getResult() {

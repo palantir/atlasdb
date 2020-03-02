@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -61,7 +62,7 @@ public class BatchingLeaderElectionService implements LeaderElectionService, Clo
     }
 
     @Override
-    public StillLeadingStatus isStillLeading(LeadershipToken token) {
+    public ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken token) {
         return delegate.isStillLeading(token);
     }
 
