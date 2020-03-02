@@ -91,7 +91,7 @@ public class AwaitingLeadershipProxyBenchmark {
 
         @Override
         public ListenableFuture<?> somethingAsync() {
-            return Futures.immediateFuture(null);
+            return Futures.immediateFuture(somethingBlocking());
         }
     }
 
