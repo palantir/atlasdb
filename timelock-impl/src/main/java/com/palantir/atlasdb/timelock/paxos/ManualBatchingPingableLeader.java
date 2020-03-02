@@ -82,7 +82,7 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
     public Future<LeaderPingResult> ping(UUID requestedUuid, Client client) {
         // register client with the batcher to check whether or not the remote client is the leader or not
         // since there is a case where we'll miss the window, we must wait until the client has been registered and
-        // been included in an existing batch
+        // been included in an existing batch before reading from the in memory state
         // wait up to leaderPingResponseRate each time until it has been included and requested in a batch
         Instant requestTime = Instant.now();
 
@@ -130,7 +130,7 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
 
             Duration pingDuration = Duration.between(before, after);
             if (pingDuration.compareTo(leaderPingResponseWait) >= 0) {
-                log.info("Ping took more than ping response wait, any waiters will report that ping timing out {}",
+                log.info("Ping took more than ping response wait, any waiters will report that ping timed out",
                         SafeArg.of("pingDuration", pingDuration),
                         SafeArg.of("leaderPingResponseWait", leaderPingResponseWait));
             }
