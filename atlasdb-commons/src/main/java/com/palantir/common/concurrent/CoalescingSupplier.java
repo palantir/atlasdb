@@ -45,14 +45,16 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     @Override
     public T get() {
-        try {
-            return getAsync().get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            throw Throwables.propagate(e.getCause());
+        Round present = round;
+        if (present.isFirstToArrive()) {
+            present.execute();
+            return present.getResult();
         }
+        Round next = present.awaitDone();
+        if (next.isFirstToArrive()) {
+            next.execute();
+        }
+        return next.getResult();
     }
 
     @SuppressWarnings("CheckReturnValue")
@@ -61,14 +63,14 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         if (present.isFirstToArrive()) {
             return Futures.submitAsync(() -> {
                 present.execute();
-                return present.getResult();
+                return present.getResultAsync();
             }, executor);
         }
         return Futures.transformAsync(present.done(), next -> {
             if (next.isFirstToArrive()) {
                 executor.submit(next::execute);
             }
-            return next.getResult();
+            return next.getResultAsync();
         }, MoreExecutors.directExecutor());
     }
 
@@ -116,8 +118,19 @@ public class CoalescingSupplier<T> implements Supplier<T> {
             }
         }
 
-        ListenableFuture<T> getResult() {
+        ListenableFuture<T> getResultAsync() {
             return future;
+        }
+
+        T getResult() {
+            try {
+                return future.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw Throwables.propagate(e.getCause());
+            }
         }
     }
 }

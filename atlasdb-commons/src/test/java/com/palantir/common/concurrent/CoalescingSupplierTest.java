@@ -35,25 +35,57 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+@RunWith(Parameterized.class)
 public class CoalescingSupplierTest {
     private static final int DEFAULT_VALUE = 123;
 
     private final Supplier<Integer> delegate = mock(Supplier.class);
     private final FreezableSupplier freezableDelegate = new FreezableSupplier(delegate);
-    private final CoalescingSupplier<Integer> supplier = new CoalescingSupplier<>(freezableDelegate);
+    private final CoalescingSupplier<Integer> coalescing = new CoalescingSupplier<>(freezableDelegate);
+
+    private final Supplier<Integer> supplier;
+
+    public CoalescingSupplierTest(String name, Object parameter) {
+        Function<CoalescingSupplierTest, Integer> factory = (Function) parameter;
+        supplier = () -> factory.apply(this);
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Object[] getParameters() {
+        return new Object[][] {
+                {"blocking", (Function<CoalescingSupplierTest, Integer>) test -> test.coalescing.get() },
+                {"async", (Function<CoalescingSupplierTest, Integer>) test -> unwrap(test.coalescing.getAsync()) }
+        };
+    }
+
+    private static <T> T unwrap(ListenableFuture<T> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            Throwables.throwIfUnchecked(e.getCause());
+            throw new RuntimeException(e);
+        }
+    }
 
     @Before
     public void before() {
