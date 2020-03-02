@@ -49,11 +49,11 @@ final class AsyncRetrier<T> {
         this.predicate = predicate;
     }
 
-    public ListenableFuture<T> retryUntilSatistfied(Supplier<ListenableFuture<T>> supplier) {
-        return retryUntilSatistfied(supplier, maxAttempts);
+    public ListenableFuture<T> execute(Supplier<ListenableFuture<T>> supplier) {
+        return execute(supplier, maxAttempts);
     }
 
-    private ListenableFuture<T> retryUntilSatistfied(Supplier<ListenableFuture<T>> supplier, int retriesRemaining) {
+    private ListenableFuture<T> execute(Supplier<ListenableFuture<T>> supplier, int retriesRemaining) {
         return Futures.transformAsync(Futures.submitAsync(supplier::get, executionExecutor),
                 result -> {
                     int newRetriesRemaining = retriesRemaining - 1;
@@ -63,7 +63,7 @@ final class AsyncRetrier<T> {
                         return Futures.transformAsync(
                                 schedulingExecutor.schedule(
                                         () -> { }, delayBetweenAttempts.toMillis(), TimeUnit.MILLISECONDS),
-                                $ -> retryUntilSatistfied(supplier, newRetriesRemaining),
+                                $ -> execute(supplier, newRetriesRemaining),
                                 executionExecutor);
                     }
                 }, executionExecutor);

@@ -79,14 +79,14 @@ public class AsyncRetrierTest {
         replaceableFunction = () -> {
             throw exception;
         };
-        ListenableFuture<Integer> hopefullyFailedFuture = retrier.retryUntilSatistfied(function);
+        ListenableFuture<Integer> hopefullyFailedFuture = retrier.execute(function);
         scheduler.runUntilIdle();
         assertThatThrownBy(() -> Futures.getDone(hopefullyFailedFuture)).hasCause(exception);
     }
 
     @Test
     public void returnsImmediatelyIfPredicatePasses() throws ExecutionException {
-        ListenableFuture<Integer> result = retrier.retryUntilSatistfied(function);
+        ListenableFuture<Integer> result = retrier.execute(function);
         future.set(0);
         scheduler.runUntilIdle();
         assertThat(Futures.getDone(result)).isZero();
@@ -94,7 +94,7 @@ public class AsyncRetrierTest {
 
     @Test
     public void retriesIfPredicateFails() throws ExecutionException {
-        ListenableFuture<Integer> result = retrier.retryUntilSatistfied(function);
+        ListenableFuture<Integer> result = retrier.execute(function);
         future.set(-1);
         scheduler.runUntilIdle();
         verify(function, times(1)).get();
@@ -114,7 +114,7 @@ public class AsyncRetrierTest {
 
     @Test
     public void doesNotRetryIndefinitely() throws ExecutionException {
-        ListenableFuture<Integer> result = retrier.retryUntilSatistfied(function);
+        ListenableFuture<Integer> result = retrier.execute(function);
         future.set(-1);
         tick(RETRY_PERIOD.multipliedBy(MAX_ATTEMPTS));
         assertThat(Futures.getDone(result)).isEqualTo(-1);
