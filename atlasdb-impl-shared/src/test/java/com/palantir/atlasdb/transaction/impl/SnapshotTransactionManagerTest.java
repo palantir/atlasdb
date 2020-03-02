@@ -74,7 +74,7 @@ public class SnapshotTransactionManagerTest {
             keyValueService,
             new LegacyTimelockService(timestampService, closeableLockService,
                     LockClient.of("lock")),
-            timestampService,
+            lockWatchManager, timestampService,
             closeableLockService,
             mock(TransactionService.class),
             () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
@@ -122,7 +122,7 @@ public class SnapshotTransactionManagerTest {
                 keyValueService,
                 new LegacyTimelockService(ts, closeableLockService,
                         LockClient.of("lock")),
-                ts,
+                lockWatchManager, ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
                 null,
@@ -213,7 +213,7 @@ public class SnapshotTransactionManagerTest {
                 metricsManager,
                 keyValueService,
                 timelockService,
-                timestampService,
+                lockWatchManager, timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
                 () -> null,

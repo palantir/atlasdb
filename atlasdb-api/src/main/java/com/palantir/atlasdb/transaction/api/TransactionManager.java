@@ -303,11 +303,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     TimelockService getTimelockService();
 
-    // todo(gmaretic): implement
-    @DoNotDelegate
-    default LockWatchManager getLockWatchManager() {
-        return NotWatchingLockWatchManager.INSTANCE;
-    }
+    LockWatchManager getLockWatchManager();
 
     /**
      * Returns the timestamp service used by this transaction manager.
