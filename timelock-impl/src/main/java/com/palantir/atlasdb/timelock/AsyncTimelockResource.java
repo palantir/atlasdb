@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 
@@ -56,7 +55,6 @@ import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
@@ -88,12 +86,6 @@ public class AsyncTimelockResource {
             @Suspended final AsyncResponse response,
             @Safe @QueryParam("number") int numTimestampsRequested) {
         addJerseyCallback(timelock.getFreshTimestampsAsync(numTimestampsRequested), response);
-    }
-
-    @POST
-    @Path("commit-timestamp")
-    public TimestampWithWatches getCommitTimestampWithWatches(@Safe @QueryParam("lastKnown") OptionalLong lastVersion) {
-        return timelock.getCommitTimestampWithWatches(lastVersion);
     }
 
     @POST

@@ -16,7 +16,6 @@
 
 package com.palantir.lock.v2;
 
-import java.util.OptionalLong;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
@@ -28,7 +27,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
@@ -54,11 +52,6 @@ public interface TimelockRpcClient {
     @Path("fresh-timestamps")
     TimestampRange getFreshTimestamps(
             @PathParam("namespace") String namespace, @Safe @QueryParam("number") int numTimestampsRequested);
-
-    @POST
-    @Path("commit-timestamp")
-    TimestampWithWatches getCommitTimestampWithWatches(
-            @PathParam("namespace") String namespace, @Safe @QueryParam("lastKnown") OptionalLong lastVersion);
 
     @POST
     @Path("lock-immutable-timestamp")

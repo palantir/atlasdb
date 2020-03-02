@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
-import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.lock.client.IdentifiedLockRequest;
@@ -28,7 +27,6 @@ import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.TimestampRange;
 
 /**
@@ -54,11 +52,6 @@ public class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
     @Override
     public TimestampRange getFreshTimestamps(String namespace, int numTimestampsRequested) {
         return nonBlockingClient.getFreshTimestamps(namespace, numTimestampsRequested);
-    }
-
-    @Override
-    public TimestampWithWatches getCommitTimestampWithWatches(String namespace, OptionalLong lastVersion) {
-        return nonBlockingClient.getCommitTimestampWithWatches(namespace, lastVersion);
     }
 
     @Override
