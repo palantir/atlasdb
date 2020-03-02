@@ -20,6 +20,10 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.Lease
+    Long:
+      base-type: safelong
+      external:
+        java: java.lang.Long
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
@@ -33,6 +37,13 @@ types:
           immutableTimestamp: LockImmutableTimestampResponse
           timestamps: PartitionedTimestamps
           lease: Lease
+      ConjureGetFreshTimestampsRequest:
+        fields:
+          numTimestamps: integer
+      ConjureGetFreshTimestampsResponse:
+        fields:
+          inclusiveLower: Long
+          inclusiveUpper: Long
 
 services:
   ConjureTimelockService:
@@ -47,6 +58,12 @@ services:
           namespace: string
           request: ConjureStartTransactionsRequest
         returns: ConjureStartTransactionsResponse
+      getFreshTimestamps:
+        http: POST /ts/{namespace}
+        args:
+          namespace: string
+          request: ConjureGetFreshTimestampsRequest
+        returns: ConjureGetFreshTimestampsResponse
       leaderTime:
         http: POST /lt/{namespace}
         args:
