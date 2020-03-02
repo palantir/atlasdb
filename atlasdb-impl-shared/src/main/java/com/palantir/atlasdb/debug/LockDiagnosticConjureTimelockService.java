@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
@@ -47,6 +49,12 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
                 response.getImmutableTimestamp().getImmutableTimestamp(),
                 request.getRequestId());
         return response;
+    }
+
+    @Override
+    public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
+            ConjureGetFreshTimestampsRequest request) {
+        return conjureDelegate.getFreshTimestamps(authHeader, namespace, request);
     }
 
     @Override

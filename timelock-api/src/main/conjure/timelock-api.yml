@@ -43,6 +43,13 @@ types:
           timestamps: PartitionedTimestamps
           lease: Lease
           lockWatchUpdate: LockWatchStateUpdate
+      ConjureGetFreshTimestampsRequest:
+        fields:
+          numTimestamps: integer
+      ConjureGetFreshTimestampsResponse:
+        fields:
+          inclusiveLower: Long
+          inclusiveUpper: Long
 
 services:
   ConjureTimelockService:
@@ -57,6 +64,12 @@ services:
           namespace: string
           request: ConjureStartTransactionsRequest
         returns: ConjureStartTransactionsResponse
+      getFreshTimestamps:
+        http: POST /ts/{namespace}
+        args:
+          namespace: string
+          request: ConjureGetFreshTimestampsRequest
+        returns: ConjureGetFreshTimestampsResponse
       leaderTime:
         http: POST /lt/{namespace}
         args:
