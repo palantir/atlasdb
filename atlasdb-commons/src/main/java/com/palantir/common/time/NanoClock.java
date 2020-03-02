@@ -16,7 +16,7 @@
 
 package com.palantir.common.time;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.palantir.logsafe.Preconditions.checkState;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Supplier;
