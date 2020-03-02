@@ -18,9 +18,12 @@ package com.palantir.atlasdb.autobatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+
 import org.junit.Test;
 
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Metric;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -44,4 +47,18 @@ public class BatchSizeRecorderTest {
         assertThat(histogram.getSnapshot().getMean()).isEqualTo(7.5);
     }
 
+    @Test
+    public void tagsArePassedThrough() {
+        Map<String, String> customTags = ImmutableMap.<String, String>builder()
+                .put("tag1", "value1")
+                .put("tag2", "value2")
+                .build();
+        BatchSizeRecorder recorder = BatchSizeRecorder.create(SAFE_IDENTIFIER, customTags);
+
+        recorder.markBatchProcessed(5);
+
+        Map<MetricName, Metric> metrics = SharedTaggedMetricRegistries.getSingleton().getMetrics();
+        assertThat(metrics.keySet())
+                .anyMatch(metricName -> metricName.safeTags().entrySet().containsAll(customTags.entrySet()));
+    }
 }
