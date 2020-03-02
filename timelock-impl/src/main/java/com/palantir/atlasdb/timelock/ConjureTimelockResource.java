@@ -17,16 +17,15 @@
 package com.palantir.atlasdb.timelock;
 
 import java.time.Duration;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -137,14 +136,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
-            try {
-                return future.get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.propagate(e.getCause());
-            }
+            return AtlasFutures.getUnchecked(future);
         }
     }
 }

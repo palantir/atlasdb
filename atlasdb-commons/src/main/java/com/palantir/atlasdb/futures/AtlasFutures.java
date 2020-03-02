@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -87,7 +88,7 @@ public final class AtlasFutures {
         }
     }
 
-    public static <R> R getUnchecked(ListenableFuture<R> listenableFuture) {
+    public static <R> R getUnchecked(Future<R> listenableFuture) {
         try {
             return listenableFuture.get();
         } catch (ExecutionException e) {

@@ -45,12 +45,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.futures.AtlasFutures;
 
 @RunWith(Parameterized.class)
 public class CoalescingSupplierTest {
@@ -76,15 +76,7 @@ public class CoalescingSupplierTest {
     }
 
     private static <T> T unwrap(ListenableFuture<T> future) {
-        try {
-            return future.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            Throwables.throwIfUnchecked(e.getCause());
-            throw new RuntimeException(e);
-        }
+        return AtlasFutures.getUnchecked(future);
     }
 
     @Before

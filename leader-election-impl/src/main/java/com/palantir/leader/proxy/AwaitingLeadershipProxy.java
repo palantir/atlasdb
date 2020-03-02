@@ -22,9 +22,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -44,6 +42,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
@@ -234,7 +233,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 }, executionExecutor);
 
         if (!method.getReturnType().equals(ListenableFuture.class)) {
-            Object delegate = getFutureResultThrowingCause(delegateFuture);
+            Object delegate = AtlasFutures.getUnchecked(delegateFuture);
             try {
                 return method.invoke(delegate, args);
             } catch (InvocationTargetException e) {
@@ -264,18 +263,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
         Throwables.propagateIfPossible(exception.getTargetException(), Exception.class);
         throw new RuntimeException(exception.getTargetException());
-    }
-
-    private static <T> T getFutureResultThrowingCause(Future<T> future) {
-        try {
-            return future.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            Throwables.throwIfUnchecked(e.getCause());
-            throw new RuntimeException(e);
-        }
     }
 
     @VisibleForTesting
