@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -37,6 +38,7 @@ public class SweepStrategyManagers {
     public static SweepStrategyManager createDefault(KeyValueService kvs) {
         // On a cache miss, load metadata only for the relevant table. Helpful when many dynamic tables.
         LoadingCache<TableReference, SweepStrategy> cache = Caffeine.newBuilder()
+                .expireAfterAccess(1, TimeUnit.DAYS)
                 .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
 
         // Add all existing tables immediately, to optimize for cases when using mostly non-dynamic tables.
