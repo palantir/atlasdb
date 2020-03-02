@@ -68,11 +68,10 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
         this.leaderPingResponseWait = leaderPingResponseWait;
         this.nodeUuid = nodeUuid;
 
-        // TODO(fdesouza): for comparison whilst testing
+        // for comparison to the previous autobatching version, can easily remove later
         MetricName metricName = MetricName.builder()
                 .safeName("atlasdb.autobatcherMeter")
                 .putSafeTags("identifier", "batch-pingable-leader.ping")
-                .putSafeTags("uuid", nodeUuid.toString())
                 .putSafeTags("remoteHostAndPort", remoteClient.hostAndPort().toString())
                 .build();
         this.histogram = SharedTaggedMetricRegistries.getSingleton().histogram(metricName);
