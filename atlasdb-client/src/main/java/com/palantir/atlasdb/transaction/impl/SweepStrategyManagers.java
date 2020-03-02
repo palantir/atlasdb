@@ -43,8 +43,7 @@ public class SweepStrategyManagers {
             if (cache.estimatedSize() == 0) {
                 cache.putAll(getSweepStrategies(kvs));
             }
-            SweepStrategy strategy = cache.get(tableRef);
-            return Preconditions.checkNotNull(strategy, "unknown table", SafeArg.of("tableRef", tableRef));
+            return cache.get(tableRef);
         };
     }
 
