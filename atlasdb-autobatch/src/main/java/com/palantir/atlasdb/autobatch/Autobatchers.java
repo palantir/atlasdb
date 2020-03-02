@@ -18,6 +18,7 @@ package com.palantir.atlasdb.autobatch;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -28,6 +29,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.tracing.Observability;
+import com.palantir.tracing.Tracers;
 
 public final class Autobatchers {
 
@@ -86,9 +89,10 @@ public final class Autobatchers {
     public static final class AutobatcherBuilder<I, O> {
 
         private final Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory;
-
-        @Nullable private String purpose;
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
+
+        private Observability observability = Observability.UNDECIDED;
+        @Nullable private String purpose;
 
         private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory) {
             this.handlerFactory = handlerFactory;
@@ -104,12 +108,28 @@ public final class Autobatchers {
             return this;
         }
 
+        public AutobatcherBuilder<I, O> observability(Observability observabilityParam) {
+            this.observability = observabilityParam;
+            return this;
+        }
+
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
+            EventHandler<BatchElement<I, O>> tracingHandler = (event, sequence, endOfBatch) -> {
+                if (endOfBatch) {
+                    Tracers.wrapWithNewTrace(purpose, observability, (Callable<Void>) () -> {
+                        handler.onEvent(event, sequence, true);
+                        return null;
+                    }).call();
+                } else {
+                    handler.onEvent(event, sequence, false);
+                }
+            };
+
             EventHandler<BatchElement<I, O>> profiledHandler =
-                    new ProfilingEventHandler<>(handler, purpose, safeTags.build());
+                    new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
 
             return DisruptorAutobatcher.create(profiledHandler, DEFAULT_BUFFER_SIZE, purpose);
         }
