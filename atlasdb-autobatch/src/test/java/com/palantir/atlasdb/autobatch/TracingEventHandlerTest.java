@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.autobatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 
 import java.util.List;
 
@@ -42,17 +43,20 @@ public class TracingEventHandlerTest {
 
     @Mock
     private EventHandler<BatchElement<Integer, Long>> delegate;
+    private static final TestBatchElement ELEMENT = new TestBatchElement();
 
     @Test
     public void nonFlushesDoNotHaveTraces() throws Exception {
         TracingEventHandler<Integer, Long> tracingHandler =
                 new TracingEventHandler<>(delegate, "test", Observability.SAMPLE);
 
-        tracingHandler.onEvent(new TestBatchElement(), 45, false);
+        tracingHandler.onEvent(ELEMENT, 45, false);
 
         assertThat(traceRule.spansObserved())
                 .as("no spans should be emitted")
                 .isEmpty();
+
+        verify(delegate).onEvent(ELEMENT, 45, false);
     }
 
     @Test
@@ -60,11 +64,13 @@ public class TracingEventHandlerTest {
         TracingEventHandler<Integer, Long> tracingHandler =
                 new TracingEventHandler<>(delegate, "test", Observability.SAMPLE);
 
-        tracingHandler.onEvent(new TestBatchElement(), 45, true);
+        tracingHandler.onEvent(ELEMENT, 45, true);
 
         assertThat(traceRule.spansObserved())
                 .as("a flush should emit a span")
                 .hasSize(1);
+
+        verify(delegate).onEvent(ELEMENT, 45, true);
     }
 
     @Test
@@ -72,11 +78,14 @@ public class TracingEventHandlerTest {
         TracingEventHandler<Integer, Long> tracingHandler =
                 new TracingEventHandler<>(delegate, "test", Observability.SAMPLE);
 
-        tracingHandler.onEvent(new TestBatchElement(), 45, true);
-        tracingHandler.onEvent(new TestBatchElement(), 47, true);
+        tracingHandler.onEvent(ELEMENT, 45, true);
+        tracingHandler.onEvent(ELEMENT, 47, true);
         assertThat(traceRule.spansObserved())
                 .as("a flush should emit a span")
                 .hasSize(2);
+
+        verify(delegate).onEvent(ELEMENT, 45, true);
+        verify(delegate).onEvent(ELEMENT, 47, true);
     }
 
     private static class TraceCapturingRule extends ExternalResource {
