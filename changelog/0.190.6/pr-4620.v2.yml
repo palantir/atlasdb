@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Refactor out an AsyncRetrier to allow for better testing
+  links:
+  - https://github.com/palantir/atlasdb/pull/4620

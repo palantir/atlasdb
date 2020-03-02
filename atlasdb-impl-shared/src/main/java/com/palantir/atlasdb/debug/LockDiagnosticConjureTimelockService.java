@@ -16,12 +16,14 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.lock.watch.CommitTimestampsWithWatches;
 import com.palantir.tokens.auth.AuthHeader;
 
 /**
@@ -52,12 +54,18 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
+    public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
+            ConjureGetFreshTimestampsRequest request) {
+        return conjureDelegate.getFreshTimestamps(authHeader, namespace, request);
+    }
+
+    @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
         return conjureDelegate.leaderTime(authHeader, namespace);
     }
 
     @Override
-    public CommitTimestampsWithWatches getCommitTimestamps(AuthHeader authHeader, String namespace,
+    public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
             GetCommitTimestampsRequest request) {
         return conjureDelegate.getCommitTimestamps(authHeader, namespace, request);
     }

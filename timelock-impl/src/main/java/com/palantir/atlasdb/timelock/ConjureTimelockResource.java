@@ -29,11 +29,14 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
@@ -44,7 +47,7 @@ import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV5;
-import com.palantir.lock.watch.CommitTimestampsWithWatches;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
@@ -90,12 +93,21 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     @Override
+    public ListenableFuture<ConjureGetFreshTimestampsResponse> getFreshTimestamps(
+            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
+        return handleExceptions(() -> {
+            TimestampRange range = forNamespace(namespace).getFreshTimestamps(request.getNumTimestamps());
+            return ConjureGetFreshTimestampsResponse.of(range.getLowerBound(), range.getUpperBound());
+        });
+    }
+
+    @Override
     public ListenableFuture<LeaderTime> leaderTime(AuthHeader authHeader, String namespace) {
         return handleExceptions(() -> forNamespace(namespace).leaderTime());
     }
 
     @Override
-    public ListenableFuture<CommitTimestampsWithWatches> getCommitTimestamps(AuthHeader authHeader, String namespace,
+    public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(AuthHeader authHeader, String namespace,
             GetCommitTimestampsRequest request) {
         return handleExceptions(() -> forNamespace(namespace).getCommitTimestamps(
                 request.getNumTimestamps(),
@@ -142,12 +154,20 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
 
         @Override
+        public ConjureGetFreshTimestampsResponse getFreshTimestamps(
+                AuthHeader authHeader,
+                String namespace,
+                ConjureGetFreshTimestampsRequest request) {
+            return unwrap(resource.getFreshTimestamps(authHeader, namespace, request));
+        }
+
+        @Override
         public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
             return unwrap(resource.leaderTime(authHeader, namespace));
         }
 
         @Override
-        public CommitTimestampsWithWatches getCommitTimestamps(AuthHeader authHeader, String namespace,
+        public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
                 GetCommitTimestampsRequest request) {
             return unwrap(resource.getCommitTimestamps(authHeader, namespace, request));
         }
