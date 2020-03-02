@@ -28,10 +28,7 @@ types:
       base-type: any
       external:
         java: java.lang.Long
-    LockWatchStateUpdate:
-      base-type: any
-      external:
-        java: com.palantir.lock.watch.LockWatchStateUpdate
+
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
