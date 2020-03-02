@@ -19,6 +19,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
@@ -45,7 +46,6 @@ import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
@@ -176,8 +176,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion) {
-        return TimestampWithWatches.of(getFreshTimestamp(), getWatchStateUpdate(lastKnownVersion));
+    public GetCommitTimestampsResponse getCommitTimestamps(int numTimestamps, OptionalLong lastKnownVersion) {
+        TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
+        return GetCommitTimestampsResponse.of(
+                freshTimestamps.getLowerBound(), 
+                freshTimestamps.getUpperBound(),
+                getWatchStateUpdate(lastKnownVersion));
     }
 
     @Override

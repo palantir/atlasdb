@@ -20,8 +20,12 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.Lease
+    LockWatchStateUpdate:
+      base-type: any
+      external:
+        java: com.palantir.lock.watch.LockWatchStateUpdate
     Long:
-      base-type: safelong
+      base-type: any
       external:
         java: java.lang.Long
   definitions:
@@ -44,6 +48,15 @@ types:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
+      GetCommitTimestampsRequest:
+        fields:
+          numTimestamps: integer
+          lastKnownVersion: optional<Long>
+      GetCommitTimestampsResponse:
+        fields:
+          inclusiveLower: Long
+          inclusiveUpper: Long
+          lockWatchUpdate: LockWatchStateUpdate
 
 services:
   ConjureTimelockService:
@@ -69,3 +82,12 @@ services:
         args:
           namespace: string
         returns: LeaderTime
+      getCommitTimestamps:
+        http: POST /gct/{namespace}
+        args:
+          namespace: string
+          request: GetCommitTimestampsRequest
+        returns: GetCommitTimestampsResponse
+        docs: |
+          Batched endpoint for acquiring commit timestamps (a list of fresh timestamps) and the list of all lock watch
+          events since the last known version up to after the commit timestamps have been issued.

@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock;
 
 import java.time.Duration;
+import java.util.OptionalLong;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -34,6 +35,8 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
@@ -103,6 +106,14 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         return handleExceptions(() -> forNamespace(namespace).leaderTime());
     }
 
+    @Override
+    public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(AuthHeader authHeader, String namespace,
+            GetCommitTimestampsRequest request) {
+        return handleExceptions(() -> forNamespace(namespace).getCommitTimestamps(
+                request.getNumTimestamps(),
+                request.getLastKnownVersion().map(OptionalLong::of).orElseGet(OptionalLong::empty)));
+    }
+
     private AsyncTimelockService forNamespace(String namespace) {
         return timelockServices.apply(namespace);
     }
@@ -153,6 +164,12 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         @Override
         public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
             return unwrap(resource.leaderTime(authHeader, namespace));
+        }
+
+        @Override
+        public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
+                GetCommitTimestampsRequest request) {
+            return unwrap(resource.getCommitTimestamps(authHeader, namespace, request));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
