@@ -178,7 +178,9 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public GetCommitTimestampsResponse getCommitTimestamps(int numTimestamps, OptionalLong lastKnownVersion) {
         TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
-        return GetCommitTimestampsResponse.of(freshTimestamps.getLowerBound(), freshTimestamps.getUpperBound(),
+        return GetCommitTimestampsResponse.of(
+                freshTimestamps.getLowerBound(), 
+                freshTimestamps.getUpperBound(),
                 getWatchStateUpdate(lastKnownVersion));
     }
 
