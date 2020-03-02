@@ -121,7 +121,7 @@ public class AwaitingLeadershipProxyBenchmark {
         }
 
         @Override
-        public ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken token) {
+        public ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken providedToken) {
             return executor.schedule(() -> StillLeadingStatus.LEADING, 2, TimeUnit.MILLISECONDS);
         }
 
