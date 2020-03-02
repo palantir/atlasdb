@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: First initialization of SweepStrategyManagers is synchronous. This
+    helps avoid a scenario where multiple queries all try to load all tables' metadata
+    at the same time.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4625
