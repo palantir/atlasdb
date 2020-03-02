@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.debug.LockDiagnosticInfo;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
@@ -62,6 +64,7 @@ import com.palantir.timestamp.TimestampRange;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class AsyncTimelockResource {
+    private static final ExecutorService asyncResponseExecutor = PTExecutors.newFixedThreadPool(64);
     private final LockLog lockLog;
     private final AsyncTimelockService timelock;
 
@@ -251,7 +254,7 @@ public class AsyncTimelockResource {
             public void onFailure(Throwable thrown) {
                 response.resume(thrown);
             }
-        }, MoreExecutors.directExecutor());
+        }, asyncResponseExecutor);
     }
 
 }
