@@ -215,7 +215,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Object maybeValidDelegate = delegateRef.get();
 
         ListenableFuture<StillLeadingStatus> leadingFuture =
-                statusRetrier.retryUntilSatistfied(() -> leaderElectionService.isStillLeading(leadershipToken));
+                statusRetrier.execute(() -> leaderElectionService.isStillLeading(leadershipToken));
 
         ListenableFuture<Object> delegateFuture = Futures.transform(leadingFuture,
                 leading -> {
