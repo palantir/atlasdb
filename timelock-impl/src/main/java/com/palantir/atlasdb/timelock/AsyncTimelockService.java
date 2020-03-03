@@ -21,13 +21,12 @@ import java.util.Set;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.atlasdb.timelock.lock.AsyncResult;
-import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
@@ -38,6 +37,7 @@ import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
@@ -45,13 +45,13 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
 
     long currentTimeMillis();
 
-    Set<LockToken> unlock(Set<LockToken> tokens);
+    ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens);
 
-    RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens);
+    ListenableFuture<RefreshLockResponseV2> refreshLockLeases(Set<LockToken> tokens);
 
-    AsyncResult<Void> waitForLocks(WaitForLocksRequest request);
+    ListenableFuture<WaitForLocksResponse> waitForLocks(WaitForLocksRequest request);
 
-    AsyncResult<Leased<LockToken>> lock(IdentifiedLockRequest request);
+    ListenableFuture<LockResponseV2> lock(IdentifiedLockRequest request);
 
     long getImmutableTimestamp();
 

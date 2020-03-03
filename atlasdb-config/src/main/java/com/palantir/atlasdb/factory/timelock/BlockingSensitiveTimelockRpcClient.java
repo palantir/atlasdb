@@ -19,8 +19,6 @@ package com.palantir.atlasdb.factory.timelock;
 import java.util.Set;
 
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
@@ -52,12 +50,6 @@ public class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
     @Override
     public TimestampRange getFreshTimestamps(String namespace, int numTimestampsRequested) {
         return nonBlockingClient.getFreshTimestamps(namespace, numTimestampsRequested);
-    }
-
-    @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(String namespace, IdentifiedTimeLockRequest request) {
-        // Despite the name, these locks are not exclusive so we do not expect blocking.
-        return nonBlockingClient.lockImmutableTimestamp(namespace, request);
     }
 
     @Override

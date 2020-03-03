@@ -42,10 +42,6 @@ public class NamespacedTimelockRpcClient {
         return timelockRpcClient.getFreshTimestamps(namespace, numTimestampsRequested);
     }
 
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return timelockRpcClient.lockImmutableTimestamp(namespace, request);
-    }
-
     public long getImmutableTimestamp() {
         return timelockRpcClient.getImmutableTimestamp(namespace);
     }

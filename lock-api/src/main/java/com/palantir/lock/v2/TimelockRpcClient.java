@@ -54,11 +54,6 @@ public interface TimelockRpcClient {
             @PathParam("namespace") String namespace, @Safe @QueryParam("number") int numTimestampsRequested);
 
     @POST
-    @Path("lock-immutable-timestamp")
-    LockImmutableTimestampResponse lockImmutableTimestamp(
-            @PathParam("namespace") String namespace, IdentifiedTimeLockRequest request);
-
-    @POST
     @Path("immutable-timestamp")
     long getImmutableTimestamp(@PathParam("namespace") String namespace);
 
