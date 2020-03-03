@@ -588,6 +588,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         return ConjureLockRequest.builder()
                 .lockDescriptors(ImmutableSet.copyOf(locks))
                 .acquireTimeoutMs(TIMEOUT)
+                .requestId(UUID.randomUUID())
                 .build();
     }
 

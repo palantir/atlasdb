@@ -135,11 +135,8 @@ class LockLeaseService {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
-        Set<LockToken> unlocked = delegate.unlock(ConjureUnlockRequest.of(serverTokens(leasedLockTokens))).getTokens()
-                .stream()
-                .map(ConjureLockToken::getRequestId)
-                .map(LockToken::of)
-                .collect(Collectors.toSet());
+        Set<ConjureLockToken> unlocked =
+                delegate.unlock(ConjureUnlockRequest.of(serverTokens(leasedLockTokens))).getTokens();
         return leasedLockTokens.stream()
                 .filter(leasedLockToken -> unlocked.contains(leasedLockToken.serverToken()))
                 .collect(Collectors.toSet());
