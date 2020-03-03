@@ -92,7 +92,7 @@ final class LockTokenShare implements LockToken {
     }
 
     @Override
-    public SafeArg<LockToken> toSafeArg(String name) {
+    public SafeArg<?> toSafeArg(String name) {
         return sharedLockToken.toSafeArg(name);
     }
 }

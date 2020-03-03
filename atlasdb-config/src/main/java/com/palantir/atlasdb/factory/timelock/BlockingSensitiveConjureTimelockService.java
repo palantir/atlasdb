@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.debug;
-
-import java.util.Optional;
+package com.palantir.atlasdb.factory.timelock;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -36,84 +34,62 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
 /**
- * TODO(fdesouza): Remove this once PDS-95791 is resolved.
- * @deprecated Remove this once PDS-95791 is resolved.
+ * Given two proxies to the same set of underlying TimeLock servers, one configured to expect longer-running operations
+ * on the server and one configured not to, routes calls appropriately.
  */
-@Deprecated
-public class LockDiagnosticConjureTimelockService implements ConjureTimelockService {
-    private final ConjureTimelockService conjureDelegate;
-    private final ClientLockDiagnosticCollector lockDiagnosticCollector;
+public final class BlockingSensitiveConjureTimelockService implements ConjureTimelockService {
+    private final ConjureTimelockService nonblocking;
+    private final ConjureTimelockService blocking;
 
-    public LockDiagnosticConjureTimelockService(
-            ConjureTimelockService conjureDelegate,
-            ClientLockDiagnosticCollector lockDiagnosticCollector) {
-        this.conjureDelegate = conjureDelegate;
-        this.lockDiagnosticCollector = lockDiagnosticCollector;
+    public BlockingSensitiveConjureTimelockService(
+            ConjureTimelockService nonblocking,
+            ConjureTimelockService blocking) {
+        this.nonblocking = nonblocking;
+        this.blocking = blocking;
     }
 
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        ConjureStartTransactionsResponse response = conjureDelegate.startTransactions(authHeader, namespace, request);
-        lockDiagnosticCollector.collect(
-                response.getTimestamps().stream(),
-                response.getImmutableTimestamp().getImmutableTimestamp(),
-                request.getRequestId());
-        return response;
+        return nonblocking.startTransactions(authHeader, namespace, request);
     }
 
     @Override
     public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
             ConjureGetFreshTimestampsRequest request) {
-        return conjureDelegate.getFreshTimestamps(authHeader, namespace, request);
+        return nonblocking.getFreshTimestamps(authHeader, namespace, request);
     }
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return conjureDelegate.leaderTime(authHeader, namespace);
+        return nonblocking.leaderTime(authHeader, namespace);
     }
 
     @Override
     public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
-        request.getClientDescription()
-                .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
-                .ifPresent(startTimestamp -> lockDiagnosticCollector.collect(
-                        startTimestamp, request.getRequestId(), request.getLockDescriptors()));
-        return conjureDelegate.lock(authHeader, namespace, request);
+        return blocking.lock(authHeader, namespace, request);
     }
 
     @Override
     public ConjureWaitForLocksResponse waitForLocks(AuthHeader authHeader, String namespace,
             ConjureLockRequest request) {
-        request.getClientDescription()
-                .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
-                .ifPresent(startTimestamp -> lockDiagnosticCollector.collect(
-                        startTimestamp, request.getRequestId(), request.getLockDescriptors()));
-        return conjureDelegate.waitForLocks(authHeader, namespace, request);
+        return blocking.waitForLocks(authHeader, namespace, request);
     }
 
     @Override
     public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
             ConjureRefreshLocksRequest request) {
-        return conjureDelegate.refreshLocks(authHeader, namespace, request);
+        return nonblocking.refreshLocks(authHeader, namespace, request);
     }
 
     @Override
     public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
-        return conjureDelegate.unlock(authHeader, namespace, request);
+        return nonblocking.unlock(authHeader, namespace, request);
     }
 
     @Override
     public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
             GetCommitTimestampsRequest request) {
-        return conjureDelegate.getCommitTimestamps(authHeader, namespace, request);
-    }
-
-    private static Optional<Long> tryParseStartTimestamp(String description) {
-        try {
-            return Optional.of(Long.parseLong(description));
-        } catch (NumberFormatException e) {
-            return Optional.empty();
-        }
+        return nonblocking.getCommitTimestamps(authHeader, namespace, request);
     }
 }
