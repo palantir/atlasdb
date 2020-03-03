@@ -18,9 +18,16 @@ package com.palantir.atlasdb.debug;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
@@ -62,6 +69,28 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
         return conjureDelegate.leaderTime(authHeader, namespace);
+    }
+
+    @Override
+    public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        return conjureDelegate.lock(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureWaitForLocksResponse waitForLocks(AuthHeader authHeader, String namespace,
+            ConjureLockRequest request) {
+        return conjureDelegate.waitForLocks(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
+            ConjureRefreshLocksRequest request) {
+        return conjureDelegate.refreshLocks(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
+        return conjureDelegate.unlock(authHeader, namespace, request);
     }
 
     @Override

@@ -16,8 +16,12 @@
 
 package com.palantir.atlasdb.timelock;
 
+import static com.palantir.logsafe.Preconditions.checkState;
+
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -30,22 +34,42 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
+import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.lock.ByteArrayLockDescriptor;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
+import com.palantir.lock.v2.ImmutableWaitForLocksRequest;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV5;
+import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -116,8 +140,102 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     @Override
-    public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(AuthHeader authHeader, String namespace,
-            GetCommitTimestampsRequest request) {
+    public ListenableFuture<ConjureLockResponse> lock(
+            AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        return handleExceptions(() -> {
+            IdentifiedLockRequest lockRequest = ImmutableIdentifiedLockRequest.builder()
+                    .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
+                    .clientDescription(request.getClientDescription())
+                    .requestId(request.getRequestId())
+                    .acquireTimeoutMs(request.getAcquireTimeoutMs())
+                    .build();
+            ListenableFuture<AsyncResult<Leased<LockToken>>> tokenFuture = forNamespace(namespace).lock(lockRequest);
+            return Futures.transformAsync(tokenFuture, token -> {
+                if (token.isCompletedSuccessfully()) {
+                    Leased<LockToken> result = token.get();
+                    return Futures.immediateFuture(ConjureLockResponse.successful(SuccessfulLockResponse.of(
+                            ConjureLockToken.of(result.value().getRequestId()), result.lease())));
+                } else if (token.isTimedOut()) {
+                    return Futures.immediateFuture(ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()));
+                } else {
+                    checkState(token.isFailed(), "token.isFailed()");
+                    return Futures.immediateFailedFuture(token.getError());
+                }
+            }, MoreExecutors.directExecutor());
+        });
+    }
+
+    @Override
+    public ListenableFuture<ConjureWaitForLocksResponse> waitForLocks(
+            AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        return handleExceptions(() -> {
+            WaitForLocksRequest lockRequest = ImmutableWaitForLocksRequest.builder()
+                    .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
+                    .clientDescription(request.getClientDescription())
+                    .requestId(request.getRequestId())
+                    .acquireTimeoutMs(request.getAcquireTimeoutMs())
+                    .build();
+            ListenableFuture<AsyncResult<Void>> tokenFuture = forNamespace(namespace).waitForLocks(lockRequest);
+            return Futures.transformAsync(tokenFuture, token -> {
+                if (token.isCompletedSuccessfully()) {
+                    return Futures.immediateFuture(ConjureWaitForLocksResponse.of(true));
+                } else if (token.isTimedOut()) {
+                    return Futures.immediateFuture(ConjureWaitForLocksResponse.of(false));
+                } else {
+                    checkState(token.isFailed(), "token.isFailed()");
+                    return Futures.immediateFailedFuture(token.getError());
+                }
+            }, MoreExecutors.directExecutor());
+        });
+    }
+
+    private static Set<LockDescriptor> fromConjureLockDescriptors(Set<ConjureLockDescriptor> lockDescriptors) {
+        Set<LockDescriptor> descriptors = new HashSet<>(lockDescriptors.size());
+        for (ConjureLockDescriptor descriptor : lockDescriptors) {
+            descriptors.add(ByteArrayLockDescriptor.of(descriptor.get().asNewByteArray()));
+        }
+        return descriptors;
+    }
+
+    @Override
+    public ListenableFuture<ConjureRefreshLocksResponse> refreshLocks(
+            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequest request) {
+        return handleExceptions(() -> Futures.transform(
+                forNamespace(namespace).refreshLockLeases(fromConjureLockTokens(request.getTokens())),
+                refreshed -> ConjureRefreshLocksResponse.of(
+                        toConjureLockTokens(refreshed.refreshedTokens()),
+                        refreshed.getLease()),
+                MoreExecutors.directExecutor()));
+    }
+
+    @Override
+    public ListenableFuture<ConjureUnlockResponse> unlock(
+            AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
+        return handleExceptions(() -> Futures.transform(
+                forNamespace(namespace).unlock(fromConjureLockTokens(request.getTokens())),
+                unlocked -> ConjureUnlockResponse.of(toConjureLockTokens(unlocked)),
+                MoreExecutors.directExecutor()));
+    }
+
+    private static Set<LockToken> fromConjureLockTokens(Set<ConjureLockToken> lockTokens) {
+        Set<LockToken> tokens = new HashSet<>(lockTokens.size());
+        for (ConjureLockToken token : lockTokens) {
+            tokens.add(LockToken.of(token.getRequestId()));
+        }
+        return tokens;
+    }
+
+    private static Set<ConjureLockToken> toConjureLockTokens(Set<LockToken> lockTokens) {
+        Set<ConjureLockToken> tokens = new HashSet<>(lockTokens.size());
+        for (LockToken token : lockTokens) {
+            tokens.add(ConjureLockToken.of(token.getRequestId()));
+        }
+        return tokens;
+    }
+
+    @Override
+    public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
+            AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return handleExceptions(() -> forNamespace(namespace).getCommitTimestamps(
                 request.getNumTimestamps(),
                 request.getLastKnownVersion().map(OptionalLong::of).orElseGet(OptionalLong::empty)));
@@ -172,6 +290,28 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         @Override
         public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
             return unwrap(resource.leaderTime(authHeader, namespace));
+        }
+
+        @Override
+        public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+            return unwrap(resource.lock(authHeader, namespace, request));
+        }
+
+        @Override
+        public ConjureWaitForLocksResponse waitForLocks(AuthHeader authHeader, String namespace,
+                ConjureLockRequest request) {
+            return unwrap(resource.waitForLocks(authHeader, namespace, request));
+        }
+
+        @Override
+        public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
+                ConjureRefreshLocksRequest request) {
+            return unwrap(resource.refreshLocks(authHeader, namespace, request));
+        }
+
+        @Override
+        public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
+            return unwrap(resource.unlock(authHeader, namespace, request));
         }
 
         @Override

@@ -45,13 +45,13 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
 
     long currentTimeMillis();
 
-    Set<LockToken> unlock(Set<LockToken> tokens);
+    ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens);
 
-    RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens);
+    ListenableFuture<RefreshLockResponseV2> refreshLockLeases(Set<LockToken> tokens);
 
-    AsyncResult<Void> waitForLocks(WaitForLocksRequest request);
+    ListenableFuture<AsyncResult<Void>> waitForLocks(WaitForLocksRequest request);
 
-    AsyncResult<Leased<LockToken>> lock(IdentifiedLockRequest request);
+    ListenableFuture<AsyncResult<Leased<LockToken>>> lock(IdentifiedLockRequest request);
 
     long getImmutableTimestamp();
 

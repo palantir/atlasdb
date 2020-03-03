@@ -92,29 +92,29 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public AsyncResult<Leased<LockToken>> lock(IdentifiedLockRequest request) {
+    public ListenableFuture<AsyncResult<Leased<LockToken>>> lock(IdentifiedLockRequest request) {
         return lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
-                TimeLimit.of(request.getAcquireTimeoutMs()));
+                TimeLimit.of(request.getAcquireTimeoutMs())).asListenableFuture();
     }
 
     @Override
-    public AsyncResult<Void> waitForLocks(WaitForLocksRequest request) {
+    public ListenableFuture<AsyncResult<Void>> waitForLocks(WaitForLocksRequest request) {
         return lockService.waitForLocks(
                 request.getRequestId(),
                 request.getLockDescriptors(),
-                TimeLimit.of(request.getAcquireTimeoutMs()));
+                TimeLimit.of(request.getAcquireTimeoutMs())).asListenableFuture();
     }
 
     @Override
-    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
-        return lockService.refresh(tokens);
+    public ListenableFuture<RefreshLockResponseV2> refreshLockLeases(Set<LockToken> tokens) {
+        return Futures.immediateFuture(lockService.refresh(tokens));
     }
 
     @Override
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return lockService.unlock(tokens);
+    public ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens) {
+        return Futures.immediateFuture(lockService.unlock(tokens));
     }
 
     @Override

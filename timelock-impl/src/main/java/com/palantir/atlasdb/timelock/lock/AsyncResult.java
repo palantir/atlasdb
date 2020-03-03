@@ -22,6 +22,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -54,6 +59,34 @@ public class AsyncResult<T> {
         Preconditions.checkState(
                 future.complete(value),
                 "This result is already completed");
+    }
+
+    public ListenableFuture<AsyncResult<T>> asListenableFuture() {
+        SettableFuture<AsyncResult<T>> listenable = SettableFuture.create();
+        future.whenComplete((ignored1, ignored2) -> listenable.set(this));
+        return listenable;
+    }
+
+    public static <T> AsyncResult<T> fromListenableFuture(ListenableFuture<AsyncResult<T>> future) {
+        AsyncResult<T> copiedResult = new AsyncResult<>();
+        Futures.addCallback(future, new FutureCallback<AsyncResult<T>>() {
+            @Override
+            public void onSuccess(AsyncResult<T> result) {
+                result.future.whenComplete((success, failure) -> {
+                    if (failure != null) {
+                        copiedResult.future.completeExceptionally(failure);
+                    } else {
+                        copiedResult.future.complete(success);
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Throwable thrown) {
+                copiedResult.fail(thrown);
+            }
+        }, MoreExecutors.directExecutor());
+        return copiedResult;
     }
 
     /**

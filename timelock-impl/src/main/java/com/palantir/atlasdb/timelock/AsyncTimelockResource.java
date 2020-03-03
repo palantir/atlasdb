@@ -47,7 +47,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -157,7 +156,8 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
+        AsyncResult<Leased<LockToken>> result =
+                AsyncResult.fromListenableFuture(timelock.lock(request));
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -173,7 +173,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock-v2")
     public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
+        AsyncResult<Leased<LockToken>> result = AsyncResult.fromListenableFuture(timelock.lock(request));
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -189,7 +189,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
-        AsyncResult<Void> result = timelock.waitForLocks(request);
+        AsyncResult<Void> result = AsyncResult.fromListenableFuture(timelock.waitForLocks(request));
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -204,14 +204,14 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("refresh-locks")
-    public Set<LockToken> deprecatedRefreshLockLeases(Set<LockToken> tokens) {
-        return timelock.refreshLockLeases(tokens).refreshedTokens();
+    public void deprecatedRefreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
+        addJerseyCallback(timelock.refreshLockLeases(tokens), response);
     }
 
     @POST
     @Path("refresh-locks-v2")
-    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
-        return timelock.refreshLockLeases(tokens);
+    public void refreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
+        addJerseyCallback(timelock.refreshLockLeases(tokens), response);
     }
 
     @GET
@@ -222,8 +222,8 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("unlock")
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return timelock.unlock(tokens);
+    public void unlock(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
+        addJerseyCallback(timelock.unlock(tokens), response);
     }
 
     @POST
