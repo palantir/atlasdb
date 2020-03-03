@@ -35,8 +35,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.debug.LockDiagnosticInfo;
-import com.palantir.atlasdb.timelock.lock.AsyncResult;
-import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.IdentifiedLockRequest;
@@ -55,7 +53,6 @@ import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
@@ -156,50 +153,24 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        AsyncResult<Leased<LockToken>> result =
-                AsyncResult.fromListenableFuture(timelock.lock(request));
-        lockLog.registerRequest(request, result);
-        result.onComplete(() -> {
-            if (result.isFailed()) {
-                response.resume(result.getError());
-            } else if (result.isTimedOut()) {
-                response.resume(LockResponse.timedOut());
-            } else {
-                response.resume(LockResponse.successful(result.get().value()));
-            }
-        });
+        addJerseyCallback(Futures.transform(
+                timelock.lock(request), result -> result.accept(LockResponseV2.Visitor.of(
+                        success -> LockResponse.successful(success.getToken()),
+                        unsuccessful -> LockResponse.timedOut())),
+                MoreExecutors.directExecutor()),
+                response);
     }
 
     @POST
     @Path("lock-v2")
     public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        AsyncResult<Leased<LockToken>> result = AsyncResult.fromListenableFuture(timelock.lock(request));
-        lockLog.registerRequest(request, result);
-        result.onComplete(() -> {
-            if (result.isFailed()) {
-                response.resume(result.getError());
-            } else if (result.isTimedOut()) {
-                response.resume(LockResponseV2.timedOut());
-            } else {
-                response.resume(LockResponseV2.successful(result.get().value(), result.get().lease()));
-            }
-        });
+        addJerseyCallback(timelock.lock(request), response);
     }
 
     @POST
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
-        AsyncResult<Void> result = AsyncResult.fromListenableFuture(timelock.waitForLocks(request));
-        lockLog.registerRequest(request, result);
-        result.onComplete(() -> {
-            if (result.isFailed()) {
-                response.resume(result.getError());
-            } else if (result.isTimedOut()) {
-                response.resume(WaitForLocksResponse.timedOut());
-            } else {
-                response.resume(WaitForLocksResponse.successful());
-            }
-        });
+        addJerseyCallback(timelock.waitForLocks(request), response);
     }
 
     @POST

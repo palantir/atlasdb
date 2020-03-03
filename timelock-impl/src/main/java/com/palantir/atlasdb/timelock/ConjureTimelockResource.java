@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static com.palantir.logsafe.Preconditions.checkState;
-
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.OptionalLong;
@@ -52,8 +50,6 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.lock.AsyncResult;
-import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -66,10 +62,13 @@ import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
 import com.palantir.lock.v2.ImmutableWaitForLocksRequest;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LockResponseV2;
+import com.palantir.lock.v2.LockResponseV2.Visitor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -149,19 +148,12 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestId(request.getRequestId())
                     .acquireTimeoutMs(request.getAcquireTimeoutMs())
                     .build();
-            ListenableFuture<AsyncResult<Leased<LockToken>>> tokenFuture = forNamespace(namespace).lock(lockRequest);
-            return Futures.transformAsync(tokenFuture, token -> {
-                if (token.isCompletedSuccessfully()) {
-                    Leased<LockToken> result = token.get();
-                    return Futures.immediateFuture(ConjureLockResponse.successful(SuccessfulLockResponse.of(
-                            ConjureLockToken.of(result.value().getRequestId()), result.lease())));
-                } else if (token.isTimedOut()) {
-                    return Futures.immediateFuture(ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()));
-                } else {
-                    checkState(token.isFailed(), "token.isFailed()");
-                    return Futures.immediateFailedFuture(token.getError());
-                }
-            }, MoreExecutors.directExecutor());
+            ListenableFuture<LockResponseV2> tokenFuture = forNamespace(namespace).lock(lockRequest);
+            return Futures.transform(tokenFuture, token -> token.accept(Visitor.of(success ->
+                    ConjureLockResponse.successful(
+                            SuccessfulLockResponse.of(
+                                    ConjureLockToken.of(success.getToken().getRequestId()), success.getLease())),
+                    failure -> ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()))), MoreExecutors.directExecutor());
         });
     }
 
@@ -175,17 +167,11 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestId(request.getRequestId())
                     .acquireTimeoutMs(request.getAcquireTimeoutMs())
                     .build();
-            ListenableFuture<AsyncResult<Void>> tokenFuture = forNamespace(namespace).waitForLocks(lockRequest);
-            return Futures.transformAsync(tokenFuture, token -> {
-                if (token.isCompletedSuccessfully()) {
-                    return Futures.immediateFuture(ConjureWaitForLocksResponse.of(true));
-                } else if (token.isTimedOut()) {
-                    return Futures.immediateFuture(ConjureWaitForLocksResponse.of(false));
-                } else {
-                    checkState(token.isFailed(), "token.isFailed()");
-                    return Futures.immediateFailedFuture(token.getError());
-                }
-            }, MoreExecutors.directExecutor());
+            ListenableFuture<WaitForLocksResponse> tokenFuture = forNamespace(namespace).waitForLocks(lockRequest);
+            return Futures.transform(
+                    tokenFuture,
+                    token -> ConjureWaitForLocksResponse.of(token.wasSuccessful()),
+                    MoreExecutors.directExecutor());
         });
     }
 

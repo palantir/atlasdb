@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
@@ -34,6 +35,7 @@ import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableStartTransactionRequestV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.RefreshLockResponseV2;
@@ -46,6 +48,7 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -92,19 +95,41 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public ListenableFuture<AsyncResult<Leased<LockToken>>> lock(IdentifiedLockRequest request) {
-        return lockService.lock(
+    public ListenableFuture<LockResponseV2> lock(IdentifiedLockRequest request) {
+        AsyncResult<Leased<LockToken>> result = lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
-                TimeLimit.of(request.getAcquireTimeoutMs())).asListenableFuture();
+                TimeLimit.of(request.getAcquireTimeoutMs()));
+        SettableFuture<LockResponseV2> response = SettableFuture.create();
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.setException(result.getError());
+            } else if (result.isTimedOut()) {
+                response.set(LockResponseV2.timedOut());
+            } else {
+                response.set(LockResponseV2.successful(result.get().value(), result.get().lease()));
+            }
+        });
+        return response;
     }
 
     @Override
-    public ListenableFuture<AsyncResult<Void>> waitForLocks(WaitForLocksRequest request) {
-        return lockService.waitForLocks(
+    public ListenableFuture<WaitForLocksResponse> waitForLocks(WaitForLocksRequest request) {
+        AsyncResult<Void> result = lockService.waitForLocks(
                 request.getRequestId(),
                 request.getLockDescriptors(),
-                TimeLimit.of(request.getAcquireTimeoutMs())).asListenableFuture();
+                TimeLimit.of(request.getAcquireTimeoutMs()));
+        SettableFuture<WaitForLocksResponse> response = SettableFuture.create();
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.setException(result.getError());
+            } else if (result.isTimedOut()) {
+                response.set(WaitForLocksResponse.timedOut());
+            } else {
+                response.set(WaitForLocksResponse.successful());
+            }
+        });
+        return response;
     }
 
     @Override
