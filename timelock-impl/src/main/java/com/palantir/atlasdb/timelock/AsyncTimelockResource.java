@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -29,13 +30,19 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.debug.LockDiagnosticInfo;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
+import com.palantir.lock.v2.ImmutableStartTransactionResponseV4;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
@@ -48,7 +55,6 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
@@ -58,6 +64,7 @@ import com.palantir.timestamp.TimestampRange;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class AsyncTimelockResource {
+    private static final ExecutorService asyncResponseExecutor = PTExecutors.newFixedThreadPool(64);
     private final LockLog lockLog;
     private final AsyncTimelockService timelock;
 
@@ -68,14 +75,20 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("fresh-timestamp")
-    public long getFreshTimestamp() {
-        return timelock.getFreshTimestamp();
+    public void getFreshTimestamp(@Suspended final AsyncResponse response) {
+        addJerseyCallback(Futures.transform(
+                timelock.getFreshTimestampsAsync(1),
+                TimestampRange::getLowerBound,
+                MoreExecutors.directExecutor()),
+                response);
     }
 
     @POST
     @Path("fresh-timestamps")
-    public TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested) {
-        return timelock.getFreshTimestamps(numTimestampsRequested);
+    public void getFreshTimestamps(
+            @Suspended final AsyncResponse response,
+            @Safe @QueryParam("number") int numTimestampsRequested) {
+        addJerseyCallback(timelock.getFreshTimestampsAsync(numTimestampsRequested), response);
     }
 
     @POST
@@ -113,14 +126,26 @@ public class AsyncTimelockResource {
      */
     @POST
     @Path("start-atlasdb-transaction-v4")
-    public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
-        return timelock.startTransactions(request);
+    public void startTransactions(
+            @Suspended final AsyncResponse response, StartTransactionRequestV4 request) {
+        StartTransactionRequestV5 newRequest = ImmutableStartTransactionRequestV5.builder()
+                .requestId(request.requestId())
+                .requestorId(request.requestorId())
+                .numTransactions(request.numTransactions())
+                .build();
+        addJerseyCallback(Futures.transform(timelock.startTransactionsWithWatches(newRequest),
+                newResponse -> ImmutableStartTransactionResponseV4.builder()
+                        .timestamps(newResponse.timestamps())
+                        .immutableTimestamp(newResponse.immutableTimestamp())
+                        .lease(newResponse.lease())
+                        .build(), MoreExecutors.directExecutor()), response);
     }
 
     @POST
     @Path("start-atlasdb-transaction-v5")
-    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
-        return timelock.startTransactionsWithWatches(request);
+    public void startTransactionsWithWatches(
+            @Suspended final AsyncResponse response, StartTransactionRequestV5 request) {
+        addJerseyCallback(timelock.startTransactionsWithWatches(request), response);
     }
 
     @POST
@@ -191,8 +216,8 @@ public class AsyncTimelockResource {
 
     @GET
     @Path("leader-time")
-    public LeaderTime getLeaderTime() {
-        return timelock.leaderTime();
+    public void getLeaderTime(@Suspended final AsyncResponse response) {
+        addJerseyCallback(timelock.leaderTime(), response);
     }
 
     @POST
@@ -217,4 +242,19 @@ public class AsyncTimelockResource {
     public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(Set<UUID> requestIds) {
         return lockLog.getAndLogLockDiagnosticInfo(requestIds);
     }
+
+    private void addJerseyCallback(ListenableFuture<?> result, AsyncResponse response) {
+        Futures.addCallback(result, new FutureCallback<Object>() {
+            @Override
+            public void onSuccess(Object result) {
+                response.resume(result);
+            }
+
+            @Override
+            public void onFailure(Throwable thrown) {
+                response.resume(thrown);
+            }
+        }, asyncResponseExecutor);
+    }
+
 }
