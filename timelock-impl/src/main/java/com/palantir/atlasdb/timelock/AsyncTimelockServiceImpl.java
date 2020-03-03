@@ -26,6 +26,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
@@ -57,12 +58,15 @@ import com.palantir.timestamp.TimestampRange;
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
     private final ClientAwareManagedTimestampService timestampService;
+    private final LockLog lockLog;
 
     public AsyncTimelockServiceImpl(
             AsyncLockService lockService,
-            ManagedTimestampService timestampService) {
+            ManagedTimestampService timestampService,
+            LockLog lockLog) {
         this.lockService = lockService;
         this.timestampService = DelegatingClientAwareManagedTimestampService.createDefault(timestampService);
+        this.lockLog = lockLog;
     }
 
     @Override
@@ -100,6 +104,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 request.getRequestId(),
                 request.getLockDescriptors(),
                 TimeLimit.of(request.getAcquireTimeoutMs()));
+        lockLog.registerRequest(request, result);
         SettableFuture<LockResponseV2> response = SettableFuture.create();
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -119,6 +124,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 request.getRequestId(),
                 request.getLockDescriptors(),
                 TimeLimit.of(request.getAcquireTimeoutMs()));
+        lockLog.registerRequest(request, result);
         SettableFuture<WaitForLocksResponse> response = SettableFuture.create();
         result.onComplete(() -> {
             if (result.isFailed()) {
