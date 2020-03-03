@@ -54,11 +54,10 @@ public final class TimelockUtils {
                 .addAllServers(endpointUris)
                 .sslConfiguration(SSL_CONFIGURATION)
                 .build();
-        // lock technically blocking, but OK to run with short timeout given the way the tests work.
         AuxiliaryRemotingParameters parameters = AuxiliaryRemotingParameters.builder()
                 .shouldRetry(false)
                 .shouldLimitPayload(false)
-                .shouldSupportBlockingOperations(false)
+                .shouldSupportBlockingOperations(true) // Run with longer timeout to be safe.
                 .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", UserAgent.Agent.DEFAULT_VERSION)))
                 .build();
 
