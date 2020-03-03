@@ -83,21 +83,12 @@ public class LocalPaxosComponents {
         Path clientDirectory = logDirectory.resolve(client.value());
         Path learnerLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH);
 
-        PaxosLearner learner = metrics.instrument(
-                PaxosLearner.class,
-                PaxosLearnerImpl.newLearner(learnerLogDir.toString()),
-                client);
+        PaxosLearner learner = PaxosLearnerImpl.newLearner(learnerLogDir.toString());
 
         Path acceptorLogDir = Paths.get(clientDirectory.toString(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH);
-        PaxosAcceptor acceptor = metrics.instrument(
-                PaxosAcceptor.class,
-                PaxosAcceptorImpl.newAcceptor(acceptorLogDir.toString()),
-                client);
+        PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(acceptorLogDir.toString());
 
-        PingableLeader localPingableLeader = metrics.instrument(
-                PingableLeader.class,
-                new LocalPingableLeader(learner, leaderUuid),
-                client);
+        PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid);
 
         return ImmutableComponents.builder()
                 .acceptor(acceptor)
