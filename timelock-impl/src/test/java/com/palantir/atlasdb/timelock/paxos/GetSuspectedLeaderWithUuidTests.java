@@ -62,8 +62,8 @@ public class GetSuspectedLeaderWithUuidTests {
     @Test
     public void completesPresentAndMissingSeparately()
             throws InterruptedException, ExecutionException, TimeoutException {
-        ClientAwarePingableLeader remote1 = remoteWithRandomUuid();
-        ClientAwarePingableLeader remote2 = remoteWithRandomUuid();
+        ClientAwareLeaderPinger remote1 = remoteWithRandomUuid();
+        ClientAwareLeaderPinger remote2 = remoteWithRandomUuid();
 
         GetSuspectedLeaderWithUuid function = functionForRemotes(remote1, remote2);
 
@@ -83,7 +83,7 @@ public class GetSuspectedLeaderWithUuidTests {
     @Test
     public void coalescesSingleRequests() throws InterruptedException, ExecutionException, TimeoutException {
         UUID uuid = UUID.randomUUID();
-        ClientAwarePingableLeader remote = remoteWithUuid(uuid);
+        ClientAwareLeaderPinger remote = remoteWithUuid(uuid);
         GetSuspectedLeaderWithUuid function = functionForRemotes(remote);
 
         TestBatchElement element = TestBatchElement.of(uuid);
@@ -108,7 +108,7 @@ public class GetSuspectedLeaderWithUuidTests {
     @Test
     public void cachesPreviouslySeenUuids() throws InterruptedException, ExecutionException, TimeoutException {
         UUID uuid = UUID.randomUUID();
-        ClientAwarePingableLeader remote = remoteWithUuid(uuid);
+        ClientAwareLeaderPinger remote = remoteWithUuid(uuid);
         GetSuspectedLeaderWithUuid function = functionForRemotes(remote);
 
         TestBatchElement firstRequest = TestBatchElement.of(uuid);
@@ -124,21 +124,21 @@ public class GetSuspectedLeaderWithUuidTests {
         verifyNoMoreInteractions(remote.underlyingRpcClient().pinger());
     }
 
-    private static ClientAwarePingableLeader remoteWithUuid(UUID uuid) {
-        ClientAwarePingableLeader mock = mock(ClientAwarePingableLeader.class, Answers.RETURNS_DEEP_STUBS);
+    private static ClientAwareLeaderPinger remoteWithUuid(UUID uuid) {
+        ClientAwareLeaderPinger mock = mock(ClientAwareLeaderPinger.class, Answers.RETURNS_DEEP_STUBS);
         when(mock.underlyingRpcClient().pinger().uuid()).thenReturn(uuid);
         return mock;
     }
 
-    private static ClientAwarePingableLeader remoteWithRandomUuid() {
+    private static ClientAwareLeaderPinger remoteWithRandomUuid() {
         return remoteWithUuid(UUID.randomUUID());
     }
 
-    private GetSuspectedLeaderWithUuid functionForRemotes(ClientAwarePingableLeader... remotes) {
-        Set<ClientAwarePingableLeader> clientAwareLeaders = ImmutableSet.copyOf(remotes);
+    private GetSuspectedLeaderWithUuid functionForRemotes(ClientAwareLeaderPinger... remotes) {
+        Set<ClientAwareLeaderPinger> clientAwareLeaders = ImmutableSet.copyOf(remotes);
 
         Set<LeaderPingerContext<BatchPingableLeader>> rpcClients = clientAwareLeaders.stream()
-                .map(ClientAwarePingableLeader::underlyingRpcClient)
+                .map(ClientAwareLeaderPinger::underlyingRpcClient)
                 .collect(Collectors.toSet());
 
         Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors =
@@ -148,7 +148,7 @@ public class GetSuspectedLeaderWithUuidTests {
     }
 
     @Value.Immutable
-    interface TestBatchElement extends BatchElement<UUID, Optional<ClientAwarePingableLeader>> {
+    interface TestBatchElement extends BatchElement<UUID, Optional<ClientAwareLeaderPinger>> {
 
         static TestBatchElement random() {
             return of(UUID.randomUUID());
@@ -164,11 +164,11 @@ public class GetSuspectedLeaderWithUuidTests {
 
         @Value.Lazy
         @Override
-        default SettableFuture<Optional<ClientAwarePingableLeader>> result() {
+        default SettableFuture<Optional<ClientAwareLeaderPinger>> result() {
             return SettableFuture.create();
         }
 
-        default Optional<ClientAwarePingableLeader> get()
+        default Optional<ClientAwareLeaderPinger> get()
                 throws InterruptedException, ExecutionException, TimeoutException {
             return result().get(1, TimeUnit.SECONDS);
         }

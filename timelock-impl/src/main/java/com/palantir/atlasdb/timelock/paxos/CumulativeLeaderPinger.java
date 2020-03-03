@@ -45,9 +45,14 @@ import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
-final class ManualBatchingPingableLeader extends AbstractScheduledService implements ClientAwarePingableLeader {
+/**
+ * Clients register their intent to check whether the given remote is their leader. Periodically, the total set of
+ * clients that have been registered during the lifetime of this service will be checked. Successful results are cached
+ * up to {@code leaderPingResponseWait} after which a time out will be issued if no further pings take place.
+ */
+final class CumulativeLeaderPinger extends AbstractScheduledService implements ClientAwareLeaderPinger {
 
-    private static final Logger log = LoggerFactory.getLogger(ManualBatchingPingableLeader.class);
+    private static final Logger log = LoggerFactory.getLogger(CumulativeLeaderPinger.class);
 
     private final LeaderPingerContext<BatchPingableLeader> remoteClient;
     private final Duration leaderPingRate;
@@ -55,10 +60,10 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
     private final UUID nodeUuid;
 
     private final Map<Client, SettableFuture<Void>> hasProcessedFirstRequest = Maps.newConcurrentMap();
-    private final AtomicReference<LastResult> lastResult = new AtomicReference<>();
+    private final AtomicReference<LastSuccessfulResult> lastSuccessfulResult = new AtomicReference<>();
     private final Histogram histogram;
 
-    ManualBatchingPingableLeader(
+    CumulativeLeaderPinger(
             LeaderPingerContext<BatchPingableLeader> remoteClient,
             Duration leaderPingRate,
             Duration leaderPingResponseWait,
@@ -78,23 +83,20 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
     }
 
     @Override
-    public Future<LeaderPingResult> ping(UUID requestedUuid, Client client) {
-        // register client with the batcher to check whether or not the remote client is the leader or not
-        // since there is a case where we'll miss the window, we must wait until the client has been registered and
-        // been included in an existing batch before reading from the in memory state
-        // wait up to leaderPingResponseRate each time until it has been included and requested in a batch
+    public Future<LeaderPingResult> registerAndPing(UUID requestedUuid, Client client) {
+        // Register the client to be checked eventually. In the event that the client has not been in a ping request,
+        // we return a future that will succeed when the *next* ping succeeds. In the steady state, this reduces to an
+        // in memory read of lastSuccessfulResult.
+
         Instant requestTime = Instant.now();
 
         return FluentFuture.from(hasProcessedFirstRequest.computeIfAbsent(client, $ -> SettableFuture.create()))
                 .transform(
-                        // this will never be null, since we waited for our request to be processed at least once
-                        // semantic difference here is that values are effectively cached for leaderPingResponseWait
-                        // in the event that things are not good, but in the bigger picture these *should* be
-                        // equivalent.
+                        // lastSuccessfulResult will never be null, since the SettableFuture in the above will have been
+                        // set after a ping containing the client is made.
                         $ -> {
-                            // if for any reason we've stopped, bubble up the exception
                             checkNotShutdown();
-                            return lastResult.get().result(
+                            return lastSuccessfulResult.get().result(
                                     client,
                                     requestTime.minus(leaderPingResponseWait),
                                     remoteClient.hostAndPort(),
@@ -133,14 +135,12 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
                         SafeArg.of("pingDuration", pingDuration),
                         SafeArg.of("leaderPingResponseWait", leaderPingResponseWait));
             }
-            LastResult newResult = ImmutableLastResult.of(after, clientsThisNodeIsTheLeaderFor);
-            this.lastResult.set(newResult);
+            LastSuccessfulResult newResult = ImmutableLastSuccessfulResult.of(after, clientsThisNodeIsTheLeaderFor);
+            this.lastSuccessfulResult.set(newResult);
 
             histogram.update(clientsToCheck.size());
             clientsToCheck.forEach(clientJustProcessed -> hasProcessedFirstRequest.get(clientJustProcessed).set(null));
         } catch (Exception e) {
-            // TODO(fdesouza): should this also set the result to include any exceptions??
-            //  Means no caching of last good result in the presence of errors
             log.warn("Failed to ping node, trying again in the next round", e);
         }
 
@@ -157,7 +157,7 @@ final class ManualBatchingPingableLeader extends AbstractScheduledService implem
     }
 
     @Value.Immutable
-    interface LastResult {
+    interface LastSuccessfulResult {
         @Value.Parameter
         Instant timestamp();
         @Value.Parameter

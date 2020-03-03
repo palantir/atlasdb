@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,14 +36,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.timelock.paxos.ManualBatchingPingableLeader.LastResult;
+import com.palantir.atlasdb.timelock.paxos.CumulativeLeaderPinger.LastSuccessfulResult;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPingerContext;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ManualBatchingPingableLeaderTest {
+public class CumulativeLeaderPingerTest {
 
     private static final Client CLIENT_WHO_IS_LED = Client.of("client-1");
     private static final Client CLIENT_WHO_IS_NOT_LED = Client.of("client-2");
@@ -63,9 +64,10 @@ public class ManualBatchingPingableLeaderTest {
     public void testTooOldResultReturnsTimeOut() {
         Instant completedAt = Instant.now();
         Instant earliestCompletedDeadline = completedAt.plus(Duration.ofMillis(10));
-        LastResult lastResult = ImmutableLastResult.of(completedAt, ImmutableSet.of(CLIENT_WHO_IS_LED));
+        LastSuccessfulResult lastSuccessfulResult =
+                ImmutableLastSuccessfulResult.of(completedAt, ImmutableSet.of(CLIENT_WHO_IS_LED));
         LeaderPingResult result =
-                lastResult.result(CLIENT_WHO_IS_LED, earliestCompletedDeadline, HOST_AND_PORT, HOST_UUID);
+                lastSuccessfulResult.result(CLIENT_WHO_IS_LED, earliestCompletedDeadline, HOST_AND_PORT, HOST_UUID);
 
         assertThat(result)
                 .as("earliest completed deadline was not met, meaning we've timed out")
@@ -76,9 +78,10 @@ public class ManualBatchingPingableLeaderTest {
     public void testClientBeingLedShowsUpAsTrue() {
         Instant completedAt = Instant.now();
         Instant earliestCompletedDeadline = completedAt.minus(Duration.ofMillis(10));
-        LastResult lastResult = ImmutableLastResult.of(completedAt, ImmutableSet.of(CLIENT_WHO_IS_LED));
+        LastSuccessfulResult lastSuccessfulResult =
+                ImmutableLastSuccessfulResult.of(completedAt, ImmutableSet.of(CLIENT_WHO_IS_LED));
         LeaderPingResult result =
-                lastResult.result(CLIENT_WHO_IS_LED, earliestCompletedDeadline, HOST_AND_PORT, HOST_UUID);
+                lastSuccessfulResult.result(CLIENT_WHO_IS_LED, earliestCompletedDeadline, HOST_AND_PORT, HOST_UUID);
 
         assertThat(result)
                 .isEqualTo(LeaderPingResults.pingReturnedTrue(HOST_UUID, HOST_AND_PORT));
@@ -88,9 +91,10 @@ public class ManualBatchingPingableLeaderTest {
     public void testClientNotBeingLedShowsUpAsFalse() {
         Instant completedAt = Instant.now();
         Instant earliestCompletedDeadline = completedAt.minus(Duration.ofMillis(10));
-        LastResult lastResult = ImmutableLastResult.of(completedAt, ImmutableSet.of(CLIENT_WHO_IS_LED));
+        LastSuccessfulResult lastSuccessfulResult =
+                ImmutableLastSuccessfulResult.of(completedAt, ImmutableSet.of(CLIENT_WHO_IS_LED));
         LeaderPingResult result =
-                lastResult.result(CLIENT_WHO_IS_NOT_LED, earliestCompletedDeadline, HOST_AND_PORT, HOST_UUID);
+                lastSuccessfulResult.result(CLIENT_WHO_IS_NOT_LED, earliestCompletedDeadline, HOST_AND_PORT, HOST_UUID);
 
         assertThat(result)
                 .isEqualTo(LeaderPingResults.pingReturnedFalse());
@@ -98,20 +102,20 @@ public class ManualBatchingPingableLeaderTest {
 
     @Test
     public void singleIterationUpdatesInMemoryReference() {
-        ManualBatchingPingableLeader manualBatchingPingableLeader = new ManualBatchingPingableLeader(
+        CumulativeLeaderPinger cumulativeLeaderPinger = new CumulativeLeaderPinger(
                 pingerWithContext,
                 Duration.ofSeconds(1),
                 Duration.ofSeconds(1),
                 HOST_UUID);
 
-        Future<LeaderPingResult> clientWhoIsLed = manualBatchingPingableLeader.ping(HOST_UUID, CLIENT_WHO_IS_LED);
+        Future<LeaderPingResult> clientWhoIsLed = cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
         Future<LeaderPingResult> clientWhoIsNotLed =
-                manualBatchingPingableLeader.ping(HOST_UUID, CLIENT_WHO_IS_NOT_LED);
+                cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_NOT_LED);
 
         when(batchPingableLeader.ping(ImmutableSet.of(CLIENT_WHO_IS_LED, CLIENT_WHO_IS_NOT_LED)))
                 .thenReturn(ImmutableSet.of(CLIENT_WHO_IS_LED));
 
-        manualBatchingPingableLeader.runOneIteration();
+        cumulativeLeaderPinger.runOneIteration();
 
         assertThat(Futures.getUnchecked(clientWhoIsLed))
                 .isEqualTo(LeaderPingResults.pingReturnedTrue(HOST_UUID, HOST_AND_PORT));
@@ -122,13 +126,13 @@ public class ManualBatchingPingableLeaderTest {
 
     @Test
     public void getUnresolvedFutureUntilSingleIterationHasRun() {
-        ManualBatchingPingableLeader manualBatchingPingableLeader = new ManualBatchingPingableLeader(
+        CumulativeLeaderPinger cumulativeLeaderPinger = new CumulativeLeaderPinger(
                 pingerWithContext,
                 Duration.ofSeconds(1),
                 Duration.ofSeconds(1),
                 HOST_UUID);
 
-        Future<LeaderPingResult> clientWhoIsLed = manualBatchingPingableLeader.ping(HOST_UUID, CLIENT_WHO_IS_LED);
+        Future<LeaderPingResult> clientWhoIsLed = cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
 
         assertThat(clientWhoIsLed)
                 .as("it's hard to test that it never gets resolved prior to running the single iteration")
@@ -137,7 +141,7 @@ public class ManualBatchingPingableLeaderTest {
         when(batchPingableLeader.ping(ImmutableSet.of(CLIENT_WHO_IS_LED)))
                 .thenReturn(ImmutableSet.of(CLIENT_WHO_IS_LED));
 
-        manualBatchingPingableLeader.runOneIteration();
+        cumulativeLeaderPinger.runOneIteration();
 
         assertThat(clientWhoIsLed)
                 .as("we expect this to be done, everything is running within a single thread in this test")
@@ -146,29 +150,49 @@ public class ManualBatchingPingableLeaderTest {
 
     @Test
     public void getBackCachedResultIfTryingToPingTwice() {
-        ManualBatchingPingableLeader manualBatchingPingableLeader = new ManualBatchingPingableLeader(
+        CumulativeLeaderPinger cumulativeLeaderPinger = new CumulativeLeaderPinger(
                 pingerWithContext,
                 Duration.ofSeconds(1),
                 Duration.ofSeconds(1),
                 HOST_UUID);
 
-        Future<LeaderPingResult> clientWhoIsLed = manualBatchingPingableLeader.ping(HOST_UUID, CLIENT_WHO_IS_LED);
+        Future<LeaderPingResult> clientWhoIsLed = cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
 
         when(batchPingableLeader.ping(ImmutableSet.of(CLIENT_WHO_IS_LED)))
                 .thenReturn(ImmutableSet.of(CLIENT_WHO_IS_LED))
                 .thenReturn(ImmutableSet.of());
 
-        manualBatchingPingableLeader.runOneIteration();
+        cumulativeLeaderPinger.runOneIteration();
 
         assertThat(Futures.getUnchecked(clientWhoIsLed))
                 .isEqualTo(LeaderPingResults.pingReturnedTrue(HOST_UUID, HOST_AND_PORT));
 
         Future<LeaderPingResult> clientWhoIsLedSecondRequest =
-                manualBatchingPingableLeader.ping(HOST_UUID, CLIENT_WHO_IS_LED);
+                cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
 
         assertThat(Futures.getUnchecked(clientWhoIsLedSecondRequest))
                 .isEqualTo(LeaderPingResults.pingReturnedTrue(HOST_UUID, HOST_AND_PORT));
 
         verify(batchPingableLeader, only()).ping(ImmutableSet.of(CLIENT_WHO_IS_LED));
+    }
+
+    @Test
+    public void secondIterationIncludesClientsFromPreviousIterations() {
+        CumulativeLeaderPinger cumulativeLeaderPinger = new CumulativeLeaderPinger(
+                pingerWithContext,
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(1),
+                HOST_UUID);
+
+        cumulativeLeaderPinger.registerAndPing(HOST_UUID, CLIENT_WHO_IS_LED);
+
+        when(batchPingableLeader.ping(ImmutableSet.of(CLIENT_WHO_IS_LED)))
+                .thenReturn(ImmutableSet.of(CLIENT_WHO_IS_LED));
+
+        cumulativeLeaderPinger.runOneIteration();
+        cumulativeLeaderPinger.runOneIteration();
+
+        // despite being registered only once, the client is included in future ping requests
+        verify(batchPingableLeader, times(2)).ping(ImmutableSet.of(CLIENT_WHO_IS_LED));
     }
 }
