@@ -1,5 +1,8 @@
 type: improvement
 improvement:
-  description: Start transactions requests now return lock watch state information
+  description: |
+    Start transactions requests now return lock watch state information. This forces a product dependency on timelock
+    server version 0.144.0 and higher.
+
   links:
   - https://github.com/palantir/atlasdb/pull/4614
