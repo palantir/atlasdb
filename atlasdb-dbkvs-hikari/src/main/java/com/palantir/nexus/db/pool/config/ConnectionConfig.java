@@ -134,7 +134,7 @@ public abstract class ConnectionConfig {
     }
 
     @JsonIgnore
-    @Value.Derived
+    @Value.Lazy
     public HikariConfig getHikariConfig() {
         // Initialize the Hikari configuration
         HikariConfig config = new HikariConfig();

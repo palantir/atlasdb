@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.DBType;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
@@ -50,12 +51,12 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
                             + "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))"
                             + "(CONNECT_DATA=(%s))"
                             + "(SECURITY=(SSL_SERVER_CERT_DN=\"%s\")))",
-                    getProtocol().getUrlString(), getHost(), getPort(), getConnectionDataString(), getServerDn().get());
+                    getProtocol().getUrlString(), getHost(), getPort(), connectionDataString(), getServerDn().get());
         } else {
             return String.format("jdbc:oracle:thin:@(DESCRIPTION="
                             + "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))"
                             + "(CONNECT_DATA=(%s)))",
-                    getProtocol().getUrlString(), getHost(), getPort(), getConnectionDataString());
+                    getProtocol().getUrlString(), getHost(), getPort(), connectionDataString());
         }
     }
 
@@ -63,10 +64,10 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Value.Derived
     @JsonIgnore
     public Optional<String> namespace() {
-        // If an SID is provided, maintain it - this is needed for legacy compatibility. But if a service name
-        // is provided, that identifies the database and we don't want to enforce consistency checks with the
-        // TimeLock client.
-        return getSid();
+        if (getSid().isPresent()) {
+            return getSid();
+        }
+        return serviceNameConfiguration().map(ServiceNameConfiguration::namespaceOverride);
     }
 
     @Override
@@ -83,7 +84,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     public abstract Optional<String> getSid();
 
-    public abstract Optional<String> getServiceName();
+    public abstract Optional<ServiceNameConfiguration> serviceNameConfiguration();
 
     public abstract Optional<String> getServerDn();
 
@@ -172,8 +173,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkArgument(getSid().isPresent() != getServiceName().isPresent(),
-                "Exactly one of sid and serviceName should be provided.");
+        Preconditions.checkArgument(getSid().isPresent() ^ serviceNameConfiguration().isPresent(),
+                "Exactly one of sid and serviceNameConfiguration should be provided.");
 
         if (getProtocol() == ConnectionProtocol.TCPS) {
             Preconditions.checkArgument(getTruststorePath().isPresent(),
@@ -208,15 +209,26 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         }
     }
 
-    private String getConnectionDataString() {
+    private String connectionDataString() {
         if (getSid().isPresent()) {
             return "SID=" + getSid().get();
         }
 
-        if (getServiceName().isPresent()) {
-            return "SERVICE_NAME=" + getServiceName().get();
+        if (serviceNameConfiguration().isPresent()) {
+            return "SERVICE_NAME=" + serviceNameConfiguration().get().serviceName();
         }
 
-        throw new IllegalArgumentException("Both the sid and service name are absent! One needs to be specified.");
+        throw new SafeIllegalArgumentException("Both the sid and serviceNameConfiguration are absent."
+                + " One needs to be specified.");
+    }
+
+    static class Builder extends ImmutableOracleConnectionConfig.Builder {}
+
+    @Value.Immutable
+    interface ServiceNameConfiguration {
+        String serviceName();
+        String namespaceOverride();
+
+        class Builder extends ImmutableServiceNameConfiguration.Builder {}
     }
 }
