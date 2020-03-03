@@ -16,9 +16,18 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -36,7 +45,27 @@ public class NamespacedConjureTimelockService {
         return conjureTimelockService.startTransactions(AUTH_HEADER, namespace, request);
     }
 
+    public ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request) {
+        return conjureTimelockService.getFreshTimestamps(AUTH_HEADER, namespace, request);
+    }
+
     public LeaderTime leaderTime() {
         return conjureTimelockService.leaderTime(AUTH_HEADER, namespace);
+    }
+
+    public ConjureLockResponse lock(ConjureLockRequest request) {
+        return conjureTimelockService.lock(AUTH_HEADER, namespace, request);
+    }
+
+    public ConjureWaitForLocksResponse waitForLocks(ConjureLockRequest request) {
+        return conjureTimelockService.waitForLocks(AUTH_HEADER, namespace, request);
+    }
+
+    public ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request) {
+        return conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
+    }
+
+    public ConjureUnlockResponse unlock(ConjureUnlockRequest request) {
+        return conjureTimelockService.unlock(AUTH_HEADER, namespace, request);
     }
 }

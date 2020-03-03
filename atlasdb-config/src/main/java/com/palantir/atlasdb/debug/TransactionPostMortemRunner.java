@@ -41,12 +41,12 @@ import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagno
 import com.palantir.atlasdb.debug.FullDiagnosticDigest.LockDigest;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
@@ -139,7 +139,7 @@ public class TransactionPostMortemRunner {
             WritesDigest<T> writesDigest,
             Optional<LockDiagnosticInfo> timelockLockInfo,
             ClientLockDiagnosticDigest clientLockDigest) {
-        Map<UUID, Set<LockDescriptor>> lockRequests = ImmutableMap.<UUID, Set<LockDescriptor>>builder()
+        Map<UUID, Set<ConjureLockDescriptor>> lockRequests = ImmutableMap.<UUID, Set<ConjureLockDescriptor>>builder()
                 .putAll(clientLockDigest.lockRequests())
                 .put(clientLockDigest.immutableTimestampRequestId(), ImmutableSet.of())
                 .build();
@@ -164,7 +164,7 @@ public class TransactionPostMortemRunner {
     }
 
     private static LockDigest lockDigest(
-            Set<LockDescriptor> lockDescriptors,
+            Set<ConjureLockDescriptor> lockDescriptors,
             Optional<Map<LockState, Instant>> maybeLockStates) {
         Map<LockState, Instant> lockStates = maybeLockStates
                 .orElseGet(() -> ImmutableMap.of(LockState.NOT_PRESENT_ON_TIMELOCK, Instant.EPOCH));
