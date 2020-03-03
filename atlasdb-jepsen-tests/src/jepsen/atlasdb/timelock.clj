@@ -10,7 +10,7 @@
   [node]
   (c/su
     (info node "Starting timelock server")
-    (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/timelock-server/service/bin/init.sh" "start")))
+    (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" "/timelock-server/service/bin/init.sh" "start")))
 
 (defn create-db
   "Creates an object that implements the db/DB protocol.
@@ -21,12 +21,15 @@
   (reify db/DB
     (setup! [_ _ node]
       (c/su
-        (debian/install-jdk8!)
+        (debian/add-repo! "stretch" "deb http://deb.debian.org/debian stretch main")
+        (c/exec :apt-get :install :-y :--force-yes :openjdk-8-jre :openjdk-8-jre-headless :libjna-java)
         (info node "Uploading and unpacking timelock server")
         (c/upload "resources/atlasdb/timelock-server.tgz" "/")
         (c/exec :mkdir "/timelock-server")
         (c/exec :tar :xf "/timelock-server.tgz" "-C" "/timelock-server" "--strip-components" "1")
         (c/upload "resources/atlasdb/timelock.yml" "/timelock-server/var/conf")
+        (c/upload "var/security/keyStore.jks" "/timelock-server/var/security")
+        (c/upload "var/security/trustStore.jks" "/timelock-server/var/security")
         (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/timelock-server/var/conf/timelock.yml"))
       (start! node))
 

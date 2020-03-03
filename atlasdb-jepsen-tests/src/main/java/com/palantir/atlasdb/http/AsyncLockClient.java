@@ -52,7 +52,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     }
 
     @Override
-    public LockToken lock(String client, String lockName) throws InterruptedException {
+    public LockToken lock(String client, String lockName) {
         LockRequest lockRequest = LockRequest.of(
                 ImmutableSet.of(StringLockDescriptor.of(lockName)),
                 Long.MAX_VALUE,
@@ -64,12 +64,12 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     }
 
     @Override
-    public Set<LockToken> unlock(Set<LockToken> lockTokenV2s) throws InterruptedException {
+    public Set<LockToken> unlock(Set<LockToken> lockTokenV2s) {
         return timelockService.unlock(lockTokenV2s);
     }
 
     @Override
-    public Set<LockToken> refresh(Set<LockToken> lockTokenV2s) throws InterruptedException {
+    public Set<LockToken> refresh(Set<LockToken> lockTokenV2s) {
         return timelockService.refreshLockLeases(lockTokenV2s);
     }
 }
