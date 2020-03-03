@@ -16,24 +16,17 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
-import java.util.OptionalLong;
 import java.util.Set;
 
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.StartTransactionRequestV5;
-import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.TimestampRange;
 
 /**
@@ -62,25 +55,9 @@ public class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
     }
 
     @Override
-    public TimestampWithWatches getCommitTimestampWithWatches(String namespace, OptionalLong lastVersion) {
-        return nonBlockingClient.getCommitTimestampWithWatches(namespace, lastVersion);
-    }
-
-    @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(String namespace, IdentifiedTimeLockRequest request) {
         // Despite the name, these locks are not exclusive so we do not expect blocking.
         return nonBlockingClient.lockImmutableTimestamp(namespace, request);
-    }
-
-    @Override
-    public StartTransactionResponseV4 startTransactions(String namespace, StartTransactionRequestV4 request) {
-        return nonBlockingClient.startTransactions(namespace, request);
-    }
-
-    @Override
-    public StartTransactionResponseV5 startTransactionsWithWatches(String namespace,
-            StartTransactionRequestV5 request) {
-        return nonBlockingClient.startTransactionsWithWatches(namespace, request);
     }
 
     @Override
@@ -101,11 +78,6 @@ public class BlockingSensitiveTimelockRpcClient implements TimelockRpcClient {
     @Override
     public RefreshLockResponseV2 refreshLockLeases(String namespace, Set<LockToken> tokens) {
         return nonBlockingClient.refreshLockLeases(namespace, tokens);
-    }
-
-    @Override
-    public LeaderTime getLeaderTime(String namespace) {
-        return nonBlockingClient.getLeaderTime(namespace);
     }
 
     @Override

@@ -36,6 +36,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
@@ -49,6 +50,7 @@ import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LockLeaseServiceTest {
@@ -70,7 +72,7 @@ public class LockLeaseServiceTest {
 
     @Before
     public void before() {
-        when(namespacedTimelockRpcClient.getLeaderTime()).thenAnswer(inv -> LeaderTime.of(LEADER_ID, time.get()));
+        when(namespacedConjureTimelockService.leaderTime()).thenAnswer(inv -> LeaderTime.of(LEADER_ID, time.get()));
         lockLeaseService = new LockLeaseService(
                 namespacedTimelockRpcClient, namespacedConjureTimelockService, SERVICE_ID);
     }
@@ -101,13 +103,13 @@ public class LockLeaseServiceTest {
     @Test
     public void startTransactionsResponseHasCorrectLeasedLock() {
         Lease lease = getLease();
-        when(namespacedTimelockRpcClient.startTransactions(any())).thenReturn(
+        when(namespacedConjureTimelockService.startTransactions(any())).thenReturn(
                 startTransactionsResponseWith(LOCK_TOKEN, lease));
 
         StartTransactionResponseV4 clientResponse =
                 lockLeaseService.startTransactions(2);
 
-        verify(namespacedTimelockRpcClient).startTransactions(any());
+        verify(namespacedConjureTimelockService).startTransactions(any());
 
         LeasedLockToken leasedLock = (LeasedLockToken) clientResponse.immutableTimestamp().getLock();
         assertThat(leasedLock.serverToken()).isEqualTo(LOCK_TOKEN);
@@ -163,10 +165,10 @@ public class LockLeaseServiceTest {
     @Test
     public void shouldOnlyCallIdentifiedTimeIfLeaseIsValid() {
         LeasedLockToken validToken = LeasedLockToken.of(LOCK_TOKEN, getLease());
-        when(namespacedTimelockRpcClient.getLeaderTime()).thenReturn(getIdentifiedTime());
+        when(namespacedConjureTimelockService.leaderTime()).thenReturn(getIdentifiedTime());
         lockLeaseService.refreshLockLeases(ImmutableSet.of(validToken));
 
-        verify(namespacedTimelockRpcClient).getLeaderTime();
+        verify(namespacedConjureTimelockService).leaderTime();
         verifyNoMoreInteractions(namespacedTimelockRpcClient);
     }
 
@@ -189,11 +191,13 @@ public class LockLeaseServiceTest {
         assertThat(refreshedLeasedLockToken).isEqualTo(leasedLockToken);
     }
 
-    private StartTransactionResponseV4 startTransactionsResponseWith(LockToken lockToken, Lease lease) {
-        return StartTransactionResponseV4.of(
-                LockImmutableTimestampResponse.of(1L, lockToken),
-                partitionedTimestamps,
-                lease);
+    private ConjureStartTransactionsResponse startTransactionsResponseWith(LockToken lockToken, Lease lease) {
+        return ConjureStartTransactionsResponse.builder()
+                .immutableTimestamp(LockImmutableTimestampResponse.of(1L, lockToken))
+                .timestamps(partitionedTimestamps)
+                .lease(lease)
+                .lockWatchUpdate(LockWatchStateUpdate.failed(UUID.randomUUID()))
+                .build();
     }
 
     private void setTime(long nanos) {

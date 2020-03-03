@@ -21,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.ObjectInputStreamFactory;
 
@@ -48,6 +49,17 @@ public class SerializingProxy implements DelegatingInvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        // Who knows why this class is present. Presumably it's to test some required behaviour in large internal
+        // product. But we know that they don't return ListenableFutures (and we do, and don't use Java serialization),
+        // so let's skip them.
+        if (method.getReturnType().equals(ListenableFuture.class)) {
+            try {
+                return method.invoke(delegate, args);
+            } catch (InvocationTargetException e) {
+                throw e.getCause();
+            }
+        }
+
         final Object[] argsCopy;
         if (args == null) {
             argsCopy = null;

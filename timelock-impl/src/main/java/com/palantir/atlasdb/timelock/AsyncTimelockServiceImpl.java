@@ -19,6 +19,9 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
@@ -45,7 +48,6 @@ import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
@@ -165,24 +167,34 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
-        return StartTransactionResponseV5.fromV4(
+    public ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(StartTransactionRequestV5 request) {
+        return Futures.immediateFuture(StartTransactionResponseV5.fromV4(
                 startTransactions(ImmutableStartTransactionRequestV4.builder()
                         .requestId(request.requestId())
                         .requestorId(request.requestorId())
                         .numTransactions(request.numTransactions())
                         .build()),
-                getWatchStateUpdate(request.lastKnownLockLogVersion()));
+                getWatchStateUpdate(request.lastKnownLockLogVersion())));
     }
 
     @Override
-    public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion) {
-        return TimestampWithWatches.of(getFreshTimestamp(), getWatchStateUpdate(lastKnownVersion));
+    public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
+            int numTimestamps, OptionalLong lastKnownVersion) {
+        TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
+        return Futures.immediateFuture(GetCommitTimestampsResponse.of(
+                freshTimestamps.getLowerBound(), 
+                freshTimestamps.getUpperBound(),
+                getWatchStateUpdate(lastKnownVersion)));
     }
 
     @Override
-    public LeaderTime leaderTime() {
-        return lockService.leaderTime();
+    public ListenableFuture<LeaderTime> leaderTime() {
+        return Futures.immediateFuture(lockService.leaderTime());
+    }
+
+    @Override
+    public ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest) {
+        return Futures.immediateFuture(getFreshTimestamps(timestampsToRequest));
     }
 
     @Override

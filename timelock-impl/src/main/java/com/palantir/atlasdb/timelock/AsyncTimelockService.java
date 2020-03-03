@@ -19,6 +19,8 @@ import java.io.Closeable;
 import java.util.OptionalLong;
 import java.util.Set;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
@@ -36,8 +38,8 @@ import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.timestamp.TimestampRange;
 
 public interface AsyncTimelockService extends ManagedTimestampService, LockWatchingService, Closeable {
 
@@ -61,9 +63,11 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
 
     StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request);
 
-    StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request);
+    ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(StartTransactionRequestV5 request);
 
-    TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion);
+    ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(int numTimestamps, OptionalLong lastKnownVersion);
 
-    LeaderTime leaderTime();
+    ListenableFuture<LeaderTime> leaderTime();
+
+    ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest);
 }

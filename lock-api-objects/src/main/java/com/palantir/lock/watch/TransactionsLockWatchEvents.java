@@ -30,15 +30,15 @@ public interface TransactionsLockWatchEvents {
 
     interface Visitor<T> {
         T visit(Events success);
-        T visit(Failure failure);
+        T visit(ForcedSnapshot failure);
     }
 
     static Events success(List<LockWatchEvent> events, Map<Long, Long> startTsToSequence) {
         return ImmutableEvents.of(events, startTsToSequence);
     }
 
-    static Failure failure(LockWatchStateUpdate.Snapshot snapshot) {
-        return ImmutableFailure.of(snapshot);
+    static ForcedSnapshot failure(LockWatchStateUpdate.Snapshot snapshot) {
+        return ImmutableForcedSnapshot.of(snapshot);
     }
 
     /**
@@ -61,11 +61,11 @@ public interface TransactionsLockWatchEvents {
     /**
      * A failure denotes that it was not possible to compute the result for all of the requested transactions. Since
      * that generally implies we will fail to get the necessary information for the commit timestamp anyway, instead of
-     * giving partial information, we return a single snapshot that can be used to reseed the state of lock watches for
-     * all future transactions.
+     * giving partial information, we return a single snapshot that should be used to reseed the state of lock watches
+     * for all future transactions.
      */
     @Value.Immutable
-    interface Failure extends TransactionsLockWatchEvents {
+    interface ForcedSnapshot extends TransactionsLockWatchEvents {
         @Value.Parameter
         LockWatchStateUpdate.Snapshot snapshot();
 

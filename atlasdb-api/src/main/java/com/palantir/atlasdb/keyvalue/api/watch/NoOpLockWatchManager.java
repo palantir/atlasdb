@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,10 @@ import com.palantir.lock.watch.TransactionsLockWatchEvents;
 
 public final class NoOpLockWatchManager implements LockWatchManager {
     public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
+
+    private NoOpLockWatchManager() {
+        // ...
+    }
 
     @Override
     public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {

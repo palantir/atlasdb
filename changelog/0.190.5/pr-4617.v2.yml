@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Revert "switch to using lighter-weight JDBC connection testing (#4602)"
+  links:
+  - https://github.com/palantir/atlasdb/pull/4617

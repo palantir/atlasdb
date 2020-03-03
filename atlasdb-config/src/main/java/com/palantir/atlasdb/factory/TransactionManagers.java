@@ -73,6 +73,7 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.debug.LockDiagnosticTimelockRpcClient;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
@@ -1007,10 +1008,15 @@ public abstract class TransactionManagers {
                 .<TimelockRpcClient>map(collector -> new LockDiagnosticTimelockRpcClient(timelockClient, collector))
                 .orElse(timelockClient);
 
+        ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticCollector
+                .<ConjureTimelockService>map(collector ->
+                        new LockDiagnosticConjureTimelockService(conjureTimelockService, collector))
+                .orElse(conjureTimelockService);
+
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
                 = new NamespacedTimelockRpcClient(withDiagnosticsTimelockClient, timelockNamespace);
         NamespacedConjureTimelockService namespacedConjureTimelockService
-                = new NamespacedConjureTimelockService(conjureTimelockService, timelockNamespace);
+                = new NamespacedConjureTimelockService(withDiagnosticsConjureTimelockService, timelockNamespace);
 
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedLockWatchingRpcClient namespacedLockWatchingRpcClient = new NamespacedLockWatchingRpcClient(
