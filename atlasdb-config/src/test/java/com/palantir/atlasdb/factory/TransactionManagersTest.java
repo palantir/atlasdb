@@ -122,7 +122,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
@@ -142,11 +141,7 @@ public class TransactionManagersTest {
 
     private static final long EMBEDDED_BOUND = 3;
 
-    private static final String TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC =
-            MetricRegistry.name(TimelockRpcClient.class, "getFreshTimestamp");
     private static final String CURRENT_TIME_MILLIS = "currentTimeMillis";
-    private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(TimelockRpcClient.class, CURRENT_TIME_MILLIS);
     private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
             MetricRegistry.name(LockService.class, CURRENT_TIME_MILLIS);
     private static final String NAMESPACE_AGNOSTIC_LOCK_RPC_CLIENT_CURRENT_TIME_METRIC =
@@ -161,24 +156,6 @@ public class TransactionManagersTest {
     private static final MappingBuilder TIMESTAMP_MAPPING = post(urlEqualTo(TIMESTAMP_PATH));
     private static final String LOCK_PATH = "/lock/current-time-millis";
     private static final MappingBuilder LOCK_MAPPING = post(urlEqualTo(LOCK_PATH));
-
-    private static final String TIMELOCK_TIMESTAMP_PATH = "/" + CLIENT + "/timelock/fresh-timestamp";
-    private static final MappingBuilder TIMELOCK_TIMESTAMP_MAPPING = post(urlEqualTo(TIMELOCK_TIMESTAMP_PATH));
-    private static final String TIMELOCK_TIMESTAMPS_PATH = "/" + CLIENT + "/timelock/fresh-timestamps?number=1";
-    private static final MappingBuilder TIMELOCK_ONE_TIMESTAMP_MAPPING = post(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH));
-    private static final String TIMELOCK_LOCK_PATH = "/" + CLIENT + "/timelock/current-time-millis";
-    private static final MappingBuilder TIMELOCK_LOCK_MAPPING = post(urlEqualTo(TIMELOCK_LOCK_PATH));
-    private static final String TIMELOCK_START_TRANSACTION_PATH
-            = "/" + CLIENT + "/timelock/start-atlasdb-transaction";
-    private static final MappingBuilder TIMELOCK_START_TRANSACTION_MAPPING
-            = post(urlEqualTo(TIMELOCK_START_TRANSACTION_PATH));
-
-
-    private static final String TIMELOCK_PING_PATH =  "/" + CLIENT + "/timestamp-management/ping";
-    private static final MappingBuilder TIMELOCK_PING_MAPPING = get(urlEqualTo(TIMELOCK_PING_PATH));
-    private static final String TIMELOCK_FF_PATH
-            = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
-    private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
 
     private static final SslConfiguration SSL_CONFIGURATION
             = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
@@ -215,19 +192,6 @@ public class TransactionManagersTest {
         availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
         availableServer.stubFor(LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
 
-        availableServer.stubFor(TIMELOCK_TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("3")));
-        availableServer.stubFor(TIMELOCK_ONE_TIMESTAMP_MAPPING.willReturn(aResponse()
-                .withStatus(200)
-                .withBody(new ObjectMapper().writeValueAsString(TimestampRange.createInclusiveRange(88, 88)))));
-        availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
-
-        availableServer.stubFor(TIMELOCK_PING_MAPPING.willReturn(aResponse()
-                .withStatus(200)
-                .withBody(TimestampManagementService.PING_RESPONSE)
-                .withHeader("Content-Type", "text/plain")));
-        availableServer.stubFor(TIMELOCK_FF_MAPPING.willReturn(aResponse()
-                .withStatus(204)));
-
         config = mock(AtlasDbConfig.class);
         when(config.leader()).thenReturn(Optional.empty());
         when(config.timestamp()).thenReturn(Optional.empty());
@@ -260,16 +224,6 @@ public class TransactionManagersTest {
     @After
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
-    }
-
-    @Test
-    public void userAgentsPresentOnRequestsToTimelockServer() {
-        setUpTimeLockBlockInInstallConfig();
-
-        availableServer.stubFor(post(urlMatching("/")).willReturn(aResponse().withStatus(200).withBody("3")));
-        availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
-
-        verifyUserAgentOnTimelockTimestampAndLockRequests();
     }
 
     @Test
@@ -572,16 +526,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void metricsAreReportedExactlyOnceWhenUsingTimelockService() {
-        setUpTimeLockBlockInInstallConfig();
-
-        assertThatTimeAndLockMetricsWithTagsAreRecorded(
-                TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
-                TIMELOCK_SERVICE_CURRENT_TIME_METRIC,
-                CLIENT_TAGS);
-    }
-
-    @Test
     public void timeLockMigrationReportsReadyIfMigrationDone() {
         when(migrator.isInitialized()).thenReturn(true);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
@@ -605,12 +549,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void usesTimeLockIfInstallConfigIsUnspecifiedButInitialRuntimeConfigContainsTimeLockBlock() {
-        setUpTimeLockBlockInRuntimeConfig();
-        verifyUsingTimeLockByGettingAFreshTimestamp();
-    }
-
-    @Test
     public void throwsIfInstallConfigHasLeaderBlockButInitialRuntimeConfigContainsTimeLockBlock() throws IOException {
         setUpLeaderBlockInConfig();
         setUpTimeLockBlockInRuntimeConfig();
@@ -625,22 +563,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigContainsTimeLockBlock() {
-        setUpTimeLockBlockInInstallConfig();
-        setUpTimeLockBlockInRuntimeConfig();
-        verifyUsingTimeLockByGettingAFreshTimestamp();
-    }
-
-    @Test
-    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigDoesNotContainTimeLockBlock() {
-        setUpTimeLockBlockInInstallConfig();
-        verifyUsingTimeLockByGettingAFreshTimestamp();
-
-        assertTrue("Runtime config was not expected to contain a timelock block",
-                !runtimeConfig.timelockRuntime().isPresent());
-    }
-
-    @Test
     public void timelockServiceStatusReturnsHealthyWithoutRequest() {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
         assertTrue(tm.getTimelockServiceStatus().isHealthy());
@@ -651,19 +573,6 @@ public class TransactionManagersTest {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
         tm.getUnreadableTimestamp();
         assertTrue(tm.getTimelockServiceStatus().isHealthy());
-    }
-
-    @Test
-    public void timelockServiceCanStartTransactionsEvenWithoutStartTransactionEndpoint() {
-        availableServer.stubFor(TIMELOCK_START_TRANSACTION_MAPPING.willReturn(
-                aResponse().withStatus(Response.Status.NOT_FOUND.getStatusCode())));
-        TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
-
-        tm.runTaskWithRetry(tx -> {
-            RangeScanTestTable testTable = GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx);
-            testTable.putColumn1(RangeScanTestTable.RangeScanTestRow.of("foo"), 12345L);
-            return null;
-        });
     }
 
     @Test
@@ -760,12 +669,6 @@ public class TransactionManagersTest {
                 GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).getColumn1s(ImmutableSet.of(testRow)));
 
         assertThat(Iterables.getOnlyElement(result.entrySet()).getValue(), is(12345L));
-    }
-
-    private void verifyUsingTimeLockByGettingAFreshTimestamp() {
-        when(config.namespace()).thenReturn(Optional.of(CLIENT));
-        getLockAndTimestampServices().timelock().getFreshTimestamp();
-        availableServer.verify(1, postRequestedFor(urlMatching(TIMELOCK_TIMESTAMP_PATH)));
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
@@ -866,15 +769,6 @@ public class TransactionManagersTest {
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
         verifyUserAgentOnTimestampAndLockRequests(TIMESTAMP_PATH, LOCK_PATH);
-    }
-
-    private void verifyUserAgentOnTimelockTimestampAndLockRequests() {
-        verifyUserAgentOnTimestampAndLockRequests(TIMELOCK_TIMESTAMP_PATH, TIMELOCK_LOCK_PATH);
-        verify(invalidator, times(1)).backupAndInvalidate();
-        availableServer.verify(getRequestedFor(urlEqualTo(TIMELOCK_PING_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
-        availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_FF_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {

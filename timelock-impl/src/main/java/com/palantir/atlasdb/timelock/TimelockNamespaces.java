@@ -22,7 +22,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,7 @@ public final class TimelockNamespaces {
     @VisibleForTesting static final String ACTIVE_CLIENTS = "activeClients";
     @VisibleForTesting static final String MAX_CLIENTS = "maxClients";
 
+    private static final Predicate<String> isValidName = Pattern.compile("^(?!tl)[a-zA-Z0-9_-]+$").asPredicate();
     private static final Logger log = LoggerFactory.getLogger(TimelockNamespaces.class);
 
     private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>();
@@ -71,6 +74,8 @@ public final class TimelockNamespaces {
     }
 
     private TimeLockServices createNewClient(String namespace) {
+        Preconditions.checkArgument(isValidName.test(namespace),
+                "Invalid namespace", SafeArg.of("namespace", namespace));
         Preconditions.checkArgument(!namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 "The client name '%s' is reserved for the leader election service, and may not be "
                         + "used.",
