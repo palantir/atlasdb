@@ -31,7 +31,6 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -101,7 +100,7 @@ public class TransactionManagerModule {
                 metricsManager,
                 kvs,
                 lts.timelock(),
-                lts.lockWatcher().orElse(NoOpLockWatchManager.INSTANCE),
+                lts.lockWatcher(),
                 lts.managedTimestampService(),
                 lts.lock(),
                 transactionService,

@@ -53,7 +53,9 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     public static RemoteTimelockServiceAdapter create(
-            TimelockRpcClient rpcClient, ConjureTimelockService conjureClient, String timelockNamespace,
+            TimelockRpcClient rpcClient,
+            ConjureTimelockService conjureClient,
+            String timelockNamespace,
             LockWatchEventCache lockWatchEventCache) {
         return create(
                 new NamespacedTimelockRpcClient(rpcClient, timelockNamespace),

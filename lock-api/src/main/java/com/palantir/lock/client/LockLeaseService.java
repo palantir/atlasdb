@@ -17,7 +17,6 @@
 package com.palantir.lock.client;
 
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,7 +36,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.logsafe.Preconditions;
 
 class LockLeaseService {
@@ -90,24 +88,14 @@ class LockLeaseService {
                 lease);
     }
 
-    StartTransactionResponseV5 startTransactionsWithWatches(OptionalLong version, int batchSize) {
+    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<Long> version, int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
-                .lastKnownVersion(version.isPresent() ? Optional.of(version.getAsLong()) : Optional.empty())
+                .lastKnownVersion(version)
                 .build();
-        ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
-
-        Lease lease = conjureResponse.getLease();
-        LeasedLockToken leasedLockToken = LeasedLockToken.of(conjureResponse.getImmutableTimestamp().getLock(), lease);
-        long immutableTs = conjureResponse.getImmutableTimestamp().getImmutableTimestamp();
-
-        return StartTransactionResponseV5.of(
-                LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
-                conjureResponse.getTimestamps(),
-                lease,
-                conjureResponse.getLockWatchUpdate());
+        return conjureDelegate.startTransactions(request);
     }
 
     LockResponse lock(LockRequest request) {

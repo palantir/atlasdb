@@ -447,7 +447,7 @@ public abstract class TransactionManagers {
                         metricsManager,
                         keyValueService,
                         lockAndTimestampServices.timelock(),
-                        lockAndTimestampServices.lockWatcher().orElse(NoOpLockWatchManager.INSTANCE),
+                        lockAndTimestampServices.lockWatcher(),
                         lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
                         transactionService,
@@ -1218,7 +1218,10 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagement();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
-        Optional<LockWatchManager> lockWatcher();
+        @Value.Default
+        default LockWatchManager lockWatcher() {
+            return NoOpLockWatchManager.INSTANCE;
+        }
 
         @Value.Derived
         default ManagedTimestampService managedTimestampService() {

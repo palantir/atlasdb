@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.OptionalLong;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
@@ -47,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
@@ -57,7 +58,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -96,9 +96,9 @@ public class TransactionStarterTest {
 
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_singleTransaction() {
-        StartTransactionResponseV5 startTransactionResponse = getStartTransactionResponse(12, 1);
+        ConjureStartTransactionsResponse startTransactionResponse = getStartTransactionResponse(12, 1);
 
-        when(lockLeaseService.startTransactionsWithWatches(OptionalLong.empty(), 1))
+        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 1))
                 .thenReturn(startTransactionResponse);
         StartIdentifiedAtlasDbTransactionResponse response = transactionStarter.startIdentifiedAtlasDbTransaction();
 
@@ -107,8 +107,8 @@ public class TransactionStarterTest {
 
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_multipleTransactions() {
-        StartTransactionResponseV5 batchResponse = getStartTransactionResponse(40, 3);
-        when(lockLeaseService.startTransactionsWithWatches(OptionalLong.empty(), 3))
+        ConjureStartTransactionsResponse batchResponse = getStartTransactionResponse(40, 3);
+        when(lockLeaseService.startTransactionsWithWatches(Optional.empty(), 3))
                 .thenReturn(batchResponse);
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(3);
@@ -120,13 +120,13 @@ public class TransactionStarterTest {
 
     @Test
     public void shouldCallTimelockMultipleTimesUntilCollectsAllRequiredTimestampsAndProcessUpdates() {
-        when(lockLeaseService.startTransactionsWithWatches(any(OptionalLong.class), anyInt()))
+        when(lockLeaseService.startTransactionsWithWatches(any(Optional.class), anyInt()))
                 .thenReturn(getStartTransactionResponse(40, 2))
                 .thenReturn(getStartTransactionResponse(100, 1));
 
         requestBatches(3);
-        verify(lockLeaseService).startTransactionsWithWatches(OptionalLong.empty(), 3);
-        verify(lockLeaseService).startTransactionsWithWatches(OptionalLong.empty(), 1);
+        verify(lockLeaseService).startTransactionsWithWatches(Optional.empty(), 3);
+        verify(lockLeaseService).startTransactionsWithWatches(Optional.empty(), 1);
         verify(lockWatchEventCache).processStartTransactionsUpdate(ImmutableSet.of(40L, 56L), UPDATE);
     }
 
@@ -156,35 +156,36 @@ public class TransactionStarterTest {
 
     private static void assertDerivableFromBatchedResponse(
             StartIdentifiedAtlasDbTransactionResponse startTransactionResponse,
-            StartTransactionResponseV5 batchedStartTransactionResponse) {
+            ConjureStartTransactionsResponse batchedStartTransactionResponse) {
 
         assertThat(startTransactionResponse.immutableTimestamp().getLock())
                 .as("Should have a lock token share referencing to immutable ts lock token")
                 .isInstanceOf(LockTokenShare.class)
                 .extracting(t -> ((LockTokenShare) t).sharedLockToken())
-                .isEqualTo(batchedStartTransactionResponse.immutableTimestamp().getLock());
+                .isEqualTo(batchedStartTransactionResponse.getImmutableTimestamp().getLock());
 
         assertThat(startTransactionResponse.immutableTimestamp().getImmutableTimestamp())
                 .as("Should have same immutable timestamp")
-                .isEqualTo(batchedStartTransactionResponse.immutableTimestamp().getImmutableTimestamp());
+                .isEqualTo(batchedStartTransactionResponse.getImmutableTimestamp().getImmutableTimestamp());
 
         assertThat(startTransactionResponse.startTimestampAndPartition().partition())
                 .as("Should have same partition value")
-                .isEqualTo(batchedStartTransactionResponse.timestamps().partition());
+                .isEqualTo(batchedStartTransactionResponse.getTimestamps().partition());
 
-        assertThat(batchedStartTransactionResponse.timestamps().stream())
+        assertThat(batchedStartTransactionResponse.getTimestamps().stream())
                 .as("Start timestamp should be contained by batched response")
                 .contains(startTransactionResponse.startTimestampAndPartition().timestamp());
     }
 
 
-    private static StartTransactionResponseV5 getStartTransactionResponse(
+    private static ConjureStartTransactionsResponse getStartTransactionResponse(
             long lowestStartTs, int count) {
-        return StartTransactionResponseV5.of(
-                IMMUTABLE_TS_RESPONSE,
-                getPartitionedTimestamps(lowestStartTs, count),
-                LEASE,
-                UPDATE);
+        return ConjureStartTransactionsResponse.builder()
+                .immutableTimestamp(IMMUTABLE_TS_RESPONSE)
+                .timestamps(getPartitionedTimestamps(lowestStartTs, count))
+                .lease(LEASE)
+                .lockWatchUpdate(UPDATE)
+                .build();
     }
 
     private static PartitionedTimestamps getPartitionedTimestamps(long startTs, int count) {

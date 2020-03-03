@@ -16,7 +16,7 @@
 
 package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableSet;
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
     private static final IdentifiedVersion FAKE = ImmutableIdentifiedVersion
-            .of(UUID.randomUUID(), OptionalLong.empty());
+            .of(UUID.randomUUID(), Optional.empty());
     private static final TransactionsLockWatchEvents NONE = TransactionsLockWatchEvents.failure(
             LockWatchStateUpdate.snapshot(UUID.randomUUID(), 0L, ImmutableSet.of(), ImmutableSet.of()));
 

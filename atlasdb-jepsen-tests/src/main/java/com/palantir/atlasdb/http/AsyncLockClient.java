@@ -39,7 +39,9 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
 
     private AsyncLockClient(NamespacedTimelockRpcClient timelockService,
             NamespacedConjureTimelockService conjureTimelockService) {
-        this.timelockService = RemoteTimelockServiceAdapter.create(timelockService, conjureTimelockService,
+        this.timelockService = RemoteTimelockServiceAdapter.create(
+                timelockService,
+                conjureTimelockService,
                 NoOpLockWatchEventCache.INSTANCE);
     }
 

@@ -32,12 +32,12 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.watch.LockWatchEventCache;
 
@@ -153,26 +153,27 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache,
+            LockLeaseService lockLeaseService,
+            LockWatchEventCache lockWatchEventCache,
             int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
-            StartTransactionResponseV5 response = lockLeaseService.startTransactionsWithWatches(
+            ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
                     lockWatchEventCache.lastKnownVersion().version(), numberOfTransactions - result.size());
             lockWatchEventCache.processStartTransactionsUpdate(
-                    response.timestamps().stream().boxed().collect(Collectors.toSet()),
-                    response.lockWatchUpdate());
+                    response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
+                    response.getLockWatchUpdate());
             result.addAll(split(response));
         }
         return result;
     }
 
-    private static List<StartIdentifiedAtlasDbTransactionResponse> split(StartTransactionResponseV5 batchedResponse) {
-        PartitionedTimestamps partitionedTimestamps = batchedResponse.timestamps();
+    private static List<StartIdentifiedAtlasDbTransactionResponse> split(ConjureStartTransactionsResponse response) {
+        PartitionedTimestamps partitionedTimestamps = response.getTimestamps();
         int partition = partitionedTimestamps.partition();
 
-        LockToken immutableTsLock = batchedResponse.immutableTimestamp().getLock();
-        long immutableTs = batchedResponse.immutableTimestamp().getImmutableTimestamp();
+        LockToken immutableTsLock = response.getImmutableTimestamp().getLock();
+        long immutableTs = response.getImmutableTimestamp().getImmutableTimestamp();
 
         Stream<LockImmutableTimestampResponse> immutableTsAndLocks =
                 LockTokenShare.share(immutableTsLock, partitionedTimestamps.count())
