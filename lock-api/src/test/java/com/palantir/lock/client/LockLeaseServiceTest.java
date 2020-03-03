@@ -50,6 +50,7 @@ import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LockLeaseServiceTest {
@@ -191,10 +192,12 @@ public class LockLeaseServiceTest {
     }
 
     private ConjureStartTransactionsResponse startTransactionsResponseWith(LockToken lockToken, Lease lease) {
-        return ConjureStartTransactionsResponse.of(
-                LockImmutableTimestampResponse.of(1L, lockToken),
-                partitionedTimestamps,
-                lease);
+        return ConjureStartTransactionsResponse.builder()
+                .immutableTimestamp(LockImmutableTimestampResponse.of(1L, lockToken))
+                .timestamps(partitionedTimestamps)
+                .lease(lease)
+                .lockWatchUpdate(LockWatchStateUpdate.failed(UUID.randomUUID()))
+                .build();
     }
 
     private void setTime(long nanos) {

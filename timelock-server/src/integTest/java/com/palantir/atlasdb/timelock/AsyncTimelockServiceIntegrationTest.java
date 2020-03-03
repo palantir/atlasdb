@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -146,6 +147,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .numTransactions(123)
                 .requestorId(UUID.randomUUID())
                 .requestId(UUID.randomUUID())
+                .lastKnownVersion(Optional.empty())
                 .build();
 
         LockImmutableTimestampResponse response1 = namespace.namespacedConjureTimelockService()
@@ -612,6 +614,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .requestId(UUID.randomUUID())
                 .requestorId(requestorUuid)
                 .numTransactions(numRequestedTimestamps)
+                .lastKnownVersion(Optional.empty())
                 .build();
         ConjureStartTransactionsResponse response = namespace.namespacedConjureTimelockService()
                 .startTransactions(request);

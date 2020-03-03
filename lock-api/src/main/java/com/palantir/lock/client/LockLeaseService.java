@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -69,6 +70,7 @@ class LockLeaseService {
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
+                .lastKnownVersion(Optional.empty())
                 .build();
         ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
         StartTransactionResponseV4 response = StartTransactionResponseV4.of(

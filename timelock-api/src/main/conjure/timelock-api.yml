@@ -28,6 +28,7 @@ types:
       base-type: any
       external:
         java: java.lang.Long
+
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
@@ -36,11 +37,13 @@ types:
           requestId: uuid
           requestorId: uuid
           numTransactions: integer
+          lastKnownVersion: optional<Long>
       ConjureStartTransactionsResponse:
         fields:
           immutableTimestamp: LockImmutableTimestampResponse
           timestamps: PartitionedTimestamps
           lease: Lease
+          lockWatchUpdate: LockWatchStateUpdate
       ConjureGetFreshTimestampsRequest:
         fields:
           numTimestamps: integer

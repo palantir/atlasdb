@@ -81,6 +81,9 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .requestId(request.getRequestId())
                     .requestorId(request.getRequestorId())
                     .numTransactions(request.getNumTransactions())
+                    .lastKnownLockLogVersion(request.getLastKnownVersion()
+                            .map(OptionalLong::of)
+                            .orElseGet(OptionalLong::empty))
                     .build();
             ListenableFuture<StartTransactionResponseV5> responseFuture =
                     forNamespace(namespace).startTransactionsWithWatches(legacyRequest);
@@ -88,6 +91,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                             .immutableTimestamp(response.immutableTimestamp())
                             .timestamps(response.timestamps())
                             .lease(response.lease())
+                            .lockWatchUpdate(response.lockWatchUpdate())
                             .build(),
                     MoreExecutors.directExecutor());
         });
