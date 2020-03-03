@@ -47,43 +47,40 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(AutobatchingPingableLeaderFactory.class);
 
     private final Collection<? extends Closeable> closeables;
-    private final DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidToRemoteAutobatcher;
-    private final Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors;
+    private final DisruptorAutobatcher<UUID, Optional<ClientAwareLeaderPinger>> uuidToRemoteAutobatcher;
     private final Duration leaderPingResponseWait;
 
     private AutobatchingPingableLeaderFactory(
             Collection<? extends Closeable> closeables,
-            DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidAutobatcher,
-            Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
+            DisruptorAutobatcher<UUID, Optional<ClientAwareLeaderPinger>> uuidAutobatcher,
             Duration leaderPingResponseWait) {
         this.closeables = closeables;
         this.uuidToRemoteAutobatcher = uuidAutobatcher;
-        this.executors = executors;
         this.leaderPingResponseWait = leaderPingResponseWait;
     }
 
     public static AutobatchingPingableLeaderFactory create(
             Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
-            Duration leaderPingResponseWait,
+            Duration pingRate,
+            Duration pingResponseWait,
             UUID localUuid) {
-        Set<ClientAwarePingableLeader> clientAwarePingables = executors.keySet().stream()
-                .<ClientAwarePingableLeader>map(ClientAwarePingableLeaderImpl::create)
+        Set<ClientAwareLeaderPinger> clientAwarePingables = executors.keySet().stream()
+                .map(remoteClient -> clientAwarePingableLeader(remoteClient, pingRate, pingResponseWait, localUuid))
                 .collect(Collectors.toSet());
 
-        DisruptorAutobatcher<UUID, Optional<ClientAwarePingableLeader>> uuidAutobatcher = Autobatchers.independent(
+        DisruptorAutobatcher<UUID, Optional<ClientAwareLeaderPinger>> uuidAutobatcher = Autobatchers.independent(
                 new GetSuspectedLeaderWithUuid(
                         executors,
                         clientAwarePingables,
                         localUuid,
-                        leaderPingResponseWait))
+                        pingResponseWait))
                 .safeLoggablePurpose("batch-paxos-pingable-leader.uuid")
                 .build();
 
         return new AutobatchingPingableLeaderFactory(
                 clientAwarePingables,
                 uuidAutobatcher,
-                executors,
-                leaderPingResponseWait);
+                pingResponseWait);
     }
 
     @Override
@@ -102,45 +99,18 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
         return new AutobatchingLeaderPinger(client);
     }
 
-    private static final class ClientAwarePingableLeaderImpl implements ClientAwarePingableLeader {
-
-        private final DisruptorAutobatcher<PingRequest, LeaderPingResult> pingAutobatcher;
-        private final LeaderPingerContext<BatchPingableLeader> remoteClient;
-
-        ClientAwarePingableLeaderImpl(
-                DisruptorAutobatcher<PingRequest, LeaderPingResult> pingAutobatcher,
-                LeaderPingerContext<BatchPingableLeader> remoteClient) {
-            this.pingAutobatcher = pingAutobatcher;
-            this.remoteClient = remoteClient;
-        }
-
-        static ClientAwarePingableLeaderImpl create(LeaderPingerContext<BatchPingableLeader> remoteClient) {
-            DisruptorAutobatcher<PingRequest, LeaderPingResult> pingAutobatcher =
-                    Autobatchers.coalescing(new PingCoalescingFunction(remoteClient))
-                            .safeLoggablePurpose("batch-pingable-leader.ping")
-                            .build();
-
-            return new ClientAwarePingableLeaderImpl(pingAutobatcher, remoteClient);
-        }
-
-        @Override
-        public LeaderPingResult ping(UUID requestedUuid, Client client) {
-            try {
-                return pingAutobatcher.apply(ImmutablePingRequest.of(client, requestedUuid)).get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
-            }
-        }
-
-        @Override
-        public LeaderPingerContext<BatchPingableLeader> underlyingRpcClient() {
-            return remoteClient;
-        }
-
-        @Override
-        public void close() {
-            pingAutobatcher.close();
-        }
+    private static ClientAwareLeaderPinger clientAwarePingableLeader(
+            LeaderPingerContext<BatchPingableLeader> remoteClient,
+            Duration leaderPingRate,
+            Duration leaderPingResponseWait,
+            UUID localUuid) {
+        CumulativeLeaderPinger manualBatchingPingableLeader = new CumulativeLeaderPinger(
+                remoteClient,
+                leaderPingRate,
+                leaderPingResponseWait,
+                localUuid);
+        manualBatchingPingableLeader.startAsync();
+        return manualBatchingPingableLeader;
     }
 
     private final class AutobatchingLeaderPinger implements LeaderPinger {
@@ -154,27 +124,28 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
         @Override
         public LeaderPingResult pingLeaderWithUuid(UUID uuid) {
             try {
-                Optional<ClientAwarePingableLeader> maybePingableLeader = uuidToRemoteAutobatcher.apply(uuid).get();
+                Optional<ClientAwareLeaderPinger> maybePingableLeader = uuidToRemoteAutobatcher.apply(uuid).get();
                 if (!maybePingableLeader.isPresent()) {
                     return LeaderPingResults.pingReturnedFalse();
                 }
 
-                ClientAwarePingableLeader pingableLeaderWithUuid = maybePingableLeader.get();
-                return executors.get(pingableLeaderWithUuid.underlyingRpcClient())
-                        .submit(() -> pingableLeaderWithUuid.ping(uuid, client))
+                return maybePingableLeader.get().registerAndPing(uuid, client)
                         .get(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 log.warn("received interrupt whilst trying to ping leader",
-                        SafeArg.of("client", client));
+                        SafeArg.of("client", client),
+                        e);
                 Thread.currentThread().interrupt();
                 return LeaderPingResults.pingCallFailure(e);
             } catch (ExecutionException e) {
-                log.warn("received error whilst trying to ping leader", e.getCause(),
-                        SafeArg.of("client", client));
+                log.warn("received error whilst trying to ping leader",
+                        SafeArg.of("client", client),
+                        e.getCause());
                 return LeaderPingResults.pingCallFailure(e.getCause());
             } catch (TimeoutException e) {
                 log.warn("timed out whilst trying to ping leader",
-                        SafeArg.of("client", client));
+                        SafeArg.of("client", client),
+                        e);
                 return LeaderPingResults.pingTimedOut();
             }
         }

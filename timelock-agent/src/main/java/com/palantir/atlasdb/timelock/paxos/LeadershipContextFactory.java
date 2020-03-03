@@ -78,6 +78,11 @@ public abstract class LeadershipContextFactory implements
     }
 
     @Value.Derived
+    public Duration leaderPingRate() {
+        return runtime().get().pingRate();
+    }
+
+    @Value.Derived
     List<com.palantir.timelock.paxos.HealthCheckPinger> healthCheckPingers() {
         return healthCheckPingersFactory().create(this);
     }
