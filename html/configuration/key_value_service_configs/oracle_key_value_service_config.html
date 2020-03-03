@@ -328,7 +328,18 @@ An example is shown below; for full documentation on which parameters are availa
 </tr>
 <tr class="row-even"><td>sid</td>
 <td>The site identifier for the Oracle server.</td>
-<td>Yes</td>
+<td>No, but one of sid and serviceNameConfiguration must be specified.</td>
+</tr>
+<tr class="row-odd"><td>serviceNameConfiguration.serviceName</td>
+<td>The service name for the Oracle server.</td>
+<td>No, but one of sid and serviceNameConfiguration must be specified.</td>
+</tr>
+<tr class="row-even"><td>serviceNameConfiguration.namespaceOverride</td>
+<td>The namespace for this Oracle key-value service. If you are migrating from a database with a given sid,
+this value should be set to the value of that sid before the migration. If you are bootstrapping a new
+stack, this value should be set to the value of the top-level AtlasDB namespace config if present; otherwise,
+it may be set arbitrarily (but <em>must</em> be set to some value).</td>
+<td>No, but one of sid and serviceNameConfiguration must be specified.</td>
 </tr>
 <tr class="row-odd"><td>dbLogin</td>
 <td>The Oracle DB username.</td>
@@ -340,6 +351,26 @@ An example is shown below; for full documentation on which parameters are availa
 </tr>
 </tbody>
 </table>
+</div>
+<div class="section" id="migrating-connection-methods">
+<h3>Migrating Connection Methods<a class="headerlink" href="#migrating-connection-methods" title="Permalink to this headline">¶</a></h3>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">Improperly migrating from one method of connecting to Oracle to another can result in <strong>SEVERE DATA CORRUPTION</strong>!
+Please contact the AtlasDB team before attempting such a migration.</p>
+</div>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">The processes outlined below <strong>ONLY</strong> apply for Oracle users using embedded timestamp and lock services.
+TimeLock users should contact the AtlasDB team before attempting such a migration. The procedures outlined below
+employed naively can result in <strong>SEVERE DATA CORRUPTION</strong>!</p>
+</div>
+<p>AtlasDB supports connecting to an Oracle database via its <cite>sid</cite>, or through a <cite>serviceName</cite> (the latter is configured
+through a <cite>serviceNameConfiguration</cite>).</p>
+<p>When migrating from using <cite>sid</cite> to <cite>serviceName</cite>, the user must specify the original value of the <cite>sid</cite> before the
+migration as <cite>serviceNameConfiguration.namespaceOverride</cite>.</p>
+<p>This migration can be reversed trivially (just by changing the config to reference the now-correct <cite>sid</cite>) if you are
+using embedded timestamp and lock services.</p>
 </div>
 </div>
 </div>
