@@ -24,6 +24,7 @@ import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampClient {
@@ -38,6 +39,7 @@ public final class TimestampClient {
                                TimelockUtils.NAMESPACE),
                        new NamespacedConjureTimelockService(
                                TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class),
-                               TimelockUtils.NAMESPACE)));
+                               TimelockUtils.NAMESPACE),
+                       NoOpLockWatchEventCache.INSTANCE));
     }
 }
