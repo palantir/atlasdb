@@ -97,7 +97,17 @@ class LockLeaseService {
                 .numTransactions(batchSize)
                 .lastKnownVersion(version)
                 .build();
-        return conjureDelegate.startTransactions(request);
+        ConjureStartTransactionsResponse response = delegate.startTransactions(request);
+        Lease lease = response.getLease();
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(
+                ConjureLockToken.of(response.getImmutableTimestamp().getLock().getRequestId()), lease);
+        long immutableTs = response.getImmutableTimestamp().getImmutableTimestamp();
+        return ConjureStartTransactionsResponse.builder()
+                .lease(lease)
+                .immutableTimestamp(LockImmutableTimestampResponse.of(immutableTs, leasedLockToken))
+                .timestamps(response.getTimestamps())
+                .lockWatchUpdate(response.getLockWatchUpdate())
+                .build();
     }
 
     LockResponse lock(LockRequest request) {
