@@ -16,6 +16,7 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.immutables.value.Value;
@@ -25,5 +26,5 @@ public interface IdentifiedVersion {
     @Value.Parameter
     UUID id();
     @Value.Parameter
-    long version();
+    Optional<Long> version();
 }

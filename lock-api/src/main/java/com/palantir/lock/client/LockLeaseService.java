@@ -90,6 +90,26 @@ class LockLeaseService {
                 lease);
     }
 
+    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<Long> version, int batchSize) {
+        ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
+                .requestorId(clientId)
+                .requestId(UUID.randomUUID())
+                .numTransactions(batchSize)
+                .lastKnownVersion(version)
+                .build();
+        ConjureStartTransactionsResponse response = delegate.startTransactions(request);
+        Lease lease = response.getLease();
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(
+                ConjureLockToken.of(response.getImmutableTimestamp().getLock().getRequestId()), lease);
+        long immutableTs = response.getImmutableTimestamp().getImmutableTimestamp();
+        return ConjureStartTransactionsResponse.builder()
+                .lease(lease)
+                .immutableTimestamp(LockImmutableTimestampResponse.of(immutableTs, leasedLockToken))
+                .timestamps(response.getTimestamps())
+                .lockWatchUpdate(response.getLockWatchUpdate())
+                .build();
+    }
+
     LockResponse lock(LockRequest request) {
         return delegate.lock(ConjureLockRequests.toConjure(request)).accept(ToLeasedLockResponse.INSTANCE);
     }

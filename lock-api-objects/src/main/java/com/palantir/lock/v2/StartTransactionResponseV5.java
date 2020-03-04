@@ -40,4 +40,17 @@ public interface StartTransactionResponseV5 {
                 .lockWatchUpdate(lockWatch)
                 .build();
     }
+
+    static StartTransactionResponseV5 of(
+            LockImmutableTimestampResponse immutableTimestamp,
+            PartitionedTimestamps timestamps,
+            Lease lease,
+            LockWatchStateUpdate lockWatchUpdate) {
+        return ImmutableStartTransactionResponseV5.builder()
+                .immutableTimestamp(immutableTimestamp)
+                .timestamps(timestamps)
+                .lease(lease)
+                .lockWatchUpdate(lockWatchUpdate)
+                .build();
+    }
 }

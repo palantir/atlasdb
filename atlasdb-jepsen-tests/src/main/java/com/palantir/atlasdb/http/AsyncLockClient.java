@@ -30,6 +30,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
@@ -38,7 +39,10 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
 
     private AsyncLockClient(NamespacedTimelockRpcClient timelockService,
             NamespacedConjureTimelockService conjureTimelockService) {
-        this.timelockService = RemoteTimelockServiceAdapter.create(timelockService, conjureTimelockService);
+        this.timelockService = RemoteTimelockServiceAdapter.create(
+                timelockService,
+                conjureTimelockService,
+                NoOpLockWatchEventCache.INSTANCE);
     }
 
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {

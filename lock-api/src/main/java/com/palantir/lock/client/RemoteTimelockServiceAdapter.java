@@ -31,6 +31,7 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
@@ -40,24 +41,30 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final TransactionStarter transactionStarter;
 
     private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient,
-            NamespacedConjureTimelockService conjureTimelockService) {
+            NamespacedConjureTimelockService conjureTimelockService,
+            LockWatchEventCache lockWatchEventCache) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
-        this.transactionStarter = TransactionStarter.create(lockLeaseService);
+        this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
-            NamespacedConjureTimelockService conjureClient) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient);
+            NamespacedConjureTimelockService conjureClient,
+            LockWatchEventCache lockWatchEventCache) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache);
     }
 
     public static RemoteTimelockServiceAdapter create(
-            TimelockRpcClient rpcClient, ConjureTimelockService conjureClient, String timelockNamespace) {
+            TimelockRpcClient rpcClient,
+            ConjureTimelockService conjureClient,
+            String timelockNamespace,
+            LockWatchEventCache lockWatchEventCache) {
         return create(
                 new NamespacedTimelockRpcClient(rpcClient, timelockNamespace),
-                new NamespacedConjureTimelockService(conjureClient, timelockNamespace));
+                new NamespacedConjureTimelockService(conjureClient, timelockNamespace),
+                lockWatchEventCache);
     }
 
     @Override

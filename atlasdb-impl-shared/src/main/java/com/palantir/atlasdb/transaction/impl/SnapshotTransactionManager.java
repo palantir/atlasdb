@@ -41,6 +41,7 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -75,6 +76,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
+    final LockWatchManager lockWatchManager;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -97,6 +99,7 @@ import com.palantir.timestamp.TimestampService;
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            LockWatchManager lockWatchManager,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -114,6 +117,7 @@ import com.palantir.timestamp.TimestampService;
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
+        this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -235,6 +239,7 @@ import com.palantir.timestamp.TimestampService;
                 metricsManager,
                 keyValueService,
                 timelockService,
+                lockWatchManager,
                 transactionService,
                 cleaner,
                 startTimestampSupplier,
@@ -275,6 +280,7 @@ import com.palantir.timestamp.TimestampService;
                 metricsManager,
                 keyValueService,
                 timelockService,
+                lockWatchManager,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),
@@ -384,6 +390,11 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TimelockService getTimelockService() {
         return timelockService;
+    }
+
+    @Override
+    public LockWatchManager getLockWatchManager() {
+        return lockWatchManager;
     }
 
     /**

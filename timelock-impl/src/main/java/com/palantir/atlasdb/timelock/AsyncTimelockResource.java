@@ -138,13 +138,6 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @Path("start-atlasdb-transaction-v5")
-    public void startTransactionsWithWatches(
-            @Suspended final AsyncResponse response, StartTransactionRequestV5 request) {
-        addJerseyCallback(timelock.startTransactionsWithWatches(request), response);
-    }
-
-    @POST
     @Path("immutable-timestamp")
     public long getImmutableTimestamp() {
         return timelock.getImmutableTimestamp();
