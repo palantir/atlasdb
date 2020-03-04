@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -34,12 +35,12 @@ public class ArrayLockEventSlidingWindow {
     private final int maxSize;
     private volatile long nextSequence = 0;
 
-    public ArrayLockEventSlidingWindow(int maxSize) {
+    ArrayLockEventSlidingWindow(int maxSize) {
         this.buffer = new LockWatchEvent[maxSize];
         this.maxSize = maxSize;
     }
 
-    public long lastVersion() {
+    long lastVersion() {
         return nextSequence - 1;
     }
 
@@ -49,18 +50,26 @@ public class ArrayLockEventSlidingWindow {
      * Note on concurrency:
      * 1. Each write to buffer is followed by a write to nextSequence, which is volatile.
      */
-    public synchronized void add(LockWatchEvent.Builder eventBuilder) {
+    synchronized void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
         buffer[LongMath.mod(nextSequence, maxSize)] = event;
         nextSequence++;
     }
 
-    public synchronized void finalizeAndAddSnapshot(long startVersion, LockWatchCreatedEventReplayer eventReplayer) {
+    synchronized void finalizeAndAddSnapshot(long startVersion, LockWatchCreatedEventReplayer eventReplayer) {
         Optional<List<LockWatchEvent>> remaining = getFromVersion(startVersion);
         if (remaining.isPresent()) {
             remaining.get().forEach(eventReplayer::replay);
             add(LockWatchCreatedEvent.builder(eventReplayer.getReferences(), eventReplayer.getLockedDescriptors()));
         }
+    }
+
+    /**
+     * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
+     * result in a deadlock.
+     */
+    synchronized <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
+        return ValueAndVersion.of(lastVersion(), task.get());
     }
 
     /**

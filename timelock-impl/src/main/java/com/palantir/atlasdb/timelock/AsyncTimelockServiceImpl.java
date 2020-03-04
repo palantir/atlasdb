@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -28,12 +29,12 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
+import com.palantir.atlasdb.timelock.lock.watch.ValueAndVersion;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.ImmutableStartTransactionRequestV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponseV2;
@@ -199,13 +200,22 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(StartTransactionRequestV5 request) {
-        return Futures.immediateFuture(StartTransactionResponseV5.fromV4(
-                startTransactions(ImmutableStartTransactionRequestV4.builder()
-                        .requestId(request.requestId())
-                        .requestorId(request.requestorId())
-                        .numTransactions(request.numTransactions())
-                        .build()),
-                getWatchStateUpdate(request.lastKnownLockLogVersion())));
+        return Futures.immediateFuture(startTransactionsWithWatchesSync(request));
+    }
+
+    private StartTransactionResponseV5 startTransactionsWithWatchesSync(StartTransactionRequestV5 request) {
+        Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
+                lockImmutableTimestampWithLease(request.requestId());
+
+        ValueAndVersion<PartitionedTimestamps> timestampsAndVersion = lockService.getLockWatchingService()
+                .runTaskAndAtomicallyReturnLockWatchVersion(() ->
+                        timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions()));
+
+        return StartTransactionResponseV5.of(
+                leasedLockImmutableTimestampResponse.value(),
+                timestampsAndVersion.value(),
+                leasedLockImmutableTimestampResponse.lease(),
+                getWatchStateUpdate(request.lastKnownLockLogVersion(), timestampsAndVersion.version()));
     }
 
     @Override
@@ -213,7 +223,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
             int numTimestamps, OptionalLong lastKnownVersion) {
         TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
         return Futures.immediateFuture(GetCommitTimestampsResponse.of(
-                freshTimestamps.getLowerBound(), 
+                freshTimestamps.getLowerBound(),
                 freshTimestamps.getUpperBound(),
                 getWatchStateUpdate(lastKnownVersion)));
     }
@@ -256,6 +266,16 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion) {
         return lockService.getLockWatchingService().getWatchStateUpdate(lastKnownVersion);
+    }
+
+    @Override
+    public LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion, long endVersion) {
+        return lockService.getLockWatchingService().getWatchStateUpdate(lastKnownVersion, endVersion);
+    }
+
+    @Override
+    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnLockWatchVersion(Supplier<T> task) {
+        throw new UnsupportedOperationException("Exposing this method is too dangerous.");
     }
 
     @Override
