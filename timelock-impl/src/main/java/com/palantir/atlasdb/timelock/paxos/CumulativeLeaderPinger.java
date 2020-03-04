@@ -42,6 +42,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPingerContext;
+import com.palantir.tracing.Observability;
+import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
@@ -62,6 +64,10 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
     private final Map<Client, SettableFuture<Void>> hasProcessedFirstRequest = Maps.newConcurrentMap();
     private final AtomicReference<LastSuccessfulResult> lastSuccessfulResult = new AtomicReference<>();
     private final Histogram histogram;
+    private final Runnable tracedRunnable = Tracers.wrapWithNewTrace(
+            "manual-batching-pingable-leader",
+            Observability.UNDECIDED,
+            this::runOneIterationUntraced);
 
     CumulativeLeaderPinger(
             LeaderPingerContext<BatchPingableLeader> remoteClient,
@@ -123,6 +129,10 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
 
     @Override
     protected void runOneIteration() {
+        tracedRunnable.run();
+    }
+
+    private void runOneIterationUntraced() {
         try {
             Set<Client> clientsToCheck = ImmutableSet.copyOf(hasProcessedFirstRequest.keySet());
             Instant before = Instant.now();
@@ -143,7 +153,6 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
         } catch (Exception e) {
             log.warn("Failed to ping node, trying again in the next round", e);
         }
-
     }
 
     @Override
