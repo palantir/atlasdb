@@ -81,7 +81,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
      * result in a deadlock.
      */
     @Override
-    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
+    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnLockWatchVersion(Supplier<T> task) {
         return lockEventLog.runTaskAndAtomicallyReturnVersion(task);
     }
 

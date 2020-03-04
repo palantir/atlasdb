@@ -208,7 +208,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 lockImmutableTimestampWithLease(request.requestId());
 
         ValueAndVersion<PartitionedTimestamps> timestampsAndVersion = lockService.getLockWatchingService()
-                .runTaskAndAtomicallyReturnVersion(() ->
+                .runTaskAndAtomicallyReturnLockWatchVersion(() ->
                         timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions()));
 
         return StartTransactionResponseV5.of(
@@ -274,7 +274,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
+    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnLockWatchVersion(Supplier<T> task) {
         throw new UnsupportedOperationException("Exposing this method is too dangerous.");
     }
 

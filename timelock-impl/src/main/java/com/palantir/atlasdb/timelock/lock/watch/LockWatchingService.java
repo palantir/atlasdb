@@ -29,7 +29,7 @@ public interface LockWatchingService {
     void startWatching(LockWatchRequest locksToWatch);
     LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion);
     LockWatchStateUpdate getWatchStateUpdate(OptionalLong lastKnownVersion, long endVersion);
-    <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task);
+    <T> ValueAndVersion<T> runTaskAndAtomicallyReturnLockWatchVersion(Supplier<T> task);
     void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token);
     void registerUnlock(Set<LockDescriptor> locksUnlocked);
 }

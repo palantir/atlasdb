@@ -26,7 +26,7 @@ public interface ValueAndVersion<T> {
     @Value.Parameter
     T value();
 
-    static <R> ValueAndVersion<R> of (long version, R result) {
+    static <R> ValueAndVersion<R> of(long version, R result) {
         return ImmutableValueAndVersion.of(version, result);
     }
 }
