@@ -16,11 +16,6 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Set;
-
-import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.timestamp.TimestampRange;
-
 /**
  * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a
  * parameter.
@@ -34,36 +29,8 @@ public class NamespacedTimelockRpcClient {
         this.namespace = namespace;
     }
 
-    public long getFreshTimestamp() {
-        return timelockRpcClient.getFreshTimestamp(namespace);
-    }
-
-    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return timelockRpcClient.getFreshTimestamps(namespace, numTimestampsRequested);
-    }
-
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return timelockRpcClient.lockImmutableTimestamp(namespace, request);
-    }
-
     public long getImmutableTimestamp() {
         return timelockRpcClient.getImmutableTimestamp(namespace);
-    }
-
-    public LockResponseV2 lock(IdentifiedLockRequest request) {
-        return timelockRpcClient.lock(namespace, request);
-    }
-
-    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return timelockRpcClient.waitForLocks(namespace, request);
-    }
-
-    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
-        return timelockRpcClient.refreshLockLeases(namespace, tokens);
-    }
-
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return timelockRpcClient.unlock(namespace, tokens);
     }
 
     public long currentTimeMillis() {

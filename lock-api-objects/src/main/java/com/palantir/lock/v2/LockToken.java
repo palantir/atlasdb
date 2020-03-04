@@ -35,7 +35,7 @@ public interface LockToken {
         return ImmutableLockToken.of(requestId);
     }
 
-    default SafeArg<LockToken> toSafeArg(String name) {
+    default SafeArg<?> toSafeArg(String name) {
         return SafeArg.of(name, this);
     }
 }

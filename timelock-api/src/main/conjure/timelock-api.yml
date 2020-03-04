@@ -51,6 +51,43 @@ types:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
+      ConjureLockDescriptor:
+        alias: binary
+      ConjureLockRequest:
+        fields:
+          requestId: uuid
+          lockDescriptors: set<ConjureLockDescriptor>
+          acquireTimeoutMs: integer
+          clientDescription: optional<string>
+      ConjureLockToken:
+        fields:
+          requestId: uuid
+      SuccessfulLockResponse:
+        fields:
+          lockToken: ConjureLockToken
+          lease: Lease
+      UnsuccessfulLockResponse:
+        fields: {}
+      ConjureLockResponse:
+        union:
+          successful: SuccessfulLockResponse
+          unsuccessful: UnsuccessfulLockResponse
+      ConjureWaitForLocksResponse:
+        fields:
+          wasSuccessful: boolean
+      ConjureRefreshLocksRequest:
+        fields:
+          tokens: set<ConjureLockToken>
+      ConjureRefreshLocksResponse:
+        fields:
+          refreshedTokens: set<ConjureLockToken>
+          lease: Lease
+      ConjureUnlockRequest:
+        fields:
+          tokens: set<ConjureLockToken>
+      ConjureUnlockResponse:
+        fields:
+          tokens: set<ConjureLockToken>
       GetCommitTimestampsRequest:
         fields:
           numTimestamps: integer
@@ -60,6 +97,7 @@ types:
           inclusiveLower: Long
           inclusiveUpper: Long
           lockWatchUpdate: LockWatchStateUpdate
+
 
 services:
   ConjureTimelockService:
@@ -85,6 +123,31 @@ services:
         args:
           namespace: string
         returns: LeaderTime
+      lock:
+        http: POST /l/{namespace}
+        args:
+          namespace: string
+          request: ConjureLockRequest
+        returns: ConjureLockResponse
+      waitForLocks:
+        http: POST /wl/{namespace}
+        args:
+          namespace: string
+          request: ConjureLockRequest
+        returns: ConjureWaitForLocksResponse
+      refreshLocks:
+        http: POST /rl/{namespace}
+        args:
+          namespace: string
+          request: ConjureRefreshLocksRequest
+        returns: ConjureRefreshLocksResponse
+      unlock:
+        http: POST /ul/{namespace}
+        args:
+          namespace: string
+          request: ConjureUnlockRequest
+        returns: ConjureUnlockResponse
+
       getCommitTimestamps:
         http: POST /gct/{namespace}
         args:

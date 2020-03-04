@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Add Conjureable analogues for remaining endpoints
+
+    Most of the remaining endpoints in timelockrpcclient end up being Conjured (including lock endpoints).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4627

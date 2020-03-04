@@ -32,7 +32,7 @@ import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.logsafe.Preconditions;
 
-public final class LockLog {
+public class LockLog {
 
     private final LockEvents events;
     private final Optional<LockDiagnosticCollector> lockDiagnosticInfoCollector;

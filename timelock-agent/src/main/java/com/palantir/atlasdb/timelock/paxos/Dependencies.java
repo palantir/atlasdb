@@ -40,6 +40,7 @@ public interface Dependencies {
         PaxosRemoteClients remoteClients();
         ExecutorService sharedExecutor();
         UUID leaderUuid();
+        Duration leaderPingRate();
         Duration leaderPingResponseWait();
     }
 

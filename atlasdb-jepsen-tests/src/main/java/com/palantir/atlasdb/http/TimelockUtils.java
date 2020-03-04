@@ -17,16 +17,20 @@ package com.palantir.atlasdb.http;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
+import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
+    static final String NAMESPACE = "test";
 
     private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(
             Paths.get("var", "security", "trustStore.jks"),
@@ -42,21 +46,25 @@ public final class TimelockUtils {
     }
 
     private static List<String> hostnamesToEndpointUris(List<String> hosts) {
-        return Lists.transform(hosts, host -> String.format("http://%s:%d", host, PORT));
+        return hosts.stream().map(host -> String.format("https://%s:%d", host, PORT)).collect(Collectors.toList());
     }
 
     private static <T> T createFromUris(MetricsManager metricsManager, List<String> endpointUris, Class<T> type) {
+        ServerListConfig serverListConfig = ImmutableServerListConfig.builder()
+                .addAllServers(endpointUris)
+                .sslConfiguration(SSL_CONFIGURATION)
+                .build();
+        AuxiliaryRemotingParameters parameters = AuxiliaryRemotingParameters.builder()
+                .shouldRetry(false)
+                .shouldLimitPayload(false)
+                .shouldSupportBlockingOperations(true) // Run with longer timeout to be safe.
+                .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", UserAgent.Agent.DEFAULT_VERSION)))
+                .build();
+
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 metricsManager,
-                ImmutableServerListConfig.builder()
-                        .addAllServers(endpointUris)
-                        .sslConfiguration(SSL_CONFIGURATION)
-                        .build(),
+                serverListConfig,
                 type,
-                AuxiliaryRemotingParameters.builder()
-                        .shouldRetry(true)
-                        .shouldLimitPayload(false)
-                        .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-jepsen", UserAgent.Agent.DEFAULT_VERSION)))
-                        .build());
+                parameters);
     }
 }

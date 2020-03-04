@@ -21,21 +21,25 @@ import java.util.OptionalLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tokens.auth.AuthHeader;
 
 public class TimeLockActivityChecker {
     private static final Logger log = LoggerFactory.getLogger(TimeLockActivityChecker.class);
+    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer unused");
 
-    private final TimelockRpcClient timelockRpcClient;
+    private final ConjureTimelockService conjureTimelockService;
 
-    public TimeLockActivityChecker(TimelockRpcClient timelockRpcClient) {
-        this.timelockRpcClient = timelockRpcClient;
+    public TimeLockActivityChecker(ConjureTimelockService conjureTimelockService) {
+        this.conjureTimelockService = conjureTimelockService;
     }
 
     public OptionalLong getFreshTimestampFromNodeForClient(String client) {
         try {
-            return OptionalLong.of(timelockRpcClient.getFreshTimestamp(client));
+            return OptionalLong.of(conjureTimelockService.getFreshTimestamps(
+                    AUTH_HEADER, client, ConjureGetFreshTimestampsRequest.of(1)).getInclusiveLower());
         } catch (Exception e) {
             log.info("Suppressed exception when checking TimeLock activity for client {}",
                     SafeArg.of("client", client),

@@ -20,7 +20,6 @@ import java.util.Optional;
 
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.metrics.Timed;
 
 public interface LeaderElectionService {
     interface LeadershipToken extends Serializable {
@@ -63,7 +62,6 @@ public interface LeaderElectionService {
      * calls to ensure that the token is valid at the time of invocation, but will return immediately if
      * this node is not the last known leader.
      */
-    @Timed
     Optional<LeadershipToken> getCurrentTokenIfLeading();
 
     /**
