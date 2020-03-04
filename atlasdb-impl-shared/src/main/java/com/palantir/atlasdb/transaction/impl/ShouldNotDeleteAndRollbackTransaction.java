@@ -83,6 +83,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
         super(metricsManager,
                 keyValueService,
                 null,
+                null,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimeStamp,

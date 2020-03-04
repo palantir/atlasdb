@@ -28,7 +28,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.lock.LockDescriptor;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -37,7 +37,7 @@ import com.palantir.lock.LockDescriptor;
 @Deprecated
 public interface ClientLockDiagnosticCollector extends ConflictTracer {
     void collect(LongStream startTimestamps, long immutableTimestamp, UUID requestId);
-    void collect(long startTimestamp, UUID requestId, Set<LockDescriptor> lockDescriptors);
+    void collect(long startTimestamp, UUID requestId, Set<ConjureLockDescriptor> lockDescriptors);
     Map<Long, ClientLockDiagnosticDigest> getSnapshot();
 
     /**
@@ -51,7 +51,7 @@ public interface ClientLockDiagnosticCollector extends ConflictTracer {
     interface ClientLockDiagnosticDigest {
         long immutableTimestamp();
         UUID immutableTimestampRequestId();
-        Map<UUID, Set<LockDescriptor>> lockRequests();
+        Map<UUID, Set<ConjureLockDescriptor>> lockRequests();
         List<ConflictTrace> writeWriteConflictTrace();
 
         static ClientLockDiagnosticDigest newTransaction(long immutableTimestamp, UUID immutableTimestampRequestId) {
@@ -69,7 +69,7 @@ public interface ClientLockDiagnosticCollector extends ConflictTracer {
             return newTransaction(-3, UUID.nameUUIDFromBytes("missingEntry".getBytes(StandardCharsets.UTF_8)));
         }
 
-        default ClientLockDiagnosticDigest withLocks(UUID requestId, Set<LockDescriptor> lockDescriptors) {
+        default ClientLockDiagnosticDigest withLocks(UUID requestId, Set<ConjureLockDescriptor> lockDescriptors) {
             return ImmutableClientLockDiagnosticDigest.builder()
                     .from(this)
                     .putLockRequests(requestId, lockDescriptors)

@@ -152,7 +152,18 @@ These are the required parameters:
 
     *    - sid
          - The site identifier for the Oracle server.
-         - Yes
+         - No, but one of sid and serviceNameConfiguration must be specified.
+
+    *    - serviceNameConfiguration.serviceName
+         - The service name for the Oracle server.
+         - No, but one of sid and serviceNameConfiguration must be specified.
+
+    *    - serviceNameConfiguration.namespaceOverride
+         - The namespace for this Oracle key-value service. If you are migrating from a database with a given sid,
+           this value should be set to the value of that sid before the migration. If you are bootstrapping a new
+           stack, this value should be set to the value of the top-level AtlasDB namespace config if present; otherwise,
+           it may be set arbitrarily (but *must* be set to some value).
+         - No, but one of sid and serviceNameConfiguration must be specified.
 
     *    - dbLogin
          - The Oracle DB username.
@@ -161,3 +172,26 @@ These are the required parameters:
     *    - dbPassword
          - The Oracle DB password.
          - Yes
+
+Migrating Connection Methods
+----------------------------
+
+.. danger::
+
+   Improperly migrating from one method of connecting to Oracle to another can result in **SEVERE DATA CORRUPTION**!
+   Please contact the AtlasDB team before attempting such a migration.
+
+.. danger::
+
+   The processes outlined below **ONLY** apply for Oracle users using embedded timestamp and lock services.
+   TimeLock users should contact the AtlasDB team before attempting such a migration. The procedures outlined below
+   employed naively can result in **SEVERE DATA CORRUPTION**!
+
+AtlasDB supports connecting to an Oracle database via its `sid`, or through a `serviceName` (the latter is configured
+through a `serviceNameConfiguration`).
+
+When migrating from using `sid` to `serviceName`, the user must specify the original value of the `sid` before the
+migration as `serviceNameConfiguration.namespaceOverride`.
+
+This migration can be reversed trivially (just by changing the config to reference the now-correct `sid`) if you are
+using embedded timestamp and lock services.

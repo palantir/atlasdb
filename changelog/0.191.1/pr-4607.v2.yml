@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: |-
+    After first initialization, SweepStrategyManagers now only loads one table metadata on a cache miss, rather than
+    loading all tables' metadata each time (which could include a LOT of tables). This should improve performance
+    when there are many dynamic tables being created.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4607

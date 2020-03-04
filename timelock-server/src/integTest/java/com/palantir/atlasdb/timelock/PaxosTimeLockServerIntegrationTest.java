@@ -256,7 +256,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void throwsOnQueryingTimestampWithInvalidClientName() {
         TimelockService invalidTimelockService = TIMELOCK.client(INVALID_CLIENT).timelockService();
         assertThatThrownBy(invalidTimelockService::getFreshTimestamp)
-                .hasMessageContaining("NOT_FOUND");
+                .hasMessageContaining("INVALID_ARGUMENT");
     }
 
     @Test

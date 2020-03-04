@@ -157,12 +157,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void leaderIdChangesAcrossFailovers() {
         Set<LeaderTime> leaderTimes = new HashSet<>();
-        leaderTimes.add(client.namespacedTimelockRpcClient().getLeaderTime());
+        leaderTimes.add(client.namespacedConjureTimelockService().leaderTime());
 
         for (int i = 0; i < 3; i++) {
             cluster.failoverToNewLeader(client.namespace());
 
-            LeaderTime leaderTime = client.namespacedTimelockRpcClient().getLeaderTime();
+            LeaderTime leaderTime = client.namespacedConjureTimelockService().leaderTime();
 
             leaderTimes.forEach(previousLeaderTime ->
                     assertThat(previousLeaderTime.isComparableWith(leaderTime)).isFalse());

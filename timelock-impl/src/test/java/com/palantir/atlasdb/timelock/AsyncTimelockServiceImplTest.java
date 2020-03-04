@@ -23,13 +23,17 @@ import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.timestamp.ManagedTimestampService;
 
 public class AsyncTimelockServiceImplTest {
     @Test
     public void delegatesInitializationCheck() {
         ManagedTimestampService mockMts = mock(ManagedTimestampService.class);
-        AsyncTimelockServiceImpl service = new AsyncTimelockServiceImpl(mock(AsyncLockService.class), mockMts);
+        AsyncTimelockServiceImpl service = new AsyncTimelockServiceImpl(
+                mock(AsyncLockService.class),
+                mockMts,
+                mock(LockLog.class));
         when(mockMts.isInitialized())
                 .thenReturn(false)
                 .thenReturn(true);

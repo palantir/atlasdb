@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: All AtlasDB calls to timelock use Conjure in normal operation
+  links:
+  - https://github.com/palantir/atlasdb/pull/4628

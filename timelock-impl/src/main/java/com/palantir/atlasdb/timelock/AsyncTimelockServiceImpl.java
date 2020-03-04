@@ -20,9 +20,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndVersion;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
@@ -32,6 +37,7 @@ import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.RefreshLockResponseV2;
@@ -44,21 +50,24 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
     private final ClientAwareManagedTimestampService timestampService;
+    private final LockLog lockLog;
 
     public AsyncTimelockServiceImpl(
             AsyncLockService lockService,
-            ManagedTimestampService timestampService) {
+            ManagedTimestampService timestampService,
+            LockLog lockLog) {
         this.lockService = lockService;
         this.timestampService = DelegatingClientAwareManagedTimestampService.createDefault(timestampService);
+        this.lockLog = lockLog;
     }
 
     @Override
@@ -91,29 +100,53 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public AsyncResult<Leased<LockToken>> lock(IdentifiedLockRequest request) {
-        return lockService.lock(
+    public ListenableFuture<LockResponseV2> lock(IdentifiedLockRequest request) {
+        AsyncResult<Leased<LockToken>> result = lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
                 TimeLimit.of(request.getAcquireTimeoutMs()));
+        lockLog.registerRequest(request, result);
+        SettableFuture<LockResponseV2> response = SettableFuture.create();
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.setException(result.getError());
+            } else if (result.isTimedOut()) {
+                response.set(LockResponseV2.timedOut());
+            } else {
+                response.set(LockResponseV2.successful(result.get().value(), result.get().lease()));
+            }
+        });
+        return response;
     }
 
     @Override
-    public AsyncResult<Void> waitForLocks(WaitForLocksRequest request) {
-        return lockService.waitForLocks(
+    public ListenableFuture<WaitForLocksResponse> waitForLocks(WaitForLocksRequest request) {
+        AsyncResult<Void> result = lockService.waitForLocks(
                 request.getRequestId(),
                 request.getLockDescriptors(),
                 TimeLimit.of(request.getAcquireTimeoutMs()));
+        lockLog.registerRequest(request, result);
+        SettableFuture<WaitForLocksResponse> response = SettableFuture.create();
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.setException(result.getError());
+            } else if (result.isTimedOut()) {
+                response.set(WaitForLocksResponse.timedOut());
+            } else {
+                response.set(WaitForLocksResponse.successful());
+            }
+        });
+        return response;
     }
 
     @Override
-    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
-        return lockService.refresh(tokens);
+    public ListenableFuture<RefreshLockResponseV2> refreshLockLeases(Set<LockToken> tokens) {
+        return Futures.immediateFuture(lockService.refresh(tokens));
     }
 
     @Override
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return lockService.unlock(tokens);
+    public ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens) {
+        return Futures.immediateFuture(lockService.unlock(tokens));
     }
 
     @Override
@@ -166,7 +199,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
+    public ListenableFuture<StartTransactionResponseV5> startTransactionsWithWatches(StartTransactionRequestV5 request) {
+        return Futures.immediateFuture(startTransactionsWithWatchesSync(request));
+    }
+
+    private StartTransactionResponseV5 startTransactionsWithWatchesSync(StartTransactionRequestV5 request) {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.requestId());
 
@@ -182,13 +219,23 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastKnownVersion) {
-        return TimestampWithWatches.of(getFreshTimestamp(), getWatchStateUpdate(lastKnownVersion));
+    public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
+            int numTimestamps, OptionalLong lastKnownVersion) {
+        TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
+        return Futures.immediateFuture(GetCommitTimestampsResponse.of(
+                freshTimestamps.getLowerBound(),
+                freshTimestamps.getUpperBound(),
+                getWatchStateUpdate(lastKnownVersion)));
     }
 
     @Override
-    public LeaderTime leaderTime() {
-        return lockService.leaderTime();
+    public ListenableFuture<LeaderTime> leaderTime() {
+        return Futures.immediateFuture(lockService.leaderTime());
+    }
+
+    @Override
+    public ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest) {
+        return Futures.immediateFuture(getFreshTimestamps(timestampsToRequest));
     }
 
     @Override

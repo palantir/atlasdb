@@ -17,20 +17,16 @@
 package com.palantir.lock.watch;
 
 public class NamespacedLockWatchingRpcClient {
-    private final String namespace;
     private final LockWatchingRpcClient lockWatchingRpcClient;
+    private final String namespace;
 
-    public NamespacedLockWatchingRpcClient(String namespace, LockWatchingRpcClient lockWatchingRpcClient) {
-        this.namespace = namespace;
+    public NamespacedLockWatchingRpcClient(LockWatchingRpcClient lockWatchingRpcClient, String namespace) {
         this.lockWatchingRpcClient = lockWatchingRpcClient;
+        this.namespace = namespace;
     }
 
     public void startWatching(LockWatchRequest lockWatchRequest) {
         lockWatchingRpcClient.startWatching(namespace, lockWatchRequest);
-    }
-
-    public void stopWatching(LockWatchRequest lockWatchRequest) {
-        lockWatchingRpcClient.stopWatching(namespace, lockWatchRequest);
     }
 
     public LockWatchStateUpdate getWatchState() {

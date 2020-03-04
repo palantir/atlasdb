@@ -50,6 +50,7 @@ public interface Factories {
         AutobatchingPingableLeaderFactory pingableLeaderFactory() {
             return AutobatchingPingableLeaderFactory.create(
                     Maps.toMap(remoteClients().batchPingableLeadersWithContext(), _pingableLeader -> sharedExecutor()),
+                    leaderPingRate(),
                     leaderPingResponseWait(),
                     leaderUuid());
         }

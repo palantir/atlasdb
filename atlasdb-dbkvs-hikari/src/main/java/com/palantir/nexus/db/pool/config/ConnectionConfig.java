@@ -134,7 +134,7 @@ public abstract class ConnectionConfig {
     }
 
     @JsonIgnore
-    @Value.Derived
+    @Value.Lazy
     public HikariConfig getHikariConfig() {
         // Initialize the Hikari configuration
         HikariConfig config = new HikariConfig();
@@ -157,6 +157,9 @@ public abstract class ConnectionConfig {
         //   - connectionTimeout = how long to wait for a connection to be opened.
         // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
+
+        // TODO (bullman): See if driver supports JDBC4 (isValid()) and use it.
+        config.setConnectionTestQuery(getTestQuery());
 
         if (!props.isEmpty()) {
             config.setDataSourceProperties(props);

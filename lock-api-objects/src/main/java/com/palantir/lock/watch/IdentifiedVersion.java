@@ -16,11 +16,15 @@
 
 package com.palantir.lock.watch;
 
-public interface LockWatchEventTracker {
-    VersionedLockWatchState currentState();
-    VersionedLockWatchState updateState(LockWatchStateUpdate update);
+import java.util.Optional;
+import java.util.UUID;
 
-    void setLockWatchStateForStartTimestamp(long startTimestamp, VersionedLockWatchState lockWatchState);
-    VersionedLockWatchState getLockWatchStateForStartTimestamp(long startTimestamp);
-    VersionedLockWatchState removeLockWatchStateForStartTimestamp(long startTimestamp);
+import org.immutables.value.Value;
+
+@Value.Immutable
+public interface IdentifiedVersion {
+    @Value.Parameter
+    UUID id();
+    @Value.Parameter
+    Optional<Long> version();
 }

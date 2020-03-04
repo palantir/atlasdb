@@ -16,9 +16,9 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -30,18 +30,21 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.debug.LockDiagnosticInfo;
-import com.palantir.atlasdb.timelock.lock.AsyncResult;
-import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.ImmutableStartTransactionRequestV5;
+import com.palantir.lock.v2.ImmutableStartTransactionResponseV4;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -49,10 +52,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionRequestV5;
 import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.StartTransactionResponseV5;
 import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
@@ -60,6 +60,7 @@ import com.palantir.timestamp.TimestampRange;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class AsyncTimelockResource {
+    private static final ExecutorService asyncResponseExecutor = PTExecutors.newFixedThreadPool(64);
     private final LockLog lockLog;
     private final AsyncTimelockService timelock;
 
@@ -70,20 +71,20 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("fresh-timestamp")
-    public long getFreshTimestamp() {
-        return timelock.getFreshTimestamp();
+    public void getFreshTimestamp(@Suspended final AsyncResponse response) {
+        addJerseyCallback(Futures.transform(
+                timelock.getFreshTimestampsAsync(1),
+                TimestampRange::getLowerBound,
+                MoreExecutors.directExecutor()),
+                response);
     }
 
     @POST
     @Path("fresh-timestamps")
-    public TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested) {
-        return timelock.getFreshTimestamps(numTimestampsRequested);
-    }
-
-    @POST
-    @Path("commit-timestamp")
-    public TimestampWithWatches getCommitTimestampWithWatches(@Safe @QueryParam("lastKnown") OptionalLong lastVersion) {
-        return timelock.getCommitTimestampWithWatches(lastVersion);
+    public void getFreshTimestamps(
+            @Suspended final AsyncResponse response,
+            @Safe @QueryParam("number") int numTimestampsRequested) {
+        addJerseyCallback(timelock.getFreshTimestampsAsync(numTimestampsRequested), response);
     }
 
     @POST
@@ -121,14 +122,19 @@ public class AsyncTimelockResource {
      */
     @POST
     @Path("start-atlasdb-transaction-v4")
-    public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
-        return timelock.startTransactions(request);
-    }
-
-    @POST
-    @Path("start-atlasdb-transaction-v5")
-    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
-        return timelock.startTransactionsWithWatches(request);
+    public void startTransactions(
+            @Suspended final AsyncResponse response, StartTransactionRequestV4 request) {
+        StartTransactionRequestV5 newRequest = ImmutableStartTransactionRequestV5.builder()
+                .requestId(request.requestId())
+                .requestorId(request.requestorId())
+                .numTransactions(request.numTransactions())
+                .build();
+        addJerseyCallback(Futures.transform(timelock.startTransactionsWithWatches(newRequest),
+                newResponse -> ImmutableStartTransactionResponseV4.builder()
+                        .timestamps(newResponse.timestamps())
+                        .immutableTimestamp(newResponse.immutableTimestamp())
+                        .lease(newResponse.lease())
+                        .build(), MoreExecutors.directExecutor()), response);
     }
 
     @POST
@@ -140,73 +146,48 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
-        lockLog.registerRequest(request, result);
-        result.onComplete(() -> {
-            if (result.isFailed()) {
-                response.resume(result.getError());
-            } else if (result.isTimedOut()) {
-                response.resume(LockResponse.timedOut());
-            } else {
-                response.resume(LockResponse.successful(result.get().value()));
-            }
-        });
+        addJerseyCallback(Futures.transform(
+                timelock.lock(request), result -> result.accept(LockResponseV2.Visitor.of(
+                        success -> LockResponse.successful(success.getToken()),
+                        unsuccessful -> LockResponse.timedOut())),
+                MoreExecutors.directExecutor()),
+                response);
     }
 
     @POST
     @Path("lock-v2")
     public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
-        lockLog.registerRequest(request, result);
-        result.onComplete(() -> {
-            if (result.isFailed()) {
-                response.resume(result.getError());
-            } else if (result.isTimedOut()) {
-                response.resume(LockResponseV2.timedOut());
-            } else {
-                response.resume(LockResponseV2.successful(result.get().value(), result.get().lease()));
-            }
-        });
+        addJerseyCallback(timelock.lock(request), response);
     }
 
     @POST
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
-        AsyncResult<Void> result = timelock.waitForLocks(request);
-        lockLog.registerRequest(request, result);
-        result.onComplete(() -> {
-            if (result.isFailed()) {
-                response.resume(result.getError());
-            } else if (result.isTimedOut()) {
-                response.resume(WaitForLocksResponse.timedOut());
-            } else {
-                response.resume(WaitForLocksResponse.successful());
-            }
-        });
+        addJerseyCallback(timelock.waitForLocks(request), response);
     }
 
     @POST
     @Path("refresh-locks")
-    public Set<LockToken> deprecatedRefreshLockLeases(Set<LockToken> tokens) {
-        return timelock.refreshLockLeases(tokens).refreshedTokens();
+    public void deprecatedRefreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
+        addJerseyCallback(timelock.refreshLockLeases(tokens), response);
     }
 
     @POST
     @Path("refresh-locks-v2")
-    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
-        return timelock.refreshLockLeases(tokens);
+    public void refreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
+        addJerseyCallback(timelock.refreshLockLeases(tokens), response);
     }
 
     @GET
     @Path("leader-time")
-    public LeaderTime getLeaderTime() {
-        return timelock.leaderTime();
+    public void getLeaderTime(@Suspended final AsyncResponse response) {
+        addJerseyCallback(timelock.leaderTime(), response);
     }
 
     @POST
     @Path("unlock")
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return timelock.unlock(tokens);
+    public void unlock(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
+        addJerseyCallback(timelock.unlock(tokens), response);
     }
 
     @POST
@@ -225,4 +206,19 @@ public class AsyncTimelockResource {
     public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(Set<UUID> requestIds) {
         return lockLog.getAndLogLockDiagnosticInfo(requestIds);
     }
+
+    private void addJerseyCallback(ListenableFuture<?> result, AsyncResponse response) {
+        Futures.addCallback(result, new FutureCallback<Object>() {
+            @Override
+            public void onSuccess(Object result) {
+                response.resume(result);
+            }
+
+            @Override
+            public void onFailure(Throwable thrown) {
+                response.resume(thrown);
+            }
+        }, asyncResponseExecutor);
+    }
+
 }

@@ -16,13 +16,6 @@
 
 package com.palantir.lock.v2;
 
-import java.util.OptionalLong;
-import java.util.Set;
-
-import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.watch.TimestampWithWatches;
-import com.palantir.timestamp.TimestampRange;
-
 /**
  * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a
  * parameter.
@@ -36,52 +29,8 @@ public class NamespacedTimelockRpcClient {
         this.namespace = namespace;
     }
 
-    public long getFreshTimestamp() {
-        return timelockRpcClient.getFreshTimestamp(namespace);
-    }
-
-    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return timelockRpcClient.getFreshTimestamps(namespace, numTimestampsRequested);
-    }
-
-    public TimestampWithWatches getCommitTimestampWithWatches(OptionalLong lastVersion) {
-        return timelockRpcClient.getCommitTimestampWithWatches(namespace, lastVersion);
-    }
-
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return timelockRpcClient.lockImmutableTimestamp(namespace, request);
-    }
-
-    public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
-        return timelockRpcClient.startTransactions(namespace, request);
-    }
-
-    public StartTransactionResponseV5 startTransactionsWithWatches(StartTransactionRequestV5 request) {
-        return timelockRpcClient.startTransactionsWithWatches(namespace, request);
-    }
-
     public long getImmutableTimestamp() {
         return timelockRpcClient.getImmutableTimestamp(namespace);
-    }
-
-    public LockResponseV2 lock(IdentifiedLockRequest request) {
-        return timelockRpcClient.lock(namespace, request);
-    }
-
-    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return timelockRpcClient.waitForLocks(namespace, request);
-    }
-
-    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
-        return timelockRpcClient.refreshLockLeases(namespace, tokens);
-    }
-
-    public LeaderTime getLeaderTime() {
-        return timelockRpcClient.getLeaderTime(namespace);
-    }
-
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return timelockRpcClient.unlock(namespace, tokens);
     }
 
     public long currentTimeMillis() {
