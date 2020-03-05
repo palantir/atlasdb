@@ -77,6 +77,7 @@ import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timelock.BlockingAndNonBlockingServices;
 import com.palantir.atlasdb.factory.timelock.BlockingSensitiveConjureTimelockService;
 import com.palantir.atlasdb.factory.timelock.BlockingSensitiveLockRpcClient;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
@@ -987,8 +988,7 @@ public abstract class TransactionManagers {
                 metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
 
         LockRpcClient lockRpcClient = new BlockingSensitiveLockRpcClient(
-                creator.createService(LockRpcClient.class),
-                creator.createServiceWithoutBlockingOperations(LockRpcClient.class));
+                BlockingAndNonBlockingServices.create(creator, LockRpcClient.class));
 
         LockService lockService = AtlasDbMetrics.instrumentTimed(
                 metricsManager.getRegistry(),
@@ -996,8 +996,7 @@ public abstract class TransactionManagers {
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
         ConjureTimelockService conjureTimelockService = new BlockingSensitiveConjureTimelockService(
-                creator.createService(ConjureTimelockService.class),
-                creator.createServiceWithoutBlockingOperations(ConjureTimelockService.class));
+                BlockingAndNonBlockingServices.create(creator, ConjureTimelockService.class));
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 

@@ -35,127 +35,125 @@ import com.palantir.lock.SimpleHeldLocksToken;
  * operations on the server and one not to, routes calls appropriately.
  */
 public class BlockingSensitiveLockRpcClient implements LockRpcClient {
-    private final LockRpcClient blockingClient;
-    private final LockRpcClient nonBlockingClient;
+    private final LockRpcClient blocking;
+    private final LockRpcClient nonBlocking;
 
-    public BlockingSensitiveLockRpcClient(
-            LockRpcClient blockingClient,
-            LockRpcClient nonBlockingClient) {
-        this.blockingClient = blockingClient;
-        this.nonBlockingClient = nonBlockingClient;
+    public BlockingSensitiveLockRpcClient(BlockingAndNonBlockingServices<LockRpcClient> services) {
+        this.blocking = services.blocking();
+        this.nonBlocking = services.nonBlocking();
     }
 
     @Override
     public Optional<LockResponse> lockWithFullLockResponse(String namespace, LockClient client, LockRequest request)
             throws InterruptedException {
-        return blockingClient.lockWithFullLockResponse(namespace, client, request);
+        return blocking.lockWithFullLockResponse(namespace, client, request);
     }
 
     @Override
     public boolean unlock(String namespace, HeldLocksToken token) {
-        return nonBlockingClient.unlock(namespace, token);
+        return nonBlocking.unlock(namespace, token);
     }
 
     @Override
     public boolean unlock(String namespace, LockRefreshToken token) {
-        return nonBlockingClient.unlock(namespace, token);
+        return nonBlocking.unlock(namespace, token);
     }
 
     @Override
     public boolean unlockSimple(String namespace, SimpleHeldLocksToken token) {
-        return nonBlockingClient.unlockSimple(namespace, token);
+        return nonBlocking.unlockSimple(namespace, token);
     }
 
     @Override
     public boolean unlockAndFreeze(String namespace, HeldLocksToken token) {
         // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
-        return blockingClient.unlockAndFreeze(namespace, token);
+        return blocking.unlockAndFreeze(namespace, token);
     }
 
     @Override
     public Set<HeldLocksToken> getTokens(String namespace, LockClient client) {
-        return nonBlockingClient.getTokens(namespace, client);
+        return nonBlocking.getTokens(namespace, client);
     }
 
     @Override
     public Set<HeldLocksToken> refreshTokens(String namespace, Iterable<HeldLocksToken> tokens) {
-        return nonBlockingClient.refreshTokens(namespace, tokens);
+        return nonBlocking.refreshTokens(namespace, tokens);
     }
 
     @Override
     public Optional<HeldLocksGrant> refreshGrant(String namespace, HeldLocksGrant grant) {
-        return nonBlockingClient.refreshGrant(namespace, grant);
+        return nonBlocking.refreshGrant(namespace, grant);
     }
 
     @Override
     public Optional<HeldLocksGrant> refreshGrant(String namespace, BigInteger grantId) {
-        return nonBlockingClient.refreshGrant(namespace, grantId);
+        return nonBlocking.refreshGrant(namespace, grantId);
     }
 
     @Override
     public HeldLocksGrant convertToGrant(String namespace, HeldLocksToken token) {
         // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
-        return blockingClient.convertToGrant(namespace, token);
+        return blocking.convertToGrant(namespace, token);
     }
 
     @Override
     public HeldLocksToken useGrant(String namespace, LockClient client, HeldLocksGrant grant) {
         // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
-        return blockingClient.useGrant(namespace, client, grant);
+        return blocking.useGrant(namespace, client, grant);
     }
 
     @Override
     public HeldLocksToken useGrant(String namespace, LockClient client, BigInteger grantId) {
         // TODO (jkong): It feels like this could be non-blocking but not 100% sure so going for the safe option.
-        return blockingClient.useGrant(namespace, client, grantId);
+        return blocking.useGrant(namespace, client, grantId);
     }
 
     @Override
     public Optional<Long> getMinLockedInVersionId(String namespace) {
-        return nonBlockingClient.getMinLockedInVersionId(namespace);
+        return nonBlocking.getMinLockedInVersionId(namespace);
     }
 
     @Override
     public Optional<Long> getMinLockedInVersionId(String namespace, LockClient client) {
-        return nonBlockingClient.getMinLockedInVersionId(namespace, client);
+        return nonBlocking.getMinLockedInVersionId(namespace, client);
     }
 
     @Override
     public Optional<Long> getMinLockedInVersionId(String namespace, String client) {
-        return nonBlockingClient.getMinLockedInVersionId(namespace, client);
+        return nonBlocking.getMinLockedInVersionId(namespace, client);
     }
 
     @Override
     public LockServerOptions getLockServerOptions(String namespace) {
-        return nonBlockingClient.getLockServerOptions(namespace);
+        return nonBlocking.getLockServerOptions(namespace);
     }
 
     @Override
     public Optional<LockRefreshToken> lock(String namespace, String client, LockRequest request)
             throws InterruptedException {
-        return blockingClient.lock(namespace, client, request);
+        return blocking.lock(namespace, client, request);
     }
 
     @Override
     public Optional<HeldLocksToken> lockAndGetHeldLocks(String namespace, String client, LockRequest request)
             throws InterruptedException {
-        return blockingClient.lockAndGetHeldLocks(namespace, client, request);
+        return blocking.lockAndGetHeldLocks(namespace, client, request);
     }
 
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(String namespace, Iterable<LockRefreshToken> tokens) {
-        return nonBlockingClient.refreshLockRefreshTokens(namespace, tokens);
+        return nonBlocking.refreshLockRefreshTokens(namespace, tokens);
     }
 
     @Override
     public long currentTimeMillis(String namespace) {
-        return nonBlockingClient.currentTimeMillis(namespace);
+        return nonBlocking.currentTimeMillis(namespace);
     }
 
     @Override
     public void logCurrentState(String namespace) {
         // Even if this does take more than the non-blocking timeout, the request will fail while the server will
         // dump its logs out.
-        nonBlockingClient.logCurrentState(namespace);
+        nonBlocking.logCurrentState(namespace);
     }
 }
