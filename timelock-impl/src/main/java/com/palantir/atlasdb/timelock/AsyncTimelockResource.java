@@ -45,6 +45,7 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -169,7 +170,11 @@ public class AsyncTimelockResource {
     @POST
     @Path("refresh-locks")
     public void deprecatedRefreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
-        addJerseyCallback(timelock.refreshLockLeases(tokens), response);
+        addJerseyCallback(Futures.transform(
+                timelock.refreshLockLeases(tokens),
+                RefreshLockResponseV2::refreshedTokens,
+                MoreExecutors.directExecutor()),
+                response);
     }
 
     @POST
