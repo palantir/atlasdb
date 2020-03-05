@@ -21,9 +21,8 @@ import java.util.UUID;
 
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
-import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;

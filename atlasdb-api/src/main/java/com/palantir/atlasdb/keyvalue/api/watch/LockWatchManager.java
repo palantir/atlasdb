@@ -21,7 +21,6 @@ import java.util.UUID;
 
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;

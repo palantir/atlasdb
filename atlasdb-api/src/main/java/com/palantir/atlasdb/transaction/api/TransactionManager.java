@@ -20,7 +20,6 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
@@ -416,8 +415,8 @@ public interface TransactionManager extends AutoCloseable {
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
-     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitConditionWithWatches)}. If no further work needs to be done with
-     * the transaction, a no-op task can be passed in.
+     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitConditionWithWatches)}. If no further work needs to be
+     * done with the transaction, a no-op task can be passed in.
      *
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
      *
