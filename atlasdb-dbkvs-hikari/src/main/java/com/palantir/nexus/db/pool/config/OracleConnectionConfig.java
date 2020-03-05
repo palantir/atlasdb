@@ -222,10 +222,10 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
                 + " One needs to be specified.");
     }
 
-    static class Builder extends ImmutableOracleConnectionConfig.Builder {}
+    public static class Builder extends ImmutableOracleConnectionConfig.Builder {}
 
     @Value.Immutable
-    interface ServiceNameConfiguration {
+    public interface ServiceNameConfiguration {
         String serviceName();
         String namespaceOverride();
 
