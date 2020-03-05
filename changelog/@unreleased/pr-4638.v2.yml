@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: RPC calls to TimeLock via Conjure now correctly block for either a
+    short (10s) or long (60s) duration depending on what the call does. Previously,
+    these were swapped, which manifested as lock requests on contended locks aborting
+    from the client side after 10 seconds even though they could be served.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4638
