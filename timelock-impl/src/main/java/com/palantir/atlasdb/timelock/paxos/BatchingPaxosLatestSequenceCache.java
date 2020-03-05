@@ -137,6 +137,8 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     private void maybeSetNewCacheKey(TimestampedAcceptorCacheKey newCacheKey) {
         while (true) {
             TimestampedAcceptorCacheKey current = cacheKey.get();
+            // either the new cache key is older or the same as the current
+            // or we race to set it and try again if we lose
             if ((current != null && newCacheKey.timestamp() <= current.timestamp())
                     || cacheKey.compareAndSet(current, newCacheKey)) {
                 return;
