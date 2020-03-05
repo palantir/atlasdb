@@ -38,31 +38,30 @@ import com.palantir.tokens.auth.AuthHeader;
  * on the server and one configured not to, routes calls appropriately.
  */
 public final class BlockingSensitiveConjureTimelockService implements ConjureTimelockService {
-    private final ConjureTimelockService nonblocking;
     private final ConjureTimelockService blocking;
+    private final ConjureTimelockService nonBlocking;
 
     public BlockingSensitiveConjureTimelockService(
-            ConjureTimelockService nonblocking,
-            ConjureTimelockService blocking) {
-        this.nonblocking = nonblocking;
-        this.blocking = blocking;
+            BlockingAndNonBlockingServices<ConjureTimelockService> conjureTimelockServices) {
+        this.blocking = conjureTimelockServices.blocking();
+        this.nonBlocking = conjureTimelockServices.nonBlocking();
     }
 
     @Override
     public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
             ConjureStartTransactionsRequest request) {
-        return nonblocking.startTransactions(authHeader, namespace, request);
+        return nonBlocking.startTransactions(authHeader, namespace, request);
     }
 
     @Override
     public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
             ConjureGetFreshTimestampsRequest request) {
-        return nonblocking.getFreshTimestamps(authHeader, namespace, request);
+        return nonBlocking.getFreshTimestamps(authHeader, namespace, request);
     }
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return nonblocking.leaderTime(authHeader, namespace);
+        return nonBlocking.leaderTime(authHeader, namespace);
     }
 
     @Override
@@ -79,17 +78,17 @@ public final class BlockingSensitiveConjureTimelockService implements ConjureTim
     @Override
     public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
             ConjureRefreshLocksRequest request) {
-        return nonblocking.refreshLocks(authHeader, namespace, request);
+        return nonBlocking.refreshLocks(authHeader, namespace, request);
     }
 
     @Override
     public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
-        return nonblocking.unlock(authHeader, namespace, request);
+        return nonBlocking.unlock(authHeader, namespace, request);
     }
 
     @Override
     public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
             GetCommitTimestampsRequest request) {
-        return nonblocking.getCommitTimestamps(authHeader, namespace, request);
+        return nonBlocking.getCommitTimestamps(authHeader, namespace, request);
     }
 }
