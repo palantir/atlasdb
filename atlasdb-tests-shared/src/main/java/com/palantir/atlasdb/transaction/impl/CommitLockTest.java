@@ -38,14 +38,13 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -165,7 +164,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timelockService,
-                NoOpLockWatchManager.INSTANCE,
+                new NotWatchingLockWatchManager(timelockService),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),

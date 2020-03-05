@@ -28,6 +28,8 @@ import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -67,5 +69,9 @@ public class NamespacedConjureTimelockService {
 
     public ConjureUnlockResponse unlock(ConjureUnlockRequest request) {
         return conjureTimelockService.unlock(AUTH_HEADER, namespace, request);
+    }
+
+    public GetCommitTimestampsResponse getCommitTimestamps(GetCommitTimestampsRequest request) {
+        return conjureTimelockService.getCommitTimestamps(AUTH_HEADER, namespace, request);
     }
 }

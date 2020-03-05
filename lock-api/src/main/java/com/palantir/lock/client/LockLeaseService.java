@@ -194,8 +194,4 @@ class LockLeaseService {
                 .map(LeasedLockToken::serverToken)
                 .collect(Collectors.toSet());
     }
-
-    private static ConjureLockToken toConjure(LockToken lockToken) {
-        return ConjureLockToken.of(lockToken.getRequestId());
-    }
 }

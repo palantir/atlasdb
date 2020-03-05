@@ -18,7 +18,7 @@ package com.palantir.atlasdb.transaction.api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.lock.client.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate;
 
 public final class PreCommitConditions {
 

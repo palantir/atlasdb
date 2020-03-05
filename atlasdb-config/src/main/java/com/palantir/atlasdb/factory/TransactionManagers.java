@@ -93,7 +93,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -1015,7 +1015,10 @@ public abstract class TransactionManagers {
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedLockWatchingRpcClient namespacedLockWatchingRpcClient = new NamespacedLockWatchingRpcClient(
                 creator.createService(LockWatchingRpcClient.class), timelockNamespace);
-        LockWatchManager lockWatcher = new LockWatchManagerImpl(namespacedLockWatchingRpcClient, lockWatchEventCache);
+        LockWatchManager lockWatcher = new LockWatchManagerImpl(
+                namespacedLockWatchingRpcClient,
+                namespacedConjureTimelockService,
+                lockWatchEventCache);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
@@ -1214,7 +1217,7 @@ public abstract class TransactionManagers {
         Optional<TimeLockMigrator> migrator();
         @Value.Default
         default LockWatchManager lockWatcher() {
-            return NoOpLockWatchManager.INSTANCE;
+            return new NotWatchingLockWatchManager(timelock());
         }
 
         @Value.Derived

@@ -47,7 +47,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.TimeDuration;
-import com.palantir.lock.client.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate;
 
 public class AdvisoryLocksConditionTest {
 
@@ -143,7 +143,7 @@ public class AdvisoryLocksConditionTest {
                 .thenReturn(ImmutableSet.of());
         when(lockService.refreshLockRefreshTokens(Collections.singleton(TRANSACTION_LOCK_REFRESH_TOKEN)))
                 .thenReturn(ImmutableSet.of());
-        assertThatThrownBy(() -> combinedLocksCondition.throwIfConditionInvalid(0L))
+        assertThatThrownBy(() -> combinedLocksCondition.throwIfConditionInvalid(CommitUpdate.ignoringWatches(0L)))
                 .isInstanceOf(TransactionLockTimeoutNonRetriableException.class)
                 .hasMessageContaining("Provided external lock tokens expired. Retry is not possible");
     }

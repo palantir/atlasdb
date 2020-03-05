@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.lock.client.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate;
 
 @FunctionalInterface
 public interface PreCommitConditionWithWatches {

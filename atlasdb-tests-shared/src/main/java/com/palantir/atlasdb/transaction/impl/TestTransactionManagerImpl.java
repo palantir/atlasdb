@@ -29,14 +29,14 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
 import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -100,7 +100,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.INSTANCE,
+                new NotWatchingLockWatchManager(new LegacyTimelockService(timestampService, lockService, lockClient)),
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -141,7 +141,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.INSTANCE,
+                new NotWatchingLockWatchManager(new LegacyTimelockService(timestampService, lockService, lockClient)),
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -214,7 +214,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
-            PreCommitCondition preCommitCondition) {
+            PreCommitConditionWithWatches preCommitCondition) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         return transactionWrapper.apply(
                 new SerializableTransaction(

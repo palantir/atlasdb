@@ -117,7 +117,6 @@ import com.palantir.timestamp.TimestampService;
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
-        this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;

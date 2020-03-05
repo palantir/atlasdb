@@ -28,7 +28,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
-import com.palantir.lock.client.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.Preconditions;
 
 public final class AdvisoryLockConditionSuppliers {

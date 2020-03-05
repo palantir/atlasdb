@@ -24,7 +24,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.client.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.UnsafeArg;
 
 public class TransactionLocksCondition implements AdvisoryLocksCondition {

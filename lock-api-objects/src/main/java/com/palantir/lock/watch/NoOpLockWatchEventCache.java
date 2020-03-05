@@ -45,8 +45,8 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void processUpdate(LockWatchStateUpdate update) {
-        // noop;
+    public CommitUpdate getCommitUpdate(long startTs, long commitTs, LockWatchStateUpdate update, UUID idToExclude) {
+        return CommitUpdate.invalidateWatches(commitTs);
     }
 
     @Override

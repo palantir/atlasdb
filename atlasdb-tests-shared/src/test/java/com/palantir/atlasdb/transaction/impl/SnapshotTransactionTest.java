@@ -105,7 +105,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -145,10 +145,10 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
-import com.palantir.lock.client.CommitUpdate;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
@@ -390,12 +390,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }});
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        LegacyTimelockService legacyTimelock = new LegacyTimelockService(timestampService, lock, lockClient);
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
-                        new LegacyTimelockService(timestampService, lock, lockClient),
-                        NoOpLockWatchManager.INSTANCE,
+                        legacyTimelock,
+                        new NotWatchingLockWatchManager(legacyTimelock),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> transactionTs,
@@ -1407,7 +1408,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
-                        NoOpLockWatchManager.INSTANCE,
+                        new NotWatchingLockWatchManager(timelockService),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         startTs,

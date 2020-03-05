@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.client.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate;
 
 public class CombinedLocksCondition implements AdvisoryLocksCondition {
     private final ExternalLocksCondition externalLocksCondition;

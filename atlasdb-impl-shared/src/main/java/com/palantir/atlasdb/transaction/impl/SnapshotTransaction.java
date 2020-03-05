@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -98,7 +99,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
@@ -112,7 +112,6 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -143,7 +142,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.client.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
@@ -152,7 +151,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.TimestampWithWatches;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -1603,12 +1601,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
                 timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
 
-                LockToken serverLockToken = getServerTokenIfLeased(commitLocksToken);
+                UUID ourRequestId = getRequestId(commitLocksToken);
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
                 CommitUpdate commitUpdate = timedAndTraced("getCommitTimestamp",
-                        () -> lockWatchManager.getCommitUpdate(getStartTimestamp(), serverLockToken));
+                        () -> lockWatchManager.getCommitUpdate(getStartTimestamp(), ourRequestId));
                 commitTsForScrubbing = commitUpdate.commitTs();
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,
@@ -1646,12 +1644,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         });
     }
 
-    private LockToken getServerTokenIfLeased(LockToken token) {
+    private UUID getRequestId(LockToken token) {
         if (token instanceof LeasedLockToken) {
             LeasedLockToken leased = (LeasedLockToken) token;
-            return leased.serverToken();
+            return leased.serverToken().getRequestId();
         }
-        return token;
+        return token.getRequestId();
     }
 
     private void timedAndTraced(String timerName, Runnable runnable) {

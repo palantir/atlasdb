@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.client;
+package com.palantir.lock.watch;
 
 import java.util.Set;
 
