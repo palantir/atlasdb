@@ -23,20 +23,42 @@ import org.immutables.value.Value;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 
-@Value.Immutable
 public interface CommitUpdate {
-    @Value.Parameter
     long commitTs();
-    @Value.Parameter
-    boolean invalidateAll();
-    @Value.Parameter
-    Set<LockDescriptor> invalidatedLocks();
+
+    <T> T accept(Visitor<T> visitor);
+
+    @Value.Immutable
+    interface InvalidateAll extends CommitUpdate {
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    @Value.Immutable
+    interface InvalidateSome extends CommitUpdate {
+        Set<LockDescriptor> invalidatedLocks();
+
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    interface Visitor<T> {
+        T visit(InvalidateAll update);
+        T visit(InvalidateSome update);
+    }
 
     static CommitUpdate ignoringWatches(long timestamp) {
-        return ImmutableCommitUpdate.of(timestamp, false, ImmutableSet.of());
+        return ImmutableInvalidateSome.builder()
+                .commitTs(timestamp)
+                .invalidatedLocks(ImmutableSet.of())
+                .build();
     }
 
     static CommitUpdate invalidateWatches(long timestamp) {
-        return ImmutableCommitUpdate.of(timestamp, true, ImmutableSet.of());
+        return ImmutableInvalidateAll.builder().commitTs(timestamp).build();
     }
 }

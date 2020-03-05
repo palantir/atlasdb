@@ -109,7 +109,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictHandler.SERIALIZABLE,
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
-
         LegacyTimelockService legacyTimelock = new LegacyTimelockService(timestampService, lockService, lockClient);
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),

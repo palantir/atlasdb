@@ -107,7 +107,6 @@ public final class AdvisoryLockConditionSuppliers {
 
         @Override
         public void throwIfConditionInvalid(CommitUpdate commitTimestampWithLockWatchInfo) {
-
         }
 
         @Override
