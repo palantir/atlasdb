@@ -194,7 +194,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected final TimelockService timelockService;
-    private final LockWatchManager lockWatchManager;
+    protected final LockWatchManager lockWatchManager;
     final KeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
@@ -248,6 +248,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            LockWatchManager lockWatchManager,
             TransactionService transactionService,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,
@@ -269,12 +270,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer) {
         this.metricsManager = metricsManager;
+        this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
-        this.lockWatchManager = new NotWatchingLockWatchManager(timelockService);
         this.defaultTransactionService = transactionService;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;

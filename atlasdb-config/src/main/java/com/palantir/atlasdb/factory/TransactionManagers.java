@@ -74,12 +74,11 @@ import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
-import com.palantir.atlasdb.debug.LockDiagnosticTimelockRpcClient;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timelock.BlockingSensitiveConjureTimelockService;
 import com.palantir.atlasdb.factory.timelock.BlockingSensitiveLockRpcClient;
-import com.palantir.atlasdb.factory.timelock.BlockingSensitiveTimelockRpcClient;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -92,6 +91,9 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -169,6 +171,10 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchingRpcClient;
+import com.palantir.lock.watch.NamespacedLockWatchingRpcClient;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -440,6 +446,7 @@ public abstract class TransactionManagers {
                         metricsManager,
                         keyValueService,
                         lockAndTimestampServices.timelock(),
+                        lockAndTimestampServices.lockWatcher(),
                         lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
                         transactionService,
@@ -988,30 +995,30 @@ public abstract class TransactionManagers {
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
-        ConjureTimelockService conjureTimelockService =
-                creator.createServiceWithoutBlockingOperations(ConjureTimelockService.class);
+        ConjureTimelockService conjureTimelockService = new BlockingSensitiveConjureTimelockService(
+                creator.createService(ConjureTimelockService.class),
+                creator.createServiceWithoutBlockingOperations(ConjureTimelockService.class));
 
-        TimelockRpcClient timelockClient = new BlockingSensitiveTimelockRpcClient(
-                creator.createService(TimelockRpcClient.class),
-                creator.createServiceWithoutBlockingOperations(TimelockRpcClient.class));
+        TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-        TimelockRpcClient withDiagnosticsTimelockClient = lockDiagnosticCollector
-                .<TimelockRpcClient>map(collector -> new LockDiagnosticTimelockRpcClient(timelockClient, collector))
-                .orElse(timelockClient);
-
         ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticCollector
                 .<ConjureTimelockService>map(collector ->
                         new LockDiagnosticConjureTimelockService(conjureTimelockService, collector))
                 .orElse(conjureTimelockService);
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient
-                = new NamespacedTimelockRpcClient(withDiagnosticsTimelockClient, timelockNamespace);
+                = new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         NamespacedConjureTimelockService namespacedConjureTimelockService
                 = new NamespacedConjureTimelockService(withDiagnosticsConjureTimelockService, timelockNamespace);
 
-        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter
-                = RemoteTimelockServiceAdapter.create(namespacedTimelockRpcClient, namespacedConjureTimelockService);
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
+        NamespacedLockWatchingRpcClient namespacedLockWatchingRpcClient = new NamespacedLockWatchingRpcClient(
+                creator.createService(LockWatchingRpcClient.class), timelockNamespace);
+        LockWatchManager lockWatcher = new LockWatchManagerImpl(namespacedLockWatchingRpcClient, lockWatchEventCache);
+
+        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
+                .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 creator.createServiceWithoutBlockingOperations(TimestampManagementRpcClient.class), timelockNamespace);
 
@@ -1020,6 +1027,7 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
                 .timelock(remoteTimelockServiceAdapter)
+                .lockWatcher(lockWatcher)
                 .close(remoteTimelockServiceAdapter::close)
                 .build();
     }
@@ -1204,6 +1212,10 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagement();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
+        @Value.Default
+        default LockWatchManager lockWatcher() {
+            return NoOpLockWatchManager.INSTANCE;
+        }
 
         @Value.Derived
         default ManagedTimestampService managedTimestampService() {

@@ -16,22 +16,14 @@
 
 package com.palantir.lock.v2;
 
-import java.util.OptionalLong;
-import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.watch.TimestampWithWatches;
-import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
-import com.palantir.timestamp.TimestampRange;
 
 /**
  * Interface describing timelock endpoints to be used by feign client factories to create raw clients.
@@ -47,43 +39,8 @@ import com.palantir.timestamp.TimestampRange;
 public interface TimelockRpcClient {
 
     @POST
-    @Path("fresh-timestamp")
-    long getFreshTimestamp(@PathParam("namespace") String namespace);
-
-    @POST
-    @Path("fresh-timestamps")
-    TimestampRange getFreshTimestamps(
-            @PathParam("namespace") String namespace, @Safe @QueryParam("number") int numTimestampsRequested);
-
-    @POST
-    @Path("commit-timestamp")
-    TimestampWithWatches getCommitTimestampWithWatches(
-            @PathParam("namespace") String namespace, @Safe @QueryParam("lastKnown") OptionalLong lastVersion);
-
-    @POST
-    @Path("lock-immutable-timestamp")
-    LockImmutableTimestampResponse lockImmutableTimestamp(
-            @PathParam("namespace") String namespace, IdentifiedTimeLockRequest request);
-
-    @POST
     @Path("immutable-timestamp")
     long getImmutableTimestamp(@PathParam("namespace") String namespace);
-
-    @POST
-    @Path("lock-v2")
-    LockResponseV2 lock(@PathParam("namespace") String namespace, IdentifiedLockRequest request);
-
-    @POST
-    @Path("await-locks")
-    WaitForLocksResponse waitForLocks(@PathParam("namespace") String namespace, WaitForLocksRequest request);
-
-    @POST
-    @Path("refresh-locks-v2")
-    RefreshLockResponseV2 refreshLockLeases(@PathParam("namespace") String namespace, Set<LockToken> tokens);
-
-    @POST
-    @Path("unlock")
-    Set<LockToken> unlock(@PathParam("namespace") String namespace, Set<LockToken> tokens);
 
     @POST
     @Path("current-time-millis")

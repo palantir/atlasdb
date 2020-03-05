@@ -17,28 +17,33 @@
 package com.palantir.timelock.invariants;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
-import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 
 public class TimeLockActivityCheckerTest {
     private static final String CLIENT = "client";
 
-    private final TimelockRpcClient timelockRpcClient = mock(TimelockRpcClient.class);
+    private final ConjureTimelockService timelockRpcClient = mock(ConjureTimelockService.class);
     private final TimeLockActivityChecker timeLockActivityChecker = new TimeLockActivityChecker(timelockRpcClient);
 
     @Test
     public void ifGetFreshTimestampReturnsTheValueIsPropagated() {
-        when(timelockRpcClient.getFreshTimestamp(CLIENT)).thenReturn(8L);
+        when(timelockRpcClient.getFreshTimestamps(any(), eq(CLIENT), eq(ConjureGetFreshTimestampsRequest.of(1))))
+                .thenReturn(ConjureGetFreshTimestampsResponse.of(8L, 8L));
         assertThat(timeLockActivityChecker.getFreshTimestampFromNodeForClient(CLIENT)).hasValue(8L);
     }
 
     @Test
     public void ifGetFreshTimestampThrowsReturnsEmpty() {
-        when(timelockRpcClient.getFreshTimestamp(CLIENT)).thenThrow(new RuntimeException());
+        when(timelockRpcClient.getFreshTimestamps(any(), eq(CLIENT), any())).thenThrow(new RuntimeException());
         assertThat(timeLockActivityChecker.getFreshTimestampFromNodeForClient(CLIENT)).isEmpty();
     }
 }

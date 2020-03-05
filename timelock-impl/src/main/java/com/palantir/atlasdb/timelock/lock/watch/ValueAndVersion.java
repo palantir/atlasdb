@@ -14,13 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.timelock.lock.watch;
 
-public interface LockWatchEventTracker {
-    VersionedLockWatchState currentState();
-    VersionedLockWatchState updateState(LockWatchStateUpdate update);
+import org.immutables.value.Value;
 
-    void setLockWatchStateForStartTimestamp(long startTimestamp, VersionedLockWatchState lockWatchState);
-    VersionedLockWatchState getLockWatchStateForStartTimestamp(long startTimestamp);
-    VersionedLockWatchState removeLockWatchStateForStartTimestamp(long startTimestamp);
+@Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+public interface ValueAndVersion<T> {
+    @Value.Parameter
+    long version();
+    @Value.Parameter
+    T value();
+
+    static <R> ValueAndVersion<R> of(long version, R result) {
+        return ImmutableValueAndVersion.of(version, result);
+    }
 }

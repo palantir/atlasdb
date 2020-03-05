@@ -30,6 +30,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
@@ -38,7 +39,10 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
 
     private AsyncLockClient(NamespacedTimelockRpcClient timelockService,
             NamespacedConjureTimelockService conjureTimelockService) {
-        this.timelockService = RemoteTimelockServiceAdapter.create(timelockService, conjureTimelockService);
+        this.timelockService = RemoteTimelockServiceAdapter.create(
+                timelockService,
+                conjureTimelockService,
+                NoOpLockWatchEventCache.INSTANCE);
     }
 
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {
@@ -52,7 +56,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     }
 
     @Override
-    public LockToken lock(String client, String lockName) throws InterruptedException {
+    public LockToken lock(String client, String lockName) {
         LockRequest lockRequest = LockRequest.of(
                 ImmutableSet.of(StringLockDescriptor.of(lockName)),
                 Long.MAX_VALUE,
@@ -64,12 +68,12 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     }
 
     @Override
-    public Set<LockToken> unlock(Set<LockToken> lockTokenV2s) throws InterruptedException {
+    public Set<LockToken> unlock(Set<LockToken> lockTokenV2s) {
         return timelockService.unlock(lockTokenV2s);
     }
 
     @Override
-    public Set<LockToken> refresh(Set<LockToken> lockTokenV2s) throws InterruptedException {
+    public Set<LockToken> refresh(Set<LockToken> lockTokenV2s) {
         return timelockService.refreshLockLeases(lockTokenV2s);
     }
 }

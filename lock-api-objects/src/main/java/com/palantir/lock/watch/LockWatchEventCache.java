@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.lock.watch;
 
-public interface TableWatchState {
+import java.util.Set;
+
+public interface LockWatchEventCache {
+    IdentifiedVersion lastKnownVersion();
+    IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    void processUpdate(LockWatchStateUpdate update);
+    TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion version);
 }

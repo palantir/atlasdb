@@ -16,48 +16,50 @@
 
 package com.palantir.lock.client;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.NamespacedTimelockRpcClient;
-import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 class LockLeaseService {
-    private final NamespacedTimelockRpcClient delegate;
-    private final NamespacedConjureTimelockService conjureDelegate;
+    private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
 
     @VisibleForTesting
     LockLeaseService(
-            NamespacedTimelockRpcClient timelockRpcClient,
-            NamespacedConjureTimelockService conjureDelegate,
+            NamespacedConjureTimelockService delegate,
             UUID clientId) {
-        this.delegate = timelockRpcClient;
-        this.conjureDelegate = conjureDelegate;
+        this.delegate = delegate;
         this.clientId = clientId;
-        this.time = new CoalescingSupplier<>(conjureDelegate::leaderTime);
+        this.time = new CoalescingSupplier<>(delegate::leaderTime);
     }
 
-    static LockLeaseService create(
-            NamespacedTimelockRpcClient timelockRpcClient,
-            NamespacedConjureTimelockService conjureTimelock) {
-        return new LockLeaseService(timelockRpcClient, conjureTimelock, UUID.randomUUID());
+    static LockLeaseService create(NamespacedConjureTimelockService conjureTimelock) {
+        return new LockLeaseService(conjureTimelock, UUID.randomUUID());
     }
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {
@@ -69,15 +71,17 @@ class LockLeaseService {
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
+                .lastKnownVersion(Optional.empty())
                 .build();
-        ConjureStartTransactionsResponse conjureResponse = conjureDelegate.startTransactions(request);
+        ConjureStartTransactionsResponse conjureResponse = delegate.startTransactions(request);
         StartTransactionResponseV4 response = StartTransactionResponseV4.of(
                 conjureResponse.getImmutableTimestamp(),
                 conjureResponse.getTimestamps(),
                 conjureResponse.getLease());
 
         Lease lease = response.lease();
-        LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
+        LeasedLockToken leasedLockToken =
+                LeasedLockToken.of(ConjureLockToken.of(response.immutableTimestamp().getLock().getRequestId()), lease);
         long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
 
         return StartTransactionResponseV4.of(
@@ -86,13 +90,47 @@ class LockLeaseService {
                 lease);
     }
 
-    LockResponse lock(LockRequest request) {
-        LockResponseV2 leasableResponse = delegate.lock(IdentifiedLockRequest.from(request));
+    ConjureStartTransactionsResponse startTransactionsWithWatches(Optional<Long> version, int batchSize) {
+        ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
+                .requestorId(clientId)
+                .requestId(UUID.randomUUID())
+                .numTransactions(batchSize)
+                .lastKnownVersion(version)
+                .build();
+        ConjureStartTransactionsResponse response = delegate.startTransactions(request);
+        Lease lease = response.getLease();
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(
+                ConjureLockToken.of(response.getImmutableTimestamp().getLock().getRequestId()), lease);
+        long immutableTs = response.getImmutableTimestamp().getImmutableTimestamp();
+        return ConjureStartTransactionsResponse.builder()
+                .lease(lease)
+                .immutableTimestamp(LockImmutableTimestampResponse.of(immutableTs, leasedLockToken))
+                .timestamps(response.getTimestamps())
+                .lockWatchUpdate(response.getLockWatchUpdate())
+                .build();
+    }
 
-        return leasableResponse.accept(LockResponseV2.Visitor.of(
-                successful -> LockResponse.successful(
-                        LeasedLockToken.of(successful.getToken(), successful.getLease())),
-                unsuccessful -> LockResponse.timedOut()));
+    LockResponse lock(LockRequest request) {
+        return delegate.lock(ConjureLockRequests.toConjure(request)).accept(ToLeasedLockResponse.INSTANCE);
+    }
+
+    private enum ToLeasedLockResponse implements ConjureLockResponse.Visitor<LockResponse> {
+        INSTANCE;
+
+        @Override
+        public LockResponse visitSuccessful(SuccessfulLockResponse value) {
+            return LockResponse.successful(LeasedLockToken.of(value.getLockToken(), value.getLease()));
+        }
+
+        @Override
+        public LockResponse visitUnsuccessful(UnsuccessfulLockResponse value) {
+            return LockResponse.timedOut();
+        }
+
+        @Override
+        public LockResponse visitUnknown(String unknownType) {
+            throw new SafeIllegalStateException("Unknown response type", SafeArg.of("type", unknownType));
+        }
     }
 
     Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
@@ -117,7 +155,8 @@ class LockLeaseService {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
-        Set<LockToken> unlocked = delegate.unlock(serverTokens(leasedLockTokens));
+        Set<ConjureLockToken> unlocked =
+                delegate.unlock(ConjureUnlockRequest.of(serverTokens(leasedLockTokens))).getTokens();
         return leasedLockTokens.stream()
                 .filter(leasedLockToken -> unlocked.contains(leasedLockToken.serverToken()))
                 .collect(Collectors.toSet());
@@ -128,12 +167,12 @@ class LockLeaseService {
             return leasedTokens;
         }
 
-        RefreshLockResponseV2 refreshLockResponse = delegate.refreshLockLeases(
-                serverTokens(leasedTokens));
+        ConjureRefreshLocksResponse refreshLockResponse = delegate.refreshLocks(
+                ConjureRefreshLocksRequest.of(serverTokens(leasedTokens)));
         Lease lease = refreshLockResponse.getLease();
 
         Set<LeasedLockToken> refreshedTokens = leasedTokens.stream()
-                .filter(t -> refreshLockResponse.refreshedTokens().contains(t.serverToken()))
+                .filter(t -> refreshLockResponse.getRefreshedTokens().contains(t.serverToken()))
                 .collect(Collectors.toSet());
 
         refreshedTokens.forEach(t -> t.updateLease(lease));
@@ -150,9 +189,13 @@ class LockLeaseService {
         return (Set<LeasedLockToken>) (Set<?>) tokens;
     }
 
-    private static Set<LockToken> serverTokens(Set<LeasedLockToken> leasedTokens) {
+    private static Set<ConjureLockToken> serverTokens(Set<LeasedLockToken> leasedTokens) {
         return leasedTokens.stream()
                 .map(LeasedLockToken::serverToken)
                 .collect(Collectors.toSet());
+    }
+
+    private static ConjureLockToken toConjure(LockToken lockToken) {
+        return ConjureLockToken.of(lockToken.getRequestId());
     }
 }

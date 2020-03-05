@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.tracing.Observability;
 
 public final class Autobatchers {
 
@@ -86,7 +87,9 @@ public final class Autobatchers {
     public static final class AutobatcherBuilder<I, O> {
 
         private final Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory;
+        private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
+        private Observability observability = Observability.UNDECIDED;
         @Nullable private String purpose;
 
         private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory) {
@@ -98,12 +101,25 @@ public final class Autobatchers {
             return this;
         }
 
+        public AutobatcherBuilder<I, O> safeTag(String key, String value) {
+            this.safeTags.put(key, value);
+            return this;
+        }
+
+        public AutobatcherBuilder<I, O> observability(Observability observabilityParam) {
+            this.observability = observabilityParam;
+            return this;
+        }
+
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
+            EventHandler<BatchElement<I, O>> tracingHandler =
+                    new TracingEventHandler<>(handler, purpose, observability);
+
             EventHandler<BatchElement<I, O>> profiledHandler =
-                    new ProfilingEventHandler<>(handler, purpose);
+                    new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
 
             return DisruptorAutobatcher.create(profiledHandler, DEFAULT_BUFFER_SIZE, purpose);
         }

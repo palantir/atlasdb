@@ -81,16 +81,8 @@ public class LeadershipComponents {
     private LeadershipContext createNewLeadershipContext(Client client) {
         LeadershipContext uninstrumentedLeadershipContext = leadershipContextFactory.create(client);
         closer.register(uninstrumentedLeadershipContext.closeables());
-
-        LeaderElectionService leaderElectionService = uninstrumentedLeadershipContext.leadershipMetrics().instrument(
-                LeaderElectionService.class,
-                uninstrumentedLeadershipContext.leaderElectionService());
-        closer.register(() -> shutdownLeaderElectionService(leaderElectionService));
-
-        return ImmutableLeadershipContext.builder()
-                .from(uninstrumentedLeadershipContext)
-                .leaderElectionService(leaderElectionService)
-                .build();
+        closer.register(() -> shutdownLeaderElectionService(uninstrumentedLeadershipContext.leaderElectionService()));
+        return uninstrumentedLeadershipContext;
     }
 
     private static void shutdownLeaderElectionService(LeaderElectionService leaderElectionService) {

@@ -515,6 +515,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                lockWatchManager,
                 transactionService,
                 cleaner,
                 startTimestampSupplier,

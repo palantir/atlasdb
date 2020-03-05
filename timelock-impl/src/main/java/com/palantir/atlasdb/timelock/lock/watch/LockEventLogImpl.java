@@ -50,15 +50,20 @@ public class LockEventLogImpl implements LockEventLog {
 
     @Override
     public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion) {
+        return getLogDiff(fromVersion, slidingWindow.lastVersion());
+    }
+
+    @Override
+    public LockWatchStateUpdate getLogDiff(OptionalLong fromVersion, long toVersion) {
         if (!fromVersion.isPresent()) {
             return attemptToCalculateSnapshot();
         }
-        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromVersion(fromVersion.getAsLong());
+        Optional<List<LockWatchEvent>> maybeEvents = slidingWindow.getFromTo(fromVersion.getAsLong(), toVersion);
         if (!maybeEvents.isPresent()) {
             return attemptToCalculateSnapshot();
         }
         List<LockWatchEvent> events = maybeEvents.get();
-        return LockWatchStateUpdate.success(logId, fromVersion.getAsLong() + events.size(), events);
+        return LockWatchStateUpdate.success(logId, toVersion, events);
     }
 
     /**
@@ -104,6 +109,15 @@ public class LockEventLogImpl implements LockEventLog {
                 .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
                 .filter(watchedRanges::contains)
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
+     * result in a deadlock.
+     */
+    @Override
+    public <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
+        return slidingWindow.runTaskAndAtomicallyReturnVersion(task);
     }
 
     @Override
