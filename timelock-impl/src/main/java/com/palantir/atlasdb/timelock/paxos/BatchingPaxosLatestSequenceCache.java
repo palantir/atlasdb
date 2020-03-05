@@ -161,7 +161,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         @Value.Parameter
         AcceptorCacheKey cacheKey();
 
-        // this exists to give ordering to
+        // this exists to give ordering to cache keys especially when they're coming back concurrently.
         @Value.Parameter
         long timestamp();
 
