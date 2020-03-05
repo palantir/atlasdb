@@ -27,7 +27,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +53,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     private final Set<Client> clientsSeenSoFar = Sets.newConcurrentHashSet();
 
     private final AtomicReference<TimestampedAcceptorCacheKey> cacheKey = new AtomicReference<>();
-    private final LoadingCache<TimestampedAcceptorCacheKey, ConcurrentMap<Client, PaxosLong>> cacheKeysToCaches =
+    private final LoadingCache<AcceptorCacheKey, ConcurrentMap<Client, PaxosLong>> cacheKeysToCaches =
             Caffeine.newBuilder()
                     .expireAfterAccess(Duration.ofMinutes(1))
                     .build($ -> Maps.newConcurrentMap());
@@ -77,7 +76,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                 } else {
                     return populateExistingCache(
                             timestampedCacheKey,
-                            cacheKeysToCaches.get(timestampedCacheKey),
+                            cacheKeysToCaches.get(timestampedCacheKey.cacheKey()),
                             requestedClients);
                 }
             } catch (InvalidAcceptorCacheKeyException e) {
@@ -96,7 +95,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
             throws InvalidAcceptorCacheKeyException {
         AcceptorCacheDigest digest = delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clientsSeenSoFar);
         ConcurrentMap<Client, PaxosLong> newEntriesToCache =
-                cacheKeysToCaches.get(TimestampedAcceptorCacheKey.of(digest));
+                cacheKeysToCaches.get(digest.newCacheKey());
         processDigest(newEntriesToCache, digest);
         return getResponseMap(newEntriesToCache, requestedClients);
     }
@@ -123,7 +122,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         TimestampedAcceptorCacheKey newCacheKey = TimestampedAcceptorCacheKey.of(digest);
         // this shares the same map with "previous" cache keys, if it's too confusing we can always copy it potentially
         ConcurrentMap<Client, PaxosLong> newCachedEntries =
-                cacheKeysToCaches.get(newCacheKey, $ -> currentCachedEntries);
+                cacheKeysToCaches.get(newCacheKey.cacheKey(), $ -> currentCachedEntries);
         KeyedStream.stream(digest.updates())
                 .map(PaxosLong::of)
                 .forEach((client, paxosLong) ->
@@ -158,17 +157,4 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                 .orElseThrow(() -> new SafeIllegalArgumentException("No Paxos Value could be picked"));
     }
 
-    @Value.Immutable
-    interface TimestampedAcceptorCacheKey {
-        @Value.Parameter
-        AcceptorCacheKey cacheKey();
-
-        // this exists to give ordering to cache keys especially when they're coming back concurrently.
-        @Value.Parameter
-        long timestamp();
-
-        static TimestampedAcceptorCacheKey of(AcceptorCacheDigest digest) {
-            return ImmutableTimestampedAcceptorCacheKey.of(digest.newCacheKey(), digest.cacheTimestamp());
-        }
-    }
 }
