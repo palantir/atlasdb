@@ -335,7 +335,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
-            ColumnSelection columnSelection) {
+                                                        ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
@@ -519,8 +519,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     @Override
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
-                                || !Arrays.equals(peekableRawResults.peek().getKey().getRowName(),
-                                nextRowName)) {
+                                || !Arrays.equals(peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
                             return endOfData();
                         }
                         return peekableRawResults.next();
@@ -887,10 +886,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
-                                                                         final SortedMap<Cell, byte[]> postFiltered,
-                                                                         final RangeRequest rangeRequest,
-                                                                         List<RowResult<Value>> prePostFilter,
-                                                                         final byte[] endRowExclusive) {
+                                                                     final SortedMap<Cell, byte[]> postFiltered,
+                                                                     final RangeRequest rangeRequest,
+                                                                     List<RowResult<Value>> prePostFilter,
+                                                                     final byte[] endRowExclusive) {
         Map<Cell, Value> prePostFilterCells = Cells.convertRowResultsToCells(prePostFilter);
         Collection<Map.Entry<Cell, byte[]>> postFilteredCells = Collections2.filter(
                 postFiltered.entrySet(),
@@ -1688,7 +1687,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken,
-            Set<LockToken> expiredLocks) {
+                                              Set<LockToken> expiredLocks) {
         return "The following immutable timestamp lock was required: " + immutableTimestampLock
             + "; the following commit locks were required: " + commitLocksToken
             + "; the following locks are no longer valid: " + expiredLocks;
@@ -1980,7 +1979,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return true;
         } catch (KeyAlreadyExistsException e) {
             log.debug("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
-                     + " else's request with start: {}",
+                    + " else's request with start: {}",
                     SafeArg.of("startTs", startTs),
                     new TransactionFailedRetriableException(
                             "Two transactions tried to roll back someone else's request with start: " + startTs, e));
