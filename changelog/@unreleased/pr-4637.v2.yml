@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Timestamp corroboration checks now log the exception when unable to
+    get a timestamp.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4637
