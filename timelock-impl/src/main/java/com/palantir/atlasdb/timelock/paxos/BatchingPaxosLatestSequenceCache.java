@@ -155,7 +155,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     private static PaxosLong max(PaxosLong a, PaxosLong b) {
         return Stream.of(a, b)
                 .max(Comparator.comparingLong(PaxosLong::getValue))
-                .orElseThrow(() -> { throw new SafeIllegalArgumentException("No Paxos Value could be picked"); });
+                .orElseThrow(() -> new SafeIllegalArgumentException("No Paxos Value could be picked"));
     }
 
     @Value.Immutable
