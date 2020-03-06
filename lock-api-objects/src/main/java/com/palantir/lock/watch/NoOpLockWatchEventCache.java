@@ -16,6 +16,7 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -41,8 +42,13 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
-        return FAKE;
+    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
+        // noop
+    }
+
+    @Override
+    public void processGetCommitTimestampsUpdate(Collection<Long> commitTimestamps, LockWatchStateUpdate update) {
+        // noop
     }
 
     @Override
