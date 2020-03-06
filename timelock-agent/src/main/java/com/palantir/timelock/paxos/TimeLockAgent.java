@@ -40,6 +40,7 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestingService;
+import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
@@ -85,13 +86,15 @@ public class TimeLockAgent {
             int threadPoolSize,
             long blockingTimeoutMs,
             Consumer<Object> registrar,
-            Optional<Consumer<UndertowService>> undertowRegistrar) {
+            Optional<Consumer<UndertowService>> undertowRegistrar,
+            Optional<Function<String, BatchPaxosAcceptorRpcClient>> acceptorFactoryOverride) {
         ExecutorService executor = createSharedExecutor(metricsManager);
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 ImmutableTimelockPaxosInstallationContext.of(install, userAgent),
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                executor);
+                executor,
+                acceptorFactoryOverride);
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,

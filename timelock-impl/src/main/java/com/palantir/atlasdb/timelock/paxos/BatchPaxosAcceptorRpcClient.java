@@ -30,6 +30,8 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.SetMultimap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
@@ -113,6 +115,14 @@ public interface BatchPaxosAcceptorRpcClient {
             @QueryParam(HttpHeaders.IF_MATCH) @Nullable AcceptorCacheKey cacheKey,
             Set<Client> clients);
 
+    default ListenableFuture<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedAsync(
+            PaxosUseCase paxosUseCase,
+            @Nullable AcceptorCacheKey cacheKey,
+            Set<Client> clients) {
+        // TODO(fdesouza): need to wrap this
+        return Futures.immediateFuture(latestSequencesPreparedOrAccepted(paxosUseCase, cacheKey, clients));
+    }
+
     /**
      * Returns all unseen latest sequences prepared or accepted past the given {@code cacheKey}. That is, if for a
      * client, an acceptor has received multiple proposals at multiple sequence numbers past {@code cacheKey}, it will
@@ -140,4 +150,10 @@ public interface BatchPaxosAcceptorRpcClient {
             @PathParam("useCase") PaxosUseCase paxosUseCase,
             @QueryParam(HttpHeaders.IF_MATCH) AcceptorCacheKey cacheKey);
 
+    default ListenableFuture<Optional<AcceptorCacheDigest>> latestSequencesPreparedOrAcceptedCachedAsync(
+            PaxosUseCase paxosUseCase,
+            AcceptorCacheKey cacheKey) {
+        // TODO(fdesouza): need to wrap this
+        return Futures.immediateFuture(latestSequencesPreparedOrAcceptedCached(paxosUseCase, cacheKey));
+    }
 }

@@ -55,6 +55,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 environment.jersey()::register,
+                Optional.empty(),
                 Optional.empty());
     }
 }

@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.Path;
@@ -48,6 +50,9 @@ public abstract class PaxosRemoteClients {
     public abstract PaxosResourcesFactory.TimelockPaxosInstallationContext context();
 
     @Value.Parameter
+    public abstract Optional<Function<String, BatchPaxosAcceptorRpcClient>> acceptorClientFactoryOverride();
+
+    @Value.Parameter
     public abstract TaggedMetricRegistry metrics();
 
     @Value.Derived
@@ -73,7 +78,9 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
-        return createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, false);
+        return acceptorClientFactoryOverride()
+                .map(override -> context().remoteUris().stream().map(override).collect(Collectors.toList()))
+                .orElseGet(() -> createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, false));
     }
 
     @Value.Derived

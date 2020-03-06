@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,8 +57,12 @@ public final class PaxosResourcesFactory {
             TimelockPaxosInstallationContext install,
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
-            ExecutorService sharedExecutor) {
-        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(install, metrics.getTaggedRegistry());
+            ExecutorService sharedExecutor,
+            Optional<Function<String, BatchPaxosAcceptorRpcClient>> acceptorFactoryOverride) {
+        PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(
+                install,
+                acceptorFactoryOverride,
+                metrics.getTaggedRegistry());
 
         ImmutablePaxosResources.Builder resourcesBuilder =
                 setupTimestampResources(install, metrics, paxosRuntime, sharedExecutor, remoteClients);
