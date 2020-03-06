@@ -16,6 +16,7 @@
 
 package com.palantir.lock.watch;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,7 +28,11 @@ public interface LockWatchEventCache {
     /**
      * Updates the cache with the update, and identifies the given start timestamps with that lock watch state.
      */
-    IdentifiedVersion processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+    /**
+     * Updates the cache with the update, and identifies the given commit timestamps with that lock watch state.
+     */
+    void processGetCommitTimestampsUpdate(Collection<Long> commitTimestamps, LockWatchStateUpdate update);
     /**
      * Updates the cache with the update, and calculates the {@link CommitUpdate} taking into account all changes to
      * lock watch state since the start of the transaction, excluding the transaction's own commit locks.
