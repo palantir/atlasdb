@@ -27,7 +27,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
-public final class LeasedLockToken implements LockToken {
+final class LeasedLockToken implements LockToken {
     private final ConjureLockToken serverToken;
     private final UUID requestId;
 
@@ -47,7 +47,7 @@ public final class LeasedLockToken implements LockToken {
         this.lease = lease;
     }
 
-    public ConjureLockToken serverToken() {
+    ConjureLockToken serverToken() {
         return serverToken;
     }
 
@@ -77,6 +77,11 @@ public final class LeasedLockToken implements LockToken {
     @Override
     public UUID getRequestId() {
         return requestId;
+    }
+
+    @Override
+    public boolean derivedFromLockToken(LockToken lockToken) {
+        return serverToken().getRequestId().equals(lockToken.getRequestId());
     }
 
     @Override

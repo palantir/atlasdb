@@ -35,6 +35,10 @@ public interface LockToken {
         return ImmutableLockToken.of(requestId);
     }
 
+    default boolean derivedFromLockToken(LockToken lockToken) {
+        return getRequestId().equals(lockToken.getRequestId());
+    }
+
     default SafeArg<?> toSafeArg(String name) {
         return SafeArg.of(name, this);
     }
