@@ -39,7 +39,11 @@ public class BlockingSensitiveLockRpcClientTest {
 
     private final LockRpcClient blocking = mock(LockRpcClient.class);
     private final LockRpcClient nonBlocking = mock(LockRpcClient.class);
-    private final LockRpcClient sensitiveClient = new BlockingSensitiveLockRpcClient(blocking, nonBlocking);
+    private final LockRpcClient sensitiveClient = new BlockingSensitiveLockRpcClient(
+            ImmutableBlockingAndNonBlockingServices.<LockRpcClient>builder()
+                    .blocking(blocking)
+                    .nonBlocking(nonBlocking)
+                    .build());
 
     @Test
     public void lockUsesBlockingClient() throws InterruptedException {
