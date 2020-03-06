@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.v2.LockToken;
 
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
@@ -45,7 +46,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long startTs, long commitTs, LockWatchStateUpdate update, UUID idToExclude) {
+    public CommitUpdate getCommitUpdate(long startTs, long commitTs, LockWatchStateUpdate update, LockToken ignore) {
         return CommitUpdate.invalidateWatches(commitTs);
     }
 

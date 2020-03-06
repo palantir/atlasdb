@@ -17,11 +17,11 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Set;
-import java.util.UUID;
 
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -55,7 +55,7 @@ public final class LockWatchManagerImpl implements LockWatchManager {
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long startTimestamp, UUID requestIdToExclude) {
+    public CommitUpdate getCommitUpdate(long startTimestamp, LockToken commitLocksToken) {
         GetCommitTimestampsRequest request = GetCommitTimestampsRequest.builder()
                 .numTimestamps(1)
                 .lastKnownVersion(cache.lastKnownVersion().version())
@@ -65,6 +65,6 @@ public final class LockWatchManagerImpl implements LockWatchManager {
                 startTimestamp,
                 response.getInclusiveLower(),
                 response.getLockWatchUpdate(),
-                requestIdToExclude);
+                commitLocksToken);
     }
 }

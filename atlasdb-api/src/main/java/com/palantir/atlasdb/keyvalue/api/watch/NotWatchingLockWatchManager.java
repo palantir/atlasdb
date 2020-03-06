@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import java.util.Set;
-import java.util.UUID;
 
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
@@ -45,7 +45,7 @@ public final class NotWatchingLockWatchManager implements LockWatchManager {
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long startTimestamp, UUID requestIdToExclude) {
+    public CommitUpdate getCommitUpdate(long startTimestamp, LockToken commitLocksToken) {
         return CommitUpdate.invalidateWatches(timelock.getFreshTimestamp());
     }
 }

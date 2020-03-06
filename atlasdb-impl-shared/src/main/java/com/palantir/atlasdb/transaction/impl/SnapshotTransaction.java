@@ -142,7 +142,6 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -1603,12 +1602,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
                 timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
 
-                UUID ourRequestId = getRequestId(commitLocksToken);
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
                 CommitUpdate commitUpdate = timedAndTraced("getCommitTimestamp",
-                        () -> lockWatchManager.getCommitUpdate(getStartTimestamp(), ourRequestId));
+                        () -> lockWatchManager.getCommitUpdate(getStartTimestamp(), commitLocksToken));
                 commitTsForScrubbing = commitUpdate.commitTs();
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,
@@ -1644,14 +1642,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
             }
         });
-    }
-
-    private UUID getRequestId(LockToken token) {
-        if (token instanceof LeasedLockToken) {
-            LeasedLockToken leased = (LeasedLockToken) token;
-            return leased.serverToken().getRequestId();
-        }
-        return token.getRequestId();
     }
 
     private void timedAndTraced(String timerName, Runnable runnable) {
