@@ -52,7 +52,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
 
     private final Set<Client> clientsSeenSoFar = Sets.newConcurrentHashSet();
 
-    private final AtomicReference<TimestampedAcceptorCacheKey> cacheKey = new AtomicReference<>();
+    private final AtomicReference<TimestampedAcceptorCacheKey> latestCacheKey = new AtomicReference<>();
     private final LoadingCache<AcceptorCacheKey, ConcurrentMap<Client, PaxosLong>> cacheKeysToCaches =
             Caffeine.newBuilder()
                     .expireAfterAccess(Duration.ofMinutes(1))
@@ -69,11 +69,12 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
 
         int attempt = 0;
         while (attempt < 3) {
-            TimestampedAcceptorCacheKey timestampedCacheKey = cacheKey.get();
+            TimestampedAcceptorCacheKey timestampedCacheKey = latestCacheKey.get();
             try {
                 if (timestampedCacheKey == null) {
                     return populateNewCache(requestedClients);
                 } else {
+                    // get the cache here
                     return populateExistingCache(
                             timestampedCacheKey,
                             cacheKeysToCaches.get(timestampedCacheKey.cacheKey()),
@@ -83,7 +84,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
                 log.info("Cache key is invalid, invalidating cache and retrying",
                         SafeArg.of("attempt", attempt),
                         e);
-                cacheKey.compareAndSet(timestampedCacheKey, null);
+                latestCacheKey.compareAndSet(timestampedCacheKey, null);
                 attempt++;
             }
         }
@@ -94,8 +95,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     private Map<Client, PaxosLong> populateNewCache(Set<Client> requestedClients)
             throws InvalidAcceptorCacheKeyException {
         AcceptorCacheDigest digest = delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clientsSeenSoFar);
-        ConcurrentMap<Client, PaxosLong> newEntriesToCache =
-                cacheKeysToCaches.get(digest.newCacheKey());
+        ConcurrentMap<Client, PaxosLong> newEntriesToCache = cacheKeysToCaches.get(digest.newCacheKey());
         processDigest(newEntriesToCache, digest);
         return getResponseMap(newEntriesToCache, requestedClients);
     }
@@ -135,11 +135,11 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
 
     private void maybeSetNewCacheKey(TimestampedAcceptorCacheKey newCacheKey) {
         while (true) {
-            TimestampedAcceptorCacheKey current = cacheKey.get();
+            TimestampedAcceptorCacheKey current = latestCacheKey.get();
             // either the new cache key is older or the same as the current
             // or we race to set it and try again if we lose
             if ((current != null && newCacheKey.timestamp() <= current.timestamp())
-                    || cacheKey.compareAndSet(current, newCacheKey)) {
+                    || latestCacheKey.compareAndSet(current, newCacheKey)) {
                 return;
             }
         }
