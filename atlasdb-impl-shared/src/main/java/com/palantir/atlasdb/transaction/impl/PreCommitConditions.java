@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.transaction.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 
 public final class PreCommitConditions {
 
