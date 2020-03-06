@@ -18,19 +18,11 @@ package com.palantir.atlasdb.transaction.api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.lock.watch.CommitUpdate;
-
 public final class PreCommitConditions {
 
     private static final Logger log = LoggerFactory.getLogger(PreCommitConditions.class);
 
-    public static final PreCommitConditionWithWatches NO_OP = new PreCommitConditionWithWatches() {
-        @Override
-        public void throwIfConditionInvalid(CommitUpdate ignore) {}
-
-        @Override
-        public void cleanup() {}
-    };
+    public static final PreCommitCondition NO_OP = ignore -> { };
 
     private PreCommitConditions() {}
 

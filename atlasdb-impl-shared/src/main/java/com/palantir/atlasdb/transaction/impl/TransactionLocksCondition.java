@@ -24,7 +24,6 @@ import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.UnsafeArg;
 
 public class TransactionLocksCondition implements AdvisoryLocksCondition {
@@ -40,7 +39,7 @@ public class TransactionLocksCondition implements AdvisoryLocksCondition {
     }
 
     @Override
-    public void throwIfConditionInvalid(CommitUpdate ignore) {
+    public void throwIfConditionInvalid(long ignore) {
         if (lockService.refreshLockRefreshTokens(Collections.singleton(heldLock.getLockRefreshToken())).isEmpty()) {
             log.warn("Lock service locks were no longer valid",
                     UnsafeArg.of("invalidToken", heldLock.getLockRefreshToken()));

@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
-import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -34,7 +34,7 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
     }
 
     @Override
-    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionWithRetry(
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
         return retryStrategy.get().runWithRetry(this::shouldStopRetrying, () -> {
             checkOpen();

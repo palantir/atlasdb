@@ -27,7 +27,6 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableEx
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.UnsafeArg;
 
 public class ExternalLocksCondition implements AdvisoryLocksCondition {
@@ -43,7 +42,7 @@ public class ExternalLocksCondition implements AdvisoryLocksCondition {
     }
 
     @Override
-    public void throwIfConditionInvalid(CommitUpdate commitUpdate) {
+    public void throwIfConditionInvalid(long timestamp) {
         if (lockTokens.isEmpty()) {
             return;
         }

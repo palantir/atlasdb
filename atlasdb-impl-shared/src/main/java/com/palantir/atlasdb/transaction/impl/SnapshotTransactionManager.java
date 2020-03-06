@@ -48,7 +48,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
-import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
@@ -147,7 +147,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionThrowOnConflict(
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task)
             throws E, TransactionFailedRetriableException {
         checkOpen();
@@ -163,7 +163,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(
-            PreCommitConditionWithWatches condition) {
+            PreCommitCondition condition) {
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
                 = timelockService.startIdentifiedAtlasDbTransaction();
         try {
@@ -235,7 +235,7 @@ import com.palantir.timestamp.TimestampService;
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
-            PreCommitConditionWithWatches condition) {
+            PreCommitCondition condition) {
         return new SnapshotTransaction(
                 metricsManager,
                 keyValueService,
@@ -264,7 +264,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionReadOnly(
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         if (transactionConfig.get().lockImmutableTsOnReadOnlyTransactions()) {
             return runTaskWithConditionThrowOnConflict(condition, task);
@@ -273,7 +273,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private  <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionReadOnlyInternal(
+    private  <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();

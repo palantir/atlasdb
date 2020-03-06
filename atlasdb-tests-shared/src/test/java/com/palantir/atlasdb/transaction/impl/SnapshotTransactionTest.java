@@ -116,7 +116,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
-import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
@@ -148,7 +148,6 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
@@ -275,9 +274,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
     }
 
-    private static final PreCommitConditionWithWatches ALWAYS_FAILS_CONDITION = new PreCommitConditionWithWatches() {
+    private static final PreCommitCondition ALWAYS_FAILS_CONDITION = new PreCommitCondition() {
         @Override
-        public void throwIfConditionInvalid(CommitUpdate commitTimestampWithLockWatchInfo) {
+        public void throwIfConditionInvalid(long commitTs) {
             throw new TransactionFailedRetriableException("Condition failed");
         }
 
@@ -969,7 +968,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void commitWithPreCommitConditionOnRetry() {
-        Supplier<PreCommitConditionWithWatches> conditionSupplier = mock(Supplier.class);
+        Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
                 .thenReturn(PreCommitConditions.NO_OP);
 
@@ -998,7 +997,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionWrapper,
                 keyValueServiceWrapper);
 
-        Supplier<PreCommitConditionWithWatches> conditionSupplier = mock(Supplier.class);
+        Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
                 .thenReturn(PreCommitConditions.NO_OP);
 
@@ -1019,16 +1018,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void runWithRetryFailsOnNonRetriableException() {
-        PreCommitConditionWithWatches nonRetriableFailure = new PreCommitConditionWithWatches() {
+        PreCommitCondition nonRetriableFailure = new PreCommitCondition() {
             @Override
-            public void throwIfConditionInvalid(CommitUpdate commitUpdate) {
+            public void throwIfConditionInvalid(long ignore) {
                 throw new TransactionFailedNonRetriableException("Condition failed");
             }
 
             @Override
             public void cleanup() {}
         };
-        Supplier<PreCommitConditionWithWatches> conditionSupplier = Suppliers.ofInstance(nonRetriableFailure);
+        Supplier<PreCommitCondition> conditionSupplier = Suppliers.ofInstance(nonRetriableFailure);
         try {
             serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
@@ -1064,9 +1063,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void cleanupPreCommitConditionsOnSuccess() {
         MutableLong counter = new MutableLong(0L);
-        PreCommitConditionWithWatches succeedsCondition = new PreCommitConditionWithWatches() {
+        PreCommitCondition succeedsCondition = new PreCommitCondition() {
             @Override
-            public void throwIfConditionInvalid(CommitUpdate commitUpdate) {}
+            public void throwIfConditionInvalid(long ignore) {}
 
             @Override
             public void cleanup() {
@@ -1088,9 +1087,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void cleanupPreCommitConditionsOnFailure() {
         MutableLong counter = new MutableLong(0L);
-        PreCommitConditionWithWatches failsCondition = new PreCommitConditionWithWatches() {
+        PreCommitCondition failsCondition = new PreCommitCondition() {
             @Override
-            public void throwIfConditionInvalid(CommitUpdate commitUpdate) {
+            public void throwIfConditionInvalid(long ignore) {
                 throw new TransactionFailedRetriableException("Condition failed");
             }
 
@@ -1136,9 +1135,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         // this will write into the DB, because the protocol demands we write before we get a commit timestamp
         RuntimeException conditionFailure = new RuntimeException();
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(() ->
-                new PreCommitConditionWithWatches() {
+                new PreCommitCondition() {
                     @Override
-                    public void throwIfConditionInvalid(CommitUpdate commitUpdate) {
+                    public void throwIfConditionInvalid(long ignore) {
                         throw conditionFailure;
                     }
 
@@ -1166,8 +1165,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
 
         // expire the locks when the pre-commit check happens - this is guaranteed to be after we've written the data
-        PreCommitConditionWithWatches condition =
-                unused -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
+        PreCommitCondition condition = no -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
 
         LockImmutableTimestampResponse res =
                 timelockService.lockImmutableTimestamp();
@@ -1387,7 +1385,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             TimelockService timelockService,
             Supplier<Long> startTs,
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
-            PreCommitConditionWithWatches preCommitCondition) {
+            PreCommitCondition preCommitCondition) {
         return getSnapshotTransactionWith(
                 timelockService,
                 startTs,
@@ -1400,7 +1398,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             TimelockService timelockService,
             Supplier<Long> startTs,
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
-            PreCommitConditionWithWatches preCommitCondition,
+            PreCommitCondition preCommitCondition,
             boolean validateLocksOnReads) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         return transactionWrapper.apply(
