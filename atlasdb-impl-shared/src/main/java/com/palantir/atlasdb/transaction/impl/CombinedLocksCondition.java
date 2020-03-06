@@ -38,6 +38,12 @@ public class CombinedLocksCondition implements AdvisoryLocksCondition {
     }
 
     @Override
+    public void throwIfConditionInvalid(long timestamp) {
+        externalLocksCondition.throwIfConditionInvalid(timestamp);
+        transactionLocksCondition.throwIfConditionInvalid(timestamp);
+    }
+
+    @Override
     public void throwIfConditionInvalid(CommitUpdate commitUpdate) {
         externalLocksCondition.throwIfConditionInvalid(commitUpdate);
         transactionLocksCondition.throwIfConditionInvalid(commitUpdate);

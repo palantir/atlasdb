@@ -31,7 +31,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
-import com.palantir.atlasdb.transaction.api.PreCommitConditionWithWatches;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -159,7 +159,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(
-            PreCommitConditionWithWatches condition) {
+            PreCommitCondition condition) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 
@@ -210,13 +210,13 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionThrowOnConflict(
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
-    public <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionReadOnly(C condition,
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(C condition,
             ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(

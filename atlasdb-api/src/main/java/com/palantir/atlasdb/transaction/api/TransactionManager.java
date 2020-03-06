@@ -218,7 +218,7 @@ public interface TransactionManager extends AutoCloseable {
 
     /**
      * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)}, but it will
-     * acquire a {@link PreCommitConditionWithWatches} right before the transaction is created and check it
+     * acquire a {@link PreCommitCondition} right before the transaction is created and check it
      * immediately before the transaction commits.
      * <p>
      * The created transaction will not commit successfully if the check fails.
@@ -231,12 +231,12 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
-    <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionWithRetry(
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
     /**
      * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it takes
-     * a {@link PreCommitConditionWithWatches} and checks it immediately before the transaction commits.
+     * a {@link PreCommitCondition} and checks it immediately before the transaction commits.
      * <p>
      * The created transaction will not commit successfully if the check fails.
      *
@@ -248,13 +248,13 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
-    <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionThrowOnConflict(
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task)
             throws E, TransactionFailedRetriableException;
 
     /**
      * This method is basically the same as {@link #runTaskReadOnly(TransactionTask)}, but it takes
-     * a {@link PreCommitConditionWithWatches} and checks it for validity before executing reads.
+     * a {@link PreCommitCondition} and checks it for validity before executing reads.
      * <p>
      * The created transaction will fail if the check is no longer valid after fetching the read
      * timestamp.
@@ -267,7 +267,7 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     @Timed
-    <T, C extends PreCommitConditionWithWatches, E extends Exception> T runTaskWithConditionReadOnly(
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
     /**
@@ -411,11 +411,11 @@ public interface TransactionManager extends AutoCloseable {
      */
     @Deprecated
     @Timed
-    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitConditionWithWatches condition);
+    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
-     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitConditionWithWatches)}. If no further work needs to be
+     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}. If no further work needs to be
      * done with the transaction, a no-op task can be passed in.
      *
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
