@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,27 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.leader;
 
 import java.util.UUID;
 
 import org.immutables.value.Value;
 
-import com.palantir.leader.LeaderElectionService.LeadershipToken;
-
 @Value.Immutable
-public interface PaxosLeadershipToken extends LeadershipToken {
-    long serialVersionUID = 1L;
+public interface Leadership {
+    @Value.Parameter
+    UUID leaderId();
 
     @Value.Parameter
-    Leadership leadership();
+    UUID leadershipId();
 
-    @Override
-    default boolean sameAs(LeadershipToken other) {
-        return equals(other);
+    static Leadership of(UUID leaderId, UUID leadershipId) {
+        return ImmutableLeadership.of(leaderId, leadershipId);
     }
 
-    static PaxosLeadershipToken of(Leadership leadership) {
-        return ImmutablePaxosLeadershipToken.of(leadership);
+    static Leadership newProposal(UUID leaderId) {
+        return of(leaderId, UUID.randomUUID());
     }
 }
