@@ -27,6 +27,7 @@ import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
@@ -40,9 +41,9 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestingService;
-import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
+import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -87,7 +88,7 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar,
-            Optional<Function<String, BatchPaxosAcceptorRpcClient>> acceptorFactoryOverride) {
+            Optional<Function<HostAndPort, PaxosRemoteClients.AsyncIsLatestSequencePreparedOrAccepted>> acceptorFactoryOverride) {
         ExecutorService executor = createSharedExecutor(metricsManager);
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 ImmutableTimelockPaxosInstallationContext.of(install, userAgent),

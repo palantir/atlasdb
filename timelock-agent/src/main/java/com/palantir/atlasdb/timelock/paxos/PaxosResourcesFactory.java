@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 import com.google.common.base.Suppliers;
+import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
@@ -58,7 +59,7 @@ public final class PaxosResourcesFactory {
             MetricsManager metrics,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime,
             ExecutorService sharedExecutor,
-            Optional<Function<String, BatchPaxosAcceptorRpcClient>> acceptorFactoryOverride) {
+            Optional<Function<HostAndPort, PaxosRemoteClients.AsyncIsLatestSequencePreparedOrAccepted>> acceptorFactoryOverride) {
         PaxosRemoteClients remoteClients = ImmutablePaxosRemoteClients.of(
                 install,
                 acceptorFactoryOverride,

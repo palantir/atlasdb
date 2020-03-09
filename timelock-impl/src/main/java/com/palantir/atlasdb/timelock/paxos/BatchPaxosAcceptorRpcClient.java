@@ -119,8 +119,11 @@ public interface BatchPaxosAcceptorRpcClient {
             PaxosUseCase paxosUseCase,
             @Nullable AcceptorCacheKey cacheKey,
             Set<Client> clients) {
-        // TODO(fdesouza): need to wrap this
-        return Futures.immediateFuture(latestSequencesPreparedOrAccepted(paxosUseCase, cacheKey, clients));
+        try {
+            return Futures.immediateFuture(latestSequencesPreparedOrAccepted(paxosUseCase, cacheKey, clients));
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     /**
@@ -153,7 +156,10 @@ public interface BatchPaxosAcceptorRpcClient {
     default ListenableFuture<Optional<AcceptorCacheDigest>> latestSequencesPreparedOrAcceptedCachedAsync(
             PaxosUseCase paxosUseCase,
             AcceptorCacheKey cacheKey) {
-        // TODO(fdesouza): need to wrap this
-        return Futures.immediateFuture(latestSequencesPreparedOrAcceptedCached(paxosUseCase, cacheKey));
+        try {
+            return Futures.immediateFuture(latestSequencesPreparedOrAcceptedCached(paxosUseCase, cacheKey));
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 }

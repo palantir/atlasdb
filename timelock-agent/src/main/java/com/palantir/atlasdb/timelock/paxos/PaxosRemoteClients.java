@@ -19,9 +19,11 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.ws.rs.Path;
 
 import org.immutables.value.Value;
@@ -29,6 +31,7 @@ import org.immutables.value.Value;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -50,7 +53,7 @@ public abstract class PaxosRemoteClients {
     public abstract PaxosResourcesFactory.TimelockPaxosInstallationContext context();
 
     @Value.Parameter
-    public abstract Optional<Function<String, BatchPaxosAcceptorRpcClient>> acceptorClientFactoryOverride();
+    public abstract Optional<Function<HostAndPort, AsyncIsLatestSequencePreparedOrAccepted>> acceptorClientFactoryOverride();
 
     @Value.Parameter
     public abstract TaggedMetricRegistry metrics();
@@ -79,8 +82,19 @@ public abstract class PaxosRemoteClients {
     @Value.Derived
     public List<BatchPaxosAcceptorRpcClient> batchAcceptor() {
         return acceptorClientFactoryOverride()
-                .map(override -> context().remoteUris().stream().map(override).collect(Collectors.toList()))
+                .map(this::batchAcceptorWithOverride)
                 .orElseGet(() -> createInstrumentedRemoteProxyList(BatchPaxosAcceptorRpcClient.class, false));
+    }
+
+    private List<BatchPaxosAcceptorRpcClient> batchAcceptorWithOverride(
+            Function<HostAndPort, AsyncIsLatestSequencePreparedOrAccepted> bla) {
+        return KeyedStream.of(context().remoteUris())
+                .map(uri -> createInstrumentedRemoteProxy(BatchPaxosAcceptorRpcClient.class, uri, false))
+                .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort)
+                .mapKeys(bla)
+                .map(DelegatingBatchPaxosAcceptorRpcClient::new)
+                .values()
+                .collect(Collectors.toList());
     }
 
     @Value.Derived
@@ -124,24 +138,29 @@ public abstract class PaxosRemoteClients {
 
     private <T> KeyedStream<HostAndPort, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
         return KeyedStream.of(context().remoteUris())
-                .map(uri -> AtlasDbHttpClients.createProxy(
-                        context().trustContext(),
-                        uri,
-                        clazz,
-                        AuxiliaryRemotingParameters.builder()
-                                .userAgent(context().userAgent())
-                                .shouldLimitPayload(false)
-                                .shouldRetry(shouldRetry)
-                                .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
-                                .shouldSupportBlockingOperations(false)
-                                .build()))
-                .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
-                        metrics(),
-                        clazz,
-                        proxy,
-                        MetricRegistry.name(clazz),
-                        _unused -> ImmutableMap.of()))
+                .map(uri -> createInstrumentedRemoteProxy(clazz, uri, shouldRetry))
                 .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort);
+    }
+
+    private <T> T createInstrumentedRemoteProxy(Class<T> clazz, String uri, boolean shouldRetry) {
+        T uninstrumentedProxy = AtlasDbHttpClients.createProxy(
+                context().trustContext(),
+                uri,
+                clazz,
+                AuxiliaryRemotingParameters.builder()
+                        .userAgent(context().userAgent())
+                        .shouldLimitPayload(false)
+                        .shouldRetry(shouldRetry)
+                        .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
+                        .shouldSupportBlockingOperations(false)
+                        .build());
+
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                metrics(),
+                clazz,
+                uninstrumentedProxy,
+                MetricRegistry.name(clazz),
+                _unused -> ImmutableMap.of());
     }
 
     private static HostAndPort convertAddressToHostAndPort(String url) {
@@ -159,5 +178,16 @@ public abstract class PaxosRemoteClients {
             + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
     public interface TimelockSingleLeaderPaxosAcceptorRpcClient extends PaxosAcceptor {
 
+    }
+
+    public interface AsyncIsLatestSequencePreparedOrAccepted {
+        ListenableFuture<AcceptorCacheDigest> latestSequencesPreparedOrAccepted(
+                PaxosUseCase paxosUseCase,
+                @Nullable AcceptorCacheKey cacheKey,
+                Set<Client> clients);
+
+        ListenableFuture<Optional<AcceptorCacheDigest>> latestSequencesPreparedOrAcceptedCached(
+                PaxosUseCase paxosUseCase,
+                AcceptorCacheKey cacheKey);
     }
 }
