@@ -22,6 +22,11 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
+/**
+ * Represents the properties that the user has picked wrt sweep. The sweeper strategy is the mode of sweep that the
+ * sweeper should apply on the table. mustCheckImmutableLockAfterReads indicates if a transaction must check the
+ * immutable lock after migrating to this mode.
+ */
 public final class SweepStrategy {
     public enum SweeperStrategy { CONSERVATIVE, THOROUGH }
 
