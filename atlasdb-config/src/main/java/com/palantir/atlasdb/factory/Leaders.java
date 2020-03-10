@@ -275,6 +275,7 @@ public final class Leaders {
                                 .userAgent(userAgent)
                                 .shouldLimitPayload(false)
                                 .shouldRetry(true)
+                                .shouldSupportBlockingOperations(false)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .collect(Collectors.toList());
@@ -294,11 +295,10 @@ public final class Leaders {
                         trustContext,
                         endpoint,
                         PingableLeader.class,
-                        AuxiliaryRemotingParameters.builder() // TODO (jkong): Configurable remoting client config.
-                                .shouldLimitPayload(false)
+                        AuxiliaryRemotingParameters.builder()
+                                .shouldLimitPayload(false) // Guaranteed to be small, no need to limit.
                                 .userAgent(userAgent)
                                 .shouldRetry(false)
-                                .shouldLimitPayload(true)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .map(Leaders::convertAddressToHostAndPort)
