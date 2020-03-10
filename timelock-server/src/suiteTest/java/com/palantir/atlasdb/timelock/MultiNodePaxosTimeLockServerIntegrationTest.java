@@ -40,6 +40,8 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 
 @RunWith(Parameterized.class)
 public class MultiNodePaxosTimeLockServerIntegrationTest {
@@ -196,11 +198,24 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestCanBlockForTheFullTimeout() {
-        // Test proxy blocking is 12.5 seconds, so 15 seconds suffices.
+        // Test proxy timeout is 12.5 seconds, so 15 seconds suffices.
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
             LockResponse response = client.lock(LockRequest.of(LOCKS, 15_000));
+            assertThat(response.wasSuccessful()).isFalse();
+        } finally {
+            client.unlock(token);
+        }
+    }
+
+    @Test
+    public void waitForLocksRequestCanBlockForTheFullTimeout() {
+        // Test proxy timeout is 12.5 seconds, so 15 seconds suffices.
+        LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+
+        try {
+            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS, 15_000));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
             client.unlock(token);
