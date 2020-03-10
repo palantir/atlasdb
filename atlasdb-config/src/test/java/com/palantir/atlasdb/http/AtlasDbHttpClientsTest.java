@@ -94,7 +94,7 @@ public class AtlasDbHttpClientsTest {
             .shouldLimitPayload(false)
             .userAgent(BASE_USER_AGENT)
             .shouldRetry(true)
-            .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
+            .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
             .build();
 
     private static final SslConfiguration SSL_CONFIG = SslConfiguration.of(

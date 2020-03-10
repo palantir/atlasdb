@@ -52,7 +52,7 @@ public class LeadersTest {
     private static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
     private static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("https://foo:1234", "https://bar:5678");
     private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG
-            = () -> RemotingClientConfigs.ALWAYS_USE_CONJURE;
+            = () -> RemotingClientConfigs.DEFAULT;
 
     @Test
     public void canCreateProxyAndLocalListOfPaxosLearners() {

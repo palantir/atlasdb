@@ -21,8 +21,5 @@ public final class RemotingClientConfigs {
         // Constants
     }
 
-    public static final RemotingClientConfig ALWAYS_USE_CONJURE = ImmutableRemotingClientConfig.builder()
-            .maximumConjureRemotingProbability(1.0)
-            .enableLegacyClientFallback(false)
-            .build();
+    public static final RemotingClientConfig DEFAULT = ImmutableRemotingClientConfig.builder().build();
 }

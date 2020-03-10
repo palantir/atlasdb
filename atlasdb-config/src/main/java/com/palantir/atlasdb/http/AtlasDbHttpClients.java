@@ -18,13 +18,17 @@ package com.palantir.atlasdb.http;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.SelfRefreshingProxy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AtlasDbHttpClients {
 
@@ -55,7 +59,7 @@ public final class AtlasDbHttpClients {
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        Supplier<T> clientFactory = () -> VersionSelectingClients.instrumentWithClientVersionTag(
+        Supplier<T> clientFactory = () -> instrument(
                 metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithFailover(serverListConfig, type, parameters),
                 type);
@@ -67,7 +71,7 @@ public final class AtlasDbHttpClients {
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters clientParameters) {
-        Supplier<T> clientFactory = () -> VersionSelectingClients.instrumentWithClientVersionTag(
+        Supplier<T> clientFactory = () -> instrument(
                 metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
@@ -83,11 +87,23 @@ public final class AtlasDbHttpClients {
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        Supplier<T> clientFactory = () -> VersionSelectingClients.instrumentWithClientVersionTag(
+        Supplier<T> clientFactory = () -> instrument(
                 metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithQuickFailoverForTesting(
                         serverListConfig, type, parameters),
                 type);
         return SelfRefreshingProxy.create(clientFactory, type);
+    }
+
+    private static <T> T instrument(
+            TaggedMetricRegistry taggedMetricRegistry,
+            TargetFactory.InstanceAndVersion<T> client,
+            Class<T> clazz) {
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                taggedMetricRegistry,
+                clazz,
+                client.instance(),
+                MetricRegistry.name(clazz),
+                $ -> ImmutableMap.of());
     }
 }

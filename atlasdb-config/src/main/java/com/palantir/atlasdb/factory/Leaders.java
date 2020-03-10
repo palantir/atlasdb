@@ -117,7 +117,7 @@ public final class Leaders {
                 metricsManager,
                 config,
                 remotePaxosServerSpec,
-                () -> RemotingClientConfigs.ALWAYS_USE_CONJURE,
+                () -> RemotingClientConfigs.DEFAULT,
                 userAgent,
                 LeadershipObserver.NO_OP);
     }
