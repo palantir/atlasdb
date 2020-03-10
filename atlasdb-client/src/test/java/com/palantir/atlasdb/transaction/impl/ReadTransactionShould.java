@@ -41,7 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.common.base.Throwables;
 
 public class ReadTransactionShould {
@@ -69,9 +69,9 @@ public class ReadTransactionShould {
         delegateTransaction = Mockito.mock(AbstractTransaction.class);
         SweepStrategyManager sweepStrategies = Mockito.mock(SweepStrategyManager.class);
         when(sweepStrategies.get(DUMMY_CONSERVATIVE_TABLE))
-                .thenReturn(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+                .thenReturn(SweepStrategy.CONSERVATIVE);
         when(sweepStrategies.get(DUMMY_THOROUGH_TABLE))
-                .thenReturn(TableMetadataPersistence.SweepStrategy.THOROUGH);
+                .thenReturn(SweepStrategy.THOROUGH);
         readTransaction = new ReadTransaction(delegateTransaction, sweepStrategies);
     }
 

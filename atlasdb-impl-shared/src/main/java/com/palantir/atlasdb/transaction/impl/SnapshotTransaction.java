@@ -103,7 +103,6 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -875,11 +874,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean requiresImmutableTimestampLocking(TableReference tableRef) {
-        return isThoroughlySwept(tableRef) || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
-    }
-
-    private boolean isThoroughlySwept(TableReference tableRef) {
-        return sweepStrategyManager.get(tableRef) == SweepStrategy.THOROUGH;
+        return sweepStrategyManager.get(tableRef).mustCheckImmutableLockAfterReads()
+                || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
     }
 
     private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,

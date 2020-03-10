@@ -41,10 +41,10 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -151,8 +151,9 @@ public class SweepTaskRunner {
                     LoggingArgs.tableRef("tableRef", tableRef));
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
-        SweepStrategy sweepStrategy = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy();
-        Optional<Sweeper> maybeSweeper = Sweeper.of(sweepStrategy);
+        SweepStrategy sweepStrategy =
+                SweepStrategy.from(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
+        Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
         return maybeSweeper.map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
                 .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
     }

@@ -31,8 +31,9 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Snapshot;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
+import com.palantir.atlasdb.table.description.SweepStrategy;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -134,11 +135,11 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeForLegacyOutcome(outcome).getValue(), value);
     }
 
-    public void hasTargetedOutcomeEqualTo(SweepStrategy strategy, SweepOutcome outcome, Long value) {
+    public void hasTargetedOutcomeEqualTo(SweeperStrategy strategy, SweepOutcome outcome, Long value) {
         objects.assertEqual(info, getGaugeForTargetedOutcome(strategy, outcome).getValue(), value);
     }
 
-    public void hasNotRegisteredTargetedOutcome(SweepStrategy strategy, SweepOutcome outcome) {
+    public void hasNotRegisteredTargetedOutcome(SweeperStrategy strategy, SweepOutcome outcome) {
         objects.assertNull(info, getGaugeForTargetedOutcome(strategy, outcome));
     }
 
@@ -160,7 +161,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
                 ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
     }
 
-    private Gauge<Long> getGaugeForTargetedOutcome(SweepStrategy strategy, SweepOutcome outcome) {
+    private Gauge<Long> getGaugeForTargetedOutcome(SweeperStrategy strategy, SweepOutcome outcome) {
         return getGauge(TargetedSweepMetrics.class, AtlasDbMetricNames.SWEEP_OUTCOME,
                 ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name(),
                         AtlasDbMetricNames.TAG_STRATEGY, getTagForStrategy(strategy)));
@@ -186,8 +187,8 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         return ((SlidingWindowMeanGauge) gauge).getSnapshot();
     }
 
-    private static String getTagForStrategy(SweepStrategy strategy) {
-        return strategy == SweepStrategy.CONSERVATIVE
+    private static String getTagForStrategy(SweeperStrategy strategy) {
+        return strategy == SweeperStrategy.CONSERVATIVE
                 ? AtlasDbMetricNames.TAG_CONSERVATIVE
                 : AtlasDbMetricNames.TAG_THOROUGH;
     }

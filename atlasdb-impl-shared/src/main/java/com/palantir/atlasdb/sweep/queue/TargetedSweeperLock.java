@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
@@ -34,7 +34,7 @@ public final class TargetedSweeperLock {
         this.lockToken = lockToken;
     }
 
-    public static Optional<TargetedSweeperLock> tryAcquire(int shard, TableMetadataPersistence.SweepStrategy strategy,
+    public static Optional<TargetedSweeperLock> tryAcquire(int shard, SweeperStrategy strategy,
             TimelockService timeLock) {
         ShardAndStrategy shardStrategy = ShardAndStrategy.of(shard, strategy);
         // We do not want the timeout to be too low to avoid a race condition where we give up too soon
