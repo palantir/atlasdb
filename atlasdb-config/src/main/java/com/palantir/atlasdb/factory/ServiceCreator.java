@@ -71,13 +71,13 @@ public final class ServiceCreator {
     }
 
     public <T> T createService(Class<T> serviceClass) {
-        return create(metricsManager, servers, serviceClass, parameters);
+        return instrument(createProxy(servers, serviceClass, parameters), serviceClass);
     }
 
     public <T> T createServiceWithoutBlockingOperations(Class<T> serviceClass) {
         AuxiliaryRemotingParameters blockingUnsupportedParameters
                 = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldSupportBlockingOperations(false);
-        return create(metricsManager, servers, serviceClass, blockingUnsupportedParameters);
+        return instrument(createProxy(servers, serviceClass, blockingUnsupportedParameters), serviceClass);
     }
 
     /**
@@ -88,13 +88,20 @@ public final class ServiceCreator {
         return sslConfiguration.map(SslSocketFactories::createTrustContext);
     }
 
-    private static <T> T create(
-            MetricsManager metricsManager,
+    private <T> T instrument(T proxy, Class<T> clazz) {
+        // Intentional usage: since this is a remote call we probably are interested in instrumenting everything.
+        return AtlasDbMetrics.instrument(metricsManager.getRegistry(), clazz, proxy);
+    }
+
+    /**
+     * This proxy, when created, is not instrumented directly. There may be other metrics it registers for
+     * evaluation, but these should not conflict with standard AtlasDB metrics for the class provided.
+     */
+    private static <T> T createProxy(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                metricsManager,
                 serverListConfigSupplier,
                 type,
                 parameters);

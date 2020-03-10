@@ -55,55 +55,36 @@ public final class AtlasDbHttpClients {
      * Failover will continue to cycle through the supplied endpoint list indefinitely.
      */
     public static <T> T createProxyWithFailover(
-            MetricsManager metricsManager,
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        Supplier<T> clientFactory = () -> instrument(
-                metricsManager.getTaggedRegistry(),
-                ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithFailover(serverListConfig, type, parameters),
-                type);
+        Supplier<T> clientFactory = () ->
+                ConjureJavaRuntimeTargetFactory.DEFAULT
+                        .createProxyWithFailover(serverListConfig, type, parameters)
+                        .instance();
         return SelfRefreshingProxy.create(clientFactory, type);
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
-            MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters clientParameters) {
-        Supplier<T> clientFactory = () -> instrument(
-                metricsManager.getTaggedRegistry(),
-                ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier,
-                        type,
-                        clientParameters),
-                type);
+        Supplier<T> clientFactory = () ->
+                ConjureJavaRuntimeTargetFactory.DEFAULT
+                        .createLiveReloadingProxyWithFailover(serverListConfigSupplier, type, clientParameters)
+                        .instance();
         return SelfRefreshingProxy.create(clientFactory, type);
     }
 
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
-            MetricsManager metricsManager,
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        Supplier<T> clientFactory = () -> instrument(
-                metricsManager.getTaggedRegistry(),
-                ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithQuickFailoverForTesting(
-                        serverListConfig, type, parameters),
-                type);
+        Supplier<T> clientFactory = () ->
+                ConjureJavaRuntimeTargetFactory.DEFAULT
+                        .createProxyWithQuickFailoverForTesting(serverListConfig, type, parameters)
+                        .instance();
         return SelfRefreshingProxy.create(clientFactory, type);
-    }
-
-    private static <T> T instrument(
-            TaggedMetricRegistry taggedMetricRegistry,
-            TargetFactory.InstanceAndVersion<T> client,
-            Class<T> clazz) {
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                taggedMetricRegistry,
-                clazz,
-                client.instance(),
-                MetricRegistry.name(clazz),
-                $ -> ImmutableMap.of());
     }
 }

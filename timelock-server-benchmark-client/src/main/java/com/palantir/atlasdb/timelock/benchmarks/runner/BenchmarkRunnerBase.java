@@ -68,7 +68,6 @@ public class BenchmarkRunnerBase {
 
     protected static BenchmarksService createClient() {
         return AtlasDbHttpClients.createProxyWithFailover(
-                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder().addServers(BENCHMARK_SERVER).build(),
                 BenchmarksService.class,
                 AuxiliaryRemotingParameters.builder()

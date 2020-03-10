@@ -191,7 +191,6 @@ public abstract class EteSetup {
                 .collect(Collectors.toList());
 
         return AtlasDbHttpClients.createProxyWithFailover(
-                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder()
                         .addAllServers(uris)
                         .sslConfiguration(SSL_CONFIGURATION)

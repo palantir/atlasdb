@@ -164,7 +164,6 @@ public class AtlasDbHttpClientsTest {
         RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER.registerUrl(getUriForPort(availablePort2));
 
         TestResource client = AtlasDbHttpClients.createProxyWithFailover(
-                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder()
                         .addServers(getUriForPort(availablePort1))
                         .addServers(getUriForPort(availablePort2))
@@ -204,7 +203,6 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void directProxyIsConfigurableOnClientRequests() {
         TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(
-                MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder()
                         .addServers(getUriForPort(availablePort1))
                         .sslConfiguration(SSL_CONFIG)
@@ -226,7 +224,6 @@ public class AtlasDbHttpClientsTest {
         List<String> servers = Lists.newArrayList(getUriForPort(unavailablePort));
 
         TestResource client = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                MetricsManagers.createForTests(),
                 () -> ImmutableServerListConfig.builder()
                         .servers(servers)
                         .sslConfiguration(SSL_CONFIG)
@@ -253,7 +250,6 @@ public class AtlasDbHttpClientsTest {
                 .build());
 
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                MetricsManagers.createForTests(),
                 config::get,
                 TestResource.class,
                 AUXILIARY_REMOTING_PARAMETERS);
