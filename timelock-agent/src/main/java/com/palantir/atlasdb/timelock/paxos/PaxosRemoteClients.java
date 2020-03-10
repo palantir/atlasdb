@@ -126,6 +126,7 @@ public abstract class PaxosRemoteClients {
                                 .shouldLimitPayload(false)
                                 .shouldRetry(shouldRetry)
                                 .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
+                                .shouldSupportBlockingOperations(false)
                                 .build()))
                 .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         metrics(),
