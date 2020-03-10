@@ -18,8 +18,8 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,31 +58,31 @@ public class AutobatchingPingableLeaderFactoryTests {
     @Test
     public void canPingLeaderMatchingUuidAndClient() {
         LeaderPingerContext<BatchPingableLeader> rpc = batchPingableLeader(HOST_AND_PORT, CLIENT_1);
-        AutobatchingPingableLeaderFactory factory = factoryForPingables(rpc);
+        try (AutobatchingPingableLeaderFactory factory = factoryForPingables(rpc)) {
+            LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
+            LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
-        LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
-        LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
+            assertThat(client1Pinger.pingLeaderWithUuid(rpc.pinger().uuid()))
+                    .isEqualTo(LeaderPingResults.pingReturnedTrue(rpc.pinger().uuid(), HOST_AND_PORT));
 
-        assertThat(client1Pinger.pingLeaderWithUuid(rpc.pinger().uuid()))
-                .isEqualTo(LeaderPingResults.pingReturnedTrue(rpc.pinger().uuid(), HOST_AND_PORT));
-
-        assertThat(client2Pinger.pingLeaderWithUuid(rpc.pinger().uuid()))
-                .isEqualTo(LeaderPingResults.pingReturnedFalse());
+            assertThat(client2Pinger.pingLeaderWithUuid(rpc.pinger().uuid()))
+                    .isEqualTo(LeaderPingResults.pingReturnedFalse());
+        }
     }
 
     @Test
     public void unknownUuidReturnsFalse() {
         LeaderPingerContext<BatchPingableLeader> rpc = batchPingableLeader(HOST_AND_PORT, CLIENT_1, CLIENT_2);
-        AutobatchingPingableLeaderFactory factory = factoryForPingables(rpc);
+        try (AutobatchingPingableLeaderFactory factory = factoryForPingables(rpc)) {
+            LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
+            LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
-        LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
-        LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
+            assertThat(client1Pinger.pingLeaderWithUuid(UUID.randomUUID()))
+                    .isEqualTo(LeaderPingResults.pingReturnedFalse());
 
-        assertThat(client1Pinger.pingLeaderWithUuid(UUID.randomUUID()))
-                .isEqualTo(LeaderPingResults.pingReturnedFalse());
-
-        assertThat(client2Pinger.pingLeaderWithUuid(UUID.randomUUID()))
-                .isEqualTo(LeaderPingResults.pingReturnedFalse());
+            assertThat(client2Pinger.pingLeaderWithUuid(UUID.randomUUID()))
+                    .isEqualTo(LeaderPingResults.pingReturnedFalse());
+        }
     }
 
     @Test
@@ -94,42 +94,44 @@ public class AutobatchingPingableLeaderFactoryTests {
         LeaderPingerContext<BatchPingableLeader> client2Leader =
                 batchPingableLeader(leader2, CLIENT_2);
 
-        AutobatchingPingableLeaderFactory factory = factoryForPingables(client1Leader, client2Leader);
-        LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
-        LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
+        try (AutobatchingPingableLeaderFactory factory = factoryForPingables(client1Leader, client2Leader)) {
+            LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
+            LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
-        assertThat(client1Pinger.pingLeaderWithUuid(client1Leader.pinger().uuid()))
-                .isEqualTo(LeaderPingResults.pingReturnedTrue(client1Leader.pinger().uuid(), leader1));
+            assertThat(client1Pinger.pingLeaderWithUuid(client1Leader.pinger().uuid()))
+                    .isEqualTo(LeaderPingResults.pingReturnedTrue(client1Leader.pinger().uuid(), leader1));
 
-        assertThat(client2Pinger.pingLeaderWithUuid(client2Leader.pinger().uuid()))
-                .isEqualTo(LeaderPingResults.pingReturnedTrue(client2Leader.pinger().uuid(), leader2));
+            assertThat(client2Pinger.pingLeaderWithUuid(client2Leader.pinger().uuid()))
+                    .isEqualTo(LeaderPingResults.pingReturnedTrue(client2Leader.pinger().uuid(), leader2));
+        }
     }
 
     @Test
-    public void pingFailureReturnsFalse() {
+    public void pingFailureResultsInTimeouts() {
         UUID uuid = UUID.randomUUID();
         BatchPingableLeader rpc = mock(BatchPingableLeader.class, Answers.RETURNS_SMART_NULLS);
         when(rpc.uuid()).thenReturn(uuid);
         RuntimeException error = new RuntimeException("ping failure");
         when(rpc.ping(anySet())).thenThrow(error);
 
-        AutobatchingPingableLeaderFactory factory =
-                factoryForPingables(ImmutableLeaderPingerContext.of(rpc, HOST_AND_PORT));
+        try (AutobatchingPingableLeaderFactory factory =
+                factoryForPingables(ImmutableLeaderPingerContext.of(rpc, HOST_AND_PORT))) {
+            assertThat(factory.leaderPingerFor(CLIENT_1).pingLeaderWithUuid(uuid))
+                    .isEqualTo(LeaderPingResults.pingTimedOut());
+            assertThat(factory.leaderPingerFor(CLIENT_2).pingLeaderWithUuid(uuid))
+                    .isEqualTo(LeaderPingResults.pingTimedOut());
 
-        assertThat(factory.leaderPingerFor(CLIENT_1).pingLeaderWithUuid(uuid))
-                .isEqualTo(LeaderPingResults.pingCallFailure(error));
-        assertThat(factory.leaderPingerFor(CLIENT_2).pingLeaderWithUuid(uuid))
-                .isEqualTo(LeaderPingResults.pingCallFailure(error));
-
-        // assert that the rpc call did actually take place!
-        verify(rpc).uuid();
-        verify(rpc, times(2)).ping(anySet());
+            // assert that the rpc call did actually take place!
+            verify(rpc).uuid();
+            verify(rpc, atLeastOnce()).ping(anySet());
+        }
     }
 
     private AutobatchingPingableLeaderFactory factoryForPingables(LeaderPingerContext<BatchPingableLeader>... rpcs) {
         return AutobatchingPingableLeaderFactory.create(
                 Maps.toMap(ImmutableSet.copyOf(rpcs), $ -> executorService),
-                Duration.ofSeconds(1),
+                Duration.ofMillis(20),
+                Duration.ofMillis(100),
                 UUID.randomUUID());
     }
 

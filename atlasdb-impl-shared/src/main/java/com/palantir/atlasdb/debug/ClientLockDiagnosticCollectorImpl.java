@@ -30,7 +30,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.lock.LockDescriptor;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -56,7 +56,7 @@ public class ClientLockDiagnosticCollectorImpl implements ClientLockDiagnosticCo
     }
 
     @Override
-    public void collect(long startTimestamp, UUID requestId, Set<LockDescriptor> lockDescriptors) {
+    public void collect(long startTimestamp, UUID requestId, Set<ConjureLockDescriptor> lockDescriptors) {
         cache.asMap().compute(startTimestamp, mutateDigest(digest -> digest.withLocks(requestId, lockDescriptors)));
     }
 

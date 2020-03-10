@@ -57,12 +57,12 @@ import com.palantir.paxos.PaxosResponsesWithRemote;
     inside a Future. The `accept` method is ready to be called again, the moment it returns.
  */
 @NotThreadSafe
-class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Optional<ClientAwarePingableLeader>>>> {
+class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Optional<ClientAwareLeaderPinger>>>> {
 
     private static final Logger log = LoggerFactory.getLogger(GetSuspectedLeaderWithUuid.class);
 
     private final Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors;
-    private final BiMap<LeaderPingerContext<BatchPingableLeader>, ClientAwarePingableLeader> clientAwareLeaders;
+    private final BiMap<LeaderPingerContext<BatchPingableLeader>, ClientAwareLeaderPinger> clientAwareLeaders;
     private final UUID localUuid;
     private final Duration leaderPingResponseWait;
 
@@ -70,20 +70,20 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
 
     GetSuspectedLeaderWithUuid(
             Map<LeaderPingerContext<BatchPingableLeader>, ExecutorService> executors,
-            Set<ClientAwarePingableLeader> clientAwarePingableLeaders,
+            Set<ClientAwareLeaderPinger> clientAwareLeaderPingers,
             UUID localUuid,
             Duration leaderPingResponseWait) {
         this.executors = executors;
-        this.clientAwareLeaders = KeyedStream.of(clientAwarePingableLeaders)
-                .mapKeys(ClientAwarePingableLeader::underlyingRpcClient)
+        this.clientAwareLeaders = KeyedStream.of(clientAwareLeaderPingers)
+                .mapKeys(ClientAwareLeaderPinger::underlyingRpcClient)
                 .collectTo(HashBiMap::create);
         this.localUuid = localUuid;
         this.leaderPingResponseWait = leaderPingResponseWait;
     }
 
     @Override
-    public void accept(List<BatchElement<UUID, Optional<ClientAwarePingableLeader>>> batchElements) {
-        Multimap<UUID, SettableFuture<Optional<ClientAwarePingableLeader>>> uuidsToRequests = batchElements.stream()
+    public void accept(List<BatchElement<UUID, Optional<ClientAwareLeaderPinger>>> batchElements) {
+        Multimap<UUID, SettableFuture<Optional<ClientAwareLeaderPinger>>> uuidsToRequests = batchElements.stream()
                 .collect(ImmutableListMultimap.toImmutableListMultimap(BatchElement::argument, BatchElement::result));
 
         KeyedStream.of(uuidsToRequests.keySet())
@@ -127,8 +127,8 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
     }
 
     private static void completeRequest(
-            Collection<SettableFuture<Optional<ClientAwarePingableLeader>>> futures,
-            Optional<ClientAwarePingableLeader> outcome) {
+            Collection<SettableFuture<Optional<ClientAwareLeaderPinger>>> futures,
+            Optional<ClientAwareLeaderPinger> outcome) {
         futures.forEach(result -> result.set(outcome));
     }
 

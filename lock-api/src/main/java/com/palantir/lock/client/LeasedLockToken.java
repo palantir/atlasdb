@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import javax.annotation.concurrent.GuardedBy;
 
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
@@ -27,7 +28,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class LeasedLockToken implements LockToken {
-    private final LockToken serverToken;
+    private final ConjureLockToken serverToken;
     private final UUID requestId;
 
     @GuardedBy("this")
@@ -36,17 +37,17 @@ public final class LeasedLockToken implements LockToken {
     @GuardedBy("this")
     private boolean invalidated = false;
 
-    static LeasedLockToken of(LockToken serverToken, Lease lease) {
+    static LeasedLockToken of(ConjureLockToken serverToken, Lease lease) {
         return new LeasedLockToken(serverToken, UUID.randomUUID(), lease);
     }
 
-    private LeasedLockToken(LockToken serverToken, UUID requestId, Lease lease) {
+    private LeasedLockToken(ConjureLockToken serverToken, UUID requestId, Lease lease) {
         this.serverToken = serverToken;
         this.requestId = requestId;
         this.lease = lease;
     }
 
-    public LockToken serverToken() {
+    public ConjureLockToken serverToken() {
         return serverToken;
     }
 
@@ -79,7 +80,7 @@ public final class LeasedLockToken implements LockToken {
     }
 
     @Override
-    public SafeArg<LockToken> toSafeArg(String name) {
-        return serverToken.toSafeArg(name);
+    public SafeArg<?> toSafeArg(String name) {
+        return SafeArg.of(name, serverToken);
     }
 }

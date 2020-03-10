@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix bug that prevented programmatic creation of Oracle connection configuration.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4640

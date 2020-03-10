@@ -24,14 +24,14 @@ import java.util.UUID;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
-import com.palantir.lock.v2.LockToken;
 
 public class LeasedLockTokenTest {
-    private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
+    private static final ConjureLockToken LOCK_TOKEN = ConjureLockToken.of(UUID.randomUUID());
     private static final LeadershipId LEADER_ID = LeadershipId.random();
     private static final LeadershipId OTHER_LEADER_ID = LeadershipId.random();
 

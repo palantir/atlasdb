@@ -114,7 +114,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         reaperExecutor,
                         timeoutExecutor
                 ),
-                timestampServiceSupplier.get());
+                timestampServiceSupplier.get(),
+                maybeEnhancedLockLog);
     }
 
     /**

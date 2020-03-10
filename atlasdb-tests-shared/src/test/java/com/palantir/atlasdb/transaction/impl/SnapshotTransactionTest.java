@@ -37,6 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -105,6 +106,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -289,6 +291,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     static final TableReference TABLE_SWEPT_THOROUGH = TableReference.createFromFullyQualifiedName("default.table3");
     static final TableReference TABLE_SWEPT_CONSERVATIVE =
             TableReference.createFromFullyQualifiedName("default.table4");
+    static final TableReference TABLE_SWEPT_THOROUGH_MIGRATION =
+            TableReference.createFromFullyQualifiedName("default.table5");
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
@@ -308,6 +312,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         keyValueService.createTable(
                 TABLE_SWEPT_CONSERVATIVE,
                 getTableMetadataForSweepStrategy(SweepStrategy.CONSERVATIVE).persistToBytes());
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH_MIGRATION,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH_MIGRATION).persistToBytes());
     }
 
     @Override
@@ -392,6 +399,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
                         new LegacyTimelockService(timestampService, lock, lockClient),
+                        NoOpLockWatchManager.INSTANCE,
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> transactionTs,
@@ -462,6 +470,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 new SnapshotTransaction(
                         metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                        null,
                         null,
                         transactionService,
                         NoOpCleaner.INSTANCE,
@@ -750,34 +759,35 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @SuppressWarnings("CheckReturnValue")
-    private List<Pair<String, LockAwareTransactionTask<Void, Exception>>> getThoroughTableReadTasks() {
+    private List<Pair<String, LockAwareTransactionTask<Void, Exception>>> getThoroughTableReadTasks(
+            TableReference thoroughTable) {
         ImmutableList.Builder<Pair<String, LockAwareTransactionTask<Void, Exception>>> tasks = ImmutableList.builder();
         final int batchHint = 1;
 
         tasks.add(Pair.of("get", (t, heldLocks) -> {
-            t.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
+            t.get(thoroughTable, ImmutableSet.of(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
             return null;
         }));
 
         tasks.add(Pair.of("getRange", (t, heldLocks) -> {
-            t.getRange(TABLE_SWEPT_THOROUGH, RangeRequest.all()).batchAccept(batchHint, AbortingVisitors.alwaysTrue());
+            t.getRange(thoroughTable, RangeRequest.all()).batchAccept(batchHint, AbortingVisitors.alwaysTrue());
             return null;
         }));
 
         tasks.add(Pair.of("getRanges", (t, heldLocks) -> {
-            Iterables.getLast(t.getRanges(TABLE_SWEPT_THOROUGH, Collections.singleton(RangeRequest.all())));
+            Iterables.getLast(t.getRanges(thoroughTable, Collections.singleton(RangeRequest.all())));
             return null;
         }));
 
         tasks.add(Pair.of("getRows", (t, heldLocks) -> {
-            t.getRows(TABLE_SWEPT_THOROUGH, ImmutableSet.of(PtBytes.toBytes("row1")), ColumnSelection.all());
+            t.getRows(thoroughTable, ImmutableSet.of(PtBytes.toBytes("row1")), ColumnSelection.all());
             return null;
         }));
 
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, BatchColumnRangeSelection)",
                 (t, heldLocks) -> {
                     Collection<BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
-                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                            t.getRowsColumnRange(thoroughTable, Collections.singleton(PtBytes.toBytes("row1")),
                                     BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
                                     .values();
                     results.forEach(result -> result.batchAccept(batchHint, AbortingVisitors.alwaysTrue()));
@@ -787,7 +797,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, ColumnRangeSelection, int)",
                 (t, heldLocks) -> {
                     Iterators.getLast(
-                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                            t.getRowsColumnRange(thoroughTable, Collections.singleton(PtBytes.toBytes("row1")),
                                     new ColumnRangeSelection(null, null), batchHint));
                     return null;
                 }));
@@ -795,7 +805,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         tasks.add(Pair.of("getRowsColumnRangeIterator",
                 (t, heldLocks) -> {
                     Collection<Iterator<Map.Entry<Cell, byte[]>>> results =
-                            t.getRowsColumnRangeIterator(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
+                            t.getRowsColumnRangeIterator(thoroughTable, Collections.singleton(PtBytes.toBytes("row1")),
                                     BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
                                     .values();
                     results.forEach(Iterators::getLast);
@@ -806,7 +816,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 (t, heldLocks) -> {
                     SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
                     snapshotTx.getRowsIgnoringLocalWrites(
-                            TABLE_SWEPT_THOROUGH,
+                            thoroughTable,
                             Collections.singleton(PtBytes.toBytes("row1")));
                     return null;
                 }));
@@ -814,12 +824,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         tasks.add(Pair.of("getIgnoringLocalWrites",
                 (t, heldLocks) -> {
                     SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
-                    snapshotTx.getIgnoringLocalWrites(TABLE_SWEPT_THOROUGH,
+                    snapshotTx.getIgnoringLocalWrites(thoroughTable,
                             Collections.singleton(Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"))));
                     return null;
                 }));
 
         return tasks.build();
+    }
+
+    @SuppressWarnings("CheckReturnValue")
+    private List<Pair<String, LockAwareTransactionTask<Void, Exception>>> getThoroughTableReadTasks() {
+        List<Pair<String, LockAwareTransactionTask<Void, Exception>>> tasks = new ArrayList<>();
+        tasks.addAll(getThoroughTableReadTasks(TABLE_SWEPT_THOROUGH));
+        tasks.addAll(getThoroughTableReadTasks(TABLE_SWEPT_THOROUGH_MIGRATION));
+        return tasks;
     }
 
     @Test
@@ -1402,6 +1420,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
+                        NoOpLockWatchManager.INSTANCE,
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         startTs,

@@ -26,8 +26,12 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.NamespaceAgnosticLockClientAdaptor;
+import com.palantir.lock.client.RemoteLockServiceAdapter;
 
 public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken> {
     private final LockService lockService;
@@ -38,7 +42,10 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
     }
 
     public static JepsenLockClient<LockRefreshToken> create(MetricsManager metricsManager, List<String> hosts) {
-        return new SynchronousLockClient(TimelockUtils.createClient(metricsManager, hosts, LockService.class));
+        NamespaceAgnosticLockRpcClient namespaceAgnosticLockRpcClient = new NamespaceAgnosticLockClientAdaptor(
+                TimelockUtils.NAMESPACE,
+                TimelockUtils.createClient(metricsManager, hosts, LockRpcClient.class));
+        return new SynchronousLockClient(new RemoteLockServiceAdapter(namespaceAgnosticLockRpcClient));
     }
 
     @Override
@@ -52,7 +59,7 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
     }
 
     @Override
-    public Set<LockRefreshToken> unlock(Set<LockRefreshToken> lockRefreshTokens) throws InterruptedException {
+    public Set<LockRefreshToken> unlock(Set<LockRefreshToken> lockRefreshTokens) {
         Set<LockRefreshToken> tokensUnlocked = Sets.newHashSet();
         lockRefreshTokens.forEach(token -> {
             if (lockService.unlock(token)) {
@@ -63,7 +70,7 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
     }
 
     @Override
-    public Set<LockRefreshToken> refresh(Set<LockRefreshToken> lockRefreshTokens) throws InterruptedException {
+    public Set<LockRefreshToken> refresh(Set<LockRefreshToken> lockRefreshTokens) {
         return lockService.refreshLockRefreshTokens(lockRefreshTokens);
     }
 }

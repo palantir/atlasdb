@@ -18,6 +18,7 @@ package com.palantir.paxos;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.concurrent.CoalescingSupplier;
 
 /**
@@ -40,6 +41,10 @@ public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerif
 
     public CoalescingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
         this.delegate = delegate;
+    }
+
+    public ListenableFuture<PaxosQuorumStatus> isLatestRoundAsync(long round) {
+        return verifiersByRound.getUnchecked(round).getAsync();
     }
 
     @Override

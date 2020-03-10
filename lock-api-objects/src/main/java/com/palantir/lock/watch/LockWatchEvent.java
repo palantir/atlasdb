@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = LockEvent.class, name = LockEvent.TYPE),
         @JsonSubTypes.Type(value = UnlockEvent.class, name = UnlockEvent.TYPE),
-        @JsonSubTypes.Type(value = LockWatchOpenLocksEvent.class, name = LockWatchOpenLocksEvent.TYPE),
         @JsonSubTypes.Type(value = LockWatchCreatedEvent.class, name = LockWatchCreatedEvent.TYPE)})
 public interface LockWatchEvent {
     long sequence();
@@ -37,7 +36,6 @@ public interface LockWatchEvent {
     interface Visitor<T> {
         T visit(LockEvent lockEvent);
         T visit(UnlockEvent unlockEvent);
-        T visit(LockWatchOpenLocksEvent openLocksEvent);
         T visit(LockWatchCreatedEvent lockWatchCreatedEvent);
     }
 }

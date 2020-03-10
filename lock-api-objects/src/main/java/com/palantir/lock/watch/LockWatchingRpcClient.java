@@ -31,10 +31,6 @@ public interface LockWatchingRpcClient {
     @Path("start-watching")
     void startWatching(@PathParam("namespace") String namespace, LockWatchRequest lockWatchRequest);
 
-    @POST
-    @Path("stop-watching")
-    void stopWatching(@PathParam("namespace") String namespace, LockWatchRequest lockWatchRequest);
-
     // as usual, GET is allowed to be cached, and we are not allowed to use a stale result
     @POST
     @Path("watch-state")

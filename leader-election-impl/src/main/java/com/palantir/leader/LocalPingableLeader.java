@@ -24,11 +24,11 @@ import com.palantir.paxos.PaxosValue;
 public final class LocalPingableLeader implements PingableLeader {
 
     private final PaxosLearner knowledge;
-    private final UUID localUuid;
+    private final String localUuid;
 
     public LocalPingableLeader(PaxosLearner knowledge, UUID localUuid) {
         this.knowledge = knowledge;
-        this.localUuid = localUuid;
+        this.localUuid = localUuid.toString();
     }
 
     @Override
@@ -40,10 +40,10 @@ public final class LocalPingableLeader implements PingableLeader {
 
     @Override
     public String getUUID() {
-        return localUuid.toString();
+        return localUuid;
     }
 
     private boolean isThisNodeTheLeaderFor(PaxosValue value) {
-        return value.getLeaderUUID().equals(localUuid.toString());
+        return value.getLeaderUUID().equals(localUuid);
     }
 }

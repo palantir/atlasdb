@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -41,8 +42,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
+import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -54,15 +65,11 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -73,9 +80,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     private static final LockDescriptor LOCK_A = StringLockDescriptor.of("a");
     private static final LockDescriptor LOCK_B = StringLockDescriptor.of("b");
+    private static final ConjureLockDescriptor CONJURE_LOCK_A = ConjureLockDescriptor.of(Bytes.from(LOCK_A.getBytes()));
 
-    private static final long SHORT_TIMEOUT = 500L;
-    private static final long TIMEOUT = 10_000L;
+    private static final int SHORT_TIMEOUT = 500;
+    private static final int TIMEOUT = 10_000;
     private static final LockClient TEST_CLIENT = LockClient.of("test");
     private static final LockClient TEST_CLIENT_2 = LockClient.of("test2");
     private static final LockClient TEST_CLIENT_3 = LockClient.of("test3");
@@ -142,28 +150,33 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void batchedStartTransactionCallShouldLockImmutableTimestamp() {
         // requestor id corresponds to an instance of the timelock service client
-        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
-                UUID.randomUUID(),
-                123);
+        ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
+                .numTransactions(123)
+                .requestorId(UUID.randomUUID())
+                .requestId(UUID.randomUUID())
+                .lastKnownVersion(Optional.empty())
+                .build();
 
-        LockImmutableTimestampResponse response1 = namespace.namespacedTimelockRpcClient()
+        LockImmutableTimestampResponse response1 = namespace.namespacedConjureTimelockService()
                 .startTransactions(request)
-                .immutableTimestamp();
+                .getImmutableTimestamp();
 
-        LockImmutableTimestampResponse response2 = namespace.namespacedTimelockRpcClient()
+        LockImmutableTimestampResponse response2 = namespace.namespacedConjureTimelockService()
                 .startTransactions(request)
-                .immutableTimestamp();
+                .getImmutableTimestamp();
 
         // above are two *separate* batches
 
         long immutableTs = namespace.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
 
-        namespace.namespacedTimelockRpcClient().unlock(ImmutableSet.of(response1.getLock()));
+        namespace.namespacedConjureTimelockService().unlock(
+                ConjureUnlockRequest.of(ImmutableSet.of(ConjureLockToken.of(response1.getLock().getRequestId()))));
 
         assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
 
-        namespace.namespacedTimelockRpcClient().unlock(ImmutableSet.of(response2.getLock()));
+        namespace.namespacedConjureTimelockService().unlock(
+                ConjureUnlockRequest.of(ImmutableSet.of(ConjureLockToken.of(response2.getLock().getRequestId()))));
     }
 
     @Test
@@ -378,29 +391,42 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void lockRequestsToRpcClientAreIdempotent() {
         LockToken token = namespace.lock(requestFor(LOCK_A)).getToken();
 
-        IdentifiedLockRequest secondRequest = IdentifiedLockRequest.from(requestFor(LOCK_A));
-        CompletableFuture<LockResponseV2> responseFuture = lockWithRpcClientAsync(secondRequest);
-        CompletableFuture<LockResponseV2> duplicateResponseFuture = lockWithRpcClientAsync(secondRequest);
+        ConjureLockRequest secondRequest = requestFor(CONJURE_LOCK_A);
+        CompletableFuture<ConjureLockResponse> responseFuture = lockWithRpcClientAsync(secondRequest);
+        CompletableFuture<ConjureLockResponse> duplicateResponseFuture = lockWithRpcClientAsync(secondRequest);
 
         namespace.unlock(token);
 
-        LockResponseV2 response = responseFuture.join();
-        LockResponseV2 duplicateResponse = duplicateResponseFuture.join();
+        ConjureLockResponse response = responseFuture.join();
+        ConjureLockResponse duplicateResponse = duplicateResponseFuture.join();
         assertThat(response).isEqualTo(duplicateResponse);
 
-        namespace.namespacedTimelockRpcClient().unlock(ImmutableSet.of(getToken(response)));
+        namespace.namespacedConjureTimelockService()
+                .unlock(ConjureUnlockRequest.of(ImmutableSet.of(getToken(response))));
     }
 
-    private CompletableFuture<LockResponseV2> lockWithRpcClientAsync(IdentifiedLockRequest lockRequest) {
-        return CompletableFuture.supplyAsync(() -> namespace.namespacedTimelockRpcClient().lock(lockRequest), executor);
+    private CompletableFuture<ConjureLockResponse> lockWithRpcClientAsync(ConjureLockRequest lockRequest) {
+        return CompletableFuture.supplyAsync(
+                () -> namespace.namespacedConjureTimelockService().lock(lockRequest), executor);
     }
 
-    private static LockToken getToken(LockResponseV2 responseV2) {
-        return responseV2.accept(LockResponseV2.Visitor.of(
-                LockResponseV2.Successful::getToken,
-                unsuccessful -> {
-                    throw new RuntimeException("Unsuccessful lock request");
-                }));
+    private static ConjureLockToken getToken(ConjureLockResponse response) {
+        return response.accept(new ConjureLockResponse.Visitor<ConjureLockToken>() {
+            @Override
+            public ConjureLockToken visitSuccessful(SuccessfulLockResponse value) {
+                return value.getLockToken();
+            }
+
+            @Override
+            public ConjureLockToken visitUnsuccessful(UnsuccessfulLockResponse value) {
+                throw new RuntimeException("Unsuccessful lock request");
+            }
+
+            @Override
+            public ConjureLockToken visitUnknown(String unknownType) {
+                throw new RuntimeException("Unknown");
+            }
+        });
     }
 
     @Test
@@ -558,6 +584,14 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .build();
     }
 
+    private static ConjureLockRequest requestFor(ConjureLockDescriptor... locks) {
+        return ConjureLockRequest.builder()
+                .lockDescriptors(ImmutableSet.copyOf(locks))
+                .acquireTimeoutMs(TIMEOUT)
+                .requestId(UUID.randomUUID())
+                .build();
+    }
+
     private static LockRequest requestFor(LockDescriptor... locks) {
         return LockRequest.of(ImmutableSet.copyOf(locks), TIMEOUT);
     }
@@ -606,11 +640,15 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
-        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
-                requestorUuid,
-                numRequestedTimestamps);
-        StartTransactionResponseV4 response = namespace.namespacedTimelockRpcClient().startTransactions(request);
-        return response.timestamps().stream()
+        ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
+                .requestId(UUID.randomUUID())
+                .requestorId(requestorUuid)
+                .numTransactions(numRequestedTimestamps)
+                .lastKnownVersion(Optional.empty())
+                .build();
+        ConjureStartTransactionsResponse response = namespace.namespacedConjureTimelockService()
+                .startTransactions(request);
+        return response.getTimestamps().stream()
                 .boxed()
                 .collect(Collectors.toList());
     }

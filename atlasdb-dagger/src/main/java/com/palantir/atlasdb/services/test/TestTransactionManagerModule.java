@@ -104,6 +104,7 @@ public class TestTransactionManagerModule {
                 metricsManager,
                 kvs,
                 lts.timelock(),
+                lts.lockWatcher(),
                 lts.managedTimestampService(),
                 lts.lock(),
                 transactionService,

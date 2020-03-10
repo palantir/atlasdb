@@ -19,12 +19,14 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalLong;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl.LockWatchCreatedEventReplayer;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 
 @ThreadSafe
@@ -33,13 +35,13 @@ public class ArrayLockEventSlidingWindow {
     private final int maxSize;
     private volatile long nextSequence = 0;
 
-    public ArrayLockEventSlidingWindow(int maxSize) {
+    ArrayLockEventSlidingWindow(int maxSize) {
         this.buffer = new LockWatchEvent[maxSize];
         this.maxSize = maxSize;
     }
 
-    public OptionalLong getVersion() {
-        return nextSequence == 0 ? OptionalLong.empty() : OptionalLong.of(nextSequence - 1);
+    long lastVersion() {
+        return nextSequence - 1;
     }
 
     /**
@@ -48,10 +50,26 @@ public class ArrayLockEventSlidingWindow {
      * Note on concurrency:
      * 1. Each write to buffer is followed by a write to nextSequence, which is volatile.
      */
-    public synchronized void add(LockWatchEvent.Builder eventBuilder) {
+    synchronized void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
         buffer[LongMath.mod(nextSequence, maxSize)] = event;
         nextSequence++;
+    }
+
+    synchronized void finalizeAndAddSnapshot(long startVersion, LockWatchCreatedEventReplayer eventReplayer) {
+        Optional<List<LockWatchEvent>> remaining = getFromVersion(startVersion);
+        if (remaining.isPresent()) {
+            remaining.get().forEach(eventReplayer::replay);
+            add(LockWatchCreatedEvent.builder(eventReplayer.getReferences(), eventReplayer.getLockedDescriptors()));
+        }
+    }
+
+    /**
+     * Warning: this will block all lock and unlock requests until the task is done. Improper use of this method can
+     * result in a deadlock.
+     */
+    synchronized <T> ValueAndVersion<T> runTaskAndAtomicallyReturnVersion(Supplier<T> task) {
+        return ValueAndVersion.of(lastVersion(), task.get());
     }
 
     /**
@@ -74,21 +92,23 @@ public class ArrayLockEventSlidingWindow {
      *      this method, that is no longer the case when the method returns.
      */
     public Optional<List<LockWatchEvent>> getFromVersion(long version) {
-        long lastWrittenSequence = nextSequence - 1;
+        return getFromTo(version, lastVersion());
+    }
 
-        if (versionInTheFuture(version, lastWrittenSequence) || versionTooOld(version, lastWrittenSequence)) {
+    public Optional<List<LockWatchEvent>> getFromTo(long startVersion, long endVersion) {
+        if (versionInTheFuture(startVersion, endVersion) || versionTooOld(startVersion, endVersion)) {
             return Optional.empty();
         }
 
-        int startIndex = LongMath.mod(version + 1, maxSize);
-        int windowSize = Ints.saturatedCast(lastWrittenSequence - version);
+        int startIndex = LongMath.mod(startVersion + 1, maxSize);
+        int windowSize = Ints.saturatedCast(endVersion - startVersion);
         List<LockWatchEvent> events = new ArrayList<>(windowSize);
 
         for (int i = startIndex; events.size() < windowSize; i = incrementAndMod(i)) {
             events.add(buffer[i]);
         }
 
-        return validateConsistencyOrReturnEmpty(version, events);
+        return validateConsistencyOrReturnEmpty(startVersion, events);
     }
 
     private int incrementAndMod(int num) {

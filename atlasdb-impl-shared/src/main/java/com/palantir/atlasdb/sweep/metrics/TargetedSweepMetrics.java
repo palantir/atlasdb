@@ -28,8 +28,8 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -45,14 +45,14 @@ import com.palantir.util.CachedComposedSupplier;
 public class TargetedSweepMetrics {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
     private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
-    private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
+    private final Map<SweeperStrategy, MetricsForStrategy> metricsForStrategyMap;
 
     private TargetedSweepMetrics(MetricsManager metricsManager,
                 Function<Long, Long> tsToMillis, Clock clock, long millis) {
         metricsForStrategyMap = ImmutableMap.of(
-                TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
+                SweeperStrategy.CONSERVATIVE,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
-                TableMetadataPersistence.SweepStrategy.THOROUGH,
+                SweeperStrategy.THOROUGH,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
     }
 
@@ -103,7 +103,7 @@ public class TargetedSweepMetrics {
         registerOccurrenceOf(shardStrategy.strategy(), outcome);
     }
 
-    public void registerOccurrenceOf(TableMetadataPersistence.SweepStrategy strategy, SweepOutcome outcome) {
+    public void registerOccurrenceOf(SweeperStrategy strategy, SweepOutcome outcome) {
         getMetrics(strategy).registerOccurrenceOf(outcome);
     }
 
@@ -115,7 +115,7 @@ public class TargetedSweepMetrics {
         return getMetrics(shardStrategy.strategy());
     }
 
-    private MetricsForStrategy getMetrics(TableMetadataPersistence.SweepStrategy strategy) {
+    private MetricsForStrategy getMetrics(SweeperStrategy strategy) {
         return metricsForStrategyMap.get(strategy);
     }
 

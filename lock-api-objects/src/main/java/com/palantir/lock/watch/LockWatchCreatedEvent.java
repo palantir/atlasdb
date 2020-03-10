@@ -16,13 +16,15 @@
 
 package com.palantir.lock.watch;
 
-import java.util.UUID;
+import java.util.Set;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
@@ -32,12 +34,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class LockWatchCreatedEvent implements LockWatchEvent {
     static final String TYPE = "created";
 
-    public abstract UUID lockWatchId();
-    public abstract LockWatchRequest request();
+    public abstract Set<LockWatchReference> references();
+    public abstract Set<LockDescriptor> lockDescriptors();
 
     @Override
     public int size() {
-        return request().references().size();
+        return references().size() + lockDescriptors().size();
     }
 
     @Override
@@ -45,10 +47,10 @@ public abstract class LockWatchCreatedEvent implements LockWatchEvent {
         return visitor.visit(this);
     }
 
-    public static LockWatchEvent.Builder builder(LockWatchRequest request, UUID lockWatchId) {
+    public static LockWatchEvent.Builder builder(Set<LockWatchReference> references, Set<LockDescriptor> descriptors) {
         ImmutableLockWatchCreatedEvent.Builder builder = ImmutableLockWatchCreatedEvent.builder()
-                .request(request)
-                .lockWatchId(lockWatchId);
+                .references(references)
+                .lockDescriptors(descriptors);
         return seq -> builder.sequence(seq).build();
     }
 }
