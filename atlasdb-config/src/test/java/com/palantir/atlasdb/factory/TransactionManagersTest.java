@@ -78,11 +78,11 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
-import com.palantir.atlasdb.config.ImmutableRemotingClientConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
+import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -143,7 +143,6 @@ public class TransactionManagersTest {
             MetricRegistry.name(NamespaceAgnosticLockRpcClient.class, CURRENT_TIME_MILLIS);
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
-    private static final Map<String, String> CLIENT_TAGS = ImmutableMap.of("clientVersion", "Conjure-Java-Runtime");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
@@ -198,10 +197,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
         when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
-        when(runtimeConfig.remotingClient()).thenReturn(ImmutableRemotingClientConfig.builder()
-                .enableLegacyClientFallback(false)
-                .maximumConjureRemotingProbability(1.0)
-                .build());
+        when(runtimeConfig.remotingClient()).thenReturn(RemotingClientConfigs.DEFAULT);
 
         environment = mock(Consumer.class);
 
@@ -517,7 +513,7 @@ public class TransactionManagersTest {
         assertThatTimeAndLockMetricsWithTagsAreRecorded(
                 TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 NAMESPACE_AGNOSTIC_LOCK_RPC_CLIENT_CURRENT_TIME_METRIC,
-                CLIENT_TAGS);
+                ImmutableMap.of());
     }
 
     @Test
@@ -715,10 +711,6 @@ public class TransactionManagersTest {
     private void setUpForRemoteServices() throws IOException {
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
         setUpLeaderBlockInConfig();
-    }
-
-    private void setUpTimeLockBlockInInstallConfig() {
-        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
     }
 
     private void setUpTimeLockBlockInRuntimeConfig() {

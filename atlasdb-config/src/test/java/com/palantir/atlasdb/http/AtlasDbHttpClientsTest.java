@@ -82,6 +82,7 @@ public class AtlasDbHttpClientsTest {
     private static final int TEST_NUMBER_2 = 123;
     private static final Duration SLEEP_TIME = Duration.ofSeconds(6L);
 
+    private static final String USER_AGENT_HEADER = "User-Agent";
     private static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
     private static final UserAgent.Agent ATLASDB_CLIENT_V2_AGENT = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, "2.0");
     private static final String ATLASDB_CLIENT_V2_AGENT_STRING
@@ -93,7 +94,7 @@ public class AtlasDbHttpClientsTest {
             .shouldLimitPayload(false)
             .userAgent(BASE_USER_AGENT)
             .shouldRetry(true)
-            .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
+            .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
             .build();
 
     private static final SslConfiguration SSL_CONFIG = SslConfiguration.of(
@@ -196,7 +197,7 @@ public class AtlasDbHttpClientsTest {
         client.getTestNumber();
 
         availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT)).withHeader(
-                AtlasDbInterceptors.USER_AGENT_HEADER,
+                USER_AGENT_HEADER,
                 WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
     }
 
@@ -214,7 +215,7 @@ public class AtlasDbHttpClientsTest {
         clientWithDirectCall.getTestNumber();
 
         availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER,
+                .withHeader(USER_AGENT_HEADER,
                         WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
     }
 
