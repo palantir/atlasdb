@@ -215,6 +215,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    public void sweepsThoroughMigrationAsConservative() {
+        enqueueWriteCommitted(TABLE_THOR_MIGRATION, LOW_TS);
+        assertReadAtTimestampReturnsNothing(TABLE_THOR_MIGRATION, LOW_TS);
+
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertReadAtTimestampReturnsSentinel(TABLE_THOR_MIGRATION, LOW_TS);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR_MIGRATION, LOW_TS);
+    }
+
+    @Test
     public void sweepWithSingleEntryUpdatesMetrics() {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
