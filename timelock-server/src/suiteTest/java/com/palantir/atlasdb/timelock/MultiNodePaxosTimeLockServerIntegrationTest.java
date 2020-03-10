@@ -195,11 +195,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void longBlockingLock() {
+    public void lockRequestCanBlockForTheFullTimeout() {
+        // Test proxy blocking is 12.5 seconds, so 15 seconds suffices.
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            LockResponse response = client.lock(LockRequest.of(LOCKS, 80_000));
+            LockResponse response = client.lock(LockRequest.of(LOCKS, 15_000));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
             client.unlock(token);
