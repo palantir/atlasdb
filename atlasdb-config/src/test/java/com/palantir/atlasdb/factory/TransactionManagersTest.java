@@ -119,7 +119,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
