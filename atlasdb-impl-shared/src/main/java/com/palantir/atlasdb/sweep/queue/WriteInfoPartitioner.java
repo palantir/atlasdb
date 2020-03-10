@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import static com.palantir.logsafe.Preconditions.checkState;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,6 +35,7 @@ import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 
 public class WriteInfoPartitioner {
     private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);
@@ -86,7 +85,7 @@ public class WriteInfoPartitioner {
 
     private boolean isConservative(WriteInfo write) {
         Optional<SweeperStrategy> strategy = getStrategy(write);
-        checkState(strategy.isPresent(), "Was not expecting empty strategy at this point");
+        Preconditions.checkState(strategy.isPresent(), "Was not expecting empty strategy at this point");
         return strategy.get() == SweeperStrategy.CONSERVATIVE;
     }
 

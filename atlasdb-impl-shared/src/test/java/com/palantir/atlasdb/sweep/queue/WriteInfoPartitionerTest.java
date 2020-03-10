@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 
 public class WriteInfoPartitionerTest {
     private static final TableReference NOTHING = getTableRef("nothing");
@@ -84,12 +85,11 @@ public class WriteInfoPartitionerTest {
 
     @Test
     public void getStrategyReturnsCorrectStrategy() {
-        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(NOTHING, 0)))
-                .isEqualTo(TableMetadataPersistence.SweepStrategy.NOTHING);
+        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(NOTHING, 0))).isEmpty();
         assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(CONSERVATIVE, 10)))
-                .isEqualTo(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+                .contains(SweeperStrategy.CONSERVATIVE);
         assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(THOROUGH, 100)))
-                .isEqualTo(TableMetadataPersistence.SweepStrategy.THOROUGH);
+                .contains(SweeperStrategy.THOROUGH);
     }
 
     @Test
