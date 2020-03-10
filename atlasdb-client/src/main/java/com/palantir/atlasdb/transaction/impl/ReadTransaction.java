@@ -30,11 +30,12 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class ReadTransaction extends ForwardingTransaction {
     private final AbstractTransaction delegate;
@@ -126,10 +127,10 @@ public class ReadTransaction extends ForwardingTransaction {
 
     private void checkTableName(TableReference tableRef) {
         SweepStrategy sweepStrategy = sweepStrategies.get(tableRef);
-        if (sweepStrategy.mustCheckImmutableLockAfterReads()) {
-            throw new SafeIllegalStateException(
-                    "Cannot read from a table with a thorough sweep strategy in a read only transaction.");
-        }
+        Preconditions.checkState(!sweepStrategy.mustCheckImmutableLockAfterReads(),
+                "This table cannot be read from a read-only transaction, because its "
+                        + "sweep strategy is neither NOTHING nor CONSERVATIVE",
+                LoggingArgs.tableRef(tableRef));
     }
 
     @Override
