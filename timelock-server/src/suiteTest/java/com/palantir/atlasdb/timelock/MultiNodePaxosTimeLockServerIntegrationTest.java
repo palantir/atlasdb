@@ -38,6 +38,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 
 @RunWith(Parameterized.class)
@@ -193,4 +194,15 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         }
     }
 
+    @Test
+    public void longBlockingLock() {
+        LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+
+        try {
+            LockResponse response = client.lock(LockRequest.of(LOCKS, 80_000));
+            assertThat(response.wasSuccessful()).isFalse();
+        } finally {
+            client.unlock(token);
+        }
+    }
 }
