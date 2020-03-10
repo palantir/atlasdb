@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import static com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient.CACHE_KEY_NOT_FOUND;
-
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,8 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.SetMultimap;
-import com.palantir.conjure.java.api.errors.ServiceException;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
@@ -81,7 +77,7 @@ public class BatchPaxosAcceptorResource {
             return batchPaxosAcceptor.latestSequencesPreparedOrAccepted(maybeCacheKey, clients);
         } catch (InvalidAcceptorCacheKeyException e) {
             log.info("Cache key is invalid", e);
-            throw Errors.invalidCacheKeyException(e.cacheKey());
+            throw BatchPaxosAcceptorRpc.Errors.invalidCacheKeyException(e.cacheKey());
         }
     }
 
@@ -91,19 +87,13 @@ public class BatchPaxosAcceptorResource {
     public Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(
             @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> cacheKey) {
         if (!cacheKey.isPresent()) {
-            throw Errors.invalidCacheKeyException(null);
+            throw BatchPaxosAcceptorRpc.Errors.invalidCacheKeyException(null);
         }
         try {
             return batchPaxosAcceptor.latestSequencesPreparedOrAcceptedCached(cacheKey.get());
         } catch (InvalidAcceptorCacheKeyException e) {
             log.info("Cache key is invalid", e);
-            throw Errors.invalidCacheKeyException(e.cacheKey());
-        }
-    }
-
-    private static final class Errors {
-        static ServiceException invalidCacheKeyException(AcceptorCacheKey cacheKey) {
-            return new ServiceException(CACHE_KEY_NOT_FOUND, SafeArg.of("cacheKey", cacheKey));
+            throw BatchPaxosAcceptorRpc.Errors.invalidCacheKeyException(e.cacheKey());
         }
     }
 
