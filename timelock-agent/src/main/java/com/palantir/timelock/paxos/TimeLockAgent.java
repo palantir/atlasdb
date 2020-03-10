@@ -192,6 +192,11 @@ public class TimeLockAgent {
         }
     }
 
+    @SuppressWarnings("unused") // used by internal timelock
+    public PaxosResources paxosResources() {
+        return paxosResources;
+    }
+
     @SuppressWarnings("unused") // used by external health checks
     public Optional<HealthCheckDigest> getStatus() {
         if (getNumberOfActiveClients() == 0) {

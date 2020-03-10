@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -66,6 +67,14 @@ public abstract class PaxosResources {
         return new LeadershipComponents(
                 leadershipContextFactory(),
                 leadershipContextFactory().healthCheckPingers());
+    }
+
+    @Value.Derived
+    public EnumMap<PaxosUseCase, BatchPaxosAcceptor> batchAcceptorsByUseCase() {
+        return Maps.newEnumMap(ImmutableMap.<PaxosUseCase, BatchPaxosAcceptor>builder()
+                .put(PaxosUseCase.TIMESTAMP, timestampPaxosComponents().batchAcceptor())
+                .putAll(Maps.transformValues(leadershipBatchComponents(), LocalPaxosComponents::batchAcceptor))
+                .build());
     }
 
     private static BatchPaxosResources batchResourcesFromComponents(LocalPaxosComponents components) {
