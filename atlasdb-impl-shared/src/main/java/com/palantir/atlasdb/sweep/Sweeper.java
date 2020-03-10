@@ -15,12 +15,13 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
 import java.util.function.Function;
 
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public enum Sweeper {
     CONSERVATIVE(provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),
@@ -53,21 +54,17 @@ public enum Sweeper {
         return sweepTimestampSupplier.apply(specialTimestampsSupplier);
     }
 
-    public static Optional<Sweeper> of(TableMetadataPersistence.SweepStrategy sweepStrategy) {
+    public static Sweeper of(SweeperStrategy sweepStrategy) {
         switch (sweepStrategy) {
-            case NOTHING:
-                return Optional.empty();
             case CONSERVATIVE:
-                return Optional.of(CONSERVATIVE);
+                return CONSERVATIVE;
             case THOROUGH:
-                return Optional.of(THOROUGH);
-            default:
-                throw new IllegalArgumentException("Unknown sweep strategy: " + sweepStrategy);
+                return THOROUGH;
         }
+        throw new SafeIllegalStateException("Unknown sweep strategy", SafeArg.of("strategy", sweepStrategy));
     }
 
     public static Sweeper of(ShardAndStrategy shardStrategy) {
-        return of(shardStrategy.strategy())
-                .orElseThrow(() -> new IllegalArgumentException("Unknown sweep strategy: " + shardStrategy.strategy()));
+        return of(shardStrategy.strategy());
     }
 }

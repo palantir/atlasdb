@@ -46,6 +46,8 @@ import com.palantir.atlasdb.util.MetricsManagers;
 public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
     static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.thorough");
+    static final TableReference TABLE_THOR_MIGRATION = TableReference.createFromFullyQualifiedName(
+            "test.thoroughmigration");
     static final TableReference TABLE_NOTH = TableReference.createFromFullyQualifiedName("test.nothing");
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
     static final long TS = SweepQueueUtils.TS_COARSE_GRANULARITY + 100L;
@@ -56,6 +58,8 @@ public abstract class AbstractSweepQueueTest {
     static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
     static final int CONS_SHARD = WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
     static final int THOR_SHARD = WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
+    static final int THOR_MIGRATION_SHARD =
+            WriteInfo.tombstone(TABLE_THOR_MIGRATION, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
 
     int numShards;
     long immutableTs;
@@ -82,6 +86,7 @@ public abstract class AbstractSweepQueueTest {
                 timestampsSupplier::getImmutableTimestamp, new InMemoryKeyValueService(true)));
         spiedKvs.createTable(TABLE_CONS, metadataBytes(SweepStrategy.CONSERVATIVE));
         spiedKvs.createTable(TABLE_THOR, metadataBytes(SweepStrategy.THOROUGH));
+        spiedKvs.createTable(TABLE_THOR_MIGRATION, metadataBytes(SweepStrategy.THOROUGH_MIGRATION));
         spiedKvs.createTable(TABLE_NOTH, metadataBytes(SweepStrategy.NOTHING));
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createV1TransactionService(spiedKvs);
