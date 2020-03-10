@@ -219,7 +219,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_THOR_MIGRATION, LOW_TS);
         assertReadAtTimestampReturnsNothing(TABLE_THOR_MIGRATION, LOW_TS);
 
-        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(THOR_MIGRATION_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_THOR_MIGRATION, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR_MIGRATION, LOW_TS);
     }
