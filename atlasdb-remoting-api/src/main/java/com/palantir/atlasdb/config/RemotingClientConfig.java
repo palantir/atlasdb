@@ -21,8 +21,6 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 /**
  * Client configuration options for how an AtlasDB client connects to remote services (e.g. TimeLock) that are
@@ -32,8 +30,6 @@ import com.palantir.logsafe.SafeArg;
 @JsonDeserialize(as = ImmutableRemotingClientConfig.class)
 @JsonIgnoreProperties({
         "maximumConjureRemotingProbability",
-        "enableLegacyClientFallback"
-})
+        "enableLegacyClientFallback"})
 @Value.Immutable
-public interface RemotingClientConfig {
-}
+public interface RemotingClientConfig {}
