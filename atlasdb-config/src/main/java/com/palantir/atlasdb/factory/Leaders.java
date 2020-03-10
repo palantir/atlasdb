@@ -296,9 +296,10 @@ public final class Leaders {
                         endpoint,
                         PingableLeader.class,
                         AuxiliaryRemotingParameters.builder()
-                                .shouldLimitPayload(false) // Guaranteed to be small, no need to limit.
                                 .userAgent(userAgent)
+                                .shouldLimitPayload(false) // Guaranteed to be small, no need to limit.
                                 .shouldRetry(false)
+                                .shouldSupportBlockingOperations(false)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .map(Leaders::convertAddressToHostAndPort)
