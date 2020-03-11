@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -31,6 +32,8 @@ import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.http.v2.ClientOptions;
 import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
@@ -62,6 +65,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
 
     private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
+    private static final int LONG_LOCK_TIMEOUT_MS =
+            Ints.saturatedCast(ClientOptions.NON_BLOCKING_READ_TIMEOUT.plus(Duration.ofSeconds(1)).toMillis());
 
     private NamespacedClients client;
 
@@ -198,11 +203,10 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestCanBlockForTheFullTimeout() {
-        // Test proxy timeout is 12.5 seconds, so 15 seconds suffices.
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            LockResponse response = client.lock(LockRequest.of(LOCKS, 15_000));
+            LockResponse response = client.lock(LockRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
             client.unlock(token);
@@ -211,11 +215,10 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void waitForLocksRequestCanBlockForTheFullTimeout() {
-        // Test proxy timeout is 12.5 seconds, so 15 seconds suffices.
         LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS, 15_000));
+            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
             client.unlock(token);

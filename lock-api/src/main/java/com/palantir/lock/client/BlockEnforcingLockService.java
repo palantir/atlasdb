@@ -16,8 +16,17 @@
 
 package com.palantir.lock.client;
 
+import java.net.SocketTimeoutException;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
@@ -27,6 +36,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -53,28 +63,26 @@ final class BlockEnforcingLockService {
 
     LockResponse lock(LockRequest request) {
         return timeoutRetryer.attemptUntilTimeLimitOrException(
-                request,
-                req -> Duration.ofMillis(req.getAcquireTimeoutMs()),
+                ConjureLockRequests.toConjure(request),
+                Duration.ofMillis(request.getAcquireTimeoutMs()),
                 BlockEnforcingLockService::clampLockRequestToDeadline,
                 this::performSingleLockRequest,
-                LockResponse::wasSuccessful,
-                LockResponse.timedOut());
+                response -> !response.wasSuccessful());
     }
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         return timeoutRetryer.attemptUntilTimeLimitOrException(
                 request,
-                req -> Duration.ofMillis(req.getAcquireTimeoutMs()),
+                Duration.ofMillis(request.getAcquireTimeoutMs()),
                 BlockEnforcingLockService::clampWaitForLocksRequestToDeadline,
                 this::performSingleWaitForLocksRequest,
-                WaitForLocksResponse::wasSuccessful,
-                WaitForLocksResponse.timedOut());
+                response -> !response.wasSuccessful());
     }
 
-    private static LockRequest clampLockRequestToDeadline(LockRequest request, Duration remainingTime) {
-        return ImmutableLockRequest.builder()
+    private static ConjureLockRequest clampLockRequestToDeadline(ConjureLockRequest request, Duration remainingTime) {
+        return ConjureLockRequest.builder()
                 .from(request)
-                .acquireTimeoutMs(remainingTime.toMillis())
+                .acquireTimeoutMs(Ints.saturatedCast(remainingTime.toMillis()))
                 .build();
     }
 
@@ -86,9 +94,9 @@ final class BlockEnforcingLockService {
                 .build();
     }
 
-    private LockResponse performSingleLockRequest(LockRequest request) {
+    private LockResponse performSingleLockRequest(ConjureLockRequest request) {
         return namespacedConjureTimelockService
-                .lock(ConjureLockRequests.toConjure(request))
+                .lock(request)
                 .accept(ToLeasedLockResponse.INSTANCE);
     }
 
@@ -113,6 +121,58 @@ final class BlockEnforcingLockService {
         @Override
         public LockResponse visitUnknown(String unknownType) {
             throw new SafeIllegalStateException("Unknown response type", SafeArg.of("type", unknownType));
+        }
+    }
+
+    static class RemoteTimeoutRetryer {
+        private final Clock clock;
+
+        @VisibleForTesting
+        RemoteTimeoutRetryer(Clock clock) {
+            this.clock = clock;
+        }
+
+        static BlockEnforcingLockService.RemoteTimeoutRetryer createDefault() {
+            return new BlockEnforcingLockService.RemoteTimeoutRetryer(Clock.systemUTC());
+        }
+
+        <S, T> T attemptUntilTimeLimitOrException(
+                S request,
+                Duration duration,
+                BiFunction<S, Duration, S> durationLimiter,
+                Function<S, T> query,
+                Predicate<T> isTimedOutResponse) {
+            Instant now = clock.instant();
+            Instant deadline = now.plus(duration);
+            S currentRequest = request;
+            T currentResponse = null;
+
+            while (now.isBefore(deadline)) {
+                Duration remainingTime = Duration.between(now, deadline);
+                currentRequest = durationLimiter.apply(currentRequest, remainingTime);
+
+                try {
+                    currentResponse = query.apply(currentRequest);
+                    if (!isTimedOutResponse.test(currentResponse)) {
+                        return currentResponse;
+                    }
+                } catch (Exception e) {
+                    if (!isPlausiblyTimeout(e) || clock.instant().isAfter(deadline)) {
+                        throw e;
+                    }
+                }
+                now = clock.instant();
+            }
+
+            Preconditions.checkNotNull(currentResponse, "We attempted to return because a blocking duration was"
+                    + " reached. However, we had never tried applying the query. This indicates a bug in user requests"
+                    + " or AtlasDB code.");
+            return currentResponse;
+        }
+
+        private static boolean isPlausiblyTimeout(Throwable throwable) {
+            return throwable instanceof SocketTimeoutException
+                    || (throwable.getCause() != null && isPlausiblyTimeout(throwable.getCause()));
         }
     }
 }
