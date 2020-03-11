@@ -67,7 +67,8 @@ class RemoteTimeoutRetryer {
         return defaultResponse;
     }
 
-    private static boolean isPlausiblyTimeout(Throwable t) {
-        return t instanceof SocketTimeoutException || (t.getCause() != null && isPlausiblyTimeout(t.getCause()));
+    private static boolean isPlausiblyTimeout(Throwable throwable) {
+        return throwable instanceof SocketTimeoutException
+                || (throwable.getCause() != null && isPlausiblyTimeout(throwable.getCause()));
     }
 }

@@ -16,7 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.time.Clock;
 import java.time.Duration;
 
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
@@ -38,7 +37,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  *
  * Fairness is admittedly compromised, but this is a closer approximation than the previous behaviour.
  */
-class BlockEnforcingLockService {
+final class BlockEnforcingLockService {
     private final NamespacedConjureTimelockService namespacedConjureTimelockService;
     private final RemoteTimeoutRetryer timeoutRetryer;
 
