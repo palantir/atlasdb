@@ -1099,6 +1099,7 @@ public abstract class TransactionManagers {
                             .userAgent(userAgent)
                             .shouldRetry(true)
                             .shouldLimitPayload(true)
+                            .shouldSupportBlockingOperations(false)
                             .build());
 
             // Determine asynchronously whether the remote services are talking to our local services.
