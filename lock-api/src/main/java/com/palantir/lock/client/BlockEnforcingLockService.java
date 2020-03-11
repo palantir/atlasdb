@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.function.BiFunction;
@@ -49,7 +50,7 @@ class BlockEnforcingLockService {
     }
 
     LockResponse lock(LockRequest request) {
-        return ensureAttemptedToTimeLimit(
+        return attemptUntilTimeLimitOrException(
                 request,
                 req -> Duration.ofMillis(req.getAcquireTimeoutMs()),
                 BlockEnforcingLockService::clampLockRequestToDeadline,
@@ -59,7 +60,7 @@ class BlockEnforcingLockService {
     }
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return ensureAttemptedToTimeLimit(
+        return attemptUntilTimeLimitOrException(
                 request,
                 req -> Duration.ofMillis(req.getAcquireTimeoutMs()),
                 BlockEnforcingLockService::clampWaitForLocksRequestToDeadline,
@@ -68,7 +69,7 @@ class BlockEnforcingLockService {
                 WaitForLocksResponse.timedOut());
     }
 
-    private <S, T> T ensureAttemptedToTimeLimit(
+    private <S, T> T attemptUntilTimeLimitOrException(
             S request,
             Function<S, Duration> durationExtractor,
             BiFunction<S, Duration, S> durationLimiter,
@@ -88,13 +89,17 @@ class BlockEnforcingLockService {
                     return response;
                 }
             } catch (Exception e) {
-                if (Instant.now().isAfter(deadline)) {
+                if (!isRetryable(e) || Instant.now().isAfter(deadline)) {
                     throw e;
                 }
             }
             now = Instant.now();
         }
         return defaultResponse;
+    }
+
+    private static boolean isRetryable(Throwable t) {
+        return t instanceof SocketTimeoutException || (t.getCause() != null && isRetryable(t.getCause()));
     }
 
     private static LockRequest clampLockRequestToDeadline(LockRequest request, Duration remainingTime) {
