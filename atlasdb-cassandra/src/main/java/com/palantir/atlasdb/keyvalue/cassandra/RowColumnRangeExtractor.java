@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -73,10 +74,10 @@ class RowColumnRangeExtractor {
     private final Map<byte[], Column> rowsToLastCompositeColumns = Maps.newHashMap();
     private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
     private final Set<byte[]> emptyRows = Sets.newHashSet();
-    private final Meter notLatestVisibleValueCellFilterMeter;
+    private final Counter notLatestVisibleValueCellFilterCounter;
 
     RowColumnRangeExtractor(MetricsManager metricsManager) {
-        notLatestVisibleValueCellFilterMeter = metricsManager.registerOrGetMeter(
+        notLatestVisibleValueCellFilterCounter = metricsManager.registerOrGetCounter(
                 RowColumnRangeExtractor.class,
                 AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
     }
@@ -113,10 +114,10 @@ class RowColumnRangeExtractor {
             } else if (!collector.get(row).containsKey(cell)) {
                 collector.get(row).put(cell, Value.create(val, ts));
             } else {
-                notLatestVisibleValueCellFilterMeter.mark();
+                notLatestVisibleValueCellFilterCounter.inc();
             }
         } else {
-            notLatestVisibleValueCellFilterMeter.mark();
+            notLatestVisibleValueCellFilterCounter.inc();
         }
     }
 

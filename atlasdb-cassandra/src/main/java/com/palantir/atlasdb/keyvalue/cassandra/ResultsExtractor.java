@@ -24,6 +24,7 @@ import java.util.SortedMap;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -106,8 +107,9 @@ public abstract class ResultsExtractor<T> {
 
     public abstract Map<Cell, T> asMap();
 
-    protected Meter getNotlatestVisibleValueCellFilterMeter(Class clazz) {
+    protected Counter getNotLatestVisibleValueCellFilterCounter(Class clazz) {
         // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerOrGetMeter(clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
+        return metricsManager.registerOrGetCounter(
+                clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
     }
 }
