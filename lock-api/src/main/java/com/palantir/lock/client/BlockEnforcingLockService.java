@@ -30,8 +30,6 @@ import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.lock.v2.ImmutableLockRequest;
-import com.palantir.lock.v2.ImmutableWaitForLocksRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -62,6 +60,7 @@ final class BlockEnforcingLockService {
     }
 
     LockResponse lock(LockRequest request) {
+        // The addition of a UUID takes place only at the Conjure level, so we must retry the same request.
         return timeoutRetryer.attemptUntilTimeLimitOrException(
                 ConjureLockRequests.toConjure(request),
                 Duration.ofMillis(request.getAcquireTimeoutMs()),
@@ -72,9 +71,9 @@ final class BlockEnforcingLockService {
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         return timeoutRetryer.attemptUntilTimeLimitOrException(
-                request,
+                ConjureLockRequests.toConjure(request),
                 Duration.ofMillis(request.getAcquireTimeoutMs()),
-                BlockEnforcingLockService::clampWaitForLocksRequestToDeadline,
+                BlockEnforcingLockService::clampLockRequestToDeadline,
                 this::performSingleWaitForLocksRequest,
                 response -> !response.wasSuccessful());
     }
@@ -86,23 +85,14 @@ final class BlockEnforcingLockService {
                 .build();
     }
 
-    private static WaitForLocksRequest clampWaitForLocksRequestToDeadline(
-            WaitForLocksRequest request, Duration remainingTime) {
-        return ImmutableWaitForLocksRequest.builder()
-                .from(request)
-                .acquireTimeoutMs(remainingTime.toMillis())
-                .build();
-    }
-
     private LockResponse performSingleLockRequest(ConjureLockRequest request) {
         return namespacedConjureTimelockService
                 .lock(request)
                 .accept(ToLeasedLockResponse.INSTANCE);
     }
 
-    private WaitForLocksResponse performSingleWaitForLocksRequest(WaitForLocksRequest request) {
-        return ConjureLockRequests.fromConjure(
-                namespacedConjureTimelockService.waitForLocks(ConjureLockRequests.toConjure(request)));
+    private WaitForLocksResponse performSingleWaitForLocksRequest(ConjureLockRequest request) {
+        return ConjureLockRequests.fromConjure(namespacedConjureTimelockService.waitForLocks(request));
     }
 
     private enum ToLeasedLockResponse implements ConjureLockResponse.Visitor<LockResponse> {
