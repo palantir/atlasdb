@@ -16,12 +16,8 @@
 
 package com.palantir.lock.client;
 
-import java.net.SocketTimeoutException;
+import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
@@ -36,21 +32,28 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
- * Ensures that clients actually attempt to acquire the lock for the full duration they claim they will block for.
- * This is done to account for the reality of bounded timeouts (e.g. in terms of the networking layer) when
- * communicating with remote services.
+ * Ensures that clients actually attempt to acquire the lock for the full duration they claim they will block for,
+ * unless they run into an exception that is unlikely to actually be a timeout. This is done to account for the reality
+ * of bounded timeouts beneath us (e.g. in terms of the networking layer) when communicating with remote services.
  *
  * Fairness is admittedly compromised, but this is a closer approximation than the previous behaviour.
  */
 class BlockEnforcingLockService {
     private final NamespacedConjureTimelockService namespacedConjureTimelockService;
+    private final RemoteTimeoutRetryer timeoutRetryer;
 
-    BlockEnforcingLockService(NamespacedConjureTimelockService namespacedConjureTimelockService) {
+    private BlockEnforcingLockService(NamespacedConjureTimelockService namespacedConjureTimelockService,
+            RemoteTimeoutRetryer timeoutRetryer) {
         this.namespacedConjureTimelockService = namespacedConjureTimelockService;
+        this.timeoutRetryer = timeoutRetryer;
+    }
+
+    static BlockEnforcingLockService create(NamespacedConjureTimelockService namespacedConjureTimelockService) {
+        return new BlockEnforcingLockService(namespacedConjureTimelockService, RemoteTimeoutRetryer.createDefault());
     }
 
     LockResponse lock(LockRequest request) {
-        return attemptUntilTimeLimitOrException(
+        return timeoutRetryer.attemptUntilTimeLimitOrException(
                 request,
                 req -> Duration.ofMillis(req.getAcquireTimeoutMs()),
                 BlockEnforcingLockService::clampLockRequestToDeadline,
@@ -60,46 +63,13 @@ class BlockEnforcingLockService {
     }
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return attemptUntilTimeLimitOrException(
+        return timeoutRetryer.attemptUntilTimeLimitOrException(
                 request,
                 req -> Duration.ofMillis(req.getAcquireTimeoutMs()),
                 BlockEnforcingLockService::clampWaitForLocksRequestToDeadline,
                 this::performSingleWaitForLocksRequest,
                 WaitForLocksResponse::wasSuccessful,
                 WaitForLocksResponse.timedOut());
-    }
-
-    private <S, T> T attemptUntilTimeLimitOrException(
-            S request,
-            Function<S, Duration> durationExtractor,
-            BiFunction<S, Duration, S> durationLimiter,
-            Function<S, T> query,
-            Predicate<T> successfulResponseEvaluator,
-            T defaultResponse) {
-        Instant now = Instant.now();
-        Instant deadline = now.plus(durationExtractor.apply(request));
-
-        while (now.isBefore(deadline)) {
-            Duration remainingTime = Duration.between(now, deadline);
-            S durationLimitedInput = durationLimiter.apply(request, remainingTime);
-
-            try {
-                T response = query.apply(durationLimitedInput);
-                if (successfulResponseEvaluator.test(response)) {
-                    return response;
-                }
-            } catch (Exception e) {
-                if (!isRetryable(e) || Instant.now().isAfter(deadline)) {
-                    throw e;
-                }
-            }
-            now = Instant.now();
-        }
-        return defaultResponse;
-    }
-
-    private static boolean isRetryable(Throwable t) {
-        return t instanceof SocketTimeoutException || (t.getCause() != null && isRetryable(t.getCause()));
     }
 
     private static LockRequest clampLockRequestToDeadline(LockRequest request, Duration remainingTime) {
