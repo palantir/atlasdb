@@ -119,7 +119,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         }
 
         ListenableFuture<T> getResultAsync() {
-            return future;
+            return Futures.nonCancellationPropagating(future);
         }
 
         T getResult() {

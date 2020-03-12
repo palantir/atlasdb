@@ -155,7 +155,7 @@ public class CoalescingSupplierTest {
             sleep(2);
             return counter.incrementAndGet();
         });
-        List<ListenableFuture<?>> futures = IntStream.range(0, poolSize)
+        List<ListenableFuture<?>> futures = IntStream.range(0, poolSize * 10)
                 .mapToObj(index -> executorService.submit(() -> assertIncreasing(supplier)))
                 .collect(Collectors.toList());
         executorService.shutdown();
