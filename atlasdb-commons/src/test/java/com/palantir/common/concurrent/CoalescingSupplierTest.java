@@ -169,7 +169,6 @@ public class CoalescingSupplierTest {
         CoalescingSupplier<Long> supplier = new CoalescingSupplier<>(() -> Futures.getUnchecked(future));
         ListenableFuture<Long> returned = supplier.getAsync();
         returned.cancel(true);
-        assertThat(future).isNotCancelled();
         ListenableFuture<Long> after = supplier.getAsync();
         future.set(1L);
         assertThat(Futures.getUnchecked(after)).isOne();
