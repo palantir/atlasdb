@@ -57,11 +57,11 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         return next.getResult();
     }
 
-    @SuppressWarnings("CheckReturnValue")
     public ListenableFuture<T> getAsync() {
         return Futures.nonCancellationPropagating(getAsyncNotHandlingCancellation());
     }
 
+    @SuppressWarnings("CheckReturnValue")
     private ListenableFuture<T> getAsyncNotHandlingCancellation() {
         Round present = round;
         if (present.isFirstToArrive()) {
