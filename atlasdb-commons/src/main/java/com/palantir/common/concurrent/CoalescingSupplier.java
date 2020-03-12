@@ -59,6 +59,10 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     @SuppressWarnings("CheckReturnValue")
     public ListenableFuture<T> getAsync() {
+        return Futures.nonCancellationPropagating(getAsyncNotHandlingCancellation());
+    }
+
+    private ListenableFuture<T> getAsyncNotHandlingCancellation() {
         Round present = round;
         if (present.isFirstToArrive()) {
             return Futures.submitAsync(() -> {
@@ -119,7 +123,7 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         }
 
         ListenableFuture<T> getResultAsync() {
-            return Futures.nonCancellationPropagating(future);
+            return future;
         }
 
         T getResult() {

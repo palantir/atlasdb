@@ -49,6 +49,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
 
@@ -160,6 +161,18 @@ public class CoalescingSupplierTest {
                 .collect(Collectors.toList());
         executorService.shutdown();
         Futures.getUnchecked(Futures.allAsList(futures));
+    }
+
+    @Test
+    public void canCancelReturnedFuture() {
+        SettableFuture<Long> future = SettableFuture.create();
+        CoalescingSupplier<Long> supplier = new CoalescingSupplier<>(() -> Futures.getUnchecked(future));
+        ListenableFuture<Long> returned = supplier.getAsync();
+        returned.cancel(true);
+        assertThat(future).isNotCancelled();
+        ListenableFuture<Long> after = supplier.getAsync();
+        future.set(1L);
+        assertThat(Futures.getUnchecked(after)).isOne();
     }
 
     private static void assertIncreasing(Supplier<Long> supplier) {
