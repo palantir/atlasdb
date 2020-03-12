@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: feature
+feature:
   description: Fix bug in CoalescingSupplier that leads to the async method cancellation
     messing up the state.
   links:
