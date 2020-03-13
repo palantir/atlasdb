@@ -121,11 +121,12 @@ public final class AtlasDbHttpClients {
                 AtlasDbHttpClients::isPossiblyOkHttpTimeoutBug);
     }
 
-    private static boolean isPossiblyOkHttpTimeoutBug(Throwable throwable) {
+    @VisibleForTesting
+    static boolean isPossiblyOkHttpTimeoutBug(Throwable throwable) {
         if (throwable instanceof SocketTimeoutException) {
             return true;
         }
         Throwable cause = throwable.getCause();
-        return cause != null && isPossiblyOkHttpTimeoutBug(throwable);
+        return cause != null && isPossiblyOkHttpTimeoutBug(cause);
     }
 }
