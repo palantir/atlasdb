@@ -53,12 +53,10 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
 
     private void replaceIfNecessary(Throwable thrown) {
         if (shouldReplace.test(thrown)) {
-            synchronized (this) {
-                T replacement = delegateFactory.get();
-                if (delegate != replacement) {
-                    log.info("Replacing underlying proxy due to thrown exception", thrown);
-                    delegate = delegateFactory.get();
-                }
+            T replacement = delegateFactory.get();
+            if (delegate != replacement) {
+                log.info("Replacing underlying proxy due to thrown exception", thrown);
+                delegate = delegateFactory.get();
             }
         }
     }
