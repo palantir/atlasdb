@@ -50,12 +50,14 @@ public final class ReplaceIfExceptionMatchingProxy<T> implements InvocationHandl
         }
     }
 
-    private synchronized void replaceIfNecessary(Throwable thrown) {
+    private void replaceIfNecessary(Throwable thrown) {
         if (shouldReplace.test(thrown)) {
-            T replacement = delegateFactory.get();
-            if (delegate != replacement) {
-                log.info("Replacing underlying proxy due to thrown exception", thrown);
-                delegate = delegateFactory.get();
+            synchronized (this) {
+                T replacement = delegateFactory.get();
+                if (delegate != replacement) {
+                    log.info("Replacing underlying proxy due to thrown exception", thrown);
+                    delegate = delegateFactory.get();
+                }
             }
         }
     }
