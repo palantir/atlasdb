@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
@@ -114,19 +113,6 @@ public class LeadersTest {
         MatcherAssert.assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted(), is(1L));
         verify(localAcceptor).getLatestSequencePreparedOrAccepted();
         verifyNoMoreInteractions(localAcceptor);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void createProxyAndLocalListThrowsIfCreatingObjectsWithoutHttpMethodAnnotatedMethods() {
-        BigInteger localBigInteger = new BigInteger("0");
-
-        Leaders.createProxyAndLocalList(
-                localBigInteger,
-                REMOTE_SERVICE_ADDRESSES,
-                REMOTING_CLIENT_CONFIG,
-                Optional.of(TRUST_CONTEXT),
-                BigInteger.class,
-                AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
     }
 
     @Test(expected = NullPointerException.class)
