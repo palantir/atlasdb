@@ -16,7 +16,6 @@
 
 package com.palantir.common.proxy;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -26,7 +25,9 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ReplaceIfExceptionMatchingProxy<T> implements InvocationHandler {
+import com.google.common.reflect.AbstractInvocationHandler;
+
+public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ReplaceIfExceptionMatchingProxy.class);
 
     private final Supplier<T> delegateFactory;
@@ -40,7 +41,7 @@ public final class ReplaceIfExceptionMatchingProxy<T> implements InvocationHandl
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
