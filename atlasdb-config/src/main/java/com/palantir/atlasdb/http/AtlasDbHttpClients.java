@@ -15,17 +15,21 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.net.SocketTimeoutException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
 import com.palantir.common.proxy.SelfRefreshingProxy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -41,10 +45,21 @@ public final class AtlasDbHttpClients {
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
-        return SelfRefreshingProxy.create(
-                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(trustContext, uri, type, parameters)
-                        .instance(),
-                type);
+        return ReplaceIfExceptionMatchingProxy.newProxyInstance(
+                type,
+                Suppliers.memoizeWithExpiration(
+                        () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(
+                                trustContext, uri, type, parameters).instance(),
+                        20, TimeUnit.MINUTES),
+                AtlasDbHttpClients::isPossiblyOkHttpTimeoutBug);
+    }
+
+    private static boolean isPossiblyOkHttpTimeoutBug(Throwable throwable) {
+        if (throwable instanceof SocketTimeoutException) {
+            return true;
+        }
+        Throwable cause = throwable.getCause();
+        return cause != null && isPossiblyOkHttpTimeoutBug(throwable);
     }
 
     /**
