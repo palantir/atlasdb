@@ -23,7 +23,12 @@ import java.lang.reflect.Proxy;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public final class ReplaceIfExceptionMatchingProxy<T> implements InvocationHandler {
+    private static final Logger log = LoggerFactory.getLogger(ReplaceIfExceptionMatchingProxy.class);
+
     private final Supplier<T> delegateFactory;
     private final Predicate<Throwable> shouldReplace;
     private volatile T delegate;
@@ -49,6 +54,7 @@ public final class ReplaceIfExceptionMatchingProxy<T> implements InvocationHandl
 
     private synchronized void replaceIfNecessary(Throwable thrown) {
         if (shouldReplace.test(thrown)) {
+            log.info("Replacing underlying proxy due to thrown exception", thrown);
             delegate = delegateFactory.get();
         }
     }
