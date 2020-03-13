@@ -60,7 +60,7 @@ public class ReplaceIfExceptionMatchingProxyTest {
     }
 
     @Test
-    public void testEqualsHashCodeNotDelegated() {
+    public void testEqualsHashCodeToStringNotDelegated() {
         TestInterface iface = ReplaceIfExceptionMatchingProxy.newProxyInstance(
                 TestInterface.class, supplier, _thrown -> true);
         assertThat(iface.toString()).isNotEqualTo(delegate.toString());
