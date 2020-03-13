@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Change conjure client replacement logic to replace clients ASAP instead of on a schedule.
+
+    Rebase of #4584
+  links:
+  - https://github.com/palantir/atlasdb/pull/4648
