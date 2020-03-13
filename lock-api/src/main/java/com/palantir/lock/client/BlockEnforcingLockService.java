@@ -81,7 +81,7 @@ final class BlockEnforcingLockService {
     private static ConjureLockRequest clampLockRequestToDeadline(ConjureLockRequest request, Duration remainingTime) {
         return ConjureLockRequest.builder()
                 .from(request)
-                .acquireTimeoutMs(Ints.saturatedCast(remainingTime.toMillis()))
+                .acquireTimeoutMs(Ints.checkedCast(remainingTime.toMillis()))
                 .build();
     }
 
@@ -146,7 +146,7 @@ final class BlockEnforcingLockService {
                     if (!isTimedOutResponse.test(currentResponse)) {
                         return currentResponse;
                     }
-                } catch (Exception e) {
+                } catch (RuntimeException e) {
                     if (!isPlausiblyTimeout(e) || clock.instant().isAfter(deadline)) {
                         throw e;
                     }
