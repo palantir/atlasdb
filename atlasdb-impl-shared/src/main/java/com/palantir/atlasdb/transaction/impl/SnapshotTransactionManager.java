@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -327,24 +326,24 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public void close() {
         if (isClosed.compareAndSet(false, true)) {
-            super.close();
-            cleaner.close();
-            keyValueService.close();
-            shutdownExecutor(deleteExecutor);
-            shutdownExecutor(getRangesExecutor);
-            closeLockServiceIfPossible();
 
-            List<Throwable> suppressedExceptions = new ArrayList<>();
+            ShutdownRunner shutdownRunner = new ShutdownRunner();
+
+            shutdownRunner.runShutdownCallbackSafely(super::close);
+            shutdownRunner.runShutdownCallbackSafely(cleaner::close);
+            shutdownRunner.runShutdownCallbackSafely(keyValueService::close);
+            shutdownRunner.runShutdownCallbackSafely(() -> shutdownExecutor(deleteExecutor));
+            shutdownRunner.runShutdownCallbackSafely(() -> shutdownExecutor(getRangesExecutor));
+            shutdownRunner.runShutdownCallbackSafely(this::closeLockServiceIfPossible);
+
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
-                runShutdownCallbackSafely(callback).ifPresent(suppressedExceptions::add);
+                shutdownRunner.runShutdownCallbackSafely(callback);
             }
-            metricsManager.deregisterMetrics();
 
-            if (!suppressedExceptions.isEmpty()) {
-                RuntimeException closeFailed = new SafeRuntimeException(
-                        "Close failed. Please inspect the code and fix wherever shutdown hooks throw exceptions");
-                suppressedExceptions.forEach(closeFailed::addSuppressed);
-                throw closeFailed;
+            shutdownRunner.runShutdownCallbackSafely(metricsManager::deregisterMetrics);
+
+            if (shutdownRunner.isFailed()) {
+                throw new SafeRuntimeException("Close failed.");
             }
         }
     }
@@ -468,16 +467,6 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private static Optional<Throwable> runShutdownCallbackSafely(Runnable callback) {
-        try {
-            callback.run();
-            return Optional.empty();
-        } catch (Throwable exception) {
-            log.warn("Exception thrown from a shutdown hook. Swallowing to proceed.", exception);
-            return Optional.of(exception);
-        }
-    }
-
     private <T> T runTimed(Callable<T> operation, String timerName) {
         Timer.Context timer = getTimer(timerName).time();
         try {
@@ -503,5 +492,22 @@ import com.palantir.timestamp.TimestampService;
         }
         throw new IllegalArgumentException("Can't use a transaction which is not SnapshotTransaction in "
                 + "SnapshotTransactionManager");
+    }
+
+    private static final class ShutdownRunner {
+        private boolean failed = false;
+
+        void runShutdownCallbackSafely(Runnable callback) {
+            try {
+                callback.run();
+            } catch (Throwable exception) {
+                log.warn("Exception thrown when shutting down. Swallowing to proceed.", exception);
+                failed = true;
+            }
+        }
+
+        boolean isFailed() {
+            return failed;
+        }
     }
 }
