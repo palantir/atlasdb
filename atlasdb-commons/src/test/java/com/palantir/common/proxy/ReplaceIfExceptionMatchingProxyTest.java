@@ -33,10 +33,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ReplaceIfExceptionMatchingProxyTest {
-    @Mock
-    private TestInterface delegate;
-    @Mock
-    private Supplier<TestInterface> supplier;
+    @Mock private TestInterface delegate;
+    @Mock private Supplier<TestInterface> supplier;
 
     interface TestInterface {
         void doSomething();
