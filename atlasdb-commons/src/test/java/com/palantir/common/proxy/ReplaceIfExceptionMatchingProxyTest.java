@@ -57,5 +57,4 @@ public class ReplaceIfExceptionMatchingProxyTest {
         assertThatThrownBy(iface::doSomething).isEqualTo(exception);
         verify(supplier, times(2)).get();
     }
-
 }
