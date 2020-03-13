@@ -16,6 +16,7 @@
 
 package com.palantir.common.proxy;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -32,8 +33,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ReplaceIfExceptionMatchingProxyTest {
-    @Mock private TestInterface delegate;
-    @Mock private Supplier<TestInterface> supplier;
+    @Mock
+    private TestInterface delegate;
+    @Mock
+    private Supplier<TestInterface> supplier;
 
     interface TestInterface {
         void doSomething();
@@ -56,5 +59,15 @@ public class ReplaceIfExceptionMatchingProxyTest {
         doThrow(exception).when(delegate).doSomething();
         assertThatThrownBy(iface::doSomething).isEqualTo(exception);
         verify(supplier, times(2)).get();
+    }
+
+    @Test
+    public void testEqualsHashCodeNotDelegated() {
+        TestInterface iface = ReplaceIfExceptionMatchingProxy.newProxyInstance(
+                TestInterface.class, supplier, _thrown -> true);
+        assertThat(iface.toString()).isNotEqualTo(delegate.toString());
+        assertThat(iface).isEqualTo(iface);
+        assertThat(iface).isNotEqualTo(delegate);
+        assertThat(iface.hashCode()).isNotEqualTo(delegate.hashCode());
     }
 }
