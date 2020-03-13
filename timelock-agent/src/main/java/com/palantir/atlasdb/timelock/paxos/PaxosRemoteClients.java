@@ -89,10 +89,11 @@ public abstract class PaxosRemoteClients {
     private List<BatchPaxosAcceptorRpcClient> batchAcceptorWithOverride(
             Function<HostAndPort, AsyncIsLatestSequencePreparedOrAccepted> bla) {
         return KeyedStream.of(context().remoteUris())
-                .map(uri -> createInstrumentedRemoteProxy(BatchPaxosAcceptorRpcClient.class, uri, false))
+                .map(uri -> createUninstrumentedProxy(BatchPaxosAcceptorRpcClient.class, uri, false))
                 .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort)
                 .mapKeys(bla)
                 .map(DelegatingBatchPaxosAcceptorRpcClient::new)
+                .map(uninstrumentedProxy -> instrument(BatchPaxosAcceptorRpcClient.class, uninstrumentedProxy))
                 .values()
                 .collect(Collectors.toList());
     }
@@ -143,7 +144,21 @@ public abstract class PaxosRemoteClients {
     }
 
     private <T> T createInstrumentedRemoteProxy(Class<T> clazz, String uri, boolean shouldRetry) {
-        T uninstrumentedProxy = AtlasDbHttpClients.createProxy(
+        T uninstrumentedProxy = createUninstrumentedProxy(clazz, uri, shouldRetry);
+        return instrument(clazz, uninstrumentedProxy);
+    }
+
+    private <T> T instrument(Class<T> clazz, T uninstrumentedProxy) {
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                metrics(),
+                clazz,
+                uninstrumentedProxy,
+                MetricRegistry.name(clazz),
+                _unused -> ImmutableMap.of());
+    }
+
+    private <T> T createUninstrumentedProxy(Class<T> clazz, String uri, boolean shouldRetry) {
+        return AtlasDbHttpClients.createProxy(
                 context().trustContext(),
                 uri,
                 clazz,
@@ -154,13 +169,6 @@ public abstract class PaxosRemoteClients {
                         .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
                         .shouldSupportBlockingOperations(false)
                         .build());
-
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metrics(),
-                clazz,
-                uninstrumentedProxy,
-                MetricRegistry.name(clazz),
-                _unused -> ImmutableMap.of());
     }
 
     private static HostAndPort convertAddressToHostAndPort(String url) {
