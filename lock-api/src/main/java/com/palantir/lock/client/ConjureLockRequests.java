@@ -47,7 +47,7 @@ public final class ConjureLockRequests {
         return ConjureLockRequest.builder()
                 .lockDescriptors(toConjure(request.getLockDescriptors()))
                 .clientDescription(request.getClientDescription())
-                .requestId(UUID.randomUUID())
+                .requestId(request.getRequestId())
                 .acquireTimeoutMs(Ints.checkedCast(request.getAcquireTimeoutMs()))
                 .build();
     }

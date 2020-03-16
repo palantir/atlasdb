@@ -19,9 +19,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -31,14 +35,26 @@ import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.http.v2.ClientOptions;
+import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.ConjureLockRequests;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 
 @RunWith(Parameterized.class)
 public class MultiNodePaxosTimeLockServerIntegrationTest {
@@ -59,6 +75,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
 
     private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
+    private static final int LONG_LOCK_TIMEOUT_MS =
+            Ints.saturatedCast(ClientOptions.NON_BLOCKING_READ_TIMEOUT.plus(Duration.ofSeconds(1)).toMillis());
 
     private NamespacedClients client;
 
@@ -193,4 +211,69 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         }
     }
 
+    @Test
+    public void lockRequestCanBlockForTheFullTimeout() {
+        LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+
+        try {
+            LockResponse response = client.lock(LockRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            assertThat(response.wasSuccessful()).isFalse();
+        } finally {
+            client.unlock(token);
+        }
+    }
+
+    @Test
+    public void waitForLocksRequestCanBlockForTheFullTimeout() {
+        LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+
+        try {
+            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            assertThat(response.wasSuccessful()).isFalse();
+        } finally {
+            client.unlock(token);
+        }
+    }
+
+    @Test
+    public void multipleLockRequestsWithTheSameIdAreGranted() {
+        ConjureLockRequest conjureLockRequest = ConjureLockRequests.toConjure(
+                LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS));
+
+        Optional<ConjureLockToken> token1 = client.namespacedConjureTimelockService().lock(conjureLockRequest)
+                .accept(ToConjureLockTokenVisitor.INSTANCE);
+        Optional<ConjureLockToken> token2 = Optional.empty();
+        try {
+            token2 = client.namespacedConjureTimelockService().lock(conjureLockRequest)
+                    .accept(ToConjureLockTokenVisitor.INSTANCE);
+
+            assertThat(token1).isPresent();
+            assertThat(token1).isEqualTo(token2);
+        } finally {
+            Set<ConjureLockToken> tokens = Stream.of(token1, token2)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toSet());
+            client.namespacedConjureTimelockService().unlock(ConjureUnlockRequest.of(tokens));
+        }
+    }
+
+    private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {
+        INSTANCE;
+
+        @Override
+        public Optional<ConjureLockToken> visitSuccessful(SuccessfulLockResponse value) {
+            return Optional.of(value.getLockToken());
+        }
+
+        @Override
+        public Optional<ConjureLockToken> visitUnsuccessful(UnsuccessfulLockResponse value) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<ConjureLockToken> visitUnknown(String unknownType) {
+            throw new RuntimeException("Unexpected type " + unknownType);
+        }
+    }
 }

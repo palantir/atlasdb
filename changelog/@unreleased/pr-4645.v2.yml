@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Lock and waitForLocks requests to the V2 lock service that had blocking
+    timeouts of more than 60 seconds should now work properly if invoked through the
+    lock service in AtlasDB. Previously, these would fail with `SocketTimeoutException`s.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4645
