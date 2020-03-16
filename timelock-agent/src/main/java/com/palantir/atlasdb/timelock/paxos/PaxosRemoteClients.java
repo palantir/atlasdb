@@ -23,7 +23,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.ws.rs.Path;
 
 import org.immutables.value.Value;
@@ -191,7 +190,7 @@ public abstract class PaxosRemoteClients {
     public interface AsyncIsLatestSequencePreparedOrAccepted {
         ListenableFuture<AcceptorCacheDigest> latestSequencesPreparedOrAccepted(
                 PaxosUseCase paxosUseCase,
-                @Nullable AcceptorCacheKey cacheKey,
+                Optional<AcceptorCacheKey> cacheKey,
                 Set<Client> clients);
 
         ListenableFuture<Optional<AcceptorCacheDigest>> latestSequencesPreparedOrAcceptedCached(

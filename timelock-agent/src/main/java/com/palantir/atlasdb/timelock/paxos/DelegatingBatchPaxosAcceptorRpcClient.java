@@ -61,7 +61,10 @@ public class DelegatingBatchPaxosAcceptorRpcClient implements BatchPaxosAcceptor
             PaxosUseCase paxosUseCase,
             @Nullable AcceptorCacheKey cacheKey,
             Set<Client> clients) {
-        return isLatestSequenceOverride.latestSequencesPreparedOrAccepted(paxosUseCase, cacheKey, clients);
+        return isLatestSequenceOverride.latestSequencesPreparedOrAccepted(
+                paxosUseCase,
+                Optional.ofNullable(cacheKey),
+                clients);
     }
 
     @Override
