@@ -325,26 +325,23 @@ import com.palantir.timestamp.TimestampService;
      */
     @Override
     public void close() {
-        if (isClosed.compareAndSet(false, true)) {
+        if (!isClosed.compareAndSet(false, true)) {
+            return;
+        }
 
-            ShutdownRunner shutdownRunner = new ShutdownRunner();
-
-            shutdownRunner.runShutdownCallbackSafely(super::close);
-            shutdownRunner.runShutdownCallbackSafely(cleaner::close);
-            shutdownRunner.runShutdownCallbackSafely(keyValueService::close);
-            shutdownRunner.runShutdownCallbackSafely(() -> shutdownExecutor(deleteExecutor));
-            shutdownRunner.runShutdownCallbackSafely(() -> shutdownExecutor(getRangesExecutor));
-            shutdownRunner.runShutdownCallbackSafely(this::closeLockServiceIfPossible);
+        try (ShutdownRunner shutdownRunner = new ShutdownRunner()) {
+            shutdownRunner.shutdownSafely(super::close);
+            shutdownRunner.shutdownSafely(cleaner::close);
+            shutdownRunner.shutdownSafely(keyValueService::close);
+            shutdownRunner.shutdownSafely(() -> shutdownExecutor(deleteExecutor));
+            shutdownRunner.shutdownSafely(() -> shutdownExecutor(getRangesExecutor));
+            shutdownRunner.shutdownSafely(this::closeLockServiceIfPossible);
 
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
-                shutdownRunner.runShutdownCallbackSafely(callback);
+                shutdownRunner.shutdownSafely(callback);
             }
 
-            shutdownRunner.runShutdownCallbackSafely(metricsManager::deregisterMetrics);
-
-            if (shutdownRunner.isFailed()) {
-                throw new SafeRuntimeException("Close failed.");
-            }
+            shutdownRunner.shutdownSafely(metricsManager::deregisterMetrics);
         }
     }
 
@@ -494,20 +491,23 @@ import com.palantir.timestamp.TimestampService;
                 + "SnapshotTransactionManager");
     }
 
-    private static final class ShutdownRunner {
+    private static final class ShutdownRunner implements AutoCloseable {
         private boolean failed = false;
 
-        void runShutdownCallbackSafely(Runnable callback) {
+        void shutdownSafely(Runnable shutdownCallback) {
             try {
-                callback.run();
+                shutdownCallback.run();
             } catch (Throwable exception) {
                 log.warn("Exception thrown when shutting down. Swallowing to proceed.", exception);
                 failed = true;
             }
         }
 
-        boolean isFailed() {
-            return failed;
+        @Override
+        public void close() {
+            if (failed) {
+                throw new SafeRuntimeException("Close failed.");
+            }
         }
     }
 }
