@@ -88,11 +88,19 @@ public abstract class PaxosRemoteClients {
     private List<BatchPaxosAcceptorRpcClient> batchAcceptorWithOverride(
             Function<HostAndPort, AsyncIsLatestSequencePreparedOrAccepted> bla) {
         return KeyedStream.of(context().remoteUris())
-                .map(uri -> createUninstrumentedProxy(BatchPaxosAcceptorRpcClient.class, uri, false))
                 .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort)
                 .mapKeys(bla)
-                .map(DelegatingBatchPaxosAcceptorRpcClient::new)
-                .map(uninstrumentedProxy -> instrument(BatchPaxosAcceptorRpcClient.class, uninstrumentedProxy))
+                .map((override, uri) -> {
+                    BatchPaxosAcceptorRpcClient uninstrumentedProxy =
+                            createUninstrumentedProxy(BatchPaxosAcceptorRpcClient.class, uri, false);
+                    DelegatingBatchPaxosAcceptorRpcClient delegatingBatchPaxosAcceptorRpcClient =
+                            new DelegatingBatchPaxosAcceptorRpcClient(override, uninstrumentedProxy);
+
+                    return instrument(
+                            BatchPaxosAcceptorRpcClient.class,
+                            convertAddressToHostAndPort(uri),
+                            delegatingBatchPaxosAcceptorRpcClient);
+                })
                 .values()
                 .collect(Collectors.toList());
     }
@@ -144,16 +152,16 @@ public abstract class PaxosRemoteClients {
 
     private <T> T createInstrumentedRemoteProxy(Class<T> clazz, String uri, boolean shouldRetry) {
         T uninstrumentedProxy = createUninstrumentedProxy(clazz, uri, shouldRetry);
-        return instrument(clazz, uninstrumentedProxy);
+        return instrument(clazz, convertAddressToHostAndPort(uri), uninstrumentedProxy);
     }
 
-    private <T> T instrument(Class<T> clazz, T uninstrumentedProxy) {
+    private <T> T instrument(Class<T> clazz, HostAndPort remote, T uninstrumentedProxy) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 metrics(),
                 clazz,
                 uninstrumentedProxy,
                 MetricRegistry.name(clazz),
-                _unused -> ImmutableMap.of());
+                _unused -> ImmutableMap.of("remote", remote.toString()));
     }
 
     private <T> T createUninstrumentedProxy(Class<T> clazz, String uri, boolean shouldRetry) {
