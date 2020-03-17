@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: The `BlockEnforcingLockService` now handles `LockRequest`s and `WaitForLocksRequest`s with timeouts
+    of zero correctly. Previously, we would throw a `NullPointerException` on these requests.
+    You should only be affected if you are using the v2 `LockService` directly, as AtlasDB does not, as part of its
+    transactions, create requests with zero timeouts unless `getLockAcquireTimeoutMillis` is explicitly configured
+    as such.
+  links:
+    - https://github.com/palantir/atlasdb/pull/4645

@@ -137,7 +137,7 @@ final class BlockEnforcingLockService {
             S currentRequest = request;
             T currentResponse = null;
 
-            while (now.isBefore(deadline)) {
+            while (!now.isAfter(deadline)) {
                 Duration remainingTime = Duration.between(now, deadline);
                 currentRequest = durationLimiter.apply(currentRequest, remainingTime);
 
@@ -146,12 +146,13 @@ final class BlockEnforcingLockService {
                     if (!isTimedOutResponse.test(currentResponse)) {
                         return currentResponse;
                     }
+                    now = clock.instant();
                 } catch (RuntimeException e) {
-                    if (!isPlausiblyTimeout(e) || clock.instant().isAfter(deadline)) {
+                    now = clock.instant();
+                    if (!isPlausiblyTimeout(e) || now.isAfter(deadline)) {
                         throw e;
                     }
                 }
-                now = clock.instant();
             }
 
             Preconditions.checkNotNull(currentResponse, "We attempted to return because a blocking duration was"
