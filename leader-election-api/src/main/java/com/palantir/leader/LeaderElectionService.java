@@ -82,6 +82,8 @@ public interface LeaderElectionService {
      */
     boolean stepDown();
 
+    boolean hostileTakeover();
+
     /**
      * If this {@link LeaderElectionService} has last successfully pinged node that believed it was the leader recently
      * (up to the implementation), it returns the {@link HostAndPort} through which the leader can be contacted.

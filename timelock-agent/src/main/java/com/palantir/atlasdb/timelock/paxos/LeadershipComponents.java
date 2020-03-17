@@ -74,6 +74,10 @@ public class LeadershipComponents {
         return new LeaderPingHealthCheck(namespaceTracker, healthCheckPingers);
     }
 
+    public boolean requestHostileTakeover(Client client) {
+        return getOrCreateNewLeadershipContext(client).leaderElectionService().hostileTakeover();
+    }
+
     private LeadershipContext getOrCreateNewLeadershipContext(Client client) {
         return leadershipContextByClient.computeIfAbsent(client, this::createNewLeadershipContext);
     }
