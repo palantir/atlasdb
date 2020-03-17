@@ -313,6 +313,37 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     @Override
+    public boolean hostileTakeover() {
+        LeadershipState leadershipState = determineLeadershipState();
+        StillLeadingStatus status = leadershipState.status();
+        switch (status) {
+            case LEADING:
+                return true;
+            case NOT_LEADING:
+                try {
+                    proposer.propose(getNextSequenceNumber(leadershipState.greatestLearnedValue()), null);
+                    StillLeadingStatus newStatus = determineLeadershipState().status();
+                    if (newStatus == StillLeadingStatus.LEADING) {
+                        log.info("Successfully took over", SafeArg.of("newStatus", newStatus));
+                        return true;
+                    } else {
+                        log.info("Failed to take over", SafeArg.of("newStatus", newStatus));
+                        return false;
+                    }
+                } catch (PaxosRoundFailureException e) {
+                    log.info("Couldn't takeover leadership because a quorum could not be obtained.",
+                            SafeArg.of("lastObservedState", leadershipState));
+                    return false;
+                }
+            case NO_QUORUM:
+                log.info("Couldn't takeover leadership because a quorum could not be obtained: NO_QUORUM");
+                return false;
+            default:
+                throw new IllegalStateException("Unexpected value: " + status);
+        }
+    }
+
+    @Override
     public Optional<HostAndPort> getRecentlyPingedLeaderHost() {
         return extractLeaderUuid(knowledge.getGreatestLearnedValue()).map(leaderAddressCache::getIfPresent);
     }

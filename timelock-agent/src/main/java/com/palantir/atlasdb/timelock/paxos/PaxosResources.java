@@ -58,6 +58,7 @@ public abstract class PaxosResources {
         return ImmutableList.builder()
                 .addAll(adhocResources())
                 .add(combinedBatchResource)
+                .add(new NamespaceTakeoverResource(leadershipComponents()))
                 .build();
     }
 
