@@ -137,7 +137,7 @@ final class BlockEnforcingLockService {
             S currentRequest = request;
             T currentResponse = null;
 
-            while (now.isBefore(deadline)) {
+            while (!now.isAfter(deadline)) {
                 Duration remainingTime = Duration.between(now, deadline);
                 currentRequest = durationLimiter.apply(currentRequest, remainingTime);
 
