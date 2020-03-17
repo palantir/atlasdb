@@ -29,6 +29,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
@@ -43,6 +44,8 @@ import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestingService;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
+import com.palantir.atlasdb.timelock.paxos.LocalPaxosComponents;
+import com.palantir.atlasdb.timelock.paxos.MultiLeaderNamespaceDistributionTracker;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
@@ -52,7 +55,9 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
@@ -60,6 +65,7 @@ import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
@@ -78,6 +84,7 @@ public class TimeLockAgent {
 
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
+    private Optional<MultiLeaderNamespaceDistributionTracker> namespaceDistributionTracker = Optional.empty();
 
     public static TimeLockAgent create(
             MetricsManager metricsManager,
@@ -175,6 +182,23 @@ public class TimeLockAgent {
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
 
+        if (install.paxos().leaderMode() == PaxosLeaderMode.LEADER_PER_CLIENT) {
+            LocalPaxosComponents paxosComponents = Preconditions.checkNotNull(
+                    paxosResources().leadershipBatchComponents().get(PaxosLeaderMode.LEADER_PER_CLIENT),
+                    "Timelock setup has gone awfully wrong, this is a bug.");
+
+            MultiLeaderNamespaceDistributionTracker tracker = new MultiLeaderNamespaceDistributionTracker(
+                    namespaces::getActiveClients,
+                    paxosComponents.batchPingableLeader());
+            MetricName metricName = MetricName.builder()
+                    .safeName("timelock-namespace-distribution-tracker.count")
+                    .putSafeTags(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, PaxosLeaderMode.LEADER_PER_CLIENT.name())
+                    .build();
+            metricsManager.getTaggedRegistry()
+                    .gauge(metricName, () -> tracker.getCurrentNodeNamespaceDistribution().namespacesLed().size());
+            namespaceDistributionTracker = Optional.of(tracker);
+        }
+
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
@@ -210,8 +234,8 @@ public class TimeLockAgent {
     }
 
     @SuppressWarnings("unused") // used by internal timelock
-    public NamespaceTracker namespaceTracker() {
-        return namespaces::getActiveClients;
+    public Optional<MultiLeaderNamespaceDistributionTracker> namespaceDistributionTracker() {
+        return namespaceDistributionTracker;
     }
 
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks

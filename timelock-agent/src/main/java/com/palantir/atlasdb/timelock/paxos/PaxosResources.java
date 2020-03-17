@@ -34,7 +34,7 @@ public abstract class PaxosResources {
 
     public abstract Factory<ManagedTimestampService> timestampServiceFactory();
     abstract LocalPaxosComponents timestampPaxosComponents();
-    abstract Map<PaxosUseCase, LocalPaxosComponents> leadershipBatchComponents();
+    public abstract Map<PaxosUseCase, LocalPaxosComponents> leadershipBatchComponents();
     abstract LeadershipContextFactory leadershipContextFactory();
     abstract List<Object> adhocResources();
 
