@@ -209,6 +209,11 @@ public class TimeLockAgent {
         return Optional.of(status);
     }
 
+    @SuppressWarnings("unused") // used by internal timelock
+    public NamespaceTracker namespaceTracker() {
+        return namespaces::getActiveClients;
+    }
+
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks
     public int getNumberOfActiveClients() {
         return namespaces.getNumberOfActiveClients();
