@@ -72,7 +72,7 @@ public final class PaxosExecutionEnvironments {
         private final Map<? extends T, ExecutorService> executors;
 
         private AllRequestsOnSeparateThreads(List<T> services, Map<? extends T, ExecutorService> executors) {
-            Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(services)),
+            Preconditions.checkState(executors.keySet().containsAll(Sets.newHashSet(services)),
                     "Each service should have an executor.");
             this.services = services;
             this.executors = executors;
