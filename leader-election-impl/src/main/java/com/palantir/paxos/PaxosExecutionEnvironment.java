@@ -28,6 +28,8 @@ public interface PaxosExecutionEnvironment<S> {
 
     <R extends PaxosResponse> ExecutionContext<S, R> execute(Function<S, R> function);
 
+    <T> PaxosExecutionEnvironment<T> map(Function<S, T> mapper);
+
     interface ExecutionContext<S, R extends PaxosResponse> {
         Result<S, R> awaitNextResult(Instant deadline) throws InterruptedException;
         ExecutionContext<S, R> withExistingResults(List<Result<S, R>> existingResults);

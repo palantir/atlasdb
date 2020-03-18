@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponseImpl;
 import com.palantir.paxos.PaxosValue;
@@ -42,11 +43,10 @@ final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Ent
     private final ExecutorService executor;
 
     LearnCoalescingConsumer(
-            BatchPaxosLearner localLearner,
-            List<BatchPaxosLearner> remoteLearners,
+            LocalAndRemotes<BatchPaxosLearner> localAndRemotes,
             ExecutorService executor) {
-        this.localLearner = localLearner;
-        this.remoteLearners = remoteLearners;
+        this.localLearner = localAndRemotes.local();
+        this.remoteLearners = localAndRemotes.remotes();
         this.executor = executor;
     }
 

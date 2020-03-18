@@ -20,106 +20,64 @@ import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
-import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.PaxosExecutionEnvironment;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
-import com.palantir.paxos.PaxosResponsesWithRemote;
 
 public class PaxosQuorumCheckingCoalescingFunction<
         REQ, RESP extends PaxosResponse, FUNC extends CoalescingRequestFunction<REQ, RESP>> implements
-        CoalescingRequestFunction<REQ, PaxosResponsesWithRemote<FUNC, RESP>> {
+        CoalescingRequestFunction<REQ, PaxosResponses<RESP>> {
 
-    private final List<FUNC> delegates;
-    private final Map<FUNC, ExecutorService> executors;
+    private final PaxosExecutionEnvironment<FUNC> executionEnvironment;
     private final int quorumSize;
-    private final PaxosResponsesWithRemote<FUNC, RESP> defaultValue;
+    private final PaxosResponses<RESP> defaultValue;
 
-    public PaxosQuorumCheckingCoalescingFunction(
-            List<FUNC> delegateFunctions,
-            Map<FUNC, ExecutorService> executors,
-            int quorumSize) {
-        this.delegates = delegateFunctions;
-        this.executors = executors;
+    public PaxosQuorumCheckingCoalescingFunction(PaxosExecutionEnvironment<FUNC> executionEnvironment, int quorumSize) {
+        this.executionEnvironment = executionEnvironment;
         this.quorumSize = quorumSize;
-        this.defaultValue = PaxosResponsesWithRemote.of(quorumSize, ImmutableMap.of());
+        this.defaultValue = PaxosResponses.of(quorumSize, ImmutableList.of());
     }
 
     @Override
-    public Map<REQ, PaxosResponsesWithRemote<FUNC, RESP>> apply(Set<REQ> requests) {
-        PaxosResponsesWithRemote<FUNC, PaxosContainer<Map<REQ, RESP>>> responses = PaxosQuorumChecker.collectQuorumResponses(
-                ImmutableList.copyOf(delegates),
+    public Map<REQ, PaxosResponses<RESP>> apply(Set<REQ> requests) {
+        PaxosResponses<PaxosContainer<Map<REQ, RESP>>> responses = PaxosQuorumChecker.collectQuorumResponses(
+                executionEnvironment,
                 delegate -> PaxosContainer.of(delegate.apply(requests)),
                 quorumSize,
-                executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
-                PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
+                PaxosTimeLockConstants.CANCEL_REMAINING_CALLS).withoutRemotes();
 
-        Map<REQ, PaxosResponsesWithRemote<FUNC, RESP>> responseMap = responses.stream()
+        Map<REQ, PaxosResponses<RESP>> responseMap = responses.stream()
                 .map(PaxosContainer::get)
-                .map(PaxosQuorumCheckingCoalescingFunction::attachFunctionToEntry)
-                .values()
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
                 .collect(groupingBy(
                         Map.Entry::getKey,
                         mapping(Map.Entry::getValue, collectingAndThen(
-                                toMap(Map.Entry::getKey, Map.Entry::getValue),
-                                singleResponse -> PaxosResponsesWithRemote.of(quorumSize, singleResponse)))));
+                                toList(),
+                                singleResponse -> PaxosResponses.of(quorumSize, singleResponse)))));
 
         return Maps.toMap(requests, request -> responseMap.getOrDefault(request, defaultValue));
     }
 
-    private static <REQ, RESP, FUNC> Map<REQ, Map.Entry<FUNC, RESP>> attachFunctionToEntry(
-            FUNC function,
-            Map<REQ, RESP> map) {
-        return KeyedStream.stream(map)
-                .map(resp -> Maps.immutableEntry(function, resp))
-                .collectToMap();
-    }
-
     public static <REQ, RESP extends PaxosResponse, SERVICE, F extends CoalescingRequestFunction<REQ, RESP>>
-    PaxosQuorumCheckingCoalescingFunction<REQ, RESP, F> wrapWithRemotes(
-            List<SERVICE> services,
-            ExecutorService executor,
+    PaxosQuorumCheckingCoalescingFunction<REQ, RESP, F> wrap(
+            PaxosExecutionEnvironment<SERVICE> executionEnvironment,
             int quorumSize,
             Function<SERVICE, F> functionFactory) {
-        return services.stream()
-                .map(functionFactory)
-                .collect(collectingAndThen(
-                        toList(), functions -> new PaxosQuorumCheckingCoalescingFunction<>(
-                                functions,
-                                Maps.toMap(functions, $ -> executor),
-                                quorumSize)));
-    }
-
-    public static <REQ, RESP extends PaxosResponse, SERVICE, FUNCTION extends CoalescingRequestFunction<REQ, RESP>>
-    CoalescingRequestFunction<REQ, PaxosResponses<RESP>> wrap(
-            List<SERVICE> services,
-            ExecutorService executor,
-            int quorumSize,
-            Function<SERVICE, FUNCTION> functionFactory) {
-
-        PaxosQuorumCheckingCoalescingFunction<REQ, RESP, FUNCTION> wrap =
-                wrapWithRemotes(services, executor, quorumSize, functionFactory);
-
-        return request ->
-                KeyedStream.stream(wrap.apply(request)).map(PaxosResponsesWithRemote::withoutRemotes).collectToMap();
+        return new PaxosQuorumCheckingCoalescingFunction<>(executionEnvironment.map(functionFactory), quorumSize);
     }
 
     @Value.Immutable

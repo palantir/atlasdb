@@ -78,6 +78,22 @@ public final class PaxosQuorumChecker {
                 cancelRemainingCalls);
     }
 
+    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
+    collectQuorumResponses(
+            PaxosExecutionEnvironment<SERVICE> executionEnvironment,
+            Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Duration remoteRequestTimeout,
+            boolean cancelRemainingCalls) {
+        return collectResponses(
+                executionEnvironment,
+                request,
+                quorumSize,
+                remoteRequestTimeout,
+                quorumShortcutPredicate(quorumSize),
+                cancelRemainingCalls);
+    }
+
     private static <SERVICE, RESPONSE> Predicate<InProgressResponseState<SERVICE, RESPONSE>>
             quorumShortcutPredicate(int quorum) {
         return currentState -> currentState.successes() >= quorum
