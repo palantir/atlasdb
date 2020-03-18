@@ -51,6 +51,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
+import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;

@@ -17,6 +17,7 @@
 package com.palantir.paxos;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.function.Function;
 
 import org.derive4j.Data;
@@ -29,6 +30,7 @@ public interface PaxosExecutionEnvironment<S> {
 
     interface ExecutionContext<S, R extends PaxosResponse> {
         Result<S, R> awaitNextResult(Instant deadline) throws InterruptedException;
+        ExecutionContext<S, R> withExistingResults(List<Result<S, R>> existingResults);
         void cancel();
     }
 
