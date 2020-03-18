@@ -84,7 +84,8 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
         Map<Long, PaxosResponses<PaxosLong>> results =
                 paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));
 
-        assertThat(results).isEqualTo(expected);
+        assertThat(results.entrySet())
+                .allSatisfy(entry -> assertThat(expected).contains(sorted(entry)));
     }
 
     @Test
