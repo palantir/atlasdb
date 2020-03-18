@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.immutables.value.Value;
 
+import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;

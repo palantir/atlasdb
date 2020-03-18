@@ -22,6 +22,7 @@ import java.util.List;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 
