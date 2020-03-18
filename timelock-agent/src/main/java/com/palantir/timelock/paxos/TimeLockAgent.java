@@ -49,6 +49,7 @@ import com.palantir.atlasdb.timelock.paxos.MultiLeaderNamespaceDistributionTrack
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -184,7 +185,7 @@ public class TimeLockAgent {
 
         if (install.paxos().leaderMode() == PaxosLeaderMode.LEADER_PER_CLIENT) {
             LocalPaxosComponents paxosComponents = Preconditions.checkNotNull(
-                    paxosResources().leadershipBatchComponents().get(PaxosLeaderMode.LEADER_PER_CLIENT),
+                    paxosResources().leadershipBatchComponents().get(PaxosUseCase.LEADER_FOR_EACH_CLIENT),
                     "Timelock setup has gone awfully wrong, this is a bug.");
 
             MultiLeaderNamespaceDistributionTracker tracker = new MultiLeaderNamespaceDistributionTracker(

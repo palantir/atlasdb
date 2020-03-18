@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -102,11 +104,13 @@ public final class PaxosExecutionEnvironments {
 
         @Override
         public <T1> PaxosExecutionEnvironment<T1> map(Function<T, T1> mapper) {
+            BiMap<T, T1> mapping = KeyedStream.of(services).map(mapper).collectTo(HashBiMap::create);
+
             Map<T1, ExecutorService> newExecutors = KeyedStream.stream(executors)
-                    .mapKeys(mapper)
+                    .mapKeys(mapping::get)
                     .collectToMap();
 
-            List<T1> newServices = services.stream().map(mapper).collect(Collectors.toList());
+            List<T1> newServices = services.stream().map(mapping::get).collect(Collectors.toList());
             return new AllRequestsOnSeparateThreads<>(newServices, newExecutors);
         }
     }
@@ -141,11 +145,13 @@ public final class PaxosExecutionEnvironments {
 
         @Override
         public <T1> PaxosExecutionEnvironment<T1> map(Function<T, T1> mapper) {
+            BiMap<T, T1> mapping = KeyedStream.of(localAndRemotes.all()).map(mapper).collectTo(HashBiMap::create);
+
             Map<T1, ExecutorService> newExecutors = KeyedStream.stream(executors)
-                    .mapKeys(mapper)
+                    .mapKeys(mapping::get)
                     .collectToMap();
 
-            return new UseCurrentThreadForLocalExecution<>(localAndRemotes.map(mapper), newExecutors);
+            return new UseCurrentThreadForLocalExecution<>(localAndRemotes.map(mapping::get), newExecutors);
         }
 
         private <R extends PaxosResponse> Result<T, R> executeLocally(Function<T, R> function) {
@@ -194,7 +200,7 @@ public final class PaxosExecutionEnvironments {
 
             Duration waitTime = Duration.between(now, deadline);
             Future<Map.Entry<T, R>> responseFuture =
-                    responseCompletionService.poll(waitTime.toMillis(), TimeUnit.NANOSECONDS);
+                    responseCompletionService.poll(waitTime.toMillis(), TimeUnit.MILLISECONDS);
 
             if (responseFuture == null) {
                 return Results.deadlineExceeded();
