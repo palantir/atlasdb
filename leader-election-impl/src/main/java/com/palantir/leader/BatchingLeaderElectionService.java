@@ -73,7 +73,7 @@ public class BatchingLeaderElectionService implements LeaderElectionService, Clo
 
     @Override
     public boolean hostileTakeover() {
-        return delegate.stepDown();
+        return delegate.hostileTakeover();
     }
 
     @Override

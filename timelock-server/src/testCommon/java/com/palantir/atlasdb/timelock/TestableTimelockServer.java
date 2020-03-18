@@ -28,11 +28,13 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
 import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverService;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
+import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TestableTimelockServer {
@@ -103,6 +105,11 @@ public class TestableTimelockServer {
 
     public TaggedMetricRegistry taggedMetricRegistry() {
         return serverHolder.getTaggedMetricsRegistry();
+    }
+
+    public boolean takeOverLeadershipForNamespace(String namespace) {
+        return proxies.singleNode(serverHolder, NamespaceLeadershipTakeoverService.class)
+                .takeover(AuthHeader.valueOf("omitted"), namespace);
     }
 
     private static final class SingleNodeProxyFactory implements ProxyFactory {
