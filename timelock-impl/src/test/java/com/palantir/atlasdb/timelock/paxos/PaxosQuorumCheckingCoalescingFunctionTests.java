@@ -16,10 +16,13 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import static java.util.stream.Collectors.toList;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,8 +39,10 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.ImmutablePaxosLong;
+import com.palantir.paxos.ImmutablePaxosResponses;
+import com.palantir.paxos.PaxosExecutionEnvironments;
 import com.palantir.paxos.PaxosLong;
-import com.palantir.paxos.PaxosResponsesWithRemote;
+import com.palantir.paxos.PaxosResponses;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PaxosQuorumCheckingCoalescingFunctionTests {
@@ -70,16 +75,17 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
         PaxosQuorumCheckingCoalescingFunction<Long, PaxosLong, TestFunction> paxosQuorumChecker =
                 paxosQuorumCheckerFor(node1, node2, node3);
 
-        Map<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>> expected = ImmutableMap.<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>>builder()
-                .put(1L, responsesFor(entry(node1, 2L), entry(node2, 6L), entry(node3, 3L)))
-                .put(2L, responsesFor(entry(node1,23L), entry(node2, 23L), entry(node3, 65L)))
-                .put(5L, responsesFor(entry(node1, 65L), entry(node2, 32L), entry(node3, 32L)))
+        Map<Long, PaxosResponses<PaxosLong>> expected = ImmutableMap.<Long, PaxosResponses<PaxosLong>>builder()
+                .put(1L, sorted(responsesFor(2L, 6L, 3L)))
+                .put(2L, sorted(responsesFor(23L, 23L, 65L)))
+                .put(5L, sorted(responsesFor(65L, 32L, 32L)))
                 .build();
 
-        Map<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>> results =
+        Map<Long, PaxosResponses<PaxosLong>> results =
                 paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));
 
-        assertThat(results).isEqualTo(expected);
+        assertThat(results.entrySet())
+                .allSatisfy(entry -> assertThat(expected).contains(sorted(entry)));
     }
 
     @Test
@@ -98,13 +104,13 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
         PaxosQuorumCheckingCoalescingFunction<Long, PaxosLong, TestFunction> paxosQuorumChecker =
                 paxosQuorumCheckerFor(node1, node2, node3);
 
-        Map<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>> expected = ImmutableMap.<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>>builder()
-                .put(1L, responsesFor(entry(node1, 2L)))
-                .put(2L, responsesFor(entry(node1, 23L), entry(node2, 23L), entry(node3, 65L)))
-                .put(5L, responsesFor(entry(node2, 32L)))
+        Map<Long, PaxosResponses<PaxosLong>> expected = ImmutableMap.<Long, PaxosResponses<PaxosLong>>builder()
+                .put(1L, sorted(responsesFor(2L)))
+                .put(2L, sorted(responsesFor(23L, 23L, 65L)))
+                .put(5L, sorted(responsesFor(32L)))
                 .build();
 
-        Map<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>> results =
+        Map<Long, PaxosResponses<PaxosLong>> results =
                 paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));
         assertThat(results).isEqualTo(expected);
     }
@@ -114,9 +120,20 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
         Map<TestFunction, ExecutorService> executors =
                 Maps.asMap(ImmutableSet.copyOf(nodes), $ -> executorService);
         return new PaxosQuorumCheckingCoalescingFunction<>(
-                ImmutableList.copyOf(nodes),
-                executors,
+                PaxosExecutionEnvironments.threadPerService(ImmutableList.copyOf(nodes), executors),
                 QUORUM_SIZE);
+    }
+
+    private static Map.Entry<Long, PaxosResponses<PaxosLong>> sorted(Map.Entry<Long, PaxosResponses<PaxosLong>> entry) {
+        return Maps.immutableEntry(entry.getKey(), sorted(entry.getValue()));
+    }
+
+    private static PaxosResponses<PaxosLong> sorted(PaxosResponses<PaxosLong> responses) {
+        List<PaxosLong> sorted = responses.stream()
+                .sorted(Comparator.comparing(PaxosLong::getValue))
+                .collect(toList());
+
+        return ImmutablePaxosResponses.of(QUORUM_SIZE, sorted);
     }
 
     private static TestFunction functionFor(Map.Entry<Long, Long>... mappings) {
@@ -129,11 +146,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
 
     private interface TestFunction extends CoalescingRequestFunction<Long, PaxosLong> {}
 
-    private static PaxosResponsesWithRemote<TestFunction, PaxosLong> responsesFor(Map.Entry<TestFunction, Long>... pairs) {
-        Map<TestFunction, PaxosLong> mappings = KeyedStream.ofEntries(Arrays.stream(pairs))
-                .map(PaxosLong::of)
-                .collectToMap();
-
-        return PaxosResponsesWithRemote.of(QUORUM_SIZE, mappings);
+    private static PaxosResponses<PaxosLong> responsesFor(long... longs) {
+        return PaxosResponses.of(QUORUM_SIZE, Arrays.stream(longs).mapToObj(PaxosLong::of).collect(toList()));
     }
 }

@@ -54,6 +54,8 @@ import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosExecutionEnvironment;
+import com.palantir.paxos.PaxosExecutionEnvironments;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
@@ -144,9 +146,10 @@ public class PaxosTimestampBoundStoreTest {
         }
 
         if (useBatch) {
+            PaxosExecutionEnvironment<BatchPaxosAcceptor> acceptorEnvironment = PaxosExecutionEnvironments
+                    .threadPerService(batchPaxosAcceptors, Maps.toMap(batchPaxosAcceptors, $ -> executor));
             AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory =
-                    AutobatchingPaxosAcceptorNetworkClientFactory.create(batchPaxosAcceptors, executor, QUORUM_SIZE
-                    );
+                    AutobatchingPaxosAcceptorNetworkClientFactory.create(acceptorEnvironment, QUORUM_SIZE);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
 
             List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories = batchPaxosLearners
@@ -159,6 +162,7 @@ public class PaxosTimestampBoundStoreTest {
                     .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.create(
                             localAndRemotes,
                             executor,
+                            PaxosExecutionEnvironments.useCurrentThreadForLocalService(localAndRemotes, executor),
                             QUORUM_SIZE))
                     .collect(toList());
 

@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 import com.google.common.collect.ImmutableList;
 import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosExecutionEnvironments;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 
 @Value.Immutable
@@ -36,13 +37,11 @@ abstract class BatchingNetworkClientFactories implements
         BatchPaxosAcceptor local = components().batchAcceptor();
         List<BatchPaxosAcceptor> remotes =
                 UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor());
-        List<BatchPaxosAcceptor> allBatchAcceptors = LocalAndRemotes.of(local, remotes)
-                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosAcceptor.class, remote))
-                .all();
+        LocalAndRemotes<BatchPaxosAcceptor> allBatchAcceptors = LocalAndRemotes.of(local, remotes)
+                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosAcceptor.class, remote));
 
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(
-                allBatchAcceptors,
-                sharedExecutor(),
+                PaxosExecutionEnvironments.useCurrentThreadForLocalService(allBatchAcceptors, sharedExecutor()),
                 quorumSize());
     }
 
@@ -59,6 +58,7 @@ abstract class BatchingNetworkClientFactories implements
         return AutobatchingPaxosLearnerNetworkClientFactory.create(
                 allBatchLearners,
                 sharedExecutor(),
+                PaxosExecutionEnvironments.useCurrentThreadForLocalService(allBatchLearners, sharedExecutor()),
                 quorumSize());
     }
 

@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
+import com.palantir.paxos.LocalAndRemotes;
 import com.palantir.paxos.PaxosValue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -61,7 +62,9 @@ public class LearnCoalescingConsumerTests {
         PaxosValue paxosValue1 = paxosValue(10);
         PaxosValue paxosValue2 = paxosValue(14);
 
-        LearnCoalescingConsumer consumer = new LearnCoalescingConsumer(local, ImmutableList.of(remote), executor);
+        LearnCoalescingConsumer consumer = new LearnCoalescingConsumer(
+                LocalAndRemotes.of(local, ImmutableList.of(remote)),
+                executor);
         consumer.apply(ImmutableSet.of(
                 entry(CLIENT_1, paxosValue1),
                 entry(CLIENT_1, paxosValue2),

@@ -31,6 +31,7 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.LocalAndRemotes;
+import com.palantir.paxos.PaxosExecutionEnvironment;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
@@ -55,19 +56,20 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
     public static AutobatchingPaxosLearnerNetworkClientFactory create(
             LocalAndRemotes<BatchPaxosLearner> learners,
             ExecutorService executor,
+            PaxosExecutionEnvironment<BatchPaxosLearner> executionEnvironment,
             int quorumSize) {
         DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponse> learn =
-                Autobatchers.coalescing(new LearnCoalescingConsumer(learners.local(), learners.remotes(), executor))
+                Autobatchers.coalescing(new LearnCoalescingConsumer(learners, executor))
                         .safeLoggablePurpose("batch-paxos-learner.learn")
                         .build();
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> learnedValues =
-                Autobatchers.coalescing(wrap(learners.all(), executor, quorumSize, LearnedValuesCoalescingFunction::new))
+                Autobatchers.coalescing(wrap(executionEnvironment, quorumSize, LearnedValuesCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-learner.learned-values")
                         .build();
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> learnedValuesSince =
-                Autobatchers.coalescing(wrap(learners.all(), executor, quorumSize, LearnedValuesSinceCoalescingFunction::new))
+                Autobatchers.coalescing(wrap(executionEnvironment, quorumSize, LearnedValuesSinceCoalescingFunction::new))
                 .safeLoggablePurpose("batch-paxos-learner.learned-values-since")
                 .build();
 

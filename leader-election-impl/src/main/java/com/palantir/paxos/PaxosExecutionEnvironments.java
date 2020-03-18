@@ -28,16 +28,22 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.PaxosExecutionEnvironment.ExecutionContext;
 
@@ -55,6 +61,12 @@ public final class PaxosExecutionEnvironments {
             LocalAndRemotes<S> localAndRemotes,
             Map<? extends S, ExecutorService> executors) {
         return new UseCurrentThreadForLocalExecution<>(localAndRemotes, executors);
+    }
+
+    public static <S> PaxosExecutionEnvironment<S> useCurrentThreadForLocalService(
+            LocalAndRemotes<S> localAndRemotes,
+            ExecutorService executor) {
+        return useCurrentThreadForLocalService(localAndRemotes, localAndRemotes.withSharedExecutor(executor));
     }
 
     private static final class AllRequestsOnSeparateThreads<T> implements PaxosExecutionEnvironment<T> {
@@ -90,6 +102,18 @@ public final class PaxosExecutionEnvironments {
             }
             return new SynchronousExecutionContext<>(responseCompletionService, submissionFailures, allFutures);
         }
+
+        @Override
+        public <T1> PaxosExecutionEnvironment<T1> map(Function<T, T1> mapper) {
+            BiMap<T, T1> mapping = KeyedStream.of(services).map(mapper).collectTo(HashBiMap::create);
+
+            Map<T1, ExecutorService> newExecutors = KeyedStream.stream(executors)
+                    .mapKeys(mapping::get)
+                    .collectToMap();
+
+            List<T1> newServices = services.stream().map(mapping::get).collect(Collectors.toList());
+            return new AllRequestsOnSeparateThreads<>(newServices, newExecutors);
+        }
     }
 
     private static final class UseCurrentThreadForLocalExecution<T> implements PaxosExecutionEnvironment<T> {
@@ -97,12 +121,14 @@ public final class PaxosExecutionEnvironments {
         private static final Logger log = LoggerFactory.getLogger(UseCurrentThreadForLocalExecution.class);
 
         private final LocalAndRemotes<T> localAndRemotes;
+        private final Map<? extends T, ExecutorService> executors;
         private final AllRequestsOnSeparateThreads<T> remoteExecutionEnvironment;
 
         private UseCurrentThreadForLocalExecution(
                 LocalAndRemotes<T> localAndRemotes,
                 Map<? extends T, ExecutorService> executors) {
             this.localAndRemotes = localAndRemotes;
+            this.executors = executors;
             this.remoteExecutionEnvironment =
                     new AllRequestsOnSeparateThreads<>(localAndRemotes.remotes(), executors);
         }
@@ -116,6 +142,17 @@ public final class PaxosExecutionEnvironments {
         public <R extends PaxosResponse> ExecutionContext<T, R> execute(Function<T, R> function) {
             ExecutionContext<T, R> remoteExecutionContext = this.remoteExecutionEnvironment.execute(function);
             return remoteExecutionContext.withExistingResults(ImmutableList.of(executeLocally(function)));
+        }
+
+        @Override
+        public <T1> PaxosExecutionEnvironment<T1> map(Function<T, T1> mapper) {
+            BiMap<T, T1> mapping = KeyedStream.of(localAndRemotes.all()).map(mapper).collectTo(HashBiMap::create);
+
+            Map<T1, ExecutorService> newExecutors = KeyedStream.stream(executors)
+                    .mapKeys(mapping::get)
+                    .collectToMap();
+
+            return new UseCurrentThreadForLocalExecution<>(localAndRemotes.map(mapping::get), newExecutors);
         }
 
         private <R extends PaxosResponse> Result<T, R> executeLocally(Function<T, R> function) {
@@ -164,7 +201,7 @@ public final class PaxosExecutionEnvironments {
 
             Duration waitTime = Duration.between(now, deadline);
             Future<Map.Entry<T, R>> responseFuture =
-                    responseCompletionService.poll(waitTime.toMillis(), TimeUnit.NANOSECONDS);
+                    responseCompletionService.poll(waitTime.toMillis(), TimeUnit.MILLISECONDS);
 
             if (responseFuture == null) {
                 return Results.deadlineExceeded();
