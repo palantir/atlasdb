@@ -51,11 +51,11 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     private final BatchPaxosAcceptor delegate;
 
     // we accumulate all clients that we've seen so far such that if we need to invalidate the cache and request a new
-    // update, we receive a cache update that's consistent with the clients we've seen e.g. in the face of leader
-    // elections
+    // update, we receive a cache update that's consistent with the clients we've seen e.g. in the face of remote node
+    // restarts or cache expirations
     private final Set<Client> clientsSeenSoFar = Sets.newConcurrentHashSet();
 
-    // represents the latest cache digest that this client side cache has processed
+    // represents the cache digest with the highest timestamp that this client side cache has processed
     private final AtomicReference<TimestampedAcceptorCacheKey> latestCacheKey = new AtomicReference<>();
 
     // each value refers to a materialised version of the cache in terms of namespaces and the latest sequence at that
