@@ -24,6 +24,12 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+/**
+ * This represents a snapshot of the {@link AcceptorCache}. That is, if you were to receive a
+ * {@link AcceptorCacheDigest} with this {@link AcceptorCacheKey} and then you were to make a subsequent request with
+ * this particular cache key, you will either receive an empty response or updates that occurred to the cache after the
+ * point in time that is associated with this cache key.
+ */
 @Value.Immutable
 @JsonDeserialize(as = ImmutableAcceptorCacheKey.class)
 @JsonSerialize(as = ImmutableAcceptorCacheKey.class)
