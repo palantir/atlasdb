@@ -27,16 +27,20 @@ import org.junit.runners.Suite;
 
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.MultiLeaderMultiNodePaxosTimeLockIntegrationTest;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 
 @RunWith(ParameterizedSuite.class)
-@Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)
+@Suite.SuiteClasses({
+        MultiNodePaxosTimeLockServerIntegrationTest.class,
+        MultiLeaderMultiNodePaxosTimeLockIntegrationTest.class
+        })
 public final class MultiLeaderPaxosSuite {
 
     public static final TestableTimelockCluster MULTI_LEADER_PAXOS = new TestableTimelockCluster(
-            "batched paxos multi leader",
+            "batched timestamp paxos multi leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(9086, builder ->
                     builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxos(true))

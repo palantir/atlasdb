@@ -51,6 +51,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.InProgressResponseState;
 import com.palantir.paxos.PaxosQuorumChecker;
@@ -134,6 +135,10 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     SetMultimap<String, TestableTimelockServer> currentLeaders(String... namespaces) {
+        return currentLeaders(ImmutableSet.copyOf(namespaces));
+    }
+
+    SetMultimap<String, TestableTimelockServer> currentLeaders(Iterable<String> namespaces) {
         Set<String> namespacesIterable = ImmutableSet.copyOf(namespaces);
         KeyedStream<TestableTimelockServer, PaxosContainer<Set<String>>> responses = PaxosQuorumChecker.collectUntil(
                 ImmutableList.copyOf(servers),
@@ -220,9 +225,10 @@ public class TestableTimelockCluster implements TestRule {
         }
 
         @Override
-        public <T> T createProxy(Class<T> clazz) {
-            return proxies.failover(clazz);
+        public <T> T createProxy(Class<T> clazz, ProxyMode proxyMode) {
+            return proxies.failover(clazz, proxyMode);
         }
+
     }
 
     RuleChain getRuleChain() {
