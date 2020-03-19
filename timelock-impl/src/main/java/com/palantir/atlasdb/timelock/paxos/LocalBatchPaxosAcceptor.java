@@ -95,8 +95,9 @@ public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
     private static AcceptorCacheDigest emptyDigest(AcceptorCacheKey cacheKey) {
         return ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(cacheKey)
-                // HACK: this is okay, the digest is empty so doesn't do anything, -1 means it won't even
-                .cacheTimestamp(-1)
+                // HACK: this is okay, the digest is empty so doesn't do anything, Long.MIN_VALUE means it will never
+                // accepted as the latest cache key
+                .cacheTimestamp(Long.MIN_VALUE)
                 .build();
     }
 

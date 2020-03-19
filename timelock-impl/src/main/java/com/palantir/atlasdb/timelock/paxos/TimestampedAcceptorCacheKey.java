@@ -20,10 +20,23 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 interface TimestampedAcceptorCacheKey {
+    /**
+     * Represents snapshot of the {@link AcceptorCache}.
+     *
+     * @see AcceptorCacheKey
+     */
     @Value.Parameter
     AcceptorCacheKey cacheKey();
 
-    // this exists to give ordering to cache keys especially when they're coming back concurrently.
+    /**
+     * A logical clock that is, numerically, independent of Paxos sequence numbers and AtlasDB timestamps. It exists to
+     * give us an ordering to the cache keys when they are processed concurrently.
+     * <p>
+     * This is incremented together with the current cache state advancing whenever a
+     * {@link BatchPaxosAcceptor#prepare prepare} or a {@link BatchPaxosAcceptor#accept accept} occur.
+     * <p>
+     * This is also reset to zero, together with the current cache state in the presence of leader election.
+     */
     @Value.Parameter
     long timestamp();
 
