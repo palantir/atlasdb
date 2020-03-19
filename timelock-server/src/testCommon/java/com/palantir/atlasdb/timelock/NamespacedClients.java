@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
@@ -44,7 +45,7 @@ import com.palantir.timestamp.TimestampRange;
 public interface NamespacedClients {
 
     interface ProxyFactory {
-        <T> T createProxy(Class<T> clazz);
+        <T> T createProxy(Class<T> clazz, ProxyMode proxyMode);
     }
 
     @Value.Parameter
@@ -53,8 +54,15 @@ public interface NamespacedClients {
     @Value.Parameter
     ProxyFactory proxyFactory();
 
+    @Value.Parameter
+    ProxyMode proxyMode();
+
+    default NamespacedClients throughWireMockProxy() {
+        return ImmutableNamespacedClients.of(namespace(), proxyFactory(), ProxyMode.WIREMOCK);
+    }
+
     static NamespacedClients from(String namespace, ProxyFactory proxyFactory) {
-        return ImmutableNamespacedClients.of(namespace, proxyFactory);
+        return ImmutableNamespacedClients.of(namespace, proxyFactory, ProxyMode.DIRECT);
     }
 
     @Value.Derived
@@ -82,23 +90,25 @@ public interface NamespacedClients {
 
     @Value.Derived
     default TimelockRpcClient timelockRpcClient() {
-        return proxyFactory().createProxy(TimelockRpcClient.class);
+        return proxyFactory().createProxy(TimelockRpcClient.class, proxyMode());
     }
 
     @Value.Derived
     default ConjureTimelockService conjureTimelockService() {
-        return proxyFactory().createProxy(ConjureTimelockService.class);
+        return proxyFactory().createProxy(ConjureTimelockService.class, proxyMode());
     }
 
     @Value.Derived
     default LockService legacyLockService() {
-        return RemoteLockServiceAdapter.create(proxyFactory().createProxy(LockRpcClient.class), namespace());
+        return RemoteLockServiceAdapter.create(
+                proxyFactory().createProxy(LockRpcClient.class, proxyMode()),
+                namespace());
     }
 
     @Value.Derived
     default TimestampManagementService timestampManagementService() {
         return new RemoteTimestampManagementAdapter(
-                proxyFactory().createProxy(TimestampManagementRpcClient.class),
+                proxyFactory().createProxy(TimestampManagementRpcClient.class, proxyMode()),
                 namespace());
     }
 

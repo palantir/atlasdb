@@ -76,6 +76,7 @@ dependencies {
     testCommonImplementation group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
     testCommonImplementation group: 'com.ea.agentloader', name: 'ea-agent-loader'
     testCommonImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
+    testCommonImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone'
     testCommonImplementation (project(":atlasdb-tests-shared")) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }

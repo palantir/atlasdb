@@ -50,13 +50,15 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
-import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
+import com.github.tomakehurst.wiremock.http.HttpHeader;
+import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.http.Request;
-import com.github.tomakehurst.wiremock.http.ResponseDefinition;
+import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.RequestPattern;
 import com.google.common.collect.Lists;
@@ -281,13 +283,13 @@ public class AtlasDbHttpClientsTest {
         private final AtomicBoolean firstRequestDone = new AtomicBoolean(false);
 
         @Override
-        public ResponseDefinition transform(Request request, ResponseDefinition responseDefinition, FileSource files) {
+        public Response transform(Request request, Response response, FileSource files, Parameters parameters) {
             if (urls.isEmpty()) {
-                return responseDefinition;
+                return response;
             }
 
             if (firstRequestDone.get()) {
-                return responseDefinition;
+                return response;
             }
 
             String urlToRedirectTo = urls.stream()
@@ -298,14 +300,14 @@ public class AtlasDbHttpClientsTest {
 
             firstRequestDone.set(true);
 
-            return new ResponseDefinitionBuilder()
-                    .withHeader("Location", urlToRedirectTo)
-                    .withStatus(308)
+            return Response.response()
+                    .status(308)
+                    .headers(new HttpHeaders(HttpHeader.httpHeader("Location", urlToRedirectTo)))
                     .build();
         }
 
         @Override
-        public String name() {
+        public String getName() {
             return "retry-other-first-response-transformer";
         }
 
