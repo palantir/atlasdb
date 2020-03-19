@@ -20,10 +20,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -37,8 +40,14 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -68,6 +77,10 @@ public final class PaxosExecutionEnvironments {
         return useCurrentThreadForLocalService(localAndRemotes, localAndRemotes.withSharedExecutor(executor));
     }
 
+    public static <S> PaxosExecutionEnvironment<S> asyncExecutionEnvironment(List<S> services) {
+        return new AsyncExecutionEnvironment<>(services);
+    }
+
     private static final class AllRequestsOnSeparateThreads<T> implements PaxosExecutionEnvironment<T> {
 
         private final List<T> services;
@@ -90,7 +103,7 @@ public final class PaxosExecutionEnvironments {
             MultiplexingCompletionService<T, R> responseCompletionService =
                     MultiplexingCompletionService.create(executors);
             // kick off all the requests
-            List<Future<Map.Entry<T, R>>> allFutures = Lists.newArrayList();
+            List<ListenableFuture<Map.Entry<T, R>>> allFutures = Lists.newArrayList();
             Queue<PaxosExecutionEnvironment.Result<T, R>> submissionFailures = Lists.newLinkedList();
             for (T remote : services) {
                 try {
@@ -99,7 +112,15 @@ public final class PaxosExecutionEnvironments {
                     submissionFailures.add(Results.failure(e));
                 }
             }
-            return new SynchronousExecutionContext<>(responseCompletionService, submissionFailures, allFutures);
+            return new ExecutionContextImpl<>(
+                    submissionFailures,
+                    PollOnlyCompletionService.fromMultiplexing(responseCompletionService),
+                    allFutures);
+        }
+
+        @Override
+        public <R extends PaxosResponse> ExecutionContext<T, R> executeAsync(AsyncFunction<T, R> function) {
+            return execute(service -> AtlasFutures.getUnchecked(AtlasFutures.call(function, service)));
         }
 
         @Override
@@ -144,6 +165,12 @@ public final class PaxosExecutionEnvironments {
         }
 
         @Override
+        public <R extends PaxosResponse> ExecutionContext<T, R> executeAsync(
+                AsyncFunction<T, R> function) {
+            return execute(service -> AtlasFutures.getUnchecked(AtlasFutures.call(function, service)));
+        }
+
+        @Override
         public <T1> PaxosExecutionEnvironment<T1> map(Function<T, T1> mapper) {
             BiMap<T, T1> mapping = KeyedStream.of(localAndRemotes.all()).map(mapper).collectTo(HashBiMap::create);
 
@@ -165,49 +192,121 @@ public final class PaxosExecutionEnvironments {
         }
     }
 
-    private static final class SynchronousExecutionContext<T, R extends PaxosResponse> implements ExecutionContext<T, R> {
+    private interface PollOnlyCompletionService<T, R> {
+        Optional<ListenableFuture<Map.Entry<T, R>>> poll(Duration timeout) throws InterruptedException;
+
+        static <T, R> PollOnlyCompletionService<T, R> fromMultiplexing(MultiplexingCompletionService<T, R> multiplexing) {
+            return waitTime -> Optional.ofNullable(multiplexing.poll(waitTime.toMillis(), TimeUnit.MILLISECONDS));
+        }
+
+        static <T, R> PollOnlyCompletionService<T, R> fromBlockingQueue(
+                BlockingQueue<ListenableFuture<Map.Entry<T, R>>> blockingQueue) {
+            return waitTime -> Optional.ofNullable(blockingQueue.poll(waitTime.toMillis(), TimeUnit.MILLISECONDS));
+        }
+    }
+
+    private static final class AsyncExecutionEnvironment<S> implements PaxosExecutionEnvironment<S> {
+
+        private static final Logger log = LoggerFactory.getLogger(AsyncExecutionEnvironment.class);
+
+        private final List<S> services;
+
+        private AsyncExecutionEnvironment(List<S> services) {
+            this.services = services;
+        }
+
+        @Override
+        public int numberOfServices() {
+            return services.size();
+        }
+
+        @Override
+        public <R extends PaxosResponse> ExecutionContext<S, R> execute(Function<S, R> function) {
+            log.error("Cannot execute synchronous methods on an async environment as they block");
+            RejectedExecutionException rejectedExecutionException = new RejectedExecutionException(
+                    "Cannot execute synchronous methods on an async environment as they block");
+            Queue<Result<S, R>> precomputedFailures = services.stream()
+                    .<Result<S, R>>map(service -> Results.failure(rejectedExecutionException))
+                    .collect(Collectors.toCollection(Queues::newArrayDeque));
+            return new ExecutionContextImpl<>(
+                    precomputedFailures,
+                    PollOnlyCompletionService.fromBlockingQueue(Queues.newArrayBlockingQueue(0)),
+                    ImmutableList.of());
+        }
+
+        public <R extends PaxosResponse> ExecutionContext<S, R> executeAsync(
+                AsyncFunction<S, R> asyncFunction) {
+            BlockingQueue<ListenableFuture<Map.Entry<S, R>>> blockingQueue = new LinkedBlockingQueue<>();
+            List<ListenableFuture<Map.Entry<S, R>>> responseFutures = services.stream()
+                    .map(service -> callService(service, asyncFunction))
+                    .collect(Collectors.toList());
+
+            responseFutures.forEach(responseFuture -> responseFuture.addListener(
+                    () -> blockingQueue.add(responseFuture),
+                    MoreExecutors.directExecutor()));
+
+            return new ExecutionContextImpl<>(
+                    Queues.newArrayDeque(),
+                    PollOnlyCompletionService.fromBlockingQueue(blockingQueue),
+                    responseFutures);
+        }
+
+        private <R extends PaxosResponse> ListenableFuture<Map.Entry<S, R>> callService(
+                S service,
+                AsyncFunction<S, R> function) {
+            return Futures.transform(
+                    AtlasFutures.call(function, service),
+                    result -> Maps.immutableEntry(service, result),
+                    MoreExecutors.directExecutor());
+        }
+
+        @Override
+        public <T> PaxosExecutionEnvironment<T> map(Function<S, T> mapper) {
+            return new AsyncExecutionEnvironment<>(services.stream().map(mapper).collect(Collectors.toList()));
+        }
+    }
+    private static final class ExecutionContextImpl<T, R extends PaxosResponse> implements ExecutionContext<T, R> {
 
         // used to cancel outstanding requests after we have already achieved a quorum or otherwise finished collecting
         // responses
         private static final ScheduledExecutorService CANCELLATION_EXECUTOR = PTExecutors
                 .newSingleThreadScheduledExecutor(new NamedThreadFactory("paxos-quorum-checker-canceller", true));
+
         private static final Duration OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT = Duration.ofMillis(2);
-
-        private final MultiplexingCompletionService<T, R> responseCompletionService;
         private final Queue<PaxosExecutionEnvironment.Result<T, R>> existingResults;
-        private final List<Future<Map.Entry<T, R>>> responseFutures;
+        private final PollOnlyCompletionService<T, R> responseCompletionService;
 
-        private SynchronousExecutionContext(
-                MultiplexingCompletionService<T, R> responseCompletionService,
+        private final List<ListenableFuture<Map.Entry<T, R>>> responseFutures;
+
+        private ExecutionContextImpl(
                 Queue<PaxosExecutionEnvironment.Result<T, R>> existingResults,
-                List<Future<Map.Entry<T, R>>> responseFutures) {
-            this.responseCompletionService = responseCompletionService;
+                PollOnlyCompletionService<T, R> responseCompletionService,
+                List<ListenableFuture<Map.Entry<T, R>>> responseFutures) {
             this.existingResults = existingResults;
+            this.responseCompletionService = responseCompletionService;
             this.responseFutures = responseFutures;
         }
 
         @Override
         public PaxosExecutionEnvironment.Result<T, R> awaitNextResult(Instant deadline) throws InterruptedException {
-            if (existingResults.peek() != null) {
-                return existingResults.poll();
-            }
-
             Instant now = Instant.now();
-
             if (now.isAfter(deadline)) {
                 return Results.deadlineExceeded();
             }
 
-            Duration waitTime = Duration.between(now, deadline);
-            Future<Map.Entry<T, R>> responseFuture =
-                    responseCompletionService.poll(waitTime.toMillis(), TimeUnit.MILLISECONDS);
+            if (existingResults.peek() != null) {
+                return existingResults.poll();
+            }
 
-            if (responseFuture == null) {
+            Duration waitTime = Duration.between(now, deadline);
+            Optional<ListenableFuture<Map.Entry<T, R>>> responseFuture = responseCompletionService.poll(waitTime);
+
+            if (!responseFuture.isPresent()) {
                 return Results.deadlineExceeded();
             }
 
             try {
-                Map.Entry<T, R> done = Futures.getDone(responseFuture);
+                Map.Entry<T, R> done = Futures.getDone(responseFuture.get());
                 return Results.success(done.getKey(), done.getValue());
             } catch (ExecutionException e) {
                 return Results.failure(e.getCause());
@@ -225,7 +324,6 @@ public final class PaxosExecutionEnvironments {
         public void cancel() {
             cancelOutstandingRequestsAfterTimeout();
         }
-
         private void cancelOutstandingRequestsAfterTimeout() {
             boolean areAllRequestsComplete = responseFutures.stream().allMatch(Future::isDone);
             if (areAllRequestsComplete) {
@@ -239,6 +337,6 @@ public final class PaxosExecutionEnvironments {
                     OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT.toMillis(),
                     TimeUnit.MILLISECONDS);
         }
-    }
 
+    }
 }

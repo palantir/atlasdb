@@ -23,6 +23,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.base.Throwables;
@@ -30,6 +34,9 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.tracing.DeferredTracer;
 
 public final class AtlasFutures {
+
+    private static final Logger log = LoggerFactory.getLogger(AtlasFutures.class);
+
     private AtlasFutures() {
 
     }
@@ -95,6 +102,15 @@ public final class AtlasFutures {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    public static <T, R> ListenableFuture<R> call(AsyncFunction<T, R> function, T argument) {
+        try {
+            return function.apply(argument);
+        } catch (Exception e) {
+            log.info("Failed to get listenable future back from function", e);
+            return Futures.immediateFailedFuture(e);
         }
     }
 

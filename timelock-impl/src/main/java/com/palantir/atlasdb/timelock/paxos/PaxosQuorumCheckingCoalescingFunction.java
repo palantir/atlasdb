@@ -30,34 +30,31 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.autobatch.AsyncCoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.paxos.PaxosExecutionEnvironment;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
 
-public class PaxosQuorumCheckingCoalescingFunction<
-        REQ, RESP extends PaxosResponse, FUNC extends CoalescingRequestFunction<REQ, RESP>> implements
+public class PaxosQuorumCheckingCoalescingFunction<REQ, RESP extends PaxosResponse> implements
         CoalescingRequestFunction<REQ, PaxosResponses<RESP>> {
 
-    private final PaxosExecutionEnvironment<FUNC> executionEnvironment;
+    private final Runner<REQ, RESP> runner;
     private final int quorumSize;
     private final PaxosResponses<RESP> defaultValue;
 
-    public PaxosQuorumCheckingCoalescingFunction(PaxosExecutionEnvironment<FUNC> executionEnvironment, int quorumSize) {
-        this.executionEnvironment = executionEnvironment;
+    public PaxosQuorumCheckingCoalescingFunction(Runner<REQ, RESP> runner, int quorumSize) {
+        this.runner = runner;
         this.quorumSize = quorumSize;
         this.defaultValue = PaxosResponses.of(quorumSize, ImmutableList.of());
     }
 
     @Override
     public Map<REQ, PaxosResponses<RESP>> apply(Set<REQ> requests) {
-        PaxosResponses<PaxosContainer<Map<REQ, RESP>>> responses = PaxosQuorumChecker.collectQuorumResponses(
-                executionEnvironment,
-                delegate -> PaxosContainer.of(delegate.apply(requests)),
-                quorumSize,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
-                PaxosTimeLockConstants.CANCEL_REMAINING_CALLS).withoutRemotes();
+        PaxosResponses<PaxosContainer<Map<REQ, RESP>>> responses = runner.execute(requests);
 
         Map<REQ, PaxosResponses<RESP>> responseMap = responses.stream()
                 .map(PaxosContainer::get)
@@ -73,11 +70,42 @@ public class PaxosQuorumCheckingCoalescingFunction<
     }
 
     public static <REQ, RESP extends PaxosResponse, SERVICE, F extends CoalescingRequestFunction<REQ, RESP>>
-    PaxosQuorumCheckingCoalescingFunction<REQ, RESP, F> wrap(
+    PaxosQuorumCheckingCoalescingFunction<REQ, RESP> wrapSync(
             PaxosExecutionEnvironment<SERVICE> executionEnvironment,
             int quorumSize,
             Function<SERVICE, F> functionFactory) {
-        return new PaxosQuorumCheckingCoalescingFunction<>(executionEnvironment.map(functionFactory), quorumSize);
+
+        return new PaxosQuorumCheckingCoalescingFunction<>(
+                requests -> PaxosQuorumChecker.collectQuorumResponses(
+                        executionEnvironment.map(functionFactory),
+                        delegate -> PaxosContainer.of(delegate.apply(requests)),
+                        quorumSize,
+                        PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                        PaxosTimeLockConstants.CANCEL_REMAINING_CALLS).withoutRemotes(),
+                quorumSize);
+    }
+
+    public static <REQ, RESP extends PaxosResponse, SERVICE, F extends AsyncCoalescingRequestFunction<REQ, RESP>>
+    PaxosQuorumCheckingCoalescingFunction<REQ, RESP> wrapAsync(
+            PaxosExecutionEnvironment<SERVICE> executionEnvironment,
+            int quorumSize,
+            Function<SERVICE, F> functionFactory) {
+
+        return new PaxosQuorumCheckingCoalescingFunction<>(
+                requests -> PaxosQuorumChecker.collectQuorumResponsesAsync(
+                        executionEnvironment.map(functionFactory),
+                        delegate -> Futures.transform(
+                                delegate.apply(requests),
+                                PaxosContainer::of,
+                                MoreExecutors.directExecutor()),
+                        quorumSize,
+                        PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
+                        PaxosTimeLockConstants.CANCEL_REMAINING_CALLS).withoutRemotes(),
+                quorumSize);
+    }
+
+    private interface Runner<REQ, RESP extends PaxosResponse> {
+        PaxosResponses<PaxosContainer<Map<REQ, RESP>>> execute(Set<REQ> requests);
     }
 
     @Value.Immutable

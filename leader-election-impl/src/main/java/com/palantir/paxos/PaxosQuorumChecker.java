@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.palantir.logsafe.Preconditions;
 
 @SuppressWarnings("MethodTypeParameterName")
@@ -69,7 +70,7 @@ public final class PaxosQuorumChecker {
             boolean cancelRemainingCalls) {
         Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
                 "Each remote should have an executor.");
-        return collectResponses(
+        return collectResponsesSync(
                 PaxosExecutionEnvironments.threadPerService(remotes, executors),
                 request,
                 quorumSize,
@@ -85,9 +86,27 @@ public final class PaxosQuorumChecker {
             int quorumSize,
             Duration remoteRequestTimeout,
             boolean cancelRemainingCalls) {
-        return collectResponses(
+        return collectResponsesSync(
                 executionEnvironment,
                 request,
+                quorumSize,
+                remoteRequestTimeout,
+                quorumShortcutPredicate(quorumSize),
+                cancelRemainingCalls);
+    }
+
+    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
+    collectQuorumResponsesAsync(
+            PaxosExecutionEnvironment<SERVICE> executionEnvironment,
+            AsyncFunction<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Duration remoteRequestTimeout,
+            boolean cancelRemainingCalls) {
+        PaxosExecutionEnvironment.ExecutionContext<SERVICE, RESPONSE> context =
+                executionEnvironment.executeAsync(request);
+        return collectResponsesFromContext(
+                context,
+                executionEnvironment.numberOfServices(),
                 quorumSize,
                 remoteRequestTimeout,
                 quorumShortcutPredicate(quorumSize),
@@ -117,7 +136,7 @@ public final class PaxosQuorumChecker {
             ExecutorService executorService,
             Duration remoteRequestTimeout,
             boolean cancelRemainingCalls) {
-        return collectResponses(
+        return collectResponsesSync(
                 PaxosExecutionEnvironments.threadPerService(remotes, mapToSingleExecutorService(remotes, executorService)),
                 request,
                 remotes.size(),
@@ -133,7 +152,7 @@ public final class PaxosQuorumChecker {
             Duration remoteRequestTimeout,
             Predicate<InProgressResponseState<SERVICE, RESPONSE>> predicate,
             boolean cancelRemainingCalls) {
-        return collectResponses(
+        return collectResponsesSync(
                 PaxosExecutionEnvironments.threadPerService(remotes, executors),
                 request,
                 remotes.size(),
@@ -161,19 +180,36 @@ public final class PaxosQuorumChecker {
      * @return a list of responses
      */
     private static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
-            collectResponses(
+            collectResponsesSync(
             PaxosExecutionEnvironment<SERVICE> executionEnvironment,
             Function<SERVICE, RESPONSE> request,
             int quorumSize,
             Duration remoteRequestTimeout,
             Predicate<InProgressResponseState<SERVICE, RESPONSE>> shouldSkipNextRequest,
             boolean cancelRemainingCalls) {
-        PaxosResponseAccumulator<SERVICE, RESPONSE> receivedResponses = PaxosResponseAccumulator.newResponse(
+        PaxosExecutionEnvironment.ExecutionContext<SERVICE, RESPONSE> context = executionEnvironment.execute(request);
+
+        return collectResponsesFromContext(
+                context,
                 executionEnvironment.numberOfServices(),
                 quorumSize,
-                shouldSkipNextRequest);
+                remoteRequestTimeout,
+                shouldSkipNextRequest,
+                cancelRemainingCalls);
+    }
 
-        PaxosExecutionEnvironment.ExecutionContext<SERVICE, RESPONSE> context = executionEnvironment.execute(request);
+    private static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
+            collectResponsesFromContext(
+            PaxosExecutionEnvironment.ExecutionContext<SERVICE, RESPONSE> context,
+            int totalRequests,
+            int quorumSize,
+            Duration remoteRequestTimeout,
+            Predicate<InProgressResponseState<SERVICE, RESPONSE>> shouldSkipNextRequest,
+            boolean cancelRemainingCalls) {
+        PaxosResponseAccumulator<SERVICE, RESPONSE> receivedResponses = PaxosResponseAccumulator.newResponse(
+                totalRequests,
+                quorumSize,
+                shouldSkipNextRequest);
 
         List<Throwable> encounteredErrors = Lists.newArrayList();
         boolean interrupted = false;

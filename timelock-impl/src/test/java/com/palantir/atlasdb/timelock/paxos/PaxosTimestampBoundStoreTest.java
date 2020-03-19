@@ -149,7 +149,8 @@ public class PaxosTimestampBoundStoreTest {
             PaxosExecutionEnvironment<BatchPaxosAcceptor> acceptorEnvironment = PaxosExecutionEnvironments
                     .threadPerService(batchPaxosAcceptors, Maps.toMap(batchPaxosAcceptors, $ -> executor));
             AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory =
-                    AutobatchingPaxosAcceptorNetworkClientFactory.create(acceptorEnvironment, QUORUM_SIZE);
+                    AutobatchingPaxosAcceptorNetworkClientFactory.create(
+                            acceptorEnvironment, acceptorEnvironment, QUORUM_SIZE);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
 
             List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories = batchPaxosLearners

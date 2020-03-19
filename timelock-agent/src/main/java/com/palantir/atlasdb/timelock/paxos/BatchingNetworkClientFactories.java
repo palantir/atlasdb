@@ -42,6 +42,7 @@ abstract class BatchingNetworkClientFactories implements
 
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(
                 PaxosExecutionEnvironments.useCurrentThreadForLocalService(allBatchAcceptors, sharedExecutor()),
+                PaxosExecutionEnvironments.asyncExecutionEnvironment(allBatchAcceptors.all()),
                 quorumSize());
     }
 

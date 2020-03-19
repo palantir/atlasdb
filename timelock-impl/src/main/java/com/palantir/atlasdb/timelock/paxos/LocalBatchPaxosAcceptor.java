@@ -21,10 +21,9 @@ import static java.util.stream.Collectors.toSet;
 import java.util.Optional;
 import java.util.Set;
 
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.HttpHeaders;
-
 import com.google.common.collect.SetMultimap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
@@ -74,7 +73,7 @@ public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
 
     @Override
     public AcceptorCacheDigest latestSequencesPreparedOrAccepted(
-            @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> maybeCacheKey,
+            Optional<AcceptorCacheKey> maybeCacheKey,
             Set<Client> clients) throws InvalidAcceptorCacheKeyException {
         primeCache(clients);
         if (!maybeCacheKey.isPresent()) {
@@ -87,9 +86,30 @@ public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
     }
 
     @Override
+    public ListenableFuture<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedAsync(
+            Optional<AcceptorCacheKey> cacheKey,
+            Set<Client> clients) {
+        try {
+            return Futures.immediateFuture(latestSequencesPreparedOrAccepted(cacheKey, clients));
+        } catch (InvalidAcceptorCacheKeyException e) {
+            return Futures.immediateFailedFuture(e);
+        }
+    }
+
+    @Override
     public Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(AcceptorCacheKey cacheKey)
             throws InvalidAcceptorCacheKeyException {
         return acceptorCache.updatesSinceCacheKey(cacheKey);
+    }
+
+    @Override
+    public ListenableFuture<Optional<AcceptorCacheDigest>> latestSequencesPreparedOrAcceptedCachedAsync(
+            AcceptorCacheKey cacheKey) {
+        try {
+            return Futures.immediateFuture(latestSequencesPreparedOrAcceptedCached(cacheKey));
+        } catch (InvalidAcceptorCacheKeyException e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     private static AcceptorCacheDigest emptyDigest(AcceptorCacheKey cacheKey) {

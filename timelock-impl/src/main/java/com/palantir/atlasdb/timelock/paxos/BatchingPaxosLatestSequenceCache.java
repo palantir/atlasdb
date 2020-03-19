@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.slf4j.Logger;
@@ -35,7 +36,11 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.autobatch.AsyncCoalescingRequestFunction;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -43,7 +48,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.PaxosLong;
 
 @ThreadSafe
-final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunction<Client, PaxosLong> {
+final class BatchingPaxosLatestSequenceCache implements AsyncCoalescingRequestFunction<Client, PaxosLong> {
 
     private static final Logger log = LoggerFactory.getLogger(BatchingPaxosLatestSequenceCache.class);
     private static final PaxosLong DEFAULT_VALUE = PaxosLong.of(BatchPaxosAcceptor.NO_LOG_ENTRY);
@@ -72,64 +77,71 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     }
 
     @Override
-    public Map<Client, PaxosLong> apply(Set<Client> requestedClients) {
+    public ListenableFuture<Map<Client, PaxosLong>> apply(Set<Client> requestedClients) {
         clientsSeenSoFar.addAll(requestedClients);
+        return trackedAttempt(0, latestCacheKey.get(), requestedClients);
+    }
 
-        int attempt = 0;
-        // in practice this loop should only ever run at most twice, if we need more, we can try a last ditch effort,
-        // then subsequently fail the call which will be tried again
-        while (attempt < 3) {
-            TimestampedAcceptorCacheKey timestampedCacheKey = latestCacheKey.get();
-            try {
-                if (timestampedCacheKey == null) {
-                    return populateNewCache(requestedClients);
-                } else {
-                    // get the cache here
-                    return populateExistingCache(
-                            timestampedCacheKey,
-                            cacheKeysToCaches.get(timestampedCacheKey.cacheKey()),
-                            requestedClients);
-                }
-            } catch (InvalidAcceptorCacheKeyException e) {
-                log.info("Cache key is invalid, invalidating cache and retrying",
-                        SafeArg.of("attempt", attempt),
-                        e);
-                // another request might have already reset or updated the cache key if this call is slow,
-                // let's not waste their work
-                latestCacheKey.compareAndSet(timestampedCacheKey, null);
-                attempt++;
-            }
+    private ListenableFuture<Map<Client, PaxosLong>> trackedAttempt(
+            int attempt,
+            @Nullable TimestampedAcceptorCacheKey cacheKey,
+            Set<Client> requestedClients) {
+        // in practice this method should only ever run at most twice, if we need more, we can try a last ditch effort,
+        // then subsequently fail the call which will be tried again at a higher level
+        if (attempt >= 3) {
+            return Futures.immediateFailedFuture(
+                    new SafeIllegalStateException("could not complete request due to contention in the cache"));
         }
 
-        throw new SafeIllegalStateException("could not complete request due to contention in the cache");
+        ListenableFuture<Map<Client, PaxosLong>> singleAttempt = cacheKey == null
+                ? populateNewCache(requestedClients)
+                // get the cache here
+                : populateExistingCache(cacheKey, cacheKeysToCaches.get(cacheKey.cacheKey()), requestedClients);
+
+        return FluentFuture.from(singleAttempt)
+                .catchingAsync(InvalidAcceptorCacheKeyException.class, e -> {
+                    log.info("Cache key is invalid, invalidating cache and retrying",
+                            SafeArg.of("attempt", attempt),
+                            e);
+                    // another request might have already reset or updated the cache key if this call is slow,
+                    // let's not waste their work
+                    latestCacheKey.compareAndSet(cacheKey, null);
+                    return trackedAttempt(attempt + 1, latestCacheKey.get(), requestedClients);
+                }, MoreExecutors.directExecutor());
     }
 
-    private Map<Client, PaxosLong> populateNewCache(Set<Client> requestedClients)
-            throws InvalidAcceptorCacheKeyException {
-        AcceptorCacheDigest digest = delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clientsSeenSoFar);
-
-        // use a new cache for the new digest with no previous state, if there are multiple in-flight requests at this
-        // juncture, they will share this new cache as it's the same cache key
-        ConcurrentMap<Client, PaxosLong> newEntriesToCache = cacheKeysToCaches.get(digest.newCacheKey());
-        processDigest(newEntriesToCache, digest);
-        return getResponseMap(newEntriesToCache, requestedClients);
+    private ListenableFuture<Map<Client, PaxosLong>> populateNewCache(Set<Client> requestedClients) {
+        return FluentFuture
+                .from(delegate.latestSequencesPreparedOrAcceptedAsync(Optional.empty(), clientsSeenSoFar))
+                .transform(digest -> {
+                    // use a new cache for the new digest with no previous state, if there are multiple in-flight
+                    // requests at this juncture, they will share this new cache as it's the same cache key
+                    ConcurrentMap<Client, PaxosLong> newEntriesToCache = cacheKeysToCaches.get(digest.newCacheKey());
+                    processDigest(newEntriesToCache, digest);
+                    return getResponseMap(newEntriesToCache, requestedClients);
+                }, MoreExecutors.directExecutor());
     }
 
-    private Map<Client, PaxosLong> populateExistingCache(
+    private ListenableFuture<Map<Client, PaxosLong>> populateExistingCache(
             TimestampedAcceptorCacheKey timestampedCacheKey,
             ConcurrentMap<Client, PaxosLong> currentCachedEntries,
-            Set<Client> requestedClients)
-            throws InvalidAcceptorCacheKeyException {
+            Set<Client> requestedClients) {
         Set<Client> newClients = ImmutableSet.copyOf(Sets.difference(requestedClients, currentCachedEntries.keySet()));
         if (newClients.isEmpty()) {
-            delegate.latestSequencesPreparedOrAcceptedCached(timestampedCacheKey.cacheKey())
-                    .ifPresent(digest -> processDigest(currentCachedEntries, digest));
-            return getResponseMap(currentCachedEntries, requestedClients);
+            return FluentFuture
+                    .from(delegate.latestSequencesPreparedOrAcceptedCachedAsync(timestampedCacheKey.cacheKey()))
+                    .transform(maybeDigest -> {
+                        maybeDigest.ifPresent(digest -> processDigest(currentCachedEntries, digest));
+                        return getResponseMap(currentCachedEntries, requestedClients);
+                    }, MoreExecutors.directExecutor());
         } else {
-            processDigest(currentCachedEntries, delegate.latestSequencesPreparedOrAccepted(
+            return FluentFuture.from(delegate.latestSequencesPreparedOrAcceptedAsync(
                     Optional.of(timestampedCacheKey.cacheKey()),
-                    newClients));
-            return getResponseMap(currentCachedEntries, requestedClients);
+                    newClients))
+                    .transform(digest -> {
+                        processDigest(currentCachedEntries, digest);
+                        return getResponseMap(currentCachedEntries, requestedClients);
+                    }, MoreExecutors.directExecutor());
         }
     }
 

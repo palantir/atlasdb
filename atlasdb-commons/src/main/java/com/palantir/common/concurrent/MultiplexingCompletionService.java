@@ -19,14 +19,15 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
@@ -42,18 +43,24 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * @param <V> return type of tasks that are to be submitted
  */
 public class MultiplexingCompletionService<K, V> {
-    private final ImmutableMap<K, ExecutorService> executors;
-    private final BlockingQueue<Future<Map.Entry<K, V>>> taskQueue;
+    private final ImmutableMap<K, ListeningExecutorService> executors;
+    private final BlockingQueue<ListenableFuture<Map.Entry<K, V>>> taskQueue;
 
     private MultiplexingCompletionService(
-            ImmutableMap<K, ExecutorService> executors, BlockingQueue<Future<Map.Entry<K, V>>> taskQueue) {
+            ImmutableMap<K, ListeningExecutorService> executors,
+            BlockingQueue<ListenableFuture<Map.Entry<K, V>>> taskQueue) {
         this.executors = executors;
         this.taskQueue = taskQueue;
     }
 
     public static <K, V> MultiplexingCompletionService<K, V> create(
             Map<? extends K, ExecutorService> executors) {
-        return new MultiplexingCompletionService<>(ImmutableMap.copyOf(executors), new LinkedBlockingQueue<>());
+        ImmutableMap<K, ListeningExecutorService> listeningExecutors = KeyedStream.stream(executors).map(
+                MoreExecutors::listeningDecorator).entries().collect(
+                ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+        return new MultiplexingCompletionService<>(
+                listeningExecutors,
+                new LinkedBlockingQueue<>());
     }
 
     /**
@@ -65,42 +72,29 @@ public class MultiplexingCompletionService<K, V> {
      *
      * @throws IllegalStateException if the key provided is not associated with any executor
      */
-    public Future<Map.Entry<K, V>> submit(K key, Callable<V> task) {
-        ExecutorService targetExecutor = executors.get(key);
+    public ListenableFuture<Map.Entry<K, V>> submit(K key, Callable<V> task) {
+        ListeningExecutorService targetExecutor = executors.get(key);
         if (targetExecutor == null) {
             throw new SafeIllegalStateException("The key provided to the multiplexing completion service doesn't exist!");
         }
         return submitAndPrepareForQueueing(targetExecutor, key, task);
     }
 
-    public Future<Map.Entry<K, V>> poll() {
+    public ListenableFuture<Map.Entry<K, V>> poll() {
         return taskQueue.poll();
     }
 
-    public Future<Map.Entry<K, V>> poll(long timeout, TimeUnit unit) throws InterruptedException {
+    public ListenableFuture<Map.Entry<K, V>> poll(long timeout, TimeUnit unit) throws InterruptedException {
         return taskQueue.poll(timeout, unit);
     }
 
-    private Future<Map.Entry<K, V>> submitAndPrepareForQueueing(
-            ExecutorService delegate,
+    private ListenableFuture<Map.Entry<K, V>> submitAndPrepareForQueueing(
+            ListeningExecutorService delegate,
             K key,
             Callable<V> callable) {
-        FutureTask<Map.Entry<K, V>> futureTask = new FutureTask<>(() -> Maps.immutableEntry(key, callable.call()));
-        delegate.submit(new QueueTask(futureTask), null);
+        ListenableFuture<Map.Entry<K, V>> futureTask = delegate.submit(() -> Maps.immutableEntry(key, callable.call()));
+        futureTask.addListener(() -> taskQueue.add(futureTask), MoreExecutors.directExecutor());
         return futureTask;
     }
 
-    private class QueueTask extends FutureTask<Map.Entry<K, V>> {
-        private final RunnableFuture<Map.Entry<K, V>> runnable;
-
-        private QueueTask(RunnableFuture<Map.Entry<K, V>> runnable) {
-            super(runnable, null);
-            this.runnable = runnable;
-        }
-
-        @Override
-        protected void done() {
-            taskQueue.add(runnable);
-        }
-    }
 }

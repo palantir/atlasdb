@@ -27,6 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.SetMultimap;
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosPromise;
@@ -74,6 +78,18 @@ public class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor
     }
 
     @Override
+    public ListenableFuture<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedAsync(
+            Optional<AcceptorCacheKey> cacheKey, Set<Client> clients) {
+        ListenableFuture<AcceptorCacheDigest> call =
+                rpcClient.latestSequencesPreparedOrAcceptedAsync(useCase, cacheKey.orElse(null), clients);
+        return FluentFuture.from(call)
+                .catchingAsync(
+                        RuntimeException.class,
+                        e -> handleLatestSequenceRemoteErrorAsync(cacheKey, e),
+                        MoreExecutors.directExecutor());
+    }
+
+    @Override
     public Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(AcceptorCacheKey cacheKey)
             throws InvalidAcceptorCacheKeyException {
         try {
@@ -86,6 +102,27 @@ public class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor
             log.warn("received unexpected runtime exception that is not a cache key miss", e);
             throw e;
         }
+    }
+
+    @Override
+    public ListenableFuture<Optional<AcceptorCacheDigest>> latestSequencesPreparedOrAcceptedCachedAsync(
+            AcceptorCacheKey cacheKey) {
+        return FluentFuture.from(rpcClient.latestSequencesPreparedOrAcceptedCachedAsync(useCase, cacheKey))
+                .catchingAsync(
+                        RuntimeException.class,
+                        e -> handleLatestSequenceRemoteErrorAsync(Optional.of(cacheKey), e),
+                        MoreExecutors.directExecutor());
+    }
+
+    private static <T> ListenableFuture<T> handleLatestSequenceRemoteErrorAsync(
+            Optional<AcceptorCacheKey> cacheKey,
+            RuntimeException e) {
+        if (isMissingOrInvalidCacheKey(e)) {
+            Futures.immediateFailedFuture(new InvalidAcceptorCacheKeyException(cacheKey.orElse(null)));
+        }
+
+        log.warn("received unexpected runtime exception that is not a cache key miss", e);
+        throw e;
     }
 
     private static boolean isMissingOrInvalidCacheKey(RuntimeException e) {
@@ -102,4 +139,5 @@ public class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor
                 .map(rpcClient -> new UseCaseAwareBatchPaxosAcceptorAdapter(useCase, rpcClient))
                 .collect(Collectors.toList());
     }
+
 }

@@ -34,6 +34,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.ImmutablePaxosLong;
 import com.palantir.paxos.PaxosLong;
@@ -56,7 +58,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
     private BatchPaxosAcceptor remote;
 
     @Test
-    public void withoutCacheKeyWeGetEverything() throws InvalidAcceptorCacheKeyException {
+    public void withoutCacheKeyWeGetEverything() {
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 5)
@@ -64,11 +66,11 @@ public class BatchingPaxosLatestSequenceCacheTests {
                 .cacheTimestamp(cacheTimestamp.getAndIncrement())
                 .build();
 
-        when(remote.latestSequencesPreparedOrAccepted(Optional.empty(), ImmutableSet.of(CLIENT_1, CLIENT_2)))
-                .thenReturn(digest);
+        when(remote.latestSequencesPreparedOrAcceptedAsync(Optional.empty(), ImmutableSet.of(CLIENT_1, CLIENT_2)))
+                .thenReturn(Futures.immediateFuture(digest));
 
         BatchingPaxosLatestSequenceCache cache = new BatchingPaxosLatestSequenceCache(remote);
-        Map<Client, PaxosLong> result = cache.apply(ImmutableSet.of(CLIENT_1, CLIENT_2));
+        Map<Client, PaxosLong> result = callCache(cache, CLIENT_1, CLIENT_2);
 
         assertThat(result).containsOnly(
                 entry(CLIENT_1, PaxosLong.of(5L)),
@@ -78,10 +80,10 @@ public class BatchingPaxosLatestSequenceCacheTests {
     @Test
     public void returnsSameResultIfCached() throws InvalidAcceptorCacheKeyException {
         BatchingPaxosLatestSequenceCache cache = initialCache();
-        when(remote.latestSequencesPreparedOrAcceptedCached(any(AcceptorCacheKey.class)))
-                .thenReturn(Optional.empty());
+        when(remote.latestSequencesPreparedOrAcceptedCachedAsync(any(AcceptorCacheKey.class)))
+                .thenReturn(Futures.immediateFuture(Optional.empty()));
 
-        assertThat(cache.apply(ImmutableSet.of(CLIENT_1)))
+        assertThat(callCache(cache, CLIENT_1))
                 .containsEntry(CLIENT_1, INITIAL_UPDATES.get(CLIENT_1));
     }
 
@@ -90,10 +92,10 @@ public class BatchingPaxosLatestSequenceCacheTests {
         BatchingPaxosLatestSequenceCache cache = initialCache();
         AcceptorCacheDigest digest = digestWithUpdates(entry(CLIENT_3, 50L));
 
-        when(remote.latestSequencesPreparedOrAcceptedCached(any(AcceptorCacheKey.class)))
-                .thenReturn(Optional.of(digest));
+        when(remote.latestSequencesPreparedOrAcceptedCachedAsync(any(AcceptorCacheKey.class)))
+                .thenReturn(Futures.immediateFuture(Optional.of(digest)));
 
-        assertThat(cache.apply(ImmutableSet.of(CLIENT_2, CLIENT_3)))
+        assertThat(callCache(cache, CLIENT_2, CLIENT_3))
                 .containsEntry(CLIENT_2, INITIAL_UPDATES.get(CLIENT_2))
                 .containsEntry(CLIENT_3, PaxosLong.of(50L))
                 .doesNotContainEntry(CLIENT_3, INITIAL_UPDATES.get(CLIENT_3));
@@ -105,10 +107,10 @@ public class BatchingPaxosLatestSequenceCacheTests {
         Client client4 = Client.of("client-4");
         AcceptorCacheDigest digest = digestWithUpdates(entry(client4, 150L));
 
-        when(remote.latestSequencesPreparedOrAccepted(any(Optional.class), eq(ImmutableSet.of(client4))))
-                .thenReturn(digest);
+        when(remote.latestSequencesPreparedOrAcceptedAsync(any(Optional.class), eq(ImmutableSet.of(client4))))
+                .thenReturn(Futures.immediateFuture(digest));
 
-        assertThat(cache.apply(ImmutableSet.of(CLIENT_3, client4)))
+        assertThat(callCache(cache, CLIENT_3, client4))
                 .containsEntry(CLIENT_3, INITIAL_UPDATES.get(CLIENT_3))
                 .containsEntry(client4, PaxosLong.of(150L));
     }
@@ -117,8 +119,9 @@ public class BatchingPaxosLatestSequenceCacheTests {
     public void invalidCacheKeyRequestsEverything() throws InvalidAcceptorCacheKeyException {
         BatchingPaxosLatestSequenceCache cache = initialCache();
 
-        when(remote.latestSequencesPreparedOrAcceptedCached(any(AcceptorCacheKey.class)))
-                .thenThrow(new InvalidAcceptorCacheKeyException(AcceptorCacheKey.newCacheKey()));
+        when(remote.latestSequencesPreparedOrAcceptedCachedAsync(any(AcceptorCacheKey.class)))
+                .thenReturn(Futures.immediateFailedFuture(
+                        new InvalidAcceptorCacheKeyException(AcceptorCacheKey.newCacheKey())));
 
         Map<Client, Long> newMap = ImmutableMap.<Client, Long>builder()
                 .put(CLIENT_1, 52L)
@@ -132,12 +135,17 @@ public class BatchingPaxosLatestSequenceCacheTests {
                 .cacheTimestamp(cacheTimestamp.getAndIncrement())
                 .build();
 
-        doReturn(newDigest).when(remote)
-                .latestSequencesPreparedOrAccepted(Optional.empty(), ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3));
+        doReturn(Futures.immediateFuture(newDigest)).when(remote).latestSequencesPreparedOrAcceptedAsync(
+                Optional.empty(),
+                ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3));
 
-        assertThat(cache.apply(ImmutableSet.of(CLIENT_1)).get(CLIENT_1))
+        assertThat(callCache(cache, CLIENT_1).get(CLIENT_1))
                 .as("we should get 52 which results from calling the non cached version")
                 .isEqualTo(ImmutablePaxosLong.of(52));
+    }
+
+    private static Map<Client, PaxosLong> callCache(BatchingPaxosLatestSequenceCache cache, Client... clients) {
+        return AtlasFutures.getUnchecked(cache.apply(ImmutableSet.copyOf(clients)));
     }
 
     private BatchingPaxosLatestSequenceCache initialCache() throws InvalidAcceptorCacheKeyException {
@@ -150,11 +158,13 @@ public class BatchingPaxosLatestSequenceCacheTests {
                 .cacheTimestamp(cacheTimestamp.getAndIncrement())
                 .build();
 
-        when(remote.latestSequencesPreparedOrAccepted(Optional.empty(), ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3)))
-                .thenReturn(digest);
+        when(remote.latestSequencesPreparedOrAcceptedAsync(
+                Optional.empty(),
+                ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3)))
+                .thenReturn(Futures.immediateFuture(digest));
 
         BatchingPaxosLatestSequenceCache cache = new BatchingPaxosLatestSequenceCache(remote);
-        cache.apply(ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3));
+        callCache(cache, CLIENT_1, CLIENT_2, CLIENT_3);
         return cache;
     }
 

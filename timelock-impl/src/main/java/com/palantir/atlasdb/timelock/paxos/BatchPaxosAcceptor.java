@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.SetMultimap;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
@@ -78,6 +79,10 @@ public interface BatchPaxosAcceptor {
     AcceptorCacheDigest latestSequencesPreparedOrAccepted(Optional<AcceptorCacheKey> cacheKey, Set<Client> clients)
             throws InvalidAcceptorCacheKeyException;
 
+    ListenableFuture<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedAsync(
+            Optional<AcceptorCacheKey> cacheKey,
+            Set<Client> clients); // throws a {@code InvalidCacheKeyException}
+
     /**
      * Returns all unseen latest sequences prepared or accepted past the given {@code cacheKey}. That is, if for a
      * client, an acceptor has received multiple proposals at multiple sequence numbers past {@code cacheKey}, it will
@@ -100,5 +105,8 @@ public interface BatchPaxosAcceptor {
      */
     Optional<AcceptorCacheDigest> latestSequencesPreparedOrAcceptedCached(AcceptorCacheKey cacheKey)
             throws InvalidAcceptorCacheKeyException;
+
+    ListenableFuture<Optional<AcceptorCacheDigest>> latestSequencesPreparedOrAcceptedCachedAsync(
+            AcceptorCacheKey cacheKey); // throws a {@code InvalidCacheKeyException}
 
 }

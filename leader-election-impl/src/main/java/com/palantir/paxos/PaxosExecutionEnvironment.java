@@ -22,11 +22,15 @@ import java.util.function.Function;
 
 import org.derive4j.Data;
 
+import com.google.common.util.concurrent.AsyncFunction;
+
 public interface PaxosExecutionEnvironment<S> {
 
     int numberOfServices();
 
     <R extends PaxosResponse> ExecutionContext<S, R> execute(Function<S, R> function);
+
+    <R extends PaxosResponse> ExecutionContext<S, R> executeAsync(AsyncFunction<S, R> asyncFunction);
 
     <T> PaxosExecutionEnvironment<T> map(Function<S, T> mapper);
 
