@@ -51,6 +51,10 @@ import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tracing.CloseableTracer;
+import com.palantir.tracing.DetachedSpan;
+import com.palantir.tracing.Tracers;
+import com.palantir.tracing.api.SpanType;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
@@ -214,7 +218,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Object maybeValidDelegate = delegateRef.get();
 
         ListenableFuture<StillLeadingStatus> leadingFuture =
-                statusRetrier.execute(() -> leaderElectionService.isStillLeading(leadershipToken));
+                Tracers.wrapListenableFuture("validate-leadership",
+                        () -> statusRetrier.execute(() -> leaderElectionService.isStillLeading(leadershipToken)));
 
         ListenableFuture<Object> delegateFuture = Futures.transform(leadingFuture,
                 leading -> {
@@ -234,18 +239,19 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         if (!method.getReturnType().equals(ListenableFuture.class)) {
             Object delegate = AtlasFutures.getUnchecked(delegateFuture);
-            try {
+            try (CloseableTracer ignored = CloseableTracer.startSpan("execute-on-delegate")) {
                 return method.invoke(delegate, args);
             } catch (InvocationTargetException e) {
                 throw handleDelegateThrewException(leadershipToken, e);
             }
         } else {
-            return FluentFuture.from(delegateFuture)
+            return Tracers.wrapListenableFuture("execute-on-delegate",
+                    () -> FluentFuture.from(delegateFuture)
                     .transformAsync(delegate -> (ListenableFuture<Object>) method.invoke(delegate, args),
                             executionExecutor)
                     .catchingAsync(InvocationTargetException.class, e -> {
                         throw handleDelegateThrewException(leadershipToken, e);
-                    }, executionExecutor);
+                    }, executionExecutor));
         }
     }
 
