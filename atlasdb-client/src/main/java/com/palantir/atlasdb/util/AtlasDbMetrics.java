@@ -74,15 +74,24 @@ public final class AtlasDbMetrics {
     public static <T, U extends T> T instrumentWithTaggedMetrics(
             TaggedMetricRegistry taggedMetrics,
             Class<T> serviceInterface,
+            U service) {
+        return Instrumentation.builder(serviceInterface, service)
+                .withHandler(new TaggedMetricsInvocationEventHandler(
+                        taggedMetrics,
+                        MetricRegistry.name(serviceInterface)))
+                .withPerformanceTraceLogging()
+                .build();
+    }
+
+    public static <T, U extends T> T instrumentWithTaggedMetrics(
+            TaggedMetricRegistry taggedMetrics,
+            Class<T> serviceInterface,
             U service,
-            String name,
             Function<InvocationContext, Map<String, String>> tagFunction) {
+        String name = MetricRegistry.name(serviceInterface);
         return Instrumentation.builder(serviceInterface, service)
                 .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
-                .withLogging(
-                        LoggerFactory.getLogger("performance." + name),
-                        LoggingLevel.TRACE,
-                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
+                .withPerformanceTraceLogging()
                 .build();
     }
 
