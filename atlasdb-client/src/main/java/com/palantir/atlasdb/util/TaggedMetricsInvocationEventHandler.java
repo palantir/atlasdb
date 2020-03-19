@@ -25,6 +25,7 @@ import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,11 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
@@ -101,6 +107,31 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
             return;
         }
 
+        if (result != null && ListenableFuture.class.isAssignableFrom(context.getMethod().getReturnType())) {
+            FluentFuture.from((ListenableFuture<?>) result)
+                    .transform(s -> s, MoreExecutors.directExecutor())
+                    .catchingAsync(Throwable.class, t -> {
+                        TaggedMetricsInvocationEventHandler.this.onFailure(context, t);
+                        return Futures.immediateFailedFuture(t);
+                    }, MoreExecutors.directExecutor());
+            Futures.addCallback((ListenableFuture<?>) result, new FutureCallback<Object>() {
+                        @Override
+                        public void onSuccess(@NullableDecl Object result) {
+                            update(context);
+                        }
+
+                        @Override
+                        public void onFailure(Throwable t) {
+                            TaggedMetricsInvocationEventHandler.this.onFailure(context, t);
+                        }
+                    },
+                    MoreExecutors.directExecutor());
+        } else {
+            update(context);
+        }
+    }
+
+    public void update(InvocationContext context) {
         long nanos = System.nanoTime() - context.getStartTimeNanos();
         getSuccessTimer(context).update(nanos, TimeUnit.NANOSECONDS);
     }
