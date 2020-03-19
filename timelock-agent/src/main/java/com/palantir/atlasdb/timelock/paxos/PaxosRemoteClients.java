@@ -27,8 +27,6 @@ import javax.ws.rs.Path;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -160,7 +158,6 @@ public abstract class PaxosRemoteClients {
                 metrics(),
                 clazz,
                 uninstrumentedProxy,
-                MetricRegistry.name(clazz),
                 _unused -> ImmutableMap.of("remote", remote.toString()));
     }
 

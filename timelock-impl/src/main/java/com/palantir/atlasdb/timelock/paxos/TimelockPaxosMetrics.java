@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -58,23 +56,14 @@ public abstract class TimelockPaxosMetrics {
     }
 
     public <T, U extends T> T instrument(Class<T> clazz, U instance) {
-        Map<String, String> tags = ImmutableMap.of();
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metrics(),
-                clazz,
-                instance,
-                MetricRegistry.name(clazz),
-                _context -> tags);
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, instance);
     }
 
     public <T, U extends T> T instrument(Class<T> clazz, U instance, Client client) {
-        Map<String, String> tags = ImmutableMap.of();
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 clientScopedMetrics().metricRegistryForClient(client),
                 clazz,
-                instance,
-                MetricRegistry.name(clazz),
-                _context -> tags);
+                instance);
     }
 
     private void attachToParentMetricRegistry(TaggedMetricRegistry parent) {

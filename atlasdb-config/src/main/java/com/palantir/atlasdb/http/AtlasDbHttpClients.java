@@ -20,10 +20,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
@@ -101,12 +99,7 @@ public final class AtlasDbHttpClients {
             TaggedMetricRegistry taggedMetricRegistry,
             TargetFactory.InstanceAndVersion<T> client,
             Class<T> clazz) {
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                taggedMetricRegistry,
-                clazz,
-                client.instance(),
-                MetricRegistry.name(clazz),
-                $ -> ImmutableMap.of());
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(taggedMetricRegistry, clazz, client.instance());
     }
 
     /**
