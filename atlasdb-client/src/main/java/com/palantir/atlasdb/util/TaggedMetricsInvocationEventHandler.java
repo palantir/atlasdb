@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -108,12 +107,6 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
         }
 
         if (result != null && ListenableFuture.class.isAssignableFrom(context.getMethod().getReturnType())) {
-            FluentFuture.from((ListenableFuture<?>) result)
-                    .transform(s -> s, MoreExecutors.directExecutor())
-                    .catchingAsync(Throwable.class, t -> {
-                        TaggedMetricsInvocationEventHandler.this.onFailure(context, t);
-                        return Futures.immediateFailedFuture(t);
-                    }, MoreExecutors.directExecutor());
             Futures.addCallback((ListenableFuture<?>) result, new FutureCallback<Object>() {
                         @Override
                         public void onSuccess(@NullableDecl Object result) {
