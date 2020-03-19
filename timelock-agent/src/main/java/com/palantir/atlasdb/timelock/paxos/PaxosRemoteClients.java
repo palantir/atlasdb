@@ -27,6 +27,7 @@ import javax.ws.rs.Path;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
