@@ -183,13 +183,27 @@ public class BlockEnforcingLockServiceTest {
         verifyNoMoreInteractions(query);
     }
 
-    private Outcome retryForTenMillisUntilTrue() {
+    @Test
+    public void requestWithZeroTimeoutIsStillAttemptedAtLeastOnce() {
+        whenMakingRequestsReceive(OutcomeAndInstant.successAfter(0));
+
+        Outcome outcome = retryForDurationUntilTrue(Duration.ZERO);
+        assertThat(outcome).isEqualTo(Outcome.SUCCESS);
+
+        verify(query).apply(any(Duration.class));
+    }
+
+    private Outcome retryForDurationUntilTrue(Duration duration) {
         return retryer.attemptUntilTimeLimitOrException(
-                Duration.ofMillis(10),
-                Duration.ofMillis(10),
+                duration,
+                duration,
                 (fst, snd) -> fst.compareTo(snd) < 0 ? fst : snd,
                 query,
                 outcome -> outcome == Outcome.EXPLICIT_TIMEOUT);
+    }
+
+    private Outcome retryForTenMillisUntilTrue() {
+        return retryForDurationUntilTrue(Duration.ofMillis(10));
     }
 
     private void whenMakingRequestsReceive(OutcomeAndInstant... results) {

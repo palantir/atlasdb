@@ -16,92 +16,164 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.time.Duration;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.PaxosLong;
 
-/*
-    This is not thread safe, but it is okay because it is run within an autobatcher, which is configured to not process
-    multiple batches in parallel.
- */
-@NotThreadSafe
+@ThreadSafe
 final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunction<Client, PaxosLong> {
 
     private static final Logger log = LoggerFactory.getLogger(BatchingPaxosLatestSequenceCache.class);
     private static final PaxosLong DEFAULT_VALUE = PaxosLong.of(BatchPaxosAcceptor.NO_LOG_ENTRY);
 
-    @Nullable
-    private AcceptorCacheKey cacheKey = null;
-    private Map<Client, PaxosLong> cachedEntries = Maps.newHashMap();
-    private BatchPaxosAcceptor delegate;
+    private final BatchPaxosAcceptor delegate;
+
+    // we accumulate all clients that we've seen so far such that if we need to invalidate the cache and request a new
+    // update, we receive a cache update that's consistent with the clients we've seen e.g. in the face of remote node
+    // restarts or cache expirations
+    private final Set<Client> clientsSeenSoFar = Sets.newConcurrentHashSet();
+
+    // represents the cache digest with the highest timestamp that this client side cache has processed
+    private final AtomicReference<TimestampedAcceptorCacheKey> latestCacheKey = new AtomicReference<>();
+
+    // each value refers to a materialised version of the cache in terms of namespaces and the latest sequence at that
+    // particular cache timestamp
+    // as an optimisation to avoid copying, we can share the same materialised view for a string of cache keys issued
+    // by the same instance of the server (i.e. not restarted, cache keys haven't expired).
+    private final LoadingCache<AcceptorCacheKey, ConcurrentMap<Client, PaxosLong>> cacheKeysToCaches =
+            Caffeine.newBuilder()
+                    .expireAfterAccess(Duration.ofMinutes(1))
+                    .build($ -> Maps.newConcurrentMap());
 
     BatchingPaxosLatestSequenceCache(BatchPaxosAcceptor delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public Map<Client, PaxosLong> apply(Set<Client> clients) {
-        try {
-            return unsafeGetLatest(clients);
-        } catch (InvalidAcceptorCacheKeyException e) {
-            log.info("Cache key is invalid, invalidating cache - using deprecated detection method");
-            return handleCacheMiss(clients);
+    public Map<Client, PaxosLong> apply(Set<Client> requestedClients) {
+        clientsSeenSoFar.addAll(requestedClients);
+
+        int attempt = 0;
+        // in practice this loop should only ever run at most twice, if we need more, we can try a last ditch effort,
+        // then subsequently fail the call which will be tried again
+        while (attempt < 3) {
+            TimestampedAcceptorCacheKey timestampedCacheKey = latestCacheKey.get();
+            try {
+                if (timestampedCacheKey == null) {
+                    return populateNewCache(requestedClients);
+                } else {
+                    // get the cache here
+                    return populateExistingCache(
+                            timestampedCacheKey,
+                            cacheKeysToCaches.get(timestampedCacheKey.cacheKey()),
+                            requestedClients);
+                }
+            } catch (InvalidAcceptorCacheKeyException e) {
+                log.info("Cache key is invalid, invalidating cache and retrying",
+                        SafeArg.of("attempt", attempt),
+                        e);
+                // another request might have already reset or updated the cache key if this call is slow,
+                // let's not waste their work
+                latestCacheKey.compareAndSet(timestampedCacheKey, null);
+                attempt++;
+            }
         }
+
+        throw new SafeIllegalStateException("could not complete request due to contention in the cache");
     }
 
-    private Map<Client, PaxosLong> handleCacheMiss(Set<Client> requestedClients) {
-        cacheKey = null;
-        Set<Client> allClients = ImmutableSet.<Client>builder()
-                .addAll(requestedClients)
-                .addAll(cachedEntries.keySet())
-                .build();
-        cachedEntries.clear();
-        try {
-            return unsafeGetLatest(allClients);
-        } catch (InvalidAcceptorCacheKeyException e) {
-            log.warn("Empty cache key is still invalid indicates product bug, failing request.");
-            throw new RuntimeException(e);
-        }
+    private Map<Client, PaxosLong> populateNewCache(Set<Client> requestedClients)
+            throws InvalidAcceptorCacheKeyException {
+        AcceptorCacheDigest digest = delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clientsSeenSoFar);
+
+        // use a new cache for the new digest with no previous state, if there are multiple in-flight requests at this
+        // juncture, they will share this new cache as it's the same cache key
+        ConcurrentMap<Client, PaxosLong> newEntriesToCache = cacheKeysToCaches.get(digest.newCacheKey());
+        processDigest(newEntriesToCache, digest);
+        return getResponseMap(newEntriesToCache, requestedClients);
     }
 
-    private Map<Client, PaxosLong> unsafeGetLatest(Set<Client> clients) throws InvalidAcceptorCacheKeyException {
-        if (cacheKey == null) {
-            processDigest(delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clients));
-            return getResponseMap(clients);
-        }
-
-        Set<Client> newClients = Sets.difference(clients, cachedEntries.keySet());
+    private Map<Client, PaxosLong> populateExistingCache(
+            TimestampedAcceptorCacheKey timestampedCacheKey,
+            ConcurrentMap<Client, PaxosLong> currentCachedEntries,
+            Set<Client> requestedClients)
+            throws InvalidAcceptorCacheKeyException {
+        Set<Client> newClients = ImmutableSet.copyOf(Sets.difference(requestedClients, currentCachedEntries.keySet()));
         if (newClients.isEmpty()) {
-            delegate.latestSequencesPreparedOrAcceptedCached(cacheKey).ifPresent(this::processDigest);
-            return getResponseMap(clients);
+            delegate.latestSequencesPreparedOrAcceptedCached(timestampedCacheKey.cacheKey())
+                    .ifPresent(digest -> processDigest(currentCachedEntries, digest));
+            return getResponseMap(currentCachedEntries, requestedClients);
         } else {
-            processDigest(delegate.latestSequencesPreparedOrAccepted(Optional.of(cacheKey), newClients));
-            return getResponseMap(clients);
+            processDigest(currentCachedEntries, delegate.latestSequencesPreparedOrAccepted(
+                    Optional.of(timestampedCacheKey.cacheKey()),
+                    newClients));
+            return getResponseMap(currentCachedEntries, requestedClients);
         }
     }
 
-    private Map<Client, PaxosLong> getResponseMap(Set<Client> clientsInRequest) {
-        return Maps.toMap(clientsInRequest, client -> cachedEntries.getOrDefault(client, DEFAULT_VALUE));
+    private void processDigest(ConcurrentMap<Client, PaxosLong> currentCachedEntries, AcceptorCacheDigest digest) {
+        TimestampedAcceptorCacheKey newCacheKey = TimestampedAcceptorCacheKey.of(digest);
+        // this shares the same map with "previous" cache keys under the current uptime of the remote
+        ConcurrentMap<Client, PaxosLong> newCachedEntries =
+                cacheKeysToCaches.get(newCacheKey.cacheKey(), $ -> currentCachedEntries);
+
+        // merge local version of the cache with whatever updates even if they are "old" in terms of sequence numbers
+        // this ensures that for each client the paxos sequence numbers are always increasing
+        KeyedStream.stream(digest.updates())
+                .map(PaxosLong::of)
+                .forEach((client, paxosLong) ->
+                        newCachedEntries.merge(client, paxosLong, BatchingPaxosLatestSequenceCache::max));
+
+        // for a *new* mapping, setting the cache key must happen *after* we've setup the mapping, so that concurrent
+        // clients will not reference an in-progress populating map which can be empty. If anything they can make a
+        // request with the previous cacheKey, and do a bit of wasted work whilst we update the cache key.
+        accumulateLatestCacheKey(newCacheKey);
     }
 
-    private void processDigest(AcceptorCacheDigest digest) {
-        cacheKey = digest.newCacheKey();
-        Map<Client, PaxosLong> asPaxosLong = KeyedStream.stream(digest.updates())
-                .map(PaxosLong::of)
-                .collectToMap();
-        cachedEntries.putAll(asPaxosLong);
+    private void accumulateLatestCacheKey(TimestampedAcceptorCacheKey newCacheKey) {
+        while (true) {
+            TimestampedAcceptorCacheKey current = latestCacheKey.get();
+            // either the new cache key is older or the same as the current
+            // or we race to set it and try again if we lose
+            if ((current != null && newCacheKey.timestamp() <= current.timestamp())
+                    || latestCacheKey.compareAndSet(current, newCacheKey)) {
+                return;
+            }
+        }
     }
+
+    private static Map<Client, PaxosLong> getResponseMap(
+            ConcurrentMap<Client, PaxosLong> currentCachedEntries,
+            Set<Client> requestedClients) {
+        return Maps.toMap(requestedClients, client -> currentCachedEntries.getOrDefault(client, DEFAULT_VALUE));
+    }
+
+    private static PaxosLong max(PaxosLong a, PaxosLong b) {
+        return Stream.of(a, b)
+                .max(Comparator.comparingLong(PaxosLong::getValue))
+                .orElseThrow(() -> new SafeIllegalArgumentException("No Paxos Value could be picked"));
+    }
+
 }
