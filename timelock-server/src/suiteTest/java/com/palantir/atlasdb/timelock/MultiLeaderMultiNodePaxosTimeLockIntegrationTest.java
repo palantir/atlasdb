@@ -56,6 +56,10 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @Test
     public void eachNamespaceGetsAssignedDifferentLeaders() {
+        // the reason this test works is that unless a namespace has been seen by a node, it won't try to gain
+        // leadership on that namespace
+        // by putting timelock behind a wiremock proxy, we can disallow requests to namespaces effectively giving us
+        // the ability to allocate namespaces to particular leaders
         SetMultimap<TestableTimelockServer, String> allocations = allocateRandomNamespacesToAllNodes(3);
 
         Set<String> allNamespaces = ImmutableSet.copyOf(allocations.values());
@@ -91,7 +95,7 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
 
         cluster.nonLeaders(randomNamespace).get(randomNamespace).forEach(nonLeader ->
                 assertThatThrownBy(() -> nonLeader.client(randomNamespace).getFreshTimestamp())
-                        .as("non leaders should return 503")
+                        .as("non leaders should return 308")
                         .hasRootCauseInstanceOf(QosException.RetryOther.class));
     }
 
