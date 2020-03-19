@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.time.Duration;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +64,16 @@ public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeo
         }
     }
 
+    @Override
+    public Set<String> takeoverNamespaces(AuthHeader authHeader, Set<String> namespaces) {
+        return namespaces.stream()
+                .filter(namespace -> leadershipComponents.requestHostileTakeover(Client.of(namespace)))
+                .collect(Collectors.toSet());
+    }
+
     private boolean nonRetriedTakeover(String namespace) {
         return leadershipComponents.requestHostileTakeover(Client.of(namespace));
     }
+
+
 }

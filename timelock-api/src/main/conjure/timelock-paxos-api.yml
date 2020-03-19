@@ -10,3 +10,9 @@ services:
         args:
           namespace: string
         returns: boolean
+
+      takeoverNamespaces:
+        http: POST /takeoverNamespaces
+        args:
+          namespaces: set<string>
+        returns: set<string>
