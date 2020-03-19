@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Set conjure client configuration enable-http2 to avoid reliance on
+    default values.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4655
