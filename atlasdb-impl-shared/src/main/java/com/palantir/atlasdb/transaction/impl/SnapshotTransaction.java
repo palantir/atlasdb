@@ -1917,7 +1917,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            deleteExecutor.execute(() -> deleteCells(tableRef, keysToDelete));
+        deleteExecutor.execute(() -> deleteCells(keyValueService, tableRef, keysToDelete));
         } catch (RejectedExecutionException rejected) {
             log.info("Could not delete keys {} for table {}, because the delete executor's queue was full."
                     + " Sweep should eventually clean these values.",
@@ -1928,7 +1928,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return true;
     }
 
-    private void deleteCells(TableReference tableRef, Map<Cell, Long> keysToDelete) {
+    private static void deleteCells(KeyValueService keyValueService, TableReference tableRef, Map<Cell, Long> keysToDelete) {
         try {
             log.debug("For table: {} we are deleting values of an uncommitted transaction: {}",
                     LoggingArgs.tableRef(tableRef),
