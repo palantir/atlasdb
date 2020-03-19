@@ -22,6 +22,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.matching.UrlPattern;
@@ -128,7 +129,9 @@ public class TestableTimelockServer {
         serverHolder.wireMock().register(failEverything);
 
         Streams.stream(namespacesToAccept)
-                .map(namespace -> any(namespaceEqualTo(namespace)))
+                .flatMap(namespace -> Stream.of(
+                        any(namespaceEqualTo(namespace)),
+                        any(conjureUrlNamespaceEqualTo(namespace))))
                 .map(this::namespacesIsProxiedToTimelock)
                 .forEach(serverHolder.wireMock()::register);
     }
@@ -146,6 +149,10 @@ public class TestableTimelockServer {
 
     private static UrlPattern namespaceEqualTo(String namespace) {
         return urlMatching(String.format("/%s/.*", namespace));
+    }
+
+    private static UrlPattern conjureUrlNamespaceEqualTo(String namespace) {
+        return urlMatching(String.format("/tl/.*/%s", namespace));
     }
 
     private StubMapping namespacesIsProxiedToTimelock(MappingBuilder mappingBuilder) {
