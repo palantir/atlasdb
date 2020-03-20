@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -80,15 +81,17 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return autobatcher.applyBatch(count).stream().map(result -> {
-            try {
-                return result.get();
-            } catch (ExecutionException e) {
-                throw Throwables.throwUncheckedException(e.getCause());
-            } catch (Throwable t) {
-                throw Throwables.throwUncheckedException(t);
-            }
-        }).collect(Collectors.toList());
+        return autobatcher.applyBatch(
+                IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList())).stream().map(
+                result -> {
+                    try {
+                        return result.get();
+                    } catch (ExecutionException e) {
+                        throw Throwables.throwUncheckedException(e.getCause());
+                    } catch (Throwable t) {
+                        throw Throwables.throwUncheckedException(t);
+                    }
+                }).collect(Collectors.toList());
     }
 
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {

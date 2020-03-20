@@ -164,7 +164,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
 
     @Override
     public List<TransactionAndImmutableTsLock> setupRunTaskWithConditionThrowOnConflictBatch(
-            PreCommitCondition condition, int count) {
+            List<PreCommitCondition> conditions) {
         return null;
     }
 

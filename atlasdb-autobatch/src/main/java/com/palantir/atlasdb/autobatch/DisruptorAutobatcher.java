@@ -17,13 +17,13 @@
 package com.palantir.atlasdb.autobatch;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,14 +34,15 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.palantir.logsafe.Preconditions;
 
 /**
- * While this class is public, it shouldn't be used as API outside of AtlasDB because we
- * don't guarantee we won't break it.
+ * While this class is public, it shouldn't be used as API outside of AtlasDB because we don't guarantee we won't break
+ * it.
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
@@ -88,16 +89,20 @@ public final class DisruptorAutobatcher<T, R>
         return result;
     }
 
-    public List<ListenableFuture<R>> applyBatch(int count) {
+    public List<ListenableFuture<R>> applyBatch(List<T> arguments) {
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
-        return IntStream.range(0, count).mapToObj($ -> {
+        List<ListenableFuture<R>> results = new ArrayList<>();
+        buffer.publishEvents((EventTranslator<DefaultBatchElement<T, R>>[]) arguments.stream().map(argument -> {
             SettableFuture<R> result = SettableFuture.create();
-            buffer.publishEvent((refresh, sequence) -> {
+            EventTranslator<DefaultBatchElement<T, R>> translator = (refresh, sequence) -> {
                 refresh.result = result;
-                refresh.argument = null;
-            });
-            return result;
-        }).collect(Collectors.toList());
+                refresh.argument = argument;
+            };
+            results.add(result);
+            return translator;
+        }).collect(Collectors.toList()).toArray());
+
+        return results;
     }
 
     @Override
@@ -124,6 +129,7 @@ public final class DisruptorAutobatcher<T, R>
         public SettableFuture<R> result() {
             return result;
         }
+
     }
 
     static <T, R> DisruptorAutobatcher<T, R> create(
