@@ -118,7 +118,7 @@ public class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor
             Optional<AcceptorCacheKey> cacheKey,
             RuntimeException e) {
         if (isMissingOrInvalidCacheKey(e)) {
-            Futures.immediateFailedFuture(new InvalidAcceptorCacheKeyException(cacheKey.orElse(null)));
+            return Futures.immediateFailedFuture(new InvalidAcceptorCacheKeyException(cacheKey.orElse(null)));
         }
 
         log.warn("received unexpected runtime exception that is not a cache key miss", e);
