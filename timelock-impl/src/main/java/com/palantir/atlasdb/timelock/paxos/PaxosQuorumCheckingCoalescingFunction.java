@@ -74,10 +74,10 @@ public class PaxosQuorumCheckingCoalescingFunction<REQ, RESP extends PaxosRespon
             PaxosExecutionEnvironment<SERVICE> executionEnvironment,
             int quorumSize,
             Function<SERVICE, F> functionFactory) {
-
+        PaxosExecutionEnvironment<F> mappedExecutionEnvironment = executionEnvironment.map(functionFactory);
         return new PaxosQuorumCheckingCoalescingFunction<>(
                 requests -> PaxosQuorumChecker.collectQuorumResponses(
-                        executionEnvironment.map(functionFactory),
+                        mappedExecutionEnvironment,
                         delegate -> PaxosContainer.of(delegate.apply(requests)),
                         quorumSize,
                         PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT,
@@ -90,10 +90,10 @@ public class PaxosQuorumCheckingCoalescingFunction<REQ, RESP extends PaxosRespon
             PaxosExecutionEnvironment<SERVICE> executionEnvironment,
             int quorumSize,
             Function<SERVICE, F> functionFactory) {
-
+        PaxosExecutionEnvironment<F> mappedExecutionEnvironment = executionEnvironment.map(functionFactory);
         return new PaxosQuorumCheckingCoalescingFunction<>(
                 requests -> PaxosQuorumChecker.collectQuorumResponsesAsync(
-                        executionEnvironment.map(functionFactory),
+                        mappedExecutionEnvironment,
                         delegate -> Futures.transform(
                                 delegate.apply(requests),
                                 PaxosContainer::of,
