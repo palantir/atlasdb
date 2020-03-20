@@ -55,9 +55,10 @@ public class MultiplexingCompletionService<K, V> {
 
     public static <K, V> MultiplexingCompletionService<K, V> create(
             Map<? extends K, ExecutorService> executors) {
-        ImmutableMap<K, ListeningExecutorService> listeningExecutors = KeyedStream.stream(executors).map(
-                MoreExecutors::listeningDecorator).entries().collect(
-                ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+        ImmutableMap<K, ListeningExecutorService> listeningExecutors = KeyedStream.stream(executors)
+                .map(delegate -> MoreExecutors.listeningDecorator(delegate))
+                .entries()
+                .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
         return new MultiplexingCompletionService<>(
                 listeningExecutors,
                 new LinkedBlockingQueue<>());
