@@ -52,6 +52,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
+import com.palantir.tracing.RenderTracingRule;
 
 public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
@@ -63,6 +64,9 @@ public class AwaitingLeadershipProxyTest {
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
 
     @Rule public final ExpectedException expect = ExpectedException.none();
+
+    @Rule
+    public final RenderTracingRule rule = new RenderTracingRule();
 
     @Before
     public void before() throws InterruptedException {

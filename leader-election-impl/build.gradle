@@ -23,6 +23,7 @@ dependencies {
   }
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
 }
 
 configurations {

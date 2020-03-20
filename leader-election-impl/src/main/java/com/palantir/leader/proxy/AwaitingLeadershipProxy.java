@@ -245,13 +245,19 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 throw handleDelegateThrewException(leadershipToken, e);
             }
         } else {
-            return Tracers.wrapListenableFuture("execute-on-delegate",
-                    () -> FluentFuture.from(delegateFuture)
-                    .transformAsync(delegate -> (ListenableFuture<Object>) method.invoke(delegate, args),
+            return FluentFuture.from(delegateFuture)
+                    .transformAsync(delegate ->
+                                    Tracers.wrapListenableFuture("execute-on-delegate-async", () -> {
+                                        try {
+                                            return (ListenableFuture<Object>) method.invoke(delegate, args);
+                                        } catch (IllegalAccessException | InvocationTargetException e) {
+                                            return Futures.immediateFailedFuture(e);
+                                        }
+                                    }),
                             executionExecutor)
                     .catchingAsync(InvocationTargetException.class, e -> {
                         throw handleDelegateThrewException(leadershipToken, e);
-                    }, executionExecutor));
+                    }, executionExecutor);
         }
     }
 
