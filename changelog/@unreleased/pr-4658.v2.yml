@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: '`AwaitingLeadershipProxy` now opens spans for checking it is still
+    the leader and then actually executing the relevant method on the delegate.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4658
