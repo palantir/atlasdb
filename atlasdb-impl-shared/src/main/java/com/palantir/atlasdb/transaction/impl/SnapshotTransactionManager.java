@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -165,6 +166,19 @@ import com.palantir.timestamp.TimestampService;
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
                 = timelockService.startIdentifiedAtlasDbTransaction();
+        return wrap(condition, transactionResponse);
+    }
+
+    @Override
+    public List<TransactionAndImmutableTsLock> setupRunTaskWithConditionThrowOnConflictBatch(
+            PreCommitCondition condition, int count) {
+        List<StartIdentifiedAtlasDbTransactionResponse> transactionResponse
+                = timelockService.startIdentifiedAtlasDbTransactionBatch(count);
+        return transactionResponse.stream().map(r -> wrap(condition, r)).collect(Collectors.toList());
+    }
+
+    private TransactionAndImmutableTsLock wrap(PreCommitCondition condition,
+            StartIdentifiedAtlasDbTransactionResponse transactionResponse) {
         try {
             LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
             long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();

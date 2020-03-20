@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.v2;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.QueryParam;
@@ -46,6 +47,8 @@ public interface TimelockService {
     LockImmutableTimestampResponse lockImmutableTimestamp();
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction();
+
+    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count);
 
     long getImmutableTimestamp();
 

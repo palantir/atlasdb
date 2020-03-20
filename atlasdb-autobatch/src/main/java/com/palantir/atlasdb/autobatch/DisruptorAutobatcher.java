@@ -17,10 +17,13 @@
 package com.palantir.atlasdb.autobatch;
 
 import java.io.Closeable;
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +86,18 @@ public final class DisruptorAutobatcher<T, R>
             refresh.argument = argument;
         });
         return result;
+    }
+
+    public List<ListenableFuture<R>> applyBatch(int count) {
+        Preconditions.checkState(!closed, "Autobatcher is already shut down");
+        return IntStream.range(0, count).mapToObj($ -> {
+            SettableFuture<R> result = SettableFuture.create();
+            buffer.publishEvent((refresh, sequence) -> {
+                refresh.result = result;
+                refresh.argument = null;
+            });
+            return result;
+        }).collect(Collectors.toList());
     }
 
     @Override
