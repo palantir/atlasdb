@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.impl;
 
+import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
@@ -121,6 +122,11 @@ public class LegacyTimelockService implements TimelockService {
             }
             throw throwable;
         }
+    }
+
+    @Override
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return null;
     }
 
     @Override
