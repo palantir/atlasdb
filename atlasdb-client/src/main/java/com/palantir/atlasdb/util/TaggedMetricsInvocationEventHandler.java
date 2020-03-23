@@ -106,7 +106,9 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
             return;
         }
 
-        if (result != null && ListenableFuture.class.isAssignableFrom(context.getMethod().getReturnType())) {
+        if (result != null
+                && ListenableFuture.class.isAssignableFrom(context.getMethod().getReturnType())
+                && ListenableFuture.class.isAssignableFrom(result.getClass())) {
             Futures.addCallback((ListenableFuture<?>) result, new FutureCallback<Object>() {
                         @Override
                         public void onSuccess(@NullableDecl Object result) {
