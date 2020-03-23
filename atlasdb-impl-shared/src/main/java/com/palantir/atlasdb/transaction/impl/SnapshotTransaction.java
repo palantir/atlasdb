@@ -2375,13 +2375,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 metricsManager.getTableNameTagFor(tableRef));
     }
 
-    private Meter getMeter(String name, TableReference tableRef) {
-        return metricsManager.registerOrGetTaggedMeter(
-                SnapshotTransaction.class,
-                name,
-                metricsManager.getTableNameTagFor(tableRef));
-    }
-
     private Counter getCounter(String name, TableReference tableRef) {
         return metricsManager.registerOrGetTaggedCounter(
                 SnapshotTransaction.class,
