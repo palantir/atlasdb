@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * Class that uses ListenableFuture primitives to provide a simple delay-retry loop. Should be kept very simple.
@@ -53,20 +54,33 @@ final class AsyncRetrier<T> {
         return execute(supplier, maxAttempts);
     }
 
+    /*
+    Threading model: Given the context of this class, it is likely that the first request will pass. Since this occurs
+    in the hot path, we should probably avoid putting it on another thread to do what would be light work as we will
+    pay for that in context switches.
+
+    In a similar vein to reduce context switches, when the supplier::get call returns, the processing should be fairly
+    lightweight, so we should be able to do it in whatever thread ran/took control of the original supplier::get call,
+    hence the usage of directExecutor.
+
+    If we do have to retry, then we're likely "slow" enough that we should give up the initial calling thread and
+    offload the work onto a separate executor.
+     */
     private ListenableFuture<T> execute(Supplier<ListenableFuture<T>> supplier, int retriesRemaining) {
-        return Futures.transformAsync(Futures.submitAsync(supplier::get, executionExecutor),
+        return Futures.transformAsync(Futures.submitAsync(supplier::get, MoreExecutors.directExecutor()),
                 result -> {
                     int newRetriesRemaining = retriesRemaining - 1;
                     if (predicate.test(result) || newRetriesRemaining == 0) {
                         return Futures.immediateFuture(result);
                     } else {
+                        // if we have to try again, this time don't consume the thread to do it
                         return Futures.transformAsync(
                                 schedulingExecutor.schedule(
                                         () -> { }, delayBetweenAttempts.toMillis(), TimeUnit.MILLISECONDS),
                                 $ -> execute(supplier, newRetriesRemaining),
                                 executionExecutor);
                     }
-                }, executionExecutor);
+                }, MoreExecutors.directExecutor());
 
     }
 }
