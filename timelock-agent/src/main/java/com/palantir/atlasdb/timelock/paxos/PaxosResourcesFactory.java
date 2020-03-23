@@ -129,10 +129,10 @@ public final class PaxosResourcesFactory {
                 TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics.getTaggedRegistry());
 
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
-            PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
-            List<PingableLeader> remotes = dependencies.remoteClients().nonBatchPingableLeaders();
+            BatchPingableLeader local = dependencies.components().batchPingableLeader();
+            List<BatchPingableLeader> remotes = dependencies.remoteClients().batchPingableLeaders();
             return Stream.concat(Stream.of(local), remotes.stream())
-                    .map(SingleLeaderHealthCheckPinger::new)
+                    .map(MultiLeaderHealthCheckPinger::new)
                     .collect(Collectors.toList());
         };
 
@@ -143,17 +143,21 @@ public final class PaxosResourcesFactory {
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .metrics(timelockMetrics)
-                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
-                .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
+                .networkClientFactoryBuilder(ImmutablePinningNetworkClientFactories.builder())
+                .leaderPingerFactoryBuilder(ImmutableBatchingLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
                 .build();
 
         return resourcesBuilder
                 .leadershipContextFactory(factory)
+                .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
+                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
                 .addAdhocResources(
-                        new LeadershipResource(
-                                factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
-                                factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+                        // The following are nasty, but need to exist to avoid problems with the JAX-RS algorithm
+                        // picking resources before it identifies specific methods.
+                        new LegacyPaxosAcceptorShim(
+                                factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+                        new LegacyPaxosLearnerShim(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
                 .build();
     }

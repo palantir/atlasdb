@@ -70,6 +70,32 @@ public interface Factories {
     }
 
     @Value.Immutable
+    abstract class PinningLeaderPingerFactory implements LeaderPingerFactoryContainer, Dependencies.LeaderPinger {
+
+        @Value.Derived
+        AutobatchingPingableLeaderFactory pingableLeaderFactory() {
+            return AutobatchingPingableLeaderFactory.create(
+                    Maps.toMap(remoteClients().batchPingableLeadersWithContext(), _pingableLeader -> sharedExecutor()),
+                    leaderPingRate(),
+                    leaderPingResponseWait(),
+                    leaderUuid());
+        }
+
+        @Override
+        public Factory<LeaderPinger> get() {
+            return $ -> pingableLeaderFactory().leaderPingerFor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
+        }
+
+        @Override
+        @Value.Derived
+        public List<Closeable> closeables() {
+            return ImmutableList.of(pingableLeaderFactory());
+        }
+
+        public abstract static class Builder implements LeaderPingerFactoryContainer.Builder {}
+    }
+
+    @Value.Immutable
     abstract class SingleLeaderPingerFactory implements LeaderPingerFactoryContainer, Dependencies.LeaderPinger {
 
         @Value.Derived
