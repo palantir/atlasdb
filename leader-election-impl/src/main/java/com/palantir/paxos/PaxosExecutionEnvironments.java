@@ -44,7 +44,6 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.PaxosExecutionEnvironment.ExecutionContext;
 
 public final class PaxosExecutionEnvironments {
@@ -166,7 +165,8 @@ public final class PaxosExecutionEnvironments {
         }
     }
 
-    private static final class SynchronousExecutionContext<T, R extends PaxosResponse> implements ExecutionContext<T, R> {
+    private static final class SynchronousExecutionContext<T, R extends PaxosResponse>
+            implements ExecutionContext<T, R> {
 
         // used to cancel outstanding requests after we have already achieved a quorum or otherwise finished collecting
         // responses
@@ -217,8 +217,8 @@ public final class PaxosExecutionEnvironments {
 
         @Override
         public ExecutionContext<T, R> withExistingResults(
-                List<PaxosExecutionEnvironment.Result<T, R>> existingResults) {
-            this.existingResults.addAll(existingResults);
+                List<PaxosExecutionEnvironment.Result<T, R>> existingResultsParam) {
+            existingResults.addAll(existingResultsParam);
             return this;
         }
 

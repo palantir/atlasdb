@@ -38,10 +38,10 @@ public interface PaxosExecutionEnvironment<S> {
 
     @Data
     abstract class Result<S, R> {
-        interface Cases<S, R, RR> {
-            RR success(S service, R response);
-            RR deadlineExceeded();
-            RR failure(Throwable e);
+        interface Cases<S, R, V> {
+            V success(S service, R response);
+            V deadlineExceeded();
+            V failure(Throwable throwable);
         }
 
         public abstract <RR> RR match(Cases<S, R, RR> cases);

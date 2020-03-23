@@ -118,7 +118,9 @@ public final class PaxosQuorumChecker {
             Duration remoteRequestTimeout,
             boolean cancelRemainingCalls) {
         return collectResponses(
-                PaxosExecutionEnvironments.threadPerService(remotes, mapToSingleExecutorService(remotes, executorService)),
+                PaxosExecutionEnvironments.threadPerService(
+                        remotes,
+                        mapToSingleExecutorService(remotes, executorService)),
                 request,
                 remotes.size(),
                 remoteRequestTimeout,
