@@ -75,10 +75,12 @@ public final class AtlasDbMetrics {
             TaggedMetricRegistry taggedMetrics,
             Class<T> serviceInterface,
             U service) {
-        return buildInstrumentation(
-                serviceInterface,
-                service,
-                new TaggedMetricsInvocationEventHandler(taggedMetrics, MetricRegistry.name(serviceInterface)));
+        return Instrumentation.builder(serviceInterface, service)
+                .withHandler(new TaggedMetricsInvocationEventHandler(
+                        taggedMetrics,
+                        MetricRegistry.name(serviceInterface)))
+                .withPerformanceTraceLogging()
+                .build();
     }
 
     public static <T, U extends T> T instrumentWithTaggedMetrics(
@@ -86,21 +88,11 @@ public final class AtlasDbMetrics {
             Class<T> serviceInterface,
             U service,
             Function<InvocationContext, Map<String, String>> tagFunction) {
-        return buildInstrumentation(
-                serviceInterface,
-                service,
-                new TaggedMetricsInvocationEventHandler(
+        return Instrumentation.builder(serviceInterface, service)
+                .withHandler(new TaggedMetricsInvocationEventHandler(
                         taggedMetrics,
                         MetricRegistry.name(serviceInterface),
-                        tagFunction));
-    }
-
-    private static <T, U extends T> T buildInstrumentation(
-            Class<T> serviceInterface,
-            U service,
-            TaggedMetricsInvocationEventHandler handler) {
-        return Instrumentation.builder(serviceInterface, service)
-                .withHandler(handler)
+                        tagFunction))
                 .withPerformanceTraceLogging()
                 .build();
     }
