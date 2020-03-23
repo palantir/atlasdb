@@ -21,7 +21,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -53,6 +52,7 @@ public final class AtlasDbMetricsTest {
     private static final String PING_NOT_TIMED_METRIC = MetricRegistry.name(TestService.class, PING_NOT_TIMED_METHOD);
     private static final String PING_RESPONSE = "pong";
     private static final Duration ASYNC_DURATION_TTL = Duration.ofSeconds(2);
+    private static final String ASYNC_PING_METRIC_NAME = MetricRegistry.name(AsyncTestService.class, "asyncPing");
 
     private final MetricRegistry metrics = new MetricRegistry();
     private final TestService testService = new TestService() {
@@ -123,42 +123,27 @@ public final class AtlasDbMetricsTest {
     }
 
     @Test
-    public void instrumentTaggedAsyncFunction() throws InterruptedException, ExecutionException {
-        AsyncTestService asyncTestService = AtlasDbMetrics.instrumentWithTaggedMetrics(taggedMetrics,
-                AsyncTestService.class, this.asyncTestService);
+    public void instrumentTaggedAsyncFunction() {
+        AsyncTestService asyncTestService = AtlasDbMetrics.instrumentWithTaggedMetrics(
+                taggedMetrics,
+                AsyncTestService.class,
+                this.asyncTestService);
 
-        String asyncPingMetricName = MetricRegistry.name(AsyncTestService.class, "asyncPing");
-        assertTimerNotRegistered(asyncPingMetricName);
-
-        List<ListenableFuture<String>> futures = IntStream.range(0, 10)
-                .mapToObj($ -> asyncTestService.asyncPing())
-                .collect(Collectors.toList());
+        List<ListenableFuture<String>> futures = fireOffTenAsyncPings(asyncTestService);
 
         Instant now = Instant.now();
-        MetricName metricName = MetricName.builder().safeName(asyncPingMetricName).build();
-        ListenableFuture<Boolean> done = Futures.whenAllSucceed(futures).call(() -> {
-            // have to do it this because we can't edit the future we get back and it's only a callback as opposed to a
-            // transformed future
-            Awaitility.await()
-                    .atMost(ASYNC_DURATION_TTL.toMillis(), TimeUnit.MILLISECONDS)
-                    .until(() -> taggedMetrics.timer(metricName).getSnapshot().size() > 0);
-            return true;
-        }, MoreExecutors.directExecutor());
+        MetricName metricName = MetricName.builder().safeName(ASYNC_PING_METRIC_NAME).build();
+        awaitMetricsToBeReported(futures, metricName);
 
-        assertThat(done.get()).isEqualTo(true);
-
-        assertThat(done.get()).isEqualTo(true);
         assertThat(Instant.now())
                 .as("in the event of scheduling issues, and despite having 10 concurrent futures, we complete "
                         + "everything with 2*ttl")
                 .isBefore(now.plus(ASYNC_DURATION_TTL.plus(ASYNC_DURATION_TTL)));
-        Snapshot snapshot = taggedMetrics.timer(metricName).getSnapshot();
-        assertThat(Duration.ofNanos(snapshot.getMin())).isGreaterThan(ASYNC_DURATION_TTL);
-        assertThat(snapshot.size()).isEqualTo(10);
+        assertAllAsyncPingMetricsAreAccuratelyRecorded(futures, metricName);
     }
 
     @Test
-    public void instrumentTaggedAsyncFunctionWithExtraTags() throws InterruptedException, ExecutionException {
+    public void instrumentTaggedAsyncFunctionWithExtraTags() {
         Map<String, String> extraTags = ImmutableMap.of("key", "value");
         AsyncTestService asyncTestService = AtlasDbMetrics.instrumentWithTaggedMetrics(
                 taggedMetrics,
@@ -166,14 +151,37 @@ public final class AtlasDbMetricsTest {
                 this.asyncTestService,
                 $ -> extraTags);
 
-        String asyncPingMetricName = MetricRegistry.name(AsyncTestService.class, "asyncPing");
-
-        List<ListenableFuture<String>> futures = IntStream.range(0, 10)
-                .mapToObj($ -> asyncTestService.asyncPing())
-                .collect(Collectors.toList());
+        List<ListenableFuture<String>> futures = fireOffTenAsyncPings(asyncTestService);
 
         Instant now = Instant.now();
-        MetricName metricName = MetricName.builder().safeName(asyncPingMetricName).safeTags(extraTags).build();
+        MetricName metricName = MetricName.builder()
+                .safeName(ASYNC_PING_METRIC_NAME)
+                .safeTags(extraTags)
+                .build();
+        awaitMetricsToBeReported(futures, metricName);
+
+        assertThat(Instant.now())
+                .as("in the event of scheduling issues, and despite having 10 concurrent futures, we complete "
+                        + "everything with 2*ttl")
+                .isBefore(now.plus(ASYNC_DURATION_TTL.plus(ASYNC_DURATION_TTL)));
+        assertAllAsyncPingMetricsAreAccuratelyRecorded(futures, metricName);
+    }
+
+    private void assertAllAsyncPingMetricsAreAccuratelyRecorded(
+            List<ListenableFuture<String>> futures,
+            MetricName metricName) {
+        Snapshot snapshot = taggedMetrics.timer(metricName).getSnapshot();
+        assertThat(Duration.ofNanos(snapshot.getMin())).isGreaterThan(ASYNC_DURATION_TTL);
+        assertThat(snapshot.size()).isEqualTo(futures.size());
+    }
+
+    private static List<ListenableFuture<String>> fireOffTenAsyncPings(AsyncTestService asyncTestService) {
+        return IntStream.range(0, 10)
+                .mapToObj($ -> asyncTestService.asyncPing())
+                .collect(Collectors.toList());
+    }
+
+    private void awaitMetricsToBeReported(List<ListenableFuture<String>> futures, MetricName metricName) {
         ListenableFuture<Boolean> done = Futures.whenAllSucceed(futures).call(() -> {
             // have to do it this because we can't edit the future we get back and it's only a callback as opposed to a
             // transformed future
@@ -182,15 +190,7 @@ public final class AtlasDbMetricsTest {
                     .until(() -> taggedMetrics.timer(metricName).getSnapshot().size() > 0);
             return true;
         }, MoreExecutors.directExecutor());
-
-        assertThat(done.get()).isEqualTo(true);
-        assertThat(Instant.now())
-                .as("in the event of scheduling issues, and despite having 10 concurrent futures, we complete "
-                        + "everything with 2*ttl")
-                .isBefore(now.plus(ASYNC_DURATION_TTL.plus(ASYNC_DURATION_TTL)));
-        Snapshot snapshot = taggedMetrics.timer(metricName).getSnapshot();
-        assertThat(Duration.ofNanos(snapshot.getMin())).isGreaterThan(ASYNC_DURATION_TTL);
-        assertThat(snapshot.size()).isEqualTo(10);
+        assertThat(Futures.getUnchecked(done)).isEqualTo(true);
     }
 
     private void assertMethodInstrumented(
