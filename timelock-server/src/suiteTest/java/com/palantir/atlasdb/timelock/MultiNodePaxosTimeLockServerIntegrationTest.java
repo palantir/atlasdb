@@ -35,6 +35,7 @@ import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.http.v2.ClientOptions;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -146,6 +147,29 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
         nonLeaders.forEach(TestableTimelockServer::start);
         client.getFreshTimestamp();
+    }
+
+    @Test
+    public void canHostilelyTakeOverNamespace() {
+        TestableTimelockServer currentLeader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer nonLeader = Iterables.get(
+                cluster.nonLeaders(client.namespace()).get(client.namespace()), 0);
+
+        assertThatThrownBy(nonLeader.client(client.namespace())::getFreshTimestamp)
+                .as("non leader is not the leader before the takeover - sanity check")
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+
+        assertThat(nonLeader.takeOverLeadershipForNamespace(client.namespace()))
+                .as("successfully took over namespace")
+                .isTrue();
+
+        assertThatThrownBy(currentLeader.client(client.namespace())::getFreshTimestamp)
+                .as("previous leader is no longer the leader after the takeover")
+                .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+
+        assertThat(cluster.currentLeaderFor(client.namespace()))
+                .as("new leader is the previous non leader (hostile takeover)")
+                .isEqualTo(nonLeader);
     }
 
     @Test

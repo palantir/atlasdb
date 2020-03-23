@@ -111,6 +111,11 @@ public class AwaitingLeadershipProxyBenchmark {
         public void markNotEligibleForLeadership() {}
 
         @Override
+        public boolean hostileTakeover() {
+            return false;
+        }
+
+        @Override
         public LeadershipToken blockOnBecomingLeader() {
             return token;
         }
