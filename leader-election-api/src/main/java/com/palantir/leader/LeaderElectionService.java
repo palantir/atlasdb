@@ -91,7 +91,7 @@ public interface LeaderElectionService {
      * health check constraints, that is, if it becomes unresponsive for any reason, other nodes will take over
      * leadership through the normal means via {@link #blockOnBecomingLeader}.
      *
-     * @return true if and only if this node was able to gain leadership forcefully
+     * @return true if and only if this node was able to gain leadership forcefully or was already the leader
      */
     boolean hostileTakeover();
 
