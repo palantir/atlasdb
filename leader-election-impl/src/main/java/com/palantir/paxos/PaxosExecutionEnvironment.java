@@ -44,7 +44,7 @@ public interface PaxosExecutionEnvironment<S> {
             V failure(Throwable throwable);
         }
 
-        public abstract <RR> RR match(Cases<S, R, RR> cases);
+        public abstract <V> V match(Cases<S, R, V> cases);
     }
 
 }
