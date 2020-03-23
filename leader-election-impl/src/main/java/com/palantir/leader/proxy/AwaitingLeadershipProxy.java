@@ -52,9 +52,7 @@ import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tracing.CloseableTracer;
-import com.palantir.tracing.DetachedSpan;
 import com.palantir.tracing.Tracers;
-import com.palantir.tracing.api.SpanType;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
