@@ -15,6 +15,12 @@
  */
 package com.palantir.paxos;
 
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
+
 public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
 
     private final PaxosAcceptorNetworkClient acceptorClient;
@@ -25,12 +31,22 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
 
     @Override
     public PaxosQuorumStatus isLatestRound(long round) {
-        return collectResponses(round).getQuorumResult();
+        return AtlasFutures.getUnchecked(isLatestRoundAsync(round));
     }
 
-    private PaxosResponses<PaxosResponse> collectResponses(long round) {
-        return acceptorClient.getLatestSequencePreparedOrAccepted()
-                .map(paxosLong -> acceptorAgreesIsLatestRound(paxosLong, round));
+    @Override
+    public ListenableFuture<PaxosQuorumStatus> isLatestRoundAsync(long round) {
+        return Futures.transform(
+                collectResponses(round),
+                PaxosResponses::getQuorumResult,
+                MoreExecutors.directExecutor());
+    }
+
+    private ListenableFuture<PaxosResponses<PaxosResponse>> collectResponses(long round) {
+        return FluentFuture.from(acceptorClient.getLatestSequencePreparedOrAcceptedAsync())
+                .transform(
+                        responses -> responses.map(paxosLong -> acceptorAgreesIsLatestRound(paxosLong, round)),
+                        MoreExecutors.directExecutor());
     }
 
     private static BooleanPaxosResponse acceptorAgreesIsLatestRound(
