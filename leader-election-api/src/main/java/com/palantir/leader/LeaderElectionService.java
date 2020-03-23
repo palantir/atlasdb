@@ -87,7 +87,7 @@ public interface LeaderElectionService {
      * it does not block and also if it discovers that it is not the leader, it doesn't back down but proposes
      * leadership anyway.
      * <p>
-     * Note: Whilst a positive result means that it succussfully proposed and became the leader, it is still subject to
+     * Note: Whilst a positive result means that it successfully proposed and became the leader, it is still subject to
      * health check constraints, that is, if it becomes unresponsive for any reason, other nodes will take over
      * leadership through the normal means via {@link #blockOnBecomingLeader}.
      *
