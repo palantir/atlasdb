@@ -50,7 +50,7 @@ public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeo
     }
 
     @Override
-    public boolean takeover(AuthHeader _authHeader, String namespace) {
+    public boolean takeover(AuthHeader authHeader, String namespace) {
         try {
             return takeoverRetryer.call(() -> nonRetriedTakeover(namespace));
         } catch (ExecutionException e) {
