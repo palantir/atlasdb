@@ -219,7 +219,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         ListenableFuture<StillLeadingStatus> leadingFuture =
                 Tracers.wrapListenableFuture("validate-leadership",
-                        () -> statusRetrier.execute(() -> leaderElectionService.isStillLeading(leadershipToken)));
+                        () -> statusRetrier.execute(
+                                () -> Tracers.wrapListenableFuture("validate-leadership-attempt",
+                                        () -> leaderElectionService.isStillLeading(leadershipToken))));
 
         ListenableFuture<Object> delegateFuture = Futures.transform(leadingFuture,
                 leading -> {

@@ -142,6 +142,36 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
+    public void listenableFutureMethodsRetryProxyFailures() throws InterruptedException, ExecutionException {
+        ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
+        ReturnsListenableFuture proxy =
+                AwaitingLeadershipProxy.newProxyInstance(
+                        ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
+        waitForLeadershipToBeGained();
+
+        SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
+        when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
+                .thenAnswer($ -> {
+                    // Strange number to be detectable in traces
+                    Uninterruptibles.sleepUninterruptibly(37, TimeUnit.MILLISECONDS);
+                    return Futures.immediateFuture(StillLeadingStatus.NO_QUORUM);
+                })
+                .thenAnswer($ -> {
+                    // Strange number to be detectable in traces
+                    Uninterruptibles.sleepUninterruptibly(29, TimeUnit.MILLISECONDS);
+                    return Futures.immediateFuture(StillLeadingStatus.NO_QUORUM);
+                })
+                .thenReturn(inProgressCheck);
+
+        ListenableFuture<?> future = proxy.future();
+        assertThat(future).isNotDone();
+        inProgressCheck.set(StillLeadingStatus.LEADING);
+        assertThat(future).isNotDone();
+        listenableFuture.future.set(null);
+        future.get();
+    }
+
+    @Test
     @SuppressWarnings("SelfEquals")
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
