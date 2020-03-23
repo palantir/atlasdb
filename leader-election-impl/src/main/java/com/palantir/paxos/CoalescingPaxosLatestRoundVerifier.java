@@ -43,6 +43,7 @@ public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerif
         this.delegate = delegate;
     }
 
+    @Override
     public ListenableFuture<PaxosQuorumStatus> isLatestRoundAsync(long round) {
         return verifiersByRound.getUnchecked(round).getAsync();
     }
