@@ -226,7 +226,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
                     // and should assume we're not the leader
                     if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
-                        markAsNotLeading(leadershipToken, null /* cause */);
+                        return Futures.submitAsync(
+                                () -> {
+                                    markAsNotLeading(leadershipToken, null /* cause */);
+                                    throw new AssertionError("should not reach here");
+                                },
+                                executionExecutor);
                     }
 
                     if (isClosed) {
@@ -235,7 +240,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
                     Preconditions.checkNotNull(maybeValidDelegate, "%s backing is null", interfaceClass.getName());
                     return maybeValidDelegate;
-                }, executionExecutor);
+                }, MoreExecutors.directExecutor());
 
         if (!method.getReturnType().equals(ListenableFuture.class)) {
             Object delegate = AtlasFutures.getUnchecked(delegateFuture);
@@ -246,7 +251,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             }
         } else {
             return FluentFuture.from(delegateFuture)
-                    .transformAsync(delegate ->
+                    .transformAsync(
+                            delegate ->
                                     Tracers.wrapListenableFuture("execute-on-delegate-async", () -> {
                                         try {
                                             return (ListenableFuture<Object>) method.invoke(delegate, args);
