@@ -31,8 +31,8 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -67,10 +67,10 @@ final class BatchingPaxosLatestSequenceCache implements AsyncCoalescingRequestFu
     // particular cache timestamp
     // as an optimisation to avoid copying, we can share the same materialised view for a string of cache keys issued
     // by the same instance of the server (i.e. not restarted, cache keys haven't expired).
-    private final LoadingCache<AcceptorCacheKey, ConcurrentMap<Client, PaxosLong>> cacheKeysToCaches =
+    private final Cache<AcceptorCacheKey, ConcurrentMap<Client, PaxosLong>> cacheKeysToCaches =
             Caffeine.newBuilder()
                     .expireAfterAccess(Duration.ofMinutes(1))
-                    .build($ -> Maps.newConcurrentMap());
+                    .build();
 
     BatchingPaxosLatestSequenceCache(BatchPaxosAcceptor delegate) {
         this.delegate = delegate;
@@ -93,10 +93,19 @@ final class BatchingPaxosLatestSequenceCache implements AsyncCoalescingRequestFu
                     new SafeIllegalStateException("could not complete request due to contention in the cache"));
         }
 
-        ListenableFuture<Map<Client, PaxosLong>> singleAttempt = cacheKey == null
-                ? populateNewCache(requestedClients)
-                // get the cache here
-                : populateExistingCache(cacheKey, cacheKeysToCaches.get(cacheKey.cacheKey()), requestedClients);
+        ListenableFuture<Map<Client, PaxosLong>> singleAttempt;// get the cache here
+        if (cacheKey == null) {
+            singleAttempt = populateNewCache(requestedClients);
+        } else {
+            // if there is no cache entry, then it's been evicted => we need to start again
+            ConcurrentMap<Client, PaxosLong> maybeCache = cacheKeysToCaches.getIfPresent(cacheKey.cacheKey());
+            if (maybeCache == null) {
+                latestCacheKey.compareAndSet(cacheKey, null);
+                singleAttempt = populateNewCache(requestedClients);
+            } else {
+                singleAttempt = populateExistingCache(cacheKey, maybeCache, requestedClients);
+            }
+        }
 
         return FluentFuture.from(singleAttempt)
                 .catchingAsync(InvalidAcceptorCacheKeyException.class, e -> {
@@ -116,7 +125,10 @@ final class BatchingPaxosLatestSequenceCache implements AsyncCoalescingRequestFu
                 .transform(digest -> {
                     // use a new cache for the new digest with no previous state, if there are multiple in-flight
                     // requests at this juncture, they will share this new cache as it's the same cache key
-                    ConcurrentMap<Client, PaxosLong> newEntriesToCache = cacheKeysToCaches.get(digest.newCacheKey());
+                    // the *only* place in which we should create a map entry with a new map is when we're populating
+                    // a new cache, everything else should be built on the previous entries
+                    ConcurrentMap<Client, PaxosLong> newEntriesToCache =
+                            cacheKeysToCaches.get(digest.newCacheKey(), $ -> Maps.newConcurrentMap());
                     processDigest(newEntriesToCache, digest);
                     return getResponseMap(newEntriesToCache, requestedClients);
                 }, MoreExecutors.directExecutor());
