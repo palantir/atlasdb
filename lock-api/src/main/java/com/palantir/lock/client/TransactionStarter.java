@@ -82,8 +82,9 @@ final class TransactionStarter implements AutoCloseable {
 
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         return autobatcher.applyBatch(
-                IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList())).stream().map(
-                result -> {
+                IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList()))
+                .stream()
+                .map(result -> {
                     try {
                         return result.get();
                     } catch (ExecutionException e) {
