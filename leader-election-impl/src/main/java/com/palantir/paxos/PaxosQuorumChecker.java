@@ -79,7 +79,7 @@ public final class PaxosQuorumChecker {
     }
 
     public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponsesWithRemote<SERVICE, RESPONSE>
-    collectQuorumResponses(
+            collectQuorumResponses(
             PaxosExecutionEnvironment<SERVICE> executionEnvironment,
             Function<SERVICE, RESPONSE> request,
             int quorumSize,
