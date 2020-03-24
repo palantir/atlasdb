@@ -390,16 +390,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         } // else the postFiltered iterator will check for each batch.
 
-        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
-        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
-            byte[] row = e.getKey();
-            RowColumnRangeIterator rawIterator = e.getValue();
-            BatchColumnRangeSelection batchColumnRangeSelection =
-                    BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-            return getPostFilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
-        });
-
-        return Iterators.concat(postFiltered);
+        BatchColumnRangeSelection batchColumnRangeSelection =
+                BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
+        return getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults);
     }
 
     @Override
@@ -444,6 +437,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return filterDeletedValues(mergedIterator, tableRef);
     }
 
+    private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
+            TableReference tableRef,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            RowColumnRangeIterator rawIterator) {
+        Iterator<Map.Entry<Cell, Value>> postFilterIterator =
+                getRowColumnRangePostFiltered(tableRef, rawIterator, batchColumnRangeSelection.getBatchHint());
+        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(postFilterIterator);
+        Iterator<Map.Entry<Cell, byte[]>> merged = Iterators.concat(Iterators.transform(rawResultsByRow, row -> {
+            SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(
+                    tableRef, batchColumnRangeSelection, row.getKey());
+            Iterator<Map.Entry<Cell, byte[]>> remoteIterator = Iterators.transform(
+                    row.getValue(), entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
+            Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
+            return IteratorUtils.mergeIterators(localIterator,
+                            remoteIterator,
+                            Ordering.from(UnsignedBytes.lexicographicalComparator())
+                                    .onResultOf(entry -> entry.getKey().getColumnName()),
+                            from -> from.getLhSide());
+        }));
+
+        return filterDeletedValues(merged, tableRef);
+    }
+
     private Iterator<Map.Entry<Cell, byte[]>> filterDeletedValues(
             Iterator<Map.Entry<Cell, byte[]>> unfiltered,
             TableReference tableReference) {
@@ -454,6 +470,25 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 return false;
             }
             return true;
+        });
+    }
+
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
+            TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
+        return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
+            ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
+            batch.forEach(rawBuilder::put);
+            Map<Cell, Value> raw = rawBuilder.build();
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            if (raw.isEmpty()) {
+                return Collections.emptyIterator();
+            }
+            SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
+                    getWithPostFilteringSync(
+                            tableRef,
+                            raw,
+                            x -> x));
+            return postFiltered.entrySet().iterator();
         });
     }
 
@@ -498,7 +533,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
      * entry per non-empty row.
      */
-    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(RowColumnRangeIterator rawResults) {
+    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(Iterator<Map.Entry<Cell, Value>> rawResults) {
         PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
         return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
             byte[] prevRowName;
