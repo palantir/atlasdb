@@ -36,18 +36,30 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
 
     private ReplaceIfExceptionMatchingProxy(Supplier<T> delegateFactory, Predicate<Throwable> shouldReplace) {
         this.delegateFactory = delegateFactory;
-        this.delegate = delegateFactory.get();
         this.shouldReplace = shouldReplace;
     }
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         try {
+            setUpDelegateIfNecessary();
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();
             replaceIfNecessary(cause);
             throw cause;
+        }
+    }
+
+    private void setUpDelegateIfNecessary() {
+        T perceivedDelegate = delegate;
+        if (perceivedDelegate == null) {
+            synchronized (this) {
+                perceivedDelegate = delegate;
+                if (perceivedDelegate == null) {
+                    delegate = delegateFactory.get();
+                }
+            }
         }
     }
 
@@ -57,7 +69,7 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
                 T replacement = delegateFactory.get();
                 if (delegate != replacement) {
                     log.info("Replacing underlying proxy due to thrown exception", thrown);
-                    delegate = delegateFactory.get();
+                    delegate = replacement;
                 }
             }
         }
