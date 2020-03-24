@@ -52,6 +52,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
+import com.palantir.tracing.RenderTracingRule;
 
 public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
@@ -63,6 +64,9 @@ public class AwaitingLeadershipProxyTest {
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
 
     @Rule public final ExpectedException expect = ExpectedException.none();
+
+    @Rule
+    public final RenderTracingRule rule = new RenderTracingRule();
 
     @Before
     public void before() throws InterruptedException {
@@ -128,6 +132,36 @@ public class AwaitingLeadershipProxyTest {
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
         when(leaderElectionService.isStillLeading(any(LeadershipToken.class))).thenReturn(inProgressCheck);
+
+        ListenableFuture<?> future = proxy.future();
+        assertThat(future).isNotDone();
+        inProgressCheck.set(StillLeadingStatus.LEADING);
+        assertThat(future).isNotDone();
+        listenableFuture.future.set(null);
+        future.get();
+    }
+
+    @Test
+    public void listenableFutureMethodsRetryProxyFailures() throws InterruptedException, ExecutionException {
+        ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
+        ReturnsListenableFuture proxy =
+                AwaitingLeadershipProxy.newProxyInstance(
+                        ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
+        waitForLeadershipToBeGained();
+
+        SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
+        when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
+                .thenAnswer($ -> {
+                    // Strange number to be detectable in traces
+                    Uninterruptibles.sleepUninterruptibly(37, TimeUnit.MILLISECONDS);
+                    return Futures.immediateFuture(StillLeadingStatus.NO_QUORUM);
+                })
+                .thenAnswer($ -> {
+                    // Strange number to be detectable in traces
+                    Uninterruptibles.sleepUninterruptibly(29, TimeUnit.MILLISECONDS);
+                    return Futures.immediateFuture(StillLeadingStatus.NO_QUORUM);
+                })
+                .thenReturn(inProgressCheck);
 
         ListenableFuture<?> future = proxy.future();
         assertThat(future).isNotDone();
