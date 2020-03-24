@@ -26,7 +26,6 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
 import com.codahale.metrics.Counter;
-import com.codahale.metrics.Meter;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbMetricNames;

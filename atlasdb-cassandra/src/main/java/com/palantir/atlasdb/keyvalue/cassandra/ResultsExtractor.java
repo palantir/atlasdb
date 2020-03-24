@@ -25,7 +25,6 @@ import java.util.SortedMap;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
 import com.codahale.metrics.Counter;
-import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
