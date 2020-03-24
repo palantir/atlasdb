@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.Assertions;
 import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -84,6 +85,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -1169,6 +1171,59 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         .transform(Map.Entry::getKey)
                         .immutableCopy());
         assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+    }
+
+    @Test
+    public void testRowsColumnRangesSingleIteratorVersion() {
+        runTestForGetRowsColumnRangeSingleIteratorVersion(1, 1, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(1, 10, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(1, 100, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10, 1, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(100, 1, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 5);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 10);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(100, 100, 99);
+    }
+
+    private void runTestForGetRowsColumnRangeSingleIteratorVersion(
+            int numRows,
+            int numCellsPerRow,
+            int numDeletedCellsPerRow) {
+        List<byte[]> expectedRows = new ArrayList<>(numRows);
+        List<Cell> expectedCells = new ArrayList<>(numRows * numCellsPerRow);
+        List<Cell> expectedDeletedCells = new ArrayList<>(numRows * numCellsPerRow);
+        for (int iRow = 0; iRow < numRows; iRow++) {
+            String row = String.format("row%02d", iRow);
+            expectedRows.add(row.getBytes());
+            for (int iCell = 0; iCell < numCellsPerRow; iCell++) {
+                String cell = String.format("cell%02d", iCell);
+                if (iCell < numDeletedCellsPerRow) {
+                    expectedDeletedCells.add(Cell.create(row.getBytes(), cell.getBytes()));
+                } else {
+                    expectedCells.add(Cell.create(row.getBytes(), cell.getBytes()));
+                }
+            }
+        }
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, Maps.toMap(expectedCells, ignored -> value));
+            return null;
+        });
+        keyValueService.addGarbageCollectionSentinelValues(TABLE, expectedDeletedCells);
+
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
+                ImmutableList.copyOf(Iterators.transform(
+                        tx.getRowsColumnRange(
+                                TABLE,
+                                expectedRows,
+                                new ColumnRangeSelection(null, null),
+                                10),
+                        Map.Entry::getKey)));
+        Assertions.assertThat(cells).isEqualTo(expectedCells);
+
+        keyValueService.truncateTable(TABLE);
     }
 
     @Test
