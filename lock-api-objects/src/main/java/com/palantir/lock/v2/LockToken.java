@@ -35,7 +35,7 @@ public interface LockToken {
         return ImmutableLockToken.of(requestId);
     }
 
-    default boolean derivedFromLockToken(LockToken lockToken) {
+    default boolean isDerivedFromLockToken(LockToken lockToken) {
         return getRequestId().equals(lockToken.getRequestId());
     }
 

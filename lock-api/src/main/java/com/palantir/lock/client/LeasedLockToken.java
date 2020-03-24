@@ -80,7 +80,7 @@ final class LeasedLockToken implements LockToken {
     }
 
     @Override
-    public boolean derivedFromLockToken(LockToken lockToken) {
+    public boolean isDerivedFromLockToken(LockToken lockToken) {
         return serverToken().getRequestId().equals(lockToken.getRequestId());
     }
 

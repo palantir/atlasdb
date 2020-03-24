@@ -233,7 +233,7 @@ public interface TransactionManager extends AutoCloseable {
     @Timed
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
-    
+
     /**
      * This is the same as {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)}, but instead
      * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
