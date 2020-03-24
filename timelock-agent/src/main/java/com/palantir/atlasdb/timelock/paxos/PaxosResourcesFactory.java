@@ -143,8 +143,8 @@ public final class PaxosResourcesFactory {
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .metrics(timelockMetrics)
-                .networkClientFactoryBuilder(ImmutablePinningNetworkClientFactories.builder())
-                .leaderPingerFactoryBuilder(ImmutableBatchingLeaderPingerFactory.builder())
+                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
+                .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
                 .build();
 
@@ -153,11 +153,15 @@ public final class PaxosResourcesFactory {
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
                 .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
                 .addAdhocResources(
-                        // The following are nasty, but need to exist to avoid problems with the JAX-RS algorithm
-                        // picking resources before it identifies specific methods.
+//                        // The following are nasty, but need to exist to avoid problems with the JAX-RS algorithm
+//                        // picking resources before it identifies specific methods.
                         new LegacyPaxosAcceptorShim(
                                 factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         new LegacyPaxosLearnerShim(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+//                        new LeadershipResource(
+//                                factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
+//                                factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)
+//                        ),
                         factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
                 .build();
     }
