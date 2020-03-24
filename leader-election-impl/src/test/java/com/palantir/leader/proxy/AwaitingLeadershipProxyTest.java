@@ -114,6 +114,7 @@ class AwaitingLeadershipProxyTest {
     }
 
     @Test
+    @TestTracing(snapshot = true)
     void listenableFutureMethodsDoNotBlockWhenLeading() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy =
@@ -239,6 +240,7 @@ class AwaitingLeadershipProxyTest {
     }
 
     @Test
+    @TestTracing(snapshot = true)
     void shouldRetryBecomingLeader() throws Exception {
         when(leaderElectionService.blockOnBecomingLeader())
                 .thenThrow(new RuntimeException())
