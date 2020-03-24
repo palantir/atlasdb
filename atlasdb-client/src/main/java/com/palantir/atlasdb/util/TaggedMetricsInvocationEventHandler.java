@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -169,9 +170,16 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
         }
 
         String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
-        taggedMetricRegistry.meter(MetricName.builder().safeName(failuresMetricName).build()).mark();
-        taggedMetricRegistry.meter(MetricName.builder().safeName(
-                MetricRegistry.name(failuresMetricName, cause.getClass().getName())).build())
+        Map<String, String> tags = tagFunction.map(f -> f.apply(context)).orElse(ImmutableMap.of());
+        taggedMetricRegistry.meter(MetricName.builder()
+                .safeName(failuresMetricName)
+                .safeTags(tags)
+                .build())
+                .mark();
+        taggedMetricRegistry.meter(MetricName.builder()
+                .safeName(MetricRegistry.name(failuresMetricName, cause.getClass().getName()))
+                .safeTags(tags)
+                .build())
                 .mark();
     }
 
