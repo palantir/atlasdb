@@ -1601,8 +1601,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
-                CommitUpdate commitUpdate = timedAndTraced("getCommitTimestamp",
-                        () -> lockWatchManager.getCommitUpdate(getStartTimestamp(), commitLocksToken));
+                long commitTs = timelockService.getFreshTimestamp();
+//                CommitUpdate commitUpdate = timedAndTraced("getCommitTimestamp",
+//                        () -> lockWatchManager.getCommitUpdate(getStartTimestamp(), commitLocksToken));
+                CommitUpdate commitUpdate = CommitUpdate.ignoringWatches(commitTs);
                 commitTsForScrubbing = commitUpdate.commitTs();
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,
