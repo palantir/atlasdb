@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
@@ -302,7 +303,10 @@ public interface TransactionManager extends AutoCloseable {
      */
     TimelockService getTimelockService();
 
-    LockWatchManager getLockWatchManager();
+    @DoNotDelegate
+    default LockWatchManager getLockWatchManager() {
+        return new NotWatchingLockWatchManager(getTimelockService());
+    }
 
     /**
      * Returns the timestamp service used by this transaction manager.
