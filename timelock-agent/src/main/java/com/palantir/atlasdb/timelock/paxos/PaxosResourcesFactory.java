@@ -150,10 +150,12 @@ public final class PaxosResourcesFactory {
 
         return resourcesBuilder
                 .leadershipContextFactory(factory)
+                .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
+                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
                 .addAdhocResources(
-                        new LeadershipResource(
-                                factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT),
-                                factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+                        new LeaderAcceptorResource(
+                                factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+                        new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
                 .build();
     }
