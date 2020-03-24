@@ -451,10 +451,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     row.getValue(), entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
             Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
             return IteratorUtils.mergeIterators(localIterator,
-                            remoteIterator,
-                            Ordering.from(UnsignedBytes.lexicographicalComparator())
-                                    .onResultOf(entry -> entry.getKey().getColumnName()),
-                            from -> from.getLhSide());
+                    remoteIterator,
+                    Ordering.from(UnsignedBytes.lexicographicalComparator())
+                            .onResultOf(entry -> entry.getKey().getColumnName()),
+                    from -> from.getLhSide());
         }));
 
         return filterDeletedValues(merged, tableRef);
@@ -533,7 +533,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
      * entry per non-empty row.
      */
-    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(Iterator<Map.Entry<Cell, Value>> rawResults) {
+    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(
+            Iterator<Map.Entry<Cell, Value>> rawResults) {
         PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
         return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
             byte[] prevRowName;
