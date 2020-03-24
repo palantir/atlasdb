@@ -1,5 +1,6 @@
 type: improvement
 improvement:
-  description: We expect the performance of `getRowsColumnRange` to have been improved.
+  description: Performance of `getRowsColumnRange` has been improved, especially when
+    querying many rows at the same time.
   links:
   - https://github.com/palantir/atlasdb/pull/4668
