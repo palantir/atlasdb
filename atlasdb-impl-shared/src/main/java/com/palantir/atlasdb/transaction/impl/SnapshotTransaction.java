@@ -489,7 +489,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             raw,
                             x -> x));
             return postFiltered.entrySet().iterator();
-        });
+        }));
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
