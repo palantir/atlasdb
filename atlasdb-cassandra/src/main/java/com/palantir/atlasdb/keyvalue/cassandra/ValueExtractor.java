@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Map;
 
-import com.codahale.metrics.Meter;
+import com.codahale.metrics.Counter;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -26,8 +26,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 
 class ValueExtractor extends ResultsExtractor<Value> {
     private final Map<Cell, Value> collector;
-    private final Meter notLatestVisibleValueCellFilterMeter =
-            getNotlatestVisibleValueCellFilterMeter(ValueExtractor.class);
+    private final Counter notLatestVisibleValueCellFilterCounter =
+            getNotLatestVisibleValueCellFilterCounter(ValueExtractor.class);
 
     ValueExtractor(MetricsManager metricsManager, Map<Cell, Value> collector) {
         super(metricsManager);
@@ -50,10 +50,10 @@ class ValueExtractor extends ResultsExtractor<Value> {
             if (!collector.containsKey(cell)) {
                 collector.put(cell, Value.create(val, ts));
             } else {
-                notLatestVisibleValueCellFilterMeter.mark();
+                notLatestVisibleValueCellFilterCounter.inc();
             }
         } else {
-            notLatestVisibleValueCellFilterMeter.mark();
+            notLatestVisibleValueCellFilterCounter.inc();
         }
     }
 

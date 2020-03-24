@@ -47,8 +47,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -447,10 +447,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Iterator<Map.Entry<Cell, byte[]>> filterDeletedValues(
             Iterator<Map.Entry<Cell, byte[]>> unfiltered,
             TableReference tableReference) {
-        Meter emptyValueMeter = getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference);
+        Counter emptyValueCounter = getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference);
         return Iterators.filter(unfiltered, entry -> {
             if (entry.getValue().length == 0) {
-                emptyValueMeter.mark();
+                emptyValueCounter.inc();
                 return false;
             }
             return true;
@@ -576,8 +576,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
-                .mark(unfiltered.size() - filtered.size());
+        getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
+                .inc(unfiltered.size() - filtered.size());
         return filtered;
     }
 
@@ -986,8 +986,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Iterators.transform(unfilteredRows, unfilteredRow -> {
             SortedMap<byte[], byte[]> filteredColumns =
                     Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value::isTombstone));
-            getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
-                    .mark(unfilteredRow.getColumns().size() - filteredColumns.size());
+            getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
+                    .inc(unfilteredRow.getColumns().size() - filteredColumns.size());
             return RowResult.create(unfilteredRow.getRowName(), filteredColumns);
         });
     }
@@ -1022,7 +1022,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 numEmptyValues++;
             }
         }
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef).mark(numEmptyValues);
+        getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef).inc(numEmptyValues);
         return mergedWritesWithoutEmptyValues;
     }
 
@@ -1181,7 +1181,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ, tableRef).update(bytes);
         }
 
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
+        getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).inc(rawResults.size());
 
         // LinkedList is chosen for fast append operation since we just add to this collection.
         Collection<Map.Entry<Cell, T>> resultsAccumulator = new LinkedList<>();
@@ -1218,8 +1218,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         if (remainingResultsToPostFilter.isEmpty()) {
-            getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
-                    .mark(resultsAccumulator.size());
+            getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
+                    .inc(resultsAccumulator.size());
             return Futures.immediateFuture(resultsAccumulator);
         }
 
@@ -1307,7 +1307,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Value value = e.getValue();
 
             if (isSweepSentinel(value)) {
-                getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).mark();
+                getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).inc();
 
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
@@ -1334,7 +1334,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     if (shouldDeleteAndRollback()) {
                         // This is from a failed transaction so we can roll it back and then reload it.
                         keysToDelete.put(key, value.getTimestamp());
-                        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef).mark();
+                        getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef).inc();
                     }
                 } else if (theirCommitTimestamp > getStartTimestamp()) {
                     // The value's commit timestamp is after our start timestamp.
@@ -1342,8 +1342,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
-                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
-                            .mark();
+                    getCounter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
+                            .inc();
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
@@ -2374,8 +2374,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 metricsManager.getTableNameTagFor(tableRef));
     }
 
-    private Meter getMeter(String name, TableReference tableRef) {
-        return metricsManager.registerOrGetTaggedMeter(
+    private Counter getCounter(String name, TableReference tableRef) {
+        return metricsManager.registerOrGetTaggedCounter(
                 SnapshotTransaction.class,
                 name,
                 metricsManager.getTableNameTagFor(tableRef));
