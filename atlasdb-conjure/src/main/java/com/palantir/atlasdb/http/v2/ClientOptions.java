@@ -43,7 +43,7 @@ public abstract class ClientOptions {
     // to give a suitable response.
     // In the context of TimeLock, this timeout must be longer than how long an AwaitingLeadershipProxy takes to
     // decide whether a node is the leader and still has a quorum.
-    static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
+    public static final Duration NON_BLOCKING_READ_TIMEOUT = Duration.ofMillis(12566); // Odd number for debugging
 
     // Should not be reduced below 65 seconds to support workflows involving locking.
     static final Duration BLOCKING_READ_TIMEOUT = Duration.ofSeconds(65);

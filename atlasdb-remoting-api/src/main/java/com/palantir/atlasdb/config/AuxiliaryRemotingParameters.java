@@ -48,9 +48,12 @@ public interface AuxiliaryRemotingParameters {
         return true;
     }
 
+    /**
+     * User-configurable options for remoting.
+     */
     @Value.Default
     default Supplier<RemotingClientConfig> remotingClientConfig() {
-        return () -> RemotingClientConfigs.ALWAYS_USE_CONJURE;
+        return () -> RemotingClientConfigs.DEFAULT;
     }
 
     static ImmutableAuxiliaryRemotingParameters.Builder builder() {

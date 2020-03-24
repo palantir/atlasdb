@@ -27,6 +27,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
+import java.net.SocketTimeoutException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.LinkedList;
@@ -49,16 +50,19 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
-import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
+import com.github.tomakehurst.wiremock.http.HttpHeader;
+import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.http.Request;
-import com.github.tomakehurst.wiremock.http.ResponseDefinition;
+import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.RequestPattern;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -82,6 +86,7 @@ public class AtlasDbHttpClientsTest {
     private static final int TEST_NUMBER_2 = 123;
     private static final Duration SLEEP_TIME = Duration.ofSeconds(6L);
 
+    private static final String USER_AGENT_HEADER = "User-Agent";
     private static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
     private static final UserAgent.Agent ATLASDB_CLIENT_V2_AGENT = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, "2.0");
     private static final String ATLASDB_CLIENT_V2_AGENT_STRING
@@ -93,7 +98,7 @@ public class AtlasDbHttpClientsTest {
             .shouldLimitPayload(false)
             .userAgent(BASE_USER_AGENT)
             .shouldRetry(true)
-            .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
+            .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
             .build();
 
     private static final SslConfiguration SSL_CONFIG = SslConfiguration.of(
@@ -196,7 +201,7 @@ public class AtlasDbHttpClientsTest {
         client.getTestNumber();
 
         availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT)).withHeader(
-                AtlasDbInterceptors.USER_AGENT_HEADER,
+                USER_AGENT_HEADER,
                 WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
     }
 
@@ -214,7 +219,7 @@ public class AtlasDbHttpClientsTest {
         clientWithDirectCall.getTestNumber();
 
         availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(AtlasDbInterceptors.USER_AGENT_HEADER,
+                .withHeader(USER_AGENT_HEADER,
                         WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
     }
 
@@ -278,13 +283,13 @@ public class AtlasDbHttpClientsTest {
         private final AtomicBoolean firstRequestDone = new AtomicBoolean(false);
 
         @Override
-        public ResponseDefinition transform(Request request, ResponseDefinition responseDefinition, FileSource files) {
+        public Response transform(Request request, Response response, FileSource files, Parameters parameters) {
             if (urls.isEmpty()) {
-                return responseDefinition;
+                return response;
             }
 
             if (firstRequestDone.get()) {
-                return responseDefinition;
+                return response;
             }
 
             String urlToRedirectTo = urls.stream()
@@ -295,14 +300,14 @@ public class AtlasDbHttpClientsTest {
 
             firstRequestDone.set(true);
 
-            return new ResponseDefinitionBuilder()
-                    .withHeader("Location", urlToRedirectTo)
-                    .withStatus(308)
+            return Response.response()
+                    .status(308)
+                    .headers(new HttpHeaders(HttpHeader.httpHeader("Location", urlToRedirectTo)))
                     .build();
         }
 
         @Override
-        public String name() {
+        public String getName() {
             return "retry-other-first-response-transformer";
         }
 
@@ -313,6 +318,14 @@ public class AtlasDbHttpClientsTest {
         void reset() {
             urls.clear();
         }
+    }
+
+    @Test
+    public void testIsPossiblyOkHttpTimeoutBug() {
+        assertThat(AtlasDbHttpClients.isPossiblyOkHttpTimeoutBug(
+                new RuntimeException(new UncheckedExecutionException(new SocketTimeoutException())))).isTrue();
+        assertThat(AtlasDbHttpClients.isPossiblyOkHttpTimeoutBug(new RuntimeException(new RuntimeException())))
+                .isFalse();
     }
 
 }

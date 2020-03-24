@@ -40,14 +40,14 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 public final class SingleLeaderPaxosSuite {
 
     public static final TestableTimelockCluster NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
-            "non-batched paxos single leader",
+            "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(9080, builder ->
                     builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxos(false))
                             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     public static final TestableTimelockCluster BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
-            "batched paxos single leader",
+            "batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(9083, builder ->
                     builder.clientPaxosBuilder(

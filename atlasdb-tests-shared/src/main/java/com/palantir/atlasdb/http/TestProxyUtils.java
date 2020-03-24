@@ -26,7 +26,7 @@ public final class TestProxyUtils {
             = AuxiliaryRemotingParameters.builder()
                     .shouldLimitPayload(false)
                     .userAgent(UserAgent.of(UserAgent.Agent.of("bla", "0.1.2")))
-                    .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
+                    .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
                     .shouldSupportBlockingOperations(false)
                     .shouldRetry(true)
                     .build();

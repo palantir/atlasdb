@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Clients for Paxos resources will detect failure more quickly when making
+    remote calls to Paxos endpoints, as there is little reason to believe these requests
+    will complete successfully if they are taking a long time. This may reduce or
+    slow down thread pool saturation when a TimeLock node is unhealthy.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4643

@@ -82,7 +82,7 @@ public final class TimeLockTestUtils {
 
         AtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig
                 .copyOf(runtimeConfigTemplate)
-                .withRemotingClient(RemotingClientConfigs.ALWAYS_USE_CONJURE);
+                .withRemotingClient(RemotingClientConfigs.DEFAULT);
 
         TransactionManager transactionManager = TransactionManagers.builder()
                 .config(config)

@@ -18,14 +18,14 @@ package com.palantir.atlasdb.sweep.queue;
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
 @Value.Immutable
 public abstract class ShardAndStrategy {
     public abstract int shard();
-    public abstract TableMetadataPersistence.SweepStrategy strategy();
+    public abstract SweeperStrategy strategy();
 
     @Value.Check
     void allowOnlyConservativeAndThorough() {
@@ -42,14 +42,14 @@ public abstract class ShardAndStrategy {
     }
 
     public boolean isConservative() {
-        return strategy() == TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+        return strategy() == SweeperStrategy.CONSERVATIVE;
     }
 
     public boolean isThorough() {
-        return strategy() == TableMetadataPersistence.SweepStrategy.THOROUGH;
+        return strategy() == SweeperStrategy.THOROUGH;
     }
 
-    public static ShardAndStrategy of(int shard, TableMetadataPersistence.SweepStrategy sweepStrategy) {
+    public static ShardAndStrategy of(int shard, SweeperStrategy sweepStrategy) {
         return ImmutableShardAndStrategy.builder()
                 .shard(shard)
                 .strategy(sweepStrategy)
@@ -57,11 +57,11 @@ public abstract class ShardAndStrategy {
     }
 
     public static ShardAndStrategy conservative(int shard) {
-        return ShardAndStrategy.of(shard, TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+        return ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE);
     }
 
     public static ShardAndStrategy thorough(int shard) {
-        return ShardAndStrategy.of(shard, TableMetadataPersistence.SweepStrategy.THOROUGH);
+        return ShardAndStrategy.of(shard, SweeperStrategy.THOROUGH);
     }
 
     public static ShardAndStrategy fromInfo(PartitionInfo info) {

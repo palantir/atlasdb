@@ -122,6 +122,7 @@ enum SweepStrategy {
     NOTHING = 0;
     CONSERVATIVE = 1;
     THOROUGH = 2;
+    THOROUGH_MIGRATION = 3;
 }
 
 enum LogSafety {

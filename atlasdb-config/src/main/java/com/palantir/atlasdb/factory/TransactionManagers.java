@@ -57,6 +57,7 @@ import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -82,7 +83,7 @@ import com.palantir.atlasdb.factory.timelock.BlockingSensitiveConjureTimelockSer
 import com.palantir.atlasdb.factory.timelock.BlockingSensitiveLockRpcClient;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
-import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
@@ -151,6 +152,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -1077,7 +1079,7 @@ public abstract class TransactionManagers {
                 .sslConfiguration(leaderConfig.sslConfiguration())
                 .build();
         ServiceCreator creator = ServiceCreator.noPayloadLimiter(
-                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfigs.ALWAYS_USE_CONJURE);
+                metricsManager, () -> serverListConfig, userAgent, () -> RemotingClientConfigs.DEFAULT);
         LockService remoteLock = new RemoteLockServiceAdapter(
                 creator.createService(NamespaceAgnosticLockRpcClient.class));
         TimestampService remoteTime = creator.createService(TimestampService.class);
@@ -1092,11 +1094,16 @@ public abstract class TransactionManagers {
 
             PingableLeader localPingableLeader = localPaxosServices.localPingableLeader();
             String localServerId = localPingableLeader.getUUID();
-            PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
+            PingableLeader remotePingableLeader = AtlasDbHttpClients.createProxy(
                     ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
-                    userAgent);
+                    AuxiliaryRemotingParameters.builder()
+                            .userAgent(userAgent)
+                            .shouldRetry(true)
+                            .shouldLimitPayload(true)
+                            .shouldSupportBlockingOperations(false)
+                            .build());
 
             // Determine asynchronously whether the remote services are talking to our local services.
             CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
@@ -1110,11 +1117,16 @@ public abstract class TransactionManagers {
                     } catch (ClientErrorException e) {
                         useLocalServicesFuture.complete(false);
                         return;
-                    } catch (Throwable e) {
-                        if (--logAfter == 0) {
-                            log.warn("Failed to read remote timestamp server ID", e);
-                            logAfter = LOGGING_INTERVAL;
+                    } catch (UnknownRemoteException e) {
+                        // This is done to replicate previous behaviour, where 4xxs returned to a JaxRsClient would
+                        // manifest as ClientErrorExceptions.
+                        if (400 <= e.getStatus() && e.getStatus() <= 499) {
+                            useLocalServicesFuture.complete(false);
+                            return;
                         }
+                        logAfter = logFailureToReadRemoteTimestampServerId(logAfter, e);
+                    } catch (Throwable e) {
+                        logAfter = logFailureToReadRemoteTimestampServerId(logAfter, e);
                     }
                     Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
                 }
@@ -1143,6 +1155,14 @@ public abstract class TransactionManagers {
                     .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
                     .build();
         }
+    }
+
+    private static int logFailureToReadRemoteTimestampServerId(int logAfter, Throwable th) {
+        if (logAfter == 0) {
+            log.warn("Failed to read remote timestamp server ID", th);
+            return LOGGING_INTERVAL;
+        }
+        return logAfter - 1;
     }
 
     private static LockAndTimestampServices createRawRemoteServices(

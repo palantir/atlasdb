@@ -24,8 +24,6 @@ import javax.ws.rs.Path;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
@@ -125,14 +123,10 @@ public abstract class PaxosRemoteClients {
                                 .userAgent(context().userAgent())
                                 .shouldLimitPayload(false)
                                 .shouldRetry(shouldRetry)
-                                .remotingClientConfig(() -> RemotingClientConfigs.ALWAYS_USE_CONJURE)
+                                .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
+                                .shouldSupportBlockingOperations(false)
                                 .build()))
-                .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(
-                        metrics(),
-                        clazz,
-                        proxy,
-                        MetricRegistry.name(clazz),
-                        _unused -> ImmutableMap.of()))
+                .map(proxy -> AtlasDbMetrics.instrumentWithTaggedMetrics(metrics(), clazz, proxy))
                 .mapKeys(PaxosRemoteClients::convertAddressToHostAndPort);
     }
 

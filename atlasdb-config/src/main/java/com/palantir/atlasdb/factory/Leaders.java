@@ -117,7 +117,7 @@ public final class Leaders {
                 metricsManager,
                 config,
                 remotePaxosServerSpec,
-                () -> RemotingClientConfigs.ALWAYS_USE_CONJURE,
+                () -> RemotingClientConfigs.DEFAULT,
                 userAgent,
                 LeadershipObserver.NO_OP);
     }
@@ -275,6 +275,7 @@ public final class Leaders {
                                 .userAgent(userAgent)
                                 .shouldLimitPayload(false)
                                 .shouldRetry(true)
+                                .shouldSupportBlockingOperations(false)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .collect(Collectors.toList());
@@ -294,11 +295,11 @@ public final class Leaders {
                         trustContext,
                         endpoint,
                         PingableLeader.class,
-                        AuxiliaryRemotingParameters.builder() // TODO (jkong): Configurable remoting client config.
-                                .shouldLimitPayload(false)
+                        AuxiliaryRemotingParameters.builder()
                                 .userAgent(userAgent)
+                                .shouldLimitPayload(false) // Guaranteed to be small, no need to limit.
                                 .shouldRetry(false)
-                                .shouldLimitPayload(true)
+                                .shouldSupportBlockingOperations(false)
                                 .remotingClientConfig(remotingClientConfig)
                                 .build()))
                 .map(Leaders::convertAddressToHostAndPort)

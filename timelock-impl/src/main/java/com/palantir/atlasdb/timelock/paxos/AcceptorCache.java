@@ -36,14 +36,23 @@ public interface AcceptorCache {
      * <p>
      * Implementations <b><em>SHOULD</em></b> ignore any pairs where the given sequence number is lower than what has already
      * been seen by this cache.
+     * <p>
+     * If there have been updates applied, then subsequent calls to {@link AcceptorCache#updateSequenceNumbers} and
+     * {@link AcceptorCache#updatesSinceCacheKey} should return a {@link AcceptorCacheDigest} with a new
+     * <b>cache key</b> and a <b>strictly increasing</b> {@link AcceptorCacheDigest#cacheTimestamp}.
      */
     void updateSequenceNumbers(Set<WithSeq<Client>> clientsAndSeqs);
 
     /**
      * Get all latest sequence numbers for each client this cache has seen so far.
      * <p>
-     * A {@link AcceptorCacheDigest digest} is returned which also contains a {@link AcceptorCacheKey cacheKey} that
-     * should be used with {@link AcceptorCache#updatesSinceCacheKey}.
+     * A {@link AcceptorCacheDigest digest} is returned which also contains a {@link AcceptorCacheKey cache key} that
+     * should be used with {@link AcceptorCache#updatesSinceCacheKey}. It also contains a
+     * {@link AcceptorCacheDigest#cacheTimestamp() cache timestamp} to aid in ordering responses received from this
+     * cache.
+     * <p>
+     * The digests returned from this method <b>must</b> always contain non-negative
+     * {@link AcceptorCacheDigest#cacheTimestamp() cache timestamps}.
      *
      * @return digest containing all latest sequence numbers for clients seen by this cache.
      */
@@ -60,14 +69,19 @@ public interface AcceptorCache {
      *     </li>
      *     <li>
      *         If there <em>have</em> been updates since {@code cacheKey} was issued, an {@link Optional} is returned
-     *         with a {@link AcceptorCacheDigest} containing the respective updates and also a new
-     *         {@link AcceptorCacheKey cache key} to use on the next invocation.
+     *         with a {@link AcceptorCacheDigest} containing the respective updates and also a <b>new</b>
+     *         {@link AcceptorCacheKey cache key} to use on the next invocation. It should also contain a
+     *         {@link AcceptorCacheDigest#cacheTimestamp()} that is strictly greater than the cacheTimestamp associated
+     *         with the <em>latest</em> cache timestamp.
      *     </li>
      *     <li>
      *         If the {@code cacheKey} is invalid either because it was not issued by the cache or it has expired for
      *         example, the implementation must throw a {@link InvalidAcceptorCacheKeyException}.
      *     </li>
      * </ul>
+     *
+     * The digests returned from this method <b>must</b> always contain non-negative
+     * {@link AcceptorCacheDigest#cacheTimestamp() cache timestamps}.
      *
      * @param cacheKey effective point in time where updates are requested from
      * @return a {@link AcceptorCacheDigest digest} containing the updates and a new cache key if any

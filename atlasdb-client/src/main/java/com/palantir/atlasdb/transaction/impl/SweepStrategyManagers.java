@@ -24,8 +24,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -59,7 +60,7 @@ public class SweepStrategyManagers {
                     schema.getAllTablesAndIndexMetadata().get(tableRef),
                     "unknown table",
                     SafeArg.of("tableRef", tableRef));
-            return tableMeta.getSweepStrategy();
+            return SweepStrategy.from(tableMeta.getSweepStrategy());
         };
     }
 
@@ -71,7 +72,7 @@ public class SweepStrategyManagers {
     }
 
     public static SweepStrategyManager completelyConservative() {
-        return tableRef -> SweepStrategy.CONSERVATIVE;
+        return tableRef -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
     }
 
     private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
@@ -81,9 +82,9 @@ public class SweepStrategyManagers {
 
     private static SweepStrategy getSweepStrategy(byte[] tableMeta) {
         if (tableMeta != null && tableMeta.length > 0) {
-            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy();
+            return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         } else {
-            return SweepStrategy.CONSERVATIVE;
+            return SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         }
     }
 }

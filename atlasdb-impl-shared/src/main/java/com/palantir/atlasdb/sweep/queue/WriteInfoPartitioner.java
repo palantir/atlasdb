@@ -17,6 +17,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -30,9 +31,11 @@ import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.SweepStrategy;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 
 public class WriteInfoPartitioner {
     private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);
@@ -40,11 +43,11 @@ public class WriteInfoPartitioner {
     private final KeyValueService kvs;
     private final Supplier<Integer> numShards;
 
-    private final LoadingCache<TableReference, TableMetadataPersistence.SweepStrategy> cache = CacheBuilder
+    private final LoadingCache<TableReference, Optional<SweeperStrategy>> cache = CacheBuilder
             .newBuilder().build(
-                    new CacheLoader<TableReference, TableMetadataPersistence.SweepStrategy>() {
+                    new CacheLoader<TableReference, Optional<SweeperStrategy>>() {
                         @Override
-                        public TableMetadataPersistence.SweepStrategy load(TableReference key) throws Exception {
+                        public Optional<SweeperStrategy> load(TableReference key) throws Exception {
                             return getStrategyFromKvs(key);
                         }
                     });
@@ -65,7 +68,7 @@ public class WriteInfoPartitioner {
     @VisibleForTesting
     List<WriteInfo> filterOutUnsweepableTables(List<WriteInfo> writes) {
         return writes.stream()
-                .filter(writeInfo -> getStrategy(writeInfo) != TableMetadataPersistence.SweepStrategy.NOTHING)
+                .filter(writeInfo -> getStrategy(writeInfo).isPresent())
                 .collect(Collectors.toList());
     }
 
@@ -80,22 +83,25 @@ public class WriteInfoPartitioner {
         return PartitionInfo.of(write.toShard(shards), isConservative(write), write.timestamp());
     }
 
+    private boolean isConservative(WriteInfo write) {
+        Optional<SweeperStrategy> strategy = getStrategy(write);
+        Preconditions.checkState(strategy.isPresent(), "Was not expecting empty strategy at this point");
+        return strategy.get() == SweeperStrategy.CONSERVATIVE;
+    }
+
     @VisibleForTesting
-    TableMetadataPersistence.SweepStrategy getStrategy(WriteInfo writeInfo) {
+    Optional<SweeperStrategy> getStrategy(WriteInfo writeInfo) {
         return cache.getUnchecked(writeInfo.tableRef());
     }
 
-    private TableMetadataPersistence.SweepStrategy getStrategyFromKvs(TableReference tableRef) {
+    private Optional<SweeperStrategy> getStrategyFromKvs(TableReference tableRef) {
         try {
-            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(kvs.getMetadataForTable(tableRef)).getSweepStrategy();
+            return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(
+                    kvs.getMetadataForTable(tableRef)).getSweepStrategy()).getSweeperStrategy();
         } catch (Exception e) {
             log.warn("Failed to obtain sweep strategy for table {}.",
                     LoggingArgs.tableRef(tableRef), e);
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
-    }
-
-    private boolean isConservative(WriteInfo write) {
-        return getStrategy(write) == TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
     }
 }

@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableAcceptorCacheDigest.class)
 @JsonSerialize(as = ImmutableAcceptorCacheDigest.class)
 public interface AcceptorCacheDigest {
+    long cacheTimestamp();
     AcceptorCacheKey newCacheKey();
     Map<Client, Long> updates();
 }
