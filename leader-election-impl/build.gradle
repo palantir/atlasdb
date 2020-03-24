@@ -17,13 +17,20 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
 
+  testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
+
+  testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
+  testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api'
+  testCompile group: 'org.junit.vintage', name: 'junit-vintage-engine'
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
+}
+
+test {
+  useJUnitPlatform()
 }
 
 configurations {

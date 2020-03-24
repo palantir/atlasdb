@@ -17,7 +17,6 @@ package com.palantir.leader.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.core.Is.isA;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -37,10 +36,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Futures;
@@ -52,9 +49,9 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
-import com.palantir.tracing.RenderTracingRule;
+import com.palantir.tracing.TestTracing;
 
-public class AwaitingLeadershipProxyTest {
+class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -63,13 +60,8 @@ public class AwaitingLeadershipProxyTest {
     private final Runnable mockRunnable = mock(Runnable.class);
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
 
-    @Rule public final ExpectedException expect = ExpectedException.none();
-
-    @Rule
-    public final RenderTracingRule rule = new RenderTracingRule();
-
-    @Before
-    public void before() throws InterruptedException {
+    @BeforeEach
+    void before() throws InterruptedException {
         when(leaderElectionService.blockOnBecomingLeader()).thenReturn(leadershipToken);
         when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(leaderElectionService.isStillLeading(leadershipToken)).thenReturn(
@@ -80,7 +72,7 @@ public class AwaitingLeadershipProxyTest {
     @SuppressWarnings("SelfEquals")
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
-    public void shouldAllowObjectMethodsWhenLeading() {
+    void shouldAllowObjectMethodsWhenLeading() {
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
                 Runnable.class, delegateSupplier, leaderElectionService);
 
@@ -104,7 +96,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void listenableFutureMethodsDoNotBlockWhenNotLeading() throws ExecutionException, InterruptedException {
+    void listenableFutureMethodsDoNotBlockWhenNotLeading() throws InterruptedException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy =
                 AwaitingLeadershipProxy.newProxyInstance(
@@ -118,12 +110,11 @@ public class AwaitingLeadershipProxyTest {
         assertThat(future).isNotDone();
         inProgressCheck.set(StillLeadingStatus.NOT_LEADING);
         assertThat(future.isDone());
-        expect.expectCause(isA(NotCurrentLeaderException.class));
-        future.get();
+        assertThatThrownBy(future::get).hasCauseInstanceOf(NotCurrentLeaderException.class);
     }
 
     @Test
-    public void listenableFutureMethodsDoNotBlockWhenLeading() throws InterruptedException, ExecutionException {
+    void listenableFutureMethodsDoNotBlockWhenLeading() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy =
                 AwaitingLeadershipProxy.newProxyInstance(
@@ -142,7 +133,8 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void listenableFutureMethodsRetryProxyFailures() throws InterruptedException, ExecutionException {
+    @TestTracing(snapshot = true)
+    void listenableFutureMethodsRetryProxyFailures() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy =
                 AwaitingLeadershipProxy.newProxyInstance(
@@ -175,7 +167,7 @@ public class AwaitingLeadershipProxyTest {
     @SuppressWarnings("SelfEquals")
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
-    public void shouldAllowObjectMethodsWhenNotLeading() {
+    void shouldAllowObjectMethodsWhenNotLeading() {
         when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
 
@@ -189,7 +181,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldMapInterruptedExceptionToNcleIfLeadingStatusChanges() {
+    void shouldMapInterruptedExceptionToNcleIfLeadingStatusChanges() {
         Callable<Void> delegate = () -> {
             throw new InterruptedException(TEST_MESSAGE);
         };
@@ -202,7 +194,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldNotMapOtherExceptionToNcleIfLeadingStatusChanges()  {
+    void shouldNotMapOtherExceptionToNcleIfLeadingStatusChanges()  {
         Callable<Void> delegate = () -> {
             throw new RuntimeException(TEST_MESSAGE);
         };
@@ -213,7 +205,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldNotMapInterruptedExceptionToNcleIfLeadingStatusDoesNotChange() throws InterruptedException {
+    void shouldNotMapInterruptedExceptionToNcleIfLeadingStatusDoesNotChange() throws InterruptedException {
         Callable<Void> proxy = proxyFor(() -> {
             throw new InterruptedException(TEST_MESSAGE);
         });
@@ -225,7 +217,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldGainLeadershipImmediatelyIfAlreadyLeading() throws Exception {
+    void shouldGainLeadershipImmediatelyIfAlreadyLeading() throws Exception {
         when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.of(leadershipToken));
 
         Callable proxy = proxyFor(() -> null);
@@ -236,7 +228,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldBlockOnGainingLeadershipIfNotCurrentlyLeading() throws Exception {
+    void shouldBlockOnGainingLeadershipIfNotCurrentlyLeading() throws Exception {
         Callable proxy = proxyFor(() -> null);
         waitForLeadershipToBeGained();
 
@@ -247,7 +239,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldRetryBecomingLeader() throws Exception {
+    void shouldRetryBecomingLeader() throws Exception {
         when(leaderElectionService.blockOnBecomingLeader())
                 .thenThrow(new RuntimeException())
                 .thenReturn(leadershipToken);
