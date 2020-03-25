@@ -18,11 +18,9 @@ package com.palantir.atlasdb.http;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
