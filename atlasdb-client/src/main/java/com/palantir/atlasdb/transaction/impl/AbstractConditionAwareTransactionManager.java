@@ -20,7 +20,6 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.PreCommitConditions;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
 
@@ -46,17 +45,16 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP, (txn, condition) -> task.execute(txn));
+        return runTaskWithConditionThrowOnConflict(ignore -> { }, (txn, condition) -> task.execute(txn));
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionWithRetry(() -> PreCommitConditions.NO_OP, (txn, condition) -> task.execute(txn));
+        return runTaskWithConditionWithRetry(() -> ignore -> { }, (txn, condition) -> task.execute(txn));
     }
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionReadOnly(PreCommitConditions.NO_OP,
-                (transaction, condition) -> task.execute(transaction));
+        return runTaskWithConditionReadOnly(ignore -> { }, (transaction, condition) -> task.execute(transaction));
     }
 }
