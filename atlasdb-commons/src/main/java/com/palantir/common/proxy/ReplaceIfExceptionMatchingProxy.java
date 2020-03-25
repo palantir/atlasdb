@@ -42,8 +42,7 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         try {
-            setUpDelegateIfNecessary();
-            return method.invoke(delegate, args);
+            return method.invoke(getAndPossiblyInitializeDelegate(), args);
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();
             replaceIfNecessary(cause);
@@ -51,16 +50,17 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
         }
     }
 
-    private void setUpDelegateIfNecessary() {
+    private T getAndPossiblyInitializeDelegate() {
         T perceivedDelegate = delegate;
         if (perceivedDelegate == null) {
             synchronized (this) {
                 perceivedDelegate = delegate;
                 if (perceivedDelegate == null) {
-                    delegate = delegateFactory.get();
+                    perceivedDelegate = delegate = delegateFactory.get();
                 }
             }
         }
+        return perceivedDelegate;
     }
 
     private void replaceIfNecessary(Throwable thrown) {
