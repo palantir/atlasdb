@@ -19,12 +19,16 @@ package com.palantir.common.proxy;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.reflect.AbstractInvocationHandler;
 
 public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocationHandler {
@@ -75,8 +79,20 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
         }
     }
 
+    public static <T> T create(
+            Class<T> interfaceClass,
+            Supplier<T> delegate,
+            Duration minCreationInterval,
+            Predicate<Throwable> shouldReplace) {
+        return newProxyInstance(
+                interfaceClass,
+                Suppliers.memoizeWithExpiration(delegate::get, minCreationInterval.toMillis(), TimeUnit.MILLISECONDS),
+                shouldReplace);
+    }
+
     @SuppressWarnings("unchecked")
-    public static <T> T newProxyInstance(
+    @VisibleForTesting
+    static <T> T newProxyInstance(
             Class<T> interfaceClass,
             Supplier<T> delegate,
             Predicate<Throwable> shouldReplace) {

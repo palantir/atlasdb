@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.http;
 
 import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -108,9 +109,10 @@ public final class AtlasDbHttpClients {
      * 2. At most once every 20 minutes
      */
     private static <T> T wrapWithOkHttpBugHandling(Class<T> type, Supplier<T> supplier) {
-        return ReplaceIfExceptionMatchingProxy.newProxyInstance(
+        return ReplaceIfExceptionMatchingProxy.create(
                 type,
-                Suppliers.memoizeWithExpiration(supplier::get, 20, TimeUnit.MINUTES),
+                supplier::get,
+                Duration.ofMinutes(20),
                 AtlasDbHttpClients::isPossiblyOkHttpTimeoutBug);
     }
 
