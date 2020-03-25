@@ -111,7 +111,7 @@ public final class AtlasDbHttpClients {
     private static <T> T wrapWithOkHttpBugHandling(Class<T> type, Supplier<T> supplier) {
         return ReplaceIfExceptionMatchingProxy.create(
                 type,
-                supplier::get,
+                supplier,
                 Duration.ofMinutes(20),
                 AtlasDbHttpClients::isPossiblyOkHttpTimeoutBug);
     }
