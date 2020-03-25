@@ -40,7 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
@@ -144,7 +144,7 @@ public abstract class TransactionTestSetup {
         timestampService = ts;
         timestampManagementService = ts;
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
-        lockWatchManager = new NotWatchingLockWatchManager(timelockService);
+        lockWatchManager = LockWatchServiceImpl.createWithoutLockWatches(timelockService);
         transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);

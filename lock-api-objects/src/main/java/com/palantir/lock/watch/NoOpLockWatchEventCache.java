@@ -52,7 +52,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long startTs, long commitTs, LockWatchStateUpdate update, LockToken ignore) {
+    public CommitUpdate getCommitUpdate(long startTs, long commitTs, LockToken ignore) {
         return CommitUpdate.invalidateWatches(commitTs);
     }
 

@@ -91,9 +91,8 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
-import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchService;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -1015,10 +1014,9 @@ public abstract class TransactionManagers {
         LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.INSTANCE;
         NamespacedLockWatchingRpcClient namespacedLockWatchingRpcClient = new NamespacedLockWatchingRpcClient(
                 creator.createService(LockWatchingRpcClient.class), timelockNamespace);
-        LockWatchManager lockWatcher = new LockWatchManagerImpl(
-                namespacedLockWatchingRpcClient,
-                namespacedConjureTimelockService,
-                lockWatchEventCache);
+
+        LockWatchService lockWatcher = LockWatchServiceImpl
+                .create(namespacedLockWatchingRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter
                 .create(namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
@@ -1216,8 +1214,8 @@ public abstract class TransactionManagers {
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
         @Value.Default
-        default LockWatchManager lockWatcher() {
-            return new NotWatchingLockWatchManager(timelock());
+        default LockWatchService lockWatcher() {
+            return LockWatchServiceImpl.createWithoutLockWatches(timelock());
         }
 
         @Value.Derived

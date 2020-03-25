@@ -147,7 +147,6 @@ services:
           namespace: string
           request: ConjureUnlockRequest
         returns: ConjureUnlockResponse
-
       getCommitTimestamps:
         http: POST /gct/{namespace}
         args:

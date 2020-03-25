@@ -16,38 +16,43 @@
 
 package com.palantir.lock.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.ImmutableIdentifiedVersion;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
-public class CommitTimestampGetterTest {
+public class BatchingCommitTimestampGetterTest {
     private final NamespacedConjureTimelockService timelock = mock(NamespacedConjureTimelockService.class);
     private final LockWatchEventCache cache = mock(LockWatchEventCache.class);
 
-    private CommitTimestampGetter getter;
+    private BatchingCommitTimestampGetter getter;
 
     @Before
     public void setup() {
@@ -62,7 +67,7 @@ public class CommitTimestampGetterTest {
                     .build();
         });
         when(cache.lastKnownVersion()).thenReturn(ImmutableIdentifiedVersion.of(UUID.randomUUID(), Optional.empty()));
-        getter = CommitTimestampGetter.create(timelock, cache);
+        getter = BatchingCommitTimestampGetter.create(timelock, cache);
     }
 
     @After
@@ -71,18 +76,22 @@ public class CommitTimestampGetterTest {
     }
 
     @Test
-    public void test() {
-        ExecutorService executor = PTExecutors.newFixedThreadPool(10);
-        List<Future<Long>> results = IntStream.range(0, 10).mapToObj(
-                i -> executor.submit(getter::getCommitTimestamp)).collect(Collectors.toList());
-        results.forEach(future -> {
-            try {
-                System.out.println(future.get());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }
-        });
+    public void atLeastSomeRequestsGetBatched() {
+        int poolSize = 1024;
+        ListeningExecutorService executor = MoreExecutors.listeningDecorator(
+                PTExecutors.newFixedThreadPool(poolSize));
+
+        List<Long> results = AtlasFutures.getUnchecked(Futures.allAsList(
+                IntStream.range(0, poolSize)
+                        .mapToObj(i -> executor.submit(getter::getCommitTimestamp))
+                        .collect(Collectors.toList())));
+        executor.shutdown();
+
+        assertThat(results.stream().sorted().collect(Collectors.toList()))
+                .isEqualTo(LongStream.range(0, poolSize).boxed().collect(Collectors.toList()));
+
+        verify(timelock, atLeastOnce()).getCommitTimestamps(any());
+        verify(cache, atLeastOnce()).processGetCommitTimestampsUpdate(anyCollection(), any(LockWatchStateUpdate.class));
+        verify(timelock, atMost(poolSize - 1)).getCommitTimestamps(any());
     }
 }

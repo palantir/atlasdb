@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.client;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
-@FunctionalInterface
-public interface CommitTimestampGetter {
-    long getCommitTimestamp();
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.CommitUpdate;
+
+public interface LockWatchService extends LockWatchManager {
+    CommitUpdate getCommitUpdate(long startTimestamp, LockToken commitLocksToken);
 }

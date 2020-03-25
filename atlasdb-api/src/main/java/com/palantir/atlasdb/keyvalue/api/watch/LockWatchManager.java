@@ -19,8 +19,6 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import java.util.Set;
 
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.IdentifiedVersion;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.TransactionsLockWatchEvents;
@@ -39,6 +37,4 @@ public interface LockWatchManager {
      * @param lastKnownVersion exclusive start version to get events from
      */
     TransactionsLockWatchEvents getEventsForTransactions(Set<Long> startTimestamps, IdentifiedVersion lastKnownVersion);
-
-    CommitUpdate getCommitUpdate(long startTimestamp, LockToken commitLocksToken);
 }

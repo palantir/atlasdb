@@ -40,7 +40,7 @@ import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.watch.NotWatchingLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchServiceImpl;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -76,7 +76,7 @@ public class SnapshotTransactionManagerTest {
             metricsManager,
             keyValueService,
             legacyTimelock,
-            new NotWatchingLockWatchManager(legacyTimelock),
+            LockWatchServiceImpl.createWithoutLockWatches(legacyTimelock),
             timestampService,
             closeableLockService,
             mock(TransactionService.class),
@@ -126,7 +126,7 @@ public class SnapshotTransactionManagerTest {
                 metricsManager,
                 keyValueService,
                 timelock,
-                new NotWatchingLockWatchManager(timelock),
+                LockWatchServiceImpl.createWithoutLockWatches(timelock),
                 ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -218,7 +218,7 @@ public class SnapshotTransactionManagerTest {
                 metricsManager,
                 keyValueService,
                 timelockService,
-                new NotWatchingLockWatchManager(timelockService),
+                LockWatchServiceImpl.createWithoutLockWatches(timelockService),
                 timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),

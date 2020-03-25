@@ -40,11 +40,10 @@ public interface LockWatchEventCache {
      *
      * @param startTs start timestamp of the transaction
      * @param commitTs commit timestamp of the transaction
-     * @param update lock watch state update associated with the commit timestamp
      * @param commitLocksToken lock token for the transactions's commit locks
      * @return the commit update for this transaction's precommit condition
      */
-    CommitUpdate getCommitUpdate(long startTs, long commitTs, LockWatchStateUpdate update, LockToken commitLocksToken);
+    CommitUpdate getCommitUpdate(long startTs, long commitTs, LockToken commitLocksToken);
     /**
      * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred
      * since that version, and a map associating each start timestamp with its respective lock watch state version.
