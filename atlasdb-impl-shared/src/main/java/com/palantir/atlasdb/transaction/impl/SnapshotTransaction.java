@@ -1570,6 +1570,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!hasWrites()) {
             if (hasReads()) {
                 // verify any pre-commit conditions on the transaction
+                preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
                 preCommitCondition.throwIfConditionInvalid(CommitUpdate.ignoringWatches(getStartTimestamp()));
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
@@ -1689,6 +1690,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void throwIfPreCommitConditionInvalid(CommitUpdate commitUpdate) {
         try {
+            preCommitCondition.throwIfConditionInvalid(commitUpdate.commitTs());
             preCommitCondition.throwIfConditionInvalid(commitUpdate);
         } catch (TransactionFailedException ex) {
             transactionOutcomeMetrics.markPreCommitCheckFailed();
