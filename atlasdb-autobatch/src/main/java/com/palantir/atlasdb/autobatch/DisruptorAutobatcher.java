@@ -22,19 +22,24 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.tracing.DetachedSpan;
 
 /**
  * While this class is public, it shouldn't be used as API outside of AtlasDB because we
@@ -65,19 +70,22 @@ public final class DisruptorAutobatcher<T, R>
 
     private final Disruptor<DefaultBatchElement<T, R>> disruptor;
     private final RingBuffer<DefaultBatchElement<T, R>> buffer;
+    private final String safeLoggablePurpose;
     private volatile boolean closed = false;
 
     DisruptorAutobatcher(
             Disruptor<DefaultBatchElement<T, R>> disruptor,
-            RingBuffer<DefaultBatchElement<T, R>> buffer) {
+            RingBuffer<DefaultBatchElement<T, R>> buffer,
+            String safeLoggablePurpose) {
         this.disruptor = disruptor;
         this.buffer = buffer;
+        this.safeLoggablePurpose = safeLoggablePurpose;
     }
 
     @Override
     public ListenableFuture<R> apply(T argument) {
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
-        SettableFuture<R> result = SettableFuture.create();
+        DisruptorFuture<R> result = new DisruptorFuture<R>(safeLoggablePurpose);
         buffer.publishEvent((refresh, sequence) -> {
             refresh.result = result;
             refresh.argument = argument;
@@ -98,7 +106,7 @@ public final class DisruptorAutobatcher<T, R>
 
     private static final class DefaultBatchElement<T, R> implements BatchElement<T, R> {
         private T argument;
-        private SettableFuture<R> result;
+        private DisruptorFuture<R> result;
 
         @Override
         public T argument() {
@@ -106,8 +114,50 @@ public final class DisruptorAutobatcher<T, R>
         }
 
         @Override
-        public SettableFuture<R> result() {
+        public DisruptorFuture<R> result() {
             return result;
+        }
+    }
+
+    public static final class DisruptorFuture<R> extends AbstractFuture<R> {
+
+        private final DetachedSpan parent;
+        private final DetachedSpan waitingSpan;
+
+        @Nullable
+        private DetachedSpan runningSpan = null;
+
+        public DisruptorFuture(String safeLoggablePurpose) {
+            super();
+            this.parent = DetachedSpan.start(safeLoggablePurpose + " disruptor task");
+            this.waitingSpan = parent.childDetachedSpan("task waiting to be run");
+            this.addListener(() -> {
+                waitingSpan.complete();
+                if (runningSpan != null) {
+                    runningSpan.complete();
+                }
+                parent.complete();
+            }, MoreExecutors.directExecutor());
+        }
+
+        void running() {
+            waitingSpan.complete();
+            runningSpan = parent.childDetachedSpan("running task");
+        }
+
+        @Override
+        public boolean set(@NullableDecl R value) {
+            return super.set(value);
+        }
+
+        @Override
+        public boolean setException(Throwable throwable) {
+            return super.setException(throwable);
+        }
+
+        @Override
+        public boolean setFuture(ListenableFuture<? extends R> future) {
+            return super.setFuture(future);
         }
     }
 
@@ -119,6 +169,6 @@ public final class DisruptorAutobatcher<T, R>
                 new Disruptor<>(DefaultBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
         disruptor.handleEventsWith(eventHandler);
         disruptor.start();
-        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer());
+        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), safeLoggablePurpose);
     }
 }
