@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -492,20 +493,19 @@ import com.palantir.timestamp.TimestampService;
     }
 
     private static final class ShutdownRunner implements AutoCloseable {
-        private boolean failed = false;
+        private final List<Throwable> failures = new ArrayList<>();
 
         void shutdownSafely(Runnable shutdownCallback) {
             try {
                 shutdownCallback.run();
-            } catch (Throwable exception) {
-                log.warn("Exception thrown when shutting down. Swallowing to proceed.", exception);
-                failed = true;
+            } catch (Throwable throwable) {
+                failures.add(throwable);
             }
         }
 
         @Override
         public void close() {
-            if (failed) {
+            if (!failures.isEmpty()) {
                 throw new SafeRuntimeException("Close failed.");
             }
         }
