@@ -19,12 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -53,6 +55,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class SnapshotTransactionManagerTest {
@@ -157,6 +160,34 @@ public class SnapshotTransactionManagerTest {
         verify(callback, never()).run();
         snapshotTransactionManager.close();
         verify(callback).run();
+    }
+
+    @Test
+    public void propagatesExceptionsOnCloseAndCleansUpAllResources() {
+        RuntimeException failure1 = new RuntimeException();
+        doThrow(failure1).when(cleaner).close();
+
+        RuntimeException failure2 = new RuntimeException();
+        Runnable callback = mock(Runnable.class);
+        doThrow(failure2).when(callback).run();
+        snapshotTransactionManager.registerClosingCallback(callback);
+
+        assertThatThrownBy(snapshotTransactionManager::close)
+                .isExactlyInstanceOf(SafeRuntimeException.class)
+                .hasMessage("Close failed. Please inspect the code and fix the failures")
+                .hasSuppressedException(failure1)
+                .hasSuppressedException(failure2);
+
+        verify(cleaner).close();
+        verify(callback).run();
+    }
+
+    @Test
+    public void runsCloseOnce() {
+        snapshotTransactionManager.close();
+        verify(cleaner).close();
+        snapshotTransactionManager.close();
+        verifyNoMoreInteractions(cleaner);
     }
 
     @Test
