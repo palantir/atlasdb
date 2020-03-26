@@ -43,8 +43,8 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -311,7 +311,7 @@ public class WriteBatchingTransactionServiceTest {
         static TestTransactionBatchElement of(long startTimestamp, long commitTimestamp) {
             return ImmutableTestTransactionBatchElement.builder()
                     .argument(ImmutableTimestampPair.of(startTimestamp, commitTimestamp))
-                    .result(SettableFuture.create())
+                    .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                     .build();
         }
     }

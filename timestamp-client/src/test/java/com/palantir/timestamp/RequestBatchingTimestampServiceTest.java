@@ -41,14 +41,14 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class RequestBatchingTimestampServiceTest {
     private static final int MAX_TIMESTAMPS = 10_000;
 
-    @Spy private TimestampService unbatchedDelegate = new MaxTimestampsToGiveTimestampService();
+    @Spy private final TimestampService unbatchedDelegate = new MaxTimestampsToGiveTimestampService();
 
     private CloseableTimestampService timestamp;
 
@@ -103,7 +103,7 @@ public final class RequestBatchingTimestampServiceTest {
         List<BatchElement<Integer, TimestampRange>> elements = Arrays.stream(sizes)
                 .mapToObj(size -> ImmutableTestBatchElement.builder()
                         .argument(size)
-                        .result(SettableFuture.create())
+                        .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                         .build())
                 .collect(toList());
         RequestBatchingTimestampService.consumer(unbatchedDelegate).accept(elements);

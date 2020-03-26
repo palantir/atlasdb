@@ -35,7 +35,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -271,7 +270,7 @@ public final class WriteBatchingTransactionService implements TransactionService
         });
     }
 
-    private static void markSuccessful(SettableFuture<Void> result) {
+    private static void markSuccessful(DisruptorAutobatcher.DisruptorFuture<Void> result) {
         result.set(null);
     }
 
