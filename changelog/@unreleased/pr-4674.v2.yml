@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Disruptor Autobatchers now has a special future that allows it track
+    the different phases of the batching process.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4674
