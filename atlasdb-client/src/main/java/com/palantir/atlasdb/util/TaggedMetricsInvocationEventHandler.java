@@ -170,7 +170,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
         }
 
         String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
-        Map<String, String> tags = tagFunction.map(f -> f.apply(context)).orElse(ImmutableMap.of());
+        Map<String, String> tags = tagFunction.map(f -> f.apply(context)).orElseGet(ImmutableMap::of);
         taggedMetricRegistry.meter(MetricName.builder()
                 .safeName(failuresMetricName)
                 .safeTags(tags)
