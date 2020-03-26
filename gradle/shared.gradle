@@ -30,31 +30,6 @@ dependencies {
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
-
-    modules {
-        module('javax.annotation:javax.annotation-api') {
-            replacedBy('jakarta.annotation:jakarta.annotation-api')
-        }
-        module('javax.inject:javax.inject') {
-            replacedBy('org.glassfish.hk2.external:jakarta.inject')
-        }
-        module('javax.validation:validation-api') {
-            replacedBy('jakarta.validation:jakarta.validation-api')
-        }
-        module('javax.ws.rs:javax.ws.rs-api') {
-            replacedBy('jakarta.ws.rs:jakarta.ws.rs-api')
-        }
-        module('jakarta.el:jakarta.el-api') {
-            // See internal plugin PR 26.
-            replacedBy('org.glassfish:jakarta.el')
-        }
-        module('org.glassfish:javax.el') {
-            replacedBy('org.glassfish:jakarta.el')
-        }
-        module('org.glassfish.hk2.external:javax.inject') {
-            replacedBy('org.glassfish.hk2.external:jakarta.inject')
-        }
-    }
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
