@@ -83,6 +83,19 @@ public interface LeaderElectionService {
     boolean stepDown();
 
     /**
+     * Attempts to forcefully take over leadership. That is, it is similar to {@link #blockOnBecomingLeader()}, however
+     * it does not block and also if it discovers that it is not the leader, it doesn't back down but proposes
+     * leadership anyway.
+     * <p>
+     * Note: Whilst a positive result means that it successfully proposed and became the leader, it is still subject to
+     * health check constraints, that is, if it becomes unresponsive for any reason, other nodes will take over
+     * leadership through the normal means via {@link #blockOnBecomingLeader}.
+     *
+     * @return true if and only if this node was able to gain leadership forcefully or was already the leader
+     */
+    boolean hostileTakeover();
+
+    /**
      * If this {@link LeaderElectionService} has last successfully pinged node that believed it was the leader recently
      * (up to the implementation), it returns the {@link HostAndPort} through which the leader can be contacted.
      * <p>

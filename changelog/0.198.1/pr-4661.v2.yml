@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Methods returning `ListenableFuture`s now have their metrics accurately
+    tracked.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4661

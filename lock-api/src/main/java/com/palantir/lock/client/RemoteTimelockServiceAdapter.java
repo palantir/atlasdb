@@ -86,8 +86,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return ConjureLockRequests.fromConjure(
-                conjureTimelockService.waitForLocks(ConjureLockRequests.toConjure(request)));
+        return lockLeaseService.waitForLocks(request);
     }
 
     @Override

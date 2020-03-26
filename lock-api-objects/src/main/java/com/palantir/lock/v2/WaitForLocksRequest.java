@@ -26,6 +26,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableWaitForLocksRequest.class)
@@ -54,4 +55,8 @@ public interface WaitForLocksRequest {
                 Optional.ofNullable(clientDescription));
     }
 
+    @Value.Check
+    default void check() {
+        Preconditions.checkState(getAcquireTimeoutMs() >= 0, "Acquire timeout cannot be negative.");
+    }
 }

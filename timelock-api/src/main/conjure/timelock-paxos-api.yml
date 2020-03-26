@@ -1,0 +1,18 @@
+services:
+  NamespaceLeadershipTakeoverService:
+    name: Namespace Leadership Takeover Service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.paxos.api
+    base-path: /tl/paxos
+    endpoints:
+      takeover:
+        http: POST /takeover/{namespace}
+        args:
+          namespace: string
+        returns: boolean
+
+      takeoverNamespaces:
+        http: POST /takeoverNamespaces
+        args:
+          namespaces: set<string>
+        returns: set<string>

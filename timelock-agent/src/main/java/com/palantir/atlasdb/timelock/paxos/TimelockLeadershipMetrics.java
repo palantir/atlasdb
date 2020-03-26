@@ -23,7 +23,6 @@ import java.util.function.Predicate;
 
 import org.immutables.value.Value;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SetMultimap;
@@ -65,7 +64,6 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 metrics().clientScopedMetrics().metricRegistryForClient(proxyClient()),
                 clazz,
                 instance,
-                MetricRegistry.name(clazz),
                 _context -> ImmutableMap.of(
                         AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
     }
