@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -35,15 +36,22 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableState;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.common.streams.KeyedStream;
 
 public class CassandraTableMetadata {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableMetadata.class);
     private final RangeLoader rangeLoader;
     private final CassandraTables cassandraTables;
     private final CassandraClientPool clientPool;
+    // there is a circular dependency between these two classes now - we'd have to merge the three together. But that's ok, because it's probably a better abstraction that way anyway.
+    private final CassandraTableCreator tableCreator = null;
+    private final CassandraTableDropper tableDropper = null;
     private final WrappingQueryRunner wrappingQueryRunner;
 
     public CassandraTableMetadata(RangeLoader rangeLoader, CassandraTables cassandraTables,
@@ -92,7 +100,58 @@ public class CassandraTableMetadata {
             }
         }
 
-        return result;
+        Set<TableReference> tablesWeMustDelete = KeyedStream.stream(result)
+                .map(CassandraTableMetadata::parseToProto)
+                .filter(TableMetadata::hasTableState)
+                .map(TableMetadata::getTableState)
+                .filter(tableState -> tableState == TableState.DELETING)
+                .keys()
+                .collect(Collectors.toSet());
+
+        Map<TableReference, byte[]> tablesWeMustCreate = KeyedStream.stream(result)
+                .map(CassandraTableMetadata::parseToProto)
+                .filter(TableMetadata::hasTableState)
+                .filter(tableMetadata -> tableMetadata.getTableState() == TableState.CREATING)
+                .map(TableMetadata::toByteArray)
+                .collectToMap();
+
+        tableCreator.createTables(tablesWeMustCreate);
+        tableDropper.dropTables(tablesWeMustDelete);
+
+        putMetadata(clearTableState(tablesWeMustCreate));
+
+        tablesWeMustDelete.forEach(this::deleteAllMetadataRowsForTable);
+
+        return clearTableState(result);
+    }
+
+    private static Map<TableReference, byte[]> clearTableState(Map<TableReference, byte[]> tables) {
+       return KeyedStream.stream(tables)
+               .map(CassandraTableMetadata::parseToProto)
+               .map(metadata -> metadata.toBuilder().clearTableState().build())
+               .map(TableMetadata::toByteArray)
+               .collectToMap()
+    }
+
+    public void putMetadata(Map<TableReference, byte[]> tableMetadata) {
+        throw new UnsupportedOperationException("Someone needs to move this logic from CassandraKeyValueServiceImpl into this class."
+                + "It seems odd to me that CassandraTableMetadata is responsible for reading, but not writing the table metadata.");
+    }
+
+    public void preTableCreate(Map<TableReference, byte[]> tableMetadata) {
+        throw new UnsupportedOperationException("Change the proto to have table state set, call this before actually creating tables");
+    }
+
+    public void preTableDelete(Set<TableReference> tableMetadata) {
+        throw new UnsupportedOperationException("Change the proto to have table state set, call this before actually deleting tables");
+    }
+
+    private static TableMetadata parseToProto(byte[] metadata) {
+        try {
+            return TableMetadataPersistence.TableMetadata.parseFrom(metadata);
+        } catch (InvalidProtocolBufferException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     void deleteAllMetadataRowsForTable(TableReference tableRef) {
