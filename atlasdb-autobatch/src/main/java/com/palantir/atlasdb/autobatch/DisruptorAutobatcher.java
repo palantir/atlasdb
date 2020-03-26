@@ -128,7 +128,6 @@ public final class DisruptorAutobatcher<T, R>
         private DetachedSpan runningSpan = null;
 
         public DisruptorFuture(String safeLoggablePurpose) {
-            super();
             this.parent = DetachedSpan.start(safeLoggablePurpose + " disruptor task");
             this.waitingSpan = parent.childDetachedSpan("task waiting to be run");
             this.addListener(() -> {
