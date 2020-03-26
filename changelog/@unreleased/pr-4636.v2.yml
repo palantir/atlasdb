@@ -1,10 +1,9 @@
-type: break
-break:
-  description: |
-    As part of implementing lock watching, snapshot transactions now use a new endpoint on the timelock server to obtain commit timestamps along with lock watch updates. As part of enabling this work, the following dev breaks were introduced:
-
-    - PrecommitCondition has been replaced by PrecommitConditionWithWatches. We provided a utility method to adapt existing PrecommitConditions if lock watch information is not needed
-    - The deprecated TransactionManager. runTaskWithConditionWithRetry method using Guava suppliers has been removed
-    - TransactionManager interface now must implement a getLockWatchManager() method. This can be delegated to the timelock service by using `NotWatchingLockWatchManager` until your product wants to use lock watches (which are not yet fully implemented anyway).
+type: feature
+feature:
+  description: 'As part of implementing lock watching, snapshot transactions now use
+    a new endpoint on the timelock server to obtain commit timestamps along with lock
+    watch updates. PrecommitConditions can now be expressed in terms of commit updates,
+    allowing for verification of conditions relating to watched locks that have been
+    taken out by others since the start of the transaction. '
   links:
   - https://github.com/palantir/atlasdb/pull/4636
