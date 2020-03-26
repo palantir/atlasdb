@@ -506,7 +506,10 @@ import com.palantir.timestamp.TimestampService;
         @Override
         public void close() {
             if (!failures.isEmpty()) {
-                throw new SafeRuntimeException("Close failed.");
+                RuntimeException closeFailed = new SafeRuntimeException(
+                        "Close failed. Please inspect the code and fix the failures");
+                failures.forEach(closeFailed::addSuppressed);
+                throw closeFailed;
             }
         }
     }
