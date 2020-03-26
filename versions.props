@@ -49,6 +49,7 @@ io.dropwizard.modules:* = 0.9.0-1
 io.dropwizard:* = 0.9.3
 io.netty:* = 4.1.39.Final
 jakarta.annotation:jakarta.annotation-api = 1.3.5
+jakarta.validation:jakarta.validation-api = 2.0.2
 jakarta.ws.rs:jakarta.ws.rs-api = 2.1.6
 javax.annotation:javax.annotation-api = 1.3.2
 javax.validation:validation-api = 1.1.0.Final
