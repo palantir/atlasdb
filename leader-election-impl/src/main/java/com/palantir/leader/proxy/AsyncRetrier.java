@@ -67,7 +67,7 @@ final class AsyncRetrier<T> {
     offload the work onto a separate executor.
      */
     private ListenableFuture<T> execute(Supplier<ListenableFuture<T>> supplier, int retriesRemaining) {
-        return Futures.transformAsync(supplier.get(),
+        return Futures.transformAsync(executeSupplier(supplier),
                 result -> {
                     int newRetriesRemaining = retriesRemaining - 1;
                     if (predicate.test(result) || newRetriesRemaining == 0) {
@@ -82,5 +82,13 @@ final class AsyncRetrier<T> {
                     }
                 }, MoreExecutors.directExecutor());
 
+    }
+
+    private ListenableFuture<T> executeSupplier(Supplier<ListenableFuture<T>> supplier) {
+        try {
+            return supplier.get();
+        } catch (Throwable e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 }
