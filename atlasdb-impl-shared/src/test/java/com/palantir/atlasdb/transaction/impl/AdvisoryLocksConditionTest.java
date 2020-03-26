@@ -92,7 +92,7 @@ public class AdvisoryLocksConditionTest {
         when(lockService.refreshLockRefreshTokens(Collections.singleton(TRANSACTION_LOCK_REFRESH_TOKEN)))
                 .thenReturn(ImmutableSet.of());
 
-        assertThatThrownBy(() -> transactionLocksCondition.throwIfConditionInvalid(CommitUpdate.ignoringWatches(0L)))
+        assertThatThrownBy(() -> transactionLocksCondition.throwIfConditionInvalid(0L))
                 .isInstanceOf(TransactionLockTimeoutException.class)
                 .hasMessageContaining("Provided transaction lock expired");
     }
@@ -120,7 +120,7 @@ public class AdvisoryLocksConditionTest {
         when(lockService.refreshLockRefreshTokens(Collections.singleton(EXTERNAL_LOCK_REFRESH_TOKEN)))
                 .thenReturn(ImmutableSet.of());
 
-        assertThatThrownBy(() -> externalLocksCondition.throwIfConditionInvalid(CommitUpdate.ignoringWatches(0L)))
+        assertThatThrownBy(() -> externalLocksCondition.throwIfConditionInvalid(0L))
                 .isInstanceOf(TransactionLockTimeoutNonRetriableException.class)
                 .hasMessageContaining("Provided external lock tokens expired. Retry is not possible");
     }
@@ -143,7 +143,7 @@ public class AdvisoryLocksConditionTest {
                 .thenReturn(ImmutableSet.of());
         when(lockService.refreshLockRefreshTokens(Collections.singleton(TRANSACTION_LOCK_REFRESH_TOKEN)))
                 .thenReturn(ImmutableSet.of());
-        assertThatThrownBy(() -> combinedLocksCondition.throwIfConditionInvalid(CommitUpdate.ignoringWatches(0L)))
+        assertThatThrownBy(() -> combinedLocksCondition.throwIfConditionInvalid(0L))
                 .isInstanceOf(TransactionLockTimeoutNonRetriableException.class)
                 .hasMessageContaining("Provided external lock tokens expired. Retry is not possible");
     }

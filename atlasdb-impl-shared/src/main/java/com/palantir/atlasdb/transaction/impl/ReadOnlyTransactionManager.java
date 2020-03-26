@@ -157,8 +157,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(
-            PreCommitCondition condition) {
+    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 
@@ -209,8 +208,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
-            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(C condition,
+            ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 

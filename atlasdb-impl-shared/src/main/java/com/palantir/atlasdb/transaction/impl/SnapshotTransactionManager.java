@@ -163,8 +163,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(
-            PreCommitCondition condition) {
+    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
                 = timelockService.startIdentifiedAtlasDbTransaction();
         try {
