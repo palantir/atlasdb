@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import com.google.common.util.concurrent.SettableFuture;
-
 public interface BatchElement<T, R> {
     T argument();
-    SettableFuture<R> result();
+    DisruptorAutobatcher.DisruptorFuture<R> result();
 }

@@ -116,7 +116,7 @@ public final class Autobatchers {
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> tracingHandler =
-                    new TracingEventHandler<>(handler, purpose, observability);
+                    new TracingEventHandler<>(handler, DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
