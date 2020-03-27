@@ -1,5 +1,0 @@
-type: improvement
-improvement:
-  description: '[PDS-114184] Increase transaction read timeout in CLI to 8 hours'
-  links:
-  - https://github.com/palantir/atlasdb/pull/4680
