@@ -27,6 +27,7 @@ import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -40,6 +41,7 @@ import io.airlift.airline.OptionType;
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {
     private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(KvsMigrationCommand.class));
+    private static final int TRANSACTION_READ_TIMEOUT_MILLIS_OVERRIDE = 8 * 60 * 60 * 1000;
 
     @Option(name = {"-fc", "--fromConfig"},
             title = "CONFIG PATH",
@@ -150,19 +152,27 @@ public class KvsMigrationCommand implements Callable<Integer> {
     }
 
     public AtlasDbServices connectFromServices() throws IOException {
-        AtlasDbConfig fromConfig = AtlasDbConfigs.load(fromConfigFile, configRoot, AtlasDbConfig.class);
+        AtlasDbConfig fromConfig = overrideTransactionTimeoutMillis(
+                AtlasDbConfigs.load(fromConfigFile, configRoot, AtlasDbConfig.class));
         ServicesConfigModule scm = ServicesConfigModule.create(
                 makeOfflineIfNecessary(fromConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     public AtlasDbServices connectToServices() throws IOException {
-        AtlasDbConfig toConfig = toConfigFile != null
-                ? AtlasDbConfigs.load(toConfigFile, configRoot, AtlasDbConfig.class)
-                : AtlasDbConfigs.loadFromString(inlineConfig, null, AtlasDbConfig.class);
+        AtlasDbConfig toConfig = overrideTransactionTimeoutMillis(
+                toConfigFile != null
+                        ? AtlasDbConfigs.load(toConfigFile, configRoot, AtlasDbConfig.class)
+                        : AtlasDbConfigs.loadFromString(inlineConfig, null, AtlasDbConfig.class));
         ServicesConfigModule scm = ServicesConfigModule.create(
                 makeOfflineIfNecessary(toConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+    }
+
+    private AtlasDbConfig overrideTransactionTimeoutMillis(AtlasDbConfig config) {
+        return ImmutableAtlasDbConfig.builder().from(config)
+                .transactionReadTimeoutMillis(TRANSACTION_READ_TIMEOUT_MILLIS_OVERRIDE)
+                .build();
     }
 
     private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices) {
