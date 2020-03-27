@@ -37,7 +37,10 @@ dependencies {
   testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   testCompile group: 'com.palantir.conjure.java.runtime', name: 'keystores'
   testCompile group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
-  testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
+  testCompile (group: 'io.dropwizard', name: 'dropwizard-testing') {
+    // Janky, but this is only used in a very limited capacity in test
+    exclude group: 'io.dropwizard.metrics'
+  }
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
