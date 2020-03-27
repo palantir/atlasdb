@@ -57,13 +57,13 @@ public class KeyValueServiceValidator {
     private final KvsMigrationMessageProcessor messageProcessor;
 
     public KeyValueServiceValidator(TransactionManager validationFromTransactionManager,
-            TransactionManager validationToTransactionManager,
-            KeyValueService validationFromKvs,
-            int threads,
-            int defaultBatchSize,
-            Map<TableReference, Integer> readBatchSizeOverrides,
-            KvsMigrationMessageProcessor messageProcessor,
-            Set<TableReference> unmigratableTables) {
+                                    TransactionManager validationToTransactionManager,
+                                    KeyValueService validationFromKvs,
+                                    int threads,
+                                    int defaultBatchSize,
+                                    Map<TableReference, Integer> readBatchSizeOverrides,
+                                    KvsMigrationMessageProcessor messageProcessor,
+                                    Set<TableReference> unmigratableTables) {
         this.validationFromTransactionManager = validationFromTransactionManager;
         this.validationToTransactionManager = validationToTransactionManager;
         this.validationFromKvs = validationFromKvs;
@@ -138,10 +138,10 @@ public class KeyValueServiceValidator {
     }
 
     private byte[] validateAndGetNextRowName(TableReference table,
-            int limit,
-            Transaction t1,
-            Transaction t2,
-            RangeRequest range) {
+                                             int limit,
+                                             Transaction t1,
+                                             Transaction t2,
+                                             RangeRequest range) {
         BatchingVisitableView<RowResult<byte[]>> bv1 =
                 BatchingVisitableView.of(t1.getRange(table, range));
         List<RowResult<byte[]>> rrs1 = bv1.limit(limit).immutableCopy();
