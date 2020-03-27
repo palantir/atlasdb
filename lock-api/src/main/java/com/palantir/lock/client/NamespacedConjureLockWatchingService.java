@@ -31,7 +31,6 @@ public class NamespacedConjureLockWatchingService {
         this.namespace = namespace;
     }
 
-
     public void startWatching(LockWatchRequest request) {
         lockWatcher.startWatching(AUTH_HEADER, namespace, request);
     }
