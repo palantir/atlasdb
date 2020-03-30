@@ -17,10 +17,12 @@ package com.palantir.atlasdb.timelock;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.junit.rules.ExternalResource;
@@ -53,23 +55,26 @@ public class TimeLockServerHolder extends ExternalResource {
 
     static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
 
-    private static final WireMockConfiguration WIRE_MOCK_CONFIGURATION = WireMockConfiguration.wireMockConfig()
+    private static final Function<Integer, WireMockConfiguration> WIRE_MOCK_CONFIG_FACTORY
+            = port -> WireMockConfiguration.wireMockConfig()
             .dynamicPort()
-            .dynamicHttpsPort()
+            .httpsPort(port)
             .keystorePath("var/security/keyStore.jks")
             .keystorePassword("keystore");
 
     private final Supplier<String> configFilePathSupplier;
 
-    private final WireMockServer wireMockServer = new WireMockServer(WIRE_MOCK_CONFIGURATION);
-    private final WireMock wireMock = new WireMock(wireMockServer);
+    private WireMockServer wireMockServer;
+    private WireMock wireMock;
     private DropwizardTestSupport<CombinedTimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
     private boolean initialised = false;
     private int timelockPort;
 
-    TimeLockServerHolder(Supplier<String> configFilePathSupplier) {
+    TimeLockServerHolder(Supplier<String> configFilePathSupplier, int proxyPort) {
         this.configFilePathSupplier = configFilePathSupplier;
+        this.wireMockServer = new WireMockServer(WIRE_MOCK_CONFIG_FACTORY.apply(proxyPort));
+        this.wireMock = new WireMock(wireMockServer);
     }
 
     @Override
@@ -87,7 +92,7 @@ public class TimeLockServerHolder extends ExternalResource {
         isRunning = true;
         initialised = true;
 
-        StubMapping catchAll = any(urlMatching(ALL_NAMESPACES))
+        StubMapping catchAll = any(anyUrl())
                 .willReturn(aResponse().proxiedFrom(getTimelockUri())
                         .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
                 .atPriority(Integer.MAX_VALUE)

@@ -71,7 +71,8 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
             new TemporaryConfigurationHolder(TEMPORARY_FOLDER, "paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
-            new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
+            new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation,
+                    DEFAULT_SINGLE_SERVER.getLocalProxyPort());
     private static final TestableTimelockServer TIMELOCK =
             new TestableTimelockServer("https://localhost", TIMELOCK_SERVER_HOLDER);
 

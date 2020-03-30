@@ -237,25 +237,27 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestCanBlockForTheFullTimeout() {
-        LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+        NamespacedClients wiremockClient = client.throughWireMockProxy();
+        LockToken token = wiremockClient.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            LockResponse response = client.lock(LockRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            LockResponse response = wiremockClient.lock(LockRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
-            client.unlock(token);
+            wiremockClient.unlock(token);
         }
     }
 
     @Test
     public void waitForLocksRequestCanBlockForTheFullTimeout() {
-        LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+        NamespacedClients wiremockClient = client.throughWireMockProxy();
+        LockToken token = wiremockClient.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            WaitForLocksResponse response = wiremockClient.waitForLocks(WaitForLocksRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
-            client.unlock(token);
+            wiremockClient.unlock(token);
         }
     }
 
@@ -281,6 +283,27 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             client.namespacedConjureTimelockService().unlock(ConjureUnlockRequest.of(tokens));
         }
     }
+
+    //    @Test
+    //    public void stressTest() {
+    //        TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
+    //        int numThreads = ManagementFactory.getThreadMXBean().getThreadCount();
+    //        try {
+    //            for (int i = 0; i < 4_000; i++) {
+    //                client.getFreshTimestamp();
+    //                assertThat(ManagementFactory.getThreadMXBean().getThreadCount()).isLessThanOrEqualTo(numThreads + 100);
+    //                System.out.println(ManagementFactory.getThreadMXBean().getThreadCount());
+    //                if (i == 100) {
+    //                    nonLeader.serverHolder().wireMock().register(
+    //                            WireMock.any(WireMock.anyUrl())
+    //                                    .atPriority(Integer.MAX_VALUE - 1)
+    //                                    .willReturn(WireMock.serviceUnavailable()).build());
+    //                }
+    //            }
+    //        } finally {
+    //            nonLeader.serverHolder().resetWireMock();
+    //        }
+    //    }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {
         INSTANCE;
