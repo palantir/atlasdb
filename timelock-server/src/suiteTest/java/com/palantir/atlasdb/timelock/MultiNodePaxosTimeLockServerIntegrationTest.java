@@ -19,24 +19,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.http.v2.ClientOptions;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
@@ -83,7 +90,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Before
     public void bringAllNodesOnline() {
-        client = cluster.clientForRandomNamespace();
+        client = cluster.clientForRandomNamespace().throughWireMockProxy();
         cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
     }
 
@@ -284,26 +291,29 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         }
     }
 
-    //    @Test
-    //    public void stressTest() {
-    //        TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
-    //        int numThreads = ManagementFactory.getThreadMXBean().getThreadCount();
-    //        try {
-    //            for (int i = 0; i < 4_000; i++) {
-    //                client.getFreshTimestamp();
-    //                assertThat(ManagementFactory.getThreadMXBean().getThreadCount()).isLessThanOrEqualTo(numThreads + 100);
-    //                System.out.println(ManagementFactory.getThreadMXBean().getThreadCount());
-    //                if (i == 100) {
-    //                    nonLeader.serverHolder().wireMock().register(
-    //                            WireMock.any(WireMock.anyUrl())
-    //                                    .atPriority(Integer.MAX_VALUE - 1)
-    //                                    .willReturn(WireMock.serviceUnavailable()).build());
-    //                }
-    //            }
-    //        } finally {
-    //            nonLeader.serverHolder().resetWireMock();
-    //        }
-    //    }
+    @Test
+    @Ignore // TODO (jkong): Fix this test by reworking the threading model.
+    public void stressTest() {
+        TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
+        int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
+        try {
+            for (int i = 0; i < 10_000; i++) { // Needed as it takes a while for the thread buildup to occur
+                client.getFreshTimestamp();
+                assertThat(ManagementFactory.getThreadMXBean().getThreadCount())
+                        .as("should not additionally spin up too many threads")
+                        .isLessThanOrEqualTo(startingNumThreads + 200);
+                if (i == 1_000) {
+                    nonLeader.serverHolder().wireMock().register(
+                            WireMock.any(WireMock.anyUrl())
+                                    .atPriority(Integer.MAX_VALUE - 1)
+                                    .willReturn(WireMock.serviceUnavailable().withFixedDelay(
+                                            Ints.checkedCast(Duration.ofSeconds(2).toMillis()))).build());
+                }
+            }
+        } finally {
+            nonLeader.serverHolder().resetWireMock();
+        }
+    }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {
         INSTANCE;

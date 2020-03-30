@@ -110,7 +110,7 @@ public class TestableTimelockCluster implements TestRule {
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        namespaces.forEach(namespace -> client(namespace).getFreshTimestamp());
+                        namespaces.forEach(namespace -> client(namespace).throughWireMockProxy().getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -250,9 +250,7 @@ public class TestableTimelockCluster implements TestRule {
     private static TimeLockServerHolder getServerHolder(
             TemporaryConfigurationHolder configHolder,
             TemplateVariables templateVariables) {
-        return new TimeLockServerHolder(
-                configHolder::getTemporaryConfigFileLocation,
-                templateVariables.getLocalProxyPort());
+        return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation, templateVariables);
     }
 
     private TemporaryConfigurationHolder getConfigHolder(String templateName, TemplateVariables variables) {

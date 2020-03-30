@@ -64,17 +64,21 @@ public class TimeLockServerHolder extends ExternalResource {
 
     private final Supplier<String> configFilePathSupplier;
 
-    private WireMockServer wireMockServer;
-    private WireMock wireMock;
+    private final WireMockServer wireMockServer;
+    private final WireMock wireMock;
+    private final int proxyPort;
+    private final int timelockPort;
+
     private DropwizardTestSupport<CombinedTimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
     private boolean initialised = false;
-    private int timelockPort;
 
-    TimeLockServerHolder(Supplier<String> configFilePathSupplier, int proxyPort) {
+    TimeLockServerHolder(Supplier<String> configFilePathSupplier, TemplateVariables variables) {
         this.configFilePathSupplier = configFilePathSupplier;
-        this.wireMockServer = new WireMockServer(WIRE_MOCK_CONFIG_FACTORY.apply(proxyPort));
+        this.wireMockServer = new WireMockServer(WIRE_MOCK_CONFIG_FACTORY.apply(variables.getLocalProxyPort()));
         this.wireMock = new WireMock(wireMockServer);
+        this.proxyPort = variables.getLocalProxyPort();
+        this.timelockPort = variables.getLocalServerPort();
     }
 
     @Override
@@ -83,21 +87,13 @@ public class TimeLockServerHolder extends ExternalResource {
             return;
         }
 
-        timelockPort = readTimelockPort();
-
+        resetWireMock();
         wireMockServer.start();
 
         timelockServer = new DropwizardTestSupport<>(TimeLockServerLauncher.class, configFilePathSupplier.get());
         timelockServer.before();
         isRunning = true;
         initialised = true;
-
-        StubMapping catchAll = any(anyUrl())
-                .willReturn(aResponse().proxiedFrom(getTimelockUri())
-                        .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
-                .atPriority(Integer.MAX_VALUE)
-                .build();
-        wireMock.register(catchAll);
     }
 
     @Override
@@ -109,14 +105,22 @@ public class TimeLockServerHolder extends ExternalResource {
         }
     }
 
+    void resetWireMock() {
+        wireMock.removeMappings();
+        StubMapping catchAll = any(anyUrl())
+                .willReturn(aResponse().proxiedFrom(getTimelockUri())
+                        .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
+                .atPriority(Integer.MAX_VALUE)
+                .build();
+        wireMock.register(catchAll);
+    }
+
     public int getTimelockPort() {
-        checkTimelockInitialised();
         return timelockPort;
     }
 
     public int getTimelockWiremockPort() {
-        checkTimelockInitialised();
-        return wireMockServer.httpsPort();
+        return proxyPort;
     }
 
     public WireMock wireMock() {
@@ -124,7 +128,6 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     String getTimelockUri() {
-        checkTimelockInitialised();
         // TODO(nziebart): hack
         return "https://localhost:" + timelockPort;
     }
@@ -155,16 +158,6 @@ public class TimeLockServerHolder extends ExternalResource {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private int readTimelockPort() throws IOException {
-        return new ObjectMapper(new YAMLFactory())
-                .readTree(new File(configFilePathSupplier.get()))
-                .get("server")
-                .get("applicationConnectors")
-                .get(0)
-                .get("port")
-                .intValue();
     }
 
     TimeLockInstallConfiguration installConfig() {
