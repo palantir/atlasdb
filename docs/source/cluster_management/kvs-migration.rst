@@ -121,7 +121,7 @@ Running the migration is typically done by invoking the CLI three times, one for
 
 .. danger::
 
-    All three steps (Setup, Migrate, Validate) must be run before the migration can be considered finished, and the
+    **ALL** three steps (Setup, Migrate, Validate) must be run before the migration can be considered finished, and the
     new KVS used. Failure to do so may result in **SEVERE DATA CORRUPTION**. Please ensure this is the case before
     you restart your service with the new KVS.
 
