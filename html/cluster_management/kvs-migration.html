@@ -269,6 +269,12 @@ may contain unrelated YAML objects. For example:</p>
 </pre></div>
 </div>
 <p>Running the migration is typically done by invoking the CLI three times, one for each main stage of the migration.</p>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last"><strong>ALL</strong> three steps (Setup, Migrate, Validate) must be run before the migration can be considered finished, and the
+new KVS used. Failure to do so may result in <strong>SEVERE DATA CORRUPTION</strong>. Please ensure this is the case before
+you restart your service with the new KVS.</p>
+</div>
 </div>
 <div class="section" id="setup">
 <h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
