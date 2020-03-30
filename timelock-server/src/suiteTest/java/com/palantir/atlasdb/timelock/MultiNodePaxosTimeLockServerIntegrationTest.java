@@ -22,11 +22,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,9 +39,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.http.v2.ClientOptions;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
@@ -244,27 +240,25 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestCanBlockForTheFullTimeout() {
-        NamespacedClients wiremockClient = client.throughWireMockProxy();
-        LockToken token = wiremockClient.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+        LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            LockResponse response = wiremockClient.lock(LockRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            LockResponse response = client.lock(LockRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
-            wiremockClient.unlock(token);
+            client.unlock(token);
         }
     }
 
     @Test
     public void waitForLocksRequestCanBlockForTheFullTimeout() {
-        NamespacedClients wiremockClient = client.throughWireMockProxy();
-        LockToken token = wiremockClient.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+        LockToken token = client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         try {
-            WaitForLocksResponse response = wiremockClient.waitForLocks(WaitForLocksRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
+            WaitForLocksResponse response = client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONG_LOCK_TIMEOUT_MS));
             assertThat(response.wasSuccessful()).isFalse();
         } finally {
-            wiremockClient.unlock(token);
+            client.unlock(token);
         }
     }
 
