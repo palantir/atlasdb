@@ -3,6 +3,8 @@ apply from: '../gradle/shared.gradle'
 dependencies {
   compile project(':atlasdb-commons')
   compile project(':atlasdb-remoting-api')
+  implementation 'com.palantir.dialogue:dialogue-serde'
+  implementation 'com.palantir.dialogue:dialogue-apache-hc4-client'
 
   compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
 

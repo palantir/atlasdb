@@ -26,7 +26,7 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
@@ -40,12 +40,12 @@ import com.palantir.tokens.auth.AuthHeader;
  * @deprecated Remove this once PDS-95791 is resolved.
  */
 @Deprecated
-public class LockDiagnosticConjureTimelockService implements ConjureTimelockService {
-    private final ConjureTimelockService conjureDelegate;
+public class LockDiagnosticConjureTimelockService implements ConjureTimelockServiceBlocking {
+    private final ConjureTimelockServiceBlocking conjureDelegate;
     private final ClientLockDiagnosticCollector lockDiagnosticCollector;
 
     public LockDiagnosticConjureTimelockService(
-            ConjureTimelockService conjureDelegate,
+            ConjureTimelockServiceBlocking conjureDelegate,
             ClientLockDiagnosticCollector lockDiagnosticCollector) {
         this.conjureDelegate = conjureDelegate;
         this.lockDiagnosticCollector = lockDiagnosticCollector;

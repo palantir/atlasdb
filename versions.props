@@ -103,3 +103,9 @@ org.freemarker:freemarker = 2.3.29
 com.google.errorprone:error_prone_refaster = 2.3.3
 com.palantir.baseline:baseline-refaster-testing = 2.17.0
 com.google.truth:truth = 1.0
+
+
+# conflict resolution
+com.netflix.concurrency-limits:* = 0.2.2
+org.apache.httpcomponents:httpclient = 4.5.12
+org.apache.httpcomponents:httpcore = 4.4.13

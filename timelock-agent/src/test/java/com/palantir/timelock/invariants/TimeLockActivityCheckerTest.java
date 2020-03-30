@@ -26,12 +26,12 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 
 public class TimeLockActivityCheckerTest {
     private static final String CLIENT = "client";
 
-    private final ConjureTimelockService timelockRpcClient = mock(ConjureTimelockService.class);
+    private final ConjureTimelockServiceBlocking timelockRpcClient = mock(ConjureTimelockServiceBlocking.class);
     private final TimeLockActivityChecker timeLockActivityChecker = new TimeLockActivityChecker(timelockRpcClient);
 
     @Test

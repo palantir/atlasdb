@@ -127,7 +127,7 @@ import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -997,14 +997,14 @@ public abstract class TransactionManagers {
                 LockService.class,
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
-        ConjureTimelockService conjureTimelockService = new BlockingSensitiveConjureTimelockService(
-                BlockingAndNonBlockingServices.create(creator, ConjureTimelockService.class));
+        ConjureTimelockServiceBlocking conjureTimelockService = new BlockingSensitiveConjureTimelockService(
+                BlockingAndNonBlockingServices.create(creator, ConjureTimelockServiceBlocking.class));
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-        ConjureTimelockService withDiagnosticsConjureTimelockService = lockDiagnosticCollector
-                .<ConjureTimelockService>map(collector ->
+        ConjureTimelockServiceBlocking withDiagnosticsConjureTimelockService = lockDiagnosticCollector
+                .<ConjureTimelockServiceBlocking>map(collector ->
                         new LockDiagnosticConjureTimelockService(conjureTimelockService, collector))
                 .orElse(conjureTimelockService);
 

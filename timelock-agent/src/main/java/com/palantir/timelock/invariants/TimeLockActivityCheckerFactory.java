@@ -23,7 +23,7 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -46,7 +46,7 @@ public class TimeLockActivityCheckerFactory {
                 .clusterMembers()
                 .stream()
                 .map(this::createServiceCreatorForRemote)
-                .map(creator -> creator.createService(ConjureTimelockService.class))
+                .map(creator -> creator.createService(ConjureTimelockServiceBlocking.class))
                 .map(TimeLockActivityChecker::new)
                 .collect(Collectors.toList());
     }

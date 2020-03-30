@@ -20,7 +20,7 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -58,7 +58,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     public static RemoteTimelockServiceAdapter create(
             TimelockRpcClient rpcClient,
-            ConjureTimelockService conjureClient,
+            ConjureTimelockServiceBlocking conjureClient,
             String timelockNamespace,
             LockWatchEventCache lockWatchEventCache) {
         return create(

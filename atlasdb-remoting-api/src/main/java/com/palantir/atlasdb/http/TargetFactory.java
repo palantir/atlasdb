@@ -19,14 +19,12 @@ package com.palantir.atlasdb.http;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public interface TargetFactory {
-    <T> InstanceAndVersion<T> createProxy(
+    <T> T createProxy(
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
@@ -39,7 +37,7 @@ public interface TargetFactory {
      * Note that because failover by definition involves retrying on other nodes, the value of
      * {@link AuxiliaryRemotingParameters#shouldRetry()} is ignored; we will always retry in this case.
      */
-    <T> InstanceAndVersion<T> createProxyWithFailover(
+    <T> T createProxyWithFailover(
             ServerListConfig serverListConfig,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
@@ -54,17 +52,8 @@ public interface TargetFactory {
      * unnecessary resource load from attempting to establish consistency. Please use
      * {@link #createProxyWithFailover(ServerListConfig, Class, AuxiliaryRemotingParameters)} in that case.
      */
-    <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
+    <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Class<T> type,
             AuxiliaryRemotingParameters parameters);
-
-    @Value.Immutable
-    interface InstanceAndVersion<T> {
-        @Value.Parameter
-        T instance();
-
-        @Value.Parameter
-        String version();
-    }
 }

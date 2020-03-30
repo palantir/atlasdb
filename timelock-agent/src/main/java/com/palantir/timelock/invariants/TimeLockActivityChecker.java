@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -30,9 +30,9 @@ public class TimeLockActivityChecker {
     private static final Logger log = LoggerFactory.getLogger(TimeLockActivityChecker.class);
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer unused");
 
-    private final ConjureTimelockService conjureTimelockService;
+    private final ConjureTimelockServiceBlocking conjureTimelockService;
 
-    public TimeLockActivityChecker(ConjureTimelockService conjureTimelockService) {
+    public TimeLockActivityChecker(ConjureTimelockServiceBlocking conjureTimelockService) {
         this.conjureTimelockService = conjureTimelockService;
     }
 

@@ -24,7 +24,7 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
@@ -37,12 +37,12 @@ import com.palantir.tokens.auth.AuthHeader;
  * Given two proxies to the same set of underlying TimeLock servers, one configured to expect longer-running operations
  * on the server and one configured not to, routes calls appropriately.
  */
-public final class BlockingSensitiveConjureTimelockService implements ConjureTimelockService {
-    private final ConjureTimelockService blocking;
-    private final ConjureTimelockService nonBlocking;
+public final class BlockingSensitiveConjureTimelockService implements ConjureTimelockServiceBlocking {
+    private final ConjureTimelockServiceBlocking blocking;
+    private final ConjureTimelockServiceBlocking nonBlocking;
 
     public BlockingSensitiveConjureTimelockService(
-            BlockingAndNonBlockingServices<ConjureTimelockService> conjureTimelockServices) {
+            BlockingAndNonBlockingServices<ConjureTimelockServiceBlocking> conjureTimelockServices) {
         this.blocking = conjureTimelockServices.blocking();
         this.nonBlocking = conjureTimelockServices.nonBlocking();
     }

@@ -26,7 +26,9 @@ import org.immutables.value.Value;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfigurations;
 import com.palantir.conjure.java.config.ssl.TrustContext;
@@ -65,6 +67,7 @@ public abstract class ClientOptions {
             .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
             .build();
 
+    public abstract UserAgent userAgent();
     public abstract Duration connectTimeout();
     public abstract Duration readTimeout();
     public abstract Duration backoffSlotSize();
@@ -124,16 +127,6 @@ public abstract class ClientOptions {
         return builder.build();
     }
 
-    public static ClientOptions of(Duration connect, Duration read, Duration backoff, Duration coolDown, int retries) {
-        return ImmutableClientOptions.builder()
-                .connectTimeout(connect)
-                .readTimeout(read)
-                .backoffSlotSize(backoff)
-                .failedUrlCooldown(coolDown)
-                .maxNumRetries(retries)
-                .build();
-    }
-
     static ClientOptions fromRemotingParameters(AuxiliaryRemotingParameters parameters) {
         ImmutableClientOptions.Builder builder = ImmutableClientOptions.builder();
 
@@ -141,6 +134,7 @@ public abstract class ClientOptions {
         setupRetrying(builder, parameters);
 
         return builder.clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
+                .userAgent(addAtlasDbRemotingAgent(parameters.userAgent()))
                 .build();
     }
 
@@ -155,5 +149,9 @@ public abstract class ClientOptions {
                 .maxNumRetries(parameters.shouldRetry() ? STANDARD_MAX_RETRIES : NO_RETRIES)
                 .failedUrlCooldown(parameters.shouldRetry() ? STANDARD_FAILED_URL_COOLDOWN
                         : NON_RETRY_FAILED_URL_COOLDOWN);
+    }
+
+    private static UserAgent addAtlasDbRemotingAgent(UserAgent agent) {
+        return agent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
     }
 }

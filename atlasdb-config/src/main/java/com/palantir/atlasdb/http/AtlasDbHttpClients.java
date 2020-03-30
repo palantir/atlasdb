@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.http.v2.ConjureJavaRuntimeTargetFactory;
+import com.palantir.atlasdb.http.v2.DefaultTargetFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
@@ -32,18 +32,14 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public final class AtlasDbHttpClients {
 
-    private AtlasDbHttpClients() {
-        // Utility class
-    }
-
     public static <T> T createProxy(
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return wrapWithOkHttpBugHandling(type,
-                () -> ConjureJavaRuntimeTargetFactory.DEFAULT.createProxy(
-                        trustContext, uri, type, parameters).instance());
+                () -> DefaultTargetFactory.INSTANCE.createProxy(
+                        trustContext, uri, type, parameters));
     }
 
     /**
@@ -60,7 +56,7 @@ public final class AtlasDbHttpClients {
             AuxiliaryRemotingParameters parameters) {
         Supplier<T> clientFactory = () -> instrument(
                 metricsManager.getTaggedRegistry(),
-                ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithFailover(serverListConfig, type, parameters),
+                DefaultTargetFactory.INSTANCE.createProxyWithFailover(serverListConfig, type, parameters),
                 type);
         return wrapWithOkHttpBugHandling(type, clientFactory);
     }
@@ -72,7 +68,7 @@ public final class AtlasDbHttpClients {
             AuxiliaryRemotingParameters clientParameters) {
         Supplier<T> clientFactory = () -> instrument(
                 metricsManager.getTaggedRegistry(),
-                ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
+                DefaultTargetFactory.INSTANCE.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
                         type,
                         clientParameters),
@@ -88,7 +84,7 @@ public final class AtlasDbHttpClients {
             AuxiliaryRemotingParameters parameters) {
         Supplier<T> clientFactory = () -> instrument(
                 metricsManager.getTaggedRegistry(),
-                ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithQuickFailoverForTesting(
+                DefaultTargetFactory.INSTANCE.createProxyWithQuickFailoverForTesting(
                         serverListConfig, type, parameters),
                 type);
         return wrapWithOkHttpBugHandling(type, clientFactory);
@@ -96,9 +92,9 @@ public final class AtlasDbHttpClients {
 
     private static <T> T instrument(
             TaggedMetricRegistry taggedMetricRegistry,
-            TargetFactory.InstanceAndVersion<T> client,
+            T client,
             Class<T> clazz) {
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(taggedMetricRegistry, clazz, client.instance());
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(taggedMetricRegistry, clazz, client);
     }
 
     /**
@@ -122,4 +118,6 @@ public final class AtlasDbHttpClients {
         Throwable cause = throwable.getCause();
         return cause != null && isPossiblyOkHttpTimeoutBug(cause);
     }
+
+    private AtlasDbHttpClients() {}
 }

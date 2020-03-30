@@ -24,7 +24,7 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
@@ -34,9 +34,9 @@ import com.palantir.tokens.auth.AuthHeader;
 public class NamespacedConjureTimelockService {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final String namespace;
-    private final ConjureTimelockService conjureTimelockService;
+    private final ConjureTimelockServiceBlocking conjureTimelockService;
 
-    public NamespacedConjureTimelockService(ConjureTimelockService conjureTimelockService, String namespace) {
+    public NamespacedConjureTimelockService(ConjureTimelockServiceBlocking conjureTimelockService, String namespace) {
         this.namespace = namespace;
         this.conjureTimelockService = conjureTimelockService;
     }
