@@ -19,6 +19,7 @@ package com.palantir.common.proxy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,6 +44,15 @@ public class ReplaceIfExceptionMatchingProxyTest {
     @Before
     public void before() {
         when(supplier.get()).thenReturn(delegate);
+    }
+
+    @Test
+    public void lazilyInitialized() {
+        TestInterface iface = ReplaceIfExceptionMatchingProxy.newProxyInstance(
+                TestInterface.class, supplier, _thrown -> true);
+        verify(supplier, never()).get();
+        iface.doSomething();
+        verify(supplier, times(1)).get();
     }
 
     @Test

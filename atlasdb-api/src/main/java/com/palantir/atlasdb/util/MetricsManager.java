@@ -208,6 +208,16 @@ public class MetricsManager {
         return histogram;
     }
 
+    public Counter registerOrGetTaggedCounter(
+            Class clazz,
+            String metricName,
+            Map<String, String> tags) {
+        MetricName name = getTaggedMetricName(clazz, metricName, tags);
+        Counter counter = taggedMetricRegistry.counter(name);
+        registerTaggedMetricName(name);
+        return counter;
+    }
+
     private void registerMetricName(String fullyQualifiedMeterName) {
         lock.readLock().lock();
         try {

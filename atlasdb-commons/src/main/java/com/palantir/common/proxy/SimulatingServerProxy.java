@@ -17,18 +17,15 @@ package com.palantir.common.proxy;
 
 /**
  * A static method to return a proxy which simulates a remote server. The
- * returned proxy is a combination of {@link SerializingProxy},
- * {@link InterruptibleProxy}, and {@link DelayProxy}.
- *
- * @author jtamer
+ * returned proxy is a combination of  {@link InterruptibleProxy} and {@link DelayProxy}.
  */
 public final class SimulatingServerProxy {
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, long sleep) {
-        return SerializingProxy.newProxyInstance(interfaceClass,
-                InterruptibleProxy.newProxyInstance(interfaceClass,
-                    DelayProxy.newProxyInstance(interfaceClass, delegate, sleep),
-                    CancelDelegate.CANCEL));
+        return InterruptibleProxy.newProxyInstance(
+                interfaceClass,
+                DelayProxy.newProxyInstance(interfaceClass, delegate, sleep),
+                CancelDelegate.CANCEL);
     }
 
     private SimulatingServerProxy() {

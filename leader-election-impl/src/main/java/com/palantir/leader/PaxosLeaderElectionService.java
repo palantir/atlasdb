@@ -59,6 +59,9 @@ import com.palantir.paxos.PaxosValue;
 public class PaxosLeaderElectionService implements LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
 
+    // stored here to be consistent when proposing to take over leadership
+    private static final byte[] LEADERSHIP_PROPOSAL_VALUE = null;
+
     private final ReentrantLock lock = new ReentrantLock();
     private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
 
@@ -199,7 +202,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             long seq = getNextSequenceNumber(value);
 
             eventRecorder.recordProposalAttempt(seq);
-            proposer.propose(seq, null);
+            proposer.propose(seq, LEADERSHIP_PROPOSAL_VALUE);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
             eventRecorder.recordProposalFailure(e);
@@ -300,7 +303,9 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         StillLeadingStatus status = leadershipState.status();
         if (status == StillLeadingStatus.LEADING) {
             try {
-                proposer.proposeAnonymously(getNextSequenceNumber(leadershipState.greatestLearnedValue()), null);
+                proposer.proposeAnonymously(
+                        getNextSequenceNumber(leadershipState.greatestLearnedValue()),
+                        LEADERSHIP_PROPOSAL_VALUE);
                 return true;
             } catch (PaxosRoundFailureException e) {
                 log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
@@ -310,6 +315,39 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean hostileTakeover() {
+        LeadershipState leadershipState = determineLeadershipState();
+        StillLeadingStatus status = leadershipState.status();
+        switch (status) {
+            case LEADING:
+                return true;
+            case NOT_LEADING:
+                try {
+                    proposer.propose(
+                            getNextSequenceNumber(leadershipState.greatestLearnedValue()),
+                            LEADERSHIP_PROPOSAL_VALUE);
+                    StillLeadingStatus newStatus = determineLeadershipState().status();
+                    if (newStatus == StillLeadingStatus.LEADING) {
+                        log.info("Successfully took over", SafeArg.of("newStatus", newStatus));
+                        return true;
+                    } else {
+                        log.info("Failed to take over", SafeArg.of("newStatus", newStatus));
+                        return false;
+                    }
+                } catch (PaxosRoundFailureException e) {
+                    log.info("Couldn't takeover leadership because a quorum could not be obtained.",
+                            SafeArg.of("lastObservedState", leadershipState));
+                    return false;
+                }
+            case NO_QUORUM:
+                log.info("Couldn't takeover leadership because a quorum could not be obtained: NO_QUORUM");
+                return false;
+            default:
+                throw new IllegalStateException("Unexpected value: " + status);
+        }
     }
 
     @Override

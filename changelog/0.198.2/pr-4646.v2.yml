@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: '`SnapshotTransaction` now produces counters instead of meters for
+    previously counter-backed `CellFilterMetrics`, and also for `numCellsRead` and
+    `numCellsReturnedAfterFiltering`.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/4646

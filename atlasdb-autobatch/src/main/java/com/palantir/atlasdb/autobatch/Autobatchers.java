@@ -32,7 +32,7 @@ import com.palantir.tracing.Observability;
 
 public final class Autobatchers {
 
-    private static final int DEFAULT_BUFFER_SIZE = 2048;
+    private static final int DEFAULT_BUFFER_SIZE = 4096;
 
     /**
      * When invoking an {@link DisruptorAutobatcher autobatcher}, an argument needs to be supplied. In the case of

@@ -343,26 +343,23 @@ import com.palantir.timestamp.TimestampService;
      */
     @Override
     public void close() {
-        if (isClosed.compareAndSet(false, true)) {
-            super.close();
-            cleaner.close();
-            keyValueService.close();
-            shutdownExecutor(deleteExecutor);
-            shutdownExecutor(getRangesExecutor);
-            closeLockServiceIfPossible();
+        if (!isClosed.compareAndSet(false, true)) {
+            return;
+        }
 
-            List<Throwable> suppressedExceptions = new ArrayList<>();
+        try (ShutdownRunner shutdownRunner = new ShutdownRunner()) {
+            shutdownRunner.shutdownSafely(super::close);
+            shutdownRunner.shutdownSafely(cleaner::close);
+            shutdownRunner.shutdownSafely(keyValueService::close);
+            shutdownRunner.shutdownSafely(() -> shutdownExecutor(deleteExecutor));
+            shutdownRunner.shutdownSafely(() -> shutdownExecutor(getRangesExecutor));
+            shutdownRunner.shutdownSafely(this::closeLockServiceIfPossible);
+
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
-                runShutdownCallbackSafely(callback).ifPresent(suppressedExceptions::add);
+                shutdownRunner.shutdownSafely(callback);
             }
-            metricsManager.deregisterMetrics();
 
-            if (!suppressedExceptions.isEmpty()) {
-                RuntimeException closeFailed = new SafeRuntimeException(
-                        "Close failed. Please inspect the code and fix wherever shutdown hooks throw exceptions");
-                suppressedExceptions.forEach(closeFailed::addSuppressed);
-                throw closeFailed;
-            }
+            shutdownRunner.shutdownSafely(metricsManager::deregisterMetrics);
         }
     }
 
@@ -485,16 +482,6 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private static Optional<Throwable> runShutdownCallbackSafely(Runnable callback) {
-        try {
-            callback.run();
-            return Optional.empty();
-        } catch (Throwable exception) {
-            log.warn("Exception thrown from a shutdown hook. Swallowing to proceed.", exception);
-            return Optional.of(exception);
-        }
-    }
-
     private <T> T runTimed(Callable<T> operation, String timerName) {
         Timer.Context timer = getTimer(timerName).time();
         try {
@@ -520,5 +507,27 @@ import com.palantir.timestamp.TimestampService;
         }
         throw new IllegalArgumentException("Can't use a transaction which is not SnapshotTransaction in "
                 + "SnapshotTransactionManager");
+    }
+
+    private static final class ShutdownRunner implements AutoCloseable {
+        private final List<Throwable> failures = new ArrayList<>();
+
+        void shutdownSafely(Runnable shutdownCallback) {
+            try {
+                shutdownCallback.run();
+            } catch (Throwable throwable) {
+                failures.add(throwable);
+            }
+        }
+
+        @Override
+        public void close() {
+            if (!failures.isEmpty()) {
+                RuntimeException closeFailed = new SafeRuntimeException(
+                        "Close failed. Please inspect the code and fix the failures");
+                failures.forEach(closeFailed::addSuppressed);
+                throw closeFailed;
+            }
+        }
     }
 }

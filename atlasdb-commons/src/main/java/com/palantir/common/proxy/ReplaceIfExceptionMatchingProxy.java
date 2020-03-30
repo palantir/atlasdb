@@ -19,12 +19,16 @@ package com.palantir.common.proxy;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.reflect.AbstractInvocationHandler;
 
 public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocationHandler {
@@ -36,19 +40,31 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
 
     private ReplaceIfExceptionMatchingProxy(Supplier<T> delegateFactory, Predicate<Throwable> shouldReplace) {
         this.delegateFactory = delegateFactory;
-        this.delegate = delegateFactory.get();
         this.shouldReplace = shouldReplace;
     }
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         try {
-            return method.invoke(delegate, args);
+            return method.invoke(getAndPossiblyInitializeDelegate(), args);
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();
             replaceIfNecessary(cause);
             throw cause;
         }
+    }
+
+    private T getAndPossiblyInitializeDelegate() {
+        T perceivedDelegate = delegate;
+        if (perceivedDelegate == null) {
+            synchronized (this) {
+                perceivedDelegate = delegate;
+                if (perceivedDelegate == null) {
+                    perceivedDelegate = delegate = delegateFactory.get();
+                }
+            }
+        }
+        return perceivedDelegate;
     }
 
     private void replaceIfNecessary(Throwable thrown) {
@@ -57,14 +73,26 @@ public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocation
                 T replacement = delegateFactory.get();
                 if (delegate != replacement) {
                     log.info("Replacing underlying proxy due to thrown exception", thrown);
-                    delegate = delegateFactory.get();
+                    delegate = replacement;
                 }
             }
         }
     }
 
+    public static <T> T create(
+            Class<T> interfaceClass,
+            Supplier<T> delegate,
+            Duration minCreationInterval,
+            Predicate<Throwable> shouldReplace) {
+        return newProxyInstance(
+                interfaceClass,
+                Suppliers.memoizeWithExpiration(delegate::get, minCreationInterval.toMillis(), TimeUnit.MILLISECONDS),
+                shouldReplace);
+    }
+
     @SuppressWarnings("unchecked")
-    public static <T> T newProxyInstance(
+    @VisibleForTesting
+    static <T> T newProxyInstance(
             Class<T> interfaceClass,
             Supplier<T> delegate,
             Predicate<Throwable> shouldReplace) {
