@@ -1184,6 +1184,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 5);
         runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 10);
         runTestForGetRowsColumnRangeSingleIteratorVersion(100, 100, 99);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(10000, 11, 0);
     }
 
     private void runTestForGetRowsColumnRangeSingleIteratorVersion(
@@ -1213,14 +1214,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         });
         keyValueService.addGarbageCollectionSentinelValues(TABLE, expectedDeletedCells);
 
+        List<byte[]> shuffledRows = expectedRows;
+        Collections.shuffle(shuffledRows);
         List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
                 ImmutableList.copyOf(Iterators.transform(
                         tx.getRowsColumnRange(
                                 TABLE,
-                                expectedRows,
+                                shuffledRows,
                                 new ColumnRangeSelection(null, null),
                                 10),
                         Map.Entry::getKey)));
+        expectedCells.sort(Cell::compareTo);
         Assertions.assertThat(cells).isEqualTo(expectedCells);
 
         keyValueService.truncateTable(TABLE);

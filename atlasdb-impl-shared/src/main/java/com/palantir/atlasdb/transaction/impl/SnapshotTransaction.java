@@ -380,9 +380,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return Collections.emptyIterator();
         }
         hasReads = true;
+        // N.B. Rows must be sorted, to ensure that partitionByRow can correctly assume that all of the cells
+        // in a given row are already all grouped together.
+        List<byte[]> sortedRows = Lists.newArrayList(rows);
+        sortedRows.sort(UnsignedBytes.lexicographicalComparator());
         RowColumnRangeIterator rawResults =
                 keyValueService.getRowsColumnRange(tableRef,
-                                                   rows,
+                                                   sortedRows,
                                                    columnRangeSelection,
                                                    batchHint,
                                                    getStartTimestamp());
@@ -488,6 +492,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             tableRef,
                             raw,
                             x -> x));
+            // Note: the alternative fix here is to keep the original ordering, like this line would do
+            //       and changing the test's expectedCells to only reorder based on the new shuffledRows order
+            // return Iterables.filter(batch, entry -> postFiltered.containsKey(entry.getKey())).iterator();
             return postFiltered.entrySet().iterator();
         }));
     }
