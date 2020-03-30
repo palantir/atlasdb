@@ -40,8 +40,8 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
@@ -83,7 +83,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
 
     @Override
     public void accept(List<BatchElement<UUID, Optional<ClientAwareLeaderPinger>>> batchElements) {
-        Multimap<UUID, SettableFuture<Optional<ClientAwareLeaderPinger>>> uuidsToRequests = batchElements.stream()
+        Multimap<UUID, DisruptorFuture<Optional<ClientAwareLeaderPinger>>> uuidsToRequests = batchElements.stream()
                 .collect(ImmutableListMultimap.toImmutableListMultimap(BatchElement::argument, BatchElement::result));
 
         KeyedStream.of(uuidsToRequests.keySet())
@@ -127,7 +127,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
     }
 
     private static void completeRequest(
-            Collection<SettableFuture<Optional<ClientAwareLeaderPinger>>> futures,
+            Collection<DisruptorFuture<Optional<ClientAwareLeaderPinger>>> futures,
             Optional<ClientAwareLeaderPinger> outcome) {
         futures.forEach(result -> result.set(outcome));
     }

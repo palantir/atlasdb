@@ -45,8 +45,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.StringLockDescriptor;
@@ -66,7 +66,7 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionStarterTest {
     @Mock private LockLeaseService lockLeaseService;
-    private LockWatchEventCache lockWatchEventCache = spy(NoOpLockWatchEventCache.INSTANCE);
+    private final LockWatchEventCache lockWatchEventCache = spy(NoOpLockWatchEventCache.INSTANCE);
     private TransactionStarter transactionStarter;
 
     private static final int NUM_PARTITIONS = 16;
@@ -134,7 +134,7 @@ public class TransactionStarterTest {
         List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>> elements = IntStream.range(0, size)
                 .mapToObj(unused -> ImmutableTestBatchElement.builder()
                         .argument(null)
-                        .result(SettableFuture.create())
+                        .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                         .build())
                 .collect(toList());
         TransactionStarter.consumer(lockLeaseService, lockWatchEventCache).accept(elements);
