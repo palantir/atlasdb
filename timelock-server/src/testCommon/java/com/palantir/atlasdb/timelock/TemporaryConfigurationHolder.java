@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Locale;
 
 import org.junit.rules.ExternalResource;
@@ -24,6 +25,7 @@ import org.junit.rules.TemporaryFolder;
 
 import freemarker.template.Configuration;
 import freemarker.template.Template;
+import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 
 public class TemporaryConfigurationHolder extends ExternalResource {
@@ -43,6 +45,13 @@ public class TemporaryConfigurationHolder extends ExternalResource {
         this.temporaryFolder = temporaryFolder;
         this.templateName = templateName;
         this.variables = ImmutableTemplateVariables.copyOf(variables);
+        try {
+            temporaryFolder.create();
+            temporaryConfigFile = temporaryFolder.newFile();
+            createTemporaryConfigFile();
+        } catch (IOException | TemplateException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static Configuration templateConfig() {
@@ -56,11 +65,9 @@ public class TemporaryConfigurationHolder extends ExternalResource {
 
     @Override
     public void before() throws Exception {
-        temporaryConfigFile = temporaryFolder.newFile();
-        createTemporaryConfigFile();
     }
 
-    private void createTemporaryConfigFile() throws Exception {
+    private void createTemporaryConfigFile() throws IOException, TemplateException {
         Template template = TEMPLATE_CONFIG.getTemplate(templateName);
         template.process(
                 variables.withDataDirectory(temporaryFolder.newFolder().getAbsolutePath()),

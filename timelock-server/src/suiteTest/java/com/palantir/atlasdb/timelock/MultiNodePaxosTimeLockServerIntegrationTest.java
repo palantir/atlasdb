@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -44,7 +46,7 @@ import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
+import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.LockDescriptor;
@@ -59,10 +61,17 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 
 @RunWith(Parameterized.class)
 public class MultiNodePaxosTimeLockServerIntegrationTest {
+    static {
+        try {
+            SingleLeaderPaxosSuite.NON_BATCHED_TIMESTAMP_PAXOS.servers();
+        } catch (RuntimeException | Error e) {
+            e.printStackTrace();;
+        }
+    }
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> MultiLeaderPaxosSuite.MULTI_LEADER_PAXOS);
+            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.NON_BATCHED_TIMESTAMP_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -85,6 +94,18 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void bringAllNodesOnline() {
         client = cluster.clientForRandomNamespace();
         cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
+    }
+
+    @Test
+    public void stressTest() {
+        TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
+        for (int i = 0; i < 10_000; i++) {
+            client.getFreshTimestamp();
+            System.out.println(ManagementFactory.getThreadMXBean().getThreadCount());
+            if (i == 1_000) {
+                nonLeader.serverHolder().wireMock().register(WireMock.any(WireMock.anyUrl()).atPriority(Integer.MAX_VALUE - 1).willReturn(WireMock.serviceUnavailable()).build());
+            }
+        }
     }
 
     @Test

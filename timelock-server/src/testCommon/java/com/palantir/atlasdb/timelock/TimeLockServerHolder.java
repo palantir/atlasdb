@@ -45,7 +45,7 @@ import io.dropwizard.testing.DropwizardTestSupport;
 
 public class TimeLockServerHolder extends ExternalResource {
 
-    static final String ALL_NAMESPACES = "/[a-zA-Z0-9_-]+/.*";
+    static final String ALL_NAMESPACES = "/[a-zA-Z0-9_.-]+/.*";
 
     static {
         Http2Agent.install();
@@ -53,16 +53,15 @@ public class TimeLockServerHolder extends ExternalResource {
 
     static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
 
-    private static final WireMockConfiguration WIRE_MOCK_CONFIGURATION = WireMockConfiguration.wireMockConfig()
+    private final WireMockConfiguration WIRE_MOCK_CONFIGURATION = WireMockConfiguration.wireMockConfig()
             .dynamicPort()
-            .dynamicHttpsPort()
             .keystorePath("var/security/keyStore.jks")
             .keystorePassword("keystore");
 
     private final Supplier<String> configFilePathSupplier;
 
-    private final WireMockServer wireMockServer = new WireMockServer(WIRE_MOCK_CONFIGURATION);
-    private final WireMock wireMock = new WireMock(wireMockServer);
+    private final WireMockServer wireMockServer;
+    private final WireMock wireMock;
     private DropwizardTestSupport<CombinedTimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
     private boolean initialised = false;
@@ -70,6 +69,13 @@ public class TimeLockServerHolder extends ExternalResource {
 
     TimeLockServerHolder(Supplier<String> configFilePathSupplier) {
         this.configFilePathSupplier = configFilePathSupplier;
+        try {
+            int port = readTimelockPort();
+            this.wireMockServer = new WireMockServer(WIRE_MOCK_CONFIGURATION.httpsPort(port * 2));
+            this.wireMock = new WireMock(wireMockServer);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -90,7 +96,7 @@ public class TimeLockServerHolder extends ExternalResource {
         StubMapping catchAll = any(urlMatching(ALL_NAMESPACES))
                 .willReturn(aResponse().proxiedFrom(getTimelockUri())
                         .withAdditionalRequestHeader("User-Agent", UserAgents.format(WIREMOCK_USER_AGENT)))
-                .atPriority(Integer.MAX_VALUE)
+                .atPriority(Integer.MAX_VALUE - 2)
                 .build();
         wireMock.register(catchAll);
     }

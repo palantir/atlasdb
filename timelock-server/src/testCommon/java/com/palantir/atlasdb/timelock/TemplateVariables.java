@@ -61,7 +61,7 @@ public interface TemplateVariables {
         return IntStream.range(startingPort, startingPort + 3)
                 .boxed()
                 .map(port -> ImmutableTemplateVariables.builder()
-                        .serverPorts(allPorts)
+                        .serverPorts(allPorts.stream().map(p -> p.equals(port) ? port : p * 2).collect(Collectors.toList()))
                         .localServerPort(port))
                 .map(customizer)
                 .map(ImmutableTemplateVariables.Builder::build)
