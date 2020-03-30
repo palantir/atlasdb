@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
@@ -102,8 +103,12 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return null;
+    public List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
+        List<Optional<StartIdentifiedAtlasDbTransactionResponse>> responses = executeOnTimeLock(
+                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
+        responses.forEach(maybeResponse -> maybeResponse.ifPresent(
+                response -> lockRefresher.registerLock(response.immutableTimestamp().getLock())));
+        return responses;
     }
 
     @Override

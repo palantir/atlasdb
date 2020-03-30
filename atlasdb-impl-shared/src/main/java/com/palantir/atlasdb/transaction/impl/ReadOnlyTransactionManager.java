@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -163,9 +164,9 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public List<TransactionAndImmutableTsLock> setupRunTaskWithConditionThrowOnConflictBatch(
+    public List<Optional<TransactionAndImmutableTsLock>> setupRunTaskWithConditionThrowOnConflictBatch(
             List<PreCommitCondition> conditions) {
-        return null;
+        throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 
     @Override

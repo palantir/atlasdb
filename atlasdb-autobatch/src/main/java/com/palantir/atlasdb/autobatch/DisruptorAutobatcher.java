@@ -41,8 +41,8 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.palantir.logsafe.Preconditions;
 
 /**
- * While this class is public, it shouldn't be used as API outside of AtlasDB because we don't guarantee we won't break
- * it.
+ * While this class is public, it shouldn't be used as API outside of AtlasDB because we
+ * don't guarantee we won't break it.
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
@@ -129,7 +129,6 @@ public final class DisruptorAutobatcher<T, R>
         public SettableFuture<R> result() {
             return result;
         }
-
     }
 
     static <T, R> DisruptorAutobatcher<T, R> create(

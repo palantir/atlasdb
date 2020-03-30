@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -69,8 +70,8 @@ public class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return null;
+    public List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return executeWithRecord(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(count));
     }
 
     @Override

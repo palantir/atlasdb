@@ -171,13 +171,31 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public List<TransactionAndImmutableTsLock> setupRunTaskWithConditionThrowOnConflictBatch(
+    public List<Optional<TransactionAndImmutableTsLock>> setupRunTaskWithConditionThrowOnConflictBatch(
             List<PreCommitCondition> conditions) {
-        List<StartIdentifiedAtlasDbTransactionResponse> transactionResponse
+        List<Optional<StartIdentifiedAtlasDbTransactionResponse>> transactionResponses
                 = timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
 
-        return Streams.zip(transactionResponse.stream(), conditions.stream(),
-                (response, condition) -> wrap(condition, response)).collect(Collectors.toList());
+        if (transactionResponses.stream().allMatch(response -> !response.isPresent())) {
+            // (todo) jshah - We may or may not want to throw in the case that all transactions failed to start;
+            //      to be decided
+            throw new RuntimeException("entire batch failed");
+        }
+
+        List<Optional<TransactionAndImmutableTsLock>> result = Streams.zip(transactionResponses.stream(),
+                conditions.stream(), (response, condition) -> {
+                    if (!response.isPresent()) {
+                        return Optional.<TransactionAndImmutableTsLock>empty();
+                    }
+
+                    try {
+                        return Optional.of(wrap(condition, response.get()));
+                    } catch (RuntimeException e) {
+                        return Optional.<TransactionAndImmutableTsLock>empty();
+                    }
+                }).collect(Collectors.toList());
+
+        return result;
     }
 
     private TransactionAndImmutableTsLock wrap(PreCommitCondition condition,
@@ -205,7 +223,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock txAndLock,
-            TransactionTask<T, E> task)
+                                                                           TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
@@ -289,7 +307,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
+    private  <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
@@ -335,11 +353,11 @@ import com.palantir.timestamp.TimestampService;
     /**
      * Frees resources used by this SnapshotTransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
-     * <p>
-     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback may be
-     * called (but is not necessarily called). Callbacks registered before the invocation of close() are guaranteed to
-     * be executed (because we use a synchronized list) as long as no exceptions arise. If an exception arises, then no
-     * guarantees are made with regard to subsequent callbacks being executed.
+     *
+     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
+     * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
+     * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception
+     * arises, then no guarantees are made with regard to subsequent callbacks being executed.
      */
     @Override
     public void close() {
@@ -414,8 +432,8 @@ import com.palantir.timestamp.TimestampService;
     /**
      * This will always return a valid ImmutableTimestamp, but it may be slightly out of date.
      * <p>
-     * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires 2
-     * extra remote calls which we can skip.
+     * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires
+     * 2 extra remote calls which we can skip.
      */
     private long getApproximateImmutableTimestamp() {
         long recentTs = recentImmutableTs.get();

@@ -113,8 +113,9 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return null;
+    public List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return runTaskTimed("startIdentifiedAtlasDbTransactionBatch",
+                () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
     }
 
     @Override

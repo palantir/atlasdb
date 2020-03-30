@@ -16,10 +16,12 @@
 package com.palantir.lock.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -125,8 +127,10 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return null;
+    public List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return IntStream.range(0, count)
+                .mapToObj($ -> Optional.<StartIdentifiedAtlasDbTransactionResponse>empty())
+                .collect(Collectors.toList());
     }
 
     @Override

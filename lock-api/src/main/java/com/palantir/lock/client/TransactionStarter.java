@@ -46,7 +46,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
  * service also handles creating {@link LockTokenShare}'s to enable multiple transactions sharing a single immutable
  * timestamp.
- * <p>
+ *
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
@@ -80,17 +80,14 @@ final class TransactionStarter implements AutoCloseable {
         }
     }
 
-    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return autobatcher.applyBatch(
-                IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList()))
+    List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return autobatcher.applyBatch(IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList()))
                 .stream()
                 .map(result -> {
                     try {
-                        return result.get();
-                    } catch (ExecutionException e) {
-                        throw Throwables.throwUncheckedException(e.getCause());
-                    } catch (Throwable t) {
-                        throw Throwables.throwUncheckedException(t);
+                        return Optional.of(result.get());
+                    } catch (Throwable _t) {
+                        return Optional.<StartIdentifiedAtlasDbTransactionResponse>empty();
                     }
                 }).collect(Collectors.toList());
     }
