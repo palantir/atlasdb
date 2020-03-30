@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.api;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -436,7 +435,7 @@ public interface TransactionManager extends AutoCloseable {
     TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
 
     @Timed
-    List<Optional<TransactionAndImmutableTsLock>> setupRunTaskWithConditionThrowOnConflictBatch(
+    List<TransactionAndImmutableTsLock> setupRunTaskWithConditionThrowOnConflictBatch(
             List<PreCommitCondition> conditions);
 
     /**

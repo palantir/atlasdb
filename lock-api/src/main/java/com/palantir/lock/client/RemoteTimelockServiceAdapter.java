@@ -17,7 +17,6 @@
 package com.palantir.lock.client;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
@@ -107,7 +106,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
-    public List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         return transactionStarter.startIdentifiedAtlasDbTransactionBatch(count);
     }
 

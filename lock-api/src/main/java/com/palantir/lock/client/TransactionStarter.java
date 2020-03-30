@@ -46,7 +46,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
  * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
  * service also handles creating {@link LockTokenShare}'s to enable multiple transactions sharing a single immutable
  * timestamp.
- *
+ * <p>
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
@@ -80,16 +80,23 @@ final class TransactionStarter implements AutoCloseable {
         }
     }
 
-    List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return autobatcher.applyBatch(IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList()))
-                .stream()
-                .map(result -> {
-                    try {
-                        return Optional.of(result.get());
-                    } catch (Throwable _t) {
-                        return Optional.<StartIdentifiedAtlasDbTransactionResponse>empty();
-                    }
-                }).collect(Collectors.toList());
+    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
+        try {
+            autobatcher.applyBatch(
+                    IntStream.range(0, count).mapToObj($ -> (Void) null).collect(Collectors.toList()))
+                    .forEach(result -> {
+                        try {
+                            responses.add(result.get());
+                        } catch (Throwable t) {
+                            throw new RuntimeException(t);
+                        }
+                    });
+            return responses;
+        } catch (RuntimeException e) {
+            responses.forEach(response -> unlock(ImmutableSet.of(response.immutableTimestamp().getLock())));
+            throw e;
+        }
     }
 
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {

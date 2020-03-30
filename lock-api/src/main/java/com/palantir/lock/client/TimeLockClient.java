@@ -103,7 +103,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         List<Optional<StartIdentifiedAtlasDbTransactionResponse>> responses = executeOnTimeLock(
                 () -> delegate.startIdentifiedAtlasDbTransactionBatch(count));
         responses.forEach(maybeResponse -> maybeResponse.ifPresent(

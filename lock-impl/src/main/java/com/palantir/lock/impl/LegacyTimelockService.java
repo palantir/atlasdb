@@ -127,7 +127,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public List<Optional<StartIdentifiedAtlasDbTransactionResponse>> startIdentifiedAtlasDbTransactionBatch(int count) {
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         return IntStream.range(0, count)
                 .mapToObj($ -> Optional.<StartIdentifiedAtlasDbTransactionResponse>empty())
                 .collect(Collectors.toList());

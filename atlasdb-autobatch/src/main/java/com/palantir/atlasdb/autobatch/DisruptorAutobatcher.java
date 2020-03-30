@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -46,8 +45,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
 
 /**
- * While this class is public, it shouldn't be used as API outside of AtlasDB because we
- * don't guarantee we won't break it.
+ * While this class is public, it shouldn't be used as API outside of AtlasDB because we don't guarantee we won't break
+ * it.
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
@@ -101,14 +100,14 @@ public final class DisruptorAutobatcher<T, R>
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
         List<ListenableFuture<R>> results = new ArrayList<>();
         buffer.publishEvents((EventTranslator<DefaultBatchElement<T, R>>[]) arguments.stream().map(argument -> {
-            SettableFuture<R> result = SettableFuture.create();
+            DisruptorFuture<R> result = new DisruptorFuture<>(safeLoggablePurpose);
             EventTranslator<DefaultBatchElement<T, R>> translator = (refresh, sequence) -> {
                 refresh.result = result;
                 refresh.argument = argument;
             };
             results.add(result);
             return translator;
-        }).collect(Collectors.toList()).toArray());
+        }).toArray(EventTranslator[]::new));
 
         return results;
     }
