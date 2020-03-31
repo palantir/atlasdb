@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
@@ -23,12 +24,18 @@ import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 
 final class TimeLockPaxosExecutors {
+    @VisibleForTesting
+    static final int MAXIMUM_POOL_SIZE = 100;
+
+    private static final Duration THREAD_KEEP_ALIVE = Duration.ofSeconds(5);
+
     private TimeLockPaxosExecutors() {
         // no
     }
@@ -52,8 +59,8 @@ final class TimeLockPaxosExecutors {
         return new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
                         1, // Many operations are autobatched, so under ordinary circumstances 1 thread will do
-                        100, // Want to bound the number of threads that might be stuck
-                        5000,
+                        MAXIMUM_POOL_SIZE, // Want to bound the number of threads that might be stuck
+                        THREAD_KEEP_ALIVE.toMillis(),
                         TimeUnit.MILLISECONDS,
                         new SynchronousQueue<>(), // Prefer to avoid OOM risk if we get hammered
                         new ThreadFactoryBuilder()
