@@ -49,7 +49,7 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @Before
     public void setUp() {
-        namespace = cluster.clientForRandomNamespace();
+        namespace = cluster.clientForRandomNamespace().throughWireMockProxy();
     }
 
     @Test

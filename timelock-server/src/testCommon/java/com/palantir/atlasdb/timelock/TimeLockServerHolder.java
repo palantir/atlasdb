@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.File;
 import java.io.IOException;
