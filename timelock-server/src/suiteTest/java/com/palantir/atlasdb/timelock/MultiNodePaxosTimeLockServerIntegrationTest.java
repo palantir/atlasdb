@@ -290,23 +290,42 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void stressTest() {
         TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
+        boolean isNonLeaderTakenOut = false;
         try {
             for (int i = 0; i < 10_000; i++) { // Needed as it takes a while for the thread buildup to occur
                 client.getFreshTimestamp();
-                assertThat(ManagementFactory.getThreadMXBean().getThreadCount())
-                        .as("should not additionally spin up too many threads")
-                        .isLessThanOrEqualTo(startingNumThreads + 200);
+                assertNumberOfThreadsReasonable(
+                        startingNumThreads,
+                        ManagementFactory.getThreadMXBean().getThreadCount(),
+                        isNonLeaderTakenOut);
                 if (i == 1_000) {
-                    nonLeader.serverHolder().wireMock().register(
-                            WireMock.any(WireMock.anyUrl())
-                                    .atPriority(Integer.MAX_VALUE - 1)
-                                    .willReturn(WireMock.serviceUnavailable().withFixedDelay(
-                                            Ints.checkedCast(Duration.ofSeconds(2).toMillis()))).build());
+                    makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
                 }
             }
         } finally {
             nonLeader.serverHolder().resetWireMock();
         }
+    }
+
+    private void assertNumberOfThreadsReasonable(int startingNumThreads, int threadCount, boolean isNonLeaderTakenOut) {
+        int threadLimit = startingNumThreads + 200;
+        if (isNonLeaderTakenOut) {
+            assertThat(threadCount)
+                    .as("should not additionally spin up too many threads after a non-leader failed")
+                    .isLessThanOrEqualTo(threadLimit);
+        } else {
+            assertThat(threadCount)
+                    .as("should not additionally spin up too many threads in the absence of failures")
+                    .isLessThanOrEqualTo(threadLimit);
+        }
+    }
+
+    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
+        nonLeader.serverHolder().wireMock().register(
+                WireMock.any(WireMock.anyUrl())
+                        .atPriority(Integer.MAX_VALUE - 1)
+                        .willReturn(WireMock.serviceUnavailable().withFixedDelay(
+                                Ints.checkedCast(Duration.ofSeconds(2).toMillis()))).build());
     }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {
