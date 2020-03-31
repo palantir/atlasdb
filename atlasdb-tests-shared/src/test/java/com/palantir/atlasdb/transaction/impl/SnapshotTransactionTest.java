@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +88,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
+import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -1184,7 +1186,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 5);
         runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 10);
         runTestForGetRowsColumnRangeSingleIteratorVersion(100, 100, 99);
-        runTestForGetRowsColumnRangeSingleIteratorVersion(10000, 11, 0);
+        runTestForGetRowsColumnRangeSingleIteratorVersion(100, 11, 0);
     }
 
     private void runTestForGetRowsColumnRangeSingleIteratorVersion(
@@ -1224,10 +1226,23 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                                 new ColumnRangeSelection(null, null),
                                 10),
                         Map.Entry::getKey)));
-        expectedCells.sort(Cell::compareTo);
+        expectedCells.sort(Comparator
+                .comparing(
+                        (Cell cell) -> indexOfArrayEquality(shuffledRows, cell.getRowName()),
+                        Comparator.naturalOrder())
+                .thenComparing(Cell::getColumnName, UnsignedBytes.lexicographicalComparator()));
         Assertions.assertThat(cells).isEqualTo(expectedCells);
 
         keyValueService.truncateTable(TABLE);
+    }
+
+    private int indexOfArrayEquality(List<byte[]> list, byte[] value) {
+        for (int i = 0; i < list.size(); i++) {
+            if (Arrays.equals(list.get(i), value)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Test

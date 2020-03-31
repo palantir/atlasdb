@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -380,13 +381,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return Collections.emptyIterator();
         }
         hasReads = true;
-        // N.B. Rows must be sorted, to ensure that partitionByRow can correctly assume that all of the cells
-        // in a given row are already all grouped together.
-        List<byte[]> sortedRows = Lists.newArrayList(rows);
-        sortedRows.sort(UnsignedBytes.lexicographicalComparator());
         RowColumnRangeIterator rawResults =
                 keyValueService.getRowsColumnRange(tableRef,
-                                                   sortedRows,
+                                                   rows,
                                                    columnRangeSelection,
                                                    batchHint,
                                                    getStartTimestamp());
@@ -480,22 +477,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
             TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
-            ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
-            batch.forEach(rawBuilder::put);
-            Map<Cell, Value> raw = rawBuilder.build();
+            // N.B. This batch could be spread across multiple rows, and those rows might extend into other
+            // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
+            // is to preserve the original order.
+            LinkedHashMap<Cell, Value> raw = new LinkedHashMap<>();
+            batch.forEach(entry -> raw.put(entry.getKey(), entry.getValue()));
             validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
-            SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
-                    getWithPostFilteringSync(
-                            tableRef,
-                            raw,
-                            x -> x));
-            // Note: the alternative fix here is to keep the original ordering, like this line would do
-            //       and changing the test's expectedCells to only reorder based on the new shuffledRows order
-            // return Iterables.filter(batch, entry -> postFiltered.containsKey(entry.getKey())).iterator();
-            return postFiltered.entrySet().iterator();
+            return getWithPostFilteringSync(
+                    tableRef,
+                    raw,
+                    x -> x).iterator();
         }));
     }
 
