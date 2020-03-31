@@ -48,7 +48,6 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
-import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.lock.LockDescriptor;
