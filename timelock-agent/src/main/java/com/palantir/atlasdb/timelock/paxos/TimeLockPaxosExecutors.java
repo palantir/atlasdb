@@ -33,6 +33,12 @@ final class TimeLockPaxosExecutors {
         // no
     }
 
+    /**
+     * Creates a mapping of services to {@link ExecutorService}s indicating that tasks oriented towards the relevant
+     * node should be run on the associated executor.
+     *
+     * It is assumed that tasks run on the local node will return quickly (hence the use of the direct executor).
+     */
     static <T> Map<T, ExecutorService> createBoundedExecutors(
             MetricRegistry metricRegistry, LocalAndRemotes<T> localAndRemotes, String useCase) {
         Map<T, ExecutorService> remoteExecutors = KeyedStream.of(localAndRemotes.remotes())
@@ -45,11 +51,11 @@ final class TimeLockPaxosExecutors {
     private static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase) {
         return new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
-                        1,
-                        100,
+                        1, // Many operations are autobatched, so under ordinary circumstances 1 thread will do
+                        100, // Want to bound the number of threads that might be stuck
                         5000,
                         TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(),
+                        new SynchronousQueue<>(), // Prefer to avoid OOM risk if we get hammered
                         new ThreadFactoryBuilder()
                                 .setNameFormat("timelock-executors-" + useCase + "-%d")
                                 .setDaemon(true)
@@ -57,5 +63,4 @@ final class TimeLockPaxosExecutors {
                 metricRegistry,
                 MetricRegistry.name(TimeLockPaxosExecutors.class, useCase, "executor"));
     }
-
 }
