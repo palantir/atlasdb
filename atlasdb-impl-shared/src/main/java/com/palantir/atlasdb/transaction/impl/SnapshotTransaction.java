@@ -15,12 +15,13 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -477,19 +478,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
             TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
-            // N.B. This batch could be spread across multiple rows, and those rows might extend into other
-            // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
-            // is to preserve the original order.
-            Map<Cell, Value> raw = new LinkedHashMap<>();
-            batch.forEach(entry -> raw.put(entry.getKey(), entry.getValue()));
+            ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
+            batch.forEach(rawBuilder::put);
+            Map<Cell, Value> raw = rawBuilder.build();
+
             validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
-            return getWithPostFilteringSync(
-                    tableRef,
-                    raw,
-                    x -> x).iterator();
+
+            // N.B. This batch could be spread across multiple rows, and those rows might extend into other
+            // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
+            // is to preserve the original row order.
+            Comparator<Cell> ordering = Comparator
+                    .comparing(
+                            (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                            Ordering.explicit(batch.stream()
+                                    .map(Map.Entry::getKey)
+                                    .map(Cell::getRowName)
+                                    .map(ByteBuffer::wrap)
+                                    .distinct()
+                                    .collect(ImmutableList.toImmutableList())))
+                    .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR);
+            SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
+                    getWithPostFilteringSync(
+                            tableRef,
+                            raw,
+                            x -> x),
+                    ordering);
+            return postFiltered.entrySet().iterator();
         }));
     }
 

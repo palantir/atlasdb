@@ -37,6 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -88,7 +89,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
-import com.google.common.primitives.UnsignedBytes;
+import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -1176,6 +1177,45 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void getOtherRowsColumnRangesReturnsInOrderInCaseOfAbortedTxns() {
+        byte[] row = "foo".getBytes();
+        Cell firstCell = Cell.create(row, "a".getBytes());
+        Cell secondCell = Cell.create(row, "b".getBytes());
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
+            return null;
+        });
+
+        // this will write into the DB, because the protocol demands we write before we get a commit timestamp
+        RuntimeException conditionFailure = new RuntimeException();
+        assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(() ->
+                new PreCommitCondition() {
+                    @Override
+                    public void throwIfConditionInvalid(long timestamp) {
+                        throw conditionFailure;
+                    }
+
+                    @Override
+                    public void cleanup() {}
+                }, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value));
+            return null;
+        })).isSameAs(conditionFailure);
+
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
+                Lists.transform(
+                        Lists.newArrayList(tx.getRowsColumnRange(
+                                TABLE,
+                                ImmutableList.of(row),
+                                new ColumnRangeSelection(null, null),
+                                10)),
+                        Map.Entry::getKey));
+        assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+    }
+
+    @Test
     public void testRowsColumnRangesSingleIteratorVersion() {
         runTestForGetRowsColumnRangeSingleIteratorVersion(1, 1, 0);
         runTestForGetRowsColumnRangeSingleIteratorVersion(1, 10, 0);
@@ -1228,21 +1268,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         Map.Entry::getKey)));
         expectedCells.sort(Comparator
                 .comparing(
-                        (Cell cell) -> indexOfArrayEquality(shuffledRows, cell.getRowName()),
-                        Comparator.naturalOrder())
-                .thenComparing(Cell::getColumnName, UnsignedBytes.lexicographicalComparator()));
+                        (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                        Ordering.explicit(Lists.transform(shuffledRows, ByteBuffer::wrap)))
+                .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR));
         Assertions.assertThat(cells).isEqualTo(expectedCells);
 
         keyValueService.truncateTable(TABLE);
-    }
-
-    private int indexOfArrayEquality(List<byte[]> list, byte[] value) {
-        for (int i = 0; i < list.size(); i++) {
-            if (Arrays.equals(list.get(i), value)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     @Test
