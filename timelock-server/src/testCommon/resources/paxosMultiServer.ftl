@@ -12,10 +12,10 @@ install:
         keyStorePassword: "keystore"
         keyStoreType: "JKS"
       uris:
-<#list serverPorts as serverPort>
-      - "localhost:${serverPort?c}"
+<#list serverProxyPorts as serverProxyPort>
+      - "localhost:${serverProxyPort?c}"
 </#list>
-    local-server: "localhost:${localServerPort?c}"
+    local-server: "localhost:${localProxyPort?c}"
   timestampBoundPersistence:
 
 runtime:

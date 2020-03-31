@@ -45,7 +45,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -79,13 +78,15 @@ public class TestableTimelockCluster implements TestRule {
 
     public TestableTimelockCluster(String name, String configFileTemplate, Iterable<TemplateVariables> variables) {
         this.name = name;
-        this.configs = Streams.stream(variables)
+        Map<TemplateVariables, TemporaryConfigurationHolder> configMap = KeyedStream.of(variables)
                 .map(variable -> getConfigHolder(configFileTemplate, variable))
-                .collect(Collectors.toList());
-        this.servers = configs.stream()
-                .map(TestableTimelockCluster::getServerHolder)
+                .collectToMap();
+        this.configs = ImmutableList.copyOf(configMap.values());
+        this.servers = ImmutableSet.copyOf(KeyedStream.stream(configMap)
+                .mapEntries((template, holder) -> Maps.immutableEntry(template, getServerHolder(holder, template)))
                 .map(holder -> new TestableTimelockServer("https://localhost", holder))
-                .collect(Collectors.toSet());
+                .collectToMap()
+                .values());
         this.serverToOtherServers = KeyedStream.of(servers)
                 .map(server -> ImmutableSet.of(server))
                 .map(server -> Sets.difference(servers, server))
@@ -108,7 +109,7 @@ public class TestableTimelockCluster implements TestRule {
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        namespaces.forEach(namespace -> client(namespace).getFreshTimestamp());
+                        namespaces.forEach(namespace -> client(namespace).throughWireMockProxy().getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -245,8 +246,10 @@ public class TestableTimelockCluster implements TestRule {
         return ruleChain;
     }
 
-    private static TimeLockServerHolder getServerHolder(TemporaryConfigurationHolder configHolder) {
-        return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation);
+    private static TimeLockServerHolder getServerHolder(
+            TemporaryConfigurationHolder configHolder,
+            TemplateVariables templateVariables) {
+        return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation, templateVariables);
     }
 
     private TemporaryConfigurationHolder getConfigHolder(String templateName, TemplateVariables variables) {

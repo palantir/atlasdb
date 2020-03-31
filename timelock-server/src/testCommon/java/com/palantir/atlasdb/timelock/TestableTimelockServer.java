@@ -139,14 +139,7 @@ public class TestableTimelockServer {
     }
 
     void allowAllNamespaces() {
-        serverHolder.wireMock().removeMappings();
-        StubMapping catchAll = any(urlMatching(TimeLockServerHolder.ALL_NAMESPACES))
-                .willReturn(aResponse().proxiedFrom(serverHolder.getTimelockUri())
-                        .withAdditionalRequestHeader(
-                                "User-Agent", UserAgents.format(TimeLockServerHolder.WIREMOCK_USER_AGENT)))
-                .atPriority(Integer.MAX_VALUE)
-                .build();
-        serverHolder.wireMock().register(catchAll);
+        serverHolder.resetWireMock();
     }
 
     private static UrlPattern namespaceEqualTo(String namespace) {
