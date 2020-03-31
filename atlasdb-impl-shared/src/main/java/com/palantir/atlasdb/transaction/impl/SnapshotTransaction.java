@@ -480,7 +480,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // N.B. This batch could be spread across multiple rows, and those rows might extend into other
             // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
             // is to preserve the original order.
-            LinkedHashMap<Cell, Value> raw = new LinkedHashMap<>();
+            Map<Cell, Value> raw = new LinkedHashMap<>();
             batch.forEach(entry -> raw.put(entry.getKey(), entry.getValue()));
             validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
             if (raw.isEmpty()) {
