@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -286,7 +285,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    @Ignore // TODO (jkong): Fix this test by reworking the threading model.
     public void stressTest() {
         TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();

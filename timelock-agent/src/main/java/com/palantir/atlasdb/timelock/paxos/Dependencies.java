@@ -50,6 +50,12 @@ public interface Dependencies {
         PaxosRemoteClients remoteClients();
         LocalPaxosComponents components();
         int quorumSize();
+
+        /**
+         * Caution! The shared executor should only be used for tasks that are expected to complete quickly.
+         * DO NOT use the shared executor when the concurrency of requests may be very high (e.g. for Paxos round
+         * verification). This may lead to thread explosion.
+         */
         ExecutorService sharedExecutor();
     }
 
