@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Fixes a bug in 0.198.9. Transaction#getRowsColumnRange (the 4 parameter
+    version) will now properly return cells for a row all grouped together in one
+    batch (no cells from other rows mixed in).
+  links:
+  - https://github.com/palantir/atlasdb/pull/4687
