@@ -188,6 +188,7 @@ import com.palantir.timestamp.TimestampService;
             // there may be other things to clean up, but this would be the place to do it
             // note also that this is something of a pattern, likely a good idea to encapsulate this somehow
             result.forEach(txnAndLock -> timelockService.tryUnlock(ImmutableSet.of(txnAndLock.immutableTsLock())));
+            throw new TransactionFailedRetriableException("failed to start batch of txns");
         }
         return result;
     }
