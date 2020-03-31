@@ -300,6 +300,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                         isNonLeaderTakenOut);
                 if (i == 1_000) {
                     makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
+                    isNonLeaderTakenOut = true;
                 }
             }
         } finally {
