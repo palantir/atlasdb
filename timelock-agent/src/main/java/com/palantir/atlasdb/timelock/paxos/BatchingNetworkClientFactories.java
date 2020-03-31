@@ -35,13 +35,15 @@ abstract class BatchingNetworkClientFactories implements
         BatchPaxosAcceptor local = components().batchAcceptor();
         List<BatchPaxosAcceptor> remotes =
                 UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor());
-        List<BatchPaxosAcceptor> allBatchAcceptors = LocalAndRemotes.of(local, remotes)
-                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosAcceptor.class, remote))
-                .all();
+        LocalAndRemotes<BatchPaxosAcceptor> batchAcceptors = LocalAndRemotes.of(local, remotes)
+                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosAcceptor.class, remote));
 
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(
-                allBatchAcceptors,
-                sharedExecutor(),
+                batchAcceptors.all(),
+                TimeLockPaxosExecutors.createBoundedExecutors(
+                        metrics().asMetricsManager().getRegistry(),
+                        batchAcceptors,
+                        "leadership-batch-acceptors"),
                 quorumSize());
     }
 

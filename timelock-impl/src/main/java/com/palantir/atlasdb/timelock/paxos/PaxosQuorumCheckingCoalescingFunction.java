@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -58,6 +59,17 @@ public class PaxosQuorumCheckingCoalescingFunction<
         this.executors = executors;
         this.quorumSize = quorumSize;
         this.defaultValue = PaxosResponsesWithRemote.of(quorumSize, ImmutableMap.of());
+    }
+
+    private PaxosQuorumCheckingCoalescingFunction(
+            List<FunctionAndExecutor<FUNC>> functionsAndExecutors,
+            int quorumSize) {
+        this(functionsAndExecutors.stream().map(FunctionAndExecutor::function).collect(toList()),
+                KeyedStream.of(functionsAndExecutors.stream())
+                        .mapKeys(FunctionAndExecutor::function)
+                        .map(FunctionAndExecutor::executor)
+                        .collectToMap(),
+                quorumSize);
     }
 
     @Override
@@ -96,27 +108,28 @@ public class PaxosQuorumCheckingCoalescingFunction<
     public static <REQ, RESP extends PaxosResponse, SERVICE, F extends CoalescingRequestFunction<REQ, RESP>>
     PaxosQuorumCheckingCoalescingFunction<REQ, RESP, F> wrapWithRemotes(
             List<SERVICE> services,
-            ExecutorService executor,
+            Map<SERVICE, ExecutorService> executors,
             int quorumSize,
             Function<SERVICE, F> functionFactory) {
-        return services.stream()
-                .map(functionFactory)
-                .collect(collectingAndThen(
-                        toList(), functions -> new PaxosQuorumCheckingCoalescingFunction<>(
-                                functions,
-                                Maps.toMap(functions, $ -> executor),
-                                quorumSize)));
+        // Not 100% sure if ordering is important, but assuming so here
+        List<FunctionAndExecutor<F>> functionsAndExecutors = KeyedStream.of(services)
+                .map(executors::get)
+                .mapKeys(functionFactory)
+                .entries()
+                .<FunctionAndExecutor<F>>map(entry -> ImmutableFunctionAndExecutor.of(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+        return new PaxosQuorumCheckingCoalescingFunction<>(functionsAndExecutors, quorumSize);
     }
 
     public static <REQ, RESP extends PaxosResponse, SERVICE, FUNCTION extends CoalescingRequestFunction<REQ, RESP>>
     CoalescingRequestFunction<REQ, PaxosResponses<RESP>> wrap(
             List<SERVICE> services,
-            ExecutorService executor,
+            Map<SERVICE, ExecutorService> executorMap,
             int quorumSize,
             Function<SERVICE, FUNCTION> functionFactory) {
 
         PaxosQuorumCheckingCoalescingFunction<REQ, RESP, FUNCTION> wrap =
-                wrapWithRemotes(services, executor, quorumSize, functionFactory);
+                wrapWithRemotes(services, executorMap, quorumSize, functionFactory);
 
         return request ->
                 KeyedStream.stream(wrap.apply(request)).map(PaxosResponsesWithRemote::withoutRemotes).collectToMap();
@@ -135,6 +148,15 @@ public class PaxosQuorumCheckingCoalescingFunction<
         static <T> PaxosContainer<T> of(T contents) {
             return ImmutablePaxosContainer.of(contents);
         }
+    }
+
+    @Value.Immutable
+    interface FunctionAndExecutor<F> {
+        @Value.Parameter
+        F function();
+
+        @Value.Parameter
+        ExecutorService executor();
     }
 
 }
