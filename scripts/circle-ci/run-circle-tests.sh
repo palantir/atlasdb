@@ -54,24 +54,16 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+PrintGCDetails"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:-TraceClassUnloading"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 
-# External builds have a 4GB limit so we have to tune everything so it fits in memory (only just!)
-if [[ $INTERNAL_BUILD == true ]]; then
-    if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
-        export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
-    else
-        BASE_GRADLE_ARGS+=" --parallel"
-        export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
-        BASE_GRADLE_ARGS+=" --parallel"
-    fi
-    export CASSANDRA_MAX_HEAP_SIZE=512m
-    export CASSANDRA_HEAP_NEWSIZE=64m
+# External builds have a 16gb limit.
+if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
+    export _JAVA_OPTIONS="-Xms4g -Xmx8g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 else
-    ./gradlew $BASE_GRADLE_ARGS --parallel compileJava compileTestJava
-    export GRADLE_OPTS="-Xss1024K -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=32M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=150M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=128M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=32M"
-    export _JAVA_OPTIONS="${_JAVA_OPTIONS} ${JAVA_GC_LOGGING_OPTIONS}"
-    export CASSANDRA_MAX_HEAP_SIZE=160m
-    export CASSANDRA_HEAP_NEWSIZE=24m
+    BASE_GRADLE_ARGS+=" --parallel"
+    export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
+    BASE_GRADLE_ARGS+=" --parallel"
 fi
+export CASSANDRA_MAX_HEAP_SIZE=512m
+export CASSANDRA_HEAP_NEWSIZE=64m
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
