@@ -64,7 +64,7 @@ import com.palantir.timestamp.ManagedTimestampService;
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
     private static final Long SCHEMA_VERSION = 1L;
-    
+
     private static final int MAX_SHARED_EXECUTOR_THREADS = 256;
     private static final int CORE_SHARED_EXECUTOR_THREADS = 10;
     private static final String PAXOS_SHARED_EXECUTOR = "paxos-shared-executor";

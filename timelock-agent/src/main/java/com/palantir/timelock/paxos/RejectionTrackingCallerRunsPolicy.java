@@ -24,7 +24,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.MetricName;
 
-class RejectionTrackingCallerRunsPolicy implements RejectedExecutionHandler {
+final class RejectionTrackingCallerRunsPolicy implements RejectedExecutionHandler {
     private final Counter rejectionCount;
 
     private RejectionTrackingCallerRunsPolicy(Counter rejectionCount) {
@@ -42,10 +42,10 @@ class RejectionTrackingCallerRunsPolicy implements RejectedExecutionHandler {
     }
 
     @Override
-    public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+    public void rejectedExecution(Runnable runnable, ThreadPoolExecutor executor) {
         rejectionCount.inc();
         if (!executor.isShutdown()) {
-            r.run();
+            runnable.run();
         }
     }
 }
