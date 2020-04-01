@@ -19,6 +19,10 @@ import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -62,6 +66,9 @@ import com.palantir.timestamp.ManagedTimestampService;
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
     private static final Long SCHEMA_VERSION = 1L;
+    
+    private static final int MAX_SHARED_EXECUTOR_THREADS = 256;
+    private static final int CORE_SHARED_EXECUTOR_THREADS = 10;
 
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
@@ -140,11 +147,17 @@ public class TimeLockAgent {
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
         return new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(
+                PTExecutors.newThreadPoolExecutor(
+                        CORE_SHARED_EXECUTOR_THREADS,
+                        MAX_SHARED_EXECUTOR_THREADS,
+                        5,
+                        TimeUnit.SECONDS,
+                        new SynchronousQueue<>(),
                         new InstrumentedThreadFactory(new ThreadFactoryBuilder()
                                 .setNameFormat("paxos-timestamp-creator-%d")
                                 .setDaemon(true)
-                                .build(), metricsManager.getRegistry())),
+                                .build(), metricsManager.getRegistry()),
+                        new ThreadPoolExecutor.CallerRunsPolicy()), // Be resilient-ish to overloading
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator", "executor"));
     }
