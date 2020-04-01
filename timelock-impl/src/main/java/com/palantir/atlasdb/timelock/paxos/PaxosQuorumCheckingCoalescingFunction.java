@@ -111,7 +111,6 @@ public class PaxosQuorumCheckingCoalescingFunction<
             Map<SERVICE, ExecutorService> executors,
             int quorumSize,
             Function<SERVICE, F> functionFactory) {
-        // Not 100% sure if ordering is important, but assuming so here
         List<FunctionAndExecutor<F>> functionsAndExecutors = KeyedStream.of(services)
                 .map(executors::get)
                 .mapKeys(functionFactory)

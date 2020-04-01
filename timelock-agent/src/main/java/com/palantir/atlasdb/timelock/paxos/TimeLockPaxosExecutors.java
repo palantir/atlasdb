@@ -35,6 +35,7 @@ final class TimeLockPaxosExecutors {
     static final int MAXIMUM_POOL_SIZE = 100;
 
     private static final Duration THREAD_KEEP_ALIVE = Duration.ofSeconds(5);
+    private static final int SINGLE_THREAD_FOR_MOSTLY_AUTOBATCHED_OPERATIONS = 1;
 
     private TimeLockPaxosExecutors() {
         // no
@@ -55,14 +56,23 @@ final class TimeLockPaxosExecutors {
         return remoteExecutors;
     }
 
+    /**
+     * Creates a bounded executor for handling operations on remotes.
+     * These executors are typically called as part of Paxos verification from autobatched contexts, *but* the
+     * individual executions are <b>not</b> autobatched. This means that if one node is performing slowly, calls
+     * pending on that node may build up over time, eventually leading to thread explosion or OOMs. We thus limit
+     * the size to {@link TimeLockPaxosExecutors#MAXIMUM_POOL_SIZE}.
+     *
+     * Users of such an executor should be prepared to handle {@link java.util.concurrent.RejectedExecutionException}.
+     */
     private static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase) {
         return new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
-                        1, // Many operations are autobatched, so under ordinary circumstances 1 thread will do
-                        MAXIMUM_POOL_SIZE, // Want to bound the number of threads that might be stuck
+                        SINGLE_THREAD_FOR_MOSTLY_AUTOBATCHED_OPERATIONS,
+                        MAXIMUM_POOL_SIZE,
                         THREAD_KEEP_ALIVE.toMillis(),
                         TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(), // Prefer to avoid OOM risk if we get hammered
+                        new SynchronousQueue<>(),
                         new ThreadFactoryBuilder()
                                 .setNameFormat("timelock-executors-" + useCase + "-%d")
                                 .setDaemon(true)
