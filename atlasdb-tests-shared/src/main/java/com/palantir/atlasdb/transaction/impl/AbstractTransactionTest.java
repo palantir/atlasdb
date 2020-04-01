@@ -37,7 +37,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.junit.Test;
 
@@ -1361,7 +1363,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl =
                 t.getRanges(TEST_TABLE, rangeRequests);
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl =
-                t.getRanges(TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable).collect(Collectors.toList());
+                t.getRanges(TEST_TABLE,
+                        rangeRequests,
+                        2,
+                        (rangeRequest, visitable) -> visitable,
+                        StreamSupport.stream(rangeRequests.spliterator(), false)
+                                .collect(Collectors.toMap(Function.identity(), Function.identity())))
+                        .collect(Collectors.toList());
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
