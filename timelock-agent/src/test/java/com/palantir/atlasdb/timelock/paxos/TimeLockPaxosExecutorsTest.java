@@ -74,4 +74,18 @@ public class TimeLockPaxosExecutorsTest {
         assertThatCode(() -> executors.get(remote2).submit(SLEEP_FOR_ONE_SECOND))
                 .doesNotThrowAnyException();
     }
+    @Test
+    public void localExecutorsAreNotBoundedByMaximumPoolSize() {
+        int numThreads = TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE * 2;
+        ExecutorService executor = PTExecutors.newFixedThreadPool(numThreads);
+        List<Future<Integer>> results = IntStream.range(0, numThreads)
+                .mapToObj(ignore -> executor.submit(this::submitToLocalAndGetUnchecked))
+                .collect(Collectors.toList());
+        results.forEach(future -> assertThatCode(() -> AtlasFutures.getUnchecked(future))
+                .doesNotThrowAnyException());
+    }
+
+    private Integer submitToLocalAndGetUnchecked() {
+        return AtlasFutures.getUnchecked(executors.get(local).submit(SLEEP_FOR_ONE_SECOND));
+    }
 }
