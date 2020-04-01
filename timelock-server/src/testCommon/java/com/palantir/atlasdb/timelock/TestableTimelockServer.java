@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static com.palantir.atlasdb.timelock.paxos.PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT;
 
 import java.util.Map;
 import java.util.Set;
@@ -37,6 +36,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
 import com.palantir.atlasdb.timelock.paxos.Client;
+import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverService;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
@@ -50,7 +50,8 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TestableTimelockServer {
 
-    private static final Set<Client> PSEUDO_LEADERSHIP_CLIENT_SET = ImmutableSet.of(PSEUDO_LEADERSHIP_CLIENT);
+    private static final Set<Client> PSEUDO_LEADERSHIP_CLIENT_SET = ImmutableSet.of(
+            PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
     private final TimeLockServerHolder serverHolder;
     private final TestProxies proxies;
     private final ProxyFactory proxyFactory;

@@ -106,7 +106,7 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
         List<Long> sequenceNumbers = new ArrayList<>();
 
-        for (TestableTimelockServer server: cluster.servers()) {
+        for (TestableTimelockServer server : cluster.servers()) {
             server.startUsingBatchedSingleLeader();
             cluster.failoverToNewLeader(client.namespace());
             long sequenceForBatchedEndpoint = getSequenceForServerUsingBatchedEndpoint(server);
@@ -126,7 +126,7 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
         cluster.servers().forEach(TestableTimelockServer::startUsingBatchedSingleLeader);
         List<Long> sequenceNumbers = new ArrayList<>();
 
-        for (TestableTimelockServer server: cluster.servers()) {
+        for (TestableTimelockServer server : cluster.servers()) {
             server.stopUsingBatchedSingleLeader();
             cluster.failoverToNewLeader(client.namespace());
             long sequenceForBatchedEndpoint = getSequenceForServerUsingBatchedEndpoint(server);
