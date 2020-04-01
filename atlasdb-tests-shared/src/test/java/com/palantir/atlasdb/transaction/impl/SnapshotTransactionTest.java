@@ -1226,7 +1226,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 5);
         runTestForGetRowsColumnRangeSingleIteratorVersion(10, 10, 10);
         runTestForGetRowsColumnRangeSingleIteratorVersion(100, 100, 99);
-        // Add a test where the numCellsPerRow (and total number of cells) is not evenly divisible by the batch size.
+        // Add a test where neither the numCellsPerRow and the batch size (10) are divisible by each other.
+        // This tests what happens when a row's cells are spread across multiple batches.
         runTestForGetRowsColumnRangeSingleIteratorVersion(101, 11, 0);
     }
 
