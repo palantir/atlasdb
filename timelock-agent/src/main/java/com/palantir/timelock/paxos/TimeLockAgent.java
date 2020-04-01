@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -68,6 +67,7 @@ public class TimeLockAgent {
     
     private static final int MAX_SHARED_EXECUTOR_THREADS = 256;
     private static final int CORE_SHARED_EXECUTOR_THREADS = 10;
+    private static final String PAXOS_SHARED_EXECUTOR = "paxos-shared-executor";
 
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
@@ -156,9 +156,10 @@ public class TimeLockAgent {
                                 .setNameFormat("paxos-timestamp-creator-%d")
                                 .setDaemon(true)
                                 .build(), metricsManager.getRegistry()),
-                        new ThreadPoolExecutor.CallerRunsPolicy()), // Be resilient-ish to overloading
+                        RejectionTrackingCallerRunsPolicy.createWithSafeLoggableUseCase(
+                                metricsManager, PAXOS_SHARED_EXECUTOR)),
                 metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator", "executor"));
+                MetricRegistry.name(PaxosLeaderElectionService.class, PAXOS_SHARED_EXECUTOR, "executor"));
     }
 
     private TimestampCreator getTimestampCreator() {
