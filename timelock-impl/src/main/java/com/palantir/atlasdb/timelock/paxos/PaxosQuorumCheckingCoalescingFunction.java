@@ -117,7 +117,14 @@ public class PaxosQuorumCheckingCoalescingFunction<
                 .entries()
                 .<FunctionAndExecutor<F>>map(entry -> ImmutableFunctionAndExecutor.of(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
-        return new PaxosQuorumCheckingCoalescingFunction<>(functionsAndExecutors, quorumSize);
+        List<F> functions = new ArrayList<>(services.size());
+        Map<F, ExecutorService> executorMap = new HashMap<>(services.size());
+        for (SERVICE service: services) {
+            F function = functionFactory.apply(service);
+            functions.add(function);
+            executorMap.put(function, executors.get(service));
+        }
+        return new PaxosQuorumCheckingCoalescingFunction<>(functions, executorMap, quorumSize);
     }
 
     public static <REQ, RESP extends PaxosResponse, SERVICE, FUNCTION extends CoalescingRequestFunction<REQ, RESP>>
