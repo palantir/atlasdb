@@ -497,22 +497,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }));
     }
 
-    private Comparator<Cell> preserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
-        // N.B. This batch could be spread across multiple rows, and those rows might extend into other
-        // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
-        // is to preserve the original row order.
-        return Comparator
-                .comparing(
-                        (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
-                        Ordering.explicit(inputEntries.stream()
-                                .map(Map.Entry::getKey)
-                                .map(Cell::getRowName)
-                                .map(ByteBuffer::wrap)
-                                .distinct()
-                                .collect(ImmutableList.toImmutableList())))
-                .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR);
-    }
-
     private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
             TableReference tableRef,
             byte[] row,
@@ -546,6 +530,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         };
         return Iterators.concat(postFilteredBatches);
+    }
+
+    private Comparator<Cell> preserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
+        // N.B. This batch could be spread across multiple rows, and those rows might extend into other
+        // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
+        // is to preserve the original row order.
+        return Comparator
+                .comparing(
+                        (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                        Ordering.explicit(inputEntries.stream()
+                                .map(Map.Entry::getKey)
+                                .map(Cell::getRowName)
+                                .map(ByteBuffer::wrap)
+                                .distinct()
+                                .collect(ImmutableList.toImmutableList())))
+                .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR);
     }
 
     /**
