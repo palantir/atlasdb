@@ -17,7 +17,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Generated;
 
@@ -1075,8 +1077,10 @@ public final class SweepPriorityTable implements
         return range;
     }
 
-    private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
-        return Iterables.transform(ranges, this::optimizeRangeRequest);
+    private Map<RangeRequest, RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {
+        return StreamSupport.stream(ranges.spliterator(), false)
+                .collect(Collectors.toMap(this::optimizeRangeRequest,
+                        java.util.function.Function.identity()));
     }
 
     public BatchingVisitableView<SweepPriorityRowResult> getRange(RangeRequest range) {
@@ -1090,7 +1094,8 @@ public final class SweepPriorityTable implements
 
     @Deprecated
     public IterableView<BatchingVisitable<SweepPriorityRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef,
+                optimizeRangeRequests(ranges).keySet());
         return IterableView.of(rangeResults).transform(
                 new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<SweepPriorityRowResult>>() {
             @Override
@@ -1108,18 +1113,28 @@ public final class SweepPriorityTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<SweepPriorityRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)));
+        Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap = optimizeRangeRequests(ranges);
+        return t.getRanges(tableRef, optimizedToOriginalRequestMap.keySet(), concurrencyLevel,
+                (rangeRequest, visitable) ->
+                        visitableProcessor.apply(rangeRequest,
+                                BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)),
+                optimizedToOriginalRequestMap);
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<SweepPriorityRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)));
+        Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap = optimizeRangeRequests(ranges);
+        return t.getRanges(tableRef, optimizedToOriginalRequestMap.keySet(),
+                (rangeRequest, visitable) -> visitableProcessor.apply(
+                        rangeRequest,
+                        BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)),
+                optimizedToOriginalRequestMap);
     }
 
     public Stream<BatchingVisitable<SweepPriorityRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
+        Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap = optimizeRangeRequests(ranges);
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef,
+                optimizedToOriginalRequestMap.keySet());
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, SweepPriorityRowResult::of));
     }
 
