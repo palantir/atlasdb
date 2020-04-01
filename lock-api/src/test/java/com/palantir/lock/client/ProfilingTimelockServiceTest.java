@@ -69,6 +69,16 @@ public class ProfilingTimelockServiceTest {
             logger, delegate, () -> Stopwatch.createStarted(ticker), loggingPermissionSupplier);
 
     @Test
+    public void delegatesInitializationCheck() {
+        when(delegate.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertThat(profilingTimelockService.isInitialized()).isFalse();
+        assertThat(profilingTimelockService.isInitialized()).isTrue();
+    }
+
+    @Test
     public void doesNotLogIfOperationsAreFast() {
         flushLogsWithCall(SHORT_DURATION, profilingTimelockService::getFreshTimestamp);
         flushLogsWithCall(SHORT_DURATION, profilingTimelockService::startIdentifiedAtlasDbTransaction);
