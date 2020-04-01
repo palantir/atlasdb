@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Timelock and timestamp services used in transaction managers now correctly
+    report whether or not they are initialized.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4691
