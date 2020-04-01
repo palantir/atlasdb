@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.palantir.atlasdb.timelock.paxos.PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT;
 
 import java.util.Map;
 import java.util.Set;
@@ -49,11 +50,13 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TestableTimelockServer {
 
+    private static final Set<Client> PSEUDO_LEADERSHIP_CLIENT_SET = ImmutableSet.of(PSEUDO_LEADERSHIP_CLIENT);
     private final TimeLockServerHolder serverHolder;
     private final TestProxies proxies;
     private final ProxyFactory proxyFactory;
 
     private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
+    private volatile boolean switchToBatched = false;
 
     TestableTimelockServer(String baseUri, TimeLockServerHolder serverHolder) {
         this.serverHolder = serverHolder;
@@ -77,8 +80,23 @@ public class TestableTimelockServer {
         serverHolder.start();
     }
 
+    void startUsingBatchedSingleLeader() {
+        switchToBatched = true;
+    }
+
+    void stopUsingBatchedSingleLeader() {
+        switchToBatched = false;
+    }
+
     TestableLeaderPinger pinger() {
         PaxosLeaderMode mode = serverHolder.installConfig().paxos().leaderMode();
+
+        if (switchToBatched) {
+            BatchPingableLeader batchPingableLeader =
+                    proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
+            return namespaces -> batchPingableLeader.ping(PSEUDO_LEADERSHIP_CLIENT_SET).isEmpty()
+                    ? ImmutableSet.of() : ImmutableSet.copyOf(namespaces);
+        }
 
         switch (mode) {
             case SINGLE_LEADER:
