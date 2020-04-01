@@ -856,13 +856,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
-            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor,
+            Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap) {
         if (!Iterables.isEmpty(rangeRequests)) {
             hasReads = true;
         }
         Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
                 StreamSupport.stream(rangeRequests.spliterator(), false)
-                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
+                        .map(rangeRequest -> Pair.of(optimizedToOriginalRequestMap.get(rangeRequest),
+                                getLazyRange(tableRef, rangeRequest)));
 
         if (concurrencyLevel == 1 || isSingleton(rangeRequests)) {
             return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
@@ -879,11 +881,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     public <T> Stream<T> getRanges(
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
-            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor,
+            Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap) {
         if (!Iterables.isEmpty(rangeRequests)) {
             hasReads = true;
         }
-        return getRanges(tableRef, rangeRequests, defaultGetRangesConcurrency, visitableProcessor);
+        return getRanges(tableRef,
+                rangeRequests,
+                defaultGetRangesConcurrency,
+                visitableProcessor,
+                optimizedToOriginalRequestMap);
     }
 
     private static boolean isSingleton(Iterable<?> elements) {

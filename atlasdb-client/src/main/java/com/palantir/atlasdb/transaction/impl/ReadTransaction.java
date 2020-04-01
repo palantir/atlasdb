@@ -83,18 +83,20 @@ public class ReadTransaction extends ForwardingTransaction {
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
-            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor,
+            Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap) {
         checkTableName(tableRef);
-        return delegate().getRanges(tableRef, rangeRequests, concurrencyLevel, visitableProcessor);
+        return delegate().getRanges(tableRef, rangeRequests, concurrencyLevel, visitableProcessor, optimizedToOriginalRequestMap);
     }
 
     @Override
     public <T> Stream<T> getRanges(
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
-            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor,
+            Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap) {
         checkTableName(tableRef);
-        return delegate().getRanges(tableRef, rangeRequests, visitableProcessor);
+        return delegate().getRanges(tableRef, rangeRequests, visitableProcessor, optimizedToOriginalRequestMap);
     }
 
     @Override

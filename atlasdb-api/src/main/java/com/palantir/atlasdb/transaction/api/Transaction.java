@@ -117,17 +117,19 @@ public interface Transaction {
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
-            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor,
+            Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap);
 
     /**
-     * Same as {@link #getRanges(TableReference, Iterable, int, BiFunction)} but uses the default concurrency
+     * Same as {@link #getRanges(TableReference, Iterable, int, BiFunction, Map)} but uses the default concurrency
      * value specified by {@link KeyValueServiceConfig#defaultGetRangesConcurrency()}.
      */
     @Idempotent
     <T> Stream<T> getRanges(
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
-            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor,
+            Map<RangeRequest, RangeRequest> optimizedToOriginalRequestMap);
 
     /**
      * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting
