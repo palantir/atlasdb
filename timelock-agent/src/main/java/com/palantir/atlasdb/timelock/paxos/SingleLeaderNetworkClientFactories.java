@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
@@ -26,20 +27,25 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
-import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapter;
-import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapter;
+import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapters;
+import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapters;
 
 @Value.Immutable
 abstract class SingleLeaderNetworkClientFactories implements
         NetworkClientFactories, Dependencies.NetworkClientFactories {
+
+    @Value.Default
+    Supplier<Boolean> useBatchedEndpoints() {
+        return () -> false;
+    }
 
     @Value.Auxiliary
     @Value.Derived
     @Override
     public Factory<PaxosAcceptorNetworkClient> acceptor() {
         return client -> {
-            List<PaxosAcceptor> remoteAcceptors = TimelockPaxosAcceptorAdapter
-                    .wrap(useCase(), remoteClients())
+            List<PaxosAcceptor> remoteAcceptors = TimelockPaxosAcceptorAdapters
+                    .wrap(useCase(), remoteClients(), useBatchedEndpoints())
                     .apply(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
 
@@ -62,8 +68,8 @@ abstract class SingleLeaderNetworkClientFactories implements
     @Override
     public Factory<PaxosLearnerNetworkClient> learner() {
         return client -> {
-            List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapter
-                    .wrap(useCase(), remoteClients())
+            List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapters
+                    .wrap(useCase(), remoteClients(), useBatchedEndpoints())
                     .apply(client);
             PaxosLearner localLearner = components().learner(client);
 

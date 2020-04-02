@@ -143,7 +143,8 @@ public final class PaxosResourcesFactory {
                 .runtime(paxosRuntime)
                 .useCase(PaxosUseCase.LEADER_FOR_ALL_CLIENTS)
                 .metrics(timelockMetrics)
-                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder())
+                .networkClientFactoryBuilder(ImmutableSingleLeaderNetworkClientFactories.builder()
+                        .useBatchedEndpoints(() -> paxosRuntime.get().enableBatchingForSingleLeader()))
                 .leaderPingerFactoryBuilder(ImmutableSingleLeaderPingerFactory.builder())
                 .healthCheckPingersFactory(healthCheckPingersFactory)
                 .build();

@@ -80,6 +80,12 @@ public interface PaxosRuntimeConfiguration {
         return TimestampPaxosConfig.defaultConfig();
     }
 
+    @Value.Default
+    @JsonProperty("enable-batching-for-single-leader")
+    default boolean enableBatchingForSingleLeader() {
+        return false;
+    }
+
     @Value.Immutable
     @JsonDeserialize(as = ImmutableTimestampPaxosConfig.class)
     @JsonSerialize(as = ImmutableTimestampPaxosConfig.class)
