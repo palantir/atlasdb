@@ -58,7 +58,7 @@ public enum PaxosUseCase {
         this.relativeLogDirectory = relativeLogDirectory;
     }
 
-    static final Client PSEUDO_LEADERSHIP_CLIENT = Client.of(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
+    public static final Client PSEUDO_LEADERSHIP_CLIENT = Client.of(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
 
     private final String useCasePath;
     private final Path relativeLogDirectory;
