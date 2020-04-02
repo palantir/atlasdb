@@ -17,7 +17,6 @@
 package com.palantir.timelock.paxos;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -27,7 +26,6 @@ import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.PaxosAcceptor;
 
@@ -68,17 +66,5 @@ public final class TimelockPaxosAcceptorAdapters {
             Supplier<Boolean> useBatched) {
         return PredicateSwitchedProxy.newProxyInstance(BatchTimelockPaxosAcceptorAdapter.singleLeader(batched),
                 legacy, useBatched, PaxosAcceptor.class);
-    }
-
-    private static List<PaxosAcceptor> batchedLeaderForAllClients(PaxosRemoteClients remoteClients) {
-        return remoteClients.batchAcceptor().stream()
-                .map(BatchTimelockPaxosAcceptorAdapter::singleLeader)
-                .collect(Collectors.toList());
-    }
-
-    private static List<PaxosAcceptor> legacyLeaderForAllClients(PaxosRemoteClients remoteClients) {
-        return remoteClients.singleLeaderAcceptor().stream()
-                .<PaxosAcceptor>map(Function.identity())
-                .collect(Collectors.toList());
     }
 }

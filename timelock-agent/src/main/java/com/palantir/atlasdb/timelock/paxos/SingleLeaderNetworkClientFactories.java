@@ -45,8 +45,7 @@ abstract class SingleLeaderNetworkClientFactories implements
     public Factory<PaxosAcceptorNetworkClient> acceptor() {
         return client -> {
             List<PaxosAcceptor> remoteAcceptors = TimelockPaxosAcceptorAdapters
-                    .wrap(useCase(), remoteClients(), useBatchedEndpoints())
-                    .apply(client);
+                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
 
             LocalAndRemotes<PaxosAcceptor> paxosAcceptors = LocalAndRemotes.of(localAcceptor, remoteAcceptors)
@@ -69,8 +68,7 @@ abstract class SingleLeaderNetworkClientFactories implements
     public Factory<PaxosLearnerNetworkClient> learner() {
         return client -> {
             List<PaxosLearner> remoteLearners = TimelockPaxosLearnerAdapters
-                    .wrap(useCase(), remoteClients(), useBatchedEndpoints())
-                    .apply(client);
+                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client);
             PaxosLearner localLearner = components().learner(client);
 
             LocalAndRemotes<PaxosLearner> allLearners = LocalAndRemotes.of(localLearner, remoteLearners)
