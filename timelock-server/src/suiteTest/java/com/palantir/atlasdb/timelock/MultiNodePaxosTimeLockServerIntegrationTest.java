@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -286,7 +285,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    @Ignore // TODO (jkong): Fix this test by reworking the threading model.
     public void stressTest() {
         TestableTimelockServer nonLeader = Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
@@ -309,7 +307,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     private void assertNumberOfThreadsReasonable(int startingNumThreads, int threadCount, boolean isNonLeaderTakenOut) {
-        int threadLimit = startingNumThreads + 200;
+        // TODO (jkong): Lower the amount over the threshold. This needs to be slightly higher for now because of the
+        // current threading model in batch mode, where separate threads may be spun up on the autobatcher.
+        int threadLimit = startingNumThreads + 300;
         if (isNonLeaderTakenOut) {
             assertThat(threadCount)
                     .as("should not additionally spin up too many threads after a non-leader failed")

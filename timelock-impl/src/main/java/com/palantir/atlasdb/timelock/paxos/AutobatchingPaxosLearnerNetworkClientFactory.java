@@ -61,12 +61,22 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
                         .build();
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> learnedValues =
-                Autobatchers.coalescing(wrap(learners.all(), executor, quorumSize, LearnedValuesCoalescingFunction::new))
-                        .safeLoggablePurpose("batch-paxos-learner.learned-values")
-                        .build();
+                Autobatchers.coalescing(
+                        wrap(
+                                learners.all(),
+                                learners.withSharedExecutor(executor),
+                                quorumSize,
+                                LearnedValuesCoalescingFunction::new))
+                .safeLoggablePurpose("batch-paxos-learner.learned-values")
+                .build();
 
         DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> learnedValuesSince =
-                Autobatchers.coalescing(wrap(learners.all(), executor, quorumSize, LearnedValuesSinceCoalescingFunction::new))
+                Autobatchers.coalescing(
+                        wrap(
+                                learners.all(),
+                                learners.withSharedExecutor(executor),
+                                quorumSize,
+                                LearnedValuesSinceCoalescingFunction::new))
                 .safeLoggablePurpose("batch-paxos-learner.learned-values-since")
                 .build();
 

@@ -43,12 +43,15 @@ abstract class SingleLeaderNetworkClientFactories implements
                     .apply(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
 
-            LocalAndRemotes<PaxosAcceptor> allAcceptors = LocalAndRemotes.of(localAcceptor, remoteAcceptors)
+            LocalAndRemotes<PaxosAcceptor> paxosAcceptors = LocalAndRemotes.of(localAcceptor, remoteAcceptors)
                     .enhanceRemotes(remote -> metrics().instrument(PaxosAcceptor.class, remote, client));
             SingleLeaderAcceptorNetworkClient uninstrumentedAcceptor = new SingleLeaderAcceptorNetworkClient(
-                    allAcceptors.all(),
+                    paxosAcceptors.all(),
                     quorumSize(),
-                    allAcceptors.withSharedExecutor(sharedExecutor()),
+                    TimeLockPaxosExecutors.createBoundedExecutors(
+                            metrics().asMetricsManager().getRegistry(),
+                            paxosAcceptors,
+                            "single-leader-acceptors"),
                     PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosAcceptorNetworkClient.class, uninstrumentedAcceptor);
         };

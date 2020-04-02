@@ -49,6 +49,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.paxos.PaxosAcceptor;
@@ -144,8 +145,12 @@ public class PaxosTimestampBoundStoreTest {
 
         if (useBatch) {
             AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory =
-                    AutobatchingPaxosAcceptorNetworkClientFactory.create(batchPaxosAcceptors, executor, QUORUM_SIZE
-                    );
+                    AutobatchingPaxosAcceptorNetworkClientFactory.create(
+                            batchPaxosAcceptors,
+                            KeyedStream.of(batchPaxosAcceptors.stream())
+                                    .map($ -> executor)
+                                    .collectToMap(),
+                            QUORUM_SIZE);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
 
             List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories = batchPaxosLearners
