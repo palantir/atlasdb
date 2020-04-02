@@ -22,7 +22,8 @@ runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000
     timestamp-paxos:
-      use-batch-paxos: ${clientPaxos.useBatchPaxos?c}
+      use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
+    enable-batching-for-single-leader: ${clientPaxos.batchSingleLeader?c}
 
 logging:
   appenders:

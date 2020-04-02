@@ -43,7 +43,7 @@ public final class SingleLeaderPaxosSuite {
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(9080, builder ->
-                    builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxos(false))
+                    builder.clientPaxosBuilder(builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     public static final TestableTimelockCluster BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
@@ -51,12 +51,21 @@ public final class SingleLeaderPaxosSuite {
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(9083, builder ->
                     builder.clientPaxosBuilder(
-                            builder.clientPaxosBuilder().isUseBatchPaxos(true))
+                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
+                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+
+    public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
+            "non-batched timestamp paxos single leader",
+            "paxosMultiServer.ftl",
+            generateThreeNodeTimelockCluster(9080, builder ->
+                    builder.clientPaxosBuilder(builder.clientPaxosBuilder()
+                            .isUseBatchPaxosTimestamp(false)
+                            .isBatchSingleLeader(true))
                             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestableTimelockCluster> params() {
-        return ImmutableSet.of(NON_BATCHED_TIMESTAMP_PAXOS, BATCHED_TIMESTAMP_PAXOS);
+        return ImmutableSet.of(NON_BATCHED_TIMESTAMP_PAXOS, BATCHED_TIMESTAMP_PAXOS, BATCHED_PAXOS);
     }
 
     @Rule
