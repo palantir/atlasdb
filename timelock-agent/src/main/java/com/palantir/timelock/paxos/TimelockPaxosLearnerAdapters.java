@@ -34,10 +34,6 @@ public final class TimelockPaxosLearnerAdapters {
         // how many times
     }
 
-    /**
-     * Given a list of {@link TimelockPaxosLearnerRpcClient}s, returns a function allowing for injection of the client
-     * name.
-     */
     public static List<PaxosLearner> create(
             PaxosUseCase paxosUseCase,
             PaxosRemoteClients remoteClients,
