@@ -1,8 +1,6 @@
 type: fix
 fix:
   description: |-
-    fix ServiceLoader in ServiceDiscoveringAtlasSupplier
-
-    ServiceLoader is not thread safe
+    ServiceDiscoveringAtlasSupplier now properly searches for AtlasDbFactory implementations in a thread safe manner.
   links:
   - https://github.com/palantir/atlasdb/pull/4696
