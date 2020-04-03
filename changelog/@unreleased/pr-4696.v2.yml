@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: |-
+    fix ServiceLoader in ServiceDiscoveringAtlasSupplier
+
+    ServiceLoader is not thread safe
+  links:
+  - https://github.com/palantir/atlasdb/pull/4696
