@@ -26,11 +26,9 @@ import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.streams.KeyedStream;
 
 final class TimeLockPaxosExecutors {
     @VisibleForTesting
