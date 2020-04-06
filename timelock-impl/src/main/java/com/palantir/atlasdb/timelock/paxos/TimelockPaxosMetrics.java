@@ -33,6 +33,8 @@ public abstract class TimelockPaxosMetrics {
 
     abstract PaxosUseCase paxosUseCase();
 
+    abstract MetricRegistry legacyMetrics();
+
     @Value.Derived
     TaggedMetricRegistry metrics() {
         return new SlidingWindowTaggedMetricRegistry(35, TimeUnit.SECONDS);
@@ -49,9 +51,14 @@ public abstract class TimelockPaxosMetrics {
         return MetricsManagers.of(new MetricRegistry(), metrics());
     }
 
-    public static TimelockPaxosMetrics of(PaxosUseCase paxosUseCase, TaggedMetricRegistry parentRegistry) {
-        TimelockPaxosMetrics metrics = ImmutableTimelockPaxosMetrics.builder().paxosUseCase(paxosUseCase).build();
-        metrics.attachToParentMetricRegistry(parentRegistry);
+    public static TimelockPaxosMetrics of(
+            PaxosUseCase paxosUseCase,
+            MetricsManager metricsManager) {
+        TimelockPaxosMetrics metrics = ImmutableTimelockPaxosMetrics.builder()
+                .legacyMetrics(metricsManager.getRegistry())
+                .paxosUseCase(paxosUseCase)
+                .build();
+        metrics.attachToParentMetricRegistry(metricsManager.getTaggedRegistry());
         return metrics;
     }
 

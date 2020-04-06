@@ -89,7 +89,7 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
-                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics.getTaggedRegistry());
+                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_EACH_CLIENT, metrics);
 
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             BatchPingableLeader local = dependencies.components().batchPingableLeader();
@@ -126,7 +126,7 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
-                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics.getTaggedRegistry());
+                TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
@@ -167,7 +167,7 @@ public final class PaxosResourcesFactory {
             ExecutorService sharedExecutor,
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics =
-                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics.getTaggedRegistry());
+                TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
 
         LocalPaxosComponents paxosComponents = new LocalPaxosComponents(
                 timelockMetrics,
