@@ -25,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.concurrent.PTExecutors;
@@ -49,11 +51,14 @@ final class TimeLockPaxosExecutors {
      */
     static <T> Map<T, ExecutorService> createBoundedExecutors(
             MetricRegistry metricRegistry, LocalAndRemotes<T> localAndRemotes, String useCase) {
-        Map<T, ExecutorService> remoteExecutors = KeyedStream.of(localAndRemotes.remotes())
-                .map(remote -> createBoundedExecutor(metricRegistry, useCase))
-                .collectToMap();
+        int numRemotes = localAndRemotes.remotes().size();
+        ImmutableMap.Builder<T, ExecutorService> remoteExecutors = ImmutableMap.builderWithExpectedSize(numRemotes);
+        for (int index = 0; index < numRemotes; index++) {
+            T remote = localAndRemotes.remotes().get(index);
+            remoteExecutors.put(remote, createBoundedExecutor(metricRegistry, useCase, index));
+        }
         remoteExecutors.put(localAndRemotes.local(), MoreExecutors.newDirectExecutorService());
-        return remoteExecutors;
+        return remoteExecutors.build();
     }
 
     /**
@@ -65,7 +70,7 @@ final class TimeLockPaxosExecutors {
      *
      * Users of such an executor should be prepared to handle {@link java.util.concurrent.RejectedExecutionException}.
      */
-    private static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase) {
+    private static ExecutorService createBoundedExecutor(MetricRegistry metricRegistry, String useCase, int index) {
         return new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
                         SINGLE_THREAD_FOR_MOSTLY_AUTOBATCHED_OPERATIONS,
@@ -78,6 +83,6 @@ final class TimeLockPaxosExecutors {
                                 .setDaemon(true)
                                 .build()),
                 metricRegistry,
-                MetricRegistry.name(TimeLockPaxosExecutors.class, useCase, "executor"));
+                MetricRegistry.name(TimeLockPaxosExecutors.class, useCase, "executor-" + index));
     }
 }
