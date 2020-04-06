@@ -47,8 +47,7 @@ public abstract class TimelockPaxosMetrics {
 
     @Value.Derived
     MetricsManager asMetricsManager() {
-        // we don't use the normal metric registry so we don't care about this
-        return MetricsManagers.of(new MetricRegistry(), metrics());
+        return MetricsManagers.of(legacyMetrics(), metrics());
     }
 
     public static TimelockPaxosMetrics of(
