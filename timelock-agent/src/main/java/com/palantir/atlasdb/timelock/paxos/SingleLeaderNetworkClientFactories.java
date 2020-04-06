@@ -49,7 +49,7 @@ abstract class SingleLeaderNetworkClientFactories implements
                     paxosAcceptors.all(),
                     quorumSize(),
                     TimeLockPaxosExecutors.createBoundedExecutors(
-                            metrics().asMetricsManager().getRegistry(),
+                            metrics().legacyMetrics(),
                             paxosAcceptors,
                             "single-leader-acceptors"),
                     PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
