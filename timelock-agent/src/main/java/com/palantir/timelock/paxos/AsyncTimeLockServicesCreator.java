@@ -34,7 +34,6 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchingResource;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -78,7 +77,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
         AsyncTimelockResource asyncTimelockResource =
                 new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
-        LockWatchingResource lockWatchingResource = new LockWatchingResource(asyncTimelockService);
 
         LockService lockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
@@ -90,7 +88,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 lockService,
                 asyncTimelockService,
                 asyncTimelockResource,
-                lockWatchingResource,
                 asyncTimelockService);
     }
 

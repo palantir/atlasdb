@@ -29,12 +29,12 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchRequest;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 
 /**
@@ -123,7 +123,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     private Optional<LockWatches> filterNewWatches(LockWatchRequest request, LockWatches oldWatches) {
         Set<LockWatchReference> newRefs = new HashSet<>();
         RangeSet<LockDescriptor> newRanges = TreeRangeSet.create();
-        for (LockWatchReference singleReference : request.references()) {
+        for (LockWatchReference singleReference : request.getReferences()) {
             Range<LockDescriptor> referenceAsRange = singleReference.accept(LockWatchReferences.TO_RANGES_VISITOR);
             if (!oldWatches.ranges().encloses(referenceAsRange)) {
                 newRefs.add(singleReference);
