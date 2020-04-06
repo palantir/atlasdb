@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Executors used internally by TimeLock for its Paxos protocol now publish
+    execution metrics as intended. Previously, they failed to do so.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4698
