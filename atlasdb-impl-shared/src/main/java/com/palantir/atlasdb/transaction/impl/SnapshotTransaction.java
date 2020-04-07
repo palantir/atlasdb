@@ -1928,7 +1928,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return true;
     }
 
-    private static void deleteCells(KeyValueService keyValueService, TableReference tableRef, Map<Cell, Long> keysToDelete) {
+    /**
+     * This method is made static so it loses reference to the SnapshotTransaction reference
+     * when passed to deleteExecutor::execute in a lambda reducing its retained memory size.
+     */
+    private static void deleteCells(
+            KeyValueService keyValueService,
+            TableReference tableRef,
+            Map<Cell, Long> keysToDelete
+    ) {
         try {
             log.debug("For table: {} we are deleting values of an uncommitted transaction: {}",
                     LoggingArgs.tableRef(tableRef),
