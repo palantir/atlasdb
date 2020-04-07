@@ -19,8 +19,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -146,18 +144,10 @@ public class TimeLockAgent {
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
         return new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        CORE_SHARED_EXECUTOR_THREADS,
-                        MAX_SHARED_EXECUTOR_THREADS,
-                        5,
-                        TimeUnit.SECONDS,
-                        new SynchronousQueue<>(),
-                        new InstrumentedThreadFactory(new ThreadFactoryBuilder()
-                                .setNameFormat("paxos-timestamp-creator-%d")
-                                .setDaemon(true)
-                                .build(), metricsManager.getRegistry()),
-                        RejectionTrackingCallerRunsPolicy.createWithSafeLoggableUseCase(
-                                metricsManager, PAXOS_SHARED_EXECUTOR)),
+                PTExecutors.newCachedThreadPool(new InstrumentedThreadFactory(new ThreadFactoryBuilder()
+                        .setNameFormat("paxos-timestamp-creator-%d")
+                        .setDaemon(true)
+                        .build(), metricsManager.getRegistry())),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, PAXOS_SHARED_EXECUTOR, "executor"));
     }
