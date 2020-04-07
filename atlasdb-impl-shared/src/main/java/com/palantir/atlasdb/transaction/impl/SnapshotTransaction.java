@@ -1935,8 +1935,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private static void deleteCells(
             KeyValueService keyValueService,
             TableReference tableRef,
-            Map<Cell, Long> keysToDelete
-    ) {
+            Map<Cell, Long> keysToDelete) {
         try {
             log.debug("For table: {} we are deleting values of an uncommitted transaction: {}",
                     LoggingArgs.tableRef(tableRef),
