@@ -1,12 +1,6 @@
 type: improvement
 improvement:
-  description: |-
+  description: |
     The retained memory in delete executor work queue is reduced. Previously, each runnable in deleteExecutor had SnapshotTransaction reference, which can be potentially huge.
-
-    <!---
-    Please remember to:
-    - Add any necessary release notes (including breaking changes)
-    - Make sure the documentation is up to date for your change
-    --->
   links:
   - https://github.com/palantir/atlasdb/pull/4656
