@@ -19,5 +19,7 @@ package com.palantir.atlasdb.v2.api.timestamps;
 import com.google.common.util.concurrent.ListenableFuture;
 
 public interface Timestamps {
+    ListenableFuture<Long> getStartTimestamp();
+    ListenableFuture<HeldImmutableLock> lockImmutableTs();
     ListenableFuture<Long> getCommitTimestamp();
 }

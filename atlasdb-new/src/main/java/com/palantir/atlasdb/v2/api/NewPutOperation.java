@@ -18,12 +18,22 @@ package com.palantir.atlasdb.v2.api;
 
 import java.util.Optional;
 
+import org.immutables.value.Value;
+
 import com.palantir.atlasdb.v2.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.NewIds.StoredValue;
 import com.palantir.atlasdb.v2.api.NewIds.Table;
 
+@Value.Immutable
 public interface NewPutOperation {
+    @Value.Parameter
     Table table();
+    @Value.Parameter
     Cell cell();
+    @Value.Parameter
     Optional<StoredValue> value();
+
+    static NewPutOperation of(Table table, Cell cell, Optional<StoredValue> value) {
+        return ImmutableNewPutOperation.of(table, cell, value);
+    }
 }

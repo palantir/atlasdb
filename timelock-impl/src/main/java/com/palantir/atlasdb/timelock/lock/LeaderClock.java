@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.lock;
 
 import java.util.function.Supplier;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
@@ -27,8 +26,7 @@ public class LeaderClock {
     private final LeadershipId leadershipId;
     private final Supplier<NanoTime> clock;
 
-    @VisibleForTesting
-    LeaderClock(LeadershipId leadershipId, Supplier<NanoTime> clock) {
+    public LeaderClock(LeadershipId leadershipId, Supplier<NanoTime> clock) {
         this.leadershipId = leadershipId;
         this.clock = clock;
     }

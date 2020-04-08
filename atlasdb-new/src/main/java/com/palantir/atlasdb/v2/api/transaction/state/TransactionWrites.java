@@ -73,7 +73,8 @@ public final class TransactionWrites implements Iterable<TableWrites> {
         }
 
         public Builder mutateWrites(Table table, UnaryOperator<TableWrites.Builder> mutator) {
-            TableWrites.Builder tableWrites = writes.getOrElse(table, TableWrites.EMPTY).toBuilder();
+            TableWrites.Builder tableWrites = writes.computeIfAbsent(
+                    table, t -> new TableWrites.Builder().table(t).build())._1.toBuilder();
             mutator.apply(tableWrites);
             writes = writes.put(table, tableWrites.build());
             return this;

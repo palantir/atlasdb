@@ -21,15 +21,15 @@ import static com.palantir.logsafe.Preconditions.checkState;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.v2.api.AsyncIterator;
-import com.palantir.atlasdb.v2.api.AsyncIterators;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.NewValue;
 import com.palantir.atlasdb.v2.api.NewValue.CommittedValue;
 import com.palantir.atlasdb.v2.api.ScanDefinition;
-import com.palantir.atlasdb.v2.api.reader.ReaderChain;
-import com.palantir.atlasdb.v2.api.reader.ReaderFactory;
-import com.palantir.atlasdb.v2.api.transaction.Reader;
+import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderChain;
+import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderFactory;
+import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
 import com.palantir.atlasdb.v2.api.transaction.scanner.PostFilterWritesReader.ShouldAbortWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TableReads;
 import com.palantir.atlasdb.v2.api.transaction.state.TableWrites;
@@ -44,7 +44,7 @@ public class DefaultConflictChecker implements ConflictChecker {
         this.iterators = iterators;
         this.readLatestCommittedTimestamps = ReaderChain.create(readerFactory.kvs())
                 .then(readerFactory.postFilterWrites(ShouldAbortWrites.YES))
-                .then(readerFactory.readVeryLatestTimestamp())
+                .then(readerFactory.readAtVeryLatestTimestamp())
                 .build();
         this.readAtCommitTimestamp = ReaderChain.create(readerFactory.kvs())
                 // it's fiddly as to why this is safe... but it is.

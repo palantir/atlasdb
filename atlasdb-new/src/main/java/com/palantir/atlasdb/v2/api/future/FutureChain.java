@@ -35,8 +35,6 @@ public final class FutureChain<T> {
     private final ListenableFuture<T> state;
     private final List<Runnable> deferrals;
 
-    private enum Unknown {}
-
     public FutureChain(Executor executor, T initialState) {
         this(executor, Futures.immediateFuture(initialState));
     }
@@ -80,6 +78,20 @@ public final class FutureChain<T> {
         return new FutureChain<>(executor, newState, deferrals);
     }
 
+    public <R, S, U> FutureChain<R> then(
+            AsyncFunction<T, S> operation,
+            AsyncFunction<T, U> stateTransformer,
+            BiFunction<U, S, R> resultMerger) {
+        ListenableFuture<S> parameter = Futures.transformAsync(state, operation, executor);
+        ListenableFuture<U> preAlteredState = Futures.whenAllSucceed(state, parameter)
+                .callAsync(() -> stateTransformer.apply(Futures.getUnchecked(state)), executor);
+
+        ListenableFuture<R> newState = Futures.whenAllSucceed(preAlteredState, parameter)
+                .call(() -> resultMerger.apply(
+                        Futures.getUnchecked(preAlteredState), Futures.getUnchecked(parameter)), executor);
+        return new FutureChain<>(executor, newState, deferrals);
+    }
+
     public <S> FutureChain<T> then(AsyncFunction<T, S> operation) {
         ListenableFuture<S> parameter = Futures.transformAsync(state, operation, executor);
         ListenableFuture<T> newState = Futures.whenAllSucceed(parameter)
@@ -112,7 +124,7 @@ public final class FutureChain<T> {
     private ListenableFuture<Void> submitDeferral(Runnable deferral) {
         return Futures.submitAsync(() -> {
             deferral.run();
-            return null;
+            return Futures.immediateFuture(null);
         }, executor);
     }
 }

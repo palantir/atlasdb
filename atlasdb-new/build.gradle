@@ -3,6 +3,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
     compile project(':atlasdb-config')
+    compile project(':timelock-impl')
     compile 'edu.stanford.ppl:snaptree'
     compile 'io.vavr:vavr'
 

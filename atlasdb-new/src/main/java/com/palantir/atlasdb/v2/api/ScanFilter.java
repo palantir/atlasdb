@@ -21,6 +21,8 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.v2.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.NewIds.Column;
 import com.palantir.atlasdb.v2.api.NewIds.Row;
 
@@ -33,8 +35,17 @@ public abstract class ScanFilter {
     @Value.Parameter
     public abstract ColumnsFilter columns();
 
-    public static ScanFilter of(RowsFilter rows, ColumnsFilter columns) {
-        return ImmutableScanFilter.of(rows, columns);
+    @Value.Parameter
+    public abstract int limit();
+
+    public static ScanFilter of(RowsFilter rows, ColumnsFilter columns, int limit) {
+        return ImmutableScanFilter.of(rows, columns, limit);
+    }
+
+    public static ScanFilter forCell(Cell cell) {
+        return of(ImmutableExactRows.of(ImmutableSet.of(cell.row())),
+                ImmutableExactColumns.of(ImmutableSet.of(cell.column())),
+                1);
     }
 
     public static RowsFilter allRows() {

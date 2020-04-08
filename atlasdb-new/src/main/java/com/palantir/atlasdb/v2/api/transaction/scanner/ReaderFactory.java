@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.reader;
+package com.palantir.atlasdb.v2.api.transaction.scanner;
 
 import java.util.function.Function;
 
-import com.palantir.atlasdb.v2.api.AsyncIterators;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.NewValue;
 import com.palantir.atlasdb.v2.api.kvs.Kvs;
-import com.palantir.atlasdb.v2.api.transaction.scanner.ReadAtCommitTimestamp;
 import com.palantir.atlasdb.v2.api.locks.NewLocks;
 import com.palantir.atlasdb.v2.api.timestamps.Timestamps;
-import com.palantir.atlasdb.v2.api.transaction.Reader;
-import com.palantir.atlasdb.v2.api.transaction.scanner.CheckImmutableLocksReader;
-import com.palantir.atlasdb.v2.api.transaction.scanner.MergeInTransactionWritesReader;
-import com.palantir.atlasdb.v2.api.transaction.scanner.PostFilterWritesReader;
 import com.palantir.atlasdb.v2.api.transaction.scanner.PostFilterWritesReader.ShouldAbortWrites;
-import com.palantir.atlasdb.v2.api.transaction.scanner.ReadVeryLatestTimestamp;
+import com.palantir.atlasdb.v2.api.transaction.scanner.ReadReportingReader.RecordingNewValue;
 
 public final class ReaderFactory {
     private final AsyncIterators iterators;
@@ -56,8 +51,8 @@ public final class ReaderFactory {
         return ReadAtCommitTimestamp::new;
     }
 
-    public <T extends NewValue, R extends Reader<T>> Function<R, Reader<T>> readVeryLatestTimestamp() {
-        return ReadVeryLatestTimestamp::new;
+    public <T extends NewValue, R extends Reader<T>> Function<R, Reader<T>> readAtVeryLatestTimestamp() {
+        return ReadAtVeryLatestTimestamp::new;
     }
 
     public <T extends NewValue, R extends Reader<T>> Function<R, Reader<NewValue>> mergeInTransactionWrites() {
@@ -68,7 +63,11 @@ public final class ReaderFactory {
         return reader -> new CheckImmutableLocksReader<T>(reader, iterators, locks);
     }
 
-    public Function<Kvs, PostFilterWritesReader> postFilterWrites(ShouldAbortWrites shouldAbortWrites) {
+    public <K extends Kvs> Function<K, PostFilterWritesReader> postFilterWrites(ShouldAbortWrites shouldAbortWrites) {
         return reader -> new PostFilterWritesReader(iterators, reader, locks, shouldAbortWrites);
+    }
+
+    public <T extends NewValue, R extends Reader<T>> Function<R, Reader<RecordingNewValue>> reportReads() {
+        return reader -> new ReadReportingReader<>(reader, iterators);
     }
 }

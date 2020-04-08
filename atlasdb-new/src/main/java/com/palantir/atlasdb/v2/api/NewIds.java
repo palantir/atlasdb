@@ -55,7 +55,7 @@ public final class NewIds {
     @Value.Immutable
     public static abstract class Table {
         @Value.Parameter
-        abstract String getName();
+        public abstract String getName();
     }
 
     @Value.Immutable
@@ -74,10 +74,10 @@ public final class NewIds {
         Cell() {}
 
         @Value.Parameter
-        abstract Row row();
+        public abstract Row row();
 
         @Value.Parameter
-        abstract Column column();
+        public abstract Column column();
 
         @Override
         public final int compareTo(Cell other) {
@@ -118,6 +118,10 @@ public final class NewIds {
 
         private BytesWrapper(byte[] bytes) {
             this.bytes = checkNotNull(bytes).clone();
+        }
+
+        public final byte[] toByteArray() {
+            return bytes.clone();
         }
 
         @Override

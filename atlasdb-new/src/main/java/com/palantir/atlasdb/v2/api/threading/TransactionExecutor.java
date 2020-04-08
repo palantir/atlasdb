@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.transaction;
+package com.palantir.atlasdb.v2.api.threading;
 
 import java.io.Closeable;
 import java.util.ArrayDeque;

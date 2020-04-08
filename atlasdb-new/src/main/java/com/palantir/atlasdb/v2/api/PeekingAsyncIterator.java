@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.v2.api;
 
 import com.google.common.collect.PeekingIterator;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
 
 public interface PeekingAsyncIterator<T> extends AsyncIterator<T>, PeekingIterator<T> {
     @Override

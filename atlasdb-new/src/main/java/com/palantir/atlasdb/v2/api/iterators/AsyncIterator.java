@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.iterators;
 
 import java.util.Iterator;
 import java.util.function.Consumer;

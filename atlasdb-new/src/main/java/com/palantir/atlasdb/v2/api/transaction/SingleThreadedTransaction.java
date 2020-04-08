@@ -18,7 +18,7 @@ package com.palantir.atlasdb.v2.api.transaction;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.v2.api.AsyncIterators;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.NewEndOperation;
 import com.palantir.atlasdb.v2.api.NewGetOperation;
 import com.palantir.atlasdb.v2.api.NewGetOperation.ResultBuilder;
@@ -32,6 +32,7 @@ import com.palantir.atlasdb.v2.api.kvs.Writer;
 import com.palantir.atlasdb.v2.api.locks.NewLocks;
 import com.palantir.atlasdb.v2.api.timestamps.Timestamps;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReadReportingReader.RecordingNewValue;
+import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
 import com.palantir.atlasdb.v2.api.transaction.state.StateHolder;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 import com.palantir.atlasdb.v2.api.util.Unreachable;
@@ -52,14 +53,14 @@ public class SingleThreadedTransaction implements NewTransaction {
             NewLocks locks,
             ConflictChecker conflictChecker,
             AsyncIterators iterators,
-            StateHolder stateHolder) {
+            TransactionState initialState) {
         this.reader = reader;
         this.writer = writer;
         this.locks = locks;
         this.conflictChecker = conflictChecker;
         this.iterators = iterators;
         this.timestamps = timestamps;
-        this.stateHolder = stateHolder;
+        this.stateHolder = new StateHolder(initialState);
     }
 
     @Override

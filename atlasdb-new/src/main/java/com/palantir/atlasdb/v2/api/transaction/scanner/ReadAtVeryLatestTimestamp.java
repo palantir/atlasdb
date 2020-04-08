@@ -14,29 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.reader;
+package com.palantir.atlasdb.v2.api.transaction.scanner;
 
-import java.util.function.Function;
-
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
 import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.transaction.Reader;
+import com.palantir.atlasdb.v2.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-public final class ReaderChain<E extends NewValue, R extends Reader<E>> {
-    private final R reader;
+public final class ReadAtVeryLatestTimestamp<T extends NewValue> implements Reader<T> {
+    private final Reader<T> delegate;
 
-    private ReaderChain(R reader) {
-        this.reader = reader;
+    public ReadAtVeryLatestTimestamp(Reader<T> delegate) {
+        this.delegate = delegate;
     }
 
-    public static <E extends NewValue, R extends Reader<E>> ReaderChain<E, R> create(R base) {
-        return new ReaderChain<>(base);
-    }
-
-    public <U extends NewValue, R1 extends Reader<U>> ReaderChain<U, R1> then(Function<R, R1> factory) {
-        return new ReaderChain<>(factory.apply(reader));
-    }
-
-    public R build() {
-        return reader;
+    @Override
+    public AsyncIterator<T> scan(TransactionState state, ScanDefinition definition) {
+        return delegate.scan(state.toBuilder().startTimestamp(Long.MAX_VALUE).build(), definition);
     }
 }

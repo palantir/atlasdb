@@ -16,20 +16,33 @@
 
 package com.palantir.atlasdb.v2.api.transaction.state;
 
+import static com.palantir.logsafe.Preconditions.checkNotNull;
+
 import com.palantir.atlasdb.v2.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.NewValue;
 import com.palantir.atlasdb.v2.api.ScanDefinition;
 
+import io.vavr.collection.Map;
 import io.vavr.collection.SortedMap;
 import io.vavr.collection.TreeMap;
 
 public final class TableWrites {
-    static final TableWrites EMPTY = new TableWrites(TreeMap.empty());
-
+    private final Table table;
     private final SortedMap<Cell, NewValue.TransactionValue> writes;
 
-    private TableWrites(SortedMap<Cell, NewValue.TransactionValue> writes) {
+    private TableWrites(Table table,
+            SortedMap<Cell, NewValue.TransactionValue> writes) {
+        this.table = table;
         this.writes = writes;
+    }
+
+    public Table table() {
+        return table;
+    }
+
+    public Map<Cell, NewValue.TransactionValue> data() {
+        return writes;
     }
 
     public boolean containsCell(Cell cell) {
@@ -49,14 +62,22 @@ public final class TableWrites {
     }
 
     public static final class Builder {
+        private Table table;
         private SortedMap<Cell, NewValue.TransactionValue> writes;
 
         public Builder() {
             writes = TreeMap.empty();
+            table = null;
         }
 
         public Builder(TableWrites tableWrites) {
             this.writes = tableWrites.writes;
+            this.table = tableWrites.table;
+        }
+
+        public Builder table(Table table) {
+            this.table = table;
+            return this;
         }
 
         public Builder put(NewValue.TransactionValue value) {
@@ -81,7 +102,7 @@ public final class TableWrites {
         }
 
         public TableWrites build() {
-            return new TableWrites(writes);
+            return new TableWrites(checkNotNull(table), writes);
         }
 
         public TableWrites buildPartial() {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.iterators;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,6 +36,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.v2.api.PeekingAsyncIterator;
 
 public final class AsyncIterators {
     private static final ListenableFuture<Boolean> TRUE_FUTURE = Futures.immediateFuture(true);

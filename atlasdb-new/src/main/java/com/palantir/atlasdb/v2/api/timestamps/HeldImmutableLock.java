@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.transaction;
+package com.palantir.atlasdb.v2.api.timestamps;
 
-import com.palantir.atlasdb.v2.api.AsyncIterator;
-import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.ScanDefinition;
-import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
+import org.immutables.value.Value;
 
-public interface Reader<V extends NewValue> {
-    AsyncIterator<V> scan(TransactionState state, ScanDefinition definition);
+import com.palantir.atlasdb.v2.api.locks.NewLockToken;
+
+@Value.Immutable
+public interface HeldImmutableLock {
+    @Value.Parameter
+    NewLockToken lockToken();
+
+    @Value.Parameter
+    long immutableTimestamp();
+
+    static HeldImmutableLock of(NewLockToken token, long immutableTimestamp) {
+        return ImmutableHeldImmutableLock.of(token, immutableTimestamp);
+    }
 }

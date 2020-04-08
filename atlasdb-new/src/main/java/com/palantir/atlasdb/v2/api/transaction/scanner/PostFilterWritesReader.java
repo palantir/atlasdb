@@ -27,11 +27,14 @@ import java.util.function.Function;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.v2.api.AsyncIterators;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.NewValue.CommittedValue;
 import com.palantir.atlasdb.v2.api.NewValue.KvsValue;
 import com.palantir.atlasdb.v2.api.NewValue.NotYetCommittedValue;
@@ -66,13 +69,13 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
     @Override
     protected ListenableFuture<Iterator<CommittedValue>> transformPage(
             TransactionState state, ScanDefinition definition, List<KvsValue> page) {
-        return postFilterWrites(state.scheduler(), state.immutableTimestamp(), page);
+        return postFilterWrites(state.scheduler(), definition.table(), state.immutableTimestamp(), page);
     }
 
     private ListenableFuture<Iterator<CommittedValue>> postFilterWrites(
-            Executor executor, long immutableTimestamp, List<KvsValue> values) {
+            Executor executor, Table table, long immutableTimestamp, List<KvsValue> values) {
         Map<Cell, KvsValue> asCells = values.stream().collect(HashMap.collector(KvsValue::cell, Function.identity()));
-        PostFilterState postFilterState = PostFilterState.initialize(immutableTimestamp, asCells);
+        PostFilterState postFilterState = PostFilterState.initialize(table, immutableTimestamp, asCells);
         return FutureChain.start(executor, postFilterState)
                 .whileTrue(PostFilterState::incomplete, this::postFilterRound)
                 .alterState(state -> values.stream()
@@ -124,11 +127,14 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
     }
 
     private ListenableFuture<List<KvsValue>> reissueReadsForDroppedCells(PostFilterState state) {
-        throw new UnsupportedOperationException();
+        return Futures.transform(delegate.loadCellsAtTimestamps(state.table(), state.toReissue().toJavaMap()),
+                timestamps -> ImmutableList.copyOf(timestamps.values()),
+                MoreExecutors.directExecutor());
     }
 
     @Value.Immutable
     interface PostFilterState {
+        Table table();
         long immutableTimestamp();
         Map<Cell, KvsValue> unknown();
         Map<Cell, CommittedValue> committed();
@@ -179,8 +185,8 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
         PostFilterState withNotYetCommitted(Map<Cell, NotYetCommittedValue> notYetCommitted);
         PostFilterState withToReissue(Map<Cell, Long> cells);
 
-        static PostFilterState initialize(long immutableTimestamp, Map<Cell, KvsValue> values) {
-            return ImmutablePostFilterState.builder().immutableTimestamp(immutableTimestamp).unknown(values).build();
+        static PostFilterState initialize(Table table, long immutableTimestamp, Map<Cell, KvsValue> values) {
+            return ImmutablePostFilterState.builder().table(table).immutableTimestamp(immutableTimestamp).unknown(values).build();
         }
     }
 }

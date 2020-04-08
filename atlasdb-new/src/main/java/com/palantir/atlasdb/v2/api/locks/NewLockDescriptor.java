@@ -17,10 +17,78 @@
 package com.palantir.atlasdb.v2.api.locks;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public interface NewLockDescriptor {
+import org.immutables.value.Value;
 
-    static Set<NewLockDescriptor> fromTimestamps(Iterable<Long> timestamps) {
-        throw new UnsupportedOperationException();
+import com.google.common.collect.Streams;
+import com.palantir.atlasdb.v2.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.NewIds.Row;
+import com.palantir.atlasdb.v2.api.NewIds.Table;
+
+public abstract class NewLockDescriptor {
+    private NewLockDescriptor() {}
+
+    public abstract <T> T accept(Visitor<T> visitor);
+
+    public static NewLockDescriptor timestamp(long timestamp) {
+        return ImmutableTimestampLock.of(timestamp);
+    }
+
+    public static NewLockDescriptor cell(Table table, Cell cell) {
+        return ImmutableCellLock.of(table, cell);
+    }
+
+    public static NewLockDescriptor row(Table table, Row row) {
+        return ImmutableRowLock.of(table, row);
+    }
+
+    public interface Visitor<T> {
+        T timestamp(long timestamp);
+        T cell(Table table, Cell cell);
+        T row(Table table, Row row);
+    }
+
+    @Value.Immutable
+    static abstract class TimestampLock extends NewLockDescriptor {
+        @Value.Parameter
+        abstract long timestamp();
+
+        @Override
+        public final <T> T accept(Visitor<T> visitor) {
+            return visitor.timestamp(timestamp());
+        }
+    }
+
+    @Value.Immutable
+    static abstract class CellLock extends NewLockDescriptor {
+        @Value.Parameter
+        abstract Table table();
+
+        @Value.Parameter
+        abstract Cell cell();
+
+        @Override
+        public final <T> T accept(Visitor<T> visitor) {
+            return visitor.cell(table(), cell());
+        }
+    }
+
+    @Value.Immutable
+    static abstract class RowLock extends NewLockDescriptor {
+        @Value.Parameter
+        abstract Table table();
+
+        @Value.Parameter
+        abstract Row row();
+
+        @Override
+        public final <T> T accept(Visitor<T> visitor) {
+            return visitor.row(table(), row());
+        }
+    }
+
+    public static Set<NewLockDescriptor> fromTimestamps(Iterable<Long> timestamps) {
+        return Streams.stream(timestamps).map(NewLockDescriptor::timestamp).collect(Collectors.toSet());
     }
 }

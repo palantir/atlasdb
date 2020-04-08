@@ -21,10 +21,13 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.v2.api.NewIds;
+import com.palantir.atlasdb.v2.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.NewValue.KvsValue;
-import com.palantir.atlasdb.v2.api.transaction.Reader;
+import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
 
 public interface Kvs extends Reader<KvsValue>, Writer {
+    ListenableFuture<Map<Cell, KvsValue>> loadCellsAtTimestamps(NewIds.Table table, Map<Cell, Long> timestampsToLoadAt);
     ListenableFuture<Map<Long, Long>> getCommitTimestamps(Set<Long> timestamps);
     OptionalLong getCachedCommitTimestamp(long startTimestamp);
 }

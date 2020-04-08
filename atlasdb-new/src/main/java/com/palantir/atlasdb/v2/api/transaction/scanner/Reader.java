@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.transaction;
+package com.palantir.atlasdb.v2.api.transaction.scanner;
 
-import java.util.concurrent.Executor;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
+import com.palantir.atlasdb.v2.api.NewValue;
+import com.palantir.atlasdb.v2.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-public interface FutureExecutor extends Executor {
-
-
+public interface Reader<V extends NewValue> {
+    AsyncIterator<V> scan(TransactionState state, ScanDefinition definition);
 }

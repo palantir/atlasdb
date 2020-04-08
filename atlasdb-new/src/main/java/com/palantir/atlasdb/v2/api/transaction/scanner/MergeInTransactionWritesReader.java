@@ -18,12 +18,11 @@ package com.palantir.atlasdb.v2.api.transaction.scanner;
 
 import java.util.Iterator;
 
-import com.palantir.atlasdb.v2.api.AsyncIterator;
-import com.palantir.atlasdb.v2.api.AsyncIterators;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.NewValue;
 import com.palantir.atlasdb.v2.api.NewValue.TransactionValue;
 import com.palantir.atlasdb.v2.api.ScanDefinition;
-import com.palantir.atlasdb.v2.api.transaction.Reader;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 public final class MergeInTransactionWritesReader implements Reader<NewValue> {

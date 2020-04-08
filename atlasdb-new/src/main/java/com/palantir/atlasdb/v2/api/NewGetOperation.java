@@ -20,6 +20,7 @@ import com.palantir.atlasdb.v2.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.NewIds.StoredValue;
 import com.palantir.atlasdb.v2.api.NewIds.Table;
 
+
 public interface NewGetOperation<T> {
     enum ShouldContinue { YES, NO }
 

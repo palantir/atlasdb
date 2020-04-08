@@ -22,9 +22,11 @@ import java.util.Iterator;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 import org.inferred.freebuilder.FreeBuilder;
 
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.v2.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.NewValue.TransactionValue;
 import com.palantir.atlasdb.v2.api.ScanAttributes;
@@ -68,7 +70,9 @@ public abstract class TransactionState {
     }
 
     public Set<NewLockDescriptor> writeLockDescriptors() {
-        throw new UnsupportedOperationException();
+        return Streams.stream(writes()).flatMap(tableWrites -> tableWrites.data().keySet().toJavaStream()
+                .map(cell -> NewLockDescriptor.cell(tableWrites.table(), cell)))
+                .collect(Collectors.toSet());
     }
 
     public TransactionState addWrite(Table table, TransactionValue value) {

@@ -75,6 +75,10 @@ public abstract class NewValue {
         return new TransactionValue.Builder().cell(cell).maybeData(data).build();
     }
 
+    public static KvsValue kvsValue(Cell cell, long startTimestamp, Optional<StoredValue> data) {
+        return new KvsValue.Builder().cell(cell).startTimestamp(startTimestamp).maybeData(data).build();
+    }
+
     @Value.Immutable
     public static abstract class TransactionValue extends NewValue {
 
