@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.v2.api.transaction.scanner;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.palantir.atlasdb.v2.api.AsyncIterator;
@@ -42,7 +43,7 @@ public class ReadReportingReader<In extends NewValue> implements Reader<ReadRepo
         if (!state.checkReadWriteConflicts(definition.table())) {
             return iterators.transform(scan, NoopRecordingNewValue::new);
         }
-        return iterators.transform(scan, value -> new ReadRecordingNewValue(definition.table(), value));
+        return iterators.transform(scan, value -> new ReadRecordingNewValue(definition.table(), value, definition));
     }
 
     // todo hashcode etc
@@ -64,15 +65,9 @@ public class ReadReportingReader<In extends NewValue> implements Reader<ReadRepo
         }
 
         @Override
-        public final NewIds.StoredValue data() {
-            return delegate.data();
+        public final Optional<NewIds.StoredValue> maybeData() {
+            return delegate.maybeData();
         }
-
-        @Override
-        public final boolean isLive() {
-            return delegate.isLive();
-        }
-
     }
 
     private static final class NoopRecordingNewValue extends RecordingNewValue {
@@ -87,16 +82,18 @@ public class ReadReportingReader<In extends NewValue> implements Reader<ReadRepo
     private static final class ReadRecordingNewValue extends RecordingNewValue {
         private final Table table;
         private final NewValue delegate;
+        private final ScanDefinition scan;
 
-        private ReadRecordingNewValue(Table table, NewValue delegate) {
+        private ReadRecordingNewValue(Table table, NewValue delegate, ScanDefinition scan) {
             super(delegate);
             this.table = table;
             this.delegate = delegate;
+            this.scan = scan;
         }
 
         @Override
         public final void accept(TransactionState.Builder builder) {
-            builder.readsBuilder().mutateReads(table, tableReads -> tableReads.put(delegate));
+            builder.readsBuilder().mutateReads(table, tableReads -> tableReads.putScanEnd(scan, delegate));
         }
     }
 }

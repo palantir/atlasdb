@@ -24,6 +24,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -53,6 +54,13 @@ public final class AsyncIterators {
                     }
                     return takeWhile(iterator, stopIfFalse);
                 }, executor);
+    }
+
+    public <T> ListenableFuture<?> forEach(AsyncIterator<T> iterator, Consumer<T> consumer) {
+        return takeWhile(iterator, element -> {
+            consumer.accept(element);
+            return true;
+        });
     }
 
     public <T> AsyncIterator<T> filter(AsyncIterator<T> iterator, Predicate<? super T> keepIfTrue) {

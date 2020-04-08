@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.transaction.scanner;
+package com.palantir.atlasdb.v2.api;
 
-public final class KvsScanner {
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.ListenableFuture;
 
+public interface NewTransactionManager {
+    <T> ListenableFuture<T> executeTransaction(AsyncFunction<NewTransaction, T> task);
 }

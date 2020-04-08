@@ -31,13 +31,11 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.v2.api.AsyncIterators;
-import com.palantir.atlasdb.v2.api.NewIds;
 import com.palantir.atlasdb.v2.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.NewValue.CommittedValue;
 import com.palantir.atlasdb.v2.api.NewValue.KvsValue;
 import com.palantir.atlasdb.v2.api.NewValue.NotYetCommittedValue;
-import com.palantir.atlasdb.v2.api.ScanAttributes;
-import com.palantir.atlasdb.v2.api.ScanFilter;
+import com.palantir.atlasdb.v2.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.future.FutureChain;
 import com.palantir.atlasdb.v2.api.kvs.Kvs;
 import com.palantir.atlasdb.v2.api.locks.NewLockDescriptor;
@@ -50,19 +48,24 @@ import io.vavr.collection.Map;
 public final class PostFilterWritesReader extends TransformingReader<KvsValue, CommittedValue> {
     private final Kvs delegate;
     private final NewLocks locks;
+    private final ShouldAbortWrites shouldAbortWrites;
+
+    public enum ShouldAbortWrites {NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING, YES }
 
     public PostFilterWritesReader(
             AsyncIterators iterators,
             Kvs delegate,
-            NewLocks locks) {
+            NewLocks locks,
+            ShouldAbortWrites shouldAbortWrites) {
         super(delegate, iterators);
         this.delegate = delegate;
         this.locks = locks;
+        this.shouldAbortWrites = shouldAbortWrites;
     }
 
     @Override
-    protected ListenableFuture<Iterator<CommittedValue>> transformPage(TransactionState state, NewIds.Table table,
-            ScanAttributes attributes, ScanFilter filter, List<KvsValue> page) {
+    protected ListenableFuture<Iterator<CommittedValue>> transformPage(
+            TransactionState state, ScanDefinition definition, List<KvsValue> page) {
         return postFilterWrites(state.scheduler(), state.immutableTimestamp(), page);
     }
 
@@ -83,7 +86,7 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
                 .alterState(this::markCachedCommitTsDataCommitted)
                 .then(this::waitForOngoingTransactionsToCommit)
                 .then(this::findCommitTimestampsForUnknown, PostFilterState::processCommitTimestamps)
-                .then(this::maybeAbortWrites)
+                .then(this::maybeAbortWrites, (state, $) -> state.withNotYetCommitted(HashMap.empty()))
                 .then(this::reissueReadsForDroppedCells, PostFilterState::processReissuedReads);
     }
 

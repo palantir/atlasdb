@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.v2.api.transaction.state;
 
+import java.util.Iterator;
 import java.util.function.UnaryOperator;
 
 import com.palantir.atlasdb.v2.api.NewIds;
@@ -24,7 +25,7 @@ import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 
-public final class TransactionReads {
+public final class TransactionReads implements Iterable<TableReads> {
     static final TransactionReads EMPTY = new Builder().build();
     private final Map<NewIds.Table, TableReads> reads;
 
@@ -32,12 +33,13 @@ public final class TransactionReads {
         this.reads = reads;
     }
 
-    public boolean isEmpty() {
-        return reads.values().forAll(TableReads::isEmpty);
-    }
-
     public Builder toBuilder() {
         return new Builder(this);
+    }
+
+    @Override
+    public Iterator<TableReads> iterator() {
+        return reads.values().iterator();
     }
 
     public static final class Builder {

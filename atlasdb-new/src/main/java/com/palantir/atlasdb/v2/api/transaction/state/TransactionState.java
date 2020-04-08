@@ -36,8 +36,8 @@ import com.palantir.atlasdb.v2.api.locks.NewLockToken;
 public abstract class TransactionState {
     public abstract Executor scheduler();
     public abstract long immutableTimestamp();
-    abstract long startTimestamp();
-    abstract OptionalLong commitTimestamp();
+    public abstract long startTimestamp();
+    public abstract OptionalLong commitTimestamp();
     public abstract Set<NewLockToken> heldLocks();
     public abstract TransactionReads reads();
     public abstract TransactionWrites writes();

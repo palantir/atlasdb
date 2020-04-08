@@ -22,10 +22,8 @@ import java.util.List;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.v2.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.AsyncIterators;
-import com.palantir.atlasdb.v2.api.NewIds;
 import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.ScanAttributes;
-import com.palantir.atlasdb.v2.api.ScanFilter;
+import com.palantir.atlasdb.v2.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.transaction.Reader;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
@@ -39,14 +37,13 @@ public abstract class TransformingReader<In extends NewValue, Out extends NewVal
     }
 
     @Override
-    public final AsyncIterator<Out> scan(TransactionState state, NewIds.Table table, ScanAttributes attributes,
-            ScanFilter filter) {
-        AsyncIterator<In> read = input.scan(state, table, attributes, filter);
+    public final AsyncIterator<Out> scan(TransactionState state, ScanDefinition definition) {
+        AsyncIterator<In> read = input.scan(state, definition);
         AsyncIterator<List<In>> buffered = iterators.nonBlockingPages(read);
         return iterators.concat(iterators.transformAsync(
-                buffered, page -> transformPage(state, table, attributes, filter, page)));
+                buffered, page -> transformPage(state, definition, page)));
     }
 
     protected abstract ListenableFuture<Iterator<Out>> transformPage(
-            TransactionState state, NewIds.Table table, ScanAttributes attributes, ScanFilter filter, List<In> page);
+            TransactionState state, ScanDefinition definition, List<In> page);
 }

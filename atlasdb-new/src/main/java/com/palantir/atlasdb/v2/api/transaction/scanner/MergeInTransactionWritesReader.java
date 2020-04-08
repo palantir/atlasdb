@@ -28,18 +28,18 @@ import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 public final class MergeInTransactionWritesReader implements Reader<NewValue> {
     private final AsyncIterators iterators;
-    private final Reader<NewValue> kvsWritesReader;
+    private final Reader<? extends NewValue> kvsWritesReader;
 
     public MergeInTransactionWritesReader(
             AsyncIterators iterators,
-            Reader<NewValue> kvsWritesReader) {
+            Reader<? extends NewValue> kvsWritesReader) {
         this.iterators = iterators;
         this.kvsWritesReader = kvsWritesReader;
     }
 
     @Override
     public AsyncIterator<NewValue> scan(TransactionState state, ScanDefinition definition) {
-        AsyncIterator<NewValue> kvsScan = kvsWritesReader.scan(state, definition);
+        AsyncIterator<? extends NewValue> kvsScan = kvsWritesReader.scan(state, definition);
         Iterator<TransactionValue> transactionScan =
                 state.scan(definition.table(), definition.attributes(), definition.filter());
         AsyncIterator<NewValue> merged = iterators.mergeSorted(

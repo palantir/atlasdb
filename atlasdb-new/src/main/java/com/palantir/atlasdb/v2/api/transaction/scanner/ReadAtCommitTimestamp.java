@@ -16,33 +16,23 @@
 
 package com.palantir.atlasdb.v2.api.transaction.scanner;
 
-import java.util.Iterator;
-import java.util.List;
-
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.v2.api.AsyncIterators;
+import com.palantir.atlasdb.v2.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.NewValue;
 import com.palantir.atlasdb.v2.api.ScanDefinition;
-import com.palantir.atlasdb.v2.api.locks.NewLocks;
 import com.palantir.atlasdb.v2.api.transaction.Reader;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-public final class CheckImmutableLocksReader<T extends NewValue> extends TransformingReader<T, T> {
-    private final NewLocks locks;
+public final class ReadAtCommitTimestamp<T extends NewValue> implements Reader<T> {
+    private final Reader<T> delegate;
 
-    public CheckImmutableLocksReader(Reader<T> delegate, AsyncIterators iterators, NewLocks locks) {
-        super(delegate, iterators);
-        this.locks = locks;
+    public ReadAtCommitTimestamp(Reader<T> delegate) {
+        this.delegate = delegate;
     }
 
     @Override
-    protected ListenableFuture<Iterator<T>> transformPage(
-            TransactionState state, ScanDefinition definition, List<T> page) {
-        return Futures.transform(
-                locks.checkStillValid(state.heldLocks()),
-                $ -> page.iterator(),
-                MoreExecutors.directExecutor());
+    public AsyncIterator<T> scan(TransactionState state, ScanDefinition definition) {
+        return delegate.scan(
+                state.toBuilder().startTimestamp(state.commitTimestamp().getAsLong()).build(),
+                definition);
     }
 }

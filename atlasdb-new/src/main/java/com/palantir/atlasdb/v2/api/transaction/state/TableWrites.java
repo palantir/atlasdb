@@ -16,8 +16,9 @@
 
 package com.palantir.atlasdb.v2.api.transaction.state;
 
-import com.palantir.atlasdb.v2.api.NewIds;
+import com.palantir.atlasdb.v2.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.NewValue;
+import com.palantir.atlasdb.v2.api.ScanDefinition;
 
 import io.vavr.collection.SortedMap;
 import io.vavr.collection.TreeMap;
@@ -25,10 +26,18 @@ import io.vavr.collection.TreeMap;
 public final class TableWrites {
     static final TableWrites EMPTY = new TableWrites(TreeMap.empty());
 
-    private final SortedMap<NewIds.Cell, NewValue.TransactionValue> writes;
+    private final SortedMap<Cell, NewValue.TransactionValue> writes;
 
-    private TableWrites(SortedMap<NewIds.Cell, NewValue.TransactionValue> writes) {
+    private TableWrites(SortedMap<Cell, NewValue.TransactionValue> writes) {
         this.writes = writes;
+    }
+
+    public boolean containsCell(Cell cell) {
+        return writes.containsKey(cell);
+    }
+
+    public ScanDefinition toConflictCheckingScan() {
+        throw new UnsupportedOperationException();
     }
 
     boolean isEmpty() {
@@ -40,7 +49,7 @@ public final class TableWrites {
     }
 
     public static final class Builder {
-        private SortedMap<NewIds.Cell, NewValue.TransactionValue> writes;
+        private SortedMap<Cell, NewValue.TransactionValue> writes;
 
         public Builder() {
             writes = TreeMap.empty();

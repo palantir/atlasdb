@@ -26,11 +26,15 @@ import com.palantir.atlasdb.v2.api.NewIds.StoredValue;
 public abstract class NewValue {
     public abstract <T> T accept(Visitor<T> visitor);
 
+    public final boolean isLive() {
+        return maybeData().isPresent();
+    }
+
     public interface Visitor<T> {
-        T kvsValue(Cell cell, long startTimestamp, StoredValue data);
+        T kvsValue(Cell cell, long startTimestamp, Optional<StoredValue> data);
         T abortedValue(Cell cell, long startTimestamp);
-        T notYetCommittedValue(Cell cell, long startTimestamp, StoredValue data);
-        T committedValue(Cell cell, long commitTimestamp, StoredValue data);
+        T notYetCommittedValue(Cell cell, long startTimestamp, Optional<StoredValue> data);
+        T committedValue(Cell cell, long commitTimestamp, Optional<StoredValue> data);
         T transactionValue(Cell cell, Optional<StoredValue> maybeData);
 
         default T visit(NewValue value) {
@@ -40,17 +44,17 @@ public abstract class NewValue {
 
     public interface DefaultVisitor<T> extends Visitor<T> {
         @Override
-        default T kvsValue(Cell cell, long startTimestamp, StoredValue data) {
+        default T kvsValue(Cell cell, long startTimestamp, Optional<StoredValue> data) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        default T notYetCommittedValue(Cell cell, long startTimestamp, StoredValue data) {
+        default T notYetCommittedValue(Cell cell, long startTimestamp, Optional<StoredValue> data) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        default T committedValue(Cell cell, long commitTimestamp, StoredValue data) {
+        default T committedValue(Cell cell, long commitTimestamp, Optional<StoredValue> data) {
             throw new UnsupportedOperationException();
         }
 
@@ -61,11 +65,10 @@ public abstract class NewValue {
     }
 
     public abstract Cell cell();
-    public abstract StoredValue data();
-    public abstract boolean isLive();
+    public abstract Optional<StoredValue> maybeData();
 
     public static CommittedValue committedValue(Cell cell, long commitTimestamp, Optional<StoredValue> data) {
-        return new CommittedValue.Builder().cell(cell).commitTimestamp(commitTimestamp).data(data).build();
+        return new CommittedValue.Builder().cell(cell).commitTimestamp(commitTimestamp).maybeData(data).build();
     }
 
     public static TransactionValue transactionValue(Cell cell, Optional<StoredValue> data) {
@@ -74,21 +77,10 @@ public abstract class NewValue {
 
     @Value.Immutable
     public static abstract class TransactionValue extends NewValue {
-        public abstract Optional<StoredValue> getMaybeData();
-
-        @Override
-        public final StoredValue data() {
-            return getMaybeData().get();
-        }
-
-        @Override
-        public final boolean isLive() {
-            return getMaybeData().isPresent();
-        }
 
         @Override
         public final <T> T accept(Visitor<T> visitor) {
-            return visitor.transactionValue(cell(), getMaybeData());
+            return visitor.transactionValue(cell(), maybeData());
         }
 
         static final class Builder extends ImmutableTransactionValue.Builder {}
@@ -100,7 +92,7 @@ public abstract class NewValue {
 
         @Override
         public final <T> T accept(Visitor<T> visitor) {
-            return visitor.notYetCommittedValue(cell(), startTimestamp(), data());
+            return visitor.notYetCommittedValue(cell(), startTimestamp(), maybeData());
         }
 
         static final class Builder extends ImmutableNotYetCommittedValue.Builder {}
@@ -111,8 +103,8 @@ public abstract class NewValue {
         public abstract long startTimestamp();
 
         @Override
-        public final StoredValue data() {
-            throw new UnsupportedOperationException();
+        public final Optional<StoredValue> maybeData() {
+            return Optional.empty();
         }
 
         @Override
@@ -128,13 +120,8 @@ public abstract class NewValue {
         public abstract long commitTimestamp();
 
         @Override
-        public final boolean isLive() {
-            return true;
-        }
-
-        @Override
         public final <T> T accept(Visitor<T> visitor) {
-            return visitor.committedValue(cell(), commitTimestamp(), data());
+            return visitor.committedValue(cell(), commitTimestamp(), maybeData());
         }
 
         static final class Builder extends ImmutableCommittedValue.Builder {}
@@ -144,15 +131,10 @@ public abstract class NewValue {
     public static abstract class KvsValue extends NewValue {
         public abstract long startTimestamp();
 
-        @Override
-        public final boolean isLive() {
-            return true;
-        }
-
         public NotYetCommittedValue toNotYetCommitted() {
             return new NotYetCommittedValue.Builder()
                     .cell(cell())
-                    .data(data())
+                    .maybeData(maybeData())
                     .startTimestamp(startTimestamp())
                     .build();
         }
@@ -160,7 +142,7 @@ public abstract class NewValue {
         public CommittedValue toCommitted(long commitTimestamp) {
             return new CommittedValue.Builder()
                     .cell(cell())
-                    .data(data())
+                    .maybeData(maybeData())
                     .commitTimestamp(commitTimestamp)
                     .build();
         }
@@ -174,7 +156,7 @@ public abstract class NewValue {
 
         @Override
         public final <T> T accept(Visitor<T> visitor) {
-            return visitor.kvsValue(cell(), startTimestamp(), data());
+            return visitor.kvsValue(cell(), startTimestamp(), maybeData());
         }
 
         static final class Builder extends ImmutableKvsValue.Builder {}

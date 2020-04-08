@@ -75,10 +75,12 @@ public class SingleThreadedTransaction implements NewTransaction {
         ScanDefinition definition = ScanDefinition.of(get.table(), get.scanFilter(), get.attributes());
 
         return Futures.transform(iterators.takeWhile(
-                stateHolder.iterate(reader.scan(state, definition)), value -> {
-            resultBuilder.add(get.table(), value.cell(), value.data());
-            return !resultBuilder.isDone();
-        }), x -> resultBuilder.build(), state.scheduler());
+                stateHolder.iterate(reader.scan(state, definition),
+                        s -> s.readsBuilder().mutateReads(definition.table(), reads -> reads.reachedEnd(definition))),
+                value -> {
+                    resultBuilder.add(get.table(), value.cell(), value.maybeData().get());
+                    return !resultBuilder.isDone();
+                }), x -> resultBuilder.build(), state.scheduler());
     }
 
     @Override

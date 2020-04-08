@@ -16,20 +16,26 @@
 
 package com.palantir.atlasdb.v2.api.transaction.state;
 
+import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-import com.palantir.atlasdb.v2.api.NewIds;
+import com.palantir.atlasdb.v2.api.NewIds.Table;
 
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 
-public final class TransactionWrites {
+public final class TransactionWrites implements Iterable<TableWrites> {
     static final TransactionWrites EMPTY = new Builder().build();
-    private final Map<NewIds.Table, TableWrites> writes;
+    private final Map<Table, TableWrites> writes;
 
-    private TransactionWrites(Map<NewIds.Table, TableWrites> writes) {
+    private TransactionWrites(Map<Table, TableWrites> writes) {
         this.writes = writes;
+    }
+
+    public Optional<TableWrites> get(Table table) {
+        return writes.get(table).toJavaOptional();
     }
 
     public boolean isEmpty() {
@@ -40,8 +46,13 @@ public final class TransactionWrites {
         return new Builder(this);
     }
 
+    @Override
+    public Iterator<TableWrites> iterator() {
+        return writes.values().iterator();
+    }
+
     public static final class Builder {
-        private Map<NewIds.Table, TableWrites> writes;
+        private Map<Table, TableWrites> writes;
 
         public Builder() {
             writes = HashMap.empty();
@@ -56,12 +67,12 @@ public final class TransactionWrites {
             return this;
         }
 
-        public Builder put(NewIds.Table table, TableWrites tableWrites) {
+        public Builder put(Table table, TableWrites tableWrites) {
             writes = writes.put(table, tableWrites);
             return this;
         }
 
-        public Builder mutateWrites(NewIds.Table table, UnaryOperator<TableWrites.Builder> mutator) {
+        public Builder mutateWrites(Table table, UnaryOperator<TableWrites.Builder> mutator) {
             TableWrites.Builder tableWrites = writes.getOrElse(table, TableWrites.EMPTY).toBuilder();
             mutator.apply(tableWrites);
             writes = writes.put(table, tableWrites.build());
@@ -81,7 +92,7 @@ public final class TransactionWrites {
                 writes = other.writes;
                 return this;
             }
-            for (Tuple2<NewIds.Table, TableWrites> value : other.writes) {
+            for (Tuple2<Table, TableWrites> value : other.writes) {
                 writes = writes.put(value._1, value._2);
             }
             return this;
