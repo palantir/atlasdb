@@ -20,32 +20,30 @@ import java.util.Iterator;
 
 import com.palantir.atlasdb.v2.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.AsyncIterators;
-import com.palantir.atlasdb.v2.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.NewValue;
 import com.palantir.atlasdb.v2.api.NewValue.TransactionValue;
-import com.palantir.atlasdb.v2.api.ScanAttributes;
-import com.palantir.atlasdb.v2.api.ScanFilter;
-import com.palantir.atlasdb.v2.api.transaction.Scanner;
-import com.palantir.atlasdb.v2.api.transaction.TransactionState;
+import com.palantir.atlasdb.v2.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.transaction.Reader;
+import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-public final class MergeInTransactionWritesScanner implements Scanner<NewValue> {
+public final class MergeInTransactionWritesReader implements Reader<NewValue> {
     private final AsyncIterators iterators;
-    private final Scanner<NewValue> kvsWritesScanner;
+    private final Reader<NewValue> kvsWritesReader;
 
-    public MergeInTransactionWritesScanner(
+    public MergeInTransactionWritesReader(
             AsyncIterators iterators,
-            Scanner<NewValue> kvsWritesScanner) {
+            Reader<NewValue> kvsWritesReader) {
         this.iterators = iterators;
-        this.kvsWritesScanner = kvsWritesScanner;
+        this.kvsWritesReader = kvsWritesReader;
     }
 
     @Override
-    public AsyncIterator<NewValue> scan(
-            TransactionState state, Table table, ScanAttributes attributes, ScanFilter filter) {
-        AsyncIterator<NewValue> kvsScan = kvsWritesScanner.scan(state, table, attributes, filter);
-        Iterator<TransactionValue> transactionScan = state.scan(table, attributes, filter);
-        AsyncIterator<NewValue> merged =
-                iterators.mergeSorted(attributes.cellComparator(), kvsScan, transactionScan, (kvs, txn) -> txn);
+    public AsyncIterator<NewValue> scan(TransactionState state, ScanDefinition definition) {
+        AsyncIterator<NewValue> kvsScan = kvsWritesReader.scan(state, definition);
+        Iterator<TransactionValue> transactionScan =
+                state.scan(definition.table(), definition.attributes(), definition.filter());
+        AsyncIterator<NewValue> merged = iterators.mergeSorted(
+                definition.attributes().cellComparator(), kvsScan, transactionScan, (kvs, txn) -> txn);
         return iterators.filter(merged, NewValue::isLive);
     }
 }

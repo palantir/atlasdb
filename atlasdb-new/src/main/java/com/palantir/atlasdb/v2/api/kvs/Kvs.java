@@ -16,8 +16,15 @@
 
 package com.palantir.atlasdb.v2.api.kvs;
 
-import com.palantir.atlasdb.v2.api.NewValue.KvsValue;
-import com.palantir.atlasdb.v2.api.transaction.Scanner;
+import java.util.Map;
+import java.util.OptionalLong;
+import java.util.Set;
 
-public interface Kvs extends Scanner<KvsValue>, Writer {
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.v2.api.NewValue.KvsValue;
+import com.palantir.atlasdb.v2.api.transaction.Reader;
+
+public interface Kvs extends Reader<KvsValue>, Writer {
+    ListenableFuture<Map<Long, Long>> getCommitTimestamps(Set<Long> timestamps);
+    OptionalLong getCachedCommitTimestamp(long startTimestamp);
 }

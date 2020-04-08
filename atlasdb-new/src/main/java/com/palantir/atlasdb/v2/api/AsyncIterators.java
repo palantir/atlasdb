@@ -16,13 +16,13 @@
 
 package com.palantir.atlasdb.v2.api;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -46,7 +46,7 @@ public final class AsyncIterators {
     }
 
     public <T> ListenableFuture<?> takeWhile(AsyncIterator<T> iterator, Predicate<? super T> stopIfFalse) {
-        Futures.whenAllSucceed(iterator.onHasNext())
+        return Futures.whenAllSucceed(iterator.onHasNext())
                 .call(() -> {
                     if (!iterator.hasNext() || !stopIfFalse.test(iterator.next())) {
                         return Futures.immediateFuture(null);
@@ -72,6 +72,11 @@ public final class AsyncIterators {
                         }, executor);
             }
         };
+    }
+
+    public <T> ListenableFuture<List<T>> toList(AsyncIterator<T> iterator) {
+        List<T> list = new ArrayList<>();
+        return Futures.transform(takeWhile(iterator, $ -> true), $ -> list, executor);
     }
 
     public <T> AsyncIterator<List<T>> nonBlockingPages(AsyncIterator<T> iterator) {

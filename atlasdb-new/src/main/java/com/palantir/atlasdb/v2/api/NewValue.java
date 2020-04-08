@@ -28,13 +28,45 @@ public abstract class NewValue {
 
     public interface Visitor<T> {
         T kvsValue(Cell cell, long startTimestamp, StoredValue data);
+        T abortedValue(Cell cell, long startTimestamp);
+        T notYetCommittedValue(Cell cell, long startTimestamp, StoredValue data);
         T committedValue(Cell cell, long commitTimestamp, StoredValue data);
         T transactionValue(Cell cell, Optional<StoredValue> maybeData);
+
+        default T visit(NewValue value) {
+            return value.accept(this);
+        }
+    }
+
+    public interface DefaultVisitor<T> extends Visitor<T> {
+        @Override
+        default T kvsValue(Cell cell, long startTimestamp, StoredValue data) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        default T notYetCommittedValue(Cell cell, long startTimestamp, StoredValue data) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        default T committedValue(Cell cell, long commitTimestamp, StoredValue data) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        default T transactionValue(Cell cell, Optional<StoredValue> maybeData) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     public abstract Cell cell();
     public abstract StoredValue data();
     public abstract boolean isLive();
+
+    public static CommittedValue committedValue(Cell cell, long commitTimestamp, Optional<StoredValue> data) {
+        return new CommittedValue.Builder().cell(cell).commitTimestamp(commitTimestamp).data(data).build();
+    }
 
     public static TransactionValue transactionValue(Cell cell, Optional<StoredValue> data) {
         return new TransactionValue.Builder().cell(cell).maybeData(data).build();
@@ -63,6 +95,35 @@ public abstract class NewValue {
     }
 
     @Value.Immutable
+    public static abstract class NotYetCommittedValue extends NewValue {
+        public abstract long startTimestamp();
+
+        @Override
+        public final <T> T accept(Visitor<T> visitor) {
+            return visitor.notYetCommittedValue(cell(), startTimestamp(), data());
+        }
+
+        static final class Builder extends ImmutableNotYetCommittedValue.Builder {}
+    }
+
+    @Value.Immutable
+    public static abstract class AbortedValue extends NewValue {
+        public abstract long startTimestamp();
+
+        @Override
+        public final StoredValue data() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public final <T> T accept(Visitor<T> visitor) {
+            return visitor.abortedValue(cell(), startTimestamp());
+        }
+
+        static final class Builder extends ImmutableAbortedValue.Builder {}
+    }
+
+    @Value.Immutable
     public static abstract class CommittedValue extends NewValue {
         public abstract long commitTimestamp();
 
@@ -86,6 +147,29 @@ public abstract class NewValue {
         @Override
         public final boolean isLive() {
             return true;
+        }
+
+        public NotYetCommittedValue toNotYetCommitted() {
+            return new NotYetCommittedValue.Builder()
+                    .cell(cell())
+                    .data(data())
+                    .startTimestamp(startTimestamp())
+                    .build();
+        }
+
+        public CommittedValue toCommitted(long commitTimestamp) {
+            return new CommittedValue.Builder()
+                    .cell(cell())
+                    .data(data())
+                    .commitTimestamp(commitTimestamp)
+                    .build();
+        }
+
+        public AbortedValue toAborted() {
+            return new AbortedValue.Builder()
+                    .cell(cell())
+                    .startTimestamp(startTimestamp())
+                    .build();
         }
 
         @Override

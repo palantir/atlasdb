@@ -67,6 +67,11 @@ public final class TransactionExecutor implements Executor, Closeable {
         if (maybeFromSameThreadQueue != null) {
             return maybeFromSameThreadQueue;
         }
+        crossThreadTaskQueue.drainTo(sameThreadTaskQueue);
+        maybeFromSameThreadQueue = sameThreadTaskQueue.poll();
+        if (maybeFromSameThreadQueue != null) {
+            return maybeFromSameThreadQueue;
+        }
         try {
             return crossThreadTaskQueue.poll(1, TimeUnit.SECONDS);
         } catch (InterruptedException e) {

@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.v2.api.kvs;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.v2.api.transaction.TransactionState;
+import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 public interface ConflictChecker {
     ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state);

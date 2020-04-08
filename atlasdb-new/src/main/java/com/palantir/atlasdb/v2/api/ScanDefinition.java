@@ -16,18 +16,22 @@
 
 package com.palantir.atlasdb.v2.api;
 
-import java.util.Comparator;
+import org.immutables.value.Value;
 
-import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.v2.api.NewIds.StoredCell;
+import com.palantir.atlasdb.v2.api.NewIds.Table;
 
-public final class ScanAttributes {
+@Value.Immutable
+public interface ScanDefinition {
+    @Value.Parameter
+    Table table();
 
-    public Ordering<NewValue> cellComparator() {
-        throw new UnsupportedOperationException();
-    }
+    @Value.Parameter
+    ScanFilter filter();
 
-    public Comparator<StoredCell> storedCellComparator() {
-        throw new UnsupportedOperationException();
+    @Value.Parameter
+    ScanAttributes attributes();
+
+    static ScanDefinition of(Table table, ScanFilter filter, ScanAttributes attributes) {
+        return ImmutableScanDefinition.of(table, filter, attributes);
     }
 }

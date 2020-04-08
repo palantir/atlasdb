@@ -17,11 +17,10 @@
 package com.palantir.atlasdb.v2.api.transaction;
 
 import com.palantir.atlasdb.v2.api.AsyncIterator;
-import com.palantir.atlasdb.v2.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.ScanAttributes;
-import com.palantir.atlasdb.v2.api.ScanFilter;
+import com.palantir.atlasdb.v2.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-public interface Scanner<V extends NewValue> {
-    AsyncIterator<V> scan(TransactionState state, Table table, ScanAttributes attributes, ScanFilter filter);
+public interface Reader<V extends NewValue> {
+    AsyncIterator<V> scan(TransactionState state, ScanDefinition definition);
 }

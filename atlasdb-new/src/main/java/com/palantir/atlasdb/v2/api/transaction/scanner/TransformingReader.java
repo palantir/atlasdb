@@ -23,35 +23,30 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.v2.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.AsyncIterators;
 import com.palantir.atlasdb.v2.api.NewIds;
-import com.palantir.atlasdb.v2.api.NewValue.CommittedValue;
-import com.palantir.atlasdb.v2.api.NewValue.KvsValue;
+import com.palantir.atlasdb.v2.api.NewValue;
 import com.palantir.atlasdb.v2.api.ScanAttributes;
 import com.palantir.atlasdb.v2.api.ScanFilter;
-import com.palantir.atlasdb.v2.api.kvs.Kvs;
-import com.palantir.atlasdb.v2.api.transaction.Scanner;
-import com.palantir.atlasdb.v2.api.transaction.TransactionState;
+import com.palantir.atlasdb.v2.api.transaction.Reader;
+import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-public final class FilterUncommittedTransactionDataScanner implements Scanner<CommittedValue> {
+public abstract class TransformingReader<In extends NewValue, Out extends NewValue> implements Reader<Out> {
+    private final Reader<In> input;
     private final AsyncIterators iterators;
-    private final Kvs delegate;
 
-    public FilterUncommittedTransactionDataScanner(
-            AsyncIterators iterators,
-            Kvs delegate) {
+    protected TransformingReader(Reader<In> input, AsyncIterators iterators) {
+        this.input = input;
         this.iterators = iterators;
-        this.delegate = delegate;
     }
 
     @Override
-    public AsyncIterator<CommittedValue> scan(
-            TransactionState state, NewIds.Table table, ScanAttributes attributes, ScanFilter filter) {
-        AsyncIterator<KvsValue> scan = delegate.scan(state, table, attributes, filter);
-        AsyncIterator<List<KvsValue>> buffered = iterators.nonBlockingPages(scan);
-
-        return iterators.concat(iterators.transformAsync(buffered, this::postFilterWrites));
+    public final AsyncIterator<Out> scan(TransactionState state, NewIds.Table table, ScanAttributes attributes,
+            ScanFilter filter) {
+        AsyncIterator<In> read = input.scan(state, table, attributes, filter);
+        AsyncIterator<List<In>> buffered = iterators.nonBlockingPages(read);
+        return iterators.concat(iterators.transformAsync(
+                buffered, page -> transformPage(state, table, attributes, filter, page)));
     }
 
-    private ListenableFuture<Iterator<CommittedValue>> postFilterWrites(List<KvsValue> values) {
-        return null;
-    }
+    protected abstract ListenableFuture<Iterator<Out>> transformPage(
+            TransactionState state, NewIds.Table table, ScanAttributes attributes, ScanFilter filter, List<In> page);
 }

@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.v2.api.transaction;
 
-import static com.palantir.logsafe.Preconditions.checkNotNull;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.v2.api.AsyncIterators;
@@ -27,56 +25,64 @@ import com.palantir.atlasdb.v2.api.NewGetOperation.ResultBuilder;
 import com.palantir.atlasdb.v2.api.NewPutOperation;
 import com.palantir.atlasdb.v2.api.NewTransaction;
 import com.palantir.atlasdb.v2.api.NewValue;
+import com.palantir.atlasdb.v2.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.future.FutureChain;
-import com.palantir.atlasdb.v2.api.future.FutureChain.Tag;
 import com.palantir.atlasdb.v2.api.kvs.ConflictChecker;
 import com.palantir.atlasdb.v2.api.kvs.Writer;
 import com.palantir.atlasdb.v2.api.locks.NewLocks;
 import com.palantir.atlasdb.v2.api.timestamps.Timestamps;
+import com.palantir.atlasdb.v2.api.transaction.scanner.ReadReportingReader.RecordingNewValue;
+import com.palantir.atlasdb.v2.api.transaction.state.StateHolder;
+import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 import com.palantir.atlasdb.v2.api.util.Unreachable;
 
 public class SingleThreadedTransaction implements NewTransaction {
-    private final Scanner<NewValue> scanner;
+    private final Reader<RecordingNewValue> reader;
     private final Writer writer;
     private final NewLocks locks;
     private final ConflictChecker conflictChecker;
     private final AsyncIterators iterators;
     private final Timestamps timestamps;
-    private TransactionState state;
+    private final StateHolder stateHolder;
 
     public SingleThreadedTransaction(
-            Scanner<NewValue> scanner,
-            Writer writer, NewLocks locks,
+            Reader<RecordingNewValue> reader,
+            Writer writer,
+            Timestamps timestamps,
+            NewLocks locks,
             ConflictChecker conflictChecker,
-            AsyncIterators iterators, Timestamps timestamps) {
-        this.scanner = scanner;
+            AsyncIterators iterators,
+            StateHolder stateHolder) {
+        this.reader = reader;
         this.writer = writer;
         this.locks = locks;
         this.conflictChecker = conflictChecker;
         this.iterators = iterators;
         this.timestamps = timestamps;
+        this.stateHolder = stateHolder;
     }
 
     @Override
     public void put(NewPutOperation put) {
-        checkNotNull(state);
-        state = state.addWrite(put.table(), NewValue.transactionValue(put.cell(), put.value()));
+        stateHolder.mutate(state -> state.writesBuilder().mutateWrites(put.table(),
+                t -> t.put(NewValue.transactionValue(put.cell(), put.value()))));
     }
 
     @Override
     public <T> ListenableFuture<T> get(NewGetOperation<T> get) {
-        checkNotNull(state);
         ResultBuilder<T> resultBuilder = get.newResultBuilder();
+        TransactionState state = stateHolder.get();
+        ScanDefinition definition = ScanDefinition.of(get.table(), get.scanFilter(), get.attributes());
+
         return Futures.transform(iterators.takeWhile(
-                scanner.scan(state, get.table(), get.attributes(), get.scanFilter()), value -> {
+                stateHolder.iterate(reader.scan(state, definition)), value -> {
             resultBuilder.add(get.table(), value.cell(), value.data());
             return !resultBuilder.isDone();
-        }), x -> resultBuilder.build(), state.getScheduler());
+        }), x -> resultBuilder.build(), state.scheduler());
     }
 
     @Override
     public ListenableFuture<?> end(NewEndOperation end) {
-        checkNotNull(state);
         switch (end) {
             case ABORT: return abort();
             case COMMIT: return commit();
@@ -84,32 +90,30 @@ public class SingleThreadedTransaction implements NewTransaction {
         throw Unreachable.unreachable(end);
     }
 
+    // currently assume that someone else is unlocking anything the immutable ts lock
     private ListenableFuture<?> commit() {
-        TransactionState snapshot = checkNotNull(state);
-        state = null;
-        if (!snapshot.hasWrites()) {
+        TransactionState state = stateHolder.invalidateAndGet();
+        if (state.writes().isEmpty()) {
             return Futures.immediateFuture(null);
         }
-        return FutureChain.start(snapshot.getScheduler(), snapshot)
-                .then(s -> locks.lock(s.writeLockDescriptors()), TransactionState::addHeldLock)
+        // this is eager some way... maybe it should be lazy?
+        return FutureChain.start(state.scheduler(), state)
+                .then(s -> locks.lock(s.writeLockDescriptors()),
+                        (transactionState, token) -> transactionState.toBuilder().addHeldLocks(token).build())
                 .defer(s -> locks.unlock(s.heldLocks()))
                 .then(conflictChecker::checkForWriteWriteConflicts)
                 .then(writer::write)
-                .then($ -> timestamps.getCommitTimestamp(), TransactionState::withCommitTimestamp)
+                .then($ -> timestamps.getCommitTimestamp(), (s, ts) -> s.toBuilder().commitTimestamp(ts).build())
                 // todo punch
                 .then(conflictChecker::checkForReadWriteConflicts)
                 // todo pre-commit-conditions if any
                 .then(s -> locks.checkStillValid(s.heldLocks()))
                 .then(writer::commit)
-                .done();
-    }
-
-    private static ListenableFuture<?> writeToSweepQueue(TransactionState state) {
-
+                .maskedDone();
     }
 
     private ListenableFuture<?> abort() {
-        state = null;
+        stateHolder.invalidateAndGet();
         return Futures.immediateFailedFuture(new RuntimeException("TODO define a real type here"));
     }
 }

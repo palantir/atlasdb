@@ -19,6 +19,9 @@ package com.palantir.atlasdb.v2.api.future;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
@@ -35,7 +38,11 @@ public final class FutureChain<T> {
     private enum Unknown {}
 
     public FutureChain(Executor executor, T initialState) {
-        this(executor, Futures.immediateFuture(initialState), List.empty());
+        this(executor, Futures.immediateFuture(initialState));
+    }
+
+    public FutureChain(Executor executor, ListenableFuture<T> initialState) {
+        this(executor, initialState, List.empty());
     }
 
     public FutureChain(Executor executor, ListenableFuture<T> state,
@@ -45,8 +52,25 @@ public final class FutureChain<T> {
         this.deferrals = deferrals;
     }
 
+    public static <T> FutureChain<T> start(Executor executor, ListenableFuture<T> initialState) {
+        return new FutureChain<>(executor, initialState);
+    }
+
     public static <T> FutureChain<T> start(Executor executor, T initialState) {
         return new FutureChain<>(executor, initialState);
+    }
+
+    public <R> FutureChain<R> alterState(Function<T, R> resultOperator) {
+        return new FutureChain<>(
+                executor,
+                Futures.transform(state, resultOperator::apply, MoreExecutors.directExecutor()),
+                deferrals);
+    }
+
+    // deferrals made outside of a loop do not apply in the loop
+    public FutureChain<T> whileTrue(Predicate<T> stopIfFalse, UnaryOperator<FutureChain<T>> operation) {
+        AsyncFunction<T, T> function = state -> operation.apply(new FutureChain<>(executor, state)).done();
+        return new FutureChain<>(executor, FutureWhile.whileTrue(executor, state, function, stopIfFalse), deferrals);
     }
 
     public <R, S> FutureChain<R> then(AsyncFunction<T, S> operation, BiFunction<T, S, R> resultMerger) {
@@ -70,14 +94,22 @@ public final class FutureChain<T> {
                 deferrals.prepend(() -> deferral.accept(Futures.getUnchecked(state))));
     }
 
-    public ListenableFuture<?> done() {
+    public ListenableFuture<T> done() {
+        if (deferrals.isEmpty()) {
+            return state;
+        }
         ListenableFuture<?> executingDeferrals = Futures.whenAllComplete(state)
                 .callAsync(() -> Futures.allAsList(deferrals.map(this::submitDeferral)), executor);
         // unsure if should do complete or succeed
-        return Futures.whenAllComplete(executingDeferrals).call(() -> null, MoreExecutors.directExecutor());
+        return Futures.whenAllComplete(executingDeferrals).callAsync(() -> state, MoreExecutors.directExecutor());
     }
 
-    private ListenableFuture<?> submitDeferral(Runnable deferral) {
+    // version of done that doesn't give access to the data
+    public ListenableFuture<?> maskedDone() {
+        return Futures.transform(done(), $ -> null, MoreExecutors.directExecutor());
+    }
+
+    private ListenableFuture<Void> submitDeferral(Runnable deferral) {
         return Futures.submitAsync(() -> {
             deferral.run();
             return null;

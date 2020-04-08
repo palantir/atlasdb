@@ -16,6 +16,11 @@
 
 package com.palantir.atlasdb.v2.api.locks;
 
+import java.util.Set;
+
 public interface NewLockDescriptor {
 
+    static Set<NewLockDescriptor> fromTimestamps(Iterable<Long> timestamps) {
+        throw new UnsupportedOperationException();
+    }
 }
