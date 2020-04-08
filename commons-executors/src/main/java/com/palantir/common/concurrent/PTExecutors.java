@@ -36,6 +36,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -46,7 +47,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Runnables;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -75,6 +78,16 @@ public final class PTExecutors {
     private static final int DEFAULT_THREAD_POOL_TIMEOUT_MILLIS = 5000;
 
     private static final RejectedExecutionHandler defaultHandler = new AbortPolicy();
+
+    private static final Supplier<ExecutorService> SHARED_CACHED_EXECUTOR =
+            // This executor uses the JVM default 1 minute timeout, way up from the PTExecutors 5 second timeout
+            // because threads are reused between all cached executors.
+            Suppliers.memoize(() ->
+                    Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                    // Allows cached executor views to prefix this value for standard thread names
+                    .setNameFormat("%d")
+                    .setDaemon(true)
+                    .build()));
 
     /**
      * Creates a thread pool that creates new threads as needed, but will reuse previously
@@ -109,7 +122,11 @@ public final class PTExecutors {
     public static ExecutorService newCachedThreadPool(String name) {
         Preconditions.checkNotNull(name, "Name is required");
         Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
-        return newCachedThreadPool(new NamedThreadFactory(name, true));
+        String threadNamePrefix = name + '-';
+        return wrap(name, ThreadNamingExecutorService.builder()
+                .executor(CachedExecutorView.of(SHARED_CACHED_EXECUTOR.get()))
+                .threadNameFunction(originalName -> threadNamePrefix + originalName)
+                .build());
     }
 
     /**

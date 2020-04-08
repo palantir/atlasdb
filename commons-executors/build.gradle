@@ -11,4 +11,5 @@ dependencies {
     implementation "com.palantir.tritium:tritium-metrics"
 
     testCompile group: 'com.google.guava', name: 'guava'
+    testCompile group: 'org.awaitility', name: 'awaitility'
 }

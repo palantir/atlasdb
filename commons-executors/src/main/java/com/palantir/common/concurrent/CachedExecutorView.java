@@ -1,0 +1,186 @@
+/*
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.common.concurrent;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+
+import javax.annotation.Nullable;
+
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+
+/**
+ * Efficient view of a cached executor service which avoids lock contention in the common path. This allows us to
+ * provide references to the same underlying pool of threads to different consumers. We take advantage of the fact that
+ * cached executors never queue, and always submit work immediately to avoid implementing queueing.
+ *
+ * <p>This implementation is based on the design of the Undertow GracefulShutdownHandler.
+ */
+final class CachedExecutorView extends AbstractExecutorService {
+    private static final AtomicIntegerFieldUpdater<CachedExecutorView> activeUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(CachedExecutorView.class, "active");
+
+    private final Executor delegate;
+    private final Object shutdownLock = new Object();
+    private final Set<CachedExecutorViewRunnable> allRunnables = ConcurrentHashMap.newKeySet();
+
+    private volatile boolean shutdown = false;
+    private volatile boolean terminated = false;
+
+    @SuppressWarnings("unused") // Used by activeUpdater
+    private volatile int active = 0;
+
+    private CachedExecutorView(Executor delegate) {
+        this.delegate = Preconditions.checkNotNull(delegate, "Delegate Executor is required");
+    }
+
+    static ExecutorService of(Executor delegate) {
+        return new CachedExecutorView(delegate);
+    }
+
+    @Override
+    public void shutdown() {
+        // Quickly make sure this has not already been shut down. It's fine if this races and multiple callers
+        // are concurrently running the body, but there's no reason to do more work than necessary.
+        if (!shutdown) {
+            activeUpdater.incrementAndGet(this);
+            // The active task count is never zero while teh shutdown flag is set.
+            synchronized (shutdownLock) {
+                shutdown = true;
+                decrementActive();
+            }
+        }
+    }
+
+    @Override
+    public List<Runnable> shutdownNow() {
+        shutdown();
+        if (!terminated) {
+            allRunnables.forEach(CachedExecutorViewRunnable::interrupt);
+        }
+        // This implementation is built for cached executors which do not queue so it's impossible
+        // to have pending runnables.
+        return Collections.emptyList();
+    }
+
+    @Override
+    public boolean isShutdown() {
+        return shutdown;
+    }
+
+    @Override
+    public boolean isTerminated() {
+        return terminated;
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        synchronized (shutdownLock) {
+            if (!shutdown) {
+                throw new SafeIllegalStateException("Executor has not been shut down");
+            }
+            long end = System.currentTimeMillis() + unit.toMillis(timeout);
+            int activeTaskSnapshot = activeUpdater.get(this);
+            while (activeTaskSnapshot != 0) {
+                long remaining = end - System.currentTimeMillis();
+                if (remaining <= 0) {
+                    return false;
+                }
+                shutdownLock.wait(remaining);
+                activeTaskSnapshot = activeUpdater.get(this);
+            }
+            return true;
+        }
+    }
+
+    @Override
+    public void execute(Runnable task) {
+        boolean submittedTask = false;
+        activeUpdater.incrementAndGet(this);
+        try {
+            if (shutdown) {
+                throw new RejectedExecutionException("Executor has been shut down");
+            }
+            delegate.execute(new CachedExecutorViewRunnable(task));
+            submittedTask = true;
+        } finally {
+            if (!submittedTask) {
+                decrementActive();
+            }
+        }
+    }
+
+    private void decrementActive() {
+        synchronized (shutdownLock) {
+            int activeSnapshot = activeUpdater.decrementAndGet(this);
+            if (activeSnapshot == 0 & shutdown) {
+                terminated = true;
+                shutdownLock.notifyAll();
+            }
+        }
+    }
+
+    private final class CachedExecutorViewRunnable implements Runnable {
+
+        private final Runnable delegate;
+
+        @Nullable
+        private volatile Thread thread;
+
+        CachedExecutorViewRunnable(Runnable delegate) {
+            this.delegate = Preconditions.checkNotNull(delegate, "Runnable");
+        }
+
+        @Override
+        public void run() {
+            this.thread = Thread.currentThread();
+            allRunnables.add(this);
+            try {
+                delegate.run();
+            } finally {
+                allRunnables.remove(this);
+                // Synchronization is important to avoid racily reading the current thread and interrupting
+                // it after this task completes and a task from another view has begun execution.
+                synchronized (this) {
+                    this.thread = null;
+                }
+                decrementActive();
+            }
+        }
+
+        synchronized void interrupt() {
+            Thread taskThread = this.thread;
+            if (taskThread != null) {
+                taskThread.interrupt();
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "CachedExecutorViewRunnable{delegate=" + delegate + '}';
+        }
+    }
+}
