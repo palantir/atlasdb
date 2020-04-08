@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.function.IntUnaryOperator;
 
 import javax.annotation.Nullable;
 
@@ -40,18 +41,46 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * <p>This implementation is based on the design of the Undertow GracefulShutdownHandler.
  */
 final class CachedExecutorView extends AbstractExecutorService {
-    private static final AtomicIntegerFieldUpdater<CachedExecutorView> activeUpdater =
-            AtomicIntegerFieldUpdater.newUpdater(CachedExecutorView.class, "active");
+    private static final AtomicIntegerFieldUpdater<CachedExecutorView> stateUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(CachedExecutorView.class, "state");
+
+    private static final int SHUTDOWN_MASK = 1 << 31;
+    private static final int TERMINATED_MASK = 1 << 30;
+    private static final int ACTIVE_COUNT_MASK = (1 << 30) - 1;
+
+    // Hoist expensive lambda allocations
+    private static final IntUnaryOperator executeStateUpdater = current -> {
+        // This is safe in a compareAndUpdate because SHUTDOWN_MASK is never unset.
+        if (isShutdown(current)) {
+            throw new RejectedExecutionException("Executor has been shut down");
+        }
+        validateForIncrement(current);
+        int updatedActiveCount = getActiveCount(current) + 1;
+        return updatedActiveCount | (current & ~ACTIVE_COUNT_MASK);
+    };
+
+    private static final IntUnaryOperator decrementActiveStateUpdater = current -> {
+        int result = getActiveCount(current) - 1 | (current & ~ACTIVE_COUNT_MASK);
+        if (isShutdown(result) && getActiveCount(result) == 0) {
+            result |= TERMINATED_MASK;
+        }
+        return result;
+    };
 
     private final Executor delegate;
     private final Object shutdownLock = new Object();
     private final Set<CachedExecutorViewRunnable> allRunnables = ConcurrentHashMap.newKeySet();
 
-    private volatile boolean shutdown = false;
-    private volatile boolean terminated = false;
-
-    @SuppressWarnings("unused") // Used by activeUpdater
-    private volatile int active = 0;
+    /**
+     * State structure.
+     * <ul>
+     *     <li>Bit 00..29: Number of active tasks (unsigned)
+     *     <li>Bit 30: executor termination state; 0 = not terminated
+     *     <li>Bit 31: executor shutdown state; 0 = shutdown has not been requested
+     * </ul>
+     */
+    @SuppressWarnings("unused") // Used by stateUpdater
+    private volatile int state = 0;
 
     private CachedExecutorView(Executor delegate) {
         this.delegate = Preconditions.checkNotNull(delegate, "Delegate Executor is required");
@@ -63,24 +92,19 @@ final class CachedExecutorView extends AbstractExecutorService {
 
     @Override
     public void shutdown() {
-        // Quickly make sure this has not already been shut down. It's fine if this races and multiple callers
-        // are concurrently running the body, but there's no reason to do more work than necessary.
-        if (!shutdown) {
-            activeUpdater.incrementAndGet(this);
-            // The active task count is never zero while teh shutdown flag is set.
-            synchronized (shutdownLock) {
-                shutdown = true;
-                decrementActive();
-            }
-        }
+        // The active task count is never zero while the shutdown flag is set.
+        stateUpdater.updateAndGet(this, current -> {
+            validateForIncrement(current);
+            int updatedActiveCount = getActiveCount(current) + 1;
+            return updatedActiveCount | (current & ~ACTIVE_COUNT_MASK) | SHUTDOWN_MASK;
+        });
+        decrementActive();
     }
 
     @Override
     public List<Runnable> shutdownNow() {
         shutdown();
-        if (!terminated) {
-            allRunnables.forEach(CachedExecutorViewRunnable::interrupt);
-        }
+        allRunnables.forEach(CachedExecutorViewRunnable::interrupt);
         // This implementation is built for cached executors which do not queue so it's impossible
         // to have pending runnables.
         return Collections.emptyList();
@@ -88,29 +112,35 @@ final class CachedExecutorView extends AbstractExecutorService {
 
     @Override
     public boolean isShutdown() {
-        return shutdown;
+        return isShutdown(stateUpdater.get(this));
+    }
+
+    private static boolean isShutdown(int state) {
+        return (state & SHUTDOWN_MASK) != 0;
     }
 
     @Override
     public boolean isTerminated() {
-        return terminated;
+        return isTerminated(stateUpdater.get(this));
+    }
+
+    private static boolean isTerminated(int state) {
+        return (state & TERMINATED_MASK) != 0;
     }
 
     @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        if (!isShutdown()) {
+            throw new SafeIllegalStateException("Executor has not been shut down");
+        }
         synchronized (shutdownLock) {
-            if (!shutdown) {
-                throw new SafeIllegalStateException("Executor has not been shut down");
-            }
             long end = System.currentTimeMillis() + unit.toMillis(timeout);
-            int activeTaskSnapshot = activeUpdater.get(this);
-            while (activeTaskSnapshot != 0) {
+            while (!isTerminated()) {
                 long remaining = end - System.currentTimeMillis();
                 if (remaining <= 0) {
                     return false;
                 }
                 shutdownLock.wait(remaining);
-                activeTaskSnapshot = activeUpdater.get(this);
             }
             return true;
         }
@@ -119,9 +149,9 @@ final class CachedExecutorView extends AbstractExecutorService {
     @Override
     public void execute(Runnable task) {
         boolean submittedTask = false;
-        activeUpdater.incrementAndGet(this);
+        stateUpdater.updateAndGet(this, executeStateUpdater);
         try {
-            if (shutdown) {
+            if (isShutdown()) {
                 throw new RejectedExecutionException("Executor has been shut down");
             }
             delegate.execute(new CachedExecutorViewRunnable(task));
@@ -134,13 +164,23 @@ final class CachedExecutorView extends AbstractExecutorService {
     }
 
     private void decrementActive() {
-        synchronized (shutdownLock) {
-            int activeSnapshot = activeUpdater.decrementAndGet(this);
-            if (activeSnapshot == 0 & shutdown) {
-                terminated = true;
+        int stateSnapshot = stateUpdater.updateAndGet(this, decrementActiveStateUpdater);
+        if (isTerminated(stateSnapshot)) {
+            synchronized (shutdownLock) {
                 shutdownLock.notifyAll();
             }
         }
+    }
+
+    private static void validateForIncrement(int state) {
+        // Defensive check. If there are a million active tasks something as gone terribly wrong.
+        if (getActiveCount(state) == ACTIVE_COUNT_MASK) {
+            throw new SafeIllegalStateException("There are already " + ACTIVE_COUNT_MASK + " active tasks");
+        }
+    }
+
+    private static int getActiveCount(int state) {
+        return state & ACTIVE_COUNT_MASK;
     }
 
     private final class CachedExecutorViewRunnable implements Runnable {
