@@ -87,7 +87,7 @@ public final class PTExecutors {
      *
      * @return the newly created thread pool
      */
-    public static ThreadPoolExecutor newCachedThreadPool() {
+    public static ExecutorService newCachedThreadPool() {
         return newCachedThreadPool(computeBaseThreadName());
     }
 
@@ -104,7 +104,7 @@ public final class PTExecutors {
      *
      * @return the newly created thread pool
      */
-    public static ThreadPoolExecutor newCachedThreadPool(String name) {
+    public static ExecutorService newCachedThreadPool(String name) {
         Preconditions.checkNotNull(name, "Name is required");
         Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
         return newCachedThreadPool(new NamedThreadFactory(name, true));
@@ -121,7 +121,7 @@ public final class PTExecutors {
      * @deprecated Please prefer {@link #newCachedThreadPool(String)}
      */
     @Deprecated
-    public static ThreadPoolExecutor newCachedThreadPool(ThreadFactory threadFactory) {
+    public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory) {
         return newThreadPoolExecutor(
                 0,
                 Integer.MAX_VALUE,
@@ -145,7 +145,7 @@ public final class PTExecutors {
      * @deprecated Please prefer {@link #newCachedThreadPool(String)}
      */
     @Deprecated
-    public static ThreadPoolExecutor newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
+    public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
         return newThreadPoolExecutor(
                 0,
                 Integer.MAX_VALUE,
