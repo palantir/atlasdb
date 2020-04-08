@@ -14,25 +14,23 @@
  * limitations under the License.
  */
 
-
 package com.palantir.common.concurrent;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.Collections2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.logsafe.Preconditions;
 
 /** An ExecutorService decorator which updates names of threads while tasks run. */
-final class ThreadNamingExecutorService implements ExecutorService {
+final class ThreadNamingExecutorService extends AbstractExecutorService {
+    private static final Logger log = LoggerFactory.getLogger(ThreadNamingExecutorService.class);
     private final ExecutorService delegate;
     private final ThreadNameFunction nameFunction;
 
@@ -67,53 +65,8 @@ final class ThreadNamingExecutorService implements ExecutorService {
     }
 
     @Override
-    public <T> Future<T> submit(Callable<T> task) {
-        return delegate.submit(wrap(task));
-    }
-
-    @Override
-    public <T> Future<T> submit(Runnable task, T result) {
-        return delegate.submit(wrap(task), result);
-    }
-
-    @Override
-    public Future<?> submit(Runnable task) {
-        return delegate.submit(wrap(task));
-    }
-
-    @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
-        return delegate.invokeAll(Collections2.transform(tasks, this::wrap));
-    }
-
-    @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
-            throws InterruptedException {
-        return delegate.invokeAll(Collections2.transform(tasks, this::wrap), timeout, unit);
-    }
-
-    @Override
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
-        return delegate.invokeAny(Collections2.transform(tasks, this::wrap));
-    }
-
-    @Override
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
-            throws InterruptedException, ExecutionException, TimeoutException {
-        return delegate.invokeAny(Collections2.transform(tasks, this::wrap), timeout, unit);
-    }
-
-    @Override
     public void execute(Runnable command) {
-        delegate.execute(wrap(command));
-    }
-
-    private Runnable wrap(Runnable in) {
-        return new NamingRunnable(in, nameFunction);
-    }
-
-    private <T> Callable<T> wrap(Callable<T> in) {
-        return new NamingCallable<>(in, nameFunction);
+        delegate.execute(new NamingRunnable(command, nameFunction));
     }
 
     private static final class NamingRunnable implements Runnable {
@@ -133,32 +86,24 @@ final class ThreadNamingExecutorService implements ExecutorService {
             current.setName(nameFunction.rename(originalName));
             try {
                 delegate.run();
+            } catch (Throwable t) {
+                // The uncaught exception handler must be called while the thread has an updated name
+                // The throwable must not be rethrown otherwise the uncaught exception handler would
+                // be invoked twice.
+                invokeUncaughtExceptionHandler(t);
             } finally {
                 current.setName(originalName);
             }
         }
     }
 
-    private static final class NamingCallable<T> implements Callable<T> {
-
-        private final Callable<T> delegate;
-        private final ThreadNameFunction nameFunction;
-
-        NamingCallable(Callable<T> delegate, ThreadNameFunction nameFunction) {
-            this.delegate = delegate;
-            this.nameFunction = nameFunction;
-        }
-
-        @Override
-        public T call() throws Exception {
-            Thread current = Thread.currentThread();
-            String originalName = current.getName();
-            current.setName(nameFunction.rename(originalName));
-            try {
-                return delegate.call();
-            } finally {
-                current.setName(originalName);
-            }
+    private static void invokeUncaughtExceptionHandler(Throwable throwable) {
+        Thread current = Thread.currentThread();
+        Thread.UncaughtExceptionHandler uncaughtExceptionHandler = current.getUncaughtExceptionHandler();
+        if (uncaughtExceptionHandler != null) {
+            uncaughtExceptionHandler.uncaughtException(current, throwable);
+        } else {
+            log.warn("Caught and unhandled exception", throwable);
         }
     }
 
