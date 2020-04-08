@@ -37,6 +37,8 @@ import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,13 +88,26 @@ public final class PTExecutors {
      * @return the newly created thread pool
      */
     public static ThreadPoolExecutor newCachedThreadPool() {
-        return newThreadPoolExecutor(
-                0,
-                Integer.MAX_VALUE,
-                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS,
-                TimeUnit.MILLISECONDS,
-                new SynchronousQueue<Runnable>(),
-                newNamedThreadFactory());
+        return newCachedThreadPool(computeBaseThreadName());
+    }
+
+    /**
+     * Creates a thread pool that creates new threads as needed, but will reuse previously
+     * constructed threads when they are available. These pools will typically improve the
+     * performance of programs that execute many short-lived asynchronous tasks. Calls to
+     * <tt>execute</tt> will reuse previously constructed threads if available. If no existing
+     * thread is available, a new thread will be created and added to the pool. Threads that have
+     * not been used for sixty seconds are terminated and removed from the cache. Thus, a pool that
+     * remains idle for long enough will not consume any resources. Note that pools with similar
+     * properties but different details (for example, timeout parameters) may be created using
+     * {@link ThreadPoolExecutor} constructors.
+     *
+     * @return the newly created thread pool
+     */
+    public static ThreadPoolExecutor newCachedThreadPool(String name) {
+        Preconditions.checkNotNull(name, "Name is required");
+        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        return newCachedThreadPool(new NamedThreadFactory(name, true));
     }
 
     /**
@@ -103,7 +118,9 @@ public final class PTExecutors {
      * @param threadFactory the factory to use when creating new threads
      * @return the newly created thread pool
      * @throws NullPointerException if threadFactory is null
+     * @deprecated Please prefer {@link #newCachedThreadPool(String)}
      */
+    @Deprecated
     public static ThreadPoolExecutor newCachedThreadPool(ThreadFactory threadFactory) {
         return newThreadPoolExecutor(
                 0,
@@ -125,7 +142,9 @@ public final class PTExecutors {
      * @param threadFactory the factory to use when creating new threads
      * @return the newly created thread pool
      * @throws NullPointerException if threadFactory is null
+     * @deprecated Please prefer {@link #newCachedThreadPool(String)}
      */
+    @Deprecated
     public static ThreadPoolExecutor newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
         return newThreadPoolExecutor(
                 0,
@@ -606,15 +625,11 @@ public final class PTExecutors {
         });
     }
 
-    public static ThreadFactory newNamedThreadFactory() {
-        return newNamedThreadFactory(false, null);
+    static String computeBaseThreadName() {
+        return computeBaseThreadName(null);
     }
 
-    public static ThreadFactory newNamedThreadFactory(boolean isDaemon) {
-        return newNamedThreadFactory(isDaemon, null);
-    }
-
-    public static ThreadFactory newNamedThreadFactory(boolean isDaemon, Class<?> classToIgnore) {
+    static String computeBaseThreadName(@Nullable Class<?> classToIgnore) {
         String fileNameToIgnore = (classToIgnore == null) ? null
                 : classToIgnore.getSimpleName() + ".java";
         StackTraceElement[] stackTrace = new Throwable().getStackTrace();
@@ -623,13 +638,24 @@ public final class PTExecutors {
                 String fileName = stackTraceElement.getFileName();
                 if ((fileName != null) && !fileName.equals(FILE_NAME_FOR_THIS_CLASS)
                         && !fileName.equals(fileNameToIgnore)) {
-                    return new NamedThreadFactory(fileName + ":" + stackTraceElement.getLineNumber(),
-                            isDaemon);
+                    return fileName + ":" + stackTraceElement.getLineNumber();
                 }
             }
         }
         log.warn("Can't figure out what name to use for this thread factory!");
-        return new NamedThreadFactory("Unnamed thread", isDaemon);
+        return "Unnamed thread";
+    }
+
+    public static ThreadFactory newNamedThreadFactory() {
+        return newNamedThreadFactory(true, null);
+    }
+
+    public static ThreadFactory newNamedThreadFactory(boolean isDaemon) {
+        return newNamedThreadFactory(isDaemon, null);
+    }
+
+    public static ThreadFactory newNamedThreadFactory(boolean isDaemon, Class<?> classToIgnore) {
+        return new NamedThreadFactory(computeBaseThreadName(classToIgnore), isDaemon);
     }
 
     public static ThreadFactory newThreadFactory(final String prefix, final int priority, final boolean isDaemon) {

@@ -20,7 +20,6 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockServerOptions;
@@ -33,7 +32,7 @@ public class LockCreator {
     private final long blockingTimeoutMs;
     private final Semaphore sharedThreadPool;
     private final ExecutorService sharedExecutor = PTExecutors
-            .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
+            .newCachedThreadPool(LockServiceImpl.class.getName());
 
     public LockCreator(Supplier<TimeLockRuntimeConfiguration> runtime, int threadPoolSize, long blockingTimeoutMs) {
         this.runtime = runtime;

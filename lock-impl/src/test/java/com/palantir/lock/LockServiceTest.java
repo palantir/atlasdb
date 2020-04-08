@@ -36,7 +36,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.InterruptibleFuture;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -50,8 +49,7 @@ import com.palantir.util.Mutables;
  * @author jtamer, ddoan
  */
 public abstract class LockServiceTest {
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(LockServiceTest.class.getName(), true));
+    private static final ExecutorService executor = PTExecutors.newCachedThreadPool("LockServiceTest");
 
     private LockService server;
     private LockClient client;
