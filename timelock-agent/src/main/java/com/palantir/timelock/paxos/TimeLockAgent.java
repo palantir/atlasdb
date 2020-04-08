@@ -24,10 +24,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.InstrumentedExecutorService;
-import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
@@ -144,10 +142,7 @@ public class TimeLockAgent {
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
         return new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(new InstrumentedThreadFactory(new ThreadFactoryBuilder()
-                        .setNameFormat("paxos-timestamp-creator-%d")
-                        .setDaemon(true)
-                        .build(), metricsManager.getRegistry())),
+                PTExecutors.newCachedThreadPool("paxos-timestamp-creator"),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, PAXOS_SHARED_EXECUTOR, "executor"));
     }
