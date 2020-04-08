@@ -56,7 +56,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.db.oracle.JdbcHandler;
@@ -361,15 +360,12 @@ public abstract class BasicSQL {
 
     private static final String SELECT_THREAD_NAME = "SQL select statement"; //$NON-NLS-1$
     private static final String EXECUTE_THREAD_NAME = "SQL execute statement"; //$NON-NLS-1$
-    private static final int KEEP_SQL_THREAD_ALIVE_TIMEOUT = 3000; //3 seconds
 
     // TODO (jkong): Should these be lazily initialized?
     private static final Supplier<ExecutorService> DEFAULT_SELECT_EXECUTOR =
-            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(
-                    new NamedThreadFactory(SELECT_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(SELECT_THREAD_NAME));
     static final Supplier<ExecutorService> DEFAULT_EXECUTE_EXECUTOR =
-            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(
-                    new NamedThreadFactory(EXECUTE_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(EXECUTE_THREAD_NAME));
 
     private ExecutorService selectStatementExecutor;
     private ExecutorService executeStatementExecutor;
