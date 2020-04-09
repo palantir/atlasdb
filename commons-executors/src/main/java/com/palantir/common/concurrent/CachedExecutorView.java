@@ -49,19 +49,23 @@ final class CachedExecutorView extends AbstractExecutorService {
     private static final int ACTIVE_COUNT_MASK = (1 << 30) - 1;
 
     // Hoist expensive lambda allocations
-    private static final IntUnaryOperator executeStateUpdater = current -> {
-        // This is safe in a compareAndUpdate because SHUTDOWN_MASK is never unset.
-        if (isShutdown(current)) {
-            throw new RejectedExecutionException("Executor has been shut down");
+    private static final IntUnaryOperator incrementActiveStateUpdater = current -> {
+        int activeCount = getActiveCount(current);
+        // Defensive check. If there are a million active tasks something has gone terribly wrong.
+        if (activeCount == ACTIVE_COUNT_MASK) {
+            throw new SafeIllegalStateException("There are already " + ACTIVE_COUNT_MASK + " active tasks");
         }
-        validateForIncrement(current);
-        int updatedActiveCount = getActiveCount(current) + 1;
+        int updatedActiveCount = activeCount + 1;
         return updatedActiveCount | (current & ~ACTIVE_COUNT_MASK);
     };
 
+    private static final IntUnaryOperator incrementActiveAndShutdownStateUpdater =
+            incrementActiveStateUpdater.andThen(current -> current | SHUTDOWN_MASK);
+
     private static final IntUnaryOperator decrementActiveStateUpdater = current -> {
-        int result = getActiveCount(current) - 1 | (current & ~ACTIVE_COUNT_MASK);
-        if (isShutdown(result) && getActiveCount(result) == 0) {
+        int updatedActiveCount = getActiveCount(current) - 1;
+        int result = updatedActiveCount | (current & ~ACTIVE_COUNT_MASK);
+        if (updatedActiveCount == 0 && isShutdown(current)) {
             result |= TERMINATED_MASK;
         }
         return result;
@@ -69,7 +73,7 @@ final class CachedExecutorView extends AbstractExecutorService {
 
     private final Executor delegate;
     private final Object shutdownLock = new Object();
-    private final Set<CachedExecutorViewRunnable> allRunnables = ConcurrentHashMap.newKeySet();
+    private final Set<CachedExecutorViewRunnable> activeRunnables = ConcurrentHashMap.newKeySet();
 
     /**
      * State structure.
@@ -93,18 +97,14 @@ final class CachedExecutorView extends AbstractExecutorService {
     @Override
     public void shutdown() {
         // The active task count is never zero while the shutdown flag is set.
-        stateUpdater.updateAndGet(this, current -> {
-            validateForIncrement(current);
-            int updatedActiveCount = getActiveCount(current) + 1;
-            return updatedActiveCount | (current & ~ACTIVE_COUNT_MASK) | SHUTDOWN_MASK;
-        });
+        stateUpdater.updateAndGet(this, incrementActiveAndShutdownStateUpdater);
         decrementActive();
     }
 
     @Override
     public List<Runnable> shutdownNow() {
         shutdown();
-        allRunnables.forEach(CachedExecutorViewRunnable::interrupt);
+        activeRunnables.forEach(CachedExecutorViewRunnable::interrupt);
         // This implementation is built for cached executors which do not queue so it's impossible
         // to have pending runnables.
         return Collections.emptyList();
@@ -149,9 +149,9 @@ final class CachedExecutorView extends AbstractExecutorService {
     @Override
     public void execute(Runnable task) {
         boolean submittedTask = false;
-        stateUpdater.updateAndGet(this, executeStateUpdater);
+        int snapshot = stateUpdater.updateAndGet(this, incrementActiveStateUpdater);
         try {
-            if (isShutdown()) {
+            if (isShutdown(snapshot)) {
                 throw new RejectedExecutionException("Executor has been shut down");
             }
             delegate.execute(new CachedExecutorViewRunnable(task));
@@ -169,13 +169,6 @@ final class CachedExecutorView extends AbstractExecutorService {
             synchronized (shutdownLock) {
                 shutdownLock.notifyAll();
             }
-        }
-    }
-
-    private static void validateForIncrement(int state) {
-        // Defensive check. If there are a million active tasks something as gone terribly wrong.
-        if (getActiveCount(state) == ACTIVE_COUNT_MASK) {
-            throw new SafeIllegalStateException("There are already " + ACTIVE_COUNT_MASK + " active tasks");
         }
     }
 
@@ -197,11 +190,11 @@ final class CachedExecutorView extends AbstractExecutorService {
         @Override
         public void run() {
             this.thread = Thread.currentThread();
-            allRunnables.add(this);
+            activeRunnables.add(this);
             try {
                 delegate.run();
             } finally {
-                allRunnables.remove(this);
+                activeRunnables.remove(this);
                 // Synchronization is important to avoid racily reading the current thread and interrupting
                 // it after this task completes and a task from another view has begun execution.
                 synchronized (this) {
