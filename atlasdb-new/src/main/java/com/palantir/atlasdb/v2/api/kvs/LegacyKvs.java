@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.v2.api.kvs;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +29,10 @@ import java.util.concurrent.Executor;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -41,6 +44,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
+import com.palantir.atlasdb.v2.api.api.Kvs;
 import com.palantir.atlasdb.v2.api.api.NewIds;
 import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.api.NewIds.Column;
@@ -51,8 +56,6 @@ import com.palantir.atlasdb.v2.api.api.NewValue.KvsValue;
 import com.palantir.atlasdb.v2.api.api.NewValue.TransactionValue;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.api.ScanFilter;
-import com.palantir.atlasdb.v2.api.api.Kvs;
-import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.iterators.IteratorFutureIterator;
 import com.palantir.atlasdb.v2.api.transaction.state.TableWrites;
@@ -167,72 +170,97 @@ public final class LegacyKvs implements Kvs {
 
     @Override
     public AsyncIterator<KvsValue> scan(TransactionState state, ScanDefinition definition) {
-        return definition.filter().rows().accept(new ScanFilter.RowsFilter.Visitor<AsyncIterator<KvsValue>>() {
+        return definition.filter().accept(new ScanFilter.Visitor<AsyncIterator<KvsValue>>() {
             @Override
-            public AsyncIterator<KvsValue> visitAllRows() {
-                return visitRowRange(Optional.empty(), Optional.empty());
+            public AsyncIterator<KvsValue> rowsAndColumns(ScanFilter.RowsFilter rows, ScanFilter.ColumnsFilter columns,
+                    int limit) {
+                return rows.accept(new ScanFilter.RowsFilter.Visitor<AsyncIterator<KvsValue>>() {
+                    @Override
+                    public AsyncIterator<KvsValue> visitAllRows() {
+                        return visitRowRange(Optional.empty(), Optional.empty());
+                    }
+
+                    @Override
+                    public AsyncIterator<KvsValue> visitExactRows(Set<Row> rows) {
+                        return columns.accept(
+                                new ScanFilter.ColumnsFilter.Visitor<AsyncIterator<KvsValue>>() {
+                                    @Override
+                                    public AsyncIterator<KvsValue> visitAllColumns() {
+                                        return execute(ColumnSelection.all());
+                                    }
+
+                                    @Override
+                                    public AsyncIterator<KvsValue> visitExactColumns(Set<Column> unusedColumns) {
+                                        return execute(toColumnSelection(columns));
+                                    }
+
+                                    private AsyncIterator<KvsValue> execute(ColumnSelection columnSelection) {
+                                        return new IteratorFutureIterator<>(call(() -> {
+                                            Iterable<byte[]> byteArrayRows = Iterables.transform(rows, Row::toByteArray);
+                                            Map<com.palantir.atlasdb.keyvalue.api.Cell, Value> rows = keyValueService.getRows(
+                                                    toLegacy(definition.table()),
+                                                    byteArrayRows,
+                                                    columnSelection,
+                                                    state.startTimestamp());
+                                            return KeyedStream.stream(rows)
+                                                    .mapKeys(cell -> fromLegacy(cell))
+                                                    .map((cell, value) -> fromLegacy(cell, value))
+                                                    .values()
+                                                    .sorted(Comparator.comparing(
+                                                            NewValue::cell,
+                                                            definition.filter().toComparator(definition.attributes())))
+                                                    .iterator();
+                                        }));
+                                    }
+
+                                    @Override
+                                    public AsyncIterator<KvsValue> visitColumnRange(
+                                            Optional<Column> fromInclusive, Optional<Column> toExclusive) {
+                                        throw new UnsupportedOperationException();
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public AsyncIterator<KvsValue> visitRowRange(Optional<Row> fromInclusive,
+                            Optional<Row> toExclusive) {
+                        ColumnSelection columnSelection = toColumnSelection(columns);
+                        RangeRequest request = range(fromInclusive, toExclusive, columnSelection);
+                        Iterator<RowResult<Value>> rows = keyValueService.getRange(
+                                toLegacy(definition.table()),
+                                request,
+                                state.startTimestamp());
+                        return iterators.concat(iterators.transform(toAsyncIterator(rows), rowResult -> {
+                            List<KvsValue> results = new ArrayList<>(rowResult.getColumns().size());
+                            Row row = NewIds.row(rowResult.getRowName());
+                            rowResult.getColumns().forEach((column, value) -> {
+                                Column c = NewIds.column(column);
+                                Cell cell = NewIds.cell(row, c);
+                                results.add(fromLegacy(cell, value));
+                            });
+                            return results.iterator();
+                        }));
+                    }
+                });
             }
 
             @Override
-            public AsyncIterator<KvsValue> visitExactRows(Set<Row> rows) {
-                return definition.filter().columns().accept(
-                        new ScanFilter.ColumnsFilter.Visitor<AsyncIterator<KvsValue>>() {
-                            @Override
-                            public AsyncIterator<KvsValue> visitAllColumns() {
-                                return execute(ColumnSelection.all());
-                            }
-
-                            @Override
-                            public AsyncIterator<KvsValue> visitExactColumns(Set<Column> columns) {
-                                return execute(toColumnSelection(definition.filter().columns()));
-                            }
-
-                            private AsyncIterator<KvsValue> execute(ColumnSelection columnSelection) {
-                                return new IteratorFutureIterator<>(call(() -> {
-                                    Iterable<byte[]> byteArrayRows = Iterables.transform(rows, Row::toByteArray);
-                                    Map<com.palantir.atlasdb.keyvalue.api.Cell, Value> rows = keyValueService.getRows(
-                                            toLegacy(definition.table()),
-                                            byteArrayRows,
-                                            columnSelection,
-                                            state.startTimestamp());
-                                    return KeyedStream.stream(rows)
-                                            .mapKeys(cell -> fromLegacy(cell))
-                                            .map((cell, value) -> fromLegacy(cell, value))
-                                            .values()
-                                            .sorted(definition.attributes().cellComparator())
-                                            .iterator();
-                                }));
-                            }
-
-                            @Override
-                            public AsyncIterator<KvsValue> visitColumnRange(
-                                    Optional<Column> fromInclusive, Optional<Column> toExclusive) {
-                                throw new UnsupportedOperationException();
-                            }
-                        });
+            public AsyncIterator<KvsValue> cells(Set<Cell> cells) {
+                return new IteratorFutureIterator<>(
+                        Futures.transform(
+                                loadCellsAtTimestamps(definition.table(), Maps.toMap(cells, $ -> state.startTimestamp())),
+                                x -> x.values().stream().sorted(Comparator.comparing(
+                                        NewValue::cell,
+                                        definition.filter().toComparator(definition.attributes()))).iterator(),
+                                MoreExecutors.directExecutor()));
             }
 
             @Override
-            public AsyncIterator<KvsValue> visitRowRange(Optional<Row> fromInclusive,
-                    Optional<Row> toExclusive) {
-                ColumnSelection columnSelection = toColumnSelection(definition.filter().columns());
-                RangeRequest request = range(fromInclusive, toExclusive, columnSelection);
-                Iterator<RowResult<Value>> rows = keyValueService.getRange(
-                        toLegacy(definition.table()),
-                        request,
-                        state.startTimestamp());
-                return iterators.concat(iterators.transform(toAsyncIterator(rows), rowResult -> {
-                    List<KvsValue> results = new ArrayList<>(rowResult.getColumns().size());
-                    Row row = NewIds.row(rowResult.getRowName());
-                    rowResult.getColumns().forEach((column, value) -> {
-                        Column c = NewIds.column(column);
-                        Cell cell = NewIds.cell(row, c);
-                        results.add(fromLegacy(cell, value));
-                    });
-                    return results.iterator();
-                }));
+            public AsyncIterator<KvsValue> withStoppingPoint(ScanFilter inner, Cell lastCellInclusive) {
+                return inner.accept(this);
             }
         });
+
     }
 
     // this... might work.

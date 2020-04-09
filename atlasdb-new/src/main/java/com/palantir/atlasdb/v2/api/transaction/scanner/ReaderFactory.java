@@ -70,4 +70,12 @@ public final class ReaderFactory {
     public <T extends NewValue, R extends Reader<T>> Function<R, Reader<RecordingNewValue>> reportReads() {
         return reader -> new ReadReportingReader<>(reader, iterators);
     }
+
+    public <T extends NewValue, R extends Reader<T>> Function<R, Reader<T>> stopAfterMarker() {
+        return reader -> new StopAfterMarkerReader<>(iterators, reader);
+    }
+
+    public <T extends NewValue, R extends Reader<T>> Function<R, Reader<T>> orderValidating() {
+        return OrderValidatingReader::new;
+    }
 }

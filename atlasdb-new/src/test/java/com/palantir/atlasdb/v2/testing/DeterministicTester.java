@@ -78,6 +78,9 @@ public class DeterministicTester {
             .then(readerFactory.postFilterWrites(ShouldAbortWrites.YES))
             .then(readerFactory.mergeInTransactionWrites())
             .then(readerFactory.reportReads())
+            .then(readerFactory.stopAfterMarker())
+            .then(readerFactory.orderValidating())
+            .then(readerFactory.checkImmutableLocks())
             .build();
     private final ConflictChecker conflictChecker = new DefaultConflictChecker(iterators, readerFactory);
     private final TestTransactionManager txnManager = new TestTransactionManager();

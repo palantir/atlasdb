@@ -46,12 +46,16 @@ public class DefaultConflictChecker implements ConflictChecker {
         this.readLatestCommittedTimestamps = ReaderChain.create(readerFactory.kvs())
                 .then(readerFactory.postFilterWrites(ShouldAbortWrites.YES))
                 .then(readerFactory.readAtVeryLatestTimestamp())
+                .then(readerFactory.stopAfterMarker())
+                .then(readerFactory.orderValidating())
                 .build();
         this.readAtCommitTimestamp = ReaderChain.create(readerFactory.kvs())
                 // it's fiddly as to why this is safe... but it is.
                 .then(readerFactory.postFilterWrites(ShouldAbortWrites.NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING))
                 .then(readerFactory.readAtCommitTimestamp())
                 .then(readerFactory.mergeInTransactionWrites())
+                .then(readerFactory.stopAfterMarker())
+                .then(readerFactory.orderValidating())
                 .build();
     }
 

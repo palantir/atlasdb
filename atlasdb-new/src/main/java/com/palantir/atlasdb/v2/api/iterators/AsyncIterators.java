@@ -21,7 +21,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -35,7 +34,6 @@ import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 
 public final class AsyncIterators {
@@ -202,8 +200,12 @@ public final class AsyncIterators {
         return new AbstractAsyncIterator<R>() {
             @Override
             public ListenableFuture<R> computeNext() {
-                return Futures.whenAllSucceed(iterator.onHasNext())
-                        .callAsync(() -> transformer.apply(iterator.next()), executor);
+                return Futures.transformAsync(iterator.onHasNext(), result -> {
+                    if (!result.booleanValue()) {
+                        return endOfData();
+                    }
+                    return transformer.apply(iterator.next());
+                }, executor);
             }
         };
     }
@@ -274,22 +276,18 @@ public final class AsyncIterators {
 
         @Override
         public ListenableFuture<Boolean> onHasNext() {
-
-            return null;
+            if (next == null) {
+                tryToComputeNext();
+            }
+            return Futures.transform(next, $ -> state == State.READY, MoreExecutors.directExecutor());
         }
 
         @Override
         public boolean hasNext() {
-            return false;
+            return Futures.getUnchecked(onHasNext());
         }
 
-        private static void await(ListenableFuture<?> future) {
-            try {
-                Uninterruptibles.getUninterruptibly(future);
-            } catch (ExecutionException e) {}
-        }
-
-        private synchronized ListenableFuture<T> tryToComputeNext() {
+        private ListenableFuture<T> tryToComputeNext() {
             state = State.FAILED;
             ListenableFuture<T> computing = computeNext();
             next = Futures.transform(computing, result -> {

@@ -21,7 +21,9 @@ import static com.palantir.logsafe.Preconditions.checkNotNull;
 import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.ScanAttributes;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.api.ScanFilter;
 
 import io.vavr.collection.Map;
 import io.vavr.collection.SortedMap;
@@ -50,7 +52,7 @@ public final class TableWrites {
     }
 
     public ScanDefinition toConflictCheckingScan() {
-        throw new UnsupportedOperationException();
+        return ScanDefinition.of(table(), ScanFilter.cells(data().keySet()), new ScanAttributes());
     }
 
     boolean isEmpty() {

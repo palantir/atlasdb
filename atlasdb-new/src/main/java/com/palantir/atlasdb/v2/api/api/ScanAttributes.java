@@ -16,18 +16,5 @@
 
 package com.palantir.atlasdb.v2.api.api;
 
-import java.util.Comparator;
-
-import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.v2.api.api.NewIds.StoredCell;
-
 public final class ScanAttributes {
-
-    public Ordering<NewValue> cellComparator() {
-        throw new UnsupportedOperationException();
-    }
-
-    public Comparator<StoredCell> storedCellComparator() {
-        throw new UnsupportedOperationException();
-    }
 }

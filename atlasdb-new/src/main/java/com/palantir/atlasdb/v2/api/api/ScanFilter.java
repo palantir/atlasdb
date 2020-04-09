@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.v2.api.api;
 
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 
@@ -26,31 +27,113 @@ import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.api.NewIds.Column;
 import com.palantir.atlasdb.v2.api.api.NewIds.Row;
 
-@Value.Immutable
 public abstract class ScanFilter {
+    private ScanFilter() {}
 
-    interface Visitor<T> {
+    public abstract <T> T accept(Visitor<T> visitor);
 
+    // TODO make private somewhere
+    public Comparator<Cell> toComparator(ScanAttributes attributes) {
+        return accept(new ComparatorVisitor(attributes));
     }
 
+    public static ScanFilter rowsAndColumns(RowsFilter rows, ColumnsFilter columns, int limit) {
+        return ImmutableRowsAndColumnsFilter.of(rows, columns, limit);
+    }
 
-    @Value.Parameter
-    public abstract RowsFilter rows();
+    public static ScanFilter cells(Iterable<? extends Cell> cells) {
+        return ImmutableCellsFilter.of(cells);
+    }
 
-    @Value.Parameter
-    public abstract ColumnsFilter columns();
+    public static ScanFilter withStoppingPoint(ScanFilter inner, Cell lastCellInclusive) {
+        return ImmutableWithStoppingPoint.of(inner, lastCellInclusive);
+    }
 
-    @Value.Parameter
-    public abstract int limit();
+    @Value.Check
+    final void noNestingAllowed() {
+        accept(new Visitor<Void>() {
+            @Override
+            public Void rowsAndColumns(RowsFilter rows, ColumnsFilter columns, int limit) {
+                return null;
+            }
 
-    public static ScanFilter of(RowsFilter rows, ColumnsFilter columns, int limit) {
-        return ImmutableScanFilter.of(rows, columns, limit);
+            @Override
+            public Void cells(Set<Cell> cells) {
+                return null;
+            }
+
+            @Override
+            public Void withStoppingPoint(ScanFilter inner, Cell lastCellInclusive) {
+                return inner.accept(new Visitor<Void>() {
+                    @Override
+                    public Void rowsAndColumns(RowsFilter rows, ColumnsFilter columns, int limit) {
+                        return null;
+                    }
+
+                    @Override
+                    public Void cells(Set<Cell> cells) {
+                        return null;
+                    }
+
+                    @Override
+                    public Void withStoppingPoint(ScanFilter inner, Cell lastCellInclusive) {
+                        throw new IllegalStateException("Cannot nest stopping points");
+                    }
+                });
+            }
+        });
+    }
+
+    public interface Visitor<T> {
+        T rowsAndColumns(RowsFilter rows, ColumnsFilter columns, int limit);
+        T cells(Set<Cell> cells);
+        T withStoppingPoint(ScanFilter inner, Cell lastCellInclusive);
+    }
+
+    @Value.Immutable
+    static abstract class RowsAndColumnsFilter extends ScanFilter {
+        @Value.Parameter
+        abstract RowsFilter rows();
+
+        @Value.Parameter
+        abstract ColumnsFilter columns();
+
+        @Value.Parameter
+        abstract int limit();
+
+        @Override
+        public final <T> T accept(Visitor<T> visitor) {
+            return visitor.rowsAndColumns(rows(), columns(), limit());
+        }
+    }
+
+    @Value.Immutable
+    static abstract class CellsFilter extends ScanFilter {
+        @Value.Parameter
+        abstract Set<Cell> cells();
+
+        @Override
+        public final <T> T accept(Visitor<T> visitor) {
+            return visitor.cells(cells());
+        }
+    }
+
+    @Value.Immutable
+    static abstract class WithStoppingPoint extends ScanFilter {
+        @Value.Parameter
+        abstract ScanFilter inner();
+
+        @Value.Parameter
+        abstract Cell lastCellInclusive();
+
+        @Override
+        public final <T> T accept(Visitor<T> visitor) {
+            return visitor.withStoppingPoint(inner(), lastCellInclusive());
+        }
     }
 
     public static ScanFilter forCell(Cell cell) {
-        return of(ImmutableExactRows.of(ImmutableSet.of(cell.row())),
-                ImmutableExactColumns.of(ImmutableSet.of(cell.column())),
-                1);
+        return cells(ImmutableSet.of(cell));
     }
 
     public static RowsFilter allRows() {
@@ -160,6 +243,30 @@ public abstract class ScanFilter {
 
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visitColumnRange(fromInclusive(), toExclusive());
+        }
+    }
+
+    // todo make this production ready
+    private static final class ComparatorVisitor implements Visitor<Comparator<Cell>> {
+        private final ScanAttributes attributes;
+
+        private ComparatorVisitor(ScanAttributes attributes) {
+            this.attributes = attributes;
+        }
+
+        @Override
+        public Comparator<Cell> rowsAndColumns(RowsFilter rows, ColumnsFilter columns, int limit) {
+            return Comparator.naturalOrder();
+        }
+
+        @Override
+        public Comparator<Cell> cells(Set<Cell> cells) {
+            return Comparator.naturalOrder();
+        }
+
+        @Override
+        public Comparator<Cell> withStoppingPoint(ScanFilter inner, Cell lastCellInclusive) {
+            return inner.accept(this);
         }
     }
 }

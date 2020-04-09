@@ -22,6 +22,9 @@ import java.util.function.Consumer;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+// mid-term intention - do something magical where you maintain a stack of transformations and so don't wrap iterators
+// - basically avoid executor scheduling penalty by processing as much as possible synchronously and buffering as
+// little as possible
 public interface AsyncIterator<T> extends Iterator<T> {
     /**
      * Returns an asynchronous signal for the next iteration of hasNext. Once the future is complete, hasNext and

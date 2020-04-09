@@ -102,7 +102,8 @@ public final class TableReads {
 
         public Builder putScanEnd(ScanDefinition scan, NewValue end) {
             Map<ScanDefinition, EarlyScanTermination> map = HashMap.of(scan, new EarlyScanTermination(end));
-            Ordering<NewValue> comparator = scan.attributes().cellComparator();
+            Ordering<NewValue> comparator =
+                    Ordering.from(scan.filter().toComparator(scan.attributes())).onResultOf(NewValue::cell);
             // very likely need to optimize this... initial implementation seems wildly inefficient
             reads = reads.put(end.cell(), end);
             scanEnds = scanEnds.merge(map, (oldEnd, newEnd) -> oldEnd.merge(newEnd, comparator));
