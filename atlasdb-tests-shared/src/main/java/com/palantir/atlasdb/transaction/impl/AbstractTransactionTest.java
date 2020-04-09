@@ -1379,7 +1379,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("tom", "col", "value", 0);
 
         BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, byte[]> singleValueExtractor
-                = ($, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable)).getRowName();
+                = ($, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable))
+                        .getOnlyColumnValue();
 
         Transaction transaction = startTransaction();
         List<byte[]> extractedValue = transaction.getRanges(ImmutableGetRangesQuery.<byte[]>builder()
@@ -1389,7 +1390,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .visitableProcessor(singleValueExtractor)
                 .build())
                 .collect(Collectors.toList());
-        assertThat(extractedValue).containsExactly(PtBytes.toBytes("tom"));
+        assertThat(extractedValue).containsExactly(PtBytes.toBytes("value"));
     }
 
     private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest templateRangeRequest, int expectedRangeSize) {
