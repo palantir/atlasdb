@@ -112,6 +112,8 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.GetRangesQuery;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -857,22 +859,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
-        if (!Iterables.isEmpty(rangeRequests)) {
-            hasReads = true;
-        }
-        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
-                StreamSupport.stream(rangeRequests.spliterator(), false)
-                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
-
-        if (concurrencyLevel == 1 || isSingleton(rangeRequests)) {
-            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
-        }
-
-        return MoreStreams.blockingStreamWithParallelism(
-                requestAndVisitables,
-                pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
-                getRangesExecutor,
-                concurrencyLevel);
+        return getRanges(ImmutableGetRangesQuery.<T>builder()
+                .tableRef(tableRef)
+                .rangeRequests(rangeRequests)
+                .concurrencyLevel(concurrencyLevel)
+                .visitableProcessor(visitableProcessor)
+                .build());
     }
 
     @Override
@@ -893,6 +885,30 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return !it.hasNext();
         }
         return false;
+    }
+
+    @Override
+    public <T> Stream<T> getRanges(GetRangesQuery<T> getRangesQuery) {
+        if (!Iterables.isEmpty(getRangesQuery.rangeRequests())) {
+            hasReads = true;
+        }
+        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
+                StreamSupport.stream(getRangesQuery.rangeRequests().spliterator(), false)
+                        .map(rangeRequest -> Pair.of(
+                                rangeRequest,
+                                getLazyRange(getRangesQuery.tableRef(), rangeRequest)));
+
+        getRangesQuery.visitableProcessor()
+
+        if (getRangesQuery.concurrencyLevel() == 1 || isSingleton(getRangesQuery.rangeRequests())) {
+            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
+        }
+
+        return MoreStreams.blockingStreamWithParallelism(
+                requestAndVisitables,
+                pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
+                getRangesExecutor,
+                concurrencyLevel);
     }
 
     @Override
