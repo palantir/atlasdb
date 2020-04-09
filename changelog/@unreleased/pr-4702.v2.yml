@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: SnapshotTransaction `get` methods now have more precise contracts.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4702
