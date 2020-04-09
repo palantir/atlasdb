@@ -859,6 +859,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
+        }
         return getRanges(ImmutableGetRangesQuery.<T>builder()
                 .tableRef(tableRef)
                 .rangeRequests(rangeRequests)
@@ -888,25 +891,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public <T> Stream<T> getRanges(GetRangesQuery<T> getRangesQuery) {
-        if (!Iterables.isEmpty(getRangesQuery.rangeRequests())) {
+    public <T> Stream<T> getRanges(GetRangesQuery<T> query) {
+        if (!Iterables.isEmpty(query.rangeRequests())) {
             hasReads = true;
         }
         Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
-                StreamSupport.stream(getRangesQuery.rangeRequests().spliterator(), false)
+                StreamSupport.stream(query.rangeRequests().spliterator(), false)
                         .map(rangeRequest -> Pair.of(
                                 rangeRequest,
-                                getLazyRange(getRangesQuery.tableRef(), rangeRequest)));
+                                getLazyRange(query.tableRef(), query.rangeRequestOptimizer().apply(rangeRequest))));
 
-        getRangesQuery.visitableProcessor()
+        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> processor = query.visitableProcessor();
+        int concurrencyLevel = query.concurrencyLevel().orElse(defaultGetRangesConcurrency);
 
-        if (getRangesQuery.concurrencyLevel() == 1 || isSingleton(getRangesQuery.rangeRequests())) {
-            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
+        if (concurrencyLevel == 1 || isSingleton(query.rangeRequests())) {
+            return requestAndVisitables.map(pair -> processor.apply(pair.getLeft(), pair.getRight()));
         }
 
         return MoreStreams.blockingStreamWithParallelism(
                 requestAndVisitables,
-                pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
+                pair -> processor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
                 concurrencyLevel);
     }

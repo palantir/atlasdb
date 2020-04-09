@@ -130,6 +130,13 @@ public interface Transaction {
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
 
     /**
+     * Same as {@link #getRanges(TableReference, Iterable, int, BiFunction)}. However, additionally allows for the
+     * specification of additional parameters specific to {@link GetRangesQuery}.
+     */
+    @Idempotent
+    <T> Stream<T> getRanges(GetRangesQuery<T> getRangesQuery);
+
+    /**
      * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting
      * visitibles will incur database reads on first access.
      */

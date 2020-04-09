@@ -1370,38 +1370,26 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void getRangesSendsQueriesThatHaveGoneThroughTheOptimizer() {
-        RangeRequest goldenRequest = RangeRequest.builder()
-                .startRowInclusive(PtBytes.toBytes("tom"))
-                .batchHint(7)
-                .build();
-        RangeRequest otherRequest = RangeRequest.builder()
-                .startRowInclusive(PtBytes.toBytes("zzzz"))
-                .batchHint(7)
-                .build();
+        RangeRequest goldenRequest = RangeRequest.builder().startRowInclusive(PtBytes.toBytes("tom")).build();
+        RangeRequest otherRequest = RangeRequest.builder().startRowInclusive(PtBytes.toBytes("zzzz")).build();
 
         // Contract is not entirely valid, but we don't have a good way of mocking out the KVS.
         UnaryOperator<RangeRequest> goldenForcingOperator = $ -> goldenRequest;
 
-        putDirect("tom", "col", "value", 1);
+        putDirect("tom", "col", "value", 0);
 
-        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, byte[]> exposingProcessor = ($, visitable) -> {
-            List<RowResult<byte[]>> result = Lists.newArrayList();
-            visitable.batchAccept(1, list -> {
-                result.addAll(list);
-                return false;
-            });
-            return Iterables.getOnlyElement(result).getRowName();
-        };
+        BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, byte[]> singleValueExtractor
+                = ($, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable)).getRowName();
 
         Transaction transaction = startTransaction();
-        List<byte[]> visited = transaction.getRanges(ImmutableGetRangesQuery.<byte[]>builder()
+        List<byte[]> extractedValue = transaction.getRanges(ImmutableGetRangesQuery.<byte[]>builder()
                 .tableRef(TEST_TABLE)
                 .rangeRequests(ImmutableList.of(otherRequest))
                 .rangeRequestOptimizer(goldenForcingOperator)
-                .visitableProcessor(exposingProcessor)
+                .visitableProcessor(singleValueExtractor)
                 .build())
                 .collect(Collectors.toList());
-        assertThat(visited).containsExactly(PtBytes.toBytes("tom"));
+        assertThat(extractedValue).containsExactly(PtBytes.toBytes("tom"));
     }
 
     private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest templateRangeRequest, int expectedRangeSize) {
