@@ -18,6 +18,7 @@ package com.palantir.atlasdb.v2.api.transaction.state;
 
 import static com.palantir.logsafe.Preconditions.checkState;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -46,7 +47,7 @@ public abstract class TransactionState {
     public abstract Builder toBuilder();
 
     public final boolean checkReadWriteConflicts(Table table) {
-        throw new UnsupportedOperationException();
+        return false;
     }
 
     public static TransactionState newTransaction(
@@ -81,8 +82,9 @@ public abstract class TransactionState {
                 .build();
     }
 
+    // TODO make correct
     public Iterator<TransactionValue> scan(Table table, ScanAttributes attributes, ScanFilter filter) {
-        return null;
+        return Collections.emptyIterator();
     }
 
 }

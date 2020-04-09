@@ -23,6 +23,7 @@ import java.util.Set;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.lock.LockDescriptor;
 
 public class LockCollection {
@@ -32,6 +33,7 @@ public class LockCollection {
     public LockCollection() {
         locksById = Caffeine.newBuilder()
                 .weakValues()
+                .executor(MoreExecutors.directExecutor())
                 .build(ExclusiveLock::new);
     }
 

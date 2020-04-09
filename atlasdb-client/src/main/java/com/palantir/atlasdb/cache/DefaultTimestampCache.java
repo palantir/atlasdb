@@ -24,6 +24,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public final class DefaultTimestampCache implements TimestampCache {
@@ -37,6 +38,7 @@ public final class DefaultTimestampCache implements TimestampCache {
         return Caffeine.newBuilder()
                 .maximumSize(size)
                 .recordStats()
+                .executor(MoreExecutors.directExecutor())
                 .build();
     }
 

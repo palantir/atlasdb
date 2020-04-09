@@ -80,15 +80,17 @@ public class DefaultConflictChecker implements ConflictChecker {
     }
 
     private ListenableFuture<?> checkForReadWriteConflicts(TransactionState state, TableReads reads) {
-        ScanDefinition scan = reads.toConflictCheckingScan();
-        Table table = scan.table();
-        TableWrites writes = state.writes().get(table).orElse(new TableWrites.Builder().build());
-        AsyncIterator<NewValue> executed = readAtCommitTimestamp.scan(state, scan);
-        return iterators.forEach(executed, element -> {
-            // todo: I _think_ that we're guaranteed to see at least Atlas tombstones for values due to immutable ts properties.
-            checkState(writes.containsCell(element.cell())
-                            || reads.get(element.cell()).equals(element.maybeData()),
-                    "Failed read-write conflict checking");
-        });
+        Iterable<ScanDefinition> scans = reads.toConflictCheckingScans();
+        return Futures.allAsList(Iterables.transform(scans, scan -> {
+            Table table = scan.table();
+            TableWrites writes = state.writes().get(table).orElse(new TableWrites.Builder().table(table).build());
+            AsyncIterator<NewValue> executed = readAtCommitTimestamp.scan(state, scan);
+            return iterators.forEach(executed, element -> {
+                // todo: I _think_ that we're guaranteed to see at least Atlas tombstones for values due to immutable ts properties.
+                checkState(writes.containsCell(element.cell())
+                                || reads.get(element.cell()).equals(element.maybeData()),
+                        "Failed read-write conflict checking");
+            });
+        }));
     }
 }

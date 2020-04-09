@@ -32,17 +32,16 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
+import com.palantir.atlasdb.v2.api.api.Kvs;
 import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
-import com.palantir.atlasdb.v2.api.api.NewValue.CommittedValue;
-import com.palantir.atlasdb.v2.api.api.NewValue.KvsValue;
-import com.palantir.atlasdb.v2.api.api.NewValue.NotYetCommittedValue;
-import com.palantir.atlasdb.v2.api.api.ScanDefinition;
-import com.palantir.atlasdb.v2.api.future.FutureChain;
-import com.palantir.atlasdb.v2.api.api.Kvs;
 import com.palantir.atlasdb.v2.api.api.NewLockDescriptor;
 import com.palantir.atlasdb.v2.api.api.NewLocks;
+import com.palantir.atlasdb.v2.api.api.NewValue.CommittedValue;
+import com.palantir.atlasdb.v2.api.api.NewValue.KvsValue;
+import com.palantir.atlasdb.v2.api.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.future.FutureChain;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 import io.vavr.collection.HashMap;
@@ -88,8 +87,8 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
         return chain
                 .alterState(this::markCachedCommitTsDataCommitted)
                 .then(this::waitForOngoingTransactionsToCommit)
-                .then(this::findCommitTimestampsForUnknown, PostFilterState::processCommitTimestamps)
-                .then(this::maybeAbortWrites, (state, $) -> state.withNotYetCommitted(HashMap.empty()))
+                .then(this::findCommitTimestamps, PostFilterState::processCommitTimestamps)
+                .then(this::maybeAbortWrites, (state, $) -> state.withUnknown(HashMap.empty()))
                 .then(this::reissueReadsForDroppedCells, PostFilterState::processReissuedReads);
     }
 
@@ -105,7 +104,7 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
         return state.processCommitTimestamps(commitTimestamps);
     }
 
-    private ListenableFuture<java.util.Map<Long, Long>> findCommitTimestampsForUnknown(PostFilterState state) {
+    private ListenableFuture<java.util.Map<Long, Long>> findCommitTimestamps(PostFilterState state) {
         Set<Long> unknownStartTimestamps = state.unknown().values().map(KvsValue::startTimestamp).toJavaSet();
         return delegate.getCommitTimestamps(unknownStartTimestamps);
     }
@@ -139,12 +138,10 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
         Map<Cell, KvsValue> unknown();
         Map<Cell, CommittedValue> committed();
 
-        // TODO properly handle this
-        Map<Cell, NotYetCommittedValue> notYetCommitted();
         Map<Cell, Long> toReissue();
 
         default boolean incomplete() {
-            return unknown().isEmpty() || notYetCommitted().isEmpty() || toReissue().isEmpty();
+            return !unknown().isEmpty() || !toReissue().isEmpty();
         }
 
         default PostFilterState processReissuedReads(List<KvsValue> values) {
@@ -159,34 +156,38 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
         }
 
         default PostFilterState processCommitTimestamps(java.util.Map<Long, Long> timestamps) {
+            Map<Cell, KvsValue> newUnknown = HashMap.empty();
             Map<Cell, CommittedValue> committed = committed();
-            Map<Cell, NotYetCommittedValue> notYetCommitted = notYetCommitted();
             Map<Cell, Long> toReissue = toReissue();
-            unknown().forEach((cell, value) -> {
+            for (KvsValue value : unknown().values()) {
                 if (!timestamps.containsKey(value.startTimestamp())) {
-                    notYetCommitted.put(cell, value.toNotYetCommitted());
+                    newUnknown = newUnknown.put(value.cell(), value);
                 } else {
                     long timestamp = timestamps.get(value.startTimestamp());
                     if (timestamp == TransactionConstants.FAILED_COMMIT_TS) {
-                        toReissue.put(cell, value.startTimestamp()); // maybe -1
+                        toReissue = toReissue.put(value.cell(), value.startTimestamp()); // maybe -1
                     } else {
-                        committed.put(cell, value.toCommitted(timestamp));
+                        committed = committed.put(value.cell(), value.toCommitted(timestamp));
                     }
                 }
-            });
-            return this.withUnknown(HashMap.empty())
+            }
+            return this.withUnknown(newUnknown)
                     .withCommitted(committed)
-                    .withNotYetCommitted(notYetCommitted)
                     .withToReissue(toReissue);
         }
 
         PostFilterState withUnknown(Map<Cell, KvsValue> unknown);
         PostFilterState withCommitted(Map<Cell, CommittedValue> committed);
-        PostFilterState withNotYetCommitted(Map<Cell, NotYetCommittedValue> notYetCommitted);
         PostFilterState withToReissue(Map<Cell, Long> cells);
 
         static PostFilterState initialize(Table table, long immutableTimestamp, Map<Cell, KvsValue> values) {
-            return ImmutablePostFilterState.builder().table(table).immutableTimestamp(immutableTimestamp).unknown(values).build();
+            return ImmutablePostFilterState.builder()
+                    .table(table)
+                    .immutableTimestamp(immutableTimestamp)
+                    .unknown(values)
+                    .committed(HashMap.empty())
+                    .toReissue(HashMap.empty())
+                    .build();
         }
     }
 }

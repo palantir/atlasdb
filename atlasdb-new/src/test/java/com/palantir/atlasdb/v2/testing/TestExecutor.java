@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.v2.testing;
 
+import static com.palantir.logsafe.Preconditions.checkState;
+
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -50,6 +52,10 @@ public final class TestExecutor {
         return tasks.computeIfAbsent(time, $ -> new ArrayDeque<>(1));
     }
 
+    public int randomInt(int bound) {
+        return random.nextInt(bound);
+    }
+
     private Runnable nextTask() {
         long firstKey = tasks.firstKey();
         now = firstKey;
@@ -71,7 +77,9 @@ public final class TestExecutor {
     private long jitter(long input) {
         long jitterLimit = input / 20;
         long jitter = random.nextInt(Ints.checkedCast(jitterLimit));
-        return input + jitter - jitterLimit;
+        long result = input + jitter - jitterLimit;
+        checkState(result > 0, "negative jitter...");
+        return result;
     }
 
     public Executor soonScheduler() {
@@ -95,6 +103,7 @@ public final class TestExecutor {
                 log.info("Task threw", t);
             }
         }
+        System.out.println(String.format("Executed %d tasks", executed));
     }
 
     public ScheduledExecutorService actuallyProgrammableScheduler() {

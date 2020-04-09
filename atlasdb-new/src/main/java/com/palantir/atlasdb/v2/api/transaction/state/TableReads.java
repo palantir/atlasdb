@@ -25,6 +25,7 @@ import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.api.NewIds.StoredValue;
 import com.palantir.atlasdb.v2.api.api.NewValue;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.api.ScanFilter;
 
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
@@ -45,8 +46,19 @@ public final class TableReads {
         return reads.get(cell).toJavaOptional().flatMap(NewValue::maybeData);
     }
 
-    public ScanDefinition toConflictCheckingScan() {
-        throw new UnsupportedOperationException();
+    public Iterable<ScanDefinition> toConflictCheckingScans() {
+        return scanEnds.map(scan -> {
+            ScanDefinition definition = scan._1;
+            EarlyScanTermination termination = scan._2;
+            if (termination.readUntilEnd()) {
+                return definition;
+            } else {
+                return ScanDefinition.of(
+                        definition.table(),
+                        ScanFilter.withStoppingPoint(definition.filter(), termination.value().cell()),
+                        definition.attributes());
+            }
+        });
     }
 
     public Builder toBuilder() {

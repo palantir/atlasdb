@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.v2.api.api;
 
+import static com.palantir.logsafe.Preconditions.checkArgument;
 import static com.palantir.logsafe.Preconditions.checkNotNull;
 
 import java.util.Arrays;
@@ -118,6 +119,7 @@ public final class NewIds {
 
         private BytesWrapper(byte[] bytes) {
             this.bytes = checkNotNull(bytes).clone();
+            checkArgument(bytes.length != 0, "AtlasDB uses zero byte arrays specially - so we don't allow their use");
         }
 
         public final byte[] toByteArray() {

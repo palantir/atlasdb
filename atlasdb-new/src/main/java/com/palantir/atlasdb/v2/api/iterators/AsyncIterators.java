@@ -164,6 +164,11 @@ public final class AsyncIterators {
 
             @Override
             public T next() {
+                if (!peekingAsync.hasNext()) {
+                    return peekingSync.next();
+                } else if (!peekingSync.hasNext()) {
+                    return peekingAsync.next();
+                }
                 int comparison = comparator.compare(peekingAsync.peek(), peekingSync.peek());
                 if (comparison > 0) {
                     return peekingSync.next();

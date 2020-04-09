@@ -74,6 +74,13 @@ public class LegacyLocks implements NewLocks, Timestamps {
 
     private long timestamp = 0;
 
+    private long uuidState = 0;
+
+    private UUID newUuid() {
+        long uuidId = uuidState++;
+        return new UUID(uuidId, uuidId);
+    }
+
     public LegacyLocks(ScheduledExecutorService executor, LeaderClock leaderClock) {
         lockAcquirer = new LockAcquirer(lockLog, executor, leaderClock, FakeLockWatchingService.INSTANCE);
         this.executor = executor;
@@ -102,7 +109,7 @@ public class LegacyLocks implements NewLocks, Timestamps {
 
     private ListenableFuture<NewLockToken> acquire(OrderedLocks orderedLocks) {
         return callAsync(() -> {
-            UUID requestId = UUID.randomUUID();
+            UUID requestId = newUuid();
             return Futures.transform(toListenableFuture(lockAcquirer.acquireLocks(requestId, orderedLocks, TIMEOUT)),
                     LegacyLockToken::of, MoreExecutors.directExecutor());
         });
@@ -111,7 +118,7 @@ public class LegacyLocks implements NewLocks, Timestamps {
     @Override
     public ListenableFuture<?> await(Set<NewLockDescriptor> descriptors) {
         OrderedLocks orderedLocks = locks.getAll(toLegacy(descriptors));
-        UUID requestId = UUID.randomUUID();
+        UUID requestId = newUuid();
         return toListenableFuture(lockAcquirer.waitForLocks(requestId, orderedLocks, TIMEOUT));
     }
 
