@@ -881,15 +881,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return getRanges(tableRef, rangeRequests, defaultGetRangesConcurrency, visitableProcessor);
     }
 
-    private static boolean isSingleton(Iterable<?> elements) {
-        Iterator<?> it = elements.iterator();
-        if (it.hasNext()) {
-            it.next();
-            return !it.hasNext();
-        }
-        return false;
-    }
-
     @Override
     public <T> Stream<T> getRanges(GetRangesQuery<T> query) {
         if (!Iterables.isEmpty(query.rangeRequests())) {
@@ -913,6 +904,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 pair -> processor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
                 concurrencyLevel);
+    }
+
+    private static boolean isSingleton(Iterable<?> elements) {
+        Iterator<?> it = elements.iterator();
+        if (it.hasNext()) {
+            it.next();
+            return !it.hasNext();
+        }
+        return false;
     }
 
     @Override
