@@ -109,8 +109,11 @@ public interface Transaction {
             Iterable<RangeRequest> rangeRequests);
 
     /**
-     * Creates unvisited visitibles that scan the provided ranges and then applies the provided visitableProcessor
+     * Creates unvisited visitables that scan the provided ranges and then applies the provided visitableProcessor
      * function with concurrency specified by the concurrencyLevel parameter.
+     *
+     * It is guaranteed that the range requests seen by the provided visitable processor are equal to the provided
+     * iterable of range requests, though no guarantees are made on the order they are encountered in.
      */
     @Idempotent
     <T> Stream<T> getRanges(
