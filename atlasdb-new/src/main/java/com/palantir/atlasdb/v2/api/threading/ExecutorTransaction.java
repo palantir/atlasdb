@@ -20,10 +20,10 @@ import java.util.concurrent.Executor;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.v2.api.NewEndOperation;
-import com.palantir.atlasdb.v2.api.NewGetOperation;
-import com.palantir.atlasdb.v2.api.NewPutOperation;
-import com.palantir.atlasdb.v2.api.NewTransaction;
+import com.palantir.atlasdb.v2.api.api.NewEndOperation;
+import com.palantir.atlasdb.v2.api.api.NewGetOperation;
+import com.palantir.atlasdb.v2.api.api.NewPutOperation;
+import com.palantir.atlasdb.v2.api.api.NewTransaction;
 import com.palantir.atlasdb.v2.api.transaction.SingleThreadedTransaction;
 
 public class ExecutorTransaction implements NewTransaction {

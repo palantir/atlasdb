@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.timestamps;
+package com.palantir.atlasdb.v2.api.api;
+
+import java.util.Set;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
-public interface Timestamps {
-    ListenableFuture<Long> getStartTimestamp();
-    ListenableFuture<HeldImmutableLock> lockImmutableTs();
-    ListenableFuture<Long> getCommitTimestamp();
+public interface NewLocks {
+    ListenableFuture<NewLockToken> lock(Set<NewLockDescriptor> descriptors);
+    ListenableFuture<?> await(Set<NewLockDescriptor> descriptors);
+    ListenableFuture<?> checkStillValid(Set<NewLockToken> lockTokens);
+    void unlock(Set<NewLockToken> lockTokens);
 }

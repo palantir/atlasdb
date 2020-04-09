@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.locks;
+package com.palantir.atlasdb.v2.api.api;
 
-public interface NewLockToken {
+import com.google.common.util.concurrent.ListenableFuture;
+
+public interface Timestamps {
+    ListenableFuture<Long> getStartTimestamp();
+    ListenableFuture<HeldImmutableLock> lockImmutableTs();
+    ListenableFuture<Long> getCommitTimestamp();
 }

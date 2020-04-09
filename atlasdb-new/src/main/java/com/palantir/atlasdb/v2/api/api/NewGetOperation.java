@@ -14,15 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.util;
+package com.palantir.atlasdb.v2.api.api;
 
-import java.util.concurrent.Executor;
+import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.api.NewIds.StoredValue;
+import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 
-public enum ToBeImplementedExecutor implements Executor {
-    INSTANCE;
 
-    @Override
-    public void execute(Runnable command) {
-        throw new RuntimeException("No scheduling implemented, yet");
+public interface NewGetOperation<T> {
+    enum ShouldContinue { YES, NO }
+
+    Table table();
+    ScanAttributes attributes();
+    ScanFilter scanFilter();
+    ResultBuilder<T> newResultBuilder();
+
+    interface ResultBuilder<T> {
+        boolean isDone();
+        ResultBuilder<T> add(Table table, Cell cell, StoredValue value);
+        T build();
     }
 }

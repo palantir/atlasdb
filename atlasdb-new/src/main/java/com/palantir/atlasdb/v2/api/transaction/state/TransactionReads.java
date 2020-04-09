@@ -19,7 +19,7 @@ package com.palantir.atlasdb.v2.api.transaction.state;
 import java.util.Iterator;
 import java.util.function.UnaryOperator;
 
-import com.palantir.atlasdb.v2.api.NewIds;
+import com.palantir.atlasdb.v2.api.api.NewIds;
 
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;

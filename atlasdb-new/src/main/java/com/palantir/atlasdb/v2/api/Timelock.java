@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.v2.api;
 
-import com.palantir.atlasdb.v2.api.locks.NewLocks;
-import com.palantir.atlasdb.v2.api.timestamps.Timestamps;
+import com.palantir.atlasdb.v2.api.api.NewLocks;
+import com.palantir.atlasdb.v2.api.api.Timestamps;
 
 public interface Timelock extends NewLocks, Timestamps {
 }

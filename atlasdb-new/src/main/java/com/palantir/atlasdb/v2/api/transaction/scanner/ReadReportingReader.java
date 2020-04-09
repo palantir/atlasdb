@@ -19,12 +19,12 @@ package com.palantir.atlasdb.v2.api.transaction.scanner;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
-import com.palantir.atlasdb.v2.api.NewIds;
-import com.palantir.atlasdb.v2.api.NewIds.Table;
-import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.api.NewIds;
+import com.palantir.atlasdb.v2.api.api.NewIds.Table;
+import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 public class ReadReportingReader<In extends NewValue> implements Reader<ReadReportingReader.RecordingNewValue> {

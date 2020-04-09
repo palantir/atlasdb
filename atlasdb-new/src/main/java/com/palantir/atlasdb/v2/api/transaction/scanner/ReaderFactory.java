@@ -19,10 +19,10 @@ package com.palantir.atlasdb.v2.api.transaction.scanner;
 import java.util.function.Function;
 
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
-import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.kvs.Kvs;
-import com.palantir.atlasdb.v2.api.locks.NewLocks;
-import com.palantir.atlasdb.v2.api.timestamps.Timestamps;
+import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.Kvs;
+import com.palantir.atlasdb.v2.api.api.NewLocks;
+import com.palantir.atlasdb.v2.api.api.Timestamps;
 import com.palantir.atlasdb.v2.api.transaction.scanner.PostFilterWritesReader.ShouldAbortWrites;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReadReportingReader.RecordingNewValue;
 

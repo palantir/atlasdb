@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
 import java.util.Comparator;
 
 import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.v2.api.NewIds.StoredCell;
+import com.palantir.atlasdb.v2.api.api.NewIds.StoredCell;
 
 public final class ScanAttributes {
 

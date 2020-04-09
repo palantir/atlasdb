@@ -23,9 +23,9 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
-import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.ScanDefinition;
-import com.palantir.atlasdb.v2.api.locks.NewLocks;
+import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.api.NewLocks;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 public final class CheckImmutableLocksReader<T extends NewValue> extends TransformingReader<T, T> {

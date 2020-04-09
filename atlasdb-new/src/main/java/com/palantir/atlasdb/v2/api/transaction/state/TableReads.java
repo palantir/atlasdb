@@ -21,10 +21,10 @@ import static com.palantir.logsafe.Preconditions.checkNotNull;
 import java.util.Optional;
 
 import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.v2.api.NewIds.Cell;
-import com.palantir.atlasdb.v2.api.NewIds.StoredValue;
-import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.api.NewIds.StoredValue;
+import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;

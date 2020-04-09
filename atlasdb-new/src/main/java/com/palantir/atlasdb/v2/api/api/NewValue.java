@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
 import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.v2.api.NewIds.Cell;
-import com.palantir.atlasdb.v2.api.NewIds.StoredValue;
+import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.api.NewIds.StoredValue;
 
 public abstract class NewValue {
     public abstract <T> T accept(Visitor<T> visitor);

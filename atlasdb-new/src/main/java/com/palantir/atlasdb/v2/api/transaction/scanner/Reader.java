@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.v2.api.transaction.scanner;
 
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
-import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
+import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 public interface Reader<V extends NewValue> {

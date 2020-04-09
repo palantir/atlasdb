@@ -21,11 +21,12 @@ import java.util.Iterator;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 
-public class NonBlockingIterator<T> implements AsyncIterator<T> {
+public class IteratorFutureIterator<T> implements AsyncIterator<T> {
     private final ListenableFuture<Iterator<T>> nonBlockingDelegate;
 
-    public NonBlockingIterator(ListenableFuture<Iterator<T>> nonBlockingDelegate) {
+    public IteratorFutureIterator(ListenableFuture<Iterator<T>> nonBlockingDelegate) {
         this.nonBlockingDelegate = nonBlockingDelegate;
     }
 

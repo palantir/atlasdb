@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
 import java.util.Optional;
 import java.util.Set;
@@ -22,12 +22,17 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.v2.api.NewIds.Cell;
-import com.palantir.atlasdb.v2.api.NewIds.Column;
-import com.palantir.atlasdb.v2.api.NewIds.Row;
+import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.api.NewIds.Column;
+import com.palantir.atlasdb.v2.api.api.NewIds.Row;
 
 @Value.Immutable
 public abstract class ScanFilter {
+
+    interface Visitor<T> {
+
+    }
+
 
     @Value.Parameter
     public abstract RowsFilter rows();

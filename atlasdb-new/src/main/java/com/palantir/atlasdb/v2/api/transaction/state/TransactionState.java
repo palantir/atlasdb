@@ -27,12 +27,12 @@ import java.util.stream.Collectors;
 import org.inferred.freebuilder.FreeBuilder;
 
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.v2.api.NewIds.Table;
-import com.palantir.atlasdb.v2.api.NewValue.TransactionValue;
-import com.palantir.atlasdb.v2.api.ScanAttributes;
-import com.palantir.atlasdb.v2.api.ScanFilter;
-import com.palantir.atlasdb.v2.api.locks.NewLockDescriptor;
-import com.palantir.atlasdb.v2.api.locks.NewLockToken;
+import com.palantir.atlasdb.v2.api.api.NewIds.Table;
+import com.palantir.atlasdb.v2.api.api.NewValue.TransactionValue;
+import com.palantir.atlasdb.v2.api.api.ScanAttributes;
+import com.palantir.atlasdb.v2.api.api.ScanFilter;
+import com.palantir.atlasdb.v2.api.api.NewLockDescriptor;
+import com.palantir.atlasdb.v2.api.api.NewLockToken;
 
 @FreeBuilder
 public abstract class TransactionState {

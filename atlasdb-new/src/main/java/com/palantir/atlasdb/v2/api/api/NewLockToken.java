@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
-import com.google.common.util.concurrent.ListenableFuture;
-
-public interface NewTransaction {
-    void put(NewPutOperation put);
-    <T> ListenableFuture<T> get(NewGetOperation<T> get);
-    ListenableFuture<?> end(NewEndOperation end);
+public interface NewLockToken {
 }

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.kvs;
+package com.palantir.atlasdb.v2.api.api;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-public interface ConflictChecker {
-    ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state);
-    ListenableFuture<?> checkForReadWriteConflicts(TransactionState state);
+public interface Writer {
+    ListenableFuture<?> write(TransactionState state);
+    ListenableFuture<?> commit(TransactionState state);
 }

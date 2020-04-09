@@ -14,24 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
-import com.palantir.atlasdb.v2.api.NewIds.Cell;
-import com.palantir.atlasdb.v2.api.NewIds.StoredValue;
-import com.palantir.atlasdb.v2.api.NewIds.Table;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.ListenableFuture;
 
-
-public interface NewGetOperation<T> {
-    enum ShouldContinue { YES, NO }
-
-    Table table();
-    ScanAttributes attributes();
-    ScanFilter scanFilter();
-    ResultBuilder<T> newResultBuilder();
-
-    interface ResultBuilder<T> {
-        boolean isDone();
-        ResultBuilder<T> add(Table table, Cell cell, StoredValue value);
-        T build();
-    }
+public interface NewTransactionManager {
+    <T> ListenableFuture<T> executeTransaction(AsyncFunction<NewTransaction, T> task);
 }

@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.timestamps;
+package com.palantir.atlasdb.v2.api.iterators;
 
-import org.immutables.value.Value;
+import com.google.common.collect.PeekingIterator;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 
-import com.palantir.atlasdb.v2.api.locks.NewLockToken;
-
-@Value.Immutable
-public interface HeldImmutableLock {
-    @Value.Parameter
-    NewLockToken lockToken();
-
-    @Value.Parameter
-    long immutableTimestamp();
-
-    static HeldImmutableLock of(NewLockToken token, long immutableTimestamp) {
-        return ImmutableHeldImmutableLock.of(token, immutableTimestamp);
+public interface PeekingAsyncIterator<T> extends AsyncIterator<T>, PeekingIterator<T> {
+    @Override
+    default void remove() {
+        throw new UnsupportedOperationException();
     }
 }

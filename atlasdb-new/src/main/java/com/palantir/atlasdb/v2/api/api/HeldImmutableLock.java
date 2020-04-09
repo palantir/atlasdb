@@ -14,24 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.v2.api.NewIds.Table;
-
 @Value.Immutable
-public interface ScanDefinition {
+public interface HeldImmutableLock {
     @Value.Parameter
-    Table table();
+    NewLockToken lockToken();
 
     @Value.Parameter
-    ScanFilter filter();
+    long immutableTimestamp();
 
-    @Value.Parameter
-    ScanAttributes attributes();
-
-    static ScanDefinition of(Table table, ScanFilter filter, ScanAttributes attributes) {
-        return ImmutableScanDefinition.of(table, filter, attributes);
+    static HeldImmutableLock of(NewLockToken token, long immutableTimestamp) {
+        return ImmutableHeldImmutableLock.of(token, immutableTimestamp);
     }
 }

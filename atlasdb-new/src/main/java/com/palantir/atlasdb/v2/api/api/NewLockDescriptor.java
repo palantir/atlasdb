@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.locks;
+package com.palantir.atlasdb.v2.api.api;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,9 +22,9 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.v2.api.NewIds.Cell;
-import com.palantir.atlasdb.v2.api.NewIds.Row;
-import com.palantir.atlasdb.v2.api.NewIds.Table;
+import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.api.NewIds.Row;
+import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 
 public abstract class NewLockDescriptor {
     private NewLockDescriptor() {}

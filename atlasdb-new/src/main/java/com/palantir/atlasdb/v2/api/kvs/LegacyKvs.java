@@ -41,19 +41,20 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.v2.api.NewIds;
-import com.palantir.atlasdb.v2.api.NewIds.Cell;
-import com.palantir.atlasdb.v2.api.NewIds.Column;
-import com.palantir.atlasdb.v2.api.NewIds.Row;
-import com.palantir.atlasdb.v2.api.NewIds.Table;
-import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.NewValue.KvsValue;
-import com.palantir.atlasdb.v2.api.NewValue.TransactionValue;
-import com.palantir.atlasdb.v2.api.ScanDefinition;
-import com.palantir.atlasdb.v2.api.ScanFilter;
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
+import com.palantir.atlasdb.v2.api.api.NewIds;
+import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.api.NewIds.Column;
+import com.palantir.atlasdb.v2.api.api.NewIds.Row;
+import com.palantir.atlasdb.v2.api.api.NewIds.Table;
+import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.NewValue.KvsValue;
+import com.palantir.atlasdb.v2.api.api.NewValue.TransactionValue;
+import com.palantir.atlasdb.v2.api.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.api.ScanFilter;
+import com.palantir.atlasdb.v2.api.api.Kvs;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
-import com.palantir.atlasdb.v2.api.iterators.NonBlockingIterator;
+import com.palantir.atlasdb.v2.api.iterators.IteratorFutureIterator;
 import com.palantir.atlasdb.v2.api.transaction.state.TableWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 import com.palantir.common.streams.KeyedStream;
@@ -187,7 +188,7 @@ public final class LegacyKvs implements Kvs {
                             }
 
                             private AsyncIterator<KvsValue> execute(ColumnSelection columnSelection) {
-                                return new NonBlockingIterator<>(call(() -> {
+                                return new IteratorFutureIterator<>(call(() -> {
                                     Iterable<byte[]> byteArrayRows = Iterables.transform(rows, Row::toByteArray);
                                     Map<com.palantir.atlasdb.keyvalue.api.Cell, Value> rows = keyValueService.getRows(
                                             toLegacy(definition.table()),

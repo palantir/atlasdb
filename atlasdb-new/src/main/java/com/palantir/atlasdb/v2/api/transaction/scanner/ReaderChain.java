@@ -18,7 +18,7 @@ package com.palantir.atlasdb.v2.api.transaction.scanner;
 
 import java.util.function.Function;
 
-import com.palantir.atlasdb.v2.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.NewValue;
 
 public final class ReaderChain<E extends NewValue, R extends Reader<E>> {
     private final R reader;

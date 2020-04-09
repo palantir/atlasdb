@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 
 public final class StateHolder {
     private TransactionState state;

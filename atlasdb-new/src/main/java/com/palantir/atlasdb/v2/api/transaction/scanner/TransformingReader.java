@@ -20,10 +20,10 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
-import com.palantir.atlasdb.v2.api.NewValue;
-import com.palantir.atlasdb.v2.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 public abstract class TransformingReader<In extends NewValue, Out extends NewValue> implements Reader<Out> {

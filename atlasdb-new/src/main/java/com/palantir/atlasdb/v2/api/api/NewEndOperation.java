@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.ListenableFuture;
-
-public interface NewTransactionManager {
-    <T> ListenableFuture<T> executeTransaction(AsyncFunction<NewTransaction, T> task);
+public enum NewEndOperation {
+    COMMIT, ABORT
 }

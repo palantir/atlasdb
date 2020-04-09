@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-import com.palantir.atlasdb.v2.api.NewIds.Table;
+import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;

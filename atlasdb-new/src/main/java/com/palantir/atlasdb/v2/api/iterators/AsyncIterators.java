@@ -36,7 +36,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.v2.api.PeekingAsyncIterator;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 
 public final class AsyncIterators {
     private static final ListenableFuture<Boolean> TRUE_FUTURE = Futures.immediateFuture(true);

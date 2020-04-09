@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.locks;
+package com.palantir.atlasdb.v2.api.api;
 
+import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
+import com.palantir.atlasdb.v2.api.api.NewValue.KvsValue;
+import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
 
-public interface NewLocks {
-    ListenableFuture<NewLockToken> lock(Set<NewLockDescriptor> descriptors);
-    ListenableFuture<?> await(Set<NewLockDescriptor> descriptors);
-    ListenableFuture<?> checkStillValid(Set<NewLockToken> lockTokens);
-    void unlock(Set<NewLockToken> lockTokens);
+public interface Kvs extends Reader<KvsValue>, Writer {
+    ListenableFuture<Map<Cell, KvsValue>> loadCellsAtTimestamps(NewIds.Table table, Map<Cell, Long> timestampsToLoadAt);
+    ListenableFuture<Map<Long, Long>> getCommitTimestamps(Set<Long> timestamps);
+    OptionalLong getCachedCommitTimestamp(long startTimestamp);
 }

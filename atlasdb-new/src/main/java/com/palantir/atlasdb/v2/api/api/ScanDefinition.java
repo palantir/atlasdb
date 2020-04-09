@@ -14,8 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
-public enum NewEndOperation {
-    COMMIT, ABORT
+import org.immutables.value.Value;
+
+import com.palantir.atlasdb.v2.api.api.NewIds.Table;
+
+@Value.Immutable
+public interface ScanDefinition {
+    @Value.Parameter
+    Table table();
+
+    @Value.Parameter
+    ScanFilter filter();
+
+    @Value.Parameter
+    ScanAttributes attributes();
+
+    static ScanDefinition of(Table table, ScanFilter filter, ScanAttributes attributes) {
+        return ImmutableScanDefinition.of(table, filter, attributes);
+    }
 }

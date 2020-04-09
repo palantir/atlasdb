@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.api;
 
-import com.google.common.collect.PeekingIterator;
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterator;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-public interface PeekingAsyncIterator<T> extends AsyncIterator<T>, PeekingIterator<T> {
-    @Override
-    default void remove() {
-        throw new UnsupportedOperationException();
-    }
+public interface ConflictChecker {
+    ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state);
+    ListenableFuture<?> checkForReadWriteConflicts(TransactionState state);
 }
