@@ -54,7 +54,7 @@ public interface Transaction {
      * @param tableRef table to load rows from
      * @param rows rows to be loaded
      * @param columnSelection columns to load from the given rows
-     * @return a mapping of rows to the columns matching the provided column selection.
+     * @return a mapping of rows to the columns matching the provided column selection
      */
     @Idempotent
     SortedMap<byte[], RowResult<byte[]>> getRows(
