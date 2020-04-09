@@ -70,6 +70,7 @@ import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -600,14 +601,28 @@ public final class KeyValueTable implements
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
                                    BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeRangeRequests(ranges), concurrencyLevel,
-                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of)));
+        return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                .tableRef(tableRef)
+                .rangeRequests(ranges)
+                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                .concurrencyLevel(concurrencyLevel)
+                .visitableProcessor(transformVisitableProcessor(visitableProcessor))
+                .build());
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
-        return t.getRanges(tableRef, optimizeRangeRequests(ranges),
-                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of)));
+        return t.getRanges(ImmutableGetRangesQuery.<T>builder()
+                .tableRef(tableRef)
+                .rangeRequests(ranges)
+                .rangeRequestOptimizer(this::optimizeRangeRequest)
+                .visitableProcessor(transformVisitableProcessor(visitableProcessor))
+                .build());
+    }
+
+    private static <T> BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> transformVisitableProcessor(
+             BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
+        return (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of));
     }
 
     public Stream<BatchingVisitable<KeyValueRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -686,6 +701,7 @@ public final class KeyValueTable implements
      * {@link HashSet}
      * {@link Hashing}
      * {@link Hydrator}
+     * {@link ImmutableGetRangesQuery}
      * {@link ImmutableList}
      * {@link ImmutableMap}
      * {@link ImmutableMultimap}
@@ -728,5 +744,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "EUckTePDEQOv8KBw83tT+w==";
+    static String __CLASS_HASH = "XlFuwPIRchnNmfvkbXy7Cg==";
 }
