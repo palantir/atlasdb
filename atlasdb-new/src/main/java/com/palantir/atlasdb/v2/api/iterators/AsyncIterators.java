@@ -203,15 +203,44 @@ public final class AsyncIterators {
 
     public <T, R> AsyncIterator<R> transformAsync(
             AsyncIterator<? extends T> iterator, AsyncFunction<T, R> transformer) {
-        return new AbstractAsyncIterator<R>() {
+        return new AsyncIterator<R>() {
+            private Promise<Boolean> hasNext = null;
+            private Promise<R> next = null;
+
             @Override
-            public ListenableFuture<R> computeNext() {
-                return Futures.transformAsync(iterator.onHasNext(), result -> {
-                    if (!result.booleanValue()) {
-                        return endOfData();
-                    }
-                    return transformer.apply(iterator.next());
-                }, executor);
+            public Promise<Boolean> onHasNext() {
+                initializeNextState();
+                return hasNext;
+            }
+
+            private void initializeNextState() {
+                if (hasNext != null) {
+                    return;
+                }
+                Promise<Boolean> baseHasNext = iterator.onHasNext();
+                next = Promises.transformAsync(
+                        baseHasNext,
+                        hasNext -> hasNext ? transformer.apply(iterator.next())
+                                : Promises.immediatePromise(null),
+                        executor);
+                hasNext = Promises.transform(next, $ -> baseHasNext.get(), executor);
+            }
+
+            @Override
+            public boolean hasNext() {
+                initializeNextState();
+                return hasNext.getBlocking();
+            }
+
+            @Override
+            public R next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                R result = next.getBlocking();
+                hasNext = null;
+                next = null;
+                return result;
             }
         };
     }
