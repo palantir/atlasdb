@@ -84,12 +84,6 @@ public abstract class TransactionState {
                 .collect(Collectors.toSet());
     }
 
-    public TransactionState addWrite(Table table, TransactionValue value) {
-        return toBuilder()
-                .mutateWrites(writes -> writes.mutateWrites(table, tableWrites -> tableWrites.put(value)))
-                .build();
-    }
-
     // TODO make correct
     public Iterator<TransactionValue> scan(Table table, ScanAttributes attributes, ScanFilter filter) {
         return Collections.emptyIterator();

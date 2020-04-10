@@ -83,7 +83,7 @@ public class DeterministicTester {
     private static final Logger log = LoggerFactory.getLogger(DeterministicTester.class);
     private static final LeadershipId LEADERSHIP_ID = LeadershipId.random();
     private final TestExecutor executor = new TestExecutor();
-    private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
+    private final KeyValueService keyValueService = new ThreadUnsafeInMemoryKeyValueService(true);
     private final LegacyKvs kvs = new LegacyKvs(
             executor.soonScheduler(),
             SimpleTransactionService.createV1(keyValueService),
@@ -149,6 +149,7 @@ public class DeterministicTester {
     private static final class SimplifiedTransaction {
         private static final Column PRED = NewIds.column(new byte[1]);
         private static final Column SUCC = NewIds.column(new byte[2]);
+        private static final Column SET = NewIds.column(new byte[3]);
         private final NewTransaction transaction;
 
         private SimplifiedTransaction(NewTransaction transaction) {
@@ -159,28 +160,50 @@ public class DeterministicTester {
             transaction.setIsDebugging();
         }
 
-        public ListenableFuture<OptionalInt> getPred(int key) {
+        public Promise<OptionalInt> getPred(int key) {
             Row row = NewIds.row(EncodingUtils.encodeSignedVarLong(key));
-            return Futures.transform(transaction.get(new SimpleGetOperation(TABLE, NewIds.cell(row, PRED))),
+            return Promises.transform(transaction.get(new SimpleGetOperation(TABLE, NewIds.cell(row, PRED))),
                     value -> value.map(storedValue -> OptionalInt.of(
                             Ints.checkedCast(EncodingUtils.decodeSignedVarLong(storedValue.toByteArray())))).orElse(OptionalInt.empty()),
                     MoreExecutors.directExecutor());
         }
 
-        public ListenableFuture<Integer> getPredOrElseThrow(int key) {
-            return Futures.transform(getPred(key), OptionalInt::getAsInt, MoreExecutors.directExecutor());
+        public Promise<Integer> getPredOrElseThrow(int key) {
+            return Promises.transform(getPred(key), OptionalInt::getAsInt, MoreExecutors.directExecutor());
         }
 
-        public ListenableFuture<OptionalInt> getSucc(int key) {
+        public Promise<OptionalInt> getSucc(int key) {
             Row row = NewIds.row(EncodingUtils.encodeSignedVarLong(key));
-            return Futures.transform(transaction.get(new SimpleGetOperation(TABLE, NewIds.cell(row, SUCC))),
+            return Promises.transform(transaction.get(new SimpleGetOperation(TABLE, NewIds.cell(row, SUCC))),
                     value -> value.map(storedValue -> OptionalInt.of(
                             Ints.checkedCast(EncodingUtils.decodeSignedVarLong(storedValue.toByteArray())))).orElse(OptionalInt.empty()),
                     MoreExecutors.directExecutor());
         }
 
-        public ListenableFuture<Integer> getSuccOrElseThrow(int key) {
-            return Futures.transform(getSucc(key), OptionalInt::getAsInt, MoreExecutors.directExecutor());
+        public Promise<Integer> getSuccOrElseThrow(int key) {
+            return Promises.transform(getSucc(key), OptionalInt::getAsInt, MoreExecutors.directExecutor());
+        }
+
+        public void addToSet(int element) {
+            Row row = NewIds.row(EncodingUtils.encodeSignedVarLong(element));
+            transaction.put(NewPutOperation.of(
+                    TABLE,
+                    NewIds.cell(row, SET),
+                    Optional.of(NewIds.value(EncodingUtils.encodeSignedVarLong(1)))));
+        }
+
+        public void removeFromSet(int element) {
+            Row row = NewIds.row(EncodingUtils.encodeSignedVarLong(element));
+            transaction.put(NewPutOperation.of(
+                    TABLE,
+                    NewIds.cell(row, SET),
+                    Optional.empty()));
+        }
+
+        public Promise<Boolean> setContains(int element) {
+            Row row = NewIds.row(EncodingUtils.encodeSignedVarLong(element));
+            return Promises.transform(transaction.get(new SimpleGetOperation(
+                    TABLE, NewIds.cell(row, SET))), Optional::isPresent, MoreExecutors.directExecutor());
         }
 
         public void put(int key, int pred, int succ) {
@@ -207,47 +230,119 @@ public class DeterministicTester {
 
     @Test
     public void testSimpleWrites() {
-        ListenableFuture<?> result = txnManager.callTransaction(txn -> {
+        Promise<?> result = txnManager.callTransaction(txn -> {
             txn.put(1, 2, 3);
-            return Futures.immediateFuture(null);
+            return Promises.immediatePromise(null);
         });
         executor.start();
-        Futures.getUnchecked(result);
+        result.get();
     }
 
     @Test
     public void testWriteAndRead() {
-        ListenableFuture<?> writeResult = txnManager.callTransaction(txn -> {
+        Promise<?> writeResult = txnManager.callTransaction(txn -> {
             txn.put(1, 2, 3);
-            return Futures.immediateFuture(null);
+            return Promises.immediatePromise(null);
         });
         executor.start();
-        Futures.getUnchecked(writeResult);
-        ListenableFuture<OptionalInt> readResult = txnManager.callTransaction(txn -> txn.getSucc(1));
+        writeResult.get();
+        Promise<OptionalInt> readResult = txnManager.callTransaction(txn -> txn.getSucc(1));
         executor.start();
-        assertThat(Futures.getUnchecked(readResult).getAsInt()).isEqualTo(3);
+        assertThat(readResult.get().getAsInt()).isEqualTo(3);
+    }
+
+    @Test
+    public void testPingPong() {
+        int universe = 4;
+        Promise<?> state = txnManager.runTransaction(txn -> {
+            txn.addToSet(0);
+            txn.addToSet(1);
+        });
+        executor.start();
+        state.get();
+
+        Promise<?> allSwaps = Promises.allAsList(IntStream.range(0, 16)
+                .mapToObj($ -> maybeReplaceSetElement(universe, 10_000))
+                .collect(toList()));
+        executor.start();
+//        allSwaps.get();
+
+        Promise<java.util.Set<Integer>> stateAfterwards = getSet(universe);
+        executor.start();
+        assertThat(stateAfterwards.get()).hasSize(2);
+    }
+
+    private Promise<java.util.Set<Integer>> getSet(int universeSize) {
+        return txnManager.callTransaction(txn -> {
+            List<Integer> range = IntStream.range(0, universeSize).boxed().collect(toList());
+            Promise<List<Boolean>> membershipsPromise = Promises.allAsList(Lists.transform(range, txn::setContains));
+            return Promises.transform(membershipsPromise, memberships -> {
+                java.util.Set<Integer> result = new HashSet<>();
+                for (int i = 0; i < range.size(); i++) {
+                    if (memberships.get(i)) {
+                        result.add(i);
+                    }
+                }
+                return result;
+            }, executor.nowScheduler());
+        });
+    }
+
+    private Promise<?> maybeReplaceSetElement(int universeSize, int numTimes) {
+        return FutureChain.start(executor.soonScheduler(), 0)
+                .whileTrue(i -> i < numTimes,
+                        chain -> chain.then(i -> txnManager.callTransaction(txn -> maybeMoveOne(txn, universeSize, i)))
+                                .alterState(i -> i + 1))
+                .done();
+    }
+
+    private Promise<?> maybeMoveOne(SimplifiedTransaction txn, int universeSize, int round) {
+        int a = executor.randomInt(universeSize);
+        int b = executor.randomInt(universeSize);
+
+        if (round >= 46) {
+            txn.setDebugging();
+        }
+
+        if (a == b) {
+            return Promises.immediatePromise(null);
+        }
+
+        Promise<Boolean> aExists = txn.setContains(a);
+        Promise<Boolean> bExists = txn.setContains(b);
+        return Promises.whenAllSucceed(aExists, bExists)
+                .call(() -> {
+                    boolean isA = aExists.get();
+                    boolean isB = bExists.get();
+                    if (isA && isB) {
+                        int newElement = executor.randomInt(universeSize);
+                        txn.removeFromSet(a);
+                        txn.addToSet(newElement);
+                    }
+                    return null;
+                }, executor.nowScheduler());
     }
 
     @Test
     public void testRingMutations() {
         int ringLength = 1000;
-        ListenableFuture<?> writes = txnManager.runTransaction(txn -> buildRing(txn, ringLength));
+        Promise<?> writes = txnManager.runTransaction(txn -> buildRing(txn, ringLength));
         executor.start();
-        Futures.getUnchecked(writes);
+        writes.get();
 
-        ListenableFuture<?> swappages = Futures.allAsList(IntStream.range(0, 16)
+        Promise<?> swappages = Promises.allAsList(IntStream.range(0, 2)
                 .mapToObj($ -> swapElements(ringLength, 10_000))
-                .collect(Collectors.toList()));
+                .collect(toList()));
         executor.start();
         locks.printHeldLocks();
-        Futures.getUnchecked(swappages);
+        swappages.get();
 
-        ListenableFuture<Integer> actualRingLength = txnManager.callTransaction(this::ringLengthViaSucc);
+        Promise<Integer> actualRingLength = txnManager.callTransaction(this::ringLengthViaSucc);
         executor.start();
-        assertThat(Futures.getUnchecked(actualRingLength)).isEqualTo(ringLength);
+        assertThat(actualRingLength.get()).isEqualTo(ringLength);
     }
 
-    private ListenableFuture<?> swapElements(int ringLength, int numTimes) {
+    private Promise<?> swapElements(int ringLength, int numTimes) {
         return FutureChain.start(executor.soonScheduler(), 0)
                 .whileTrue(i -> i < numTimes,
                         chain -> chain.then(i -> txnManager.callTransaction(txn -> swapElements(txn, ringLength, i)))
@@ -255,24 +350,24 @@ public class DeterministicTester {
                 .done();
     }
 
-    private ListenableFuture<?> swapElements(SimplifiedTransaction txn, int ringLength, int iteration) {
+    private Promise<?> swapElements(SimplifiedTransaction txn, int ringLength, int iteration) {
 //        if (iteration == 520) {
 //            txn.setDebugging();
 //        }
         int a = executor.randomInt(ringLength);
         int b = executor.randomInt(ringLength);
         if (a == b) {
-            return Futures.immediateFuture(null);
+            return Promises.immediatePromise(null);
         }
-        ListenableFuture<Integer> aPred = txn.getPredOrElseThrow(a);
-        ListenableFuture<Integer> bPred = txn.getPredOrElseThrow(b);
-        ListenableFuture<Integer> aSucc = txn.getSuccOrElseThrow(a);
-        ListenableFuture<Integer> bSucc = txn.getSuccOrElseThrow(b);
-        return Futures.whenAllSucceed(aPred, bPred, aSucc, bSucc).call(() -> {
-            int ap = Futures.getUnchecked(aPred);
-            int bp = Futures.getUnchecked(bPred);
-            int as = Futures.getUnchecked(aSucc);
-            int bs = Futures.getUnchecked(bSucc);
+        Promise<Integer> aPred = txn.getPredOrElseThrow(a);
+        Promise<Integer> bPred = txn.getPredOrElseThrow(b);
+        Promise<Integer> aSucc = txn.getSuccOrElseThrow(a);
+        Promise<Integer> bSucc = txn.getSuccOrElseThrow(b);
+        return Promises.whenAllSucceed(aPred, bPred, aSucc, bSucc).call(() -> {
+            int ap = aPred.get();
+            int bp = bPred.get();
+            int as = aSucc.get();
+            int bs = bSucc.get();
 
 //            System.out.println(a + " -> [" + ap + "," + as + "], " + b + " -> [" + bp + "," + bs + "]");
             if (ap == b || as == b || bp == a || bs == a) {
@@ -294,7 +389,7 @@ public class DeterministicTester {
         }
     }
 
-    private ListenableFuture<Integer> ringLengthViaSucc(SimplifiedTransaction txn) {
+    private Promise<Integer> ringLengthViaSucc(SimplifiedTransaction txn) {
 
         Predicate<LinkedHashSet<Integer>> setChanged = new Predicate<LinkedHashSet<Integer>>() {
             LinkedHashSet<Integer> last = LinkedHashSet.empty();

@@ -58,37 +58,21 @@ public class DefaultConflictChecker implements ConflictChecker {
                 .then(readerFactory.postFilterWrites(ShouldAbortUncommittedWrites.NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING))
                 .then(readerFactory.readAtCommitTimestamp())
                 .then(readerFactory.mergeInTransactionWrites())
-                .then(readerFactory.stopAfterMarker())
+//                .then(readerFactory.stopAfterMarker())
                 .then(readerFactory.orderValidating())
                 .build();
     }
 
     @Override
-    public ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state) {
-        ListenableFuture<List<Object>> result = Futures.allAsList(Iterables.transform(state.writes(),
+    public Promise<?> checkForWriteWriteConflicts(TransactionState state) {
+        Promise<List<Object>> result = Promises.allAsList(Iterables.transform(state.writes(),
                 writes -> checkForWriteWriteConflicts(state, writes)));
-        if (state.debugging()) {
-            Futures.addCallback(result, new FutureCallback<Object>() {
-                @Override
-                public void onSuccess(@NullableDecl Object result) {
-                    System.out.println("Here");
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
-                    System.out.println("Here");
-                }
-            });
-        }
         return result;
     }
 
-    private ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state, TableWrites writes) {
+    private Promise<?> checkForWriteWriteConflicts(TransactionState state, TableWrites writes) {
         ScanDefinition scan = writes.toConflictCheckingScan();
         AsyncIterator<CommittedValue> executed = readLatestCommittedTimestamps.scan(state, scan);
-        if (state.debugging()) {
-            System.out.println("Here");
-        }
         return iterators.forEach(executed, element -> {
             if (element.commitTimestamp() >= state.startTimestamp()) {
                 throw new FailedConflictCheckingException();

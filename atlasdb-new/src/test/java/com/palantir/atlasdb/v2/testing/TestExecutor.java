@@ -18,13 +18,10 @@ package com.palantir.atlasdb.v2.testing;
 
 import static com.palantir.logsafe.Preconditions.checkState;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.List;
-import java.util.NavigableMap;
+import java.util.PriorityQueue;
 import java.util.Random;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -42,14 +39,29 @@ import com.google.common.primitives.Ints;
 public final class TestExecutor {
     private static final Logger log = LoggerFactory.getLogger(TestExecutor.class);
 
-    private final NavigableMap<Long, Deque<Runnable>> tasks = new TreeMap<>();
+    private final PriorityQueue<Task> tasks = new PriorityQueue<>();
     private final Random random = new Random(0);
+
+    private long globalConstructionTime = 0;
 
     private long now = 0;
     private long executed = 0;
 
-    private Deque<Runnable> taskList(long time) {
-        return tasks.computeIfAbsent(time, $ -> new ArrayDeque<>(1));
+    private final class Task implements Comparable<Task> {
+        private final long runAtTime;
+        private final long constructionTime = globalConstructionTime++;
+        private final Runnable task;
+
+        private Task(long runAtTime, Runnable task) {
+            this.runAtTime = runAtTime;
+            this.task = task;
+        }
+
+        @Override
+        public int compareTo(Task other) {
+            int runTimeComparison = Long.compare(runAtTime, other.runAtTime);
+            return runTimeComparison != 0 ? runTimeComparison : Long.compare(constructionTime, other.constructionTime);
+        }
     }
 
     public int randomInt(int bound) {
@@ -57,19 +69,14 @@ public final class TestExecutor {
     }
 
     private Runnable nextTask() {
-        long firstKey = tasks.firstKey();
-        now = firstKey;
-        Deque<Runnable> taskList = tasks.get(firstKey);
-        Runnable task = tasks.get(firstKey).removeFirst();
-        if (taskList.isEmpty()) {
-            tasks.remove(firstKey);
-        }
-        return task;
+        Task t = tasks.remove();
+        now = t.runAtTime;
+        return t.task;
     }
 
     public Executor nowScheduler() {
         return task -> {
-            taskList(now).addLast(task);
+            tasks.add(new Task(now, task));
         };
     }
 
@@ -84,13 +91,13 @@ public final class TestExecutor {
 
     public Executor soonScheduler() {
         return task -> {
-            taskList(now + jitter(1_000)).addLast(task);
+            tasks.add(new Task(now + jitter(1_000), task));
         };
     }
 
     public Executor notSoonScheduler() {
         return task -> {
-            taskList(now + jitter(1_000_000)).addLast(task);
+            tasks.add(new Task(now + jitter(1_000_000), task));
         };
     }
 
@@ -110,7 +117,7 @@ public final class TestExecutor {
         return new ScheduledExecutorService() {
             @Override
             public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-                taskList(now + unit.toMicros(delay)).addLast(command);
+                tasks.add(new Task(now + unit.toMicros(delay), command));
                 return null;
             }
 
