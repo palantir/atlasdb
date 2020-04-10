@@ -24,6 +24,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.inferred.freebuilder.FreeBuilder;
 
@@ -37,6 +38,8 @@ import com.palantir.atlasdb.v2.api.api.NewLockToken;
 
 @FreeBuilder
 public abstract class TransactionState {
+    public abstract boolean debugging();
+
     public abstract Executor scheduler();
     public abstract long immutableTimestamp();
     public abstract long startTimestamp();
@@ -63,6 +66,10 @@ public abstract class TransactionState {
     }
 
     public static class Builder extends TransactionState_Builder {
+        public Builder() {
+            debugging(false);
+        }
+
         @Override
         public Builder commitTimestamp(long commitTimestamp) {
             checkState(!super.commitTimestamp().isPresent(), "Cannot set commit timestamp when already set");
@@ -71,8 +78,9 @@ public abstract class TransactionState {
     }
 
     public Set<NewLockDescriptor> writeLockDescriptors() {
-        return Streams.stream(writes()).flatMap(tableWrites -> tableWrites.data().keySet().toJavaStream()
-                .map(cell -> NewLockDescriptor.cell(tableWrites.table(), cell)))
+        return Stream.concat(Stream.of(NewLockDescriptor.timestamp(startTimestamp())),
+                Streams.stream(writes()).flatMap(tableWrites -> tableWrites.data().keySet().toJavaStream()
+                        .map(cell -> NewLockDescriptor.cell(tableWrites.table(), cell))))
                 .collect(Collectors.toSet());
     }
 

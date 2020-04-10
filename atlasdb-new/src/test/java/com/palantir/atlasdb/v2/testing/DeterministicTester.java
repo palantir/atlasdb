@@ -24,8 +24,12 @@ import java.util.OptionalInt;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
@@ -56,17 +60,18 @@ import com.palantir.atlasdb.v2.api.api.NewPutOperation;
 import com.palantir.atlasdb.v2.api.api.NewTransaction;
 import com.palantir.atlasdb.v2.api.api.ScanAttributes;
 import com.palantir.atlasdb.v2.api.api.ScanFilter;
+import com.palantir.atlasdb.v2.api.exception.FailedConflictCheckingException;
 import com.palantir.atlasdb.v2.api.future.FutureChain;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.kvs.DefaultConflictChecker;
 import com.palantir.atlasdb.v2.api.kvs.LegacyKvs;
 import com.palantir.atlasdb.v2.api.locks.LegacyLocks;
 import com.palantir.atlasdb.v2.api.transaction.SingleThreadedTransaction;
-import com.palantir.atlasdb.v2.api.transaction.scanner.PostFilterWritesReader.ShouldAbortWrites;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReadReportingReader.RecordingNewValue;
 import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderChain;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderFactory;
+import com.palantir.atlasdb.v2.api.transaction.scanner.ShouldAbortUncommittedWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeadershipId;
@@ -75,6 +80,7 @@ import io.vavr.collection.LinkedHashSet;
 import io.vavr.collection.Set;
 
 public class DeterministicTester {
+    private static final Logger log = LoggerFactory.getLogger(DeterministicTester.class);
     private static final LeadershipId LEADERSHIP_ID = LeadershipId.random();
     private final TestExecutor executor = new TestExecutor();
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
@@ -89,7 +95,7 @@ public class DeterministicTester {
     private final AsyncIterators iterators = new AsyncIterators(executor.nowScheduler());
     private final ReaderFactory readerFactory = new ReaderFactory(iterators, kvs, locks, locks);
     private final Reader<RecordingNewValue> baseReader = ReaderChain.create(kvs)
-            .then(readerFactory.postFilterWrites(ShouldAbortWrites.YES))
+            .then(readerFactory.postFilterWrites(ShouldAbortUncommittedWrites.YES))
             .then(readerFactory.mergeInTransactionWrites())
             .then(readerFactory.reportReads())
             .then(readerFactory.stopAfterMarker())
@@ -100,9 +106,6 @@ public class DeterministicTester {
     private final TestTransactionManager txnManager = new TestTransactionManager();
 
     private static final Table TABLE = NewIds.table("table.table1");
-    private static final Row ROW = NewIds.row(new byte[100]);
-    private static final Column COLUMN = NewIds.column(new byte[200]);
-    private static final Cell CELL = NewIds.cell(ROW, COLUMN);
 
     private SingleThreadedTransaction createTransaction(
             Executor executor, long immutableTimestamp, long startTimestamp, NewLockToken immutableLock) {
@@ -113,6 +116,17 @@ public class DeterministicTester {
 
     private final class TestTransactionManager {
         public <T> ListenableFuture<T> callTransaction(AsyncFunction<SimplifiedTransaction, T> task) {
+            return Futures.catchingAsync(
+                    transactionAttempt(task),
+                    FailedConflictCheckingException.class,
+                    thrown -> {
+                        log.info("Caught exception", thrown);
+                        return callTransaction(task);
+                    },
+                    executor.soonScheduler());
+        }
+
+        private <T> ListenableFuture<T> transactionAttempt(AsyncFunction<SimplifiedTransaction, T> task) {
             Executor scheduler = executor.nowScheduler();
             return FutureChain.start(scheduler, locks.lockImmutableTs())
                     .defer(il -> locks.unlock(ImmutableSet.of(il.lockToken())))
@@ -139,6 +153,10 @@ public class DeterministicTester {
 
         private SimplifiedTransaction(NewTransaction transaction) {
             this.transaction = transaction;
+        }
+
+        public void setDebugging() {
+            transaction.setIsDebugging();
         }
 
         public ListenableFuture<OptionalInt> getPred(int key) {
@@ -217,11 +235,12 @@ public class DeterministicTester {
         executor.start();
         Futures.getUnchecked(writes);
 
-        ListenableFuture<?> swapped1 = swapElements(ringLength, 10000);
-        ListenableFuture<?> swapped2 = swapElements(ringLength, 10000);
+        ListenableFuture<?> swappages = Futures.allAsList(IntStream.range(0, 16)
+                .mapToObj($ -> swapElements(ringLength, 10_000))
+                .collect(Collectors.toList()));
         executor.start();
-        Futures.getUnchecked(swapped1);
-        Futures.getUnchecked(swapped2);
+        locks.printHeldLocks();
+        Futures.getUnchecked(swappages);
 
         ListenableFuture<Integer> actualRingLength = txnManager.callTransaction(this::ringLengthViaSucc);
         executor.start();
@@ -231,12 +250,15 @@ public class DeterministicTester {
     private ListenableFuture<?> swapElements(int ringLength, int numTimes) {
         return FutureChain.start(executor.soonScheduler(), 0)
                 .whileTrue(i -> i < numTimes,
-                        chain -> chain.then($ -> txnManager.callTransaction(txn -> swapElements(txn, ringLength)))
+                        chain -> chain.then(i -> txnManager.callTransaction(txn -> swapElements(txn, ringLength, i)))
                                 .alterState(i -> i + 1))
                 .done();
     }
 
-    private ListenableFuture<?> swapElements(SimplifiedTransaction txn, int ringLength) {
+    private ListenableFuture<?> swapElements(SimplifiedTransaction txn, int ringLength, int iteration) {
+//        if (iteration == 520) {
+//            txn.setDebugging();
+//        }
         int a = executor.randomInt(ringLength);
         int b = executor.randomInt(ringLength);
         if (a == b) {
@@ -251,6 +273,8 @@ public class DeterministicTester {
             int bp = Futures.getUnchecked(bPred);
             int as = Futures.getUnchecked(aSucc);
             int bs = Futures.getUnchecked(bSucc);
+
+//            System.out.println(a + " -> [" + ap + "," + as + "], " + b + " -> [" + bp + "," + bs + "]");
             if (ap == b || as == b || bp == a || bs == a) {
                 return null;
             }
@@ -285,7 +309,8 @@ public class DeterministicTester {
             }
         };
         return FutureChain.start(executor.nowScheduler(), LinkedHashSet.of(0))
-                .whileTrue(setChanged, seen -> seen.then(s -> txn.getSuccOrElseThrow(s.last()), LinkedHashSet::add))
+                .whileTrue(setChanged,
+                        seen -> seen.then(s -> txn.getSuccOrElseThrow(s.last()), LinkedHashSet::add))
                 .alterState(Set::size)
                 .done();
     }

@@ -64,6 +64,11 @@ public class SingleThreadedTransaction implements NewTransaction {
     }
 
     @Override
+    public void setIsDebugging() {
+        stateHolder.mutate(t -> t.debugging(true));
+    }
+
+    @Override
     public void put(NewPutOperation put) {
         stateHolder.mutate(state -> state.writesBuilder().mutateWrites(put.table(),
                 t -> t.put(NewValue.transactionValue(put.cell(), put.value()))));
@@ -116,7 +121,9 @@ public class SingleThreadedTransaction implements NewTransaction {
     }
 
     private ListenableFuture<?> abort() {
-        stateHolder.invalidateAndGet();
+        if (!stateHolder.isInvalid()) {
+            stateHolder.invalidateAndGet();
+        }
         return Futures.immediateFailedFuture(new RuntimeException("TODO define a real type here"));
     }
 }

@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 import com.palantir.atlasdb.v2.api.api.Kvs;
@@ -58,6 +59,7 @@ import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.api.ScanFilter;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.iterators.IteratorFutureIterator;
+import com.palantir.atlasdb.v2.api.transaction.scanner.ShouldAbortUncommittedWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TableWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 import com.palantir.common.streams.KeyedStream;
@@ -111,12 +113,29 @@ public final class LegacyKvs implements Kvs {
     }
 
     @Override
-    public ListenableFuture<Map<Long, Long>> getCommitTimestamps(Set<Long> timestamps) {
+    public ListenableFuture<Map<Long, Long>> getCommitTimestamps(Set<Long> timestamps,
+            ShouldAbortUncommittedWrites shouldAbortUncommittedWrites) {
         return call(() -> {
             Map<Long, Long> results = transactionService.get(timestamps);
+            if (shouldAbortUncommittedWrites == ShouldAbortUncommittedWrites.YES
+                    && results.size() != timestamps.size()) {
+                timestamps.stream()
+                        .filter(ts -> !results.containsKey(ts))
+                        .forEach(ts -> results.put(ts, forceCommitTimestamp(ts)));
+            }
             results.forEach(timestampCache::putAlreadyCommittedTransaction);
             return results;
         });
+    }
+
+    private long forceCommitTimestamp(long startTimestamp) {
+        try {
+            long commitTs = TransactionConstants.FAILED_COMMIT_TS;
+            transactionService.putUnlessExists(startTimestamp, commitTs);
+            return commitTs;
+        } catch (KeyAlreadyExistsException e) {
+            return transactionService.get(startTimestamp);
+        }
     }
 
     @Override

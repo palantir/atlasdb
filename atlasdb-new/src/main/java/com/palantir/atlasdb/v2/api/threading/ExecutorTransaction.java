@@ -36,6 +36,11 @@ public class ExecutorTransaction implements NewTransaction {
     }
 
     @Override
+    public void setIsDebugging() {
+        executor.execute(realTransaction::setIsDebugging);
+    }
+
+    @Override
     public void put(NewPutOperation put) {
         executor.execute(() -> realTransaction.put(put));
     }

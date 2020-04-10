@@ -18,6 +18,7 @@ package com.palantir.atlasdb.v2.api.transaction.scanner;
 
 import static com.palantir.logsafe.Preconditions.checkState;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalLong;
@@ -27,6 +28,7 @@ import java.util.function.Function;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -50,15 +52,13 @@ import io.vavr.collection.Map;
 public final class PostFilterWritesReader extends TransformingReader<KvsValue, CommittedValue> {
     private final Kvs delegate;
     private final NewLocks locks;
-    private final ShouldAbortWrites shouldAbortWrites;
-
-    public enum ShouldAbortWrites {NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING, YES }
+    private final ShouldAbortUncommittedWrites shouldAbortWrites;
 
     public PostFilterWritesReader(
             AsyncIterators iterators,
             Kvs delegate,
             NewLocks locks,
-            ShouldAbortWrites shouldAbortWrites) {
+            ShouldAbortUncommittedWrites shouldAbortWrites) {
         super(delegate, iterators);
         this.delegate = delegate;
         this.locks = locks;
@@ -68,13 +68,14 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
     @Override
     protected ListenableFuture<Iterator<CommittedValue>> transformPage(
             TransactionState state, ScanDefinition definition, List<KvsValue> page) {
-        return postFilterWrites(state.scheduler(), definition.table(), state.immutableTimestamp(), page);
+        return postFilterWrites(state.scheduler(), definition.table(), state.startTimestamp(), state.immutableTimestamp(), page);
     }
 
-    private ListenableFuture<Iterator<CommittedValue>> postFilterWrites(
-            Executor executor, Table table, long immutableTimestamp, List<KvsValue> values) {
+    @VisibleForTesting
+    ListenableFuture<Iterator<CommittedValue>> postFilterWrites(
+            Executor executor, Table table, long startTs, long immutableTimestamp, List<KvsValue> values) {
         Map<Cell, KvsValue> asCells = values.stream().collect(HashMap.collector(KvsValue::cell, Function.identity()));
-        PostFilterState postFilterState = PostFilterState.initialize(table, immutableTimestamp, asCells);
+        PostFilterState postFilterState = PostFilterState.initialize(table, startTs, immutableTimestamp, asCells);
         return FutureChain.start(executor, postFilterState)
                 .whileTrue(PostFilterState::incomplete, this::postFilterRound)
                 .alterState(state -> values.stream()
@@ -88,7 +89,7 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
                 .alterState(this::markCachedCommitTsDataCommitted)
                 .then(this::waitForOngoingTransactionsToCommit)
                 .then(this::findCommitTimestamps, PostFilterState::processCommitTimestamps)
-                .then(this::maybeAbortWrites, (state, $) -> state.withUnknown(HashMap.empty()))
+                .alterState(PostFilterState::reissueAllRemaining)
                 .then(this::reissueReadsForDroppedCells, PostFilterState::processReissuedReads);
     }
 
@@ -106,10 +107,16 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
 
     private ListenableFuture<java.util.Map<Long, Long>> findCommitTimestamps(PostFilterState state) {
         Set<Long> unknownStartTimestamps = state.unknown().values().map(KvsValue::startTimestamp).toJavaSet();
-        return delegate.getCommitTimestamps(unknownStartTimestamps);
+        if (unknownStartTimestamps.isEmpty()) {
+            return Futures.immediateFuture(Collections.emptyMap());
+        }
+        return delegate.getCommitTimestamps(unknownStartTimestamps, shouldAbortWrites);
     }
 
     private ListenableFuture<?> waitForOngoingTransactionsToCommit(PostFilterState postFilterState) {
+        if (shouldAbortWrites == ShouldAbortUncommittedWrites.NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING) {
+            return Futures.immediateFuture(null);
+        }
         Set<Long> timestampsToCheck = postFilterState.unknown().values()
                 .map(KvsValue::startTimestamp)
                 .filter(ts -> ts > postFilterState.immutableTimestamp())
@@ -121,11 +128,10 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
         }
     }
 
-    private ListenableFuture<?> maybeAbortWrites(PostFilterState state) {
-        return Futures.immediateFuture(null);
-    }
-
     private ListenableFuture<List<KvsValue>> reissueReadsForDroppedCells(PostFilterState state) {
+        if (state.toReissue().isEmpty()) {
+            return Futures.immediateFuture(Collections.emptyList());
+        }
         return Futures.transform(delegate.loadCellsAtTimestamps(state.table(), state.toReissue().toJavaMap()),
                 timestamps -> ImmutableList.copyOf(timestamps.values()),
                 MoreExecutors.directExecutor());
@@ -134,6 +140,7 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
     @Value.Immutable
     interface PostFilterState {
         Table table();
+        long startTimestamp();
         long immutableTimestamp();
         Map<Cell, KvsValue> unknown();
         Map<Cell, CommittedValue> committed();
@@ -146,13 +153,11 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
 
         default PostFilterState processReissuedReads(List<KvsValue> values) {
             Map<Cell, KvsValue> unknown = unknown();
-            Map<Cell, Long> toReissue = toReissue();
             for (KvsValue value : values) {
-                checkState(toReissue.containsKey(value.cell()));
-                toReissue = toReissue.remove(value.cell());
-                unknown.put(value.cell(), value);
+                checkState(toReissue().containsKey(value.cell()));
+                unknown = unknown.put(value.cell(), value);
             }
-            return withUnknown(unknown).withToReissue(toReissue);
+            return withUnknown(unknown).withToReissue(HashMap.empty());
         }
 
         default PostFilterState processCommitTimestamps(java.util.Map<Long, Long> timestamps) {
@@ -164,8 +169,8 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
                     newUnknown = newUnknown.put(value.cell(), value);
                 } else {
                     long timestamp = timestamps.get(value.startTimestamp());
-                    if (timestamp == TransactionConstants.FAILED_COMMIT_TS) {
-                        toReissue = toReissue.put(value.cell(), value.startTimestamp()); // maybe -1
+                    if (timestamp == TransactionConstants.FAILED_COMMIT_TS || timestamp > startTimestamp()) {
+                        toReissue = toReissue.put(value.cell(), value.startTimestamp() - 1);
                     } else {
                         committed = committed.put(value.cell(), value.toCommitted(timestamp));
                     }
@@ -176,13 +181,22 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
                     .withToReissue(toReissue);
         }
 
+        default PostFilterState reissueAllRemaining() {
+            Map<Cell, Long> toReissue = toReissue();
+            for (KvsValue value : unknown().values()) {
+                toReissue = toReissue.put(value.cell(), value.startTimestamp() - 1);
+            }
+            return withUnknown(HashMap.empty()).withToReissue(toReissue);
+        }
+
         PostFilterState withUnknown(Map<Cell, KvsValue> unknown);
         PostFilterState withCommitted(Map<Cell, CommittedValue> committed);
         PostFilterState withToReissue(Map<Cell, Long> cells);
 
-        static PostFilterState initialize(Table table, long immutableTimestamp, Map<Cell, KvsValue> values) {
+        static PostFilterState initialize(Table table, long startTimestamp, long immutableTimestamp, Map<Cell, KvsValue> values) {
             return ImmutablePostFilterState.builder()
                     .table(table)
+                    .startTimestamp(startTimestamp) // todo this is a bit error prone
                     .immutableTimestamp(immutableTimestamp)
                     .unknown(values)
                     .committed(HashMap.empty())

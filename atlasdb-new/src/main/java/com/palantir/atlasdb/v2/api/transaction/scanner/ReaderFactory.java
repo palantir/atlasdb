@@ -23,7 +23,6 @@ import com.palantir.atlasdb.v2.api.api.NewValue;
 import com.palantir.atlasdb.v2.api.api.Kvs;
 import com.palantir.atlasdb.v2.api.api.NewLocks;
 import com.palantir.atlasdb.v2.api.api.Timestamps;
-import com.palantir.atlasdb.v2.api.transaction.scanner.PostFilterWritesReader.ShouldAbortWrites;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReadReportingReader.RecordingNewValue;
 
 public final class ReaderFactory {
@@ -63,7 +62,8 @@ public final class ReaderFactory {
         return reader -> new CheckImmutableLocksReader<T>(reader, iterators, locks);
     }
 
-    public <K extends Kvs> Function<K, PostFilterWritesReader> postFilterWrites(ShouldAbortWrites shouldAbortWrites) {
+    public <K extends Kvs> Function<K, PostFilterWritesReader> postFilterWrites(
+            ShouldAbortUncommittedWrites shouldAbortWrites) {
         return reader -> new PostFilterWritesReader(iterators, reader, locks, shouldAbortWrites);
     }
 

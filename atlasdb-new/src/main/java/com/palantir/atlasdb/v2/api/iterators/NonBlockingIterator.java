@@ -14,13 +14,33 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api.api;
+package com.palantir.atlasdb.v2.api.iterators;
 
+import java.util.Iterator;
+
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.v2.api.api.AsyncIterator;
 
-public interface NewTransaction {
-    void setIsDebugging();
-    void put(NewPutOperation put);
-    <T> ListenableFuture<T> get(NewGetOperation<T> get);
-    ListenableFuture<?> end(NewEndOperation end);
+public final class NonBlockingIterator<T> implements AsyncIterator<T> {
+    private final Iterator<T> delegate;
+
+    public NonBlockingIterator(Iterator<T> delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public ListenableFuture<Boolean> onHasNext() {
+        return Futures.immediateFuture(hasNext());
+    }
+
+    @Override
+    public boolean hasNext() {
+        return delegate.hasNext();
+    }
+
+    @Override
+    public T next() {
+        return delegate.next();
+    }
 }

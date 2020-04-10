@@ -34,12 +34,12 @@ public abstract class AbstractPromise<T> implements Promise<T> {
     private Throwable thrown;
 
     @Override
-    public boolean isDone() {
+    public final boolean isDone() {
         return result != null || thrown != null;
     }
 
     @Override
-    public T get() {
+    public final T get() {
         if (thrown != null) {
             throw new UncheckedExecutionException(thrown);
         } else if (result == null) {
@@ -69,7 +69,7 @@ public abstract class AbstractPromise<T> implements Promise<T> {
         return true;
     }
 
-    public void addListener(Runnable runnable, Executor executor) {
+    public final void addListener(Runnable runnable, Executor executor) {
         if (isDone()) {
             executor.execute(runnable);
         } else {

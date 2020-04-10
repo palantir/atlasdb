@@ -35,27 +35,18 @@ public final class FutureChain<T> {
     private final ListenableFuture<T> state;
     private final List<Runnable> deferrals;
 
-    public FutureChain(Executor executor, T initialState) {
-        this(executor, Futures.immediateFuture(initialState));
-    }
-
-    public FutureChain(Executor executor, ListenableFuture<T> initialState) {
-        this(executor, initialState, List.empty());
-    }
-
-    public FutureChain(Executor executor, ListenableFuture<T> state,
-            List<Runnable> deferrals) {
+    private FutureChain(Executor executor, ListenableFuture<T> state, List<Runnable> deferrals) {
         this.executor = executor;
         this.state = state;
         this.deferrals = deferrals;
     }
 
     public static <T> FutureChain<T> start(Executor executor, ListenableFuture<T> initialState) {
-        return new FutureChain<>(executor, initialState);
+        return new FutureChain<>(executor, initialState, List.empty());
     }
 
     public static <T> FutureChain<T> start(Executor executor, T initialState) {
-        return new FutureChain<>(executor, initialState);
+        return start(executor, Futures.immediateFuture(initialState));
     }
 
     public <R> FutureChain<R> alterState(Function<T, R> resultOperator) {
@@ -67,8 +58,9 @@ public final class FutureChain<T> {
 
     // deferrals made outside of a loop do not apply in the loop
     public FutureChain<T> whileTrue(Predicate<T> stopIfFalse, UnaryOperator<FutureChain<T>> operation) {
-        AsyncFunction<T, T> function = state -> operation.apply(new FutureChain<>(executor, state)).done();
-        return new FutureChain<>(executor, FutureWhile.whileTrue(executor, state, function, stopIfFalse), deferrals);
+        AsyncFunction<T, T> function = state -> operation.apply(FutureChain.start(executor, state)).done();
+        return new FutureChain<>(
+                executor, FutureWhile.whileTrue(executor, state, function, stopIfFalse), deferrals);
     }
 
     public <R, S> FutureChain<R> then(AsyncFunction<T, S> operation, BiFunction<T, S, R> resultMerger) {
@@ -103,7 +95,13 @@ public final class FutureChain<T> {
         return new FutureChain<>(
                 executor,
                 state,
-                deferrals.prepend(() -> deferral.accept(Futures.getUnchecked(state))));
+                deferrals.prepend(() -> {
+                    try {
+                        deferral.accept(Futures.getUnchecked(state));
+                    } catch (RuntimeException e) {
+                        e.printStackTrace();
+                    }
+                }));
     }
 
     public ListenableFuture<T> done() {

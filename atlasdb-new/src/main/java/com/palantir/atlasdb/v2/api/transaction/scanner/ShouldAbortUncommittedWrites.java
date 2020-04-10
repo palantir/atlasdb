@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.v2.api;
+package com.palantir.atlasdb.v2.api.transaction.scanner;
 
-import com.palantir.atlasdb.v2.api.api.NewLocks;
-import com.palantir.atlasdb.v2.api.api.Timestamps;
-
-public interface Timelock extends NewLocks, Timestamps {
-}
+public enum ShouldAbortUncommittedWrites {NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING, YES }

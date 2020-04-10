@@ -38,6 +38,10 @@ public final class StateHolder {
         return snapshot;
     }
 
+    public boolean isInvalid() {
+        return state == null;
+    }
+
     public void mutate(Consumer<TransactionState.Builder> mutator) {
         TransactionState.Builder builder = get().toBuilder();
         mutator.accept(builder);

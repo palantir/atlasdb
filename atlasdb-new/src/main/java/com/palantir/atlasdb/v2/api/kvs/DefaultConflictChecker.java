@@ -16,22 +16,26 @@
 
 package com.palantir.atlasdb.v2.api.kvs;
 
-import static com.palantir.logsafe.Preconditions.checkState;
+import java.util.List;
+
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.v2.api.api.ConflictChecker;
 import com.palantir.atlasdb.v2.api.api.AsyncIterator;
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
+import com.palantir.atlasdb.v2.api.api.ConflictChecker;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.api.NewValue;
 import com.palantir.atlasdb.v2.api.api.NewValue.CommittedValue;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.exception.FailedConflictCheckingException;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
+import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderChain;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderFactory;
-import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
-import com.palantir.atlasdb.v2.api.transaction.scanner.PostFilterWritesReader.ShouldAbortWrites;
+import com.palantir.atlasdb.v2.api.transaction.scanner.ShouldAbortUncommittedWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TableReads;
 import com.palantir.atlasdb.v2.api.transaction.state.TableWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
@@ -44,14 +48,14 @@ public class DefaultConflictChecker implements ConflictChecker {
     public DefaultConflictChecker(AsyncIterators iterators, ReaderFactory readerFactory) {
         this.iterators = iterators;
         this.readLatestCommittedTimestamps = ReaderChain.create(readerFactory.kvs())
-                .then(readerFactory.postFilterWrites(ShouldAbortWrites.YES))
+                .then(readerFactory.postFilterWrites(ShouldAbortUncommittedWrites.YES))
                 .then(readerFactory.readAtVeryLatestTimestamp())
                 .then(readerFactory.stopAfterMarker())
                 .then(readerFactory.orderValidating())
                 .build();
         this.readAtCommitTimestamp = ReaderChain.create(readerFactory.kvs())
                 // it's fiddly as to why this is safe... but it is.
-                .then(readerFactory.postFilterWrites(ShouldAbortWrites.NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING))
+                .then(readerFactory.postFilterWrites(ShouldAbortUncommittedWrites.NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING))
                 .then(readerFactory.readAtCommitTimestamp())
                 .then(readerFactory.mergeInTransactionWrites())
                 .then(readerFactory.stopAfterMarker())
@@ -61,16 +65,34 @@ public class DefaultConflictChecker implements ConflictChecker {
 
     @Override
     public ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state) {
-        return Futures.allAsList(Iterables.transform(state.writes(),
+        ListenableFuture<List<Object>> result = Futures.allAsList(Iterables.transform(state.writes(),
                 writes -> checkForWriteWriteConflicts(state, writes)));
+        if (state.debugging()) {
+            Futures.addCallback(result, new FutureCallback<Object>() {
+                @Override
+                public void onSuccess(@NullableDecl Object result) {
+                    System.out.println("Here");
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    System.out.println("Here");
+                }
+            });
+        }
+        return result;
     }
 
     private ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state, TableWrites writes) {
         ScanDefinition scan = writes.toConflictCheckingScan();
         AsyncIterator<CommittedValue> executed = readLatestCommittedTimestamps.scan(state, scan);
+        if (state.debugging()) {
+            System.out.println("Here");
+        }
         return iterators.forEach(executed, element -> {
-            checkState(element.commitTimestamp() < state.startTimestamp(),
-                    "Failed write-write conflict checking");
+            if (element.commitTimestamp() >= state.startTimestamp()) {
+                throw new FailedConflictCheckingException();
+            }
         });
     }
 
@@ -87,9 +109,9 @@ public class DefaultConflictChecker implements ConflictChecker {
             AsyncIterator<NewValue> executed = readAtCommitTimestamp.scan(state, scan);
             return iterators.forEach(executed, element -> {
                 // todo: I _think_ that we're guaranteed to see at least Atlas tombstones for values due to immutable ts properties.
-                checkState(writes.containsCell(element.cell())
-                                || reads.get(element.cell()).equals(element.maybeData()),
-                        "Failed read-write conflict checking");
+                if (!writes.containsCell(element.cell()) && !reads.get(element.cell()).equals(element.maybeData())) {
+                    throw new FailedConflictCheckingException();
+                }
             });
         }));
     }

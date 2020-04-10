@@ -18,6 +18,7 @@ package com.palantir.atlasdb.v2.api.locks;
 
 import static com.palantir.logsafe.Preconditions.checkState;
 
+import java.util.HashSet;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
@@ -47,17 +48,17 @@ import com.palantir.atlasdb.timelock.lock.OrderedLocks;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndVersion;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.v2.api.api.HeldImmutableLock;
 import com.palantir.atlasdb.v2.api.api.NewIds;
 import com.palantir.atlasdb.v2.api.api.NewIds.Row;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
-import com.palantir.atlasdb.v2.api.api.HeldImmutableLock;
 import com.palantir.atlasdb.v2.api.api.NewLockDescriptor;
 import com.palantir.atlasdb.v2.api.api.NewLockToken;
 import com.palantir.atlasdb.v2.api.api.NewLocks;
 import com.palantir.atlasdb.v2.api.api.Timestamps;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.AtlasTimestampLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchRequest;
@@ -71,6 +72,8 @@ public class LegacyLocks implements NewLocks, Timestamps {
     private final ScheduledExecutorService executor;
     private final LockAcquirer lockAcquirer;
     private final ImmutableTimestampTracker immutableTimestamp = new ImmutableTimestampTracker();
+
+    private final Set<HeldLocks> heldLocks = new HashSet<>();
 
     private long timestamp = 0;
 
@@ -111,8 +114,12 @@ public class LegacyLocks implements NewLocks, Timestamps {
         return callAsync(() -> {
             UUID requestId = newUuid();
             return Futures.transform(toListenableFuture(lockAcquirer.acquireLocks(requestId, orderedLocks, TIMEOUT)),
-                    LegacyLockToken::of, MoreExecutors.directExecutor());
+                    this::token, MoreExecutors.directExecutor());
         });
+    }
+
+    public void printHeldLocks() {
+        System.out.println(heldLocks);
     }
 
     @Override
@@ -136,6 +143,7 @@ public class LegacyLocks implements NewLocks, Timestamps {
     public void unlock(Set<NewLockToken> lockTokens) {
         lockTokens.stream().map(LegacyLockToken.class::cast)
                 .map(LegacyLockToken::locks)
+                .peek(heldLocks::remove)
                 .forEach(HeldLocks::unlockExplicitly);
     }
 
@@ -147,7 +155,9 @@ public class LegacyLocks implements NewLocks, Timestamps {
         return descriptor.accept(new NewLockDescriptor.Visitor<LockDescriptor>() {
             @Override
             public LockDescriptor timestamp(long timestamp) {
-                return AtlasTimestampLockDescriptor.of(timestamp);
+                return AtlasRowLockDescriptor.of(
+                        TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                        TransactionConstants.getValueForTimestamp(timestamp));
             }
 
             @Override
@@ -171,7 +181,7 @@ public class LegacyLocks implements NewLocks, Timestamps {
     @Override
     public ListenableFuture<HeldImmutableLock> lockImmutableTs() {
         long ts = timestamp++;
-        AsyncLock lock = immutableTimestamp.getLockFor(timestamp);
+        AsyncLock lock = immutableTimestamp.getLockFor(ts);
         return Futures.transform(acquire(OrderedLocks.fromSingleLock(lock)),
                 acquiredLock -> HeldImmutableLock.of(
                         acquiredLock, immutableTimestamp.getImmutableTimestamp().orElse(ts)),
@@ -198,6 +208,11 @@ public class LegacyLocks implements NewLocks, Timestamps {
         static NewLockToken of(HeldLocks token) {
             return ImmutableLegacyLockToken.of(token);
         }
+    }
+
+    private NewLockToken token(HeldLocks token) {
+        heldLocks.add(token);
+        return LegacyLockToken.of(token);
     }
 
     private static <T> ListenableFuture<T> toListenableFuture(AsyncResult<T> asyncResult) {

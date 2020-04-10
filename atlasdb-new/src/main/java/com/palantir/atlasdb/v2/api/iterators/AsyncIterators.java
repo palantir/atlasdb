@@ -47,11 +47,12 @@ public final class AsyncIterators {
 
     public <T> ListenableFuture<?> takeWhile(AsyncIterator<T> iterator, Predicate<? super T> stopIfFalse) {
         return Futures.whenAllSucceed(iterator.onHasNext())
-                .call(() -> {
+                .callAsync(() -> {
                     if (!iterator.hasNext() || !stopIfFalse.test(iterator.next())) {
                         return Futures.immediateFuture(null);
                     }
-                    return takeWhile(iterator, stopIfFalse);
+                    // something weird with type checking
+                    return (ListenableFuture) takeWhile(iterator, stopIfFalse);
                 }, executor);
     }
 

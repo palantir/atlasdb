@@ -24,9 +24,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.api.NewValue.KvsValue;
 import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
+import com.palantir.atlasdb.v2.api.transaction.scanner.ShouldAbortUncommittedWrites;
 
 public interface Kvs extends Reader<KvsValue>, Writer {
     ListenableFuture<Map<Cell, KvsValue>> loadCellsAtTimestamps(NewIds.Table table, Map<Cell, Long> timestampsToLoadAt);
-    ListenableFuture<Map<Long, Long>> getCommitTimestamps(Set<Long> timestamps);
+    ListenableFuture<Map<Long, Long>> getCommitTimestamps(Set<Long> timestamps, ShouldAbortUncommittedWrites shouldAbort);
     OptionalLong getCachedCommitTimestamp(long startTimestamp);
 }
