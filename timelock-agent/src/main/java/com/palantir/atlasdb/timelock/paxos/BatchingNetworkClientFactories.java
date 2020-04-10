@@ -18,10 +18,13 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 
@@ -33,17 +36,19 @@ abstract class BatchingNetworkClientFactories implements
     @Value.Derived
     AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory() {
         BatchPaxosAcceptor local = components().batchAcceptor();
-        List<BatchPaxosAcceptor> remotes =
-                UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptor());
-        LocalAndRemotes<BatchPaxosAcceptor> batchAcceptors = LocalAndRemotes.of(local, remotes)
-                .enhanceRemotes(remote -> metrics().instrument(BatchPaxosAcceptor.class, remote));
+        List<WithDedicatedExecutor<BatchPaxosAcceptor>> remotesAndExecutors =
+                UseCaseAwareBatchPaxosAcceptorAdapter.wrap(useCase(), remoteClients().batchAcceptorsWithExecutors());
+        LocalAndRemotes<WithDedicatedExecutor<BatchPaxosAcceptor>> batchAcceptors = LocalAndRemotes.of(
+                WithDedicatedExecutor.of(local, MoreExecutors.newDirectExecutorService()), remotesAndExecutors)
+                .enhanceRemotes(remote -> remote.transformService(
+                        service -> metrics().instrument(BatchPaxosAcceptor.class, service)));
 
         return AutobatchingPaxosAcceptorNetworkClientFactory.create(
-                batchAcceptors.all(),
-                TimeLockPaxosExecutors.createBoundedExecutors(
-                        metrics().asMetricsManager().getRegistry(),
-                        batchAcceptors,
-                        "leadership-batch-acceptors"),
+                batchAcceptors.all().stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()),
+                KeyedStream.of(batchAcceptors.all())
+                        .mapKeys(WithDedicatedExecutor::service)
+                        .map(WithDedicatedExecutor::executor)
+                        .collectToMap(),
                 quorumSize());
     }
 

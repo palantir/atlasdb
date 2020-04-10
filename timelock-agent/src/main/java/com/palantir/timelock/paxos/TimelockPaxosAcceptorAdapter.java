@@ -23,7 +23,9 @@ import java.util.stream.Collectors;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
+import com.palantir.atlasdb.timelock.paxos.WithDedicatedExecutor;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
@@ -63,14 +65,33 @@ public final class TimelockPaxosAcceptorAdapter implements PaxosAcceptor {
      * Given a list of {@link TimelockPaxosAcceptorRpcClient}s, returns a function allowing for injection of the client
      * name.
      */
-    public static Function<Client, List<PaxosAcceptor>> wrap(
+    public static Function<Client, List<WithDedicatedExecutor<PaxosAcceptor>>> wrapWithDedicatedExecutors(
             PaxosUseCase paxosUseCase,
             PaxosRemoteClients remoteClients) {
         switch (paxosUseCase) {
             case LEADER_FOR_ALL_CLIENTS:
-                return _client -> remoteClients.singleLeaderAcceptor().stream()
-                        .<PaxosAcceptor>map(Function.identity())
+                return _client -> remoteClients
+                        .singleLeaderAcceptorsWithExecutors()
+                        .stream()
+                        .map(remote -> remote.<PaxosAcceptor>transformService(x -> x))
                         .collect(Collectors.toList());
+            case LEADER_FOR_EACH_CLIENT:
+                throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
+            case TIMESTAMP:
+                throw new SafeIllegalArgumentException("Dedicated executors aren't currently supported for timestamp"
+                        + " paxos.");
+            default:
+                throw new IllegalStateException("Unexpected value: " + paxosUseCase);
+        }
+    }
+
+    public static Function<Client, List<PaxosAcceptor>> wrapWithoutDedicatedExecutors(
+            PaxosUseCase paxosUseCase,
+            PaxosRemoteClients remoteClients) {
+        switch (paxosUseCase) {
+            case LEADER_FOR_ALL_CLIENTS:
+                throw new SafeIllegalArgumentException("Leadership acceptors must use dedicated executors to avoid"
+                        + " thread explosion.");
             case LEADER_FOR_EACH_CLIENT:
                 throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
             case TIMESTAMP:

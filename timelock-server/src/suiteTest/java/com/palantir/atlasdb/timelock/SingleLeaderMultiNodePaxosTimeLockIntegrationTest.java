@@ -24,8 +24,13 @@ import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_
 import static com.palantir.atlasdb.timelock.paxos.PaxosUseCase.LEADER_FOR_ALL_CLIENTS;
 import static com.palantir.atlasdb.timelock.paxos.PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT;
 
+import java.lang.management.ManagementFactory;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -33,8 +38,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
 import com.palantir.atlasdb.timelock.paxos.Client;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
@@ -42,6 +51,7 @@ import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.common.streams.KeyedStream;
 
 @RunWith(Parameterized.class)
 public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
@@ -137,6 +147,59 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
         assertThat(sequenceNumbers).isSorted();
         assertThat(ImmutableSet.copyOf(sequenceNumbers)).hasSameSizeAs(sequenceNumbers);
+    }
+
+    @Test
+    public void stressTestV2() {
+        int numClients = 10;
+        List<NamespacedClients> clients = IntStream.range(0, numClients)
+                .boxed()
+                .map($ -> cluster.clientForRandomNamespace())
+                .collect(Collectors.toList());
+
+        // Need to establish leadership to safely know who is a non leader
+        clients.get(0).getFreshTimestamp();
+        TestableTimelockServer nonLeader = Iterables.getFirst(
+                cluster.nonLeaders(clients.get(0).namespace()).values(), null);
+
+        int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
+        boolean isNonLeaderTakenOut = false;
+        try {
+            for (int i = 0; i < 10_000; i++) { // Needed as it takes a while for the thread buildup to occur
+                clients.get(i % numClients).getFreshTimestamp();
+                assertNumberOfThreadsReasonable(
+                        startingNumThreads,
+                        ManagementFactory.getThreadMXBean().getThreadCount(),
+                        isNonLeaderTakenOut);
+                if (i == 1_000) {
+                    isNonLeaderTakenOut = true;
+                    makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
+                }
+            }
+        } finally {
+            nonLeader.serverHolder().resetWireMock();
+        }
+    }
+
+    private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
+        int threadLimit = startingThreads + 300;
+        if (nonLeaderDown) {
+            assertThat(threadCount)
+                    .as("should not additionally spin up too many threads after a non-leader failed")
+                    .isLessThanOrEqualTo(threadLimit);
+        } else {
+            assertThat(threadCount)
+                    .as("should not additionally spin up too many threads in the absence of failures")
+                    .isLessThanOrEqualTo(threadLimit);
+        }
+    }
+
+    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
+        nonLeader.serverHolder().wireMock().register(
+                WireMock.any(WireMock.anyUrl())
+                        .atPriority(Integer.MAX_VALUE - 1)
+                        .willReturn(WireMock.serviceUnavailable().withFixedDelay(
+                                Ints.checkedCast(Duration.ofSeconds(2).toMillis()))).build());
     }
 
     private static long getSequenceForServerUsingBatchedEndpoint(TestableTimelockServer server) {

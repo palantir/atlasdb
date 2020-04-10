@@ -17,9 +17,13 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLearner;
@@ -38,23 +42,41 @@ abstract class SingleLeaderNetworkClientFactories implements
     @Override
     public Factory<PaxosAcceptorNetworkClient> acceptor() {
         return client -> {
-            List<PaxosAcceptor> remoteAcceptors = TimelockPaxosAcceptorAdapter
-                    .wrap(useCase(), remoteClients())
-                    .apply(client);
+            List<WithDedicatedExecutor<PaxosAcceptor>> remoteAcceptors = assignExecutors(client);
             PaxosAcceptor localAcceptor = components().acceptor(client);
+            LocalAndRemotes<WithDedicatedExecutor<PaxosAcceptor>> paxosAcceptors = LocalAndRemotes.of(
+                    WithDedicatedExecutor.of(localAcceptor, MoreExecutors.newDirectExecutorService()),
+                    remoteAcceptors)
+                    .enhanceRemotes(remote -> remote.transformService(
+                            service -> metrics().instrument(PaxosAcceptor.class, service)));
 
-            LocalAndRemotes<PaxosAcceptor> paxosAcceptors = LocalAndRemotes.of(localAcceptor, remoteAcceptors)
-                    .enhanceRemotes(remote -> metrics().instrument(PaxosAcceptor.class, remote, client));
             SingleLeaderAcceptorNetworkClient uninstrumentedAcceptor = new SingleLeaderAcceptorNetworkClient(
-                    paxosAcceptors.all(),
+                    paxosAcceptors.all().stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()),
                     quorumSize(),
-                    TimeLockPaxosExecutors.createBoundedExecutors(
-                            metrics().legacyMetrics(),
-                            paxosAcceptors,
-                            "single-leader-acceptors"),
+                    KeyedStream.of(paxosAcceptors.all())
+                            .mapKeys(WithDedicatedExecutor::service)
+                            .map(WithDedicatedExecutor::executor)
+                            .collectToMap(),
                     PaxosTimeLockConstants.CANCEL_REMAINING_CALLS);
             return metrics().instrument(PaxosAcceptorNetworkClient.class, uninstrumentedAcceptor);
         };
+    }
+
+    private List<WithDedicatedExecutor<PaxosAcceptor>> assignExecutors(Client client) {
+        if (useCase() == PaxosUseCase.LEADER_FOR_ALL_CLIENTS) {
+            return TimelockPaxosAcceptorAdapter
+                    .wrapWithDedicatedExecutors(useCase(), remoteClients())
+                    .apply(client);
+
+        } else if (useCase() == PaxosUseCase.TIMESTAMP) {
+            return TimelockPaxosAcceptorAdapter
+                    .wrapWithoutDedicatedExecutors(useCase(), remoteClients())
+                    .apply(client)
+                    .stream()
+                    .map(acceptor -> WithDedicatedExecutor.of(acceptor, sharedExecutor()))
+                    .collect(Collectors.toList());
+        }
+        throw new SafeIllegalStateException("The use case " + useCase() + " is unsupported for single leader paxos.");
     }
 
     @Value.Auxiliary
