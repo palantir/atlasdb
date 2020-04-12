@@ -16,15 +16,19 @@
 
 package com.palantir.atlasdb.v2.testing;
 
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
@@ -33,6 +37,8 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.SetMultimap;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
@@ -71,7 +77,6 @@ import com.palantir.atlasdb.v2.api.transaction.scanner.ReadReportingReader.Recor
 import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderChain;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderFactory;
-import com.palantir.atlasdb.v2.api.transaction.scanner.ShouldAbortUncommittedWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeadershipId;
@@ -81,40 +86,39 @@ import io.vavr.collection.Set;
 
 public class DeterministicTester {
     private static final Logger log = LoggerFactory.getLogger(DeterministicTester.class);
-    private static final LeadershipId LEADERSHIP_ID = LeadershipId.random();
-    private final TestExecutor executor = new TestExecutor();
-    private final KeyValueService keyValueService = new ThreadUnsafeInMemoryKeyValueService(true);
-    private final LegacyKvs kvs = new LegacyKvs(
-            executor.soonScheduler(),
-            SimpleTransactionService.createV1(keyValueService),
-            keyValueService,
-            FakeSweepQueue.INSTANCE,
-            new DefaultTimestampCache(new MetricRegistry(), () -> 100_000L));
-    private final LegacyLocks locks = new LegacyLocks(executor.actuallyProgrammableScheduler(),
-            new LeaderClock(LEADERSHIP_ID, () -> NanoTime.createForTests(0)));
-    private final AsyncIterators iterators = new AsyncIterators(executor.nowScheduler());
-    private final ReaderFactory readerFactory = new ReaderFactory(iterators, kvs, locks, locks);
-    private final Reader<RecordingNewValue> baseReader = ReaderChain.create(kvs)
-            .then(readerFactory.postFilterWrites(ShouldAbortUncommittedWrites.YES))
-            .then(readerFactory.mergeInTransactionWrites())
-            .then(readerFactory.reportReads())
-            .then(readerFactory.stopAfterMarker())
-            .then(readerFactory.orderValidating())
-            .then(readerFactory.checkImmutableLocks())
-            .build();
-    private final ConflictChecker conflictChecker = new DefaultConflictChecker(iterators, readerFactory);
-    private final TestTransactionManager txnManager = new TestTransactionManager();
-
     private static final Table TABLE = NewIds.table("table.table1");
 
-    private SingleThreadedTransaction createTransaction(
-            Executor executor, long immutableTimestamp, long startTimestamp, NewLockToken immutableLock) {
-        TransactionState state = TransactionState.newTransaction(
-                executor, immutableTimestamp, startTimestamp, immutableLock);
-        return new SingleThreadedTransaction(baseReader, kvs, locks, locks, conflictChecker, iterators, state);
-    }
+    private static final class TestTransactionManager {
+        private static final LeadershipId LEADERSHIP_ID = LeadershipId.random();
+        private final TestExecutor executor = new TestExecutor();
+        private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
+        private final LegacyKvs kvs = new LegacyKvs(
+                executor.soonScheduler(),
+                SimpleTransactionService.createV1(keyValueService),
+                keyValueService,
+                FakeSweepQueue.INSTANCE,
+                new DefaultTimestampCache(new MetricRegistry(), () -> 100_000L));
+        private final LegacyLocks locks = new LegacyLocks(executor.actuallyProgrammableScheduler(),
+                new LeaderClock(LEADERSHIP_ID, () -> NanoTime.createForTests(0)));
+        private final AsyncIterators iterators = new AsyncIterators(executor.nowScheduler());
+        private final ReaderFactory readerFactory = new ReaderFactory(iterators, kvs, locks, locks);
+        private final Reader<RecordingNewValue> baseReader = ReaderChain.create(kvs)
+                .then(readerFactory.readCommittedData())
+                .then(readerFactory.mergeInTransactionWrites())
+                .then(readerFactory.reportReads())
+                .then(readerFactory.stopAfterMarker())
+                .then(readerFactory.orderValidating())
+                .then(readerFactory.checkImmutableLocks())
+                .build();
+        private final ConflictChecker conflictChecker = new DefaultConflictChecker(iterators, readerFactory);
 
-    private final class TestTransactionManager {
+        private SingleThreadedTransaction createTransaction(
+                Executor executor, long immutableTimestamp, long startTimestamp, NewLockToken immutableLock) {
+            TransactionState state = TransactionState.newTransaction(
+                    executor, immutableTimestamp, startTimestamp, immutableLock);
+            return new SingleThreadedTransaction(baseReader, kvs, locks, locks, conflictChecker, iterators, state);
+        }
+
         public <T> ListenableFuture<T> callTransaction(AsyncFunction<SimplifiedTransaction, T> task) {
             return Futures.catchingAsync(
                     transactionAttempt(task),
@@ -160,28 +164,28 @@ public class DeterministicTester {
             transaction.setIsDebugging();
         }
 
-        public Promise<OptionalInt> getPred(int key) {
+        public ListenableFuture<OptionalInt> getPred(int key) {
             Row row = NewIds.row(EncodingUtils.encodeSignedVarLong(key));
-            return Promises.transform(transaction.get(new SimpleGetOperation(TABLE, NewIds.cell(row, PRED))),
+            return Futures.transform(transaction.get(new SimpleGetOperation(TABLE, NewIds.cell(row, PRED))),
                     value -> value.map(storedValue -> OptionalInt.of(
                             Ints.checkedCast(EncodingUtils.decodeSignedVarLong(storedValue.toByteArray())))).orElse(OptionalInt.empty()),
                     MoreExecutors.directExecutor());
         }
 
-        public Promise<Integer> getPredOrElseThrow(int key) {
-            return Promises.transform(getPred(key), OptionalInt::getAsInt, MoreExecutors.directExecutor());
+        public ListenableFuture<Integer> getPredOrElseThrow(int key) {
+            return Futures.transform(getPred(key), OptionalInt::getAsInt, MoreExecutors.directExecutor());
         }
 
-        public Promise<OptionalInt> getSucc(int key) {
+        public ListenableFuture<OptionalInt> getSucc(int key) {
             Row row = NewIds.row(EncodingUtils.encodeSignedVarLong(key));
-            return Promises.transform(transaction.get(new SimpleGetOperation(TABLE, NewIds.cell(row, SUCC))),
+            return Futures.transform(transaction.get(new SimpleGetOperation(TABLE, NewIds.cell(row, SUCC))),
                     value -> value.map(storedValue -> OptionalInt.of(
                             Ints.checkedCast(EncodingUtils.decodeSignedVarLong(storedValue.toByteArray())))).orElse(OptionalInt.empty()),
                     MoreExecutors.directExecutor());
         }
 
-        public Promise<Integer> getSuccOrElseThrow(int key) {
-            return Promises.transform(getSucc(key), OptionalInt::getAsInt, MoreExecutors.directExecutor());
+        public ListenableFuture<Integer> getSuccOrElseThrow(int key) {
+            return Futures.transform(getSucc(key), OptionalInt::getAsInt, MoreExecutors.directExecutor());
         }
 
         public void addToSet(int element) {
@@ -200,9 +204,9 @@ public class DeterministicTester {
                     Optional.empty()));
         }
 
-        public Promise<Boolean> setContains(int element) {
+        public ListenableFuture<Boolean> setContains(int element) {
             Row row = NewIds.row(EncodingUtils.encodeSignedVarLong(element));
-            return Promises.transform(transaction.get(new SimpleGetOperation(
+            return Futures.transform(transaction.get(new SimpleGetOperation(
                     TABLE, NewIds.cell(row, SET))), Optional::isPresent, MoreExecutors.directExecutor());
         }
 
@@ -229,54 +233,80 @@ public class DeterministicTester {
     }
 
     @Test
-    public void testSimpleWrites() {
-        Promise<?> result = txnManager.callTransaction(txn -> {
+    public void testSimpleWrites() throws ExecutionException, InterruptedException {
+        TestTransactionManager txnManager = new TestTransactionManager();
+        ListenableFuture<?> result = txnManager.callTransaction(txn -> {
             txn.put(1, 2, 3);
-            return Promises.immediatePromise(null);
+            return Futures.immediateFuture(null);
         });
-        executor.start();
+        txnManager.executor.start();
         result.get();
     }
 
     @Test
-    public void testWriteAndRead() {
-        Promise<?> writeResult = txnManager.callTransaction(txn -> {
+    public void testWriteAndRead() throws ExecutionException, InterruptedException {
+        TestTransactionManager txnManager = new TestTransactionManager();
+        ListenableFuture<?> writeResult = txnManager.callTransaction(txn -> {
             txn.put(1, 2, 3);
-            return Promises.immediatePromise(null);
+            return Futures.immediateFuture(null);
         });
-        executor.start();
+        txnManager.executor.start();
         writeResult.get();
-        Promise<OptionalInt> readResult = txnManager.callTransaction(txn -> txn.getSucc(1));
-        executor.start();
+        ListenableFuture<OptionalInt> readResult = txnManager.callTransaction(txn -> txn.getSucc(1));
+        txnManager.executor.start();
         assertThat(readResult.get().getAsInt()).isEqualTo(3);
     }
 
     @Test
-    public void testPingPong() {
+    public void testDeterminism() {
+        java.util.Set<SetMultimap<Long, Long>> traces = IntStream.range(0, 10)
+                .mapToObj($ -> new TestTransactionManager())
+                .peek(txnManager -> {
+                    try {
+                        testPingPong(txnManager);
+                    } catch (ExecutionException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
+                })
+                .map(txnManager -> txnManager.executor.getTrace())
+                .collect(toSet());
+        assertThat(traces).hasSize(1);
+    }
+
+    @Test
+    public void testPingPong() throws ExecutionException, InterruptedException {
+        testPingPong(new TestTransactionManager());
+    }
+
+    private static void testPingPong(TestTransactionManager txnManager) throws ExecutionException, InterruptedException {
         int universe = 4;
-        Promise<?> state = txnManager.runTransaction(txn -> {
+        ListenableFuture<?> state = txnManager.runTransaction(txn -> {
             txn.addToSet(0);
             txn.addToSet(1);
         });
-        executor.start();
-        state.get();
-
-        Promise<?> allSwaps = Promises.allAsList(IntStream.range(0, 16)
-                .mapToObj($ -> maybeReplaceSetElement(universe, 10_000))
+        ListenableFuture<?> allSwaps = Futures.allAsList(IntStream.range(0, 7)
+                .mapToObj($ -> Futures.whenAllSucceed(state)
+                        .callAsync(() -> maybeReplaceSetElement(txnManager, universe, 3810),
+                                MoreExecutors.directExecutor()))
                 .collect(toList()));
-        executor.start();
-//        allSwaps.get();
-
-        Promise<java.util.Set<Integer>> stateAfterwards = getSet(universe);
-        executor.start();
+        ListenableFuture<java.util.Set<Integer>> stateAfterwards =
+                Futures.whenAllSucceed(allSwaps).callAsync(
+                        () -> getSet(txnManager, universe),
+                        MoreExecutors.directExecutor());
+        txnManager.executor.start();
+        state.get();
+        allSwaps.get();
         assertThat(stateAfterwards.get()).hasSize(2);
     }
 
-    private Promise<java.util.Set<Integer>> getSet(int universeSize) {
+    private static ListenableFuture<java.util.Set<Integer>> getSet(TestTransactionManager txnManager, int universeSize) {
         return txnManager.callTransaction(txn -> {
             List<Integer> range = IntStream.range(0, universeSize).boxed().collect(toList());
-            Promise<List<Boolean>> membershipsPromise = Promises.allAsList(Lists.transform(range, txn::setContains));
-            return Promises.transform(membershipsPromise, memberships -> {
+            ListenableFuture<List<Boolean>> membershipsListenableFuture = Futures.allAsList(Lists.transform(range, txn::setContains));
+            return Futures.transform(membershipsListenableFuture, memberships -> {
                 java.util.Set<Integer> result = new HashSet<>();
                 for (int i = 0; i < range.size(); i++) {
                     if (memberships.get(i)) {
@@ -284,86 +314,87 @@ public class DeterministicTester {
                     }
                 }
                 return result;
-            }, executor.nowScheduler());
+            }, txnManager.executor.nowScheduler());
         });
     }
 
-    private Promise<?> maybeReplaceSetElement(int universeSize, int numTimes) {
-        return FutureChain.start(executor.soonScheduler(), 0)
+    private static ListenableFuture<?> maybeReplaceSetElement(
+            TestTransactionManager txnManager, int universeSize, int numTimes) {
+        return FutureChain.start(txnManager.executor.soonScheduler(), 0)
                 .whileTrue(i -> i < numTimes,
-                        chain -> chain.then(i -> txnManager.callTransaction(txn -> maybeMoveOne(txn, universeSize, i)))
+                        chain -> chain.then(i -> txnManager.callTransaction(
+                                txn -> maybeMoveOne(txnManager, txn, universeSize, i)))
                                 .alterState(i -> i + 1))
                 .done();
     }
 
-    private Promise<?> maybeMoveOne(SimplifiedTransaction txn, int universeSize, int round) {
-        int a = executor.randomInt(universeSize);
-        int b = executor.randomInt(universeSize);
-
-        if (round >= 46) {
-            txn.setDebugging();
-        }
+    private static ListenableFuture<?> maybeMoveOne(
+            TestTransactionManager txnManager, SimplifiedTransaction txn, int universeSize, int round) {
+        int a = txnManager.executor.randomInt(universeSize);
+        int b = txnManager.executor.randomInt(universeSize);
 
         if (a == b) {
-            return Promises.immediatePromise(null);
+            return Futures.immediateFuture(null);
         }
 
-        Promise<Boolean> aExists = txn.setContains(a);
-        Promise<Boolean> bExists = txn.setContains(b);
-        return Promises.whenAllSucceed(aExists, bExists)
+        ListenableFuture<Boolean> aExists = txn.setContains(a);
+        ListenableFuture<Boolean> bExists = txn.setContains(b);
+        return Futures.whenAllSucceed(aExists, bExists)
                 .call(() -> {
                     boolean isA = aExists.get();
                     boolean isB = bExists.get();
                     if (isA && isB) {
-                        int newElement = executor.randomInt(universeSize);
-                        txn.removeFromSet(a);
-                        txn.addToSet(newElement);
+                        int newElement = txnManager.executor.randomInt(universeSize);
+                        if (newElement != a && newElement != b) {
+                            txn.removeFromSet(a);
+                            txn.addToSet(newElement);
+                        }
                     }
                     return null;
-                }, executor.nowScheduler());
+                }, txnManager.executor.nowScheduler());
     }
 
     @Test
-    public void testRingMutations() {
+    public void testRingMutations() throws ExecutionException, InterruptedException {
+        TestTransactionManager txnManager = new TestTransactionManager();
         int ringLength = 1000;
-        Promise<?> writes = txnManager.runTransaction(txn -> buildRing(txn, ringLength));
-        executor.start();
+        ListenableFuture<?> writes = txnManager.runTransaction(txn -> buildRing(txn, ringLength));
+        txnManager.executor.start();
         writes.get();
 
-        Promise<?> swappages = Promises.allAsList(IntStream.range(0, 2)
-                .mapToObj($ -> swapElements(ringLength, 10_000))
+        ListenableFuture<?> swappages = Futures.allAsList(IntStream.range(0, 16)
+                .mapToObj($ -> swapElements(txnManager, ringLength, 10_000))
                 .collect(toList()));
-        executor.start();
-        locks.printHeldLocks();
+        txnManager.executor.start();
         swappages.get();
 
-        Promise<Integer> actualRingLength = txnManager.callTransaction(this::ringLengthViaSucc);
-        executor.start();
+        ListenableFuture<Integer> actualRingLength = txnManager.callTransaction(
+                txn -> ringLengthViaSucc(txnManager, txn));
+        txnManager.executor.start();
         assertThat(actualRingLength.get()).isEqualTo(ringLength);
     }
 
-    private Promise<?> swapElements(int ringLength, int numTimes) {
-        return FutureChain.start(executor.soonScheduler(), 0)
+    private ListenableFuture<?> swapElements(TestTransactionManager txnManager, int ringLength, int numTimes) {
+        return FutureChain.start(txnManager.executor.soonScheduler(), 0)
                 .whileTrue(i -> i < numTimes,
-                        chain -> chain.then(i -> txnManager.callTransaction(txn -> swapElements(txn, ringLength, i)))
+                        chain -> chain.then(i -> txnManager.callTransaction(
+                                txn -> swapElements(txnManager, txn, ringLength, i)))
                                 .alterState(i -> i + 1))
                 .done();
     }
 
-    private Promise<?> swapElements(SimplifiedTransaction txn, int ringLength, int iteration) {
-//        if (iteration == 520) {
-//            txn.setDebugging();
-//        }
-        int a = executor.randomInt(ringLength);
-        int b = executor.randomInt(ringLength);
+    private ListenableFuture<?> swapElements(
+            TestTransactionManager txnManager, SimplifiedTransaction txn, int ringLength, int iteration) {
+        int a = txnManager.executor.randomInt(ringLength);
+        int b = txnManager.executor.randomInt(ringLength);
         if (a == b) {
-            return Promises.immediatePromise(null);
+            return Futures.immediateFuture(null);
         }
-        Promise<Integer> aPred = txn.getPredOrElseThrow(a);
-        Promise<Integer> bPred = txn.getPredOrElseThrow(b);
-        Promise<Integer> aSucc = txn.getSuccOrElseThrow(a);
-        Promise<Integer> bSucc = txn.getSuccOrElseThrow(b);
-        return Promises.whenAllSucceed(aPred, bPred, aSucc, bSucc).call(() -> {
+        ListenableFuture<Integer> aPred = txn.getPredOrElseThrow(a);
+        ListenableFuture<Integer> bPred = txn.getPredOrElseThrow(b);
+        ListenableFuture<Integer> aSucc = txn.getSuccOrElseThrow(a);
+        ListenableFuture<Integer> bSucc = txn.getSuccOrElseThrow(b);
+        return Futures.whenAllSucceed(aPred, bPred, aSucc, bSucc).call(() -> {
             int ap = aPred.get();
             int bp = bPred.get();
             int as = aSucc.get();
@@ -380,7 +411,7 @@ public class DeterministicTester {
             txn.putPred(as, b);
             txn.putSucc(ap, b);
             return null;
-        }, executor.nowScheduler());
+        }, txnManager.executor.nowScheduler());
     }
 
     private void buildRing(SimplifiedTransaction txn, int ringLength) {
@@ -389,7 +420,7 @@ public class DeterministicTester {
         }
     }
 
-    private Promise<Integer> ringLengthViaSucc(SimplifiedTransaction txn) {
+    private ListenableFuture<Integer> ringLengthViaSucc(TestTransactionManager txnManager, SimplifiedTransaction txn) {
 
         Predicate<LinkedHashSet<Integer>> setChanged = new Predicate<LinkedHashSet<Integer>>() {
             LinkedHashSet<Integer> last = LinkedHashSet.empty();
@@ -403,7 +434,7 @@ public class DeterministicTester {
                 return true;
             }
         };
-        return FutureChain.start(executor.nowScheduler(), LinkedHashSet.of(0))
+        return FutureChain.start(txnManager.executor.nowScheduler(), LinkedHashSet.of(0))
                 .whileTrue(setChanged,
                         seen -> seen.then(s -> txn.getSuccOrElseThrow(s.last()), LinkedHashSet::add))
                 .alterState(Set::size)

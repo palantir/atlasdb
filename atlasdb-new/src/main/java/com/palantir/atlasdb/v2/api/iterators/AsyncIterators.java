@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.v2.api.iterators;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -138,6 +140,7 @@ public final class AsyncIterators {
                     return currentInner.next();
                 }
                 currentInner = iterator.next();
+                checkState(currentInner.hasNext());
                 return currentInner.next();
             }
         };
@@ -203,44 +206,16 @@ public final class AsyncIterators {
 
     public <T, R> AsyncIterator<R> transformAsync(
             AsyncIterator<? extends T> iterator, AsyncFunction<T, R> transformer) {
-        return new AsyncIterator<R>() {
-            private Promise<Boolean> hasNext = null;
-            private Promise<R> next = null;
-
+        return new AbstractAsyncIterator<R>() {
             @Override
-            public Promise<Boolean> onHasNext() {
-                initializeNextState();
-                return hasNext;
-            }
-
-            private void initializeNextState() {
-                if (hasNext != null) {
-                    return;
-                }
-                Promise<Boolean> baseHasNext = iterator.onHasNext();
-                next = Promises.transformAsync(
-                        baseHasNext,
-                        hasNext -> hasNext ? transformer.apply(iterator.next())
-                                : Promises.immediatePromise(null),
-                        executor);
-                hasNext = Promises.transform(next, $ -> baseHasNext.get(), executor);
-            }
-
-            @Override
-            public boolean hasNext() {
-                initializeNextState();
-                return hasNext.getBlocking();
-            }
-
-            @Override
-            public R next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                R result = next.getBlocking();
-                hasNext = null;
-                next = null;
-                return result;
+            public ListenableFuture<R> computeNext() {
+                return Futures.transformAsync(iterator.onHasNext(),
+                        hasNext -> {
+                            if (!hasNext) {
+                                return endOfData();
+                            }
+                            return transformer.apply(iterator.next());
+                        }, executor);
             }
         };
     }

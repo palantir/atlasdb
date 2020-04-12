@@ -19,7 +19,7 @@ package com.palantir.atlasdb.v2.testing;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -84,8 +84,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 // Perf improvement for tests... - exactly the same as InMemoryKeyValueService, except with thread unsafe maps
 public class ThreadUnsafeInMemoryKeyValueService extends AbstractKeyValueService {
 
-    private final Map<TableReference, Table> tables = new HashMap<>();
-    private final Map<TableReference, byte[]> tableMetadata = new HashMap<>();
+    private final Map<TableReference, Table> tables = new LinkedHashMap<>();
+    private final Map<TableReference, byte[]> tableMetadata = new LinkedHashMap<>();
     private final boolean createTablesAutomatically;
 
     public ThreadUnsafeInMemoryKeyValueService(boolean createTablesAutomatically) {

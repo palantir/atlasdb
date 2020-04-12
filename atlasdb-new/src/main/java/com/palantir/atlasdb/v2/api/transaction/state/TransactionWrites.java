@@ -23,7 +23,7 @@ import java.util.function.UnaryOperator;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 
 import io.vavr.Tuple2;
-import io.vavr.collection.HashMap;
+import io.vavr.collection.LinkedHashMap;
 import io.vavr.collection.Map;
 
 public final class TransactionWrites implements Iterable<TableWrites> {
@@ -55,7 +55,7 @@ public final class TransactionWrites implements Iterable<TableWrites> {
         private Map<Table, TableWrites> writes;
 
         public Builder() {
-            writes = HashMap.empty();
+            writes = LinkedHashMap.empty();
         }
 
         public Builder(TransactionWrites transactionWrites) {
@@ -63,7 +63,7 @@ public final class TransactionWrites implements Iterable<TableWrites> {
         }
 
         public Builder clear() {
-            writes = HashMap.empty();
+            writes = LinkedHashMap.empty();
             return this;
         }
 

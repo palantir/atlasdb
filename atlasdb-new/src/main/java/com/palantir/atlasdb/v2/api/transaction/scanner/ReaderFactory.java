@@ -50,10 +50,6 @@ public final class ReaderFactory {
         return ReadAtCommitTimestamp::new;
     }
 
-    public <T extends NewValue, R extends Reader<T>> Function<R, Reader<T>> readAtVeryLatestTimestamp() {
-        return ReadAtVeryLatestTimestamp::new;
-    }
-
     public <T extends NewValue, R extends Reader<T>> Function<R, Reader<NewValue>> mergeInTransactionWrites() {
         return reader -> new MergeInTransactionWritesReader(iterators, reader);
     }
@@ -62,9 +58,8 @@ public final class ReaderFactory {
         return reader -> new CheckImmutableLocksReader<T>(reader, iterators, locks);
     }
 
-    public <K extends Kvs> Function<K, PostFilterWritesReader> postFilterWrites(
-            ShouldAbortUncommittedWrites shouldAbortWrites) {
-        return reader -> new PostFilterWritesReader(iterators, reader, locks, shouldAbortWrites);
+    public <K extends Kvs> Function<K, ReadCommittedDataReader> readCommittedData() {
+        return reader -> new ReadCommittedDataReader(reader, iterators, locks);
     }
 
     public <T extends NewValue, R extends Reader<T>> Function<R, Reader<RecordingNewValue>> reportReads() {

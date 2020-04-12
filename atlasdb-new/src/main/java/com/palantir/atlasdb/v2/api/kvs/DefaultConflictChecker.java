@@ -18,10 +18,7 @@ package com.palantir.atlasdb.v2.api.kvs;
 
 import java.util.List;
 
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
-
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.v2.api.api.AsyncIterator;
@@ -35,7 +32,6 @@ import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderChain;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReaderFactory;
-import com.palantir.atlasdb.v2.api.transaction.scanner.ShouldAbortUncommittedWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TableReads;
 import com.palantir.atlasdb.v2.api.transaction.state.TableWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
@@ -48,15 +44,13 @@ public class DefaultConflictChecker implements ConflictChecker {
     public DefaultConflictChecker(AsyncIterators iterators, ReaderFactory readerFactory) {
         this.iterators = iterators;
         this.readLatestCommittedTimestamps = ReaderChain.create(readerFactory.kvs())
-                .then(readerFactory.postFilterWrites(ShouldAbortUncommittedWrites.YES))
-                .then(readerFactory.readAtVeryLatestTimestamp())
+                .then(readerFactory.readCommittedData())
                 .then(readerFactory.stopAfterMarker())
                 .then(readerFactory.orderValidating())
                 .build();
         this.readAtCommitTimestamp = ReaderChain.create(readerFactory.kvs())
                 // it's fiddly as to why this is safe... but it is.
-                .then(readerFactory.postFilterWrites(ShouldAbortUncommittedWrites.NO_WE_ARE_READ_WRITE_CONFLICT_CHECKING))
-                .then(readerFactory.readAtCommitTimestamp())
+                .then(readerFactory.readCommittedData())
                 .then(readerFactory.mergeInTransactionWrites())
 //                .then(readerFactory.stopAfterMarker())
                 .then(readerFactory.orderValidating())
@@ -64,13 +58,13 @@ public class DefaultConflictChecker implements ConflictChecker {
     }
 
     @Override
-    public Promise<?> checkForWriteWriteConflicts(TransactionState state) {
-        Promise<List<Object>> result = Promises.allAsList(Iterables.transform(state.writes(),
+    public ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state) {
+        ListenableFuture<List<Object>> result = Futures.allAsList(Iterables.transform(state.writes(),
                 writes -> checkForWriteWriteConflicts(state, writes)));
         return result;
     }
 
-    private Promise<?> checkForWriteWriteConflicts(TransactionState state, TableWrites writes) {
+    private ListenableFuture<?> checkForWriteWriteConflicts(TransactionState state, TableWrites writes) {
         ScanDefinition scan = writes.toConflictCheckingScan();
         AsyncIterator<CommittedValue> executed = readLatestCommittedTimestamps.scan(state, scan);
         return iterators.forEach(executed, element -> {
@@ -85,7 +79,7 @@ public class DefaultConflictChecker implements ConflictChecker {
         return Futures.allAsList(Iterables.transform(state.reads(), reads -> checkForReadWriteConflicts(state, reads)));
     }
 
-    private ListenableFuture<?> checkForReadWriteConflicts(TransactionState state, TableReads reads) {
+    private ListenableFuture<List<Object>> checkForReadWriteConflicts(TransactionState state, TableReads reads) {
         Iterable<ScanDefinition> scans = reads.toConflictCheckingScans();
         return Futures.allAsList(Iterables.transform(scans, scan -> {
             Table table = scan.table();

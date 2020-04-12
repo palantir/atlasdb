@@ -46,7 +46,7 @@ import com.palantir.atlasdb.v2.api.future.FutureChain;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
-import io.vavr.collection.HashMap;
+import io.vavr.collection.LinkedHashMap;
 import io.vavr.collection.Map;
 
 public final class PostFilterWritesReader extends TransformingReader<KvsValue, CommittedValue> {
@@ -74,7 +74,8 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
     @VisibleForTesting
     ListenableFuture<Iterator<CommittedValue>> postFilterWrites(
             Executor executor, Table table, long startTs, long immutableTimestamp, List<KvsValue> values) {
-        Map<Cell, KvsValue> asCells = values.stream().collect(HashMap.collector(KvsValue::cell, Function.identity()));
+        Map<Cell, KvsValue> asCells = values.stream().collect(
+                LinkedHashMap.collector(KvsValue::cell, Function.identity()));
         PostFilterState postFilterState = PostFilterState.initialize(table, startTs, immutableTimestamp, asCells);
         return FutureChain.start(executor, postFilterState)
                 .whileTrue(PostFilterState::incomplete, this::postFilterRound)
@@ -94,7 +95,7 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
     }
 
     private PostFilterState markCachedCommitTsDataCommitted(PostFilterState state) {
-        java.util.Map<Long, Long> commitTimestamps = new java.util.HashMap<>();
+        java.util.Map<Long, Long> commitTimestamps = new java.util.LinkedHashMap<>();
         for (KvsValue value : state.unknown().values()) {
             long startTimestamp = value.startTimestamp();
             OptionalLong maybeCommitTimestamp = delegate.getCachedCommitTimestamp(value.startTimestamp());
@@ -157,11 +158,11 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
                 checkState(toReissue().containsKey(value.cell()));
                 unknown = unknown.put(value.cell(), value);
             }
-            return withUnknown(unknown).withToReissue(HashMap.empty());
+            return withUnknown(unknown).withToReissue(LinkedHashMap.empty());
         }
 
         default PostFilterState processCommitTimestamps(java.util.Map<Long, Long> timestamps) {
-            Map<Cell, KvsValue> newUnknown = HashMap.empty();
+            Map<Cell, KvsValue> newUnknown = LinkedHashMap.empty();
             Map<Cell, CommittedValue> committed = committed();
             Map<Cell, Long> toReissue = toReissue();
             for (KvsValue value : unknown().values()) {
@@ -186,7 +187,7 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
             for (KvsValue value : unknown().values()) {
                 toReissue = toReissue.put(value.cell(), value.startTimestamp() - 1);
             }
-            return withUnknown(HashMap.empty()).withToReissue(toReissue);
+            return withUnknown(LinkedHashMap.empty()).withToReissue(toReissue);
         }
 
         PostFilterState withUnknown(Map<Cell, KvsValue> unknown);
@@ -199,8 +200,8 @@ public final class PostFilterWritesReader extends TransformingReader<KvsValue, C
                     .startTimestamp(startTimestamp) // todo this is a bit error prone
                     .immutableTimestamp(immutableTimestamp)
                     .unknown(values)
-                    .committed(HashMap.empty())
-                    .toReissue(HashMap.empty())
+                    .committed(LinkedHashMap.empty())
+                    .toReissue(LinkedHashMap.empty())
                     .build();
         }
     }

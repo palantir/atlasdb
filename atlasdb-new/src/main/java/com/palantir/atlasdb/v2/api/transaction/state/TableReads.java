@@ -27,12 +27,12 @@ import com.palantir.atlasdb.v2.api.api.NewValue;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.api.ScanFilter;
 
-import io.vavr.collection.HashMap;
+import io.vavr.collection.LinkedHashMap;
 import io.vavr.collection.Map;
 import io.vavr.collection.TreeMap;
 
 public final class TableReads {
-    static final TableReads EMPTY = new TableReads(HashMap.empty(), HashMap.empty());
+    static final TableReads EMPTY = new TableReads(LinkedHashMap.empty(), LinkedHashMap.empty());
 
     private final Map<Cell, NewValue> reads;
     private final Map<ScanDefinition, EarlyScanTermination> scanEnds;
@@ -99,7 +99,7 @@ public final class TableReads {
 
         public Builder() {
             reads = TreeMap.empty();
-            scanEnds = HashMap.empty();
+            scanEnds = LinkedHashMap.empty();
         }
 
         public Builder(TableReads tableReads) {
@@ -113,7 +113,7 @@ public final class TableReads {
         }
 
         public Builder putScanEnd(ScanDefinition scan, NewValue end) {
-            Map<ScanDefinition, EarlyScanTermination> map = HashMap.of(scan, new EarlyScanTermination(end));
+            Map<ScanDefinition, EarlyScanTermination> map = LinkedHashMap.of(scan, new EarlyScanTermination(end));
             Ordering<NewValue> comparator =
                     Ordering.from(scan.filter().toComparator(scan.attributes())).onResultOf(NewValue::cell);
             // very likely need to optimize this... initial implementation seems wildly inefficient

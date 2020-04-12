@@ -18,21 +18,22 @@ package com.palantir.atlasdb.v2.api.transaction;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
+import com.palantir.atlasdb.v2.api.api.ConflictChecker;
 import com.palantir.atlasdb.v2.api.api.NewEndOperation;
 import com.palantir.atlasdb.v2.api.api.NewGetOperation;
 import com.palantir.atlasdb.v2.api.api.NewGetOperation.ResultBuilder;
+import com.palantir.atlasdb.v2.api.api.NewLocks;
 import com.palantir.atlasdb.v2.api.api.NewPutOperation;
 import com.palantir.atlasdb.v2.api.api.NewTransaction;
 import com.palantir.atlasdb.v2.api.api.NewValue;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
-import com.palantir.atlasdb.v2.api.future.FutureChain;
-import com.palantir.atlasdb.v2.api.api.ConflictChecker;
-import com.palantir.atlasdb.v2.api.api.Writer;
-import com.palantir.atlasdb.v2.api.api.NewLocks;
 import com.palantir.atlasdb.v2.api.api.Timestamps;
+import com.palantir.atlasdb.v2.api.api.Writer;
+import com.palantir.atlasdb.v2.api.future.FutureChain;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.transaction.scanner.ReadReportingReader.RecordingNewValue;
 import com.palantir.atlasdb.v2.api.transaction.scanner.Reader;
+import com.palantir.atlasdb.v2.api.transaction.state.ReadBehaviour;
 import com.palantir.atlasdb.v2.api.transaction.state.StateHolder;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 import com.palantir.atlasdb.v2.api.util.Unreachable;
@@ -109,10 +110,12 @@ public class SingleThreadedTransaction implements NewTransaction {
                 .then(s -> locks.lock(s.writeLockDescriptors()),
                         (transactionState, token) -> transactionState.toBuilder().addHeldLocks(token).build())
                 .defer(s -> locks.unlock(s.heldLocks()))
+                .alterState(s -> s.toBuilder().readBehaviour(ReadBehaviour.CHECKING_WRITE_WRITE_CONFLICTS).build())
                 .then(conflictChecker::checkForWriteWriteConflicts)
                 .then(writer::write)
                 .then($ -> timestamps.getCommitTimestamp(), (s, ts) -> s.toBuilder().commitTimestamp(ts).build())
                 // todo punch
+                .alterState(s -> s.toBuilder().readBehaviour(ReadBehaviour.CHECKING_READ_WRITE_CONFLICTS).build())
                 .then(conflictChecker::checkForReadWriteConflicts)
                 // todo pre-commit-conditions if any
                 .then(s -> locks.checkStillValid(s.heldLocks()))

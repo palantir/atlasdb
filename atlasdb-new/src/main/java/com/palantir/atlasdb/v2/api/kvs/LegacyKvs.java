@@ -220,7 +220,7 @@ public final class LegacyKvs implements Kvs {
                                                     toLegacy(definition.table()),
                                                     byteArrayRows,
                                                     columnSelection,
-                                                    state.startTimestamp());
+                                                    state.readTimestamp());
                                             return KeyedStream.stream(rows)
                                                     .mapKeys(cell -> fromLegacy(cell))
                                                     .map((cell, value) -> fromLegacy(cell, value))
@@ -248,7 +248,7 @@ public final class LegacyKvs implements Kvs {
                         Iterator<RowResult<Value>> rows = keyValueService.getRange(
                                 toLegacy(definition.table()),
                                 request,
-                                state.startTimestamp());
+                                state.readTimestamp());
                         return iterators.concat(iterators.transform(toAsyncIterator(rows), rowResult -> {
                             List<KvsValue> results = new ArrayList<>(rowResult.getColumns().size());
                             Row row = NewIds.row(rowResult.getRowName());
@@ -267,7 +267,7 @@ public final class LegacyKvs implements Kvs {
             public AsyncIterator<KvsValue> cells(Set<Cell> cells) {
                 return new IteratorFutureIterator<>(
                         Futures.transform(
-                                loadCellsAtTimestamps(definition.table(), Maps.toMap(cells, $ -> state.startTimestamp())),
+                                loadCellsAtTimestamps(definition.table(), Maps.toMap(cells, $ -> state.readTimestamp())),
                                 x -> x.values().stream().sorted(Comparator.comparing(
                                         NewValue::cell,
                                         definition.filter().toComparator(definition.attributes()))).iterator(),

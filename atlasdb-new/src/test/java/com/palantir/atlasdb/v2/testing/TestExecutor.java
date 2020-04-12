@@ -34,6 +34,9 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.primitives.Ints;
 
 public final class TestExecutor {
@@ -41,19 +44,32 @@ public final class TestExecutor {
 
     private final PriorityQueue<Task> tasks = new PriorityQueue<>();
     private final Random random = new Random(0);
+    private final Random externalRandom = new Random(0);
+
+    private SetMultimap<Long, Long> trace = HashMultimap.create();
 
     private long globalConstructionTime = 0;
 
     private long now = 0;
     private long executed = 0;
 
+    private long currentTask = 0;
+
+    public SetMultimap<Long, Long> getTrace() {
+        return ImmutableSetMultimap.copyOf(trace);
+    }
+
     private final class Task implements Comparable<Task> {
         private final long runAtTime;
-        private final long constructionTime = globalConstructionTime++;
+        private final long constructionTime;
+        private final long constructedBy;
         private final Runnable task;
 
-        private Task(long runAtTime, Runnable task) {
+        private Task(long runAtTime, long constructedBy, Runnable task) {
             this.runAtTime = runAtTime;
+            this.constructionTime = globalConstructionTime++;
+            trace.put(constructedBy, constructionTime);
+            this.constructedBy = constructedBy;
             this.task = task;
         }
 
@@ -65,19 +81,17 @@ public final class TestExecutor {
     }
 
     public int randomInt(int bound) {
-        return random.nextInt(bound);
+        return externalRandom.nextInt(bound);
     }
 
-    private Runnable nextTask() {
+    private Task nextTask() {
         Task t = tasks.remove();
         now = t.runAtTime;
-        return t.task;
+        return t;
     }
 
     public Executor nowScheduler() {
-        return task -> {
-            tasks.add(new Task(now, task));
-        };
+        return task -> tasks.add(new Task(now, currentTask, task));
     }
 
     // 5% uniformly distributed jitter
@@ -91,24 +105,29 @@ public final class TestExecutor {
 
     public Executor soonScheduler() {
         return task -> {
-            tasks.add(new Task(now + jitter(1_000), task));
+            tasks.add(new Task(now + jitter(1_000), currentTask, task));
         };
     }
 
     public Executor notSoonScheduler() {
         return task -> {
-            tasks.add(new Task(now + jitter(1_000_000), task));
+            tasks.add(new Task(now + jitter(1_000_000), currentTask, task));
         };
     }
 
     public void start() {
+        long sum = 0;
         while (now < TimeUnit.DAYS.toMicros(10) && !tasks.isEmpty()) {
             try {
                 executed++;
-                nextTask().run();
+                Task task = nextTask();
+                sum += task.constructedBy;
+                currentTask = task.constructionTime;
+                task.task.run();
             } catch (Throwable t) {
                 log.info("Task threw", t);
             }
+            currentTask = 0;
         }
         System.out.println(String.format("Executed %d tasks", executed));
     }
@@ -117,7 +136,7 @@ public final class TestExecutor {
         return new ScheduledExecutorService() {
             @Override
             public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-                tasks.add(new Task(now + unit.toMicros(delay), command));
+                tasks.add(new Task(now + unit.toMicros(delay), currentTask, command));
                 return null;
             }
 

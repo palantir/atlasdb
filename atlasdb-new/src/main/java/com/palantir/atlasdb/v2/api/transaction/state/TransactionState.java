@@ -35,12 +35,14 @@ import com.palantir.atlasdb.v2.api.api.ScanAttributes;
 import com.palantir.atlasdb.v2.api.api.ScanFilter;
 import com.palantir.atlasdb.v2.api.api.NewLockDescriptor;
 import com.palantir.atlasdb.v2.api.api.NewLockToken;
+import com.palantir.atlasdb.v2.api.util.Unreachable;
 
 @FreeBuilder
 public abstract class TransactionState {
     public abstract boolean debugging();
 
     public abstract Executor scheduler();
+    public abstract ReadBehaviour readBehaviour();
     public abstract long immutableTimestamp();
     public abstract long startTimestamp();
     public abstract OptionalLong commitTimestamp();
@@ -49,8 +51,17 @@ public abstract class TransactionState {
     public abstract TransactionWrites writes();
     public abstract Builder toBuilder();
 
+    public final long readTimestamp() {
+        switch (readBehaviour()) {
+            case IN_TRANSACTION: return startTimestamp();
+            case CHECKING_WRITE_WRITE_CONFLICTS: return Long.MAX_VALUE;
+            case CHECKING_READ_WRITE_CONFLICTS: return commitTimestamp().getAsLong();
+        }
+        throw Unreachable.unreachable(readBehaviour());
+    }
+
     public final boolean checkReadWriteConflicts(Table table) {
-        return false;
+        return true;
     }
 
     public static TransactionState newTransaction(
@@ -68,6 +79,7 @@ public abstract class TransactionState {
     public static class Builder extends TransactionState_Builder {
         public Builder() {
             debugging(false);
+            readBehaviour(ReadBehaviour.IN_TRANSACTION);
         }
 
         @Override
