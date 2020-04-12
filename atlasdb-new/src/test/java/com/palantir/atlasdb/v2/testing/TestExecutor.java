@@ -23,13 +23,11 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,11 +89,14 @@ public final class TestExecutor {
     }
 
     public Executor nowScheduler() {
-        return task -> tasks.add(new Task(now, currentTask, task));
+        return new DelayedExecutor(0);
     }
 
     // 5% uniformly distributed jitter
     private long jitter(long input) {
+        if (input == 0) {
+            return 0;
+        }
         long jitterLimit = input / 20;
         long jitter = random.nextInt(Ints.checkedCast(jitterLimit));
         long result = input + jitter - jitterLimit;
@@ -104,15 +105,24 @@ public final class TestExecutor {
     }
 
     public Executor soonScheduler() {
-        return task -> {
-            tasks.add(new Task(now + jitter(1_000), currentTask, task));
-        };
+        return new DelayedExecutor(1_000);
     }
 
     public Executor notSoonScheduler() {
-        return task -> {
-            tasks.add(new Task(now + jitter(1_000_000), currentTask, task));
-        };
+        return new DelayedExecutor(1_000_000);
+    }
+
+    private final class DelayedExecutor implements Executor {
+        private final long delay;
+
+        private DelayedExecutor(long delay) {
+            this.delay = delay;
+        }
+
+        @Override
+        public void execute(Runnable task) {
+            tasks.add(new Task(now + jitter(delay), currentTask, task));
+        }
     }
 
     public void start() {
@@ -178,7 +188,7 @@ public final class TestExecutor {
             }
 
             @Override
-            public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+            public boolean awaitTermination(long timeout, TimeUnit unit) {
                 throw new UnsupportedOperationException();
             }
 
@@ -198,7 +208,7 @@ public final class TestExecutor {
             }
 
             @Override
-            public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
+            public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) {
                 throw new UnsupportedOperationException();
             }
 
@@ -213,8 +223,7 @@ public final class TestExecutor {
             }
 
             @Override
-            public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
-                    throws InterruptedException, ExecutionException, TimeoutException {
+            public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) {
                 throw new UnsupportedOperationException();
             }
 

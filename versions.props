@@ -61,6 +61,7 @@ javax.ws.rs:javax.ws.rs-api = 2.1
 joda-time:joda-time = 2.10.1
 jp.skypencil.findbugs.slf4j:* = 1.2.4
 junit:junit = 4.12
+org.jetbrains:annotations = 19.0.0
 org.jboss.logging:jboss-logging = 3.4.0.Final
 net.bytebuddy:byte-buddy = 1.10.2
 net.java.dev.jna:jna = 5.1.0

@@ -6,6 +6,7 @@ dependencies {
     compile project(':timelock-impl')
     compile 'edu.stanford.ppl:snaptree'
     compile 'io.vavr:vavr'
+    compile 'org.jetbrains:annotations'
 
     annotationProcessor group: 'org.inferred', name: 'freebuilder'
     compileOnly 'org.inferred:freebuilder'
