@@ -333,6 +333,10 @@ public class DeterministicTester {
         int a = txnManager.executor.randomInt(universeSize);
         int b = txnManager.executor.randomInt(universeSize);
 
+        if (round >= 3809) {
+            txn.setDebugging();
+        }
+
         if (a == b) {
             return Futures.immediateFuture(null);
         }

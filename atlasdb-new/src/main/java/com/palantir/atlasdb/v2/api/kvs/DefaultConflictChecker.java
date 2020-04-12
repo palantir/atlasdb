@@ -52,7 +52,7 @@ public class DefaultConflictChecker implements ConflictChecker {
                 // it's fiddly as to why this is safe... but it is.
                 .then(readerFactory.readCommittedData())
                 .then(readerFactory.mergeInTransactionWrites())
-//                .then(readerFactory.stopAfterMarker())
+                .then(readerFactory.stopAfterMarker())
                 .then(readerFactory.orderValidating())
                 .build();
     }
@@ -85,6 +85,9 @@ public class DefaultConflictChecker implements ConflictChecker {
             Table table = scan.table();
             TableWrites writes = state.writes().get(table).orElse(new TableWrites.Builder().table(table).build());
             AsyncIterator<NewValue> executed = readAtCommitTimestamp.scan(state, scan);
+            if (state.debugging()) {
+                System.out.println("");
+            }
             return iterators.forEach(executed, element -> {
                 // todo: I _think_ that we're guaranteed to see at least Atlas tombstones for values due to immutable ts properties.
                 if (!writes.containsCell(element.cell()) && !reads.get(element.cell()).equals(element.maybeData())) {

@@ -20,25 +20,20 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 
-import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.concurrent.Executor;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.v2.api.api.Kvs;
 import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
@@ -51,9 +46,9 @@ import com.palantir.atlasdb.v2.api.api.ScanDefinition;
 import com.palantir.atlasdb.v2.api.exception.FailedConflictCheckingException;
 import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
+import com.palantir.atlasdb.v2.api.util.Autobatcher;
 
 public final class ReadCommittedDataReader extends TransformingReader<KvsValue, CommittedValue> {
-    private static final ListenableFuture<Optional<?>> EMPTY_FUTURE = Futures.immediateFuture(Optional.empty());
     private final Kvs kvs;
     private final NewLocks locks;
 
@@ -61,11 +56,6 @@ public final class ReadCommittedDataReader extends TransformingReader<KvsValue, 
         super(kvs, iterators);
         this.kvs = kvs;
         this.locks = locks;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> ListenableFuture<Optional<T>> emptyOptionalFuture() {
-        return (ListenableFuture<Optional<T>>) (ListenableFuture<?>) EMPTY_FUTURE;
     }
 
     @Override
@@ -102,7 +92,7 @@ public final class ReadCommittedDataReader extends TransformingReader<KvsValue, 
                 Cell cell, long newStartTimestamp) {
             return Futures.transformAsync(getCellAtTimestamp(cell, newStartTimestamp), maybeValue -> {
                 if (!maybeValue.isPresent()) {
-                    return emptyOptionalFuture();
+                    return Futures.immediateFuture(Optional.empty());
                 }
                 return startBySkippingOurOwnWrites(maybeValue.get());
             }, MoreExecutors.directExecutor());
@@ -230,58 +220,6 @@ public final class ReadCommittedDataReader extends TransformingReader<KvsValue, 
         Cell cell();
         @Value.Parameter
         long timestamp();
-    }
-
-    private static final class Autobatcher<I, O> implements AsyncFunction<I, O>, Runnable {
-        private final AsyncFunction<Set<I>, Map<I, O>> backingFunction;
-        private final Executor executor;
-        private final Map<I, SettableFuture<O>> futures = new LinkedHashMap<>();
-        private boolean isScheduled = false;
-
-        private Autobatcher(AsyncFunction<Set<I>, Map<I, O>> backingFunction,
-                Executor executor) {
-            this.backingFunction = backingFunction;
-            this.executor = executor;
-        }
-
-        @Override
-        public ListenableFuture<O> apply(I input) {
-            ListenableFuture<O> future = futures.computeIfAbsent(input, $ -> SettableFuture.create());
-            scheduleIfNecessary();
-            return future;
-        }
-
-        private void scheduleIfNecessary() {
-            if (isScheduled) {
-                return;
-            }
-            isScheduled = true;
-            executor.execute(this);
-        }
-
-        @Override
-        public void run() {
-            Map<I, SettableFuture<O>> futuresCopy = ImmutableMap.copyOf(futures);
-            futures.clear();
-            isScheduled = false;
-            ListenableFuture<Map<I, O>> result;
-            try {
-                result = backingFunction.apply(futuresCopy.keySet());
-            } catch (Exception e) {
-                markAllAsFailed(futuresCopy, e);
-                return;
-            }
-            futuresCopy.forEach((input, output) -> {
-                output.setFuture(Futures.transform(
-                        result,
-                        map -> map.get(input),
-                        MoreExecutors.directExecutor()));
-            });
-        }
-
-        private void markAllAsFailed(Map<I, SettableFuture<O>> futures, Throwable thrown) {
-            futures.values().forEach(future -> future.setException(thrown));
-        }
     }
 
     private static OptionalLong toOptionalLong(Long value) {
