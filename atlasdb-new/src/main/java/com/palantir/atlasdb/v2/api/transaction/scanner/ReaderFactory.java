@@ -46,10 +46,6 @@ public final class ReaderFactory {
         return kvs;
     }
 
-    public <T extends NewValue, R extends Reader<T>> Function<R, Reader<T>> readAtCommitTimestamp() {
-        return ReadAtCommitTimestamp::new;
-    }
-
     public <T extends NewValue, R extends Reader<T>> Function<R, Reader<NewValue>> mergeInTransactionWrites() {
         return reader -> new MergeInTransactionWritesReader(iterators, reader);
     }

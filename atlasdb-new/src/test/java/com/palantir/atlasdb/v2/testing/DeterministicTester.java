@@ -287,9 +287,9 @@ public class DeterministicTester {
             txn.addToSet(0);
             txn.addToSet(1);
         });
-        ListenableFuture<?> allSwaps = Futures.allAsList(IntStream.range(0, 7)
+        ListenableFuture<?> allSwaps = Futures.allAsList(IntStream.range(0, 16)
                 .mapToObj($ -> Futures.whenAllSucceed(state)
-                        .callAsync(() -> maybeReplaceSetElement(txnManager, universe, 3810),
+                        .callAsync(() -> maybeReplaceSetElement(txnManager, universe, 10_000),
                                 MoreExecutors.directExecutor()))
                 .collect(toList()));
         ListenableFuture<java.util.Set<Integer>> stateAfterwards =
@@ -332,10 +332,6 @@ public class DeterministicTester {
             TestTransactionManager txnManager, SimplifiedTransaction txn, int universeSize, int round) {
         int a = txnManager.executor.randomInt(universeSize);
         int b = txnManager.executor.randomInt(universeSize);
-
-        if (round >= 3809) {
-            txn.setDebugging();
-        }
 
         if (a == b) {
             return Futures.immediateFuture(null);

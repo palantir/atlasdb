@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.v2.api.api;
 
+import static com.palantir.logsafe.Preconditions.checkState;
+
 import java.util.Optional;
 
 import org.immutables.value.Value;
@@ -32,35 +34,11 @@ public abstract class NewValue {
 
     public interface Visitor<T> {
         T kvsValue(Cell cell, long startTimestamp, Optional<StoredValue> data);
-        T abortedValue(Cell cell, long startTimestamp);
-        T notYetCommittedValue(Cell cell, long startTimestamp, Optional<StoredValue> data);
         T committedValue(Cell cell, long commitTimestamp, Optional<StoredValue> data);
         T transactionValue(Cell cell, Optional<StoredValue> maybeData);
 
         default T visit(NewValue value) {
             return value.accept(this);
-        }
-    }
-
-    public interface DefaultVisitor<T> extends Visitor<T> {
-        @Override
-        default T kvsValue(Cell cell, long startTimestamp, Optional<StoredValue> data) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        default T notYetCommittedValue(Cell cell, long startTimestamp, Optional<StoredValue> data) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        default T committedValue(Cell cell, long commitTimestamp, Optional<StoredValue> data) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        default T transactionValue(Cell cell, Optional<StoredValue> maybeData) {
-            throw new UnsupportedOperationException();
         }
     }
 
@@ -91,35 +69,6 @@ public abstract class NewValue {
     }
 
     @Value.Immutable
-    public static abstract class NotYetCommittedValue extends NewValue {
-        public abstract long startTimestamp();
-
-        @Override
-        public final <T> T accept(Visitor<T> visitor) {
-            return visitor.notYetCommittedValue(cell(), startTimestamp(), maybeData());
-        }
-
-        static final class Builder extends ImmutableNotYetCommittedValue.Builder {}
-    }
-
-    @Value.Immutable
-    public static abstract class AbortedValue extends NewValue {
-        public abstract long startTimestamp();
-
-        @Override
-        public final Optional<StoredValue> maybeData() {
-            return Optional.empty();
-        }
-
-        @Override
-        public final <T> T accept(Visitor<T> visitor) {
-            return visitor.abortedValue(cell(), startTimestamp());
-        }
-
-        static final class Builder extends ImmutableAbortedValue.Builder {}
-    }
-
-    @Value.Immutable
     public static abstract class CommittedValue extends NewValue {
         public abstract long commitTimestamp();
 
@@ -135,26 +84,12 @@ public abstract class NewValue {
     public static abstract class KvsValue extends NewValue {
         public abstract long startTimestamp();
 
-        public NotYetCommittedValue toNotYetCommitted() {
-            return new NotYetCommittedValue.Builder()
-                    .cell(cell())
-                    .maybeData(maybeData())
-                    .startTimestamp(startTimestamp())
-                    .build();
-        }
-
         public CommittedValue toCommitted(long commitTimestamp) {
+            checkState(commitTimestamp > startTimestamp(), "commitTimestamp > startTimestamp");
             return new CommittedValue.Builder()
                     .cell(cell())
                     .maybeData(maybeData())
                     .commitTimestamp(commitTimestamp)
-                    .build();
-        }
-
-        public AbortedValue toAborted() {
-            return new AbortedValue.Builder()
-                    .cell(cell())
-                    .startTimestamp(startTimestamp())
                     .build();
         }
 

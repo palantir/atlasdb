@@ -112,7 +112,7 @@ public final class ReadCommittedDataReader extends TransformingReader<KvsValue, 
             if (maybeCachedCommitTs.isPresent()) {
                 long commitTs = maybeCachedCommitTs.getAsLong();
                 if (commitTs < state.readTimestamp()) {
-                    return Futures.immediateFuture(Optional.of(value.toCommitted(commitTs)));
+                    return restartSearchIfCommittedDataOutOfRange(value, commitTs);
                 } else {
                     // it was in the cache, and is not visible to our transaction. Time to restart!
                     return restartSearchAtLowerStartTimestamp(value.cell(), value.startTimestamp() - 1);

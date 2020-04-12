@@ -16,8 +16,14 @@
 
 package com.palantir.atlasdb.v2.api.transaction.state;
 
+import static java.util.stream.Collectors.toSet;
+
 import static com.palantir.logsafe.Preconditions.checkNotNull;
 
+import java.util.Set;
+
+import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.v2.api.api.NewIds;
 import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.api.NewValue;
@@ -37,6 +43,10 @@ public final class TableWrites {
             SortedMap<Cell, NewValue.TransactionValue> writes) {
         this.table = table;
         this.writes = writes;
+    }
+
+    public Set<Long> allRows() {
+        return writes.keySet().toJavaStream().map(Cell::row).map(NewIds.Row::toByteArray).map(EncodingUtils::decodeSignedVarLong).collect(toSet());
     }
 
     public Table table() {
