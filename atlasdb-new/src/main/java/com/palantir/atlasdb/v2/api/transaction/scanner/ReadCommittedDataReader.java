@@ -111,12 +111,7 @@ public final class ReadCommittedDataReader extends TransformingReader<KvsValue, 
             OptionalLong maybeCachedCommitTs = kvs.getCachedCommitTimestamp(value.startTimestamp());
             if (maybeCachedCommitTs.isPresent()) {
                 long commitTs = maybeCachedCommitTs.getAsLong();
-                if (commitTs < state.readTimestamp()) {
-                    return restartSearchIfCommittedDataOutOfRange(value, commitTs);
-                } else {
-                    // it was in the cache, and is not visible to our transaction. Time to restart!
-                    return restartSearchAtLowerStartTimestamp(value.cell(), value.startTimestamp() - 1);
-                }
+                return restartSearchIfCommittedDataOutOfRange(value, commitTs);
             }
             // next, we try to acquire commit ts locks, if we can.
             boolean shouldBeCommittedByNow = value.startTimestamp() < state.immutableTimestamp();
@@ -211,7 +206,6 @@ public final class ReadCommittedDataReader extends TransformingReader<KvsValue, 
                             Optional::ofNullable),
                     MoreExecutors.directExecutor());
         }
-
     }
 
     @Value.Immutable
