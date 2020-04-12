@@ -345,7 +345,7 @@ public class DeterministicTester {
                     boolean isB = bExists.get();
                     if (isA && isB) {
                         int newElement = txnManager.executor.randomInt(universeSize);
-                        if (newElement != a && newElement != b) {
+                        if (newElement != b) {
                             txn.removeFromSet(a);
                             txn.addToSet(newElement);
                         }

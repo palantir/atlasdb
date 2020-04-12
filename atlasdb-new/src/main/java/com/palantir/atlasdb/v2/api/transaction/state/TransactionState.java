@@ -18,8 +18,6 @@ package com.palantir.atlasdb.v2.api.transaction.state;
 
 import static com.palantir.logsafe.Preconditions.checkState;
 
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -30,9 +28,6 @@ import org.inferred.freebuilder.FreeBuilder;
 
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
-import com.palantir.atlasdb.v2.api.api.NewValue.TransactionValue;
-import com.palantir.atlasdb.v2.api.api.ScanAttributes;
-import com.palantir.atlasdb.v2.api.api.ScanFilter;
 import com.palantir.atlasdb.v2.api.api.NewLockDescriptor;
 import com.palantir.atlasdb.v2.api.api.NewLockToken;
 import com.palantir.atlasdb.v2.api.util.Unreachable;
@@ -95,10 +90,4 @@ public abstract class TransactionState {
                         .map(cell -> NewLockDescriptor.cell(tableWrites.table(), cell))))
                 .collect(Collectors.toSet());
     }
-
-    // TODO make correct
-    public Iterator<TransactionValue> scan(Table table, ScanAttributes attributes, ScanFilter filter) {
-        return Collections.emptyIterator();
-    }
-
 }

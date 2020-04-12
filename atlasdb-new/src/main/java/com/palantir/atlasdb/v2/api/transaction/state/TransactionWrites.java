@@ -16,11 +16,15 @@
 
 package com.palantir.atlasdb.v2.api.transaction.state;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
+import com.palantir.atlasdb.v2.api.api.NewValue;
+import com.palantir.atlasdb.v2.api.api.ScanAttributes;
+import com.palantir.atlasdb.v2.api.api.ScanFilter;
 
 import io.vavr.Tuple2;
 import io.vavr.collection.LinkedHashMap;
@@ -40,6 +44,12 @@ public final class TransactionWrites implements Iterable<TableWrites> {
 
     public boolean isEmpty() {
         return writes.values().forAll(TableWrites::isEmpty);
+    }
+
+    // TODO make correct
+    public Iterator<NewValue.TransactionValue> scan(Table table, ScanAttributes attributes, ScanFilter filter) {
+        return Collections.emptyIterator();
+//        return writes.get(table).map(t -> t.scan(attributes, filter)).getOrElse(Collections.emptyIterator());
     }
 
     public Builder toBuilder() {
@@ -64,11 +74,6 @@ public final class TransactionWrites implements Iterable<TableWrites> {
 
         public Builder clear() {
             writes = LinkedHashMap.empty();
-            return this;
-        }
-
-        public Builder put(Table table, TableWrites tableWrites) {
-            writes = writes.put(table, tableWrites);
             return this;
         }
 

@@ -16,17 +16,12 @@
 
 package com.palantir.atlasdb.v2.api.transaction.state;
 
-import static java.util.stream.Collectors.toSet;
-
 import static com.palantir.logsafe.Preconditions.checkNotNull;
 
 import java.util.Optional;
-import java.util.Set;
 
 import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
-import com.palantir.atlasdb.v2.api.api.NewIds.Row;
 import com.palantir.atlasdb.v2.api.api.NewIds.StoredValue;
 import com.palantir.atlasdb.v2.api.api.NewValue;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
@@ -49,10 +44,6 @@ public final class TableReads {
 
     public Optional<StoredValue> get(Cell cell) {
         return reads.get(cell).toJavaOptional().flatMap(NewValue::maybeData);
-    }
-
-    public Set<Long> allRows() {
-        return reads.keySet().toJavaStream().map(Cell::row).map(Row::toByteArray).map(EncodingUtils::decodeSignedVarLong).collect(toSet());
     }
 
     public Iterable<ScanDefinition> toConflictCheckingScans() {

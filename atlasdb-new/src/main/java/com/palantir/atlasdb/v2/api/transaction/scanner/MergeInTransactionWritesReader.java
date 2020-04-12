@@ -41,7 +41,7 @@ public final class MergeInTransactionWritesReader implements Reader<NewValue> {
     public AsyncIterator<NewValue> scan(TransactionState state, ScanDefinition definition) {
         AsyncIterator<? extends NewValue> kvsScan = kvsWritesReader.scan(state, definition);
         Iterator<TransactionValue> transactionScan =
-                state.scan(definition.table(), definition.attributes(), definition.filter());
+                state.writes().scan(definition.table(), definition.attributes(), definition.filter());
         AsyncIterator<NewValue> merged = iterators.mergeSorted(
                 Comparator.comparing(NewValue::cell, definition.filter().toComparator(definition.attributes())),
                 kvsScan, transactionScan, (kvs, txn) -> txn);

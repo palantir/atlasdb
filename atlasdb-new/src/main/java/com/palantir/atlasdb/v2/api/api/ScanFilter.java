@@ -37,6 +37,8 @@ public abstract class ScanFilter {
         return accept(new ComparatorVisitor(attributes));
     }
 
+    // somethinig about is this the right place to pass in the limit? It means we probably have to
+    // splice together in-memory and out-of-memory writes separately.
     public static ScanFilter rowsAndColumns(RowsFilter rows, ColumnsFilter columns, int limit) {
         return ImmutableRowsAndColumnsFilter.of(rows, columns, limit);
     }

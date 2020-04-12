@@ -142,6 +142,7 @@ public final class ReadCommittedDataReader extends TransformingReader<KvsValue, 
                 return Futures.transformAsync(maybeStartTimestampFuture, maybeCommitTs -> {
                     if (!maybeCommitTs.isPresent()) {
                         // we are read write conflict checking, and we cannot validly pass this back.
+                        // an alternative would be to return a bogus 'bro! we cannot read!' type error.
                         throw new FailedConflictCheckingException();
                     }
                     return restartSearchIfCommittedDataOutOfRange(value, maybeCommitTs.getAsLong());
