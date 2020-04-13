@@ -81,10 +81,13 @@ import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.BlockingAndNonBlockingServices;
 import com.palantir.atlasdb.factory.timelock.BlockingSensitiveConjureTimelockService;
 import com.palantir.atlasdb.factory.timelock.BlockingSensitiveLockRpcClient;
+import com.palantir.atlasdb.factory.timelock.ImmutableBlockingAndNonBlockingServices;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.atlasdb.http.v2.ConjureClientFactory;
+import com.palantir.atlasdb.http.v2.StaticClientConfiguration;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -154,6 +157,7 @@ import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
+import com.palantir.conjure.java.okhttp.NoOpHostEventsSink;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -236,6 +240,11 @@ public abstract class TransactionManagers {
 
     @Value.Default
     boolean allSafeForLogging() {
+        return false;
+    }
+
+    @Value.Default
+    boolean useDialogue() {
         return false;
     }
 
@@ -361,7 +370,8 @@ public abstract class TransactionManagers {
                 managedTimestampSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent(),
-                lockDiagnosticInfoCollector());
+                lockDiagnosticInfoCollector(),
+                useDialogue());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -814,7 +824,8 @@ public abstract class TransactionManagers {
                         time,
                         invalidator,
                         UserAgents.tryParse(userAgent),
-                        Optional.empty());
+                        Optional.empty(),
+                        false);
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -834,7 +845,7 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector, boolean useDialogue) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -844,7 +855,8 @@ public abstract class TransactionManagers {
                 time,
                 invalidator,
                 userAgent,
-                lockDiagnosticCollector);
+                lockDiagnosticCollector,
+                useDialogue);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
                         withRefreshingLockService(lockAndTimestampServices)));
@@ -904,7 +916,8 @@ public abstract class TransactionManagers {
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            boolean useDialogue) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
@@ -913,7 +926,13 @@ public abstract class TransactionManagers {
             return createRawRemoteServices(metricsManager, config, runtimeConfigSupplier, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
             return createRawServicesFromTimeLock(
-                    metricsManager, config, runtimeConfigSupplier, invalidator, userAgent, lockDiagnosticCollector);
+                    metricsManager,
+                    config,
+                    runtimeConfigSupplier,
+                    invalidator,
+                    userAgent,
+                    lockDiagnosticCollector,
+                    useDialogue);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
         }
@@ -942,7 +961,8 @@ public abstract class TransactionManagers {
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TimestampStoreInvalidator invalidator,
             UserAgent userAgent,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            boolean useDialogue) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
@@ -955,7 +975,8 @@ public abstract class TransactionManagers {
                         () -> runtimeConfigSupplier.get().remotingClient(),
                         userAgent,
                         timelockNamespace,
-                        lockDiagnosticCollector);
+                        lockDiagnosticCollector,
+                        useDialogue);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.managedTimestampService(),
@@ -985,7 +1006,17 @@ public abstract class TransactionManagers {
             Supplier<RemotingClientConfig> remotingConfigSupplier,
             UserAgent userAgent,
             String timelockNamespace,
-            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector) {
+            Optional<ClientLockDiagnosticCollector> lockDiagnosticCollector,
+            boolean useDialogue) {
+
+        ConjureClientFactory clientFactory = new ConjureClientFactory(
+                timelockServerListConfig,
+                metricsManager.getTaggedRegistry(),
+                userAgent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT),
+                // TODO(forozco): wire up host event sink
+                NoOpHostEventsSink.INSTANCE,
+                useDialogue);
+
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(
                 metricsManager, timelockServerListConfig, userAgent, remotingConfigSupplier);
 
@@ -998,7 +1029,12 @@ public abstract class TransactionManagers {
                 RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
 
         ConjureTimelockService conjureTimelockService = new BlockingSensitiveConjureTimelockService(
-                BlockingAndNonBlockingServices.create(creator, ConjureTimelockService.class));
+                ImmutableBlockingAndNonBlockingServices.<ConjureTimelockService>builder()
+                        .nonBlocking(clientFactory.client(ConjureTimelockService.class))
+                        .blocking(clientFactory.client(ConjureTimelockService.class, StaticClientConfiguration.builder()
+                                .fastReadTimeOut(true)
+                                .build()))
+                        .build());
 
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
 

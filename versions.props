@@ -27,8 +27,9 @@ com.palantir.config.crypto:encrypted-config-value-module = 2.1.0
 com.palantir.conjure:conjure = 4.10.1
 com.palantir.conjure.java.api:* = 2.9.0
 com.palantir.conjure.java:* = 5.11.2
-com.palantir.dialogue:* = 1.2.0
-com.palantir.conjure.java.runtime:* = 4.70.1
+com.palantir.dialogue:* = 1.11.4
+com.palantir.conjure.java.runtime:* = 5.3.0
+com.github.tomakehurst:wiremock-standalone = 2.26.3
 com.palantir.docker.compose:docker-compose-rule* = 1.3.0
 com.palantir.docker.proxy:docker-proxy-rule = 0.8.1
 com.palantir.remoting2:* = 2.6.3
@@ -103,3 +104,8 @@ org.freemarker:freemarker = 2.3.29
 com.google.errorprone:error_prone_refaster = 2.3.3
 com.palantir.baseline:baseline-refaster-testing = 2.17.0
 com.google.truth:truth = 1.0
+
+
+# conflict resolution
+org.apache.httpcomponents:httpclient = 4.5.12
+org.apache.httpcomponents:httpcore = 4.4.13

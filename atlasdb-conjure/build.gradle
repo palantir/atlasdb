@@ -3,11 +3,19 @@ apply from: '../gradle/shared.gradle'
 dependencies {
   compile project(':atlasdb-commons')
   compile project(':atlasdb-remoting-api')
+  implementation 'com.palantir.dialogue:dialogue-serde'
+  implementation 'com.palantir.dialogue:dialogue-apache-hc4-client'
+  implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
+  implementation 'com.palantir.tritium:tritium-lib'
 
-  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
+
+  testImplementation project(':timelock-api:timelock-api-dialogue')
+  testImplementation project(':timelock-api:timelock-api-jersey')
+  testImplementation 'com.github.tomakehurst:wiremock-standalone'
+  testImplementation "com.palantir.safe-logging:preconditions-assertj"
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.assertj', name: 'assertj-core'

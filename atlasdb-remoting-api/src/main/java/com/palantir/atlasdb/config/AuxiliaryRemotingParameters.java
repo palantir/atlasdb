@@ -29,6 +29,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 public interface AuxiliaryRemotingParameters {
     UserAgent userAgent();
 
+    // TODO(forozco): delete field since its never used
     boolean shouldLimitPayload();
 
     /**
