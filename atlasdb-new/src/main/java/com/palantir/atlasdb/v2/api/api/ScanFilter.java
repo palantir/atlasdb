@@ -18,23 +18,32 @@ package com.palantir.atlasdb.v2.api.api;
 
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.v2.api.api.NewIds.Cell;
 import com.palantir.atlasdb.v2.api.api.NewIds.Column;
 import com.palantir.atlasdb.v2.api.api.NewIds.Row;
 
+/**
+ * Scan filters represent not only the set of returned rows, but also their sort order.
+ */
 public abstract class ScanFilter {
     private ScanFilter() {}
 
     public abstract <T> T accept(Visitor<T> visitor);
 
-    // TODO make private somewhere
-    public Comparator<Cell> toComparator(ScanAttributes attributes) {
-        return accept(new ComparatorVisitor(attributes));
+    public Comparator<Cell> toCellComparator() {
+        return accept(ComparatorVisitor.INSTANCE);
+    }
+
+    public Comparator<NewValue> toValueComparator() {
+        return Comparator.comparing(NewValue::cell, toCellComparator());
     }
 
     // somethinig about is this the right place to pass in the limit? It means we probably have to
@@ -142,7 +151,7 @@ public abstract class ScanFilter {
         return AllRowsFilter.INSTANCE;
     }
 
-    public static RowsFilter exactRows(Set<Row> rows) {
+    public static RowsFilter exactRows(ImmutableSortedSet<Row> rows) {
         return ImmutableExactRows.of(rows);
     }
 
@@ -155,11 +164,11 @@ public abstract class ScanFilter {
     }
 
     public static ColumnsFilter exactColumns(Set<Column> columns) {
-        return ImmutableExactColumns.of(columns);
+        return ImmutableExactColumns.of(ImmutableSortedSet.copyOf(columns));
     }
 
-    public static ColumnsFilter columnRange(Optional<Column> from, Optional<Column> to) {
-        return ImmutableColumnRange.of(from, to);
+    public static ColumnsFilter columnRange(Optional<Column> from, Optional<Column> to, OptionalInt limit) {
+        return ImmutableColumnRange.of(from, to, limit);
     }
 
     public interface RowsFilter {
@@ -167,7 +176,7 @@ public abstract class ScanFilter {
 
         interface Visitor<T> {
             T visitAllRows();
-            T visitExactRows(Set<Row> rows);
+            T visitExactRows(ImmutableSortedSet<Row> rows);
             T visitRowRange(Optional<Row> fromInclusive, Optional<Row> toExclusive);
         }
     }
@@ -177,7 +186,7 @@ public abstract class ScanFilter {
 
         interface Visitor<T> {
             T visitAllColumns();
-            T visitExactColumns(Set<Column> columns);
+            T visitExactColumns(ImmutableSortedSet<Column> columns);
             T visitColumnRange(Optional<Column> fromInclusive, Optional<Column> toExclusive);
         }
     }
@@ -203,7 +212,7 @@ public abstract class ScanFilter {
     @Value.Immutable
     interface ExactRows extends RowsFilter {
         @Value.Parameter
-        Set<Row> rows();
+        ImmutableSortedSet<Row> rows();
 
         @Override
         default <T> T accept(Visitor<T> visitor) {
@@ -214,7 +223,7 @@ public abstract class ScanFilter {
     @Value.Immutable
     interface ExactColumns extends ColumnsFilter {
         @Value.Parameter
-        Set<Column> columns();
+        ImmutableSortedSet<Column> columns();
 
         @Override
         default <T> T accept(Visitor<T> visitor) {
@@ -230,6 +239,7 @@ public abstract class ScanFilter {
         @Value.Parameter
         Optional<Row> toExclusive();
 
+        @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visitRowRange(fromInclusive(), toExclusive());
         }
@@ -243,22 +253,22 @@ public abstract class ScanFilter {
         @Value.Parameter
         Optional<Column> toExclusive();
 
+        @Value.Parameter
+        OptionalInt limit();
+
+        @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visitColumnRange(fromInclusive(), toExclusive());
         }
     }
 
-    // todo make this production ready
-    private static final class ComparatorVisitor implements Visitor<Comparator<Cell>> {
-        private final ScanAttributes attributes;
-
-        private ComparatorVisitor(ScanAttributes attributes) {
-            this.attributes = attributes;
-        }
+    private enum ComparatorVisitor implements Visitor<Comparator<Cell>> {
+        INSTANCE;
 
         @Override
         public Comparator<Cell> rowsAndColumns(RowsFilter rows, ColumnsFilter columns, int limit) {
-            return Comparator.naturalOrder();
+            return Comparator.comparing(Cell::row, rows.accept(RowsComparatorVisitor.INSTANCE))
+                    .thenComparing(Cell::column, Comparator.naturalOrder());
         }
 
         @Override
@@ -269,6 +279,25 @@ public abstract class ScanFilter {
         @Override
         public Comparator<Cell> withStoppingPoint(ScanFilter inner, Cell lastCellInclusive) {
             return inner.accept(this);
+        }
+    }
+
+    private enum RowsComparatorVisitor implements RowsFilter.Visitor<Comparator<Row>> {
+        INSTANCE;
+
+        @Override
+        public Comparator<Row> visitAllRows() {
+            return Comparator.naturalOrder();
+        }
+
+        @Override
+        public Comparator<Row> visitExactRows(ImmutableSortedSet<Row> rows) {
+            return Ordering.explicit(rows.asList());
+        }
+
+        @Override
+        public Comparator<Row> visitRowRange(Optional<Row> fromInclusive, Optional<Row> toExclusive) {
+            return Ordering.natural();
         }
     }
 }

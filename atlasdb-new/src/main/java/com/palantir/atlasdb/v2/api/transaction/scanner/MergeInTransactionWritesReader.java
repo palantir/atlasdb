@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.v2.api.transaction.scanner;
 
-import java.util.Comparator;
 import java.util.Iterator;
 
 import com.palantir.atlasdb.v2.api.api.AsyncIterator;
-import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.api.NewValue;
 import com.palantir.atlasdb.v2.api.api.NewValue.TransactionValue;
 import com.palantir.atlasdb.v2.api.api.ScanDefinition;
+import com.palantir.atlasdb.v2.api.iterators.AsyncIterators;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 
 public final class MergeInTransactionWritesReader implements Reader<NewValue> {
@@ -41,9 +40,9 @@ public final class MergeInTransactionWritesReader implements Reader<NewValue> {
     public AsyncIterator<NewValue> scan(TransactionState state, ScanDefinition definition) {
         AsyncIterator<? extends NewValue> kvsScan = kvsWritesReader.scan(state, definition);
         Iterator<TransactionValue> transactionScan =
-                state.writes().scan(definition.table(), definition.attributes(), definition.filter());
+                state.writes().scan(definition.table(), definition.filter());
         AsyncIterator<NewValue> merged = iterators.mergeSorted(
-                Comparator.comparing(NewValue::cell, definition.filter().toComparator(definition.attributes())),
+                definition.filter().toValueComparator(),
                 kvsScan, transactionScan, (kvs, txn) -> txn);
         return iterators.filter(merged, NewValue::isLive);
     }

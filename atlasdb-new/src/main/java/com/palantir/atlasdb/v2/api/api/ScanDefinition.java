@@ -28,10 +28,7 @@ public interface ScanDefinition {
     @Value.Parameter
     ScanFilter filter();
 
-    @Value.Parameter
-    ScanAttributes attributes();
-
-    static ScanDefinition of(Table table, ScanFilter filter, ScanAttributes attributes) {
-        return ImmutableScanDefinition.of(table, filter, attributes);
+    static ScanDefinition of(Table table, ScanFilter filter) {
+        return ImmutableScanDefinition.of(table, filter);
     }
 }

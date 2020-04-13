@@ -47,7 +47,6 @@ import com.palantir.atlasdb.v2.api.api.NewIds.StoredValue;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.api.NewPutOperation;
 import com.palantir.atlasdb.v2.api.api.NewTransaction;
-import com.palantir.atlasdb.v2.api.api.ScanAttributes;
 import com.palantir.atlasdb.v2.api.api.ScanFilter;
 import com.palantir.atlasdb.v2.api.future.FutureChain;
 
@@ -366,11 +365,6 @@ public class DeterministicTester {
         @Override
         public Table table() {
             return table;
-        }
-
-        @Override
-        public ScanAttributes attributes() {
-            return new ScanAttributes();
         }
 
         @Override

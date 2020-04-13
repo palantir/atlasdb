@@ -35,8 +35,7 @@ public final class OrderValidatingReader<T extends NewValue> implements Reader<T
 
     @Override
     public AsyncIterator<T> scan(TransactionState state, ScanDefinition definition) {
-        Comparator<NewValue> comparator = Comparator.comparing(
-                NewValue::cell, definition.filter().toComparator(definition.attributes()));
+        Comparator<NewValue> comparator = definition.filter().toValueComparator();
         AsyncIterator<T> scan = delegate.scan(state, definition);
         return new AsyncIterator<T>() {
             private boolean failed = false;

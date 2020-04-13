@@ -55,8 +55,7 @@ public final class TableReads {
             } else {
                 return ScanDefinition.of(
                         definition.table(),
-                        ScanFilter.withStoppingPoint(definition.filter(), termination.value().cell()),
-                        definition.attributes());
+                        ScanFilter.withStoppingPoint(definition.filter(), termination.value().cell()));
             }
         });
     }
@@ -114,8 +113,7 @@ public final class TableReads {
 
         public Builder putScanEnd(ScanDefinition scan, NewValue end) {
             Map<ScanDefinition, EarlyScanTermination> map = LinkedHashMap.of(scan, new EarlyScanTermination(end));
-            Ordering<NewValue> comparator =
-                    Ordering.from(scan.filter().toComparator(scan.attributes())).onResultOf(NewValue::cell);
+            Ordering<NewValue> comparator = Ordering.from(scan.filter().toValueComparator());
             // very likely need to optimize this... initial implementation seems wildly inefficient
             reads = reads.put(end.cell(), end);
             scanEnds = scanEnds.merge(map, (oldEnd, newEnd) -> oldEnd.merge(newEnd, comparator));

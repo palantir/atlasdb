@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
@@ -63,8 +64,6 @@ import com.palantir.atlasdb.v2.api.transaction.scanner.ShouldAbortUncommittedWri
 import com.palantir.atlasdb.v2.api.transaction.state.TableWrites;
 import com.palantir.atlasdb.v2.api.transaction.state.TransactionState;
 import com.palantir.common.streams.KeyedStream;
-
-import io.vavr.Tuple2;
 
 public final class LegacyKvs implements Kvs {
     private static final int BATCH_HINT_FOR_ITERATORS = 1000;
@@ -155,11 +154,10 @@ public final class LegacyKvs implements Kvs {
                     KeyedStream.of(state.writes())
                             .mapKeys(TableWrites::table)
                             .mapKeys(LegacyKvs::toLegacy)
-                            .map(TableWrites::data)
+                            .map(TableWrites::stream)
                             .map(data -> KeyedStream.of(data)
-                                    .mapKeys(Tuple2::_1)
+                                    .mapKeys(TransactionValue::cell)
                                     .mapKeys(LegacyKvs::toLegacy)
-                                    .map(Tuple2::_2)
                                     .map(LegacyKvs::toLegacy)
                                     .collectToMap())
                             .collectToMap();
@@ -200,7 +198,7 @@ public final class LegacyKvs implements Kvs {
                     }
 
                     @Override
-                    public AsyncIterator<KvsValue> visitExactRows(Set<Row> rows) {
+                    public AsyncIterator<KvsValue> visitExactRows(ImmutableSortedSet<Row> rows) {
                         return columns.accept(
                                 new ScanFilter.ColumnsFilter.Visitor<AsyncIterator<KvsValue>>() {
                                     @Override
@@ -209,7 +207,8 @@ public final class LegacyKvs implements Kvs {
                                     }
 
                                     @Override
-                                    public AsyncIterator<KvsValue> visitExactColumns(Set<Column> unusedColumns) {
+                                    public AsyncIterator<KvsValue> visitExactColumns(
+                                            ImmutableSortedSet<Column> unusedColumns) {
                                         return execute(toColumnSelection(columns));
                                     }
 
@@ -225,9 +224,7 @@ public final class LegacyKvs implements Kvs {
                                                     .mapKeys(cell -> fromLegacy(cell))
                                                     .map((cell, value) -> fromLegacy(cell, value))
                                                     .values()
-                                                    .sorted(Comparator.comparing(
-                                                            NewValue::cell,
-                                                            definition.filter().toComparator(definition.attributes())))
+                                                    .sorted(definition.filter().toValueComparator())
                                                     .iterator();
                                         }));
                                     }
@@ -270,7 +267,7 @@ public final class LegacyKvs implements Kvs {
                                 loadCellsAtTimestamps(definition.table(), Maps.toMap(cells, $ -> state.readTimestamp())),
                                 x -> x.values().stream().sorted(Comparator.comparing(
                                         NewValue::cell,
-                                        definition.filter().toComparator(definition.attributes()))).iterator(),
+                                        definition.filter().toCellComparator())).iterator(),
                                 MoreExecutors.directExecutor()));
             }
 
@@ -312,7 +309,7 @@ public final class LegacyKvs implements Kvs {
             }
 
             @Override
-            public ColumnSelection visitExactColumns(Set<Column> columns) {
+            public ColumnSelection visitExactColumns(ImmutableSortedSet<Column> columns) {
                 return ColumnSelection.create(Iterables.transform(columns, Column::toByteArray));
             }
 

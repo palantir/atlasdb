@@ -25,7 +25,6 @@ public interface NewGetOperation<T> {
     enum ShouldContinue { YES, NO }
 
     Table table();
-    ScanAttributes attributes();
     ScanFilter scanFilter();
     ResultBuilder<T> newResultBuilder();
 

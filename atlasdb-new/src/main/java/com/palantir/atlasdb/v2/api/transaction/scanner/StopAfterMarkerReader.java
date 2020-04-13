@@ -40,7 +40,7 @@ public final class StopAfterMarkerReader<T extends NewValue> implements Reader<T
     @Override
     public AsyncIterator<T> scan(TransactionState state, ScanDefinition definition) {
         AsyncIterator<T> scan = delegate.scan(state, definition);
-        Comparator<Cell> comparator = definition.filter().toComparator(definition.attributes());
+        Comparator<Cell> comparator = definition.filter().toCellComparator();
         return definition.filter().accept(new ScanFilter.Visitor<AsyncIterator<T>>() {
             @Override
             public AsyncIterator<T> rowsAndColumns(ScanFilter.RowsFilter rows, ScanFilter.ColumnsFilter columns,

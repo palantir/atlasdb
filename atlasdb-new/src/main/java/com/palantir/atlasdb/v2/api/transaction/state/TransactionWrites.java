@@ -23,7 +23,6 @@ import java.util.function.UnaryOperator;
 
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.api.NewValue;
-import com.palantir.atlasdb.v2.api.api.ScanAttributes;
 import com.palantir.atlasdb.v2.api.api.ScanFilter;
 
 import io.vavr.Tuple2;
@@ -47,7 +46,7 @@ public final class TransactionWrites implements Iterable<TableWrites> {
     }
 
     // TODO make correct
-    public Iterator<NewValue.TransactionValue> scan(Table table, ScanAttributes attributes, ScanFilter filter) {
+    public Iterator<NewValue.TransactionValue> scan(Table table,  ScanFilter filter) {
         return Collections.emptyIterator();
 //        return writes.get(table).map(t -> t.scan(attributes, filter)).getOrElse(Collections.emptyIterator());
     }

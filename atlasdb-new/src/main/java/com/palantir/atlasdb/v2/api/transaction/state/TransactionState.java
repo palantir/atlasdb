@@ -30,6 +30,7 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.v2.api.api.NewIds.Table;
 import com.palantir.atlasdb.v2.api.api.NewLockDescriptor;
 import com.palantir.atlasdb.v2.api.api.NewLockToken;
+import com.palantir.atlasdb.v2.api.api.NewValue.TransactionValue;
 import com.palantir.atlasdb.v2.api.util.Unreachable;
 
 @FreeBuilder
@@ -86,7 +87,8 @@ public abstract class TransactionState {
 
     public Set<NewLockDescriptor> writeLockDescriptors() {
         return Stream.concat(Stream.of(NewLockDescriptor.timestamp(startTimestamp())),
-                Streams.stream(writes()).flatMap(tableWrites -> tableWrites.data().keySet().toJavaStream()
+                Streams.stream(writes()).flatMap(tableWrites -> tableWrites.stream()
+                        .map(TransactionValue::cell)
                         .map(cell -> NewLockDescriptor.cell(tableWrites.table(), cell))))
                 .collect(Collectors.toSet());
     }

@@ -79,7 +79,7 @@ public class SingleThreadedTransaction implements NewTransaction {
     public <T> ListenableFuture<T> get(NewGetOperation<T> get) {
         ResultBuilder<T> resultBuilder = get.newResultBuilder();
         TransactionState state = stateHolder.get();
-        ScanDefinition definition = ScanDefinition.of(get.table(), get.scanFilter(), get.attributes());
+        ScanDefinition definition = ScanDefinition.of(get.table(), get.scanFilter());
 
         return Futures.transform(iterators.takeWhile(
                 stateHolder.iterate(reader.scan(state, definition),
