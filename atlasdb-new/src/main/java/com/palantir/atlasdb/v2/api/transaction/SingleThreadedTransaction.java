@@ -22,6 +22,7 @@ import com.palantir.atlasdb.v2.api.api.ConflictChecker;
 import com.palantir.atlasdb.v2.api.api.NewEndOperation;
 import com.palantir.atlasdb.v2.api.api.NewGetOperation;
 import com.palantir.atlasdb.v2.api.api.NewGetOperation.ResultBuilder;
+import com.palantir.atlasdb.v2.api.api.NewGetOperation.ShouldContinue;
 import com.palantir.atlasdb.v2.api.api.NewLocks;
 import com.palantir.atlasdb.v2.api.api.NewPutOperation;
 import com.palantir.atlasdb.v2.api.api.NewTransaction;
@@ -85,8 +86,9 @@ public class SingleThreadedTransaction implements NewTransaction {
                 stateHolder.iterate(reader.scan(state, definition),
                         s -> s.readsBuilder().mutateReads(definition.table(), reads -> reads.reachedEnd(definition))),
                 value -> {
-                    resultBuilder.add(get.table(), value.cell(), value.maybeData().get());
-                    return !resultBuilder.isDone();
+                    ShouldContinue shouldContinue =
+                            resultBuilder.add(get.table(), value.cell(), value.maybeData().get());
+                    return shouldContinue == ShouldContinue.YES;
                 }), x -> resultBuilder.build(), state.scheduler());
     }
 

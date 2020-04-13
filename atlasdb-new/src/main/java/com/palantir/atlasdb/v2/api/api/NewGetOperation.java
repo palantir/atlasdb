@@ -29,8 +29,7 @@ public interface NewGetOperation<T> {
     ResultBuilder<T> newResultBuilder();
 
     interface ResultBuilder<T> {
-        boolean isDone();
-        ResultBuilder<T> add(Table table, Cell cell, StoredValue value);
+        ShouldContinue add(Table table, Cell cell, StoredValue value);
         T build();
     }
 }

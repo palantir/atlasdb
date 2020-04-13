@@ -378,14 +378,9 @@ public class DeterministicTester {
                 Optional<StoredValue> result = Optional.empty();
 
                 @Override
-                public boolean isDone() {
-                    return false;
-                }
-
-                @Override
-                public ResultBuilder<Optional<StoredValue>> add(Table table, Cell cell, StoredValue value) {
+                public ShouldContinue add(Table table, Cell cell, StoredValue value) {
                     result = Optional.of(value);
-                    return this;
+                    return ShouldContinue.NO;
                 }
 
                 @Override
