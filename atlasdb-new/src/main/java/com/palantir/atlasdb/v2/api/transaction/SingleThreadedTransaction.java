@@ -101,6 +101,11 @@ public class SingleThreadedTransaction implements NewTransaction {
         throw Unreachable.unreachable(end);
     }
 
+    @Override
+    public long startTimestamp() {
+        return stateHolder.get().startTimestamp();
+    }
+
     // currently assume that someone else is unlocking anything the immutable ts lock
     private ListenableFuture<?> commit() {
         TransactionState state = stateHolder.invalidateAndGet();

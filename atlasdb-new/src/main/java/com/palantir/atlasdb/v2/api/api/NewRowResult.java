@@ -16,13 +16,16 @@
 
 package com.palantir.atlasdb.v2.api.api;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.NavigableMap;
 
-public interface NewTransaction {
-    void setIsDebugging();
-    void put(NewPutOperation put);
-    <T> ListenableFuture<T> get(NewGetOperation<T> get);
-    ListenableFuture<?> end(NewEndOperation end);
+import org.immutables.value.Value;
 
-    long startTimestamp();
+import com.palantir.atlasdb.v2.api.api.NewIds.StoredValue;
+
+@Value.Immutable
+public interface NewRowResult {
+    @Value.NaturalOrder
+    NavigableMap<NewIds.Column, StoredValue> getColumns();
+
+    class Builder extends ImmutableNewRowResult.Builder {}
 }
