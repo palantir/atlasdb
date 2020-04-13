@@ -31,7 +31,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.timelock.lock.LeaderClock;
@@ -60,7 +59,7 @@ public class TestTxnManager<Txn> {
     private static final LeadershipId LEADERSHIP_ID = LeadershipId.random();
 
     private final TestExecutor executor = new TestExecutor();
-    private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
+    private final KeyValueService keyValueService = new ThreadUnsafeInMemoryKeyValueService(true);
     private final LegacyKvs kvs = new LegacyKvs(
             executor.soonScheduler(),
             SimpleTransactionService.createV1(keyValueService),
